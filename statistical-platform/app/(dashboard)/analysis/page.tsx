@@ -1,6 +1,8 @@
 'use client'
 
 import { lazy, Suspense } from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 // Lazy load the heavy AnalysisInterface component
 const AnalysisInterface = lazy(() => import('@/components/analysis/analysis-interface').then(m => ({ default: m.AnalysisInterface })))
@@ -13,6 +15,11 @@ export default function AnalysisPage() {
         <p className="text-muted-foreground text-lg">
           29개의 전문 통계 분석 도구를 선택하세요
         </p>
+        <div className="mt-4">
+          <Button asChild size="lg">
+            <Link href="/smart-analysis">스마트 분석 시작</Link>
+          </Button>
+        </div>
       </div>
 
       <Suspense fallback={

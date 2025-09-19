@@ -43,7 +43,7 @@ export interface AnalysisCategory {
   title: string
   titleEn: string
   description: string
-  icon: any
+  icon: React.ComponentType<{ className?: string }>
   color: string
   priority: number // 표시 순서
   tests: StatisticalTest[]

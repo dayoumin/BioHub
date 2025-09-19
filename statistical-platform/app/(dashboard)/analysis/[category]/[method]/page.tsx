@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
-// 테스트 데이터 경로 매핑
+// 테스트 데이터 경로 매핑 (id 기준으로 통일)
 const TEST_DATA_PATHS: Record<string, string> = {
   // 기술통계
   'calculateDescriptiveStats': '/test-data/기술통계량_학생성적.csv',
@@ -26,8 +26,8 @@ const TEST_DATA_PATHS: Record<string, string> = {
   'oneWayANOVA': '/test-data/일원분산분석_치료법비교.csv',
   'twoWayANOVA': '/test-data/이원분산분석_성별교육.csv',
   'tukeyHSD': '/test-data/사후검정_다중비교.csv',
-  'bonferroni': '/test-data/사후검정_다중비교.csv',
-  'gamesHowell': '/test-data/사후검정_다중비교.csv',
+  'bonferroniPostHoc': '/test-data/사후검정_다중비교.csv',
+  'gamesHowellPostHoc': '/test-data/사후검정_다중비교.csv',
 
   // 회귀분석
   'simpleLinearRegression': '/test-data/단순선형회귀_공부시간성적.csv',
@@ -43,7 +43,7 @@ const TEST_DATA_PATHS: Record<string, string> = {
   'chiSquareTest': '/test-data/카이제곱검정_성별선호도.csv',
 
   // 고급분석
-  'pca': '/test-data/주성분분석_설문조사.csv',
+  'principalComponentAnalysis': '/test-data/주성분분석_설문조사.csv',
   'kMeansClustering': '/test-data/클러스터링_고객세분화.csv',
   'hierarchicalClustering': '/test-data/클러스터링_고객세분화.csv'
 }
@@ -51,20 +51,30 @@ const TEST_DATA_PATHS: Record<string, string> = {
 export default function StatisticalMethodPage() {
   const params = useParams()
   const category = params.category as string
-  const methodName = decodeURIComponent(params.method as string)
+  const methodParam = decodeURIComponent(params.method as string)
 
-  // 모든 카테고리에서 해당 메서드 찾기
-  let method = null
-  let categoryInfo = null
+  // 모든 카테고리에서 해당 메서드 찾기: id 우선, popular는 제외하고 캐논컬 우선
+  let method = null as any
+  let categoryInfo = null as any
 
-  for (const config of STATISTICAL_ANALYSIS_CONFIG) {
-    const foundMethod = config.tests.find(test =>
-      test.name === methodName || test.nameEn === methodName || test.id === methodName
-    )
-    if (foundMethod) {
-      method = foundMethod
-      categoryInfo = config
-      break
+  const nonPopular = STATISTICAL_ANALYSIS_CONFIG.filter(c => c.id !== 'popular')
+  // 1) id 완전 일치
+  for (const config of nonPopular) {
+    const found = config.tests.find(t => t.id === methodParam)
+    if (found) { method = found; categoryInfo = config; break }
+  }
+  // 2) name/nameEn 일치(후방 호환)
+  if (!method) {
+    for (const config of nonPopular) {
+      const found = config.tests.find(t => t.name === methodParam || t.nameEn === methodParam)
+      if (found) { method = found; categoryInfo = config; break }
+    }
+  }
+  // 3) popular까지 포함(마지막 보정)
+  if (!method) {
+    for (const config of STATISTICAL_ANALYSIS_CONFIG) {
+      const found = config.tests.find(t => t.id === methodParam || t.name === methodParam || t.nameEn === methodParam)
+      if (found) { method = found; categoryInfo = config; break }
     }
   }
 
