@@ -90,19 +90,27 @@ D:\Projects\Statics\
 - ✅ **결과 시각화 컴포넌트** (ResultsVisualization.tsx)
 - ✅ About 페이지 추가 (플랫폼 소개)
 
-#### 🔄 Week 4 진행 중 (2025-09-17 ~ 23) - Pyodide 통계 엔진 및 UI 개선
+#### ✅ Week 4 완료 (2025-09-17 ~ 22) - 41개 통계 메서드 완성
 
 **완료된 작업:**
-- ✅ **Pyodide 통계 서비스 구현** (`lib/services/pyodide-statistics.ts`)
-- ✅ **27개 통계 메서드 구현**
-- ✅ **테스트 환경 구축** (Jest + Pyodide)
-- ✅ **통계 카테고리별 페이지** (`/analysis/[category]`)
-- ✅ **DataValidationStep 리팩토링**
+- ✅ **41개 통계 메서드 구현 완료** (39→41개 확장)
+- ✅ **8개 카테고리로 재구성** (SPSS 구조 참고)
+- ✅ **oneSampleProportionTest 추가** (Wilson Score Interval)
+- ✅ **welchTTest 추가** (등분산 가정 불필요)
+- ✅ **UI 개선** (8개 탭 한 줄 표시)
+- ✅ **코드 품질 개선** (constants.ts, formatters.ts)
+- ✅ **문서화 완료** (STATISTICAL_METHODS_COMPLETE_GUIDE.md)
 
-**현재 진행 작업:**
-- [ ] 전체 플로우 통합
-- [ ] 성능 최적화
-- [ ] E2E 테스트
+#### 🔧 Week 5 계획 (2025-09-23~) - 변수 선택 시스템
+
+**핵심 작업:**
+- [ ] **지능형 변수 선택 시스템** 구현
+- [ ] 41개 메서드별 변수 요구사항 정의
+- [ ] 독립/종속 변수 구분 UI
+- [ ] 변수 타입 자동 감지 (연속형/범주형/이진형)
+- [ ] 드래그 앤 드롭 변수 할당
+
+**📚 상세 문서**: `docs/development/VARIABLE_SELECTION_SYSTEM.md`
 
 ## 🚀 통계분석 프로세스
 
