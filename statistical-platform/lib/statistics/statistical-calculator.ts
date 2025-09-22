@@ -4,6 +4,7 @@
  */
 
 import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
+import { useAnalysisCacheStore } from '@/lib/stores/analysis-cache-store'
 
 export interface CalculationResult {
   success: boolean
@@ -18,6 +19,22 @@ export interface CalculationResult {
 
 export class StatisticalCalculator {
   private static pyodideService = PyodideStatisticsService.getInstance()
+  private static initializationPromise: Promise<void> | null = null
+
+  /**
+   * UI에서 오는 메서드 ID를 계산기 내부의 정규화된 ID로 변환
+   */
+  private static toCanonicalMethodId(methodId: string): string {
+    const map: Record<string, string> = {
+      // ANOVA 사후검정 ID 정합성
+      bonferroniPostHoc: 'bonferroni',
+      gamesHowellPostHoc: 'gamesHowell',
+
+      // 고급분석: UI id → 내부 스위치 id
+      principalComponentAnalysis: 'pca'
+    }
+    return map[methodId] || methodId
+  }
 
   /**
    * 통계 방법에 따라 적절한 계산 함수 호출
@@ -28,18 +45,56 @@ export class StatisticalCalculator {
     parameters: Record<string, any>
   ): Promise<CalculationResult> {
     try {
-      // Pyodide 초기화 확인
-      await this.pyodideService.initialize()
+      // 캐시 확인
+      const cacheStore = useAnalysisCacheStore.getState()
+      const cached = await cacheStore.getCachedResult(methodId, data, parameters)
+      if (cached && cached.result) {
+        console.log(`[통계계산] 캐시에서 결과 반환: ${methodId}`)
+        return { success: true, data: cached.result }
+      }
+
+      // Pyodide 초기화 확인 (중복 방지)
+      if (!this.pyodideService.isInitialized()) {
+        if (!this.initializationPromise) {
+          this.initializationPromise = this.pyodideService.initialize()
+        }
+        await this.initializationPromise
+      }
 
       // 메서드별 계산 실행
-      switch (methodId) {
-        // 기술통계
-        case 'calculateDescriptiveStats':
-          return await this.calculateDescriptiveStats(data, parameters)
-        case 'normalityTest':
-          return await this.normalityTest(data, parameters)
-        case 'homogeneityTest':
-          return await this.homogeneityTest(data, parameters)
+      const canonicalId = this.toCanonicalMethodId(methodId)
+      let result: CalculationResult
+
+      // 실제 계산 수행
+      result = await this.executeCalculation(canonicalId, data, parameters)
+
+      // 계산 성공 시 결과 캐싱
+      if (result.success && result.data) {
+        await cacheStore.setCachedResult(methodId, data, parameters, result.data)
+      }
+
+      return result
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '계산 중 오류 발생'
+      }
+    }
+  }
+
+  private static async executeCalculation(
+    canonicalId: string,
+    data: any[],
+    parameters: Record<string, any>
+  ): Promise<CalculationResult> {
+    switch (canonicalId) {
+      // 기술통계
+      case 'calculateDescriptiveStats':
+        return await this.calculateDescriptiveStats(data, parameters)
+      case 'normalityTest':
+        return await this.normalityTest(data, parameters)
+      case 'homogeneityTest':
+        return await this.homogeneityTest(data, parameters)
 
         // t-검정
         case 'oneSampleTTest':
@@ -50,12 +105,16 @@ export class StatisticalCalculator {
           return await this.pairedTTest(data, parameters)
         case 'welchTTest':
           return await this.welchTTest(data, parameters)
+        case 'oneSampleProportionTest':
+          return await this.oneSampleProportionTest(data, parameters)
 
         // 분산분석
         case 'oneWayANOVA':
           return await this.oneWayANOVA(data, parameters)
         case 'twoWayANOVA':
           return await this.twoWayANOVA(data, parameters)
+        case 'manova':
+          return await this.manovaCalc(data, parameters)
         case 'tukeyHSD':
           return await this.tukeyHSD(data, parameters)
         case 'bonferroni':
@@ -86,24 +145,33 @@ export class StatisticalCalculator {
           return await this.chiSquareTest(data, parameters)
 
         // 고급분석
+        case 'principalComponentAnalysis': // 후방 호환 (정규화되지 않았을 경우)
         case 'pca':
           return await this.principalComponentAnalysis(data, parameters)
         case 'kMeansClustering':
           return await this.kMeansClustering(data, parameters)
         case 'hierarchicalClustering':
           return await this.hierarchicalClustering(data, parameters)
+        case 'timeSeriesDecomposition':
+          return await this.timeSeriesDecompositionCalc(data, parameters)
+        case 'arimaForecast':
+          return await this.arimaForecastCalc(data, parameters)
+        case 'kaplanMeierSurvival':
+          return await this.kaplanMeierSurvivalCalc(data, parameters)
+        case 'mixedEffectsModel':
+          return await this.mixedEffectsModelCalc(data, parameters)
+        case 'sarimaForecast':
+          return await this.sarimaForecastCalc(data, parameters)
+        case 'varModel':
+          return await this.varModelCalc(data, parameters)
+        case 'coxRegression':
+          return await this.coxRegressionCalc(data, parameters)
 
         default:
           return {
             success: false,
-            error: `통계 방법 ${methodId}는 아직 구현되지 않았습니다`
+            error: `통계 방법 ${canonicalId}는 아직 구현되지 않았습니다`
           }
-      }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : '계산 중 오류 발생'
-      }
     }
   }
 
@@ -526,6 +594,88 @@ export class StatisticalCalculator {
   private static async welchTTest(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
     // 독립표본 t-검정과 동일하지만 equal_var=false로 설정
     return this.twoSampleTTest(data, { ...parameters, equal_var: false })
+  }
+
+  /**
+   * 일표본 비율검정
+   */
+  private static async oneSampleProportionTest(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    const column = parameters.column
+    const targetProportion = parameters.targetProportion || 0.5
+    const alternative = parameters.alternative || 'two-sided'
+    const alpha = parameters.alpha || 0.05
+
+    if (!column) {
+      return { success: false, error: '검정할 열을 선택하세요' }
+    }
+
+    // 이진 데이터 추출 (1/0, true/false, '성공'/'실패' 등)
+    const values = data.map(row => {
+      const val = row[column]
+      if (typeof val === 'boolean') return val ? 1 : 0
+      if (val === 1 || val === 0) return val
+      // 대소문자 구분 없이 처리
+      const strVal = String(val).toLowerCase().trim()
+      if (strVal === '1' || strVal === 'true' || strVal === '성공' || strVal === 'yes' || strVal === 'success') return 1
+      if (strVal === '0' || strVal === 'false' || strVal === '실패' || strVal === 'no' || strVal === 'fail' || strVal === 'failure') return 0
+      return null
+    }).filter(v => v !== null)
+
+    if (values.length < 30) {
+      return { success: false, error: '비율검정은 최소 30개 이상의 데이터가 필요합니다' }
+    }
+
+    const successes = values.filter(v => v === 1).length
+    const n = values.length
+    const observedProportion = successes / n
+
+    // 정규 근사 조건 확인
+    if (n * targetProportion < 5 || n * (1 - targetProportion) < 5) {
+      return { success: false, error: '표본 크기가 정규 근사 조건을 만족하지 않습니다 (np≥5, n(1-p)≥5)' }
+    }
+
+    // Z 통계량 계산
+    const se = Math.sqrt(targetProportion * (1 - targetProportion) / n)
+    const zStatistic = (observedProportion - targetProportion) / se
+
+    // p-value 계산 (표준정규분포 사용)
+    // 간단한 근사값 사용 (실제로는 pyodide에서 계산)
+    const result = await this.pyodideService.oneSampleProportionTest(
+      successes, n, targetProportion, alternative
+    )
+
+    // 신뢰구간
+    const zCritical = 1.96 // 95% 신뢰구간
+    const ciSE = Math.sqrt(observedProportion * (1 - observedProportion) / n)
+    const lowerCI = observedProportion - zCritical * ciSE
+    const upperCI = observedProportion + zCritical * ciSE
+
+    return {
+      success: true,
+      data: {
+        metrics: [
+          { name: '표본 크기', value: n },
+          { name: '성공 개수', value: successes },
+          { name: '관측 비율', value: observedProportion.toFixed(4) },
+          { name: '기준 비율', value: targetProportion.toFixed(4) }
+        ],
+        tables: [{
+          name: '비율검정 결과',
+          data: [
+            { 항목: '검정 방법', 값: 'One-sample Proportion Test (Z-test)' },
+            { 항목: 'Z 통계량', 값: result.statistic.toFixed(4) },
+            { 항목: 'p-value', 값: result.pValue.toFixed(4) },
+            { 항목: '95% 신뢰구간', 값: `[${lowerCI.toFixed(4)}, ${upperCI.toFixed(4)}]` },
+            { 항목: '대립가설', 값: alternative },
+            { 항목: '유의수준 (α)', 값: alpha },
+            { 항목: '결과', 값: result.pValue < alpha ?
+              '기준 비율과 유의한 차이 있음' : '기준 비율과 유의한 차이 없음' }
+          ]
+        }],
+        interpretation: `일표본 비율검정: 관측비율=${observedProportion.toFixed(4)}, 기준비율=${targetProportion}, ` +
+          `Z=${result.statistic.toFixed(2)}, p=${result.pValue.toFixed(4)}`
+      }
+    }
   }
 
   /**
@@ -1840,6 +1990,490 @@ export class StatisticalCalculator {
         interpretation: `주성분 분석 결과, 첫 ${nComponentsSelected}개의 주성분이 전체 분산의 ${(result.cumulativeVariance[nComponentsSelected - 1] * 100).toFixed(1)}%를 설명합니다. ` +
                        `PC1은 ${(result.explainedVarianceRatio[0] * 100).toFixed(1)}%의 분산을 설명하며, ` +
                        `${result.components[0].map((v, i) => Math.abs(v) > 0.4 ? columns[i] : null).filter(v => v).join(', ')}와 가장 강한 연관성을 보입니다.`
+      }
+    }
+  }
+
+  /**
+   * 시계열 분해 (AdvancedService 연동)
+   */
+  private static async timeSeriesDecompositionCalc(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    // 단일 숫자 열 선택: 명시적 column이 없으면 첫 번째 숫자형 열을 자동 선택
+    let column: string | undefined = parameters.column
+    if (!column) {
+      const firstRow = data[0]
+      if (!firstRow) return { success: false, error: '데이터가 비어 있습니다' }
+      const candidate = Object.keys(firstRow).find(k => typeof firstRow[k] === 'number')
+      if (!candidate) return { success: false, error: '숫자형 열을 찾을 수 없습니다. column 파라미터를 지정하세요' }
+      column = candidate
+    }
+
+    const series = data.map(row => parseFloat(row[column!])).filter(v => !isNaN(v))
+    if (series.length < 4) {
+      return { success: false, error: '시계열 분해를 위해 최소 4개 이상의 숫자 데이터가 필요합니다' }
+    }
+
+    const period = parameters.period ? Number(parameters.period) : undefined
+
+    const result = await this.pyodideService.timeSeriesDecomposition(series, period)
+
+    const metrics = [
+      { name: '길이', value: result.length || series.length },
+      { name: '주기', value: result.period },
+      { name: '계절성 강도', value: (result.seasonalStrength ?? 0).toFixed?.(4) || String(result.seasonalStrength) || 'N/A' },
+      { name: '추세 강도', value: (result.trendStrength ?? 0).toFixed?.(4) || String(result.trendStrength) || 'N/A' }
+    ]
+
+    // 컴포넌트 미리보기 (앞 10개)
+    const preview = (arr?: number[]) => (arr ? arr.slice(0, 10).map(v => (v == null ? '' : Number(v.toFixed ? v.toFixed(4) : v))) : [])
+
+    const tables = [
+      {
+        name: '컴포넌트 프리뷰 (상위 10개)',
+        data: Array.from({ length: 10 }).map((_, i) => ({
+          인덱스: i + 1,
+          관측값: result.observed?.[i] ?? '',
+          추세: result.trend?.[i] ?? '',
+          계절성: result.seasonal?.[i] ?? '',
+          잔차: result.residual?.[i] ?? ''
+        }))
+      }
+    ]
+
+    return {
+      success: true,
+      data: {
+        metrics,
+        tables,
+        interpretation: `시계열을 주기 ${result.period}로 분해했습니다. 계절성 강도=${(result.seasonalStrength ?? 0).toFixed?.(4) || result.seasonalStrength}, 추세 강도=${(result.trendStrength ?? 0).toFixed?.(4) || result.trendStrength}.`
+      }
+    }
+  }
+
+  /**
+   * ARIMA 예측
+   */
+  private static async arimaForecastCalc(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    const column = parameters.column || 'value'
+    const p = parameters.p || 1
+    const d = parameters.d || 1
+    const q = parameters.q || 1
+    const steps = parameters.steps || 12
+
+    const values = data.map(row => row[column]).filter((v): v is number => typeof v === 'number')
+
+    if (values.length < 10) {
+      return { success: false, error: 'ARIMA 예측을 위해서는 최소 10개의 데이터가 필요합니다' }
+    }
+
+    const result = await this.pyodideService.arimaForecast(values, p, d, q, steps)
+
+    const metrics = [
+      { name: 'AIC', value: result.aic.toFixed(2) },
+      { name: 'BIC', value: result.bic.toFixed(2) },
+      { name: 'MAE', value: result.mae.toFixed(4) },
+      { name: 'RMSE', value: result.rmse.toFixed(4) }
+    ]
+
+    const tables = [{
+      name: '예측 결과',
+      data: result.forecast.map((val, i) => ({
+        '시점': `t+${i + 1}`,
+        '예측값': val.toFixed(2),
+        '하한': result.lower_bound[i].toFixed(2),
+        '상한': result.upper_bound[i].toFixed(2)
+      }))
+    }]
+
+    const charts = [{
+      type: 'line',
+      data: {
+        labels: [...Array(values.length + steps)].map((_, i) =>
+          i < values.length ? `t${i}` : `t+${i - values.length + 1}`
+        ),
+        datasets: [
+          {
+            label: '실제값',
+            data: [...values, ...Array(steps).fill(null)],
+            borderColor: 'blue'
+          },
+          {
+            label: '예측값',
+            data: [...Array(values.length).fill(null), ...result.forecast],
+            borderColor: 'red'
+          },
+          {
+            label: '신뢰구간 상한',
+            data: [...Array(values.length).fill(null), ...result.upper_bound],
+            borderColor: 'rgba(255,0,0,0.3)',
+            fill: '+1'
+          },
+          {
+            label: '신뢰구간 하한',
+            data: [...Array(values.length).fill(null), ...result.lower_bound],
+            borderColor: 'rgba(255,0,0,0.3)',
+            fill: false
+          }
+        ]
+      }
+    }]
+
+    return {
+      success: true,
+      data: {
+        metrics,
+        tables,
+        charts,
+        interpretation: `ARIMA(${p},${d},${q}) 모델로 ${steps}개 시점을 예측했습니다. AIC=${result.aic.toFixed(2)}, BIC=${result.bic.toFixed(2)}`
+      }
+    }
+  }
+
+  /**
+   * MANOVA (다변량 분산분석)
+   */
+  private static async manovaCalc(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    const dependentColumns = parameters.dependentColumns || []
+    const groupColumn = parameters.groupColumn
+
+    if (!dependentColumns || dependentColumns.length < 2) {
+      return { success: false, error: 'MANOVA를 위해서는 최소 2개의 종속변수를 선택하세요' }
+    }
+
+    if (!groupColumn) {
+      return { success: false, error: '그룹 변수를 선택하세요' }
+    }
+
+    // 종속변수 데이터 추출 (각 행이 하나의 관측치)
+    const dependentVars = dependentColumns.map(col =>
+      data.map(row => row[col]).filter((v): v is number => typeof v === 'number')
+    )
+
+    // 그룹 데이터 추출
+    const groups = data.map(row => String(row[groupColumn]))
+
+    if (dependentVars[0].length !== groups.length) {
+      return { success: false, error: '데이터 길이가 일치하지 않습니다' }
+    }
+
+    const result = await this.pyodideService.manova(dependentVars, groups)
+
+    // 가장 일반적으로 사용되는 Wilks' Lambda 결과
+    const wilks = result.test_statistics.wilks_lambda
+
+    const metrics = [
+      { name: "Wilks' Lambda", value: wilks.statistic.toFixed(4) },
+      { name: 'F-value', value: wilks.f_value.toFixed(4) },
+      { name: 'p-value', value: wilks.p_value.toFixed(4) },
+      { name: '그룹 수', value: result.n_groups },
+      { name: '종속변수 수', value: result.n_dependent_vars }
+    ]
+
+    // 다변량 검정 결과 테이블
+    const testTable = {
+      name: '다변량 검정',
+      data: [
+        {
+          '검정': "Wilks' Lambda",
+          '통계량': wilks.statistic.toFixed(4),
+          'F값': wilks.f_value.toFixed(4),
+          'df1': wilks.df_num,
+          'df2': wilks.df_den.toFixed(1),
+          'p-value': wilks.p_value.toFixed(4)
+        },
+        {
+          '검정': "Pillai's Trace",
+          '통계량': result.test_statistics.pillai_trace.statistic.toFixed(4),
+          'F값': result.test_statistics.pillai_trace.f_value.toFixed(4),
+          'df1': result.test_statistics.pillai_trace.df_num,
+          'df2': result.test_statistics.pillai_trace.df_den.toFixed(1),
+          'p-value': result.test_statistics.pillai_trace.p_value.toFixed(4)
+        },
+        {
+          '검정': "Hotelling's Trace",
+          '통계량': result.test_statistics.hotelling_trace.statistic.toFixed(4),
+          'F값': result.test_statistics.hotelling_trace.f_value.toFixed(4),
+          'df1': result.test_statistics.hotelling_trace.df_num,
+          'df2': result.test_statistics.hotelling_trace.df_den.toFixed(1),
+          'p-value': result.test_statistics.hotelling_trace.p_value.toFixed(4)
+        },
+        {
+          '검정': "Roy's Root",
+          '통계량': result.test_statistics.roy_greatest_root.statistic.toFixed(4),
+          'F값': result.test_statistics.roy_greatest_root.f_value.toFixed(4),
+          'df1': result.test_statistics.roy_greatest_root.df_num,
+          'df2': result.test_statistics.roy_greatest_root.df_den.toFixed(1),
+          'p-value': result.test_statistics.roy_greatest_root.p_value.toFixed(4)
+        }
+      ]
+    }
+
+    // 단변량 ANOVA 결과
+    const univariateTable = result.univariate_anovas ? {
+      name: '각 종속변수별 ANOVA',
+      data: result.univariate_anovas.map((uv, i) => ({
+        '변수': dependentColumns[i],
+        'F값': uv.f_statistic.toFixed(4),
+        'p-value': uv.p_value.toFixed(4),
+        '유의성': uv.p_value < 0.05 ? '유의' : '무의'
+      }))
+    } : null
+
+    const tables = [testTable]
+    if (univariateTable) tables.push(univariateTable)
+
+    return {
+      success: true,
+      data: {
+        metrics,
+        tables,
+        interpretation: `MANOVA 결과: Wilks' Lambda=${wilks.statistic.toFixed(4)}, F(${wilks.df_num},${wilks.df_den.toFixed(1)})=${wilks.f_value.toFixed(4)}, p=${wilks.p_value.toFixed(4)}. ${wilks.p_value < 0.05 ? '그룹 간 다변량 차이가 유의합니다' : '그룹 간 다변량 차이가 유의하지 않습니다'}.`
+      }
+    }
+  }
+
+  /**
+   * Kaplan-Meier 생존분석
+   */
+  private static async kaplanMeierSurvivalCalc(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    const timeColumn = parameters.timeColumn || 'time'
+    const eventColumn = parameters.eventColumn || 'event'
+
+    const times = data.map(row => row[timeColumn]).filter((v): v is number => typeof v === 'number')
+    const events = data.map(row => row[eventColumn]).filter((v): v is number => typeof v === 'number')
+
+    if (times.length !== events.length || times.length < 2) {
+      return { success: false, error: '생존분석을 위한 시간과 사건 데이터가 올바르지 않습니다' }
+    }
+
+    const result = await this.pyodideService.kaplanMeierSurvival(times, events)
+
+    const metrics = [
+      { name: '중앙 생존시간', value: result.median_survival_time?.toFixed(1) || 'N/A' },
+      { name: '사건 수', value: result.events_count },
+      { name: '중도절단 수', value: result.censored_count }
+    ]
+
+    const tables = [{
+      name: '생존함수',
+      data: result.survival_function.time.map((t, i) => ({
+        '시간': t.toFixed(1),
+        '생존확률': result.survival_function.survival_probability[i].toFixed(3),
+        '신뢰하한': result.survival_function.confidence_interval_lower[i].toFixed(3),
+        '신뢰상한': result.survival_function.confidence_interval_upper[i].toFixed(3)
+      }))
+    }]
+
+    const charts = [{
+      type: 'line',
+      data: {
+        labels: result.survival_function.time.map(t => t.toFixed(1)),
+        datasets: [{
+          label: '생존확률',
+          data: result.survival_function.survival_probability,
+          borderColor: 'blue',
+          stepped: true
+        }]
+      }
+    }]
+
+    return {
+      success: true,
+      data: {
+        metrics,
+        tables,
+        charts,
+        interpretation: `Kaplan-Meier 생존분석: 중앙생존시간=${result.median_survival_time?.toFixed(1) || 'N/A'}, 사건수=${result.events_count}, 중도절단수=${result.censored_count}`
+      }
+    }
+  }
+
+  /**
+   * Mixed Effects Model
+   */
+  private static async mixedEffectsModelCalc(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    const formula = parameters.formula
+    const groups = parameters.groups
+
+    if (!formula || !groups) {
+      return { success: false, error: 'Mixed Effects Model requires formula and groups parameters' }
+    }
+
+    const result = await this.pyodideService.mixedEffectsModel(data, formula, groups)
+
+    const metrics = [
+      { name: 'AIC', value: result.model_fit.aic.toFixed(2) },
+      { name: 'BIC', value: result.model_fit.bic.toFixed(2) },
+      { name: 'ICC', value: result.icc?.toFixed(3) || 'N/A' },
+      { name: 'Converged', value: result.model_fit.converged ? 'Yes' : 'No' }
+    ]
+
+    const tables = [
+      {
+        name: 'Fixed Effects',
+        data: Object.entries(result.fixed_effects).map(([name, effect]) => ({
+          'Variable': name,
+          'Coefficient': effect.coefficient.toFixed(4),
+          'Std Error': effect.std_error.toFixed(4),
+          'z-value': effect.z_value.toFixed(2),
+          'p-value': effect.p_value.toFixed(4)
+        }))
+      },
+      {
+        name: 'Random Effects',
+        data: Object.entries(result.random_effects).map(([name, effect]) => ({
+          'Group': name,
+          'Variance': effect.variance.toFixed(4),
+          'Std Dev': effect.std_dev.toFixed(4)
+        }))
+      }
+    ]
+
+    return {
+      success: true,
+      data: {
+        metrics,
+        tables,
+        interpretation: `Mixed Effects Model: AIC=${result.model_fit.aic.toFixed(2)}, ICC=${result.icc?.toFixed(3) || 'N/A'}`
+      }
+    }
+  }
+
+  /**
+   * SARIMA Forecast
+   */
+  private static async sarimaForecastCalc(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    const column = parameters.column
+    const order = parameters.order || [1, 1, 1]
+    const seasonal_order = parameters.seasonal_order || [1, 1, 1, 12]
+    const steps = parameters.steps || 12
+
+    if (!column) {
+      return { success: false, error: '시계열 데이터 열을 선택하세요' }
+    }
+
+    const values = data.map(row => parseFloat(row[column])).filter(v => !isNaN(v))
+    if (values.length < 24) {
+      return { success: false, error: 'SARIMA requires at least 24 data points' }
+    }
+
+    const result = await this.pyodideService.sarimaForecast(values, order, seasonal_order, steps)
+
+    const metrics = [
+      { name: 'AIC', value: result.aic.toFixed(2) },
+      { name: 'BIC', value: result.bic.toFixed(2) },
+      { name: 'MAE', value: result.mae?.toFixed(2) || 'N/A' },
+      { name: 'RMSE', value: result.rmse?.toFixed(2) || 'N/A' }
+    ]
+
+    const tables = [{
+      name: 'Forecast',
+      data: result.forecast.map((val, i) => ({
+        'Step': i + 1,
+        'Forecast': val.toFixed(2),
+        'Lower Bound': result.lower_bound?.[i]?.toFixed(2) || 'N/A',
+        'Upper Bound': result.upper_bound?.[i]?.toFixed(2) || 'N/A'
+      }))
+    }]
+
+    return {
+      success: true,
+      data: {
+        metrics,
+        tables,
+        interpretation: `SARIMA(${order.join(',')})(${seasonal_order.join(',')}) Forecast: AIC=${result.aic.toFixed(2)}, Steps=${steps}`
+      }
+    }
+  }
+
+  /**
+   * VAR Model
+   */
+  private static async varModelCalc(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    const columns = parameters.columns
+    const maxlags = parameters.maxlags || 5
+    const steps = parameters.steps || 1
+
+    if (!columns || columns.length < 2) {
+      return { success: false, error: 'VAR Model requires at least 2 columns' }
+    }
+
+    const dataMatrix = columns.map(col =>
+      data.map(row => parseFloat(row[col])).filter(v => !isNaN(v))
+    )
+
+    if (dataMatrix.some(col => col.length < 20)) {
+      return { success: false, error: 'Each variable needs at least 20 observations' }
+    }
+
+    const result = await this.pyodideService.varModel(dataMatrix, maxlags, steps)
+
+    const metrics = [
+      { name: 'AIC', value: result.aic.toFixed(2) },
+      { name: 'BIC', value: result.bic.toFixed(2) },
+      { name: 'Lag Order', value: result.lag_order }
+    ]
+
+    const tables = [{
+      name: 'Forecast',
+      data: result.forecast.map((vals, step) => {
+        const row: any = { 'Step': step + 1 }
+        columns.forEach((col, i) => {
+          row[col] = vals[i]?.toFixed(2) || 'N/A'
+        })
+        return row
+      })
+    }]
+
+    return {
+      success: true,
+      data: {
+        metrics,
+        tables,
+        interpretation: `VAR Model: Lag=${result.lag_order}, AIC=${result.aic.toFixed(2)}`
+      }
+    }
+  }
+
+  /**
+   * Cox Regression
+   */
+  private static async coxRegressionCalc(data: any[], parameters: Record<string, any>): Promise<CalculationResult> {
+    const duration_col = parameters.duration_col || 'time'
+    const event_col = parameters.event_col || 'event'
+    const covariates = parameters.covariates || []
+
+    if (!duration_col || !event_col || covariates.length === 0) {
+      return { success: false, error: 'Cox Regression requires duration, event and covariate columns' }
+    }
+
+    const result = await this.pyodideService.coxRegression(data, duration_col, event_col, covariates)
+
+    const metrics = [
+      { name: 'Concordance', value: result.concordance.toFixed(3) },
+      { name: 'Log-likelihood', value: result.log_likelihood.toFixed(2) },
+      { name: 'N observations', value: result.n_observations },
+      { name: 'N events', value: result.n_events }
+    ]
+
+    const tables = [{
+      name: 'Coefficients',
+      data: Object.entries(result.coefficients).map(([name, coef]) => ({
+        'Variable': name,
+        'Coef': coef.coef.toFixed(4),
+        'Hazard Ratio': coef.exp_coef.toFixed(3),
+        'SE': coef.se_coef.toFixed(4),
+        'z': coef.z.toFixed(2),
+        'p-value': coef.p_value.toFixed(4)
+      }))
+    }]
+
+    return {
+      success: true,
+      data: {
+        metrics,
+        tables,
+        interpretation: `Cox Regression: Concordance=${result.concordance.toFixed(3)}, N=${result.n_observations}, Events=${result.n_events}`
       }
     }
   }

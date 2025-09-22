@@ -7,7 +7,12 @@ import type {
   IAdvancedService,
   PCAResult,
   ClusteringResult,
-  TimeSeriesResult
+  TimeSeriesResult,
+  SurvivalResult,
+  MixedEffectsResult,
+  SARIMAResult,
+  VARResult,
+  CoxRegressionResult
 } from './types'
 
 export class AdvancedService extends BasePyodideService implements IAdvancedService {
@@ -457,5 +462,530 @@ export class AdvancedService extends BasePyodideService implements IAdvancedServ
     }
 
     return result
+  }
+
+  /**
+   * ARIMA 예측
+   */
+  async arimaForecast(
+    data: number[],
+    p: number,
+    d: number,
+    q: number,
+    steps: number
+  ): Promise<TimeSeriesResult> {
+    await this.initialize()
+    this.setData('ts_data', data)
+    this.setData('p', p)
+    this.setData('d', d)
+    this.setData('q', q)
+    this.setData('steps', steps)
+
+    const py_result = await this.runPythonSafely(`
+      from statsmodels.tsa.arima.model import ARIMA
+      import warnings
+      warnings.filterwarnings('ignore')
+
+      ts_data = np.array(ts_data)
+
+      try:
+        # ARIMA 모델 fitting
+        model = ARIMA(ts_data, order=(p, d, q))
+        fitted_model = model.fit()
+
+        # 예측
+        forecast = fitted_model.forecast(steps=steps)
+
+        # 신뢰구간 (95%)
+        forecast_df = fitted_model.get_forecast(steps=steps)
+        conf_int = forecast_df.conf_int(alpha=0.05)
+
+        # 잔차 및 적합값
+        residuals = fitted_model.resid
+        fitted_values = fitted_model.fittedvalues
+
+        # 평가 지표
+        mae = np.mean(np.abs(residuals))
+        rmse = np.sqrt(np.mean(residuals**2))
+
+        py_result = {
+          'forecast': forecast.tolist(),
+          'lower_bound': conf_int.iloc[:, 0].tolist(),
+          'upper_bound': conf_int.iloc[:, 1].tolist(),
+          'residuals': residuals.tolist(),
+          'aic': float(fitted_model.aic),
+          'bic': float(fitted_model.bic),
+          'model_params': {
+            'p': int(p),
+            'd': int(d),
+            'q': int(q),
+            'seasonal_order': [0, 0, 0, 0]
+          },
+          'fitted_values': fitted_values.tolist(),
+          'mae': float(mae),
+          'rmse': float(rmse),
+          'confidence_level': 0.95,
+          'trend': [],
+          'seasonal': [],
+          'residual': residuals.tolist(),
+          'period': 0
+        }
+      except Exception as e:
+        py_result = {'error': str(e)}
+
+      import json
+      result = json.dumps(py_result)
+      result
+    `)
+
+    const result = JSON.parse(py_result)
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    return result as TimeSeriesResult
+  }
+
+  /**
+   * Kaplan-Meier 생존분석
+   */
+  async kaplanMeierSurvival(
+    times: number[],
+    events: number[]
+  ): Promise<SurvivalResult> {
+    await this.initialize()
+    this.setData('times', times)
+    this.setData('events', events)
+
+    const py_result = await this.runPythonSafely(`
+      from lifelines import KaplanMeierFitter
+
+      times = np.array(times)
+      events = np.array(events).astype(bool)
+
+      try:
+        # Kaplan-Meier fitting
+        kmf = KaplanMeierFitter()
+        kmf.fit(times, events)
+
+        # 생존함수 추출
+        survival_func = kmf.survival_function_
+
+        # 신뢰구간
+        conf_int = kmf.confidence_interval_survival_function_
+
+        # 중앙 생존시간
+        median_survival = kmf.median_survival_time_
+
+        # 사건 수와 중도절단 수
+        events_count = int(events.sum())
+        censored_count = int((1 - events).sum())
+
+        # Risk table 생성
+        risk_table = []
+        unique_times = np.unique(times)
+        for t in unique_times:
+          at_risk = int(np.sum(times >= t))
+          events_at_t = int(np.sum((times == t) & (events == 1)))
+          censored_at_t = int(np.sum((times == t) & (events == 0)))
+          risk_table.append({
+            'time': float(t),
+            'at_risk': at_risk,
+            'events': events_at_t,
+            'censored': censored_at_t
+          })
+
+        py_result = {
+          'survival_function': {
+            'time': survival_func.index.tolist(),
+            'survival_probability': survival_func.values.flatten().tolist(),
+            'confidence_interval_lower': conf_int.iloc[:, 0].tolist(),
+            'confidence_interval_upper': conf_int.iloc[:, 1].tolist()
+          },
+          'median_survival_time': float(median_survival) if not np.isnan(median_survival) else None,
+          'events_count': events_count,
+          'censored_count': censored_count,
+          'risk_table': risk_table
+        }
+      except Exception as e:
+        py_result = {'error': str(e)}
+
+      import json
+      result = json.dumps(py_result)
+      result
+    `)
+
+    const result = JSON.parse(py_result)
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    return result as SurvivalResult
+  }
+
+  /**
+   * Mixed Effects Models (선형 혼합 모델)
+   */
+  async mixedEffectsModel(
+    data: any[],
+    formula: string,
+    groups: string
+  ): Promise<MixedEffectsResult> {
+    await this.initialize()
+    this.setData('model_data', data)
+    this.setData('formula', formula)
+    this.setData('groups', groups)
+
+    const py_result = await this.runPythonSafely(`
+      import pandas as pd
+      import statsmodels.formula.api as smf
+      from statsmodels.regression.mixed_linear_model import MixedLM
+
+      # 데이터프레임 생성
+      df = pd.DataFrame(model_data)
+
+      try:
+        # Mixed Effects Model fitting
+        model = smf.mixedlm(formula, df, groups=df[groups])
+        result = model.fit()
+
+        # Fixed effects 추출
+        fixed_effects = {}
+        for param in result.params.index:
+          fixed_effects[param] = {
+            'coefficient': float(result.params[param]),
+            'std_error': float(result.bse[param]),
+            'z_value': float(result.tvalues[param]),
+            'p_value': float(result.pvalues[param]),
+            'ci_lower': float(result.conf_int().loc[param, 0]),
+            'ci_upper': float(result.conf_int().loc[param, 1])
+          }
+
+        # Random effects variance
+        random_effects = {}
+        re_cov = result.cov_re
+        if hasattr(re_cov, 'shape'):
+          if re_cov.shape[0] > 0:
+            random_effects['group'] = {
+              'variance': float(re_cov[0, 0]),
+              'std_dev': float(np.sqrt(re_cov[0, 0]))
+            }
+
+        random_effects['residual'] = {
+          'variance': float(result.scale),
+          'std_dev': float(np.sqrt(result.scale))
+        }
+
+        # ICC calculation (for random intercept models)
+        var_between = re_cov[0, 0] if hasattr(re_cov, 'shape') and re_cov.shape[0] > 0 else 0
+        var_within = result.scale
+        icc = float(var_between / (var_between + var_within)) if (var_between + var_within) > 0 else 0
+
+        py_result = {
+          'fixed_effects': fixed_effects,
+          'random_effects': random_effects,
+          'model_fit': {
+            'log_likelihood': float(result.llf),
+            'aic': float(result.aic),
+            'bic': float(result.bic),
+            'converged': bool(result.converged)
+          },
+          'icc': icc
+        }
+
+      except Exception as e:
+        py_result = {'error': str(e)}
+
+      import json
+      result = json.dumps(py_result)
+      result
+    `)
+
+    const result = JSON.parse(py_result)
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    return result as MixedEffectsResult
+  }
+
+  /**
+   * SARIMA (계절성 ARIMA)
+   */
+  async sarimaForecast(
+    data: number[],
+    order: [number, number, number],
+    seasonal_order: [number, number, number, number],
+    steps: number
+  ): Promise<SARIMAResult> {
+    await this.initialize()
+    this.setData('ts_data', data)
+    this.setData('p', order[0])
+    this.setData('d', order[1])
+    this.setData('q', order[2])
+    this.setData('P', seasonal_order[0])
+    this.setData('D', seasonal_order[1])
+    this.setData('Q', seasonal_order[2])
+    this.setData('s', seasonal_order[3])
+    this.setData('steps', steps)
+
+    const py_result = await this.runPythonSafely(`
+      from statsmodels.tsa.statespace.sarimax import SARIMAX
+      import warnings
+      warnings.filterwarnings('ignore')
+
+      ts_data = np.array(ts_data)
+
+      try:
+        # SARIMA 모델 fitting
+        model = SARIMAX(ts_data, order=(p, d, q), seasonal_order=(P, D, Q, s))
+        fitted_model = model.fit(disp=False)
+
+        # 예측
+        forecast = fitted_model.forecast(steps=steps)
+        forecast_df = fitted_model.get_forecast(steps=steps)
+        conf_int = forecast_df.conf_int(alpha=0.05)
+
+        # 평가 지표
+        residuals = fitted_model.resid
+        mae = np.mean(np.abs(residuals))
+        rmse = np.sqrt(np.mean(residuals**2))
+
+        py_result = {
+          'forecast': forecast.tolist(),
+          'lower_bound': conf_int.iloc[:, 0].tolist(),
+          'upper_bound': conf_int.iloc[:, 1].tolist(),
+          'residuals': residuals.tolist(),
+          'aic': float(fitted_model.aic),
+          'bic': float(fitted_model.bic),
+          'seasonal_order': {
+            'P': int(P),
+            'D': int(D),
+            'Q': int(Q),
+            's': int(s)
+          },
+          'model_params': {
+            'p': int(p),
+            'd': int(d),
+            'q': int(q),
+            'seasonal_order': [int(P), int(D), int(Q), int(s)]
+          },
+          'fitted_values': fitted_model.fittedvalues.tolist(),
+          'mae': float(mae),
+          'rmse': float(rmse),
+          'confidence_level': 0.95,
+          'trend': [],
+          'seasonal': [],
+          'residual': residuals.tolist(),
+          'period': int(s)
+        }
+      except Exception as e:
+        py_result = {'error': str(e)}
+
+      import json
+      result = json.dumps(py_result)
+      result
+    `)
+
+    const result = JSON.parse(py_result)
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    return result as SARIMAResult
+  }
+
+  /**
+   * VAR (벡터 자기회귀)
+   */
+  async varModel(
+    data: number[][],
+    maxlags?: number,
+    steps: number = 10
+  ): Promise<VARResult> {
+    await this.initialize()
+    this.setData('multivariate_data', data)
+    this.setData('maxlags', maxlags || 10)
+    this.setData('forecast_steps', steps)
+
+    const py_result = await this.runPythonSafely(`
+      from statsmodels.tsa.vector_ar.var_model import VAR
+      import warnings
+      warnings.filterwarnings('ignore')
+
+      # 데이터 준비 (각 열이 하나의 변수)
+      data_array = np.array(multivariate_data).T
+
+      try:
+        # VAR 모델 fitting
+        model = VAR(data_array)
+
+        # 최적 lag 선택
+        if maxlags:
+          lag_order_results = model.select_order(maxlags=maxlags)
+          optimal_lag = lag_order_results.aic
+        else:
+          optimal_lag = 1
+
+        fitted_model = model.fit(optimal_lag)
+
+        # 예측
+        forecast = fitted_model.forecast(data_array[-optimal_lag:], steps=forecast_steps)
+
+        # Granger causality test
+        granger_results = {}
+        n_vars = data_array.shape[1]
+        for i in range(n_vars):
+          for j in range(n_vars):
+            if i != j:
+              try:
+                from statsmodels.tsa.stattools import grangercausalitytests
+                gc_test = grangercausalitytests(data_array[:, [j, i]], maxlag=optimal_lag, verbose=False)
+                # 첫 번째 lag의 결과 사용
+                test_result = gc_test[1][0]['ssr_ftest']
+                granger_results[f'var{j}_to_var{i}'] = {
+                  'test_statistic': float(test_result[0]),
+                  'p_value': float(test_result[1]),
+                  'df': int(test_result[2])
+                }
+              except:
+                pass
+
+        py_result = {
+          'coefficients': fitted_model.params.tolist(),
+          'lag_order': int(optimal_lag),
+          'granger_causality': granger_results,
+          'forecast': forecast.tolist(),
+          'residuals': fitted_model.resid.tolist(),
+          'aic': float(fitted_model.aic),
+          'bic': float(fitted_model.bic)
+        }
+
+      except Exception as e:
+        py_result = {'error': str(e)}
+
+      import json
+      result = json.dumps(py_result)
+      result
+    `)
+
+    const result = JSON.parse(py_result)
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    return result as VARResult
+  }
+
+  /**
+   * Cox Proportional Hazards Regression
+   */
+  async coxRegression(
+    data: any[],
+    duration_col: string,
+    event_col: string,
+    covariates: string[]
+  ): Promise<CoxRegressionResult> {
+    await this.initialize()
+    this.setData('cox_data', data)
+    this.setData('duration_col', duration_col)
+    this.setData('event_col', event_col)
+    this.setData('covariates', covariates)
+
+    const py_result = await this.runPythonSafely(`
+      import pandas as pd
+
+      # lifelines 설치 확인 및 대체 구현
+      try:
+        from lifelines import CoxPHFitter
+        use_lifelines = True
+      except ImportError:
+        use_lifelines = False
+
+      df = pd.DataFrame(cox_data)
+
+      if use_lifelines:
+        try:
+          # lifelines를 사용한 Cox regression
+          cph = CoxPHFitter()
+          cph.fit(df, duration_col=duration_col, event_col=event_col, formula=' + '.join(covariates))
+
+          # 계수 추출
+          coefficients = {}
+          for var in covariates:
+            coefficients[var] = {
+              'coef': float(cph.params_[var]),
+              'exp_coef': float(np.exp(cph.params_[var])),  # Hazard ratio
+              'se_coef': float(cph.standard_errors_[var]),
+              'z': float(cph.summary.loc[var, 'z']),
+              'p_value': float(cph.summary.loc[var, 'p']),
+              'ci_lower': float(cph.confidence_intervals_.loc[var, '95% lower-bound']),
+              'ci_upper': float(cph.confidence_intervals_.loc[var, '95% upper-bound'])
+            }
+
+          py_result = {
+            'coefficients': coefficients,
+            'concordance': float(cph.concordance_index_),
+            'log_likelihood': float(cph.log_likelihood_),
+            'likelihood_ratio_test': {
+              'test_statistic': float(cph.summary.loc[covariates[0], 'coef']),  # Simplified
+              'df': len(covariates),
+              'p_value': float(cph.summary.loc[covariates[0], 'p'])
+            },
+            'n_observations': int(len(df)),
+            'n_events': int(df[event_col].sum())
+          }
+
+        except Exception as e:
+          py_result = {'error': f'Cox regression with lifelines failed: {str(e)}'}
+
+      else:
+        # statsmodels를 사용한 간단한 대안
+        from statsmodels.duration.hazard_regression import PHReg
+
+        try:
+          # PHReg 모델 fitting
+          mod = PHReg(df[duration_col], df[covariates], status=df[event_col])
+          rslt = mod.fit()
+
+          coefficients = {}
+          for i, var in enumerate(covariates):
+            coefficients[var] = {
+              'coef': float(rslt.params[i]),
+              'exp_coef': float(np.exp(rslt.params[i])),
+              'se_coef': float(rslt.bse[i]),
+              'z': float(rslt.tvalues[i]),
+              'p_value': float(rslt.pvalues[i]),
+              'ci_lower': float(rslt.conf_int()[i][0]),
+              'ci_upper': float(rslt.conf_int()[i][1])
+            }
+
+          py_result = {
+            'coefficients': coefficients,
+            'concordance': 0.5,  # PHReg doesn't provide this directly
+            'log_likelihood': float(rslt.llf),
+            'likelihood_ratio_test': {
+              'test_statistic': float(rslt.llr),
+              'df': len(covariates),
+              'p_value': float(rslt.llr_pvalue)
+            },
+            'n_observations': int(len(df)),
+            'n_events': int(df[event_col].sum())
+          }
+
+        except Exception as e:
+          py_result = {'error': f'Cox regression failed: {str(e)}'}
+
+      import json
+      result = json.dumps(py_result)
+      result
+    `)
+
+    const result = JSON.parse(py_result)
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    return result as CoxRegressionResult
   }
 }

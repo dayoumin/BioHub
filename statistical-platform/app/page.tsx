@@ -1,17 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, lazy, Suspense, useTransition } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronRight, ChevronLeft, Upload, CheckCircle, BarChart3, FileText, Sparkles, HelpCircle, X, Clock } from 'lucide-react'
-import { ProgressStepper } from '@/components/smart-flow/ProgressStepper'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { DataValidationStep } from '@/components/smart-flow/steps/DataValidationStep'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
-import { AnalysisExecutionStep } from '@/components/smart-flow/steps/AnalysisExecutionStep'
-import { ResultsActionStep } from '@/components/smart-flow/steps/ResultsActionStep'
-import { AnalysisHistoryPanel } from '@/components/smart-flow/AnalysisHistoryPanel'
+import { SkeletonStepper, SkeletonCard } from '@/components/ui/skeleton'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
 import {
@@ -21,6 +15,15 @@ import {
   AnalysisResult,
   DataRow
 } from '@/types/smart-flow'
+
+// Lazy load 무거운 컴포넌트들
+const ProgressStepper = lazy(() => import('@/components/smart-flow/ProgressStepper').then(m => ({ default: m.ProgressStepper })))
+const DataUploadStep = lazy(() => import('@/components/smart-flow/steps/DataUploadStep').then(m => ({ default: m.DataUploadStep })))
+const DataValidationStep = lazy(() => import('@/components/smart-flow/steps/DataValidationStep').then(m => ({ default: m.DataValidationStep })))
+const PurposeInputStep = lazy(() => import('@/components/smart-flow/steps/PurposeInputStep').then(m => ({ default: m.PurposeInputStep })))
+const AnalysisExecutionStep = lazy(() => import('@/components/smart-flow/steps/AnalysisExecutionStep').then(m => ({ default: m.AnalysisExecutionStep })))
+const ResultsActionStep = lazy(() => import('@/components/smart-flow/steps/ResultsActionStep').then(m => ({ default: m.ResultsActionStep })))
+const AnalysisHistoryPanel = lazy(() => import('@/components/smart-flow/AnalysisHistoryPanel').then(m => ({ default: m.AnalysisHistoryPanel })))
 
 const steps: StepConfig[] = [
   { id: 1, name: '데이터 업로드', icon: Upload, description: '분석할 데이터 파일을 업로드하세요' },
@@ -34,6 +37,7 @@ export default function SmartFlowPageRefactored() {
   const [showHelp, setShowHelp] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [systemMemory, setSystemMemory] = useState<number | null>(null)
+  const [isPending, startTransition] = useTransition()
   
   // 시스템 메모리 감지 (Navigator API)
   useEffect(() => {
@@ -76,7 +80,9 @@ export default function SmartFlowPageRefactored() {
 
   const handleStepClick = useCallback((stepId: number) => {
     if (canNavigateToStep(stepId)) {
-      navigateToStep(stepId)
+      startTransition(() => {
+        navigateToStep(stepId)
+      })
     }
   }, [canNavigateToStep, navigateToStep])
 
@@ -227,18 +233,22 @@ export default function SmartFlowPageRefactored() {
               </div>
             </CardHeader>
             <CardContent>
-              <AnalysisHistoryPanel />
+              <Suspense fallback={<SkeletonCard />}>
+                <AnalysisHistoryPanel />
+              </Suspense>
             </CardContent>
           </Card>
         )}
 
         {/* Progress Stepper */}
-        <ProgressStepper 
-          steps={steps}
-          currentStep={currentStep}
-          completedSteps={completedSteps}
-          onStepClick={handleStepClick}
-        />
+        <Suspense fallback={<SkeletonStepper />}>
+          <ProgressStepper
+            steps={steps}
+            currentStep={currentStep}
+            completedSteps={completedSteps}
+            onStepClick={handleStepClick}
+          />
+        </Suspense>
 
         {/* 에러 메시지 표시 */}
         {error && (
@@ -277,46 +287,56 @@ export default function SmartFlowPageRefactored() {
             
             {currentStep === 1 && (
               <div className="animate-in fade-in duration-500">
-                <DataUploadStep onUploadComplete={handleUploadComplete} />
+                <Suspense fallback={<SkeletonCard />}>
+                  <DataUploadStep onUploadComplete={handleUploadComplete} />
+                </Suspense>
               </div>
             )}
 
             {currentStep === 2 && (
               <div className="animate-in fade-in duration-500">
                 <ErrorBoundary>
-                  <DataValidationStep
-                    validationResults={validationResults}
-                    data={uploadedData}
-                  />
+                  <Suspense fallback={<SkeletonCard />}>
+                    <DataValidationStep
+                      validationResults={validationResults}
+                      data={uploadedData}
+                    />
+                  </Suspense>
                 </ErrorBoundary>
               </div>
             )}
 
             {currentStep === 3 && (
               <div className="animate-in fade-in duration-500">
-                <PurposeInputStep
-                  onPurposeSubmit={handlePurposeSubmit}
-                />
+                <Suspense fallback={<SkeletonCard />}>
+                  <PurposeInputStep
+                    onPurposeSubmit={handlePurposeSubmit}
+                  />
+                </Suspense>
               </div>
             )}
 
             {currentStep === 4 && (
               <div className="animate-in fade-in duration-500">
-                <AnalysisExecutionStep
-                  selectedMethod={selectedMethod}
-                  variableMapping={{}}
-                  onAnalysisComplete={handleAnalysisComplete}
-                  onNext={goToNextStep}
-                  onPrevious={goToPreviousStep}
-                  canGoNext={canProceedToNext()}
-                  canGoPrevious={currentStep > 1}
-                />
+                <Suspense fallback={<SkeletonCard />}>
+                  <AnalysisExecutionStep
+                    selectedMethod={selectedMethod}
+                    variableMapping={{}}
+                    onAnalysisComplete={handleAnalysisComplete}
+                    onNext={goToNextStep}
+                    onPrevious={goToPreviousStep}
+                    canGoNext={canProceedToNext()}
+                    canGoPrevious={currentStep > 1}
+                  />
+                </Suspense>
               </div>
             )}
 
             {currentStep === 5 && (
               <div className="animate-in fade-in duration-500">
-                <ResultsActionStep results={analysisResults} />
+                <Suspense fallback={<SkeletonCard />}>
+                  <ResultsActionStep results={analysisResults} />
+                </Suspense>
               </div>
             )}
           </CardContent>
@@ -327,8 +347,8 @@ export default function SmartFlowPageRefactored() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={goToPreviousStep}
-              disabled={currentStep === 1 || isLoading}
+              onClick={() => startTransition(() => goToPreviousStep())}
+              disabled={currentStep === 1 || isLoading || isPending}
             >
               <ChevronLeft className="w-4 h-4 mr-2" />
               이전 단계
@@ -351,8 +371,8 @@ export default function SmartFlowPageRefactored() {
           </div>
           
           <Button
-            onClick={goToNextStep}
-            disabled={currentStep === 5 || !canProceedToNext() || isLoading}
+            onClick={() => startTransition(() => goToNextStep())}
+            disabled={currentStep === 5 || !canProceedToNext() || isLoading || isPending}
           >
             다음 단계
             <ChevronRight className="w-4 h-4 ml-2" />

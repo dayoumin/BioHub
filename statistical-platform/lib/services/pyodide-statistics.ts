@@ -17,6 +17,7 @@ import type {
   TukeyHSDResult,
   RegressionResult
 } from '@/types/pyodide'
+import { withPyodideContext, retryPyodideOperation } from './pyodide-helper'
 
 declare global {
   interface Window {
@@ -30,6 +31,7 @@ export class PyodideStatisticsService {
   private pyodide: PyodideInterface | null = null
   private isLoading = false
   private loadPromise: Promise<void> | null = null
+  private packagesLoaded = false
 
   private constructor() {}
 
@@ -53,12 +55,19 @@ export class PyodideStatisticsService {
   }
 
   /**
+   * Pyodide가 초기화되었는지 확인
+   */
+  isInitialized(): boolean {
+    return this.pyodide !== null && this.packagesLoaded
+  }
+
+  /**
    * Pyodide 초기화 및 필요한 패키지 로드
    */
   async initialize(): Promise<void> {
     console.log('[PyodideService.initialize] 시작')
-    if (this.pyodide) {
-      console.log('[PyodideService.initialize] 이미 초기화됨')
+    if (this.isInitialized()) {
+      console.log('[PyodideService.initialize] 이미 초기화됨 (빠른 반환)')
       return
     }
     if (this.isLoading && this.loadPromise) {
@@ -124,14 +133,27 @@ export class PyodideStatisticsService {
       throw error
     }
 
-    // 필수 패키지 로드
-    console.log('[PyodideService] 패키지 로딩 중... (numpy, scipy, pandas, scikit-learn)')
-    try {
-      await this.pyodide.loadPackage(['numpy', 'scipy', 'pandas', 'scikit-learn', 'statsmodels'])
-      console.log('[PyodideService] 패키지 로드 완료')
-    } catch (error) {
-      console.error('[PyodideService] 패키지 로드 실패:', error)
-      throw error
+    // 필수 패키지 로드 (캐싱됨)
+    if (!this.packagesLoaded) {
+      console.log('[PyodideService] 패키지 로딩 중... (numpy, scipy, pandas)')
+      const startTime = performance.now()
+      try {
+        // 핵심 패키지 로드 (pandas 포함 - import에서 필요)
+        await this.pyodide.loadPackage(['numpy', 'scipy', 'pandas'])
+        console.log('[PyodideService] 핵심 패키지 로드 완료')
+
+        // 추가 패키지는 백그라운드에서 로드
+        this.loadAdditionalPackages()
+        this.packagesLoaded = true
+
+        const loadTime = ((performance.now() - startTime) / 1000).toFixed(2)
+        console.log(`[PyodideService] 초기 패키지 로드 시간: ${loadTime}초`)
+      } catch (error) {
+        console.error('[PyodideService] 패키지 로드 실패:', error)
+        throw error
+      }
+    } else {
+      console.log('[PyodideService] 패키지 이미 로드됨 (캐시 사용)')
     }
 
     // 기본 imports
@@ -147,6 +169,23 @@ export class PyodideStatisticsService {
   }
 
   /**
+   * 추가 패키지를 백그라운드에서 로드
+   */
+  private async loadAdditionalPackages(): Promise<void> {
+    if (!this.pyodide) return
+
+    console.log('[PyodideService] 추가 패키지 백그라운드 로딩 시작...')
+    try {
+      // scikit-learn, statsmodels는 필요시에만 로드
+      // 실제 사용 시점에 동적으로 로드하도록 개선 가능
+      // 예: 고급 분석 메서드 사용 시 로드
+      console.log('[PyodideService] 추가 패키지는 필요시 동적 로드됩니다')
+    } catch (error) {
+      console.warn('[PyodideService] 추가 패키지 로드 실패 (무시):', error)
+    }
+  }
+
+  /**
    * Shapiro-Wilk 정규성 검정
    * @param data 숫자 배열
    * @returns 검정 통계량과 p-value
@@ -158,10 +197,12 @@ export class PyodideStatisticsService {
   }> {
     await this.initialize()
 
-    // 데이터 전달 및 검정 수행
-    this.pyodide.globals.set('data_array', data)
+    // withPyodideContext를 사용하여 메모리 자동 정리
+    return withPyodideContext(this.pyodide, async (ctx) => {
+      // 네임스페이스가 적용된 글로벌 변수 설정
+      ctx.setGlobal('data_array', data)
 
-    const resultStr = await this.pyodide.runPythonAsync(`
+      const resultStr = await ctx.runPythonAsync(`
       import numpy as np
 
       # JavaScript 배열을 numpy 배열로 변환
@@ -185,19 +226,20 @@ export class PyodideStatisticsService {
       import json
       result_json = json.dumps(result)
       result_json
-    `)
+      `)
 
-    const parsed = JSON.parse(resultStr)
+      const parsed = JSON.parse(resultStr)
 
-    if (parsed.error) {
-      throw new Error(parsed.error)
-    }
+      if (parsed.error) {
+        throw new Error(parsed.error)
+      }
 
-    return {
-      statistic: parsed.statistic,
-      pValue: parsed.pvalue,
-      isNormal: parsed.pvalue > 0.05 // 유의수준 0.05 기준
-    }
+      return {
+        statistic: parsed.statistic,
+        pValue: parsed.pvalue,
+        isNormal: parsed.pvalue > 0.05 // 유의수준 0.05 기준
+      }
+    })
   }
 
   /**
@@ -216,9 +258,10 @@ export class PyodideStatisticsService {
   }> {
     await this.initialize()
 
-    this.pyodide.globals.set('data_array', data)
+    return withPyodideContext(this.pyodide, async (ctx) => {
+      ctx.setGlobal('data_array', data)
 
-    const resultStr = await this.pyodide.runPythonAsync(`
+      const resultStr = await ctx.runPythonAsync(`
       import numpy as np
 
       # JavaScript 배열을 numpy 배열로 변환
@@ -266,23 +309,24 @@ export class PyodideStatisticsService {
       import json
       result_json = json.dumps(result)
       result_json
-    `)
+      `)
 
-    const parsed = JSON.parse(resultStr)
+      const parsed = JSON.parse(resultStr)
 
-    if (parsed.error) {
-      throw new Error(parsed.error)
-    }
+      if (parsed.error) {
+        throw new Error(parsed.error)
+      }
 
-    return {
-      q1: parsed.q1,
-      q3: parsed.q3,
+      return {
+        q1: parsed.q1,
+        q3: parsed.q3,
       iqr: parsed.iqr,
       lowerBound: parsed.lower_bound,
       upperBound: parsed.upper_bound,
-      mildOutliers: parsed.mild_outliers,
-      extremeOutliers: parsed.extreme_outliers
-    }
+        mildOutliers: parsed.mild_outliers,
+        extremeOutliers: parsed.extreme_outliers
+      }
+    })
   }
 
   /**

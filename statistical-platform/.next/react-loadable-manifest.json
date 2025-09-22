@@ -1,30 +1,199 @@
 {
-  "components\\charts\\PlotlyChartImproved.tsx -> react-plotly.js": {
-    "id": "components\\charts\\PlotlyChartImproved.tsx -> react-plotly.js",
+  "app\\(dashboard)\\analysis\\page.tsx -> @/components/analysis/analysis-interface": {
+    "id": 42399,
     "files": [
-      "static/chunks/_app-pages-browser_node_modules_react-plotly_js_react-plotly_js.js"
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/5667-a963ba76d34cb33a.js",
+      "static/chunks/7406-7bea754abb3c9708.js",
+      "static/chunks/1397.60f5e24d12248a3d.js"
+    ]
+  },
+  "app\\(dashboard)\\smart-flow\\page.tsx -> @/components/smart-flow/AnalysisHistoryPanel": {
+    "id": 60878,
+    "files": [
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/660-b75718bff02456ca.js",
+      "static/chunks/6093-da8af415b686f250.js",
+      "static/chunks/2286-d45ee7aacf9772ef.js",
+      "static/chunks/3103.e767fac4159b8a36.js",
+      "static/chunks/878.48a31e50c1029f6f.js"
+    ]
+  },
+  "app\\(dashboard)\\smart-flow\\page.tsx -> @/components/smart-flow/ProgressStepper": {
+    "id": 94907,
+    "files": [
+      "static/chunks/4907.77c85545eb7669c3.js"
+    ]
+  },
+  "app\\(dashboard)\\smart-flow\\page.tsx -> @/components/smart-flow/steps/AnalysisExecutionStep": {
+    "id": 55144,
+    "files": [
+      "static/chunks/672-713b57fa22049dba.js",
+      "static/chunks/5144.326092188be786c1.js"
+    ]
+  },
+  "app\\(dashboard)\\smart-flow\\page.tsx -> @/components/smart-flow/steps/DataUploadStep": {
+    "id": 84594,
+    "files": [
+      "static/chunks/2170a4aa.ec77d2b4930606fb.js",
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/660-b75718bff02456ca.js",
+      "static/chunks/8720-0e0907f83a79bf8b.js",
+      "static/chunks/6093-da8af415b686f250.js",
+      "static/chunks/5203-26342fcec73c73cb.js",
+      "static/chunks/7971.38ebf34856da6f71.js",
+      "static/chunks/6257.b68de2718291dea9.js"
+    ]
+  },
+  "app\\(dashboard)\\smart-flow\\page.tsx -> @/components/smart-flow/steps/DataValidationStep": {
+    "id": 10788,
+    "files": [
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/5667-a963ba76d34cb33a.js",
+      "static/chunks/660-b75718bff02456ca.js",
+      "static/chunks/8986.1b2ae1981db80a46.js",
+      "static/chunks/672-713b57fa22049dba.js",
+      "static/chunks/788.d2cb92ac25864d60.js"
+    ]
+  },
+  "app\\(dashboard)\\smart-flow\\page.tsx -> @/components/smart-flow/steps/PurposeInputStep": {
+    "id": 15687,
+    "files": [
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/5667-a963ba76d34cb33a.js",
+      "static/chunks/5687.85585c06abec3f3d.js"
+    ]
+  },
+  "app\\(dashboard)\\smart-flow\\page.tsx -> @/components/smart-flow/steps/ResultsActionStep": {
+    "id": 77940,
+    "files": [
+      "static/chunks/2f0b94e8.3186a98eb4c9012b.js",
+      "static/chunks/164f4fb6.5e6f3ff597b12615.js",
+      "static/chunks/ad2866b8.e13a3cf75ccf0eb8.js",
+      "static/chunks/8720-0e0907f83a79bf8b.js",
+      "static/chunks/1029-b6e345a333841a3a.js",
+      "static/chunks/8292-6cae6f0a559f6c03.js",
+      "static/chunks/655.c66bb1fc83ef2afd.js",
+      "static/chunks/7940.299f05a34900432b.js"
+    ]
+  },
+  "app\\page.tsx -> @/components/smart-flow/AnalysisHistoryPanel": {
+    "id": 60878,
+    "files": [
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/660-b75718bff02456ca.js",
+      "static/chunks/6093-da8af415b686f250.js",
+      "static/chunks/2286-d45ee7aacf9772ef.js",
+      "static/chunks/3103.e767fac4159b8a36.js",
+      "static/chunks/878.48a31e50c1029f6f.js"
+    ]
+  },
+  "app\\page.tsx -> @/components/smart-flow/ProgressStepper": {
+    "id": 94907,
+    "files": [
+      "static/chunks/4907.77c85545eb7669c3.js"
+    ]
+  },
+  "app\\page.tsx -> @/components/smart-flow/steps/AnalysisExecutionStep": {
+    "id": 55144,
+    "files": [
+      "static/chunks/672-713b57fa22049dba.js",
+      "static/chunks/5144.326092188be786c1.js"
+    ]
+  },
+  "app\\page.tsx -> @/components/smart-flow/steps/DataUploadStep": {
+    "id": 84594,
+    "files": [
+      "static/chunks/2170a4aa.ec77d2b4930606fb.js",
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/660-b75718bff02456ca.js",
+      "static/chunks/8720-0e0907f83a79bf8b.js",
+      "static/chunks/6093-da8af415b686f250.js",
+      "static/chunks/5203-26342fcec73c73cb.js",
+      "static/chunks/7971.38ebf34856da6f71.js",
+      "static/chunks/6257.b68de2718291dea9.js"
+    ]
+  },
+  "app\\page.tsx -> @/components/smart-flow/steps/DataValidationStep": {
+    "id": 10788,
+    "files": [
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/5667-a963ba76d34cb33a.js",
+      "static/chunks/660-b75718bff02456ca.js",
+      "static/chunks/8986.1b2ae1981db80a46.js",
+      "static/chunks/672-713b57fa22049dba.js",
+      "static/chunks/788.d2cb92ac25864d60.js"
+    ]
+  },
+  "app\\page.tsx -> @/components/smart-flow/steps/PurposeInputStep": {
+    "id": 15687,
+    "files": [
+      "static/chunks/306-27e942c35add1589.js",
+      "static/chunks/5667-a963ba76d34cb33a.js",
+      "static/chunks/5687.85585c06abec3f3d.js"
+    ]
+  },
+  "app\\page.tsx -> @/components/smart-flow/steps/ResultsActionStep": {
+    "id": 77940,
+    "files": [
+      "static/chunks/2f0b94e8.3186a98eb4c9012b.js",
+      "static/chunks/164f4fb6.5e6f3ff597b12615.js",
+      "static/chunks/ad2866b8.e13a3cf75ccf0eb8.js",
+      "static/chunks/8720-0e0907f83a79bf8b.js",
+      "static/chunks/1029-b6e345a333841a3a.js",
+      "static/chunks/8292-6cae6f0a559f6c03.js",
+      "static/chunks/655.c66bb1fc83ef2afd.js",
+      "static/chunks/7940.299f05a34900432b.js"
+    ]
+  },
+  "components\\charts\\PlotlyChartImproved.tsx -> react-plotly.js": {
+    "id": 76614,
+    "files": [
+      "static/chunks/f2d0f643.ae71cc8199d44cc8.js",
+      "static/chunks/1029-b6e345a333841a3a.js",
+      "static/chunks/6614.9d54a1d55688142e.js"
+    ]
+  },
+  "components\\statistics\\StatisticalAnalysisTemplate.tsx -> @/lib/statistics/statistical-calculator": {
+    "id": 83987,
+    "files": [
+      "static/chunks/672-713b57fa22049dba.js",
+      "static/chunks/3987.bac1747c70139e56.js"
+    ]
+  },
+  "components\\statistics\\StatisticalAnalysisTemplate.tsx -> papaparse": {
+    "id": 9349,
+    "files": [
+      "static/chunks/9349.bbfb588ab5f6325b.js"
     ]
   },
   "node_modules\\jspdf\\dist\\jspdf.es.min.js -> canvg": {
-    "id": "node_modules\\jspdf\\dist\\jspdf.es.min.js -> canvg",
+    "id": 11482,
     "files": [
-      "static/chunks/_app-pages-browser_node_modules_canvg_lib_index_es_js.js"
+      "static/chunks/bc98253f.d6fc8a0138855acd.js",
+      "static/chunks/4199.ff3fba8b789db34b.js"
     ]
   },
   "node_modules\\jspdf\\dist\\jspdf.es.min.js -> dompurify": {
-    "id": "node_modules\\jspdf\\dist\\jspdf.es.min.js -> dompurify",
+    "id": 82931,
     "files": [
-      "static/chunks/_app-pages-browser_node_modules_dompurify_dist_purify_es_mjs.js"
+      "static/chunks/2931.1f75acecf5145b86.js"
     ]
   },
   "node_modules\\jspdf\\dist\\jspdf.es.min.js -> html2canvas": {
-    "id": "node_modules\\jspdf\\dist\\jspdf.es.min.js -> html2canvas",
+    "id": 54264,
     "files": []
   },
-  "node_modules\\next\\dist\\client\\dev\\hot-reloader\\app\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts": {
-    "id": "node_modules\\next\\dist\\client\\dev\\hot-reloader\\app\\use-websocket.js -> @vercel/turbopack-ecmascript-runtime/browser/dev/hmr-client/hmr-client.ts",
+  "node_modules\\next\\dist\\client\\index.js -> ../pages/_app": {
+    "id": 45139,
     "files": [
-      "static/chunks/_app-pages-browser_node_modules_next_dist_client_dev_noop-turbopack-hmr_js.js"
+      "static/chunks/5139.e4ff9cc3669129ed.js"
+    ]
+  },
+  "node_modules\\next\\dist\\client\\index.js -> ../pages/_error": {
+    "id": 31646,
+    "files": [
+      "static/chunks/1646.a93085a0445ba909.js"
     ]
   }
 }

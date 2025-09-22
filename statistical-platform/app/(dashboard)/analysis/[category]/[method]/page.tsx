@@ -45,7 +45,26 @@ const TEST_DATA_PATHS: Record<string, string> = {
   // 고급분석
   'principalComponentAnalysis': '/test-data/주성분분석_설문조사.csv',
   'kMeansClustering': '/test-data/클러스터링_고객세분화.csv',
-  'hierarchicalClustering': '/test-data/클러스터링_고객세분화.csv'
+  'hierarchicalClustering': '/test-data/클러스터링_고객세분화.csv',
+
+  // 추가된 메서드들
+  'outlierDetection': '/test-data/이상치탐지_판매데이터.csv',
+  'powerAnalysis': '/test-data/검정력분석_임상시험.csv',
+  'partialCorrelation': '/test-data/편상관_다중변수.csv',
+  'effectSize': '/test-data/효과크기_실험결과.csv',
+  'oneSampleProportionTest': '/test-data/비율검정_생존율.csv',
+  'repeatedMeasuresANOVA': '/test-data/반복측정_시간변화.csv',
+  'manova': '/test-data/다변량분산_다중종속.csv',
+  'mixedEffectsModel': '/test-data/혼합모형_계층데이터.csv',
+  'polynomialRegression': '/test-data/다항회귀_곡선관계.csv',
+  'friedman': '/test-data/프리드만_순위데이터.csv',
+  'timeSeriesDecomposition': '/test-data/시계열분해_월별매출.csv',
+  'arimaForecast': '/test-data/ARIMA_시계열예측.csv',
+  'sarimaForecast': '/test-data/SARIMA_계절성예측.csv',
+  'varModel': '/test-data/VAR_다변량시계열.csv',
+  'kaplanMeierSurvival': '/test-data/생존분석_치료결과.csv',
+  'coxRegression': '/test-data/Cox회귀_위험요인.csv',
+  'factorAnalysis': '/test-data/요인분석_심리테스트.csv'
 }
 
 export default function StatisticalMethodPage() {
@@ -53,27 +72,19 @@ export default function StatisticalMethodPage() {
   const category = params.category as string
   const methodParam = decodeURIComponent(params.method as string)
 
-  // 모든 카테고리에서 해당 메서드 찾기: id 우선, popular는 제외하고 캐논컬 우선
+  // 모든 카테고리에서 해당 메서드 찾기
   let method = null as any
   let categoryInfo = null as any
 
-  const nonPopular = STATISTICAL_ANALYSIS_CONFIG.filter(c => c.id !== 'popular')
   // 1) id 완전 일치
-  for (const config of nonPopular) {
+  for (const config of STATISTICAL_ANALYSIS_CONFIG) {
     const found = config.tests.find(t => t.id === methodParam)
     if (found) { method = found; categoryInfo = config; break }
   }
   // 2) name/nameEn 일치(후방 호환)
   if (!method) {
-    for (const config of nonPopular) {
-      const found = config.tests.find(t => t.name === methodParam || t.nameEn === methodParam)
-      if (found) { method = found; categoryInfo = config; break }
-    }
-  }
-  // 3) popular까지 포함(마지막 보정)
-  if (!method) {
     for (const config of STATISTICAL_ANALYSIS_CONFIG) {
-      const found = config.tests.find(t => t.id === methodParam || t.name === methodParam || t.nameEn === methodParam)
+      const found = config.tests.find(t => t.name === methodParam || t.nameEn === methodParam)
       if (found) { method = found; categoryInfo = config; break }
     }
   }
@@ -88,7 +99,7 @@ export default function StatisticalMethodPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>페이지를 찾을 수 없습니다</AlertTitle>
               <AlertDescription className="mt-2">
-                요청하신 통계 분석 방법 &quot;{methodName}&quot;을(를) 찾을 수 없습니다.
+                요청하신 통계 분석 방법 &quot;{methodParam}&quot;을(를) 찾을 수 없습니다.
               </AlertDescription>
             </Alert>
             <div className="mt-6 flex gap-4">
@@ -123,7 +134,7 @@ export default function StatisticalMethodPage() {
             </Alert>
             <div className="mt-6">
               <Button asChild>
-                <Link href={`/analysis/${categoryInfo.id}/${encodeURIComponent(method.name)}`}>
+                <Link href={`/analysis/${categoryInfo.id}/${encodeURIComponent(method.id)}`}>
                   올바른 페이지로 이동
                 </Link>
               </Button>
@@ -173,7 +184,7 @@ export default function StatisticalMethodPage() {
           <CardContent className="pt-6">
             <h3 className="font-medium mb-4">관련 통계 분석</h3>
             <div className="flex flex-wrap gap-2">
-              {method.relatedTests.map(relatedId => {
+              {method.relatedTests.map((relatedId: string) => {
                 // 관련 테스트 찾기
                 let relatedMethod = null
                 let relatedCategory = null
@@ -191,7 +202,7 @@ export default function StatisticalMethodPage() {
 
                 return (
                   <Button key={relatedId} asChild variant="outline" size="sm">
-                    <Link href={`/analysis/${relatedCategory.id}/${encodeURIComponent(relatedMethod.name)}`}>
+                    <Link href={`/analysis/${relatedCategory.id}/${encodeURIComponent(relatedMethod.id)}`}>
                       {relatedMethod.name}
                     </Link>
                   </Button>

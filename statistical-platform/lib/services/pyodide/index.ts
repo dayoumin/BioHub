@@ -21,10 +21,12 @@ import type {
   CorrelationResult,
   ANOVAResult,
   TukeyHSDResult,
+  MANOVAResult,
   RegressionResult,
   PCAResult,
   ClusteringResult,
-  TimeSeriesResult
+  TimeSeriesResult,
+  SurvivalResult
 } from './types'
 
 export class PyodideStatisticsService {
@@ -152,6 +154,10 @@ export class PyodideStatisticsService {
     return this.hypothesisService.partialCorrelation(data, xCol, yCol, controlCols)
   }
 
+  async oneSampleProportionTest(successes: number, n: number, targetProportion?: number, alternative?: string): Promise<StatisticalTestResult> {
+    return this.hypothesisService.oneSampleProportionTest(successes, n, targetProportion, alternative)
+  }
+
   async calculateCorrelation(columnsData: Record<string, number[]>, method?: string): Promise<any> {
     return this.hypothesisService.calculateCorrelation(columnsData, method)
   }
@@ -170,6 +176,10 @@ export class PyodideStatisticsService {
 
   async repeatedMeasuresANOVA(data: number[][]): Promise<ANOVAResult> {
     return this.anovaService.repeatedMeasuresANOVA(data)
+  }
+
+  async manova(dependentVars: number[][], groups: string[]): Promise<MANOVAResult> {
+    return this.anovaService.manova(dependentVars, groups)
   }
 
   async tukeyHSD(groups: number[][], groupNames?: string[], alpha?: number): Promise<TukeyHSDResult> {
@@ -281,6 +291,14 @@ export class PyodideStatisticsService {
 
   async cronbachAlpha(items: number[][]): Promise<{ alpha: number; itemTotalCorrelations: number[]; alphaIfDeleted: number[]; nItems: number; nObservations: number }> {
     return this.advancedService.cronbachAlpha(items)
+  }
+
+  async arimaForecast(data: number[], p: number, d: number, q: number, steps: number): Promise<TimeSeriesResult> {
+    return this.advancedService.arimaForecast(data, p, d, q, steps)
+  }
+
+  async kaplanMeierSurvival(times: number[], events: number[]): Promise<SurvivalResult> {
+    return this.advancedService.kaplanMeierSurvival(times, events)
   }
 
   // =================

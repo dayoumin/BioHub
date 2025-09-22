@@ -1,7 +1,8 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react'
 import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
+import { retryPyodideOperation } from '@/lib/services/pyodide-helper'
 
 interface PyodideContextType {
   isLoaded: boolean
@@ -29,6 +30,7 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [service, setService] = useState<PyodideStatisticsService | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
+  const initializeStartedRef = useRef(false)
 
   // 성공 메시지 자동 숨김
   useEffect(() => {
@@ -40,41 +42,59 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
     }
   }, [showSuccess])
 
+  // initPyodide 함수를 useCallback으로 감싸서 재사용 가능하게 함
+  const initPyodide = useCallback(async () => {
+    const pyodideService = PyodideStatisticsService.getInstance()
+
+    console.log('[PyodideProvider] Pyodide 초기화 시작...')
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const startTime = performance.now()
+
+      // 재시도 로직을 포함한 초기화
+      await retryPyodideOperation(
+        () => pyodideService.initialize(),
+        3, // 최대 3회 재시도
+        1000 // 1초 기본 대기 (지수 백오프)
+      )
+
+      const loadTime = ((performance.now() - startTime) / 1000).toFixed(2)
+
+      setService(pyodideService)
+      setIsLoaded(true)
+      setShowSuccess(true) // 성공 메시지 표시
+      console.log(`[PyodideProvider] Pyodide 초기화 완료! (소요시간: ${loadTime}초)`)
+    } catch (err) {
+      console.error('[PyodideProvider] Pyodide 초기화 실패 (모든 재시도 실패):', err)
+      setError(err instanceof Error ? err.message : 'Pyodide 초기화 실패')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    // 중복 초기화 방지
-    if (isLoading || isLoaded) return
+    const pyodideService = PyodideStatisticsService.getInstance()
 
-    // 앱 시작 시 자동으로 Pyodide 초기화
-    const initPyodide = async () => {
-
-      console.log('[PyodideProvider] Pyodide 자동 초기화 시작...')
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        const pyodideService = PyodideStatisticsService.getInstance()
-        await pyodideService.initialize()
-
-        setService(pyodideService)
-        setIsLoaded(true)
-        setShowSuccess(true) // 성공 메시지 표시
-        console.log('[PyodideProvider] Pyodide 초기화 완료! 이제 통계 분석을 즉시 사용할 수 있습니다.')
-      } catch (err) {
-        console.error('[PyodideProvider] Pyodide 초기화 실패:', err)
-        setError(err instanceof Error ? err.message : 'Pyodide 초기화 실패')
-      } finally {
-        setIsLoading(false)
-      }
+    // 이미 초기화된 경우 빠르게 상태만 업데이트
+    if (pyodideService.isInitialized()) {
+      console.log('[PyodideProvider] Pyodide 이미 초기화됨 - 빠른 상태 복구')
+      setService(pyodideService)
+      setIsLoaded(true)
+      setIsLoading(false)
+      return
     }
 
-    // 컴포넌트 마운트 후 약간의 지연을 두고 초기화 시작
-    // 이렇게 하면 메인 UI 렌더링을 방해하지 않음
-    const timer = setTimeout(() => {
-      initPyodide()
-    }, 100)
+    // useRef를 사용하여 한 번만 초기화하도록 보장
+    if (initializeStartedRef.current) {
+      return
+    }
+    initializeStartedRef.current = true
 
-    return () => clearTimeout(timer)
-  }, [isLoading, isLoaded]) // 의존성 추가로 중복 실행 방지
+    // 컴포넌트 마운트 후 즉시 초기화 시작
+    initPyodide()
+  }, [initPyodide]) // initPyodide만 의존성으로 추가 (안정적)
 
   // 로딩 상태를 화면 하단에 작은 인디케이터로 표시
   return (
@@ -90,8 +110,20 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
       )}
       {error && (
         <div className="fixed bottom-4 right-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 shadow-sm z-50">
-          <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-            <span>⚠️ 통계 엔진 로드 실패</span>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+              <span>⚠️ 통계 엔진 로드 실패</span>
+            </div>
+            <button
+              onClick={() => {
+                setError(null)
+                initializeStartedRef.current = false // 리셋하여 다시 시도 가능하게 함
+                initPyodide()
+              }}
+              className="text-xs text-red-600 dark:text-red-400 underline hover:no-underline"
+            >
+              다시 시도
+            </button>
           </div>
         </div>
       )}
