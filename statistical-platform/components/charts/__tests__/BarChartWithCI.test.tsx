@@ -154,9 +154,9 @@ describe('BarChartWithCI', () => {
       expect(within(table).getByText('표준오차')).toBeInTheDocument()
 
       // 표준오차 값 확인 (toFixed(3) 형식)
-      // 정규식으로 ±2.500 패턴 찾기
-      const seCell = within(table).getByText(/±2\.500/)
-      expect(seCell).toBeInTheDocument()
+      // 정규식으로 ±2.500 패턴 찾기 (여러 개 있을 수 있으므로 getAllByText 사용)
+      const seCells = within(table).getAllByText(/±2\.500/)
+      expect(seCells[0]).toBeInTheDocument()
     })
   })
 
