@@ -2,7 +2,7 @@
  * 통계 결과 포맷팅 유틸리티
  */
 
-import { PRECISION } from './constants'
+import { PRECISION, SIGNIFICANCE_LEVELS, EFFECT_SIZE, CORRELATION_STRENGTH } from './constants'
 
 /**
  * 숫자를 지정된 정밀도로 포맷팅
@@ -20,8 +20,11 @@ export function formatNumber(
 /**
  * p-value 포맷팅 (0.001 미만은 <0.001로 표시)
  */
-export function formatPValue(value: number): string {
-  if (value < 0.001) return '<0.001'
+export function formatPValue(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'N/A'
+  }
+  if (value < 0.001) return '< 0.001'
   return formatNumber(value, PRECISION.P_VALUE)
 }
 
@@ -55,10 +58,13 @@ export function formatCorrelation(value: number, showStrength = false): string {
  * 신뢰구간 포맷팅
  */
 export function formatConfidenceInterval(
-  lower: number,
-  upper: number,
+  lower: number | null | undefined,
+  upper: number | null | undefined,
   precision = PRECISION.STATISTIC
 ): string {
+  if (lower === null || lower === undefined || upper === null || upper === undefined) {
+    return '[N/A, N/A]'
+  }
   return `[${formatNumber(lower, precision)}, ${formatNumber(upper, precision)}]`
 }
 
@@ -140,4 +146,93 @@ export function formatMetric(
   }
 
   return { name, value: formatted }
+}
+
+/**
+ * p-value 해석
+ * @param p p-value
+ * @param alpha 유의수준 (기본값: 0.05)
+ * @returns 통계적 유의성 여부
+ */
+export function interpretPValue(p: number, alpha: number = SIGNIFICANCE_LEVELS.STANDARD): boolean {
+  return p < alpha
+}
+
+/**
+ * 통계 결과 요약 텍스트 생성
+ * @param statistic 통계량 이름 (예: 't', 'F', 'χ²')
+ * @param value 통계량 값
+ * @param df 자유도
+ * @param p p-value
+ * @returns 포맷된 결과 요약 문자열
+ */
+export function formatStatisticalResult(
+  statistic: string,
+  value: number,
+  df: number | number[],
+  p: number
+): string {
+  const formattedDf = Array.isArray(df) ? `(${df.join(', ')})` : `(${df})`
+  const formattedP = formatPValue(p)
+  const formattedValue = formatNumber(value, PRECISION.STATISTIC)
+
+  return `${statistic}${formattedDf} = ${formattedValue}, p = ${formattedP}`
+}
+
+/**
+ * 효과크기 해석 (확장)
+ * @param value 효과크기 값
+ * @param type 효과크기 유형
+ * @returns 해석 문자열
+ */
+export function interpretEffectSize(
+  value: number,
+  type: 'cohen_d' | 'eta_squared' | 'r' = 'cohen_d'
+): string {
+  const absValue = Math.abs(value)
+
+  switch (type) {
+    case 'cohen_d':
+      if (absValue < EFFECT_SIZE.SMALL) return '매우 작음'
+      if (absValue < EFFECT_SIZE.MEDIUM) return '작음'
+      if (absValue < EFFECT_SIZE.LARGE) return '중간'
+      if (absValue < EFFECT_SIZE.VERY_LARGE) return '큼'
+      return '매우 큼'
+    case 'eta_squared':
+      if (absValue < 0.01) return '매우 작음'
+      if (absValue < 0.06) return '작음'
+      if (absValue < 0.14) return '중간'
+      return '큼'
+    case 'r':
+      if (absValue < 0.1) return '무시할 수준'
+      if (absValue < 0.3) return '작음'
+      if (absValue < 0.5) return '중간'
+      return '큼'
+    default:
+      return '해석 불가'
+  }
+}
+
+/**
+ * 상관계수 해석 (확장)
+ * @param r 상관계수
+ * @returns 해석 문자열
+ */
+export function interpretCorrelation(r: number): string {
+  const absR = Math.abs(r)
+  const direction = r >= 0 ? '양' : '음'
+
+  if (absR < CORRELATION_STRENGTH.VERY_WEAK) {
+    return `매우 약한 ${direction}의 상관관계`
+  } else if (absR < CORRELATION_STRENGTH.WEAK) {
+    return `약한 ${direction}의 상관관계`
+  } else if (absR < CORRELATION_STRENGTH.MODERATE) {
+    return `중간 정도의 ${direction}의 상관관계`
+  } else if (absR < CORRELATION_STRENGTH.STRONG) {
+    return `강한 ${direction}의 상관관계`
+  } else if (absR < CORRELATION_STRENGTH.VERY_STRONG) {
+    return `매우 강한 ${direction}의 상관관계`
+  } else {
+    return `거의 완벽한 ${direction}의 상관관계`
+  }
 }

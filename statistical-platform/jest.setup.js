@@ -1,23 +1,125 @@
 // Jest 테스트 환경 설정
-
-// TextEncoder/TextDecoder 폴리필 (Node.js 환경)
-if (typeof global.TextEncoder === 'undefined') {
-  const { TextEncoder, TextDecoder } = require('util')
-  global.TextEncoder = TextEncoder
-  global.TextDecoder = TextDecoder
+try {
+  require('@testing-library/jest-dom')
+} catch (e) {
+  console.warn('jest-dom not available:', e.message)
 }
 
-// fetch 폴리필 제거 - jsdom 환경에서는 기본 제공
+// TextEncoder/TextDecoder는 Node.js 11+ 에서 기본 제공됨
+// Node.js 22를 사용하므로 폴리필 불필요
 
-// performance.now 폴리필
-if (typeof global.performance === 'undefined') {
-  global.performance = {
-    now: () => Date.now(),
-  }
-}
+// performance는 jsdom 환경에서 기본 제공됨
+
+// ResizeObserver 모킹
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}))
 
 // 테스트 환경 변수 설정
 process.env.NODE_ENV = 'test'
+
+// PyodideStatisticsService mock
+jest.mock('@/lib/services/pyodide-statistics', () => ({
+  PyodideStatisticsService: {
+    getInstance: () => ({
+      initialize: jest.fn().mockResolvedValue(undefined),
+      dispose: jest.fn(),
+      isInitialized: true,
+      twoWayANOVA: jest.fn().mockResolvedValue({
+        factor1_ss: 12.34,
+        factor1_df: 1,
+        factor1_ms: 12.34,
+        factor1_f: 4.567,
+        factor1_p: 0.038,
+        factor2_ss: 23.45,
+        factor2_df: 2,
+        factor2_ms: 11.725,
+        factor2_f: 6.789,
+        factor2_p: 0.004,
+        interaction_ss: 3.21,
+        interaction_df: 2,
+        interaction_ms: 1.605,
+        interaction_f: 0.987,
+        interaction_p: 0.382,
+        residual_ss: 100.0,
+        residual_df: 18,
+        residual_ms: 5.556,
+      }),
+      performTukeyHSD: jest.fn().mockResolvedValue({
+        comparisons: [
+          { group1: 'A', group2: 'B', meandiff: 1.2, pvalue: 0.012, lower: 0.5, upper: 1.9, reject: true },
+        ],
+        alpha: 0.05
+      }),
+      calculateDescriptiveStatistics: jest.fn().mockResolvedValue({
+        mean: 10,
+        median: 10,
+        mode: 10,
+        std: 2,
+        variance: 4,
+        skewness: 0,
+        kurtosis: 0,
+        min: 5,
+        max: 15,
+        range: 10,
+        q1: 8,
+        q3: 12,
+        iqr: 4,
+        cv: 0.2,
+        sem: 0.5,
+        ci_lower: 9,
+        ci_upper: 11,
+        n: 100,
+        missing: 0
+      }),
+      // 고급 통계 메서드들
+      performBonferroni: jest.fn().mockResolvedValue({
+        comparisons: [],
+        num_comparisons: 0,
+        significant_count: 0,
+        original_alpha: 0.05,
+        adjusted_alpha: 0.05
+      }),
+      gamesHowellTest: jest.fn().mockResolvedValue({
+        comparisons: [],
+        alpha: 0.05,
+        significant_count: 0
+      }),
+      timeSeriesDecomposition: jest.fn().mockResolvedValue({
+        trend: [1, 2, 3],
+        seasonal: [0, 1, 0],
+        residual: [0.1, -0.1, 0.05]
+      }),
+      arimaForecast: jest.fn().mockResolvedValue({
+        forecast: [6, 7, 8],
+        confidence_intervals: [[5, 7], [6, 8], [7, 9]]
+      }),
+      sarimaForecast: jest.fn().mockResolvedValue({
+        forecast: [6, 7, 8],
+        confidence_intervals: [[5, 7], [6, 8], [7, 9]]
+      }),
+      varModel: jest.fn().mockResolvedValue({
+        coefficients: {},
+        aic: 100,
+        bic: 110
+      }),
+      kaplanMeierSurvival: jest.fn().mockResolvedValue({
+        survival_function: [1, 0.9, 0.8],
+        time_points: [0, 1, 2]
+      }),
+      coxRegression: jest.fn().mockResolvedValue({
+        coefficients: {},
+        hazard_ratios: {}
+      }),
+      manova: jest.fn().mockResolvedValue({
+        test_statistic: 0.5,
+        p_value: 0.05
+      })
+    })
+  }
+}))
 
 // console 경고 무시 (선택적)
 const originalWarn = console.warn

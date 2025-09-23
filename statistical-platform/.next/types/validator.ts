@@ -96,6 +96,60 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   handler satisfies AppPageConfig<"/smart-flow">
 }
 
+// Validate ../../app/(dashboard)/statistics/anova/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/anova/page.js")
+  handler satisfies AppPageConfig<"/statistics/anova">
+}
+
+// Validate ../../app/(dashboard)/statistics/chi-square/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/chi-square/page.js")
+  handler satisfies AppPageConfig<"/statistics/chi-square">
+}
+
+// Validate ../../app/(dashboard)/statistics/correlation/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/correlation/page.js")
+  handler satisfies AppPageConfig<"/statistics/correlation">
+}
+
+// Validate ../../app/(dashboard)/statistics/descriptive/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/descriptive/page.js")
+  handler satisfies AppPageConfig<"/statistics/descriptive">
+}
+
+// Validate ../../app/(dashboard)/statistics/non-parametric/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/non-parametric/page.js")
+  handler satisfies AppPageConfig<"/statistics/non-parametric">
+}
+
+// Validate ../../app/(dashboard)/statistics/normality-test/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/normality-test/page.js")
+  handler satisfies AppPageConfig<"/statistics/normality-test">
+}
+
+// Validate ../../app/(dashboard)/statistics/power-analysis/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/power-analysis/page.js")
+  handler satisfies AppPageConfig<"/statistics/power-analysis">
+}
+
+// Validate ../../app/(dashboard)/statistics/regression/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/regression/page.js")
+  handler satisfies AppPageConfig<"/statistics/regression">
+}
+
+// Validate ../../app/(dashboard)/statistics/t-test/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/t-test/page.js")
+  handler satisfies AppPageConfig<"/statistics/t-test">
+}
+
 // Validate ../../app/about/page.tsx
 {
   const handler = {} as typeof import("../../app/about/page.js")
@@ -118,6 +172,12 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   const handler = {} as typeof import("../../app/(dashboard)/layout.js")
   handler satisfies LayoutConfig<"/">
+}
+
+// Validate ../../app/(dashboard)/statistics/layout.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/layout.js")
+  handler satisfies LayoutConfig<"/statistics">
 }
 
 // Validate ../../app/layout.tsx

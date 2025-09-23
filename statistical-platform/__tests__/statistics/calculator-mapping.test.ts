@@ -5,7 +5,11 @@ const mockService = {
   gamesHowellTest: jest.fn(),
   timeSeriesDecomposition: jest.fn(),
   arimaForecast: jest.fn(),
+  sarimaForecast: jest.fn(),
+  varModel: jest.fn(),
+  mixedEffectsModel: jest.fn(),
   kaplanMeierSurvival: jest.fn(),
+  coxRegression: jest.fn(),
   manova: jest.fn(),
 }
 
@@ -292,7 +296,7 @@ describe('StatisticalCalculator ID 매핑 및 고급분석 연동', () => {
       { student_id: 6, school: 'C', score: 70, method: 'old' }
     ]
 
-    mockService.mixedEffectsModel = jest.fn().mockResolvedValueOnce({
+    mockService.mixedEffectsModel.mockResolvedValueOnce({
       fixed_effects: {
         Intercept: { coefficient: 80.5, std_error: 2.1, z_value: 38.3, p_value: 0.0001, ci_lower: 76.4, ci_upper: 84.6 },
         method_new: { coefficient: 5.2, std_error: 1.8, z_value: 2.9, p_value: 0.004, ci_lower: 1.7, ci_upper: 8.7 }
@@ -330,7 +334,7 @@ describe('StatisticalCalculator ID 매핑 및 고급분석 연동', () => {
       value: 100 + i * 2 + Math.sin((2 * Math.PI * i) / 12) * 20 + Math.random() * 5
     }))
 
-    mockService.sarimaForecast = jest.fn().mockResolvedValueOnce({
+    mockService.sarimaForecast.mockResolvedValueOnce({
       forecast: new Array(12).fill(180),
       lower_bound: new Array(12).fill(170),
       upper_bound: new Array(12).fill(190),
@@ -366,7 +370,7 @@ describe('StatisticalCalculator ID 매핑 및 고급분석 연동', () => {
       var3: Math.random() * 8 + i * 0.4
     }))
 
-    mockService.varModel = jest.fn().mockResolvedValueOnce({
+    mockService.varModel.mockResolvedValueOnce({
       coefficients: [[0.5, 0.2, 0.1], [0.3, 0.6, 0.2], [0.1, 0.3, 0.7]],
       lag_order: 2,
       granger_causality: {
@@ -401,7 +405,7 @@ describe('StatisticalCalculator ID 매핑 및 고급분석 연동', () => {
       { time: 25, event: 0, age: 50, treatment: 1 }
     ]
 
-    mockService.coxRegression = jest.fn().mockResolvedValueOnce({
+    mockService.coxRegression.mockResolvedValueOnce({
       coefficients: {
         age: {
           coef: 0.05,
