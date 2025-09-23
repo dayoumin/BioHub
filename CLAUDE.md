@@ -50,13 +50,14 @@ D:\Projects\Statics\
 │   ├── services/                 # 서비스 로직
 │   │   └── pyodide-statistics.ts # Pyodide 통계 엔진
 │   └── statistics/               # 통계 분석 모듈
+│       └── menu-config.ts        # 🆕 41개 통계 메서드 중앙 관리
 ├── public/                       # 정적 파일
 ├── test-data/                    # 테스트용 CSV 파일들
 └── 계획 문서들/                   # 프로젝트 계획서들
 ```
 
 ### 🔴 현재 개발 상태
-**Phase 1 Week 4 진행 중** (2025-09-18)
+**Phase 1 Week 5 진행 중** (2025-09-23)
 
 #### ✅ Week 1 완료 (2025-09-11)
 - 5개 계획 문서 작성 완료 (A급 품질)
@@ -101,16 +102,23 @@ D:\Projects\Statics\
 - ✅ **코드 품질 개선** (constants.ts, formatters.ts)
 - ✅ **문서화 완료** (STATISTICAL_METHODS_COMPLETE_GUIDE.md)
 
-#### 🔧 Week 5 계획 (2025-09-23~) - 변수 선택 시스템
+#### 🔧 Week 5 진행 중 (2025-09-23~) - 통계 메뉴 중앙화 및 페이지 구현
 
-**핵심 작업:**
+**완료된 작업:**
+- ✅ **통계 메뉴 중앙화 시스템 구현** (`lib/statistics/menu-config.ts`)
+- ✅ **동적 사이드바 메뉴 구현** (41개 메서드 모두 표시)
+- ✅ **카테고리별 접기/펼치기 UI** (8개 카테고리)
+- ✅ **구현 상태 추적 시스템** (10/41 완료)
+
+**진행 중:**
+- [ ] **페이지 팩토리 패턴** 구현
+- [ ] **31개 남은 통계 페이지** 구현
 - [ ] **지능형 변수 선택 시스템** 구현
-- [ ] 41개 메서드별 변수 요구사항 정의
-- [ ] 독립/종속 변수 구분 UI
-- [ ] 변수 타입 자동 감지 (연속형/범주형/이진형)
-- [ ] 드래그 앤 드롭 변수 할당
+- [ ] **통합 테스트 시스템** 구축
 
-**📚 상세 문서**: `docs/development/VARIABLE_SELECTION_SYSTEM.md`
+**📚 핵심 파일**:
+- `lib/statistics/menu-config.ts` - 41개 통계 메서드 중앙 관리
+- `app/(dashboard)/statistics/layout.tsx` - 동적 사이드바 구현
 
 ## 🚀 통계분석 프로세스
 
@@ -383,5 +391,5 @@ npx shadcn-ui@latest add button input card table dialog
 
 ---
 
-*Last updated: 2025-09-18*
-*Current focus: Pyodide 통계 엔진 및 워크플로우 통합*
+*Last updated: 2025-09-23*
+*Current focus: 통계 메뉴 중앙화 및 남은 31개 페이지 구현*
