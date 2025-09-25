@@ -1,10 +1,4 @@
 {
-  "app\\(dashboard)\\analysis\\page.tsx -> @/components/analysis/analysis-interface": {
-    "id": "app\\(dashboard)\\analysis\\page.tsx -> @/components/analysis/analysis-interface",
-    "files": [
-      "static/chunks/_app-pages-browser_components_analysis_analysis-interface_tsx.js"
-    ]
-  },
   "app\\page.tsx -> @/components/smart-flow/AnalysisHistoryPanel": {
     "id": "app\\page.tsx -> @/components/smart-flow/AnalysisHistoryPanel",
     "files": [
@@ -51,18 +45,6 @@
     "id": "components\\charts\\PlotlyChartImproved.tsx -> react-plotly.js",
     "files": [
       "static/chunks/_app-pages-browser_node_modules_react-plotly_js_react-plotly_js.js"
-    ]
-  },
-  "components\\statistics\\StatisticalAnalysisTemplate.tsx -> @/lib/statistics/statistical-calculator": {
-    "id": "components\\statistics\\StatisticalAnalysisTemplate.tsx -> @/lib/statistics/statistical-calculator",
-    "files": [
-      "static/chunks/_app-pages-browser_lib_statistics_statistical-calculator_ts.js"
-    ]
-  },
-  "components\\statistics\\StatisticalAnalysisTemplate.tsx -> papaparse": {
-    "id": "components\\statistics\\StatisticalAnalysisTemplate.tsx -> papaparse",
-    "files": [
-      "static/chunks/_app-pages-browser_node_modules_papaparse_papaparse_min_js.js"
     ]
   },
   "node_modules\\jspdf\\dist\\jspdf.es.min.js -> canvg": {

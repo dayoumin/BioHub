@@ -38,11 +38,11 @@ export default function StatisticsLayout({
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-screen">
       {/* 사이드바 */}
-      <aside className="w-80 border-r bg-muted/10">
+      <aside className="w-72 border-r bg-muted/10 flex-shrink-0">
         <ScrollArea className="h-full">
-          <div className="p-4 space-y-4">
+          <div className="p-3 space-y-3">
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5" />
@@ -53,7 +53,7 @@ export default function StatisticsLayout({
               </Badge>
             </div>
 
-            <div className="text-xs text-muted-foreground px-2">
+            <div className="text-sm text-muted-foreground px-2">
               <div>구현 완료: {STATISTICS_SUMMARY.completionRate}%</div>
             </div>
 
@@ -97,32 +97,32 @@ export default function StatisticsLayout({
                         <Button
                           variant="ghost"
                           className={cn(
-                            'w-full justify-start pl-8',
+                            'w-full justify-start pl-6',
                             pathname === item.href && 'bg-muted'
                           )}
                           disabled={!item.implemented}
                         >
-                          <div className="flex items-center gap-2 w-full">
-                            <div className="flex-1 text-left">
-                              <div className="text-sm font-medium">{item.title}</div>
+                          <div className="flex items-center gap-2 w-full min-w-0">
+                            <div className="flex-1 text-left min-w-0">
+                              <div className="text-sm font-medium truncate">{item.title}</div>
                               {item.subtitle && (
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-xs text-muted-foreground truncate">
                                   {item.subtitle}
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 flex-shrink-0">
                               {item.badge && (
                                 <Badge variant="default" className="text-xs">
                                   {item.badge}
                                 </Badge>
                               )}
                               {item.implemented ? (
-                                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                <CheckCircle2 className="w-4 h-4 text-green-500" />
                               ) : item.comingSoon ? (
-                                <Clock className="w-3 h-3 text-yellow-500" />
+                                <Clock className="w-4 h-4 text-yellow-500" />
                               ) : (
-                                <AlertCircle className="w-3 h-3 text-muted-foreground" />
+                                <AlertCircle className="w-4 h-4 text-muted-foreground" />
                               )}
                             </div>
                           </div>
@@ -143,7 +143,7 @@ export default function StatisticsLayout({
               </Link>
               <div className="px-2 py-1.5 rounded-md bg-muted/50">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Info className="w-3 h-3" />
+                  <Info className="w-4 h-4" />
                   <span>41개 통계 메서드 제공</span>
                 </div>
               </div>
@@ -154,7 +154,9 @@ export default function StatisticsLayout({
 
       {/* 메인 콘텐츠 */}
       <main className="flex-1 overflow-y-auto">
-        {children}
+        <div className="p-6">
+          {children}
+        </div>
       </main>
     </div>
   )

@@ -36,18 +36,6 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 }
 
 
-// Validate ../../app/(dashboard)/analysis/[category]/[method]/page.tsx
-{
-  const handler = {} as typeof import("../../app/(dashboard)/analysis/[category]/[method]/page.js")
-  handler satisfies AppPageConfig<"/analysis/[category]/[method]">
-}
-
-// Validate ../../app/(dashboard)/analysis/page.tsx
-{
-  const handler = {} as typeof import("../../app/(dashboard)/analysis/page.js")
-  handler satisfies AppPageConfig<"/analysis">
-}
-
 // Validate ../../app/(dashboard)/dashboard/page.tsx
 {
   const handler = {} as typeof import("../../app/(dashboard)/dashboard/page.js")
@@ -58,6 +46,12 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   const handler = {} as typeof import("../../app/(dashboard)/data/page.js")
   handler satisfies AppPageConfig<"/data">
+}
+
+// Validate ../../app/(dashboard)/experimental-design/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/experimental-design/page.js")
+  handler satisfies AppPageConfig<"/experimental-design">
 }
 
 // Validate ../../app/(dashboard)/help/page.tsx
@@ -114,10 +108,34 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   handler satisfies AppPageConfig<"/statistics/correlation">
 }
 
+// Validate ../../app/(dashboard)/statistics/cross-tabulation/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/cross-tabulation/page.js")
+  handler satisfies AppPageConfig<"/statistics/cross-tabulation">
+}
+
 // Validate ../../app/(dashboard)/statistics/descriptive/page.tsx
 {
   const handler = {} as typeof import("../../app/(dashboard)/statistics/descriptive/page.js")
   handler satisfies AppPageConfig<"/statistics/descriptive">
+}
+
+// Validate ../../app/(dashboard)/statistics/explore-data/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/explore-data/page.js")
+  handler satisfies AppPageConfig<"/statistics/explore-data">
+}
+
+// Validate ../../app/(dashboard)/statistics/frequency-table/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/frequency-table/page.js")
+  handler satisfies AppPageConfig<"/statistics/frequency-table">
+}
+
+// Validate ../../app/(dashboard)/statistics/means-plot/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/means-plot/page.js")
+  handler satisfies AppPageConfig<"/statistics/means-plot">
 }
 
 // Validate ../../app/(dashboard)/statistics/non-parametric/page.tsx
@@ -132,10 +150,34 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   handler satisfies AppPageConfig<"/statistics/normality-test">
 }
 
+// Validate ../../app/(dashboard)/statistics/one-sample-t/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/one-sample-t/page.js")
+  handler satisfies AppPageConfig<"/statistics/one-sample-t">
+}
+
+// Validate ../../app/(dashboard)/statistics/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/page.js")
+  handler satisfies AppPageConfig<"/statistics">
+}
+
+// Validate ../../app/(dashboard)/statistics/partial-correlation/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/partial-correlation/page.js")
+  handler satisfies AppPageConfig<"/statistics/partial-correlation">
+}
+
 // Validate ../../app/(dashboard)/statistics/power-analysis/page.tsx
 {
   const handler = {} as typeof import("../../app/(dashboard)/statistics/power-analysis/page.js")
   handler satisfies AppPageConfig<"/statistics/power-analysis">
+}
+
+// Validate ../../app/(dashboard)/statistics/proportion-test/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/proportion-test/page.js")
+  handler satisfies AppPageConfig<"/statistics/proportion-test">
 }
 
 // Validate ../../app/(dashboard)/statistics/regression/page.tsx
@@ -144,10 +186,34 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   handler satisfies AppPageConfig<"/statistics/regression">
 }
 
+// Validate ../../app/(dashboard)/statistics/reliability/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/reliability/page.js")
+  handler satisfies AppPageConfig<"/statistics/reliability">
+}
+
+// Validate ../../app/(dashboard)/statistics/stepwise/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/stepwise/page.js")
+  handler satisfies AppPageConfig<"/statistics/stepwise">
+}
+
 // Validate ../../app/(dashboard)/statistics/t-test/page.tsx
 {
   const handler = {} as typeof import("../../app/(dashboard)/statistics/t-test/page.js")
   handler satisfies AppPageConfig<"/statistics/t-test">
+}
+
+// Validate ../../app/(dashboard)/statistics/two-way-anova/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/two-way-anova/page.js")
+  handler satisfies AppPageConfig<"/statistics/two-way-anova">
+}
+
+// Validate ../../app/(dashboard)/statistics/welch-t/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/statistics/welch-t/page.js")
+  handler satisfies AppPageConfig<"/statistics/welch-t">
 }
 
 // Validate ../../app/about/page.tsx

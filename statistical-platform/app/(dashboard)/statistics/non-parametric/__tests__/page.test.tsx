@@ -14,8 +14,8 @@ jest.mock('@/components/statistics/StatisticsPageLayout', () => ({
   )
 }))
 
-jest.mock('@/components/variable-selection/ProfessionalVariableSelector', () => ({
-  ProfessionalVariableSelector: ({ title, description, onMappingChange }: any) => (
+jest.mock('@/components/variable-selection/VariableSelector', () => ({
+  VariableSelector: ({ title, description, onMappingChange }: any) => (
     <div>
       <h2>{title}</h2>
       <p>{description}</p>

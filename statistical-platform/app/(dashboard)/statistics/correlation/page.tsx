@@ -32,19 +32,89 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { ProfessionalVariableSelector } from '@/components/variable-selection/ProfessionalVariableSelector'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 import { cn } from '@/lib/utils'
 
+// Data interfaces
+interface UploadedData {
+  data: Record<string, any>[]
+  fileName: string
+  columns: string[]
+}
+
+interface VariableSelection {
+  variables: string[]
+  controlVariables?: string[]
+}
+
+interface CorrelationResult {
+  var1: string
+  var2: string
+  r: number
+  pValue: number
+  significant: boolean
+  strength: 'strong' | 'moderate' | 'weak'
+}
+
+interface PairwiseCorrelation {
+  pair: string
+  r: number
+  pValue: number
+  n: number
+  ci: [number, number]
+  interpretation: string
+}
+
+interface ScatterPlotData {
+  name: string
+  data: Array<{ x: number; y: number }>
+  r: number
+  equation: string
+}
+
+interface NormalityTest {
+  variable: string
+  statistic: number
+  pValue: number
+  normal: boolean
+}
+
+interface PartialCorrelationResult {
+  controlVariable: string
+  originalCorrelation: number
+  partialCorrelation: number
+  pValue: number
+  interpretation: string
+}
+
+interface AnalysisResults {
+  correlationMatrix: CorrelationResult[]
+  pairwiseCorrelations: PairwiseCorrelation[]
+  scatterPlots: ScatterPlotData[]
+  assumptions: {
+    normality: {
+      shapiroWilk: NormalityTest[]
+    }
+    linearityTest: {
+      passed: boolean
+      interpretation: string
+    }
+  }
+  sampleSize: number
+  method: string
+  partialCorrelation?: PartialCorrelationResult | null
+}
+
 export default function CorrelationPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
-  const [uploadedData, setUploadedData] = useState<any>(null)
-  const [selectedVariables, setSelectedVariables] = useState<any>(null)
+  const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
+  const [selectedVariables, setSelectedVariables] = useState<VariableSelection | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<any>(null)
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null)
 
   // 상관분석 단계 정의
   const steps: StatisticsStep[] = [
@@ -127,18 +197,18 @@ export default function CorrelationPage() {
     setCurrentStep(1)
   }
 
-  const handleDataUpload = (data: any) => {
+  const handleDataUpload = (data: UploadedData) => {
     setUploadedData(data)
     setCurrentStep(2)
   }
 
-  const handleVariableSelection = (variables: any) => {
+  const handleVariableSelection = (variables: VariableSelection) => {
     setSelectedVariables(variables)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
-  const handleAnalysis = async (variables: any) => {
+  const handleAnalysis = async (variables: VariableSelection) => {
     setIsAnalyzing(true)
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
@@ -159,7 +229,7 @@ export default function CorrelationPage() {
         [0.145, 0.234, 0.008, 0.000]
       ]
 
-      const mockResults = {
+      const mockResults: AnalysisResults = {
         correlationMatrix: variables.map((v1, i) =>
           variables.map((v2, j) => ({
             var1: v1,
@@ -360,14 +430,14 @@ export default function CorrelationPage() {
     const variables = columns.map(col => ({
       name: col,
       type: detectVariableType(
-        uploadedData.data.map((row: any) => row[col]),
+        uploadedData.data.map((row) => row[col]),
         col
       ),
       stats: {
         missing: 0,
-        unique: [...new Set(uploadedData.data.map((row: any) => row[col]))].length,
-        min: Math.min(...uploadedData.data.map((row: any) => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map((row: any) => Number(row[col]) || 0))
+        unique: [...new Set(uploadedData.data.map((row) => row[col]))].length,
+        min: Math.min(...uploadedData.data.map((row) => Number(row[col]) || 0)),
+        max: Math.max(...uploadedData.data.map((row) => Number(row[col]) || 0))
       }
     }))
 
@@ -377,7 +447,7 @@ export default function CorrelationPage() {
         description="상관관계를 분석할 변수들을 선택하세요"
         icon={<Users className="w-5 h-5 text-primary" />}
       >
-        <ProfessionalVariableSelector
+        <VariableSelector
           variables={variables}
           requirements={requirements}
           onSelectionChange={handleVariableSelection}
@@ -443,7 +513,7 @@ export default function CorrelationPage() {
               <CardTitle className="text-base">주요 상관관계 분석 결과</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {pairwiseCorrelations.map((corr: any, idx: number) => (
+              {pairwiseCorrelations.map((corr: PairwiseCorrelation, idx: number) => (
                 <div key={idx} className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">{corr.pair}</span>
@@ -510,13 +580,13 @@ export default function CorrelationPage() {
               <CardContent>
                 <Tabs defaultValue="0">
                   <TabsList>
-                    {scatterPlots.map((plot: any, idx: number) => (
+                    {scatterPlots.map((plot: ScatterPlotData, idx: number) => (
                       <TabsTrigger key={idx} value={idx.toString()}>
                         {plot.name}
                       </TabsTrigger>
                     ))}
                   </TabsList>
-                  {scatterPlots.map((plot: any, idx: number) => (
+                  {scatterPlots.map((plot: ScatterPlotData, idx: number) => (
                     <TabsContent key={idx} value={idx.toString()}>
                       <ResponsiveContainer width="100%" height={300}>
                         <ScatterChart>
@@ -607,7 +677,7 @@ export default function CorrelationPage() {
                 <div>
                   <p className="text-sm font-medium mb-2">정규성 검정 (Shapiro-Wilk)</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {assumptions.normality.shapiroWilk.map((test: any) => (
+                    {assumptions.normality.shapiroWilk.map((test: NormalityTest) => (
                       <div key={test.variable} className="flex justify-between text-xs p-2 bg-muted/50 rounded">
                         <span>{test.variable}</span>
                         <Badge variant={test.normal ? "default" : "destructive"} className="text-xs">

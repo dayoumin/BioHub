@@ -16,15 +16,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/layout.js"
     ],
-    "/(dashboard)/analysis/page": [
+    "/(dashboard)/experimental-design/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/analysis/page.js"
-    ],
-    "/(dashboard)/analysis/[category]/[method]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/analysis/[category]/[method]/page.js"
+      "static/chunks/app/(dashboard)/experimental-design/page.js"
     ]
   }
 }

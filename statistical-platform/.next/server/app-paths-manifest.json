@@ -1,5 +1,4 @@
 {
-  "/(dashboard)/statistics/normality-test/page": "app/(dashboard)/statistics/normality-test/page.js",
-  "/(dashboard)/statistics/descriptive/page": "app/(dashboard)/statistics/descriptive/page.js",
-  "/(dashboard)/statistics/power-analysis/page": "app/(dashboard)/statistics/power-analysis/page.js"
+  "/page": "app/page.js",
+  "/(dashboard)/experimental-design/page": "app/(dashboard)/experimental-design/page.js"
 }

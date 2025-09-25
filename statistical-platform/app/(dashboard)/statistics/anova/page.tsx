@@ -30,19 +30,91 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { ProfessionalVariableSelector } from '@/components/variable-selection/ProfessionalVariableSelector'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BoxPlot, LineChart, Line, Dot } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, Dot } from 'recharts'
 import { cn } from '@/lib/utils'
+
+interface UploadedData {
+  data: Record<string, any>[]
+  fileName: string
+  columns: string[]
+}
+
+interface SelectedVariables {
+  dependent: string
+  independent: string[]
+  covariates?: string[]
+}
+
+interface GroupResult {
+  name: string
+  mean: number
+  std: number
+  n: number
+  se: number
+  ci: [number, number]
+}
+
+interface PostHocComparison {
+  group1: string
+  group2: string
+  diff: number
+  pValue: number
+  ci: [number, number]
+  significant: boolean
+}
+
+interface ANOVAResults {
+  fStatistic: number
+  pValue: number
+  dfBetween: number
+  dfWithin: number
+  msBetween: number
+  msWithin: number
+  etaSquared: number
+  omegaSquared: number
+  powerAnalysis: {
+    observedPower: number
+    effectSize: string
+    cohensF: number
+  }
+  groups: GroupResult[]
+  postHoc: {
+    method: string
+    comparisons: PostHocComparison[]
+    adjustedAlpha: number
+  }
+  assumptions: {
+    normality: {
+      shapiroWilk: { statistic: number; pValue: number }
+      passed: boolean
+      interpretation: string
+    }
+    homogeneity: {
+      levene: { statistic: number; pValue: number }
+      passed: boolean
+      interpretation: string
+    }
+  }
+  anovaTable: {
+    source: string
+    ss: number
+    df: number
+    ms: number | null
+    f: number | null
+    p: number | null
+  }[]
+}
 
 export default function ANOVAPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [anovaType, setAnovaType] = useState<'oneWay' | 'twoWay' | 'repeated' | ''>('')
-  const [uploadedData, setUploadedData] = useState<any>(null)
-  const [selectedVariables, setSelectedVariables] = useState<any>(null)
+  const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
+  const [selectedVariables, setSelectedVariables] = useState<SelectedVariables | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<any>(null)
+  const [analysisResults, setAnalysisResults] = useState<ANOVAResults | null>(null)
 
   // ANOVA 단계 정의
   const steps: StatisticsStep[] = [
@@ -112,23 +184,23 @@ export default function ANOVAPage() {
     setCurrentStep(1)
   }
 
-  const handleDataUpload = (data: any) => {
+  const handleDataUpload = (data: UploadedData) => {
     setUploadedData(data)
     setCurrentStep(2)
   }
 
-  const handleVariableSelection = (variables: any) => {
+  const handleVariableSelection = (variables: SelectedVariables) => {
     setSelectedVariables(variables)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
-  const handleAnalysis = async (variables: any) => {
+  const handleAnalysis = async (variables: SelectedVariables) => {
     setIsAnalyzing(true)
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
     setTimeout(() => {
-      const mockResults = {
+      const mockResults: ANOVAResults = {
         fStatistic: 15.234,
         pValue: 0.00012,
         dfBetween: 2,
@@ -286,14 +358,14 @@ export default function ANOVAPage() {
     const variables = columns.map(col => ({
       name: col,
       type: detectVariableType(
-        uploadedData.data.map((row: any) => row[col]),
+        uploadedData.data.map(row => row[col]),
         col
       ),
       stats: {
         missing: 0,
-        unique: [...new Set(uploadedData.data.map((row: any) => row[col]))].length,
-        min: Math.min(...uploadedData.data.map((row: any) => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map((row: any) => Number(row[col]) || 0))
+        unique: [...new Set(uploadedData.data.map(row => row[col]))].length,
+        min: Math.min(...uploadedData.data.map(row => Number(row[col]) || 0)),
+        max: Math.max(...uploadedData.data.map(row => Number(row[col]) || 0))
       }
     }))
 
@@ -303,7 +375,7 @@ export default function ANOVAPage() {
         description="분산분석에 사용할 종속변수와 요인을 선택하세요"
         icon={<Users className="w-5 h-5 text-primary" />}
       >
-        <ProfessionalVariableSelector
+        <VariableSelector
           variables={variables}
           requirements={requirements}
           onSelectionChange={handleVariableSelection}
@@ -319,7 +391,7 @@ export default function ANOVAPage() {
     const { groups, postHoc, assumptions, anovaTable, powerAnalysis } = analysisResults
 
     // 그룹 평균 비교 차트 데이터
-    const groupMeansData = groups.map((g: any) => ({
+    const groupMeansData = groups.map(g => ({
       name: g.name,
       mean: g.mean,
       ci_lower: g.ci[0],
@@ -327,7 +399,7 @@ export default function ANOVAPage() {
     }))
 
     // 사후검정 히트맵 데이터
-    const postHocMatrix = postHoc.comparisons.map((c: any) => ({
+    const postHocMatrix = postHoc.comparisons.map(c => ({
       comparison: `${c.group1} vs ${c.group2}`,
       difference: c.diff,
       pValue: c.pValue,
@@ -379,7 +451,7 @@ export default function ANOVAPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {anovaTable.map((row: any, idx: number) => (
+                    {anovaTable.map((row, idx) => (
                       <tr key={idx} className="border-b">
                         <td className="py-2">{row.source}</td>
                         <td className="text-right">{row.ss.toFixed(2)}</td>
@@ -428,7 +500,7 @@ export default function ANOVAPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {postHoc.comparisons.map((comp: any, idx: number) => (
+                  {postHoc.comparisons.map((comp, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium text-sm">

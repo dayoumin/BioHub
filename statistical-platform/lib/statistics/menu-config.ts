@@ -55,8 +55,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '범주형 변수의 빈도와 비율',
         category: 'descriptive',
         icon: BarChart3,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'cross-tabulation',
@@ -65,8 +64,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '두 범주형 변수 간의 교차 빈도',
         category: 'descriptive',
         icon: GitBranch,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'explore-data',
@@ -75,7 +73,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '상자그림, 정규성 검정 포함',
         category: 'descriptive',
         icon: Microscope,
-        implemented: false
+        implemented: true
       },
       {
         id: 'reliability-analysis',
@@ -84,7 +82,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: 'Cronbach\'s α',
         category: 'descriptive',
         icon: Activity,
-        implemented: false
+        implemented: true
       }
     ]
   },
@@ -110,8 +108,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '한 집단과 특정값 비교',
         category: 'compare',
         icon: Calculator,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'welch-t',
@@ -120,7 +117,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '등분산 가정하지 않음',
         category: 'compare',
         icon: Calculator,
-        implemented: false
+        implemented: true
       },
       {
         id: 'one-sample-proportion',
@@ -129,7 +126,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '비율과 특정값 비교',
         category: 'compare',
         icon: PieChart,
-        implemented: false
+        implemented: true
       },
       {
         id: 'means-plot',
@@ -138,7 +135,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '그룹별 평균 시각화',
         category: 'compare',
         icon: BarChart3,
-        implemented: false
+        implemented: true
       }
     ]
   },
@@ -164,8 +161,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '2개 요인 주효과와 상호작용',
         category: 'glm',
         icon: GitBranch,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'three-way-anova',
@@ -236,8 +232,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '제3변수 통제한 상관',
         category: 'correlate',
         icon: Activity,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       }
     ]
   },
@@ -263,8 +258,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '변수 선택 자동화',
         category: 'regression',
         icon: TrendingUp,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'ordinal-regression',
@@ -414,8 +408,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: 'Shapiro-Wilk, Anderson-Darling',
         category: 'diagnostic',
         icon: Activity,
-        implemented: true,
-        badge: 'New'
+        implemented: true
       },
       {
         id: 'power-analysis',
@@ -424,8 +417,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '표본크기, 효과크기 계산',
         category: 'diagnostic',
         icon: Zap,
-        implemented: true,
-        badge: 'New'
+        implemented: true
       }
     ]
   }
@@ -459,3 +451,9 @@ export const STATISTICS_SUMMARY = {
   categories: STATISTICS_MENU.length,
   completionRate: Math.round((getImplementedMenuItems().length / 41) * 100)
 }
+
+// 고급 방식으로 구현된 페이지들
+export const ADVANCED_PAGES = [
+  'frequency-table'
+  // 향후 추가될 고급 페이지들
+]

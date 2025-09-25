@@ -28,8 +28,8 @@ jest.mock('@/components/smart-flow/steps/DataUploadStep', () => ({
   ),
 }))
 
-jest.mock('@/components/variable-selection/ProfessionalVariableSelector', () => ({
-  ProfessionalVariableSelector: ({ onSelectionChange }: any) => (
+jest.mock('@/components/variable-selection/VariableSelector', () => ({
+  VariableSelector: ({ onSelectionChange }: any) => (
     <div>
       <button onClick={() => onSelectionChange({
         dependent: 'value',

@@ -35,7 +35,7 @@ import {
   Minus
 } from 'lucide-react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
-import { ProfessionalVariableSelector } from '@/components/variable-selection/ProfessionalVariableSelector'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
@@ -395,7 +395,7 @@ export default function ChiSquareTestPage() {
             )}
 
             {/* 또는 변수 선택 */}
-            <ProfessionalVariableSelector
+            <VariableSelector
               requirements={getVariableRequirements()}
               onMappingChange={setVariableMapping}
               title="또는 데이터에서 변수 선택"

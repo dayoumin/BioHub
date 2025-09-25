@@ -28,7 +28,7 @@ import {
   Shuffle
 } from 'lucide-react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
-import { ProfessionalVariableSelector } from '@/components/variable-selection/ProfessionalVariableSelector'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -319,7 +319,7 @@ export default function NonParametricTestPage() {
           {/* 분석 설정 탭 */}
           <TabsContent value="setup" className="space-y-6">
             {/* 변수 선택 */}
-            <ProfessionalVariableSelector
+            <VariableSelector
               requirements={getVariableRequirements()}
               onMappingChange={setVariableMapping}
               title="변수 선택"

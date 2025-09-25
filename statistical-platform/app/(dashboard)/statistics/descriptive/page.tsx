@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -15,31 +14,28 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  FileText,
   Calculator,
-  PlayCircle,
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  Activity,
+  Download,
+  Play,
   Info,
-  Download
+  TrendingUp,
+  Target
 } from 'lucide-react'
-import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
-import { ProfessionalVariableSelector } from '@/components/variable-selection/ProfessionalVariableSelector'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
-import { BoxPlot } from '@/components/charts/BoxPlot'
-import { BarChartWithCI } from '@/components/charts/BarChartWithCI'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 
 interface DescriptiveStats {
+  variable: string
   n: number
   mean: number
   median: number
-  mode: number[]
+  mode: string
   std: number
   variance: number
-  sem: number
   min: number
   max: number
   range: number
@@ -48,479 +44,454 @@ interface DescriptiveStats {
   iqr: number
   skewness: number
   kurtosis: number
-  cv: number
-  ci95: [number, number]
-  percentiles: Record<number, number>
-  outliers: number[]
+  se: number
+  ci_lower: number
+  ci_upper: number
+  missing: number
 }
 
-interface GroupStats {
-  [key: string]: DescriptiveStats
+interface DescriptiveResults {
+  variables: DescriptiveStats[]
+  totalCases: number
+  validCases: number
+  missingCases: number
+  analysisDate: string
 }
 
-export default function DescriptiveStatisticsPage() {
+export default function DescriptiveStatsPage() {
+  const [currentStep, setCurrentStep] = useState(0)
   const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [stats, setStats] = useState<DescriptiveStats | GroupStats | null>(null)
+  const [results, setResults] = useState<DescriptiveResults | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [activeTab, setActiveTab] = useState('summary')
-  const [showOutliers, setShowOutliers] = useState(true)
-  const [showCI, setShowCI] = useState(true)
-  const [ciLevel, setCiLevel] = useState('95')
-  const [groupBy, setGroupBy] = useState<string | null>(null)
-  const { pyodideService } = usePyodideService()
+  const [showAdvanced, setShowAdvanced] = useState(true)
+  const [showConfidenceInterval, setShowConfidenceInterval] = useState(true)
+  const [confidenceLevel, setConfidenceLevel] = useState('95')
+  const { pyodideService: _pyodideService } = usePyodideService()
 
+  // 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'select-variables',
+      number: 1,
+      title: '변수 선택',
+      description: '분석할 수치형 변수 선택',
+      status: Object.keys(variableMapping).length > 0 ? 'completed' : 'current'
+    },
+    {
+      id: 'configure-options',
+      number: 2,
+      title: '옵션 설정',
+      description: '통계량 및 신뢰구간 설정',
+      status: Object.keys(variableMapping).length > 0 ? 'current' : 'pending'
+    },
+    {
+      id: 'run-analysis',
+      number: 3,
+      title: '분석 실행',
+      description: '기술통계 계산',
+      status: results ? 'completed' : 'pending'
+    },
+    {
+      id: 'view-results',
+      number: 4,
+      title: '결과 확인',
+      description: '기술통계 결과 및 해석',
+      status: results ? 'current' : 'pending'
+    }
+  ]
+
+  // 분석 실행
   const handleAnalysis = async () => {
     setIsAnalyzing(true)
 
-    // 모의 데이터 생성
+    // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
-      const mockStats: DescriptiveStats = {
-        n: 150,
-        mean: 25.34,
-        median: 24.8,
-        mode: [24, 25],
-        std: 5.67,
-        variance: 32.15,
-        sem: 0.46,
-        min: 12.3,
-        max: 42.1,
-        range: 29.8,
-        q1: 21.5,
-        q3: 28.9,
-        iqr: 7.4,
-        skewness: 0.234,
-        kurtosis: -0.156,
-        cv: 22.38,
-        ci95: [24.43, 26.25],
-        percentiles: {
-          5: 16.2,
-          10: 18.1,
-          25: 21.5,
-          50: 24.8,
-          75: 28.9,
-          90: 32.4,
-          95: 35.1
-        },
-        outliers: [42.1, 12.3, 41.5]
+      const mockResults: DescriptiveResults = {
+        variables: [
+          {
+            variable: '키(cm)',
+            n: 150,
+            mean: 170.5,
+            median: 171.0,
+            mode: '170',
+            std: 8.2,
+            variance: 67.24,
+            min: 155.0,
+            max: 185.0,
+            range: 30.0,
+            q1: 165.0,
+            q3: 176.0,
+            iqr: 11.0,
+            skewness: -0.12,
+            kurtosis: -0.45,
+            se: 0.67,
+            ci_lower: 169.2,
+            ci_upper: 171.8,
+            missing: 0
+          },
+          {
+            variable: '몸무게(kg)',
+            n: 148,
+            mean: 68.3,
+            median: 67.5,
+            mode: '67',
+            std: 12.4,
+            variance: 153.76,
+            min: 45.0,
+            max: 95.0,
+            range: 50.0,
+            q1: 60.0,
+            q3: 75.0,
+            iqr: 15.0,
+            skewness: 0.25,
+            kurtosis: -0.33,
+            se: 1.02,
+            ci_lower: 66.3,
+            ci_upper: 70.3,
+            missing: 2
+          }
+        ],
+        totalCases: 150,
+        validCases: 148,
+        missingCases: 2,
+        analysisDate: new Date().toLocaleString('ko-KR')
       }
 
-      // 그룹별 분석인 경우
-      if (groupBy) {
-        const groupStats: GroupStats = {
-          'Group A': { ...mockStats, mean: 23.5, std: 4.8 },
-          'Group B': { ...mockStats, mean: 26.7, std: 5.9 },
-          'Group C': { ...mockStats, mean: 25.1, std: 6.2 }
-        }
-        setStats(groupStats)
-      } else {
-        setStats(mockStats)
-      }
-
+      setResults(mockResults)
       setIsAnalyzing(false)
+      setCurrentStep(3)
       setActiveTab('summary')
     }, 1500)
   }
 
-  const renderCentralTendency = (data: DescriptiveStats) => {
-    const columns = [
-      { key: 'measure', header: '측정치', type: 'text' as const },
-      { key: 'value', header: '값', type: 'number' as const },
-      { key: 'description', header: '설명', type: 'text' as const }
-    ]
-
-    const rows = [
-      {
-        measure: '평균 (Mean)',
-        value: data.mean,
-        description: '모든 값의 산술 평균'
-      },
-      {
-        measure: '중앙값 (Median)',
-        value: data.median,
-        description: '정렬된 데이터의 중간값'
-      },
-      {
-        measure: '최빈값 (Mode)',
-        value: data.mode[0] || '-',
-        description: '가장 빈번하게 나타나는 값'
-      }
-    ]
-
-    return <StatisticsTable columns={columns} data={rows} title="중심경향 측정치" />
+  // 단계 변경 처리
+  const handleStepChange = (step: number) => {
+    if (step <= currentStep + 1) {
+      setCurrentStep(step)
+    }
   }
 
-  const renderDispersion = (data: DescriptiveStats) => {
-    const columns = [
-      { key: 'measure', header: '측정치', type: 'text' as const },
-      { key: 'value', header: '값', type: 'number' as const },
-      { key: 'description', header: '설명', type: 'text' as const }
-    ]
-
-    const rows = [
-      {
-        measure: '표준편차 (SD)',
-        value: data.std,
-        description: '평균으로부터의 평균적 거리'
-      },
-      {
-        measure: '분산 (Variance)',
-        value: data.variance,
-        description: '표준편차의 제곱'
-      },
-      {
-        measure: '표준오차 (SEM)',
-        value: data.sem,
-        description: '평균의 표준오차'
-      },
-      {
-        measure: '범위 (Range)',
-        value: data.range,
-        description: '최대값 - 최소값'
-      },
-      {
-        measure: '사분위범위 (IQR)',
-        value: data.iqr,
-        description: 'Q3 - Q1'
-      },
-      {
-        measure: '변동계수 (CV)',
-        value: data.cv,
-        description: '(표준편차/평균) × 100%'
-      }
-    ]
-
-    return <StatisticsTable columns={columns} data={rows} title="산포도 측정치" />
+  // 초기화
+  const handleReset = () => {
+    setVariableMapping({})
+    setResults(null)
+    setCurrentStep(0)
+    setActiveTab('summary')
   }
 
-  const renderDistributionShape = (data: DescriptiveStats) => {
+  // 기술통계 테이블 렌더링
+  const renderDescriptiveTable = () => {
+    if (!results) return null
+
+    const basicColumns = [
+      { key: 'variable', header: '변수', type: 'text' as const },
+      { key: 'n', header: 'N', type: 'number' as const },
+      { key: 'mean', header: '평균', type: 'number' as const, precision: 2 },
+      { key: 'median', header: '중앙값', type: 'number' as const, precision: 2 },
+      { key: 'std', header: '표준편차', type: 'number' as const, precision: 2 },
+      { key: 'min', header: '최솟값', type: 'number' as const, precision: 1 },
+      { key: 'max', header: '최댓값', type: 'number' as const, precision: 1 }
+    ]
+
+    const advancedColumns = [
+      { key: 'mode', header: '최빈값', type: 'text' as const },
+      { key: 'variance', header: '분산', type: 'number' as const, precision: 2 },
+      { key: 'range', header: '범위', type: 'number' as const, precision: 1 },
+      { key: 'iqr', header: 'IQR', type: 'number' as const, precision: 2 },
+      { key: 'skewness', header: '왜도', type: 'number' as const, precision: 3 },
+      { key: 'kurtosis', header: '첨도', type: 'number' as const, precision: 3 }
+    ]
+
+    const ciColumns = [
+      { key: 'se', header: '표준오차', type: 'number' as const, precision: 3 },
+      { key: 'ci_lower', header: `CI 하한(${confidenceLevel}%)`, type: 'number' as const, precision: 2 },
+      { key: 'ci_upper', header: `CI 상한(${confidenceLevel}%)`, type: 'number' as const, precision: 2 }
+    ]
+
+    const columns = [
+      ...basicColumns,
+      ...(showAdvanced ? advancedColumns : []),
+      ...(showConfidenceInterval ? ciColumns : [])
+    ]
+
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>분포 형태</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">왜도 (Skewness)</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold">{data.skewness.toFixed(3)}</span>
-                {data.skewness > 0.5 ? (
-                  <Badge variant="outline" className="gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    오른쪽 꼬리
-                  </Badge>
-                ) : data.skewness < -0.5 ? (
-                  <Badge variant="outline" className="gap-1">
-                    <TrendingDown className="w-3 h-3" />
-                    왼쪽 꼬리
-                  </Badge>
-                ) : (
-                  <Badge variant="outline">대칭</Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {Math.abs(data.skewness) < 0.5 ? '거의 대칭적 분포' :
-                 Math.abs(data.skewness) < 1 ? '약간 비대칭' :
-                 '강한 비대칭'}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">첨도 (Kurtosis)</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold">{data.kurtosis.toFixed(3)}</span>
-                {data.kurtosis > 0 ? (
-                  <Badge variant="outline">뾰족함</Badge>
-                ) : data.kurtosis < 0 ? (
-                  <Badge variant="outline">평평함</Badge>
-                ) : (
-                  <Badge variant="outline">정규분포</Badge>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {Math.abs(data.kurtosis) < 0.5 ? '정규분포와 유사' :
-                 data.kurtosis > 0 ? '정규분포보다 뾰족함' :
-                 '정규분포보다 평평함'}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <StatisticsTable
+        columns={columns}
+        data={results.variables}
+        title="기술통계 결과"
+      />
     )
   }
 
-  const renderPercentiles = (data: DescriptiveStats) => {
-    const columns = [
-      { key: 'percentile', header: '백분위수', type: 'text' as const },
-      { key: 'value', header: '값', type: 'number' as const }
-    ]
+  // 요약 통계 카드 렌더링
+  const renderSummaryCards = () => {
+    if (!results) return null
 
-    const rows = Object.entries(data.percentiles).map(([p, value]) => ({
-      percentile: `P${p}`,
-      value
-    }))
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">분석 변수</p>
+                <p className="text-2xl font-bold">{results.variables.length}</p>
+              </div>
+              <FileText className="w-8 h-8 text-muted-foreground/20" />
+            </div>
+          </CardContent>
+        </Card>
 
-    return <StatisticsTable columns={columns} data={rows} title="백분위수" compactMode />
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">총 케이스</p>
+                <p className="text-2xl font-bold">{results.totalCases}</p>
+              </div>
+              <Calculator className="w-8 h-8 text-muted-foreground/20" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">유효 케이스</p>
+                <p className="text-2xl font-bold">{results.validCases}</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-muted-foreground/20" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">결측값</p>
+                <p className="text-2xl font-bold">{results.missingCases}</p>
+              </div>
+              <Info className="w-8 h-8 text-muted-foreground/20" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // 변수별 세부 정보 렌더링
+  const renderVariableDetails = () => {
+    if (!results) return null
+
+    return (
+      <div className="space-y-4">
+        {results.variables.map((variable, index) => (
+          <Card key={index}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                {variable.variable}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="font-medium text-muted-foreground">중심 경향</p>
+                  <p>평균: {variable.mean.toFixed(2)}</p>
+                  <p>중앙값: {variable.median.toFixed(2)}</p>
+                  <p>최빈값: {variable.mode}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-muted-foreground">산포도</p>
+                  <p>표준편차: {variable.std.toFixed(2)}</p>
+                  <p>분산: {variable.variance.toFixed(2)}</p>
+                  <p>범위: {variable.range.toFixed(1)}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-muted-foreground">분포 형태</p>
+                  <p>왜도: {variable.skewness.toFixed(3)}</p>
+                  <p>첨도: {variable.kurtosis.toFixed(3)}</p>
+                  <p>IQR: {variable.iqr.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-muted-foreground">신뢰구간({confidenceLevel}%)</p>
+                  <p>하한: {variable.ci_lower.toFixed(2)}</p>
+                  <p>상한: {variable.ci_upper.toFixed(2)}</p>
+                  <p>표준오차: {variable.se.toFixed(3)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
   }
 
   return (
     <StatisticsPageLayout
       title="기술통계"
-      description="데이터의 중심경향, 산포도, 분포 형태를 종합적으로 분석"
+      subtitle="수치형 데이터의 기본 통계량 및 분포 특성 분석"
+      icon={<FileText className="w-6 h-6" />}
+      steps={steps}
+      currentStep={currentStep}
+      onStepChange={handleStepChange}
+      onRun={handleAnalysis}
+      onReset={handleReset}
+      isRunning={isAnalyzing}
+      methodInfo={{
+        formula: "평균 = Σx/n, 표준편차 = √(Σ(x-μ)²/n), 왜도 = E[(X-μ)³]/σ³",
+        assumptions: ["수치형 데이터", "독립적인 관측값"],
+        sampleSize: "최소 제한 없음 (30개 이상 권장)",
+        usage: "데이터 분포 파악, 이상치 탐지, 가정 검정"
+      }}
     >
       <div className="space-y-6">
-        {/* 변수 선택 */}
-        <ProfessionalVariableSelector
-          title="분석할 변수 선택"
-          description="기술통계를 계산할 연속형 변수를 선택하세요"
-          onMappingChange={setVariableMapping}
-        />
+        {/* 1단계: 변수 선택 */}
+        {currentStep === 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                분석할 변수 선택
+              </CardTitle>
+              <CardDescription>
+                기술통계를 계산할 수치형(연속형, 이산형) 변수를 선택하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VariableSelector
+                title="수치형 변수 선택"
+                description="숫자로 구성된 변수를 선택하세요 (여러 변수 선택 가능)"
+                onMappingChange={(mapping) => {
+                  setVariableMapping(mapping)
+                  if (Object.keys(mapping).length > 0) {
+                    setCurrentStep(1)
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
 
-        {/* 분석 옵션 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>분석 옵션</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="outliers"
-                  checked={showOutliers}
-                  onCheckedChange={setShowOutliers}
-                />
-                <Label htmlFor="outliers">이상치 표시</Label>
+        {/* 2단계: 옵션 설정 */}
+        {currentStep === 1 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="w-5 h-5" />
+                분석 옵션 설정
+              </CardTitle>
+              <CardDescription>
+                표시할 통계량과 신뢰구간 설정을 선택하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="advanced"
+                    checked={showAdvanced}
+                    onCheckedChange={setShowAdvanced}
+                  />
+                  <Label htmlFor="advanced">고급 통계량 표시</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="confidence"
+                    checked={showConfidenceInterval}
+                    onCheckedChange={setShowConfidenceInterval}
+                  />
+                  <Label htmlFor="confidence">신뢰구간 표시</Label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Label>신뢰수준</Label>
+                  <Select value={confidenceLevel} onValueChange={setConfidenceLevel}>
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="90">90%</SelectItem>
+                      <SelectItem value="95">95%</SelectItem>
+                      <SelectItem value="99">99%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="ci"
-                  checked={showCI}
-                  onCheckedChange={setShowCI}
-                />
-                <Label htmlFor="ci">신뢰구간 표시</Label>
+              <div className="flex justify-end mt-6">
+                <Button
+                  onClick={() => setCurrentStep(2)}
+                  disabled={Object.keys(variableMapping).length === 0}
+                >
+                  다음 단계
+                </Button>
               </div>
+            </CardContent>
+          </Card>
+        )}
 
-              <div className="flex items-center gap-2">
-                <Label>신뢰수준</Label>
-                <Select value={ciLevel} onValueChange={setCiLevel} disabled={!showCI}>
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="90">90%</SelectItem>
-                    <SelectItem value="95">95%</SelectItem>
-                    <SelectItem value="99">99%</SelectItem>
-                  </SelectContent>
-                </Select>
+        {/* 3단계: 분석 실행 */}
+        {currentStep === 2 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Play className="w-5 h-5" />
+                분석 실행
+              </CardTitle>
+              <CardDescription>
+                설정된 옵션으로 기술통계를 계산합니다
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Button
+                  size="lg"
+                  onClick={handleAnalysis}
+                  disabled={isAnalyzing}
+                  className="px-8"
+                >
+                  {isAnalyzing ? '분석 중...' : '기술통계 계산'}
+                </Button>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* 분석 실행 */}
-        <div className="flex justify-end">
-          <Button
-            size="lg"
-            onClick={handleAnalysis}
-            disabled={Object.keys(variableMapping).length === 0 || isAnalyzing}
-          >
-            {isAnalyzing ? (
-              <>분석 중...</>
-            ) : (
-              <>
-                <Calculator className="mr-2 h-5 w-5" />
-                기술통계 분석
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* 결과 표시 */}
-        {stats && !isAnalyzing && (
+        {/* 4단계: 결과 확인 */}
+        {results && currentStep === 3 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="summary">요약</TabsTrigger>
-              <TabsTrigger value="visualization">시각화</TabsTrigger>
-              <TabsTrigger value="details">상세 통계</TabsTrigger>
+              <TabsTrigger value="table">통계표</TabsTrigger>
+              <TabsTrigger value="details">세부 정보</TabsTrigger>
               <TabsTrigger value="export">내보내기</TabsTrigger>
             </TabsList>
 
             <TabsContent value="summary" className="space-y-6">
-              {/* 주요 통계량 카드 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">표본 크기</p>
-                        <p className="text-2xl font-bold">
-                          {typeof stats === 'object' && 'n' in stats ? stats.n : '-'}
-                        </p>
-                      </div>
-                      <Activity className="w-8 h-8 text-muted-foreground/20" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">평균</p>
-                        <p className="text-2xl font-bold">
-                          {typeof stats === 'object' && 'mean' in stats ? stats.mean.toFixed(2) : '-'}
-                        </p>
-                      </div>
-                      <Calculator className="w-8 h-8 text-muted-foreground/20" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">표준편차</p>
-                        <p className="text-2xl font-bold">
-                          {typeof stats === 'object' && 'std' in stats ? stats.std.toFixed(2) : '-'}
-                        </p>
-                      </div>
-                      <TrendingUp className="w-8 h-8 text-muted-foreground/20" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">중앙값</p>
-                        <p className="text-2xl font-bold">
-                          {typeof stats === 'object' && 'median' in stats ? stats.median.toFixed(2) : '-'}
-                        </p>
-                      </div>
-                      <BarChart3 className="w-8 h-8 text-muted-foreground/20" />
-                    </div>
-                  </CardContent>
-                </Card>
+              <div>
+                <h3 className="text-lg font-semibold mb-4">분석 요약</h3>
+                {renderSummaryCards()}
               </div>
-
-              {/* 상세 테이블 */}
-              {typeof stats === 'object' && 'mean' in stats && (
-                <>
-                  {renderCentralTendency(stats)}
-                  {renderDispersion(stats)}
-                  {renderDistributionShape(stats)}
-                </>
-              )}
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  분석 일시: {results.analysisDate}
+                </p>
+              </div>
             </TabsContent>
 
-            <TabsContent value="visualization" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* BoxPlot */}
-                {typeof stats === 'object' && 'mean' in stats && (
-                  <BoxPlot
-                    data={[{
-                      name: '데이터',
-                      min: stats.min,
-                      q1: stats.q1,
-                      median: stats.median,
-                      q3: stats.q3,
-                      max: stats.max,
-                      mean: stats.mean,
-                      outliers: showOutliers ? stats.outliers : []
-                    }]}
-                    title="Box Plot"
-                    description="5개 요약 통계량과 이상치"
-                    showMean={true}
-                    showOutliers={showOutliers}
-                  />
-                )}
-
-                {/* 히스토그램 자리 */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>히스토그램</CardTitle>
-                    <CardDescription>데이터 분포</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-64 flex items-center justify-center text-muted-foreground">
-                      히스토그램 차트 (구현 예정)
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* 신뢰구간 시각화 */}
-              {showCI && typeof stats === 'object' && 'mean' in stats && (
-                <BarChartWithCI
-                  data={[{
-                    name: '평균',
-                    value: stats.mean,
-                    ci: stats.ci95,
-                    se: stats.sem
-                  }]}
-                  title={`${ciLevel}% 신뢰구간`}
-                  description="평균의 신뢰구간"
-                  showCI={true}
-                  ciLevel={parseInt(ciLevel)}
-                  height={200}
-                />
-              )}
+            <TabsContent value="table" className="space-y-6">
+              {renderDescriptiveTable()}
             </TabsContent>
 
             <TabsContent value="details" className="space-y-6">
-              {typeof stats === 'object' && 'mean' in stats && (
-                <>
-                  {renderPercentiles(stats)}
-
-                  {/* 이상치 정보 */}
-                  {showOutliers && stats.outliers.length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>이상치 분석</CardTitle>
-                        <CardDescription>
-                          IQR 방법으로 탐지된 이상치 ({stats.outliers.length}개)
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-2">
-                            {stats.outliers.map((outlier, i) => (
-                              <Badge key={i} variant="outline">
-                                {outlier.toFixed(2)}
-                              </Badge>
-                            ))}
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            이상치 기준: Q1 - 1.5×IQR 미만 또는 Q3 + 1.5×IQR 초과
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* 신뢰구간 정보 */}
-                  {showCI && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>신뢰구간</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          <div className="text-lg">
-                            평균의 {ciLevel}% 신뢰구간: [{stats.ci95[0].toFixed(3)}, {stats.ci95[1].toFixed(3)}]
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {ciLevel}% 확률로 모집단 평균이 이 구간 내에 있습니다.
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </>
-              )}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">변수별 세부 정보</h3>
+                {renderVariableDetails()}
+              </div>
             </TabsContent>
 
             <TabsContent value="export" className="space-y-6">
@@ -528,7 +499,7 @@ export default function DescriptiveStatisticsPage() {
                 <CardHeader>
                   <CardTitle>결과 내보내기</CardTitle>
                   <CardDescription>
-                    분석 결과를 다양한 형식으로 내보낼 수 있습니다
+                    기술통계 결과를 다양한 형식으로 내보낼 수 있습니다
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -547,7 +518,7 @@ export default function DescriptiveStatisticsPage() {
                     </Button>
                     <Button variant="outline" className="w-full">
                       <Download className="mr-2 h-4 w-4" />
-                      Word
+                      SPSS
                     </Button>
                   </div>
                 </CardContent>

@@ -36,7 +36,8 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Zap
+  Zap,
+  BarChart3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -55,7 +56,8 @@ interface StatisticsPageLayoutProps {
   // 기본 정보
   title: string
   subtitle?: string
-  icon: ReactNode
+  description?: string  // 기존 페이지 호환성을 위한 description
+  icon?: ReactNode
   methodInfo?: {
     formula?: string
     assumptions?: string[]
@@ -63,9 +65,9 @@ interface StatisticsPageLayoutProps {
     usage?: string
   }
 
-  // 단계 관리
-  steps: StatisticsStep[]
-  currentStep: number
+  // 단계 관리 (옵션)
+  steps?: StatisticsStep[]
+  currentStep?: number
   onStepChange?: (step: number) => void
 
   // 콘텐츠
@@ -94,10 +96,11 @@ const stepVariants = {
 export function StatisticsPageLayout({
   title,
   subtitle,
+  description,
   icon,
   methodInfo,
   steps,
-  currentStep,
+  currentStep = 0,
   onStepChange,
   children,
   onRun,
@@ -112,11 +115,14 @@ export function StatisticsPageLayout({
   const [showMethodInfo, setShowMethodInfo] = useState(false)
   const [showQuickTip, setShowQuickTip] = useState(true)
 
-  // 진행률 계산
-  const progress = ((currentStep + 1) / steps.length) * 100
+  // 기존 페이지 호환성: steps가 없으면 간단한 모드
+  const isAdvancedMode = steps && steps.length > 0
 
-  // 현재 단계 정보
-  const currentStepInfo = steps[currentStep]
+  // 진행률 계산 (고급 모드에서만)
+  const progress = isAdvancedMode ? ((currentStep + 1) / steps.length) * 100 : 0
+
+  // 현재 단계 정보 (고급 모드에서만)
+  const currentStepInfo = isAdvancedMode ? steps[currentStep] : null
 
   // 빠른 도움말
   const quickTips = [
@@ -143,20 +149,22 @@ export function StatisticsPageLayout({
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
                   {/* 아이콘 */}
-                  <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl">
-                    <div className="text-primary">
-                      {icon}
+                  {icon && (
+                    <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl">
+                      <div className="text-primary">
+                        {icon}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* 제목 */}
                   <div>
                     <CardTitle className="text-2xl font-bold">
                       {title}
                     </CardTitle>
-                    {subtitle && (
+                    {(subtitle || description) && (
                       <CardDescription className="mt-1">
-                        {subtitle}
+                        {subtitle || description}
                       </CardDescription>
                     )}
                   </div>
@@ -284,8 +292,8 @@ export function StatisticsPageLayout({
               </AnimatePresence>
             </CardHeader>
 
-            {/* 진행 상태 바 */}
-            {showProgress && (
+            {/* 진행 상태 바 (고급 모드에서만) */}
+            {showProgress && isAdvancedMode && (
               <>
                 <Separator />
                 <CardContent className="pt-4 pb-3">

@@ -11,11 +11,9 @@ import { memo, useEffect } from "react"
 // 네비게이션 아이템을 상수로 이동하여 리렌더링 시 재생성 방지
 const NAV_ITEMS = [
   { href: "/", label: "홈" },
-  { href: "/analysis", label: "통계 분석" },
-  { href: "/dashboard", label: "대시보드" },
-  { href: "/about", label: "소개" },
+  { href: "/experimental-design", label: "실험설계" },
+  { href: "/statistics", label: "통계분석" },
   { href: "/help", label: "도움말" },
-  { href: "/settings", label: "설정" },
 ] as const
 
 // 개별 네비게이션 아이템 컴포넌트를 memo로 최적화

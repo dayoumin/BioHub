@@ -26,11 +26,22 @@ import {
 // Components
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { ProfessionalVariableSelector } from '@/components/variable-selection/ProfessionalVariableSelector'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+
+// Data interfaces
+interface UploadedData {
+  data: Record<string, any>[]
+  fileName: string
+  columns: string[]
+}
+
+interface DataRow {
+  [key: string]: string | number | null | undefined
+}
 
 // Visualization
 import {
@@ -76,7 +87,7 @@ export default function TTestPage() {
   // State
   const [activeTab, setActiveTab] = useState<'one-sample' | 'two-sample' | 'paired'>('two-sample')
   const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<any[] | null>(null)
+  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
   const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
   const [analysisResult, setAnalysisResult] = useState<TTestResult | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -155,8 +166,8 @@ export default function TTestPage() {
   }
 
   // 데이터 업로드 완료
-  const handleDataUpload = useCallback((file: File, data: any[]) => {
-    setUploadedData(data)
+  const handleDataUpload = useCallback((uploadedData: UploadedData) => {
+    setUploadedData(uploadedData.data)
     setCurrentStep(2)
     setError(null)
   }, [])
@@ -334,7 +345,7 @@ export default function TTestPage() {
           description="데이터 구조에 맞는 t-검정 방법을 선택하세요"
           icon={<Calculator className="w-5 h-5 text-primary" />}
         >
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'one-sample' | 'two-sample' | 'paired')}>
             <TabsList className="grid w-full grid-cols-3 h-auto p-1">
               <TabsTrigger value="one-sample" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white">
                 <div className="flex flex-col items-center gap-2 py-2">
@@ -436,8 +447,7 @@ export default function TTestPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-primary" />}
         >
           <DataUploadStep
-            onUploadComplete={handleDataUpload}
-            maxFileSize={50}
+            onNext={handleDataUpload}
             acceptedFormats={['.csv', '.xlsx', '.xls']}
           />
 
@@ -456,7 +466,7 @@ export default function TTestPage() {
           description="분석에 사용할 변수를 지정하세요"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <ProfessionalVariableSelector
+          <VariableSelector
             methodId={getMethodId()}
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}

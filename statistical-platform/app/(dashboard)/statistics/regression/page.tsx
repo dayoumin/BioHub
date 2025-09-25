@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { ProfessionalVariableSelector } from '@/components/variable-selection/ProfessionalVariableSelector'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar } from 'recharts'
@@ -328,7 +328,7 @@ export default function RegressionPage() {
         description="회귀분석에 사용할 종속변수와 독립변수를 선택하세요"
         icon={<Users className="w-5 h-5 text-primary" />}
       >
-        <ProfessionalVariableSelector
+        <VariableSelector
           variables={variables}
           requirements={requirements}
           onSelectionChange={handleVariableSelection}
