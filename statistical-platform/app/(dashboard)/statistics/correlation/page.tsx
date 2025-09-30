@@ -2,27 +2,19 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import {
   Binary,
   Upload,
-  ChevronRight,
-  Play,
-  Info,
   AlertCircle,
   CheckCircle,
   TrendingUp,
   Users,
-  Layers,
-  GitBranch,
   Network,
   Sparkles,
   FileText,
@@ -35,12 +27,12 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
 
 // Data interfaces
 interface UploadedData {
-  data: Record<string, any>[]
+  data: Record<string, unknown>[]
   fileName: string
   columns: string[]
 }
@@ -208,7 +200,7 @@ export default function CorrelationPage() {
     handleAnalysis(variables)
   }
 
-  const handleAnalysis = async (variables: VariableSelection) => {
+  const handleAnalysis = async (_variables: VariableSelection) => {
     setIsAnalyzing(true)
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)

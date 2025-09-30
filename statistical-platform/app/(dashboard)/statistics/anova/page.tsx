@@ -2,21 +2,14 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import {
   BarChart3,
   Upload,
-  ChevronRight,
-  Play,
-  Info,
   AlertCircle,
   CheckCircle,
   TrendingUp,
@@ -33,11 +26,11 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, Dot } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
 
 interface UploadedData {
-  data: Record<string, any>[]
+  data: Record<string, unknown>[]
   fileName: string
   columns: string[]
 }
@@ -195,7 +188,7 @@ export default function ANOVAPage() {
     handleAnalysis(variables)
   }
 
-  const handleAnalysis = async (variables: SelectedVariables) => {
+  const handleAnalysis = async (_variables: SelectedVariables) => {
     setIsAnalyzing(true)
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
@@ -398,13 +391,6 @@ export default function ANOVAPage() {
       ci_upper: g.ci[1]
     }))
 
-    // 사후검정 히트맵 데이터
-    const postHocMatrix = postHoc.comparisons.map(c => ({
-      comparison: `${c.group1} vs ${c.group2}`,
-      difference: c.diff,
-      pValue: c.pValue,
-      significant: c.significant ? '유의함' : '유의하지 않음'
-    }))
 
     return (
       <StepCard
@@ -541,7 +527,7 @@ export default function ANOVAPage() {
                   <Badge>{analysisResults.omegaSquared.toFixed(3)}</Badge>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm">Cohen's f</span>
+                  <span className="text-sm">Cohen&apos;s f</span>
                   <Badge>{powerAnalysis.cohensF.toFixed(3)}</Badge>
                 </div>
                 <Separator className="my-2" />

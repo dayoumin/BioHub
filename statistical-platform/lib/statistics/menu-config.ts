@@ -170,7 +170,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '3개 요인 효과 분석',
         category: 'glm',
         icon: GitBranch,
-        implemented: false
+        implemented: true
       },
       {
         id: 'ancova',
@@ -179,7 +179,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '공변량 통제한 집단 비교',
         category: 'glm',
         icon: Activity,
-        implemented: false
+        implemented: true
       },
       {
         id: 'repeated-measures',
@@ -188,7 +188,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '동일 대상 반복 측정',
         category: 'glm',
         icon: Activity,
-        implemented: false
+        implemented: true
       },
       {
         id: 'manova',
@@ -197,7 +197,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '여러 종속변수 동시 분석',
         category: 'glm',
         icon: GitBranch,
-        implemented: false
+        implemented: true
       },
       {
         id: 'mixed-model',
@@ -206,7 +206,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '고정효과와 무선효과',
         category: 'glm',
         icon: Activity,
-        implemented: false
+        implemented: true
       }
     ]
   },
@@ -267,7 +267,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '순서형 결과 예측',
         category: 'regression',
         icon: TrendingUp,
-        implemented: false
+        implemented: true
       },
       {
         id: 'poisson-regression',
@@ -276,7 +276,25 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '카운트 데이터 예측',
         category: 'regression',
         icon: Calculator,
-        implemented: false
+        implemented: true
+      },
+      {
+        id: 'dose-response',
+        href: '/statistics/dose-response',
+        title: '용량-반응 분석',
+        subtitle: '용량과 반응의 관계 모델링',
+        category: 'regression',
+        icon: TrendingUp,
+        implemented: true
+      },
+      {
+        id: 'response-surface',
+        href: '/statistics/response-surface',
+        title: '반응표면 분석',
+        subtitle: '다변수 최적화 및 표면 모델링',
+        category: 'regression',
+        icon: Activity,
+        implemented: true
       }
     ]
   },
@@ -302,7 +320,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '대응 표본 방향 비교',
         category: 'nonparametric',
         icon: Shuffle,
-        implemented: false
+        implemented: true
       },
       {
         id: 'runs-test',
@@ -311,7 +329,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '자료의 무작위성',
         category: 'nonparametric',
         icon: Shuffle,
-        implemented: false
+        implemented: true
       },
       {
         id: 'kolmogorov-smirnov',
@@ -320,7 +338,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '분포 동일성 검정',
         category: 'nonparametric',
         icon: Activity,
-        implemented: false
+        implemented: true
       },
       {
         id: 'mcnemar',
@@ -329,7 +347,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '대응 이진 자료',
         category: 'nonparametric',
         icon: Calculator,
-        implemented: false
+        implemented: true
       }
     ]
   },
@@ -363,8 +381,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '잠재 요인 추출',
         category: 'advanced',
         icon: Zap,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'pca',
@@ -373,7 +390,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '차원 축소',
         category: 'advanced',
         icon: Zap,
-        implemented: false
+        implemented: true
       },
       {
         id: 'cluster-analysis',
@@ -382,7 +399,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '유사 개체 그룹화',
         category: 'advanced',
         icon: GitBranch,
-        implemented: false
+        implemented: true
       },
       {
         id: 'discriminant',
@@ -391,7 +408,7 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '그룹 예측',
         category: 'advanced',
         icon: Activity,
-        implemented: false
+        implemented: true
       }
     ]
   },
@@ -408,6 +425,15 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: 'Shapiro-Wilk, Anderson-Darling',
         category: 'diagnostic',
         icon: Activity,
+        implemented: true
+      },
+      {
+        id: 'mann-kendall',
+        href: '/statistics/mann-kendall',
+        title: 'Mann-Kendall 추세 검정',
+        subtitle: '시계열 단조 추세 검정',
+        category: 'diagnostic',
+        icon: TrendingUp,
         implemented: true
       },
       {
@@ -446,10 +472,10 @@ export function getMenuItemByPath(path: string): StatisticsMenuItem | undefined 
 
 // 통계 정보 요약
 export const STATISTICS_SUMMARY = {
-  totalMethods: 41,
+  totalMethods: 44,
   implementedMethods: getImplementedMenuItems().length,
   categories: STATISTICS_MENU.length,
-  completionRate: Math.round((getImplementedMenuItems().length / 41) * 100)
+  completionRate: Math.round((getImplementedMenuItems().length / 44) * 100)
 }
 
 // 고급 방식으로 구현된 페이지들

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
-import { DataUploadStep } from '@/components/data-upload/DataUploadStep'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { loadPyodide } from 'pyodide'
 import type { PyodideInterface } from 'pyodide'
@@ -93,13 +93,13 @@ export default function PartialCorrelationPage() {
     }
   ]
 
-  const handleDataUpload = (uploadedData: any[], uploadedColumns: string[]) => {
+  const handleDataUpload = (uploadedData: unknown[], uploadedColumns: string[]) => {
     setData(uploadedData)
     setColumns(uploadedColumns)
     setCurrentStep(3)
   }
 
-  const handleVariablesSelected = (variables: any) => {
+  const handleVariablesSelected = (variables: unknown) => {
     setSelectedVariables(variables)
     setCurrentStep(4)
     runPartialCorrelationAnalysis(variables)

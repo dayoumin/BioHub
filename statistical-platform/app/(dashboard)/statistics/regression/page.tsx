@@ -42,10 +42,10 @@ import { cn } from '@/lib/utils'
 export default function RegressionPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
-  const [uploadedData, setUploadedData] = useState<any>(null)
-  const [selectedVariables, setSelectedVariables] = useState<any>(null)
+  const [uploadedData, setUploadedData] = useState<unknown>(null)
+  const [selectedVariables, setSelectedVariables] = useState<unknown>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<any>(null)
+  const [analysisResults, setAnalysisResults] = useState<unknown>(null)
 
   // 회귀분석 단계 정의
   const steps: StatisticsStep[] = [
@@ -115,18 +115,18 @@ export default function RegressionPage() {
     setCurrentStep(1)
   }
 
-  const handleDataUpload = (data: any) => {
+  const handleDataUpload = (data: unknown) => {
     setUploadedData(data)
     setCurrentStep(2)
   }
 
-  const handleVariableSelection = (variables: any) => {
+  const handleVariableSelection = (variables: unknown) => {
     setSelectedVariables(variables)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
-  const handleAnalysis = async (variables: any) => {
+  const handleAnalysis = async (variables: unknown) => {
     setIsAnalyzing(true)
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
@@ -311,14 +311,14 @@ export default function RegressionPage() {
     const variables = columns.map(col => ({
       name: col,
       type: detectVariableType(
-        uploadedData.data.map((row: any) => row[col]),
+        uploadedData.data.map((row: unknown) => row[col]),
         col
       ),
       stats: {
         missing: 0,
-        unique: [...new Set(uploadedData.data.map((row: any) => row[col]))].length,
-        min: Math.min(...uploadedData.data.map((row: any) => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map((row: any) => Number(row[col]) || 0))
+        unique: [...new Set(uploadedData.data.map((row: unknown) => row[col]))].length,
+        min: Math.min(...uploadedData.data.map((row: unknown) => Number(row[col]) || 0)),
+        max: Math.max(...uploadedData.data.map((row: unknown) => Number(row[col]) || 0))
       }
     }))
 
@@ -390,7 +390,7 @@ export default function RegressionPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {coefficients.map((coef: any) => (
+                  {coefficients.map((coef: unknown) => (
                     <tr key={coef.name} className="border-b">
                       <td className="py-2 font-medium">{coef.name}</td>
                       <td className="text-right">{coef.estimate.toFixed(3)}</td>
@@ -441,7 +441,7 @@ export default function RegressionPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {vif.map((item: any) => (
+                {vif.map((item: unknown) => (
                   <div key={item.variable} className="flex justify-between items-center p-2 bg-muted/50 rounded">
                     <span className="text-sm">{item.variable}</span>
                     <Badge variant={item.vif > 10 ? "destructive" : item.vif > 5 ? "secondary" : "default"}>
@@ -539,7 +539,7 @@ export default function RegressionPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {coefficients.map((coef: any) => (
+                  {coefficients.map((coef: unknown) => (
                     <tr key={coef.name} className="border-b">
                       <td className="py-2 font-medium">{coef.name}</td>
                       <td className="text-right">{coef.estimate.toFixed(3)}</td>

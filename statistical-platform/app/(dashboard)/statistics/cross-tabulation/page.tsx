@@ -247,7 +247,7 @@ export default function CrossTabulationPage() {
     const colCategories = [...new Set(results.data.map(d => d.colCategory))]
 
     const tableData = rowCategories.map(rowCat => {
-      const rowData: any = { category: rowCat }
+      const rowData: unknown = { category: rowCat }
 
       colCategories.forEach(colCat => {
         const cell = results.data.find(d => d.rowCategory === rowCat && d.colCategory === colCat)
@@ -271,7 +271,7 @@ export default function CrossTabulationPage() {
     })
 
     // 열 합계 행 추가
-    const colTotalRow: any = { category: '합계' }
+    const colTotalRow: unknown = { category: '합계' }
     colCategories.forEach(colCat => {
       const colTotal = results.colTotals.find(c => c.category === colCat)
       colTotalRow[colCat] = `${colTotal?.count} (${colTotal?.percent.toFixed(1)}%)`

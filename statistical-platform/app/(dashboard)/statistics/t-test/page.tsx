@@ -34,7 +34,7 @@ import type { VariableAssignment } from '@/components/variable-selection/Variabl
 
 // Data interfaces
 interface UploadedData {
-  data: Record<string, any>[]
+  data: Record<string, unknown>[]
   fileName: string
   columns: string[]
 }
@@ -519,7 +519,7 @@ export default function TTestPage() {
                   <div className="text-3xl font-bold text-purple-600">
                     {analysisResult.effect_size?.cohens_d.toFixed(3)}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Cohen's d</p>
+                  <p className="text-sm text-muted-foreground mt-1">Cohen&apos;s d</p>
                 </div>
               </CardContent>
             </Card>
@@ -628,7 +628,7 @@ export default function TTestPage() {
                   <CardContent>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm">Cohen's d</span>
+                        <span className="text-sm">Cohen&apos;s d</span>
                         <span className="text-2xl font-bold">
                           {analysisResult.effect_size.cohens_d.toFixed(3)}
                         </span>

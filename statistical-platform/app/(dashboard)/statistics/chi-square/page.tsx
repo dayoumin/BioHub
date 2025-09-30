@@ -199,7 +199,7 @@ export default function ChiSquareTestPage() {
           description: '첫 번째 범주형 변수',
           required: true,
           multiple: false,
-          allowedTypes: ['categorical', 'binary'] as any
+          allowedTypes: ['categorical', 'binary'] as const
         },
         {
           role: 'column_variable',
@@ -207,7 +207,7 @@ export default function ChiSquareTestPage() {
           description: '두 번째 범주형 변수',
           required: true,
           multiple: false,
-          allowedTypes: ['categorical', 'binary'] as any
+          allowedTypes: ['categorical', 'binary'] as const
         }
       ]
     } else {
@@ -218,7 +218,7 @@ export default function ChiSquareTestPage() {
           description: '분석할 범주형 변수',
           required: true,
           multiple: false,
-          allowedTypes: ['categorical'] as any
+          allowedTypes: ['categorical'] as const
         }
       ]
     }

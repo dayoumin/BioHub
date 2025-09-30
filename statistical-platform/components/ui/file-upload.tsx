@@ -14,7 +14,7 @@ import { performSmartAnalysis, SmartAnalysisResult } from "@/lib/smart-analysis"
 import { useAppStore } from "@/lib/store"
 import { toast } from "sonner"
 import { DataFormatGuide } from "@/components/data/data-format-guide"
-import { SmartAnalysisRecommendations } from "@/components/analysis/smart-analysis-recommendations"
+// import { SmartAnalysisRecommendations } from "@/components/analysis/smart-analysis-recommendations"
 
 interface FileUploadProps {
   onUploadComplete?: (datasetId: string) => void
@@ -290,7 +290,7 @@ export function FileUpload({ onUploadComplete, className, enableSmartAnalysis = 
                 {/* 스마트 분석 결과 표시 */}
                 {uploadState.showSmartAnalysis && uploadState.smartAnalysis && (
                   <div className="max-h-96 overflow-y-auto">
-                    <SmartAnalysisRecommendations 
+                    {/* <SmartAnalysisRecommendations 
                       analysisResult={uploadState.smartAnalysis}
                       columns={[]} // 실제로는 데이터셋에서 가져와야 함
                       onRunTest={(testName, variables) => {
@@ -300,7 +300,7 @@ export function FileUpload({ onUploadComplete, className, enableSmartAnalysis = 
                       onViewDataDetails={() => {
                         window.location.href = `/data?view=${uploadState.uploadedDataset?.id}`
                       }}
-                    />
+                    */ }
                   </div>
                 )}
                 

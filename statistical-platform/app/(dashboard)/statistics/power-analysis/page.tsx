@@ -449,7 +449,7 @@ export default function PowerAnalysisPage() {
 
               <div>
                 <Label>분석 유형</Label>
-                <Select value={analysisType} onValueChange={(value: any) => setAnalysisType(value)}>
+                <Select value={analysisType} onValueChange={(value: unknown) => setAnalysisType(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

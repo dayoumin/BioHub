@@ -351,7 +351,7 @@ export class PyodideStatisticsService {
 
     try {
       // 데이터 구조 파악 (단일 열 또는 여러 열)
-      let columns: any[] = []
+      const columns: any[] = []
       if (Array.isArray(data) && data.length > 0) {
         if (typeof data[0] === 'object' && !Array.isArray(data[0])) {
           // 객체 배열인 경우 (DataRow[])

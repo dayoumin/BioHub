@@ -16,6 +16,7 @@ import {
   BarChart3,
   CheckCircle,
   AlertTriangle,
+  AlertCircle,
   Info,
   Calculator,
   TrendingUp,
@@ -35,7 +36,7 @@ import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 
 // Data interfaces
 interface UploadedData {
-  data: Record<string, any>[]
+  data: Record<string, unknown>[]
   fileName: string
   columns: string[]
 }
@@ -140,7 +141,7 @@ export default function ReliabilityAnalysisPage() {
   ]
 
   // Event handlers
-  const handleDataUpload = useCallback((data: any[]) => {
+  const handleDataUpload = useCallback((data: unknown[]) => {
     const processedData = data.map((row, index) => ({
       ...row,
       _id: index
@@ -198,7 +199,7 @@ export default function ReliabilityAnalysisPage() {
   return (
     <StatisticsPageLayout
       title="신뢰도 분석"
-      subtitle="Cronbach's Alpha Reliability Analysis"
+      subtitle="Cronbach&apos;s Alpha Reliability Analysis"
       description="측정도구의 내적 일관성을 평가하는 신뢰도 분석"
       icon={<Activity className="w-6 h-6" />}
       steps={steps}
@@ -219,7 +220,7 @@ export default function ReliabilityAnalysisPage() {
       {currentStep === 0 && (
         <StepCard
           title="신뢰도 분석 소개"
-          description="Cronbach's α를 이용한 내적 일관성 신뢰도 평가"
+          description="Cronbach&apos;s α를 이용한 내적 일관성 신뢰도 평가"
           icon={<Info className="w-5 h-5 text-blue-500" />}
         >
           <div className="space-y-6">
@@ -334,12 +335,12 @@ export default function ReliabilityAnalysisPage() {
                   <Label className="text-sm">신뢰도 모델</Label>
                   <RadioGroup
                     value={analysisOptions.model}
-                    onValueChange={(value: any) => setAnalysisOptions(prev => ({ ...prev, model: value }))}
+                    onValueChange={(value: unknown) => setAnalysisOptions(prev => ({ ...prev, model: value }))}
                     className="mt-2"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="alpha" id="alpha" />
-                      <Label htmlFor="alpha" className="text-sm">Cronbach's Alpha</Label>
+                      <Label htmlFor="alpha" className="text-sm">Cronbach&apos;s Alpha</Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="split-half" id="split-half" />
@@ -380,7 +381,7 @@ export default function ReliabilityAnalysisPage() {
                   <div className="text-3xl font-bold text-primary">
                     {analysisResult.cronbachAlpha.toFixed(3)}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Cronbach's α</p>
+                  <p className="text-sm text-muted-foreground mt-1">Cronbach&apos;s α</p>
                   <Badge
                     className={`mt-2 ${getAlphaInterpretation(analysisResult.cronbachAlpha).color} text-white`}
                   >
@@ -502,7 +503,7 @@ export default function ReliabilityAnalysisPage() {
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>전체 신뢰도 평가</AlertTitle>
                     <AlertDescription>
-                      현재 척도의 Cronbach's α = {analysisResult.cronbachAlpha.toFixed(3)}로
+                      현재 척도의 Cronbach&apos;s α = {analysisResult.cronbachAlpha.toFixed(3)}로
                       {getAlphaInterpretation(analysisResult.cronbachAlpha).description} 수준입니다.
                     </AlertDescription>
                   </Alert>
