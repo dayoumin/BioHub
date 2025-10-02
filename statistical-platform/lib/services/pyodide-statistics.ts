@@ -160,8 +160,10 @@ export class PyodideStatisticsService {
     console.log('[PyodideService] Python 기본 imports 실행 중...')
     await this.pyodide.runPythonAsync(`
       import numpy as np
-      import pandas as pd
       from scipy import stats
+      import json
+
+      import pandas as pd
       import warnings
       warnings.filterwarnings('ignore')
     `)
@@ -204,6 +206,8 @@ export class PyodideStatisticsService {
 
       const resultStr = await ctx.runPythonAsync(`
       import numpy as np
+      from scipy import stats
+      import json
 
       # JavaScript 배열을 numpy 배열로 변환
       np_array = np.array(data_array)
@@ -223,7 +227,6 @@ export class PyodideStatisticsService {
           'sample_size': len(clean_data)
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
       `)
@@ -263,6 +266,8 @@ export class PyodideStatisticsService {
 
       const resultStr = await ctx.runPythonAsync(`
       import numpy as np
+      from scipy import stats
+      import json
 
       # JavaScript 배열을 numpy 배열로 변환
       np_array = np.array(data_array)
@@ -306,7 +311,6 @@ export class PyodideStatisticsService {
           'outlier_percentage': (len(mild_outliers) + len(extreme_outliers)) / len(clean_data) * 100
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
       `)
@@ -344,6 +348,10 @@ export class PyodideStatisticsService {
     this.pyodide.globals.set('groups_data', groups)
 
     const resultStr = await this.pyodide.runPythonAsync(`
+      import numpy as np
+      from scipy import stats
+      import json
+
       # 각 그룹 정제
       clean_groups = []
       for group in groups_data:
@@ -361,7 +369,6 @@ export class PyodideStatisticsService {
           'pvalue': float(pvalue)
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -397,6 +404,8 @@ export class PyodideStatisticsService {
 
     const resultStr = await this.pyodide.runPythonAsync(`
       import numpy as np
+      from scipy import stats
+      import json
 
       # 결측값 제거
       clean_data = np.array([x for x in residuals if x is not None and not np.isnan(x)])
@@ -425,7 +434,6 @@ export class PyodideStatisticsService {
           'is_independent': is_independent
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -458,8 +466,9 @@ export class PyodideStatisticsService {
     this.pyodide.globals.set('groups_data', groups)
 
     const resultStr = await this.pyodide.runPythonAsync(`
-      from scipy import stats
       import numpy as np
+      from scipy import stats
+      import json
 
       # 각 그룹에서 결측값 제거
       clean_groups = []
@@ -479,7 +488,6 @@ export class PyodideStatisticsService {
           'equal_variance': float(pvalue) > 0.05
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -512,8 +520,9 @@ export class PyodideStatisticsService {
     this.pyodide.globals.set('data_array', data)
 
     const resultStr = await this.pyodide.runPythonAsync(`
-      from scipy import stats
       import numpy as np
+      from scipy import stats
+      import json
 
       # 결측값 제거
       clean_data = np.array([x for x in data_array if x is not None and not np.isnan(x)])
@@ -530,7 +539,6 @@ export class PyodideStatisticsService {
           'is_normal': float(pvalue) > 0.05
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -690,6 +698,10 @@ export class PyodideStatisticsService {
 
     console.log('[descriptiveStats] Python 코드 실행 중...')
     const resultStr = await this.pyodide.runPythonAsync(`
+      import numpy as np
+      from scipy import stats
+      import json
+
       # 결측값 제거
       clean_data = np.array([x for x in data_array if x is not None and not np.isnan(x)])
 
@@ -710,7 +722,6 @@ export class PyodideStatisticsService {
           'n': int(len(clean_data))
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -741,6 +752,10 @@ export class PyodideStatisticsService {
     this.pyodide.globals.set('y_array', y)
 
     const resultStr = await this.pyodide.runPythonAsync(`
+      import numpy as np
+      from scipy import stats
+      import json
+
       # 쌍별 결측값 제거
       x_list = list(x_array)
       y_list = list(y_array)
@@ -779,7 +794,6 @@ export class PyodideStatisticsService {
           }
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -835,6 +849,7 @@ export class PyodideStatisticsService {
     const resultStr = await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
+      import json
 
       # 데이터 정리
       g1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
@@ -923,7 +938,6 @@ export class PyodideStatisticsService {
           }
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -951,6 +965,7 @@ export class PyodideStatisticsService {
     const resultStr = await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
+      import json
 
       # 각 그룹 데이터 정리
       groups_clean = []
@@ -984,7 +999,6 @@ export class PyodideStatisticsService {
           'etaSquared': float(eta_squared)
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1019,6 +1033,7 @@ export class PyodideStatisticsService {
     const resultStr = await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
+      import json
 
       # 데이터 정리
       x_list = list(x_data)
@@ -1065,7 +1080,6 @@ export class PyodideStatisticsService {
           'df': int(df_resid)
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1089,8 +1103,9 @@ export class PyodideStatisticsService {
     this.pyodide.globals.set('group2', group2)
 
     const resultStr = await this.pyodide.runPythonAsync(`
-      from scipy import stats
       import numpy as np
+      from scipy import stats
+      import json
 
       # 데이터 정리
       g1 = [x for x in group1 if x is not None and not np.isnan(x)]
@@ -1106,7 +1121,6 @@ export class PyodideStatisticsService {
           'pvalue': float(p_value)
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1130,8 +1144,9 @@ export class PyodideStatisticsService {
     this.pyodide.globals.set('group2', group2)
 
     const resultStr = await this.pyodide.runPythonAsync(`
-      from scipy import stats
       import numpy as np
+      from scipy import stats
+      import json
 
       # 데이터 정리
       g1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
@@ -1149,7 +1164,6 @@ export class PyodideStatisticsService {
           'pvalue': float(p_value)
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1170,8 +1184,9 @@ export class PyodideStatisticsService {
     this.pyodide.globals.set('groups_data', groups)
 
     const resultStr = await this.pyodide.runPythonAsync(`
-      from scipy import stats
       import numpy as np
+      from scipy import stats
+      import json
 
       # 각 그룹 데이터 정리
       groups_clean = []
@@ -1192,7 +1207,6 @@ export class PyodideStatisticsService {
           'df': int(df)
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1211,6 +1225,7 @@ export class PyodideStatisticsService {
     const result = await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
+      import json
 
       # statsmodels가 없으므로 간단한 구현
       groups_clean = []
@@ -1237,7 +1252,6 @@ export class PyodideStatisticsService {
           })
 
       result = {'comparisons': comparisons}
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1258,8 +1272,9 @@ export class PyodideStatisticsService {
     this.pyodide.globals.set('table_data', contingencyTable)
 
     const result = await this.pyodide.runPythonAsync(`
-      from scipy import stats
       import numpy as np
+      from scipy import stats
+      import json
 
       table = np.array(table_data)
 
@@ -1275,7 +1290,6 @@ export class PyodideStatisticsService {
           'df': int(dof)
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1297,6 +1311,8 @@ export class PyodideStatisticsService {
 
     const resultStr = await this.pyodide.runPythonAsync(`
       import numpy as np
+      from scipy import stats
+      import json
 
       # 데이터 행렬 정리
       X = np.array(data_matrix)
@@ -1320,7 +1336,6 @@ export class PyodideStatisticsService {
         'components': eigenvectors[:, :2].tolist()
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1341,6 +1356,8 @@ export class PyodideStatisticsService {
 
     const resultStr = await this.pyodide.runPythonAsync(`
       import numpy as np
+      from scipy import stats
+      import json
 
       # 데이터 행렬로 변환
       X = np.array(items_data)
@@ -1368,7 +1385,6 @@ export class PyodideStatisticsService {
           'itemTotalCorrelations': item_total_corr
         }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1390,6 +1406,7 @@ export class PyodideStatisticsService {
     const resultStr = await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
+      import json
 
       data = np.array(${JSON.stringify(data)})
 
@@ -1406,7 +1423,6 @@ export class PyodideStatisticsService {
         'rankings': mean_ranks.tolist()
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1433,8 +1449,10 @@ export class PyodideStatisticsService {
 
     const resultStr = await this.pyodide.runPythonAsync(`
       import numpy as np
-      from sklearn.decomposition import FactorAnalysis
       from scipy import stats
+      import json
+
+      from sklearn.decomposition import FactorAnalysis
 
       data = np.array(${JSON.stringify(data)})
 
@@ -1466,7 +1484,6 @@ export class PyodideStatisticsService {
         'eigenvalues': eigenvalues.tolist()
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1498,6 +1515,9 @@ export class PyodideStatisticsService {
 
     const result = await this.pyodide.runPythonAsync(`
       import numpy as np
+      from scipy import stats
+      import json
+
       from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN
       from sklearn.metrics import silhouette_score
       from sklearn.preprocessing import StandardScaler
@@ -1538,7 +1558,6 @@ export class PyodideStatisticsService {
         'inertia': inertia
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1572,7 +1591,9 @@ export class PyodideStatisticsService {
 
     const result = await this.pyodide.runPythonAsync(`
       import numpy as np
-      from scipy import stats, signal
+      from scipy import stats
+      import json
+
       from statsmodels.tsa.seasonal import seasonal_decompose
       from statsmodels.tsa.stattools import acf, pacf
 
@@ -1630,7 +1651,6 @@ export class PyodideStatisticsService {
           last_mean = np.mean(data)
           result['forecast'] = [float(last_mean)] * ${forecastPeriods}
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1853,10 +1873,13 @@ export class PyodideStatisticsService {
       : "value ~ C(factor1) + C(factor2)"
 
     const result = await this.pyodide.runPythonAsync(`
+      import numpy as np
+      from scipy import stats
+      import json
+
       import pandas as pd
       from statsmodels.formula.api import ols
       from statsmodels.stats.anova import anova_lm
-      import numpy as np
 
       try:
         # 데이터 준비
@@ -1924,7 +1947,6 @@ export class PyodideStatisticsService {
       except Exception as e:
         result = {'error': str(e)}
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -1949,9 +1971,12 @@ export class PyodideStatisticsService {
     if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
 
     const result = await this.pyodide.runPythonAsync(`
+      import numpy as np
+      from scipy import stats
+      import json
+
       import pandas as pd
       from statsmodels.stats.multicomp import pairwise_tukeyhsd
-      import numpy as np
 
       # 데이터 준비
       groups = ${JSON.stringify(groups)}
@@ -1990,7 +2015,6 @@ export class PyodideStatisticsService {
         'reject_count': sum(1 for c in comparisons if c['reject'])
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -2010,6 +2034,9 @@ export class PyodideStatisticsService {
 
     const result = await this.pyodide.runPythonAsync(`
       import numpy as np
+      from scipy import stats
+      import json
+
       import statsmodels.api as sm
 
       # 데이터 준비
@@ -2061,7 +2088,6 @@ export class PyodideStatisticsService {
         'df_resid': int(model.df_resid)
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -2081,6 +2107,9 @@ export class PyodideStatisticsService {
 
     const result = await this.pyodide.runPythonAsync(`
       import numpy as np
+      from scipy import stats
+      import json
+
       from sklearn.linear_model import LogisticRegression
       from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
       from sklearn.model_selection import train_test_split
@@ -2144,7 +2173,6 @@ export class PyodideStatisticsService {
         'df_resid': int(logit_model.df_resid)
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -2208,7 +2236,7 @@ export class PyodideStatisticsService {
     const result = await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
-      from scipy.stats import rankdata
+      import json
 
       # Dunn Test 직접 구현
       groups = ${JSON.stringify(groups)}
@@ -2312,7 +2340,6 @@ export class PyodideStatisticsService {
         'significant_count': sum(1 for c in comparisons if c['significant'])
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -2347,6 +2374,7 @@ export class PyodideStatisticsService {
     const result = await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
+      import json
 
       # Games-Howell Test 직접 구현
       groups = ${JSON.stringify(groups)}
@@ -2411,7 +2439,6 @@ export class PyodideStatisticsService {
         'significant_count': sum(1 for c in comparisons if c['significant'])
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
@@ -2430,6 +2457,7 @@ export class PyodideStatisticsService {
     const result = await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
+      import json
 
       groups = ${JSON.stringify(groups)}
       group_names = ${JSON.stringify(groupNames)}
@@ -2487,7 +2515,6 @@ export class PyodideStatisticsService {
         'significant_count': sum(1 for c in comparisons if c['significant'])
       }
 
-      import json
       result_json = json.dumps(result)
       result_json
     `)
