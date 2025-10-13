@@ -88,7 +88,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - ✅ 모든 경로는 POSIX 형식 (슬래시 `/`)
    - ❌ 백슬래시 `\` 사용 금지
 
-6. **리팩토링 후 정리 체크리스트** (CRITICAL)
+6. **AI 코딩 엄격 규칙** (CRITICAL - 사람이 아닌 AI 작업)
+
+   **타입 안전성 강화**:
+   - ✅ 모든 함수에 명시적 타입 지정 (파라미터 + 리턴)
+   - ✅ `Promise<T>` 리턴 타입 명시 (async 함수)
+   - ✅ null/undefined 체크 필수 (early return 패턴)
+   - ✅ 옵셔널 체이닝 (`?.`) 적극 사용
+   - ❌ Non-null assertion (`!`) 절대 금지 → 타입 가드로 대체
+
+   **Null 안전성**:
+   ```typescript
+   // ❌ 나쁜 예
+   function process(data: any) {
+     return data.value!  // Non-null assertion
+   }
+
+   // ✅ 좋은 예
+   function process(data: unknown): number {
+     if (!data || typeof data !== 'object') {
+       throw new Error('Invalid data')
+     }
+     if (!('value' in data) || typeof data.value !== 'number') {
+       throw new Error('Missing or invalid value')
+     }
+     return data.value
+   }
+   ```
+
+   **Pyodide 서비스 호출 규칙**:
+   - ✅ `pyodideService.descriptiveStats()` ← 실제 메서드 확인 후 사용
+   - ✅ `pyodideService.shapiroWilkTest()` ← 카멜케이스 준수
+   - ❌ `pyodideService.testNormality()` ← 구버전 메서드 사용 금지
+   - ✅ 새 메서드 추가 전 `Grep`으로 기존 메서드 검색
+
+   **컴파일 체크 필수**:
+   - ✅ 코드 작성 후 즉시 `npx tsc --noEmit` 실행
+   - ✅ 타입 오류 0개 확인 후 커밋
+   - ✅ 빌드 성공 확인 (`npm run build`)
+
+7. **리팩토링 후 정리 체크리스트** (CRITICAL)
    - ✅ 타입/인터페이스 변경 시 전체 코드베이스에서 이전 이름 검색
    - ✅ `Grep` 도구로 이전 타입명 완전 제거 확인
    - ✅ `.backup`, `.old`, `.new` 같은 임시 파일 삭제

@@ -22,7 +22,7 @@ const calculateDescriptiveStats = async (
     return { success: false, error: '유효한 숫자 데이터가 없습니다' }
   }
 
-  const result = await context.pyodideService.calculateDescriptiveStats(values)
+  const result = await context.pyodideService.descriptiveStats(values)
 
   return {
     success: true,
@@ -72,7 +72,8 @@ const normalityTest = async (
   }
 
   const alpha = parameters.alpha || 0.05
-  const result = await context.pyodideService.testNormality(values, alpha)
+  const result = await context.pyodideService.shapiroWilkTest(values)
+  const isNormal = result.pValue > alpha
 
   return {
     success: true,
@@ -90,10 +91,12 @@ const normalityTest = async (
           { 항목: '검정통계량', 값: result.statistic.toFixed(4) },
           { 항목: 'p-value', 값: result.pValue.toFixed(4) },
           { 항목: '유의수준 (α)', 값: alpha },
-          { 항목: '정규성 여부', 값: result.isNormal ? '정규분포를 따름' : '정규분포를 따르지 않음' }
+          { 항목: '정규성 여부', 값: isNormal ? '정규분포를 따름' : '정규분포를 따르지 않음' }
         ]
       }],
-      interpretation: p-value ()가 유의수준 () 데이터가 정규분포를  볼 수 있습니다.
+      interpretation: `p-value (${result.pValue.toFixed(4)})가 유의수준 (${alpha})${
+        isNormal ? '보다 크므로' : '보다 작으므로'
+      } 데이터가 정규분포를 ${isNormal ? '따른다고' : '따르지 않는다고'} 볼 수 있습니다.`
     }
   }
 }
@@ -128,7 +131,11 @@ const homogeneityTest = async (
   }
 
   const groupArrays = groupNames.map(name => groups[name])
-  const result = await context.pyodideService.testHomogeneity(groupArrays, method)
+
+  // 메서드에 따라 적절한 함수 호출
+  const result = method === 'bartlett'
+    ? await context.pyodideService.bartlettTest(groupArrays)
+    : await context.pyodideService.leveneTest(groupArrays)
 
   const groupStats = groupNames.map(name => {
     const values = groups[name]
@@ -146,24 +153,45 @@ const homogeneityTest = async (
     success: true,
     data: {
       metrics: [
-        { name: method === 'levene' ? "Levene 통계량" : method === 'bartlett' ? "Bartlett 통계량" : "Fligner-Killeen 통계량", value: result.statistic.toFixed(4) },
+        {
+          name:
+            method === 'levene'
+              ? 'Levene 통계량'
+              : method === 'bartlett'
+                ? 'Bartlett 통계량'
+                : 'Fligner-Killeen 통계량',
+          value: result.statistic.toFixed(4)
+        },
         { name: 'p-value', value: result.pValue.toFixed(4) },
         { name: '유의수준', value: alpha }
       ],
-      tables: [{
-        name: '그룹별 통계',
-        data: groupStats
-      }, {
-        name: '등분산 검정 결과',
-        data: [
-          { 항목: '검정 방법', 값: method === 'levene' ? "Levene's Test" : method === 'bartlett' ? "Bartlett's Test" : "Fligner-Killeen Test" },
-          { 항목: '검정통계량', 값: result.statistic.toFixed(4) },
-          { 항목: 'p-value', 값: result.pValue.toFixed(4) },
-          { 항목: '유의수준 (α)', 값: alpha },
-          { 항목: '등분산 여부', 값: result.pValue > alpha ? '등분산 가정 만족' : '등분산 가정 위반' }
-        ]
-      }],
-      interpretation: p-value ()가 유의수준 () 그룹 간 분산이 .
+      tables: [
+        {
+          name: '그룹별 통계',
+          data: groupStats
+        },
+        {
+          name: '등분산 검정 결과',
+          data: [
+            {
+              항목: '검정 방법',
+              값:
+                method === 'levene'
+                  ? "Levene's Test"
+                  : method === 'bartlett'
+                    ? "Bartlett's Test"
+                    : 'Fligner-Killeen Test'
+            },
+            { 항목: '검정통계량', 값: result.statistic.toFixed(4) },
+            { 항목: 'p-value', 값: result.pValue.toFixed(4) },
+            { 항목: '유의수준 (α)', 값: alpha },
+            { 항목: '등분산 여부', 값: result.pValue > alpha ? '등분산 가정 만족' : '등분산 가정 위반' }
+          ]
+        }
+      ],
+      interpretation: `p-value (${result.pValue.toFixed(4)})가 유의수준 (${alpha})${
+        result.pValue > alpha ? '보다 크므로' : '보다 작으므로'
+      } 그룹 간 분산이 ${result.pValue > alpha ? '동일하다고 볼 수 있습니다 (등분산 가정 만족)' : '동일하지 않습니다 (이분산성 존재)'}.`
     }
   }
 }
@@ -174,7 +202,7 @@ const interpretDescriptiveStats = (result: any): string => {
   const kurtosisInterpret = Math.abs(result.kurtosis - 3) < 0.5 ? '정규분포와 유사한' :
     result.kurtosis > 3.5 ? '뾰족한' : '평평한'
 
-  return 데이터는 평균 , 중앙값 의 중심 경향성을 보입니다.  +
-    분포는  형태이며,  첨도를 가집니다.  +
-    표준편차는 로 데이터의 산포도를 나타냅니다.
+  return `데이터는 평균 ${result.mean.toFixed(2)}, 중앙값 ${result.median.toFixed(2)}의 중심 경향성을 보입니다. ` +
+    `분포는 ${skewInterpret} 형태이며, ${kurtosisInterpret} 첨도를 가집니다. ` +
+    `표준편차는 ${result.std.toFixed(2)}로 데이터의 산포도를 나타냅니다.`
 }

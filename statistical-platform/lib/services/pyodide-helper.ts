@@ -22,11 +22,11 @@ export class PyodideContext {
   private globalKeys: Set<string> = new Set()
 
   constructor(private pyodide: PyodideInterface) {
-    // 고유한 네임스페이스 생성 (더 안전한 방식)
+    // 고유한 네임스페이스 생성 (브라우저 환경 체크)
     const timestamp = Date.now()
     const randomPart = Math.random().toString(36).substr(2, 9)
     // crypto.randomUUID가 사용 가능하면 사용, 아니면 timestamp + random 조합
-    const uuid = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    const uuid = (typeof window !== 'undefined' && typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID().replace(/-/g, '').substr(0, 12)
       : `${timestamp}_${randomPart}`
     this.namespace = `ctx_${uuid}`

@@ -1,4 +1,4 @@
-import { ValidationResults, ExtendedValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
 
 export const DATA_LIMITS = {
   MAX_ROWS: 100000,
@@ -273,7 +273,7 @@ export class DataValidationService {
   /**
    * 전체 데이터 상세 검증 (개선된 버전)
    */
-  static performDetailedValidation(data: DataRow[]): ExtendedValidationResults {
+  static performDetailedValidation(data: DataRow[]): ValidationResults {
     const basicValidation = this.performValidation(data)
 
     if (!basicValidation.isValid || !data || data.length === 0) {

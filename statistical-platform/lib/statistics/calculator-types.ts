@@ -1,62 +1,34 @@
-import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
+import type { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
+import type { CalculationResult } from '@/types/statistics/calculation'
+import type { CanonicalMethodId } from '@/types/statistics/method-contracts'
+import type { DataRow, MethodParameters } from './method-parameter-types'
 
-export interface CalculationResult {
-  success: boolean
-  data?: {
-    metrics?: Array<{ name: string; value: number | string }>
-    tables?: Array<{ name: string; data: any[] }>
-    charts?: Array<{ type: string; data: any }>
-    interpretation?: string
-  }
-  error?: string
-}
+export type { CalculationResult, CanonicalMethodId, DataRow, MethodParameters }
 
-export const CANONICAL_METHOD_IDS = [
-  'calculateDescriptiveStats',
-  'normalityTest',
-  'homogeneityTest',
-  'oneSampleTTest',
-  'twoSampleTTest',
-  'pairedTTest',
-  'welchTTest',
-  'oneSampleProportionTest',
-  'oneWayANOVA',
-  'twoWayANOVA',
-  'manova',
-  'tukeyHSD',
-  'bonferroni',
-  'gamesHowell',
-  'dunnTest',
-  'simpleLinearRegression',
-  'multipleRegression',
-  'logisticRegression',
-  'correlationAnalysis',
-  'chiSquareTest',
-  'kruskalWallis',
-  'mannWhitneyU',
-  'wilcoxonSignedRank',
-  'kaplanMeierSurvival',
-  'coxRegression',
-  'pca',
-  'hierarchicalClustering',
-  'kMeansClustering',
-  'timeSeriesDecomposition',
-  'arimaForecast',
-  'sarimaForecast',
-  'varModel',
-  'mixedEffectsModel'
-] as const
-\n
-export type CanonicalMethodId = typeof CANONICAL_METHOD_IDS[number]
-
+/**
+ * 메서드 핸들러 함수 타입
+ *
+ * @param data - 분석할 데이터 배열 (각 행은 DataRow 타입)
+ * @param parameters - 메서드별 파라미터 (타입 안전성 확보)
+ * @returns 계산 결과
+ */
 export type MethodHandler = (
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ) => Promise<CalculationResult>
 
+/**
+ * 핸들러 맵 타입
+ *
+ * 메서드 ID를 키로, 핸들러 함수를 값으로 가지는 객체
+ */
 export type HandlerMap = Partial<Record<CanonicalMethodId, MethodHandler>>
 
+/**
+ * 계산 컨텍스트
+ *
+ * 핸들러가 사용할 수 있는 서비스들을 포함
+ */
 export interface CalculatorContext {
   pyodideService: PyodideStatisticsService
 }
-

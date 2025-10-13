@@ -1,5 +1,6 @@
 /**
  * Pyodide 관련 타입 정의
+ * Pyodide는 CDN에서 로드됩니다 (npm 패키지 사용 안 함)
  */
 
 export interface PyodideInterface {
@@ -91,4 +92,15 @@ export interface RegressionResult {
   pValue: number
   stdErr: number
   equation: string
+}
+
+/**
+ * Window 전역 타입 확장
+ * Pyodide CDN 스크립트로 로드 시 사용
+ */
+declare global {
+  interface Window {
+    loadPyodide?: (config: { indexURL: string }) => Promise<PyodideInterface>
+    pyodide?: PyodideInterface
+  }
 }

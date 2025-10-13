@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { CheckCircle, CheckCircle2, AlertTriangle, XCircle, Info, BarChart, Clock, Pause, Play, TrendingUp, Activity, ArrowLeft, ChevronRight, BarChart3, LineChart, FlaskConical, Edit2, FileEdit } from 'lucide-react'
-import { ValidationResults, ExtendedValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -31,9 +31,9 @@ const VALIDATION_CONSTANTS = {
   OUTLIER_CRITICAL_THRESHOLD: 0.1   // 이상치 심각 기준 (10%)
 } as const
 
-// Type guard for ExtendedValidationResults
-function hasColumnStats(results: ValidationResults | null): results is ExtendedValidationResults {
-  return results !== null && 'columnStats' in results
+// Type guard for ValidationResults with columnStats
+function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
+  return results !== null && 'columnStats' in results && Array.isArray(results.columnStats)
 }
 
 // 역 오차 함수 근사 (Q-Q Plot용)

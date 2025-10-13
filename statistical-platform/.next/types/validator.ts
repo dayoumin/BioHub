@@ -372,6 +372,18 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   handler satisfies AppPageConfig<"/smart-flow">
 }
 
+// Validate ../../app/test-pyodide-descriptive/page.tsx
+{
+  const handler = {} as typeof import("../../app/test-pyodide-descriptive/page.js")
+  handler satisfies AppPageConfig<"/test-pyodide-descriptive">
+}
+
+// Validate ../../app/test-pyodide-init/page.tsx
+{
+  const handler = {} as typeof import("../../app/test-pyodide-init/page.js")
+  handler satisfies AppPageConfig<"/test-pyodide-init">
+}
+
 
 
 

@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { loadPyodide } from 'pyodide'
-import type { PyodideInterface } from 'pyodide'
+import type { PyodideInterface } from '@/types/pyodide'
+import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -167,11 +167,13 @@ export default function TwoWayAnovaPage() {
     setError(null)
 
     try {
-      const pyodide: PyodideInterface = await loadPyodide({
-        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
-      })
-
-      await pyodide.loadPackage(['numpy', 'pandas', 'scipy', 'statsmodels'])
+      // Load Pyodide with required packages
+      const pyodide: PyodideInterface = await loadPyodideWithPackages([
+        'numpy',
+        'pandas',
+        'scipy',
+        'statsmodels'
+      ])
 
       pyodide.globals.set('data', data)
       pyodide.globals.set('dependent_var', variables.dependent[0])

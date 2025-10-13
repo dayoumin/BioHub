@@ -1,7 +1,7 @@
-import { ValidationResults, ExtendedValidationResults, ColumnStatistics } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics } from '@/types/smart-flow'
 
 export interface DataValidationStepProps {
-  validationResults: ValidationResults | ExtendedValidationResults | null
+  validationResults: ValidationResults | null
   data: any[] | null
 }
 
@@ -15,9 +15,9 @@ export interface ChartModalState {
   isOpen: boolean
 }
 
-// Type guard for ExtendedValidationResults
-export function hasColumnStats(results: ValidationResults | null): results is ExtendedValidationResults {
-  return results !== null && 'columnStats' in results
+// Type guard for ValidationResults with columnStats
+export function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
+  return results !== null && 'columnStats' in results && Array.isArray(results.columnStats)
 }
 
 // Check if column is numeric
