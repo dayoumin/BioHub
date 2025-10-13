@@ -111,26 +111,113 @@ def one_way_anova(groups):
     }
 
 
-def two_way_anova(data_matrix, factor1_levels, factor2_levels):
+def two_way_anova(data, factor1, factor2):
     """
     이원 분산분석 (Two-Way ANOVA)
-    
-    주의: 완전한 구현을 위해서는 statsmodels 사용 권장
-    현재는 기본적인 제곱합만 계산
+
+    Args:
+        data: 종속변수 값 리스트
+        factor1: 첫 번째 요인 수준 리스트
+        factor2: 두 번째 요인 수준 리스트
+
+    Returns:
+        dict: F-통계량, p-값, 자유도, 제곱합 등
     """
-    data_matrix = np.array(data_matrix)
-    
-    if data_matrix.size == 0:
-        raise ValueError("Empty data matrix")
-    
-    grand_mean = np.mean(data_matrix)
-    ss_total = np.sum((data_matrix - grand_mean) ** 2)
-    
-    # 실제 Two-Way ANOVA는 statsmodels 권장
+    import pandas as pd
+
+    # 데이터 정제
+    data_array = np.array(data)
+    factor1_array = np.array(factor1)
+    factor2_array = np.array(factor2)
+
+    if len(data_array) != len(factor1_array) or len(data_array) != len(factor2_array):
+        raise ValueError("data, factor1, factor2 must have the same length")
+
+    # 유효한 데이터만 선택
+    valid_indices = [i for i in range(len(data_array))
+                     if data_array[i] is not None and not np.isnan(data_array[i])]
+
+    if len(valid_indices) < 4:
+        raise ValueError("Two-way ANOVA requires at least 4 valid observations")
+
+    data_clean = data_array[valid_indices]
+    factor1_clean = factor1_array[valid_indices]
+    factor2_clean = factor2_array[valid_indices]
+
+    # 데이터프레임 생성
+    df = pd.DataFrame({
+        'value': data_clean,
+        'factor1': factor1_clean,
+        'factor2': factor2_clean
+    })
+
+    # 기본 통계
+    grand_mean = np.mean(data_clean)
+    ss_total = np.sum((data_clean - grand_mean) ** 2)
+    n = len(data_clean)
+
+    # 그룹별 평균 및 제곱합 계산
+    factor1_groups = df.groupby('factor1')['value']
+    factor2_groups = df.groupby('factor2')['value']
+
+    # Factor 1 제곱합
+    ss_factor1 = 0
+    for name, group in factor1_groups:
+        group_mean = group.mean()
+        ss_factor1 += len(group) * (group_mean - grand_mean) ** 2
+
+    # Factor 2 제곱합
+    ss_factor2 = 0
+    for name, group in factor2_groups:
+        group_mean = group.mean()
+        ss_factor2 += len(group) * (group_mean - grand_mean) ** 2
+
+    # 잔차 제곱합 (단순화된 계산)
+    ss_within = ss_total - ss_factor1 - ss_factor2
+    if ss_within < 0:
+        ss_within = 0.0
+
+    # 자유도
+    df_factor1 = len(factor1_groups) - 1
+    df_factor2 = len(factor2_groups) - 1
+    df_within = n - len(factor1_groups) - len(factor2_groups) + 1
+
+    # 평균 제곱
+    ms_factor1 = ss_factor1 / df_factor1 if df_factor1 > 0 else 0
+    ms_factor2 = ss_factor2 / df_factor2 if df_factor2 > 0 else 0
+    ms_within = ss_within / df_within if df_within > 0 else 0
+
+    # F-통계량 및 p-값
+    if ms_within > 0:
+        f_factor1 = ms_factor1 / ms_within
+        f_factor2 = ms_factor2 / ms_within
+        p_factor1 = 1 - stats.f.cdf(f_factor1, df_factor1, df_within)
+        p_factor2 = 1 - stats.f.cdf(f_factor2, df_factor2, df_within)
+    else:
+        f_factor1 = f_factor2 = float('inf')
+        p_factor1 = p_factor2 = 0.0
+
     return {
-        'ssTotal': float(ss_total),
-        'grandMean': float(grand_mean),
-        'warning': 'Use statsmodels for complete two-way ANOVA implementation'
+        'factor1': {
+            'fStatistic': float(f_factor1),
+            'pValue': float(p_factor1),
+            'df': int(df_factor1),
+            'sumOfSquares': float(ss_factor1)
+        },
+        'factor2': {
+            'fStatistic': float(f_factor2),
+            'pValue': float(p_factor2),
+            'df': int(df_factor2),
+            'sumOfSquares': float(ss_factor2)
+        },
+        'residual': {
+            'df': int(df_within),
+            'sumOfSquares': float(ss_within)
+        },
+        'total': {
+            'sumOfSquares': float(ss_total),
+            'n': int(n)
+        }
     }
 
 

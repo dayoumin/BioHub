@@ -71,16 +71,85 @@ def multiple_regression(X, y):
         raise ValueError(f"Singular matrix in multiple regression: {e}")
 
 
-def logistic_regression(X, y):
+def logistic_regression(X, y, max_iter=100):
     """
-    로지스틱 회귀분석
-    
-    주의: 완전한 구현을 위해서는 statsmodels 사용 권장
+    로지스틱 회귀분석 (Logistic Regression)
+
+    Newton-Raphson 방법으로 구현 (간단한 버전)
+
+    Args:
+        X: 독립변수 행렬 (2D array)
+        y: 종속변수 (0 또는 1의 이진 값)
+        max_iter: 최대 반복 횟수
+
+    Returns:
+        dict: 회귀계수, 확률, 예측값 등
     """
-    # 실제 구현은 statsmodels.GLM 권장
+    X = np.array(X)
+    y = np.array(y)
+
+    if X.ndim == 1:
+        X = X.reshape(-1, 1)
+
+    if len(y) < 10:
+        raise ValueError("Logistic regression requires at least 10 observations")
+
+    # 절편 항 추가
+    X_with_intercept = np.column_stack([np.ones(len(X)), X])
+
+    # 초기 계수 (0으로 시작)
+    beta = np.zeros(X_with_intercept.shape[1])
+
+    # Newton-Raphson 반복
+    for iteration in range(max_iter):
+        # 로지스틱 함수 (시그모이드)
+        z = X_with_intercept @ beta
+        p = 1 / (1 + np.exp(-z))
+
+        # 그래디언트
+        gradient = X_with_intercept.T @ (y - p)
+
+        # 헤시안 (가중치 행렬)
+        W = np.diag(p * (1 - p))
+
+        try:
+            # 헤시안 역행렬
+            H_inv = np.linalg.inv(X_with_intercept.T @ W @ X_with_intercept)
+            # 계수 업데이트
+            beta_new = beta + H_inv @ gradient
+
+            # 수렴 확인
+            if np.allclose(beta, beta_new, atol=1e-6):
+                beta = beta_new
+                break
+
+            beta = beta_new
+        except np.linalg.LinAlgError:
+            # 특이행렬인 경우 그래디언트 상승만 사용
+            beta = beta + 0.01 * gradient
+
+    # 최종 예측 확률
+    z = X_with_intercept @ beta
+    probabilities = 1 / (1 + np.exp(-z))
+    predictions = (probabilities >= 0.5).astype(int)
+
+    # 정확도
+    accuracy = np.mean(predictions == y)
+
+    # Log-likelihood
+    epsilon = 1e-15  # log(0) 방지
+    p_clipped = np.clip(probabilities, epsilon, 1 - epsilon)
+    log_likelihood = np.sum(y * np.log(p_clipped) + (1 - y) * np.log(1 - p_clipped))
+
     return {
-        'message': 'Use statsmodels.api.GLM with family=sm.families.Binomial() for logistic regression',
-        'warning': 'Placeholder implementation - needs statsmodels'
+        'coefficients': beta.tolist(),
+        'intercept': float(beta[0]),
+        'slopes': beta[1:].tolist(),
+        'probabilities': probabilities.tolist(),
+        'predictions': predictions.tolist(),
+        'accuracy': float(accuracy),
+        'logLikelihood': float(log_likelihood),
+        'iterations': int(iteration + 1)
     }
 
 
