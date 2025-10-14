@@ -12,6 +12,7 @@ module.exports = {
       tsconfig: {
         jsx: 'react-jsx',
       },
+      useESM: true,
     }],
   },
   moduleNameMapper: {
@@ -28,7 +29,8 @@ module.exports = {
   ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testTimeout: 30000,
-  maxWorkers: '50%',
+  maxWorkers: 2,
+  workerIdleMemoryLimit: '512MB',
   verbose: true,
   testPathIgnorePatterns: [
     '<rootDir>/e2e/',

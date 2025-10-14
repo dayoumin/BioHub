@@ -260,7 +260,7 @@ export function DataAnalysisFlow({ datasetId, onAnalysisComplete }: DataAnalysis
                         <CardDescription>{rec.reason}</CardDescription>
                       </div>
                       <Button size="sm" asChild>
-                        <a href={`/analysis?method=${encodeURIComponent(rec.method)}&dataset=${datasetId}`}>
+                        <a href={`/statistics?method=${encodeURIComponent(rec.method)}&dataset=${datasetId}`}>
                           이 방법으로 분석
                         </a>
                       </Button>

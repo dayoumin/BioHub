@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState, useCallback, useEffect } from 'react'
 import { CheckCircle, AlertTriangle, XCircle, Info, BarChart, LineChart, BarChart3 } from 'lucide-react'
-import { ValidationResults, ExtendedValidationResults, ColumnStatistics } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -15,13 +15,13 @@ import { workerManager, shouldUseWorker } from '@/lib/services/worker-manager'
 import type { Data } from 'plotly.js'
 
 interface DataValidationStepProps {
-  validationResults: ValidationResults | ExtendedValidationResults | null
+  validationResults: ValidationResults | null
   data: any[] | null
 }
 
-// Type guard for ExtendedValidationResults
-function hasColumnStats(results: ValidationResults | null): results is ExtendedValidationResults {
-  return results !== null && 'columnStats' in results
+// Type guard for ValidationResults with columnStats
+function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
+  return results !== null && 'columnStats' in results && Array.isArray(results.columnStats)
 }
 
 export const DataValidationStepWithCharts = memo(function DataValidationStepWithCharts({

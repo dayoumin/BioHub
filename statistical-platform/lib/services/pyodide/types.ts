@@ -108,6 +108,48 @@ export interface ANOVAResult {
   [key: string]: any
 }
 
+export interface MANOVAResult {
+  test_statistics: {
+    wilks_lambda: {
+      statistic: number
+      f_value: number
+      df_num: number
+      df_den: number
+      p_value: number
+    }
+    pillai_trace: {
+      statistic: number
+      f_value: number
+      df_num: number
+      df_den: number
+      p_value: number
+    }
+    hotelling_trace: {
+      statistic: number
+      f_value: number
+      df_num: number
+      df_den: number
+      p_value: number
+    }
+    roy_greatest_root: {
+      statistic: number
+      f_value: number
+      df_num: number
+      df_den: number
+      p_value: number
+    }
+  }
+  univariate_anovas?: Array<{
+    variable: string
+    f_statistic: number
+    p_value: number
+    df: [number, number]
+  }>
+  n_groups: number
+  n_dependent_vars: number
+  n_observations: number
+}
+
 export interface TukeyHSDResult {
   comparisons: Array<{
     group1: string
@@ -163,7 +205,36 @@ export interface TimeSeriesResult {
   seasonal: number[]
   residual: number[]
   period: number
+  forecast?: number[]
+  lower_bound?: number[]
+  upper_bound?: number[]
+  aic?: number
+  bic?: number
+  mae?: number
+  rmse?: number
+  model_params?: any
+  fitted_values?: number[]
+  residuals?: number[]
+  confidence_level?: number
   [key: string]: any
+}
+
+export interface SurvivalResult {
+  survival_function: {
+    time: number[]
+    survival_probability: number[]
+    confidence_interval_lower: number[]
+    confidence_interval_upper: number[]
+  }
+  median_survival_time?: number
+  events_count: number
+  censored_count: number
+  risk_table?: Array<{
+    time: number
+    at_risk: number
+    events: number
+    censored: number
+  }>
 }
 
 // 각 모듈별 서비스 인터페이스
@@ -186,6 +257,7 @@ export interface IANOVAService {
   oneWayANOVA(groups: number[][]): Promise<ANOVAResult>
   twoWayANOVA(data: number[][], factor1: string[], factor2: string[]): Promise<ANOVAResult>
   repeatedMeasuresANOVA(data: number[][]): Promise<ANOVAResult>
+  manova(dependentVars: number[][], groups: string[]): Promise<MANOVAResult>
   tukeyHSD(groups: number[][], groupNames?: string[], alpha?: number): Promise<TukeyHSDResult>
   gamesHowell(groups: number[][], groupNames?: string[], alpha?: number): Promise<TukeyHSDResult>
   bonferroni(groups: number[][], groupNames?: string[], alpha?: number): Promise<TukeyHSDResult>
@@ -205,10 +277,94 @@ export interface INonparametricService {
   chiSquareTest(observedMatrix: number[][], correction?: boolean): Promise<StatisticalTestResult>
 }
 
+export interface MixedEffectsResult {
+  fixed_effects: {
+    [key: string]: {
+      coefficient: number
+      std_error: number
+      z_value: number
+      p_value: number
+      ci_lower: number
+      ci_upper: number
+    }
+  }
+  random_effects: {
+    [key: string]: {
+      variance: number
+      std_dev: number
+    }
+  }
+  model_fit: {
+    log_likelihood: number
+    aic: number
+    bic: number
+    converged: boolean
+  }
+  icc?: number  // Intraclass correlation
+  r_squared?: {
+    marginal: number
+    conditional: number
+  }
+}
+
+export interface SARIMAResult extends TimeSeriesResult {
+  seasonal_order: {
+    P: number
+    D: number
+    Q: number
+    s: number
+  }
+}
+
+export interface VARResult {
+  coefficients: number[][]
+  lag_order: number
+  granger_causality?: {
+    [key: string]: {
+      test_statistic: number
+      p_value: number
+      df: number
+    }
+  }
+  forecast: number[][]
+  residuals: number[][]
+  aic: number
+  bic: number
+}
+
+export interface CoxRegressionResult {
+  coefficients: {
+    [key: string]: {
+      coef: number
+      exp_coef: number  // Hazard ratio
+      se_coef: number
+      z: number
+      p_value: number
+      ci_lower: number
+      ci_upper: number
+    }
+  }
+  concordance: number
+  log_likelihood: number
+  likelihood_ratio_test: {
+    test_statistic: number
+    df: number
+    p_value: number
+  }
+  n_observations: number
+  n_events: number
+}
+
 export interface IAdvancedService {
   pca(dataMatrix: number[][], columns?: string[], nComponents?: number, standardize?: boolean): Promise<PCAResult>
   clustering(data: number[][], nClusters: number, method?: string): Promise<ClusteringResult>
   timeSeriesDecomposition(data: number[], period?: number): Promise<TimeSeriesResult>
+  arimaForecast(data: number[], p: number, d: number, q: number, steps: number): Promise<TimeSeriesResult>
+  kaplanMeierSurvival(times: number[], events: number[]): Promise<SurvivalResult>
+  mixedEffectsModel(data: any[], formula: string, groups: string): Promise<MixedEffectsResult>
+  sarimaForecast(data: number[], order: [number, number, number], seasonal_order: [number, number, number, number], steps: number): Promise<SARIMAResult>
+  varModel(data: number[][], maxlags?: number, steps?: number): Promise<VARResult>
+  coxRegression(data: any[], duration_col: string, event_col: string, covariates: string[]): Promise<CoxRegressionResult>
 }
 
 declare global {

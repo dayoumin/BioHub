@@ -109,6 +109,31 @@
   --header-height: 4rem;
   --sidebar-width: 16rem;
   --content-max-width: 80rem;
+
+  /* Track Colors - Analysis (Blue to Purple) */
+  --track-analysis-from: #3b82f6;       /* blue-500 */
+  --track-analysis-to: #8b5cf6;         /* purple-500 */
+  --track-analysis-hover-from: #2563eb; /* blue-600 */
+  --track-analysis-hover-to: #7c3aed;   /* purple-600 */
+  --track-analysis-bg-from: #eff6ff;    /* blue-50 */
+  --track-analysis-bg-to: #faf5ff;      /* purple-50 */
+
+  /* Track Colors - Design (Emerald to Cyan) */
+  --track-design-from: #10b981;         /* emerald-500 */
+  --track-design-to: #06b6d4;           /* cyan-500 */
+  --track-design-hover-from: #059669;   /* emerald-600 */
+  --track-design-hover-to: #0891b2;     /* cyan-600 */
+  --track-design-bg-from: #ecfdf5;      /* emerald-50 */
+  --track-design-bg-to: #ecfeff;        /* cyan-50 */
+
+  /* Experimental Design Page Colors (Blue to Purple) */
+  --experimental-bg-from: #dbeafe;      /* blue-100 */
+  --experimental-bg-to: #f3e8ff;        /* purple-100 */
+  --experimental-text-from: #2563eb;    /* blue-600 */
+  --experimental-text-to: #7c3aed;      /* purple-600 */
+  --experimental-success: #10b981;      /* emerald-500 */
+  --experimental-success-light: #d1fae5; /* emerald-100 */
+  --experimental-success-text: #047857; /* emerald-700 */
 }
 
 .dark {
@@ -421,5 +446,77 @@
   
   .animation-delay-4000 {
     animation-delay: 4s;
+  }
+
+  /* Track-specific gradient utilities */
+  .bg-gradient-analysis {
+    background: linear-gradient(135deg, var(--track-analysis-from), var(--track-analysis-to));
+  }
+
+  .bg-gradient-analysis-hover {
+    background: linear-gradient(135deg, var(--track-analysis-hover-from), var(--track-analysis-hover-to));
+  }
+
+  .bg-gradient-design {
+    background: linear-gradient(135deg, var(--track-design-from), var(--track-design-to));
+  }
+
+  .bg-gradient-design-hover {
+    background: linear-gradient(135deg, var(--track-design-hover-from), var(--track-design-hover-to));
+  }
+
+  /* Track background utilities */
+  .bg-analysis-subtle {
+    background: linear-gradient(135deg, var(--track-analysis-bg-from), var(--track-analysis-bg-to));
+  }
+
+  .bg-design-subtle {
+    background: linear-gradient(135deg, var(--track-design-bg-from), var(--track-design-bg-to));
+  }
+
+  /* Track hover states */
+  .track-card-analysis:hover {
+    background: linear-gradient(135deg, var(--track-analysis-hover-from), var(--track-analysis-hover-to));
+  }
+
+  .track-card-design:hover {
+    background: linear-gradient(135deg, var(--track-design-hover-from), var(--track-design-hover-to));
+  }
+
+  /* Experimental Design utilities */
+  .bg-experimental-gradient {
+    background: linear-gradient(to right, var(--experimental-bg-from), var(--experimental-bg-to));
+  }
+
+  .bg-experimental-text-gradient {
+    background: linear-gradient(to right, var(--experimental-text-from), var(--experimental-text-to));
+  }
+
+  .text-experimental-gradient {
+    background: linear-gradient(to right, var(--experimental-text-from), var(--experimental-text-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .border-experimental-success {
+    border-color: var(--experimental-success);
+  }
+
+  .bg-experimental-success-light {
+    background-color: var(--experimental-success-light);
+  }
+
+  .text-experimental-success {
+    color: var(--experimental-success-text);
+  }
+
+  /* Button experimental styles */
+  .btn-experimental {
+    background: linear-gradient(to right, var(--track-analysis-from), var(--track-analysis-to));
+  }
+
+  .btn-experimental:hover {
+    background: linear-gradient(to right, var(--track-analysis-hover-from), var(--track-analysis-hover-to));
   }
 }

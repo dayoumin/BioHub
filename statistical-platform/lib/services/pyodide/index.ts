@@ -21,10 +21,12 @@ import type {
   CorrelationResult,
   ANOVAResult,
   TukeyHSDResult,
+  MANOVAResult,
   RegressionResult,
   PCAResult,
   ClusteringResult,
-  TimeSeriesResult
+  TimeSeriesResult,
+  SurvivalResult
 } from './types'
 
 export class PyodideStatisticsService {
@@ -152,6 +154,10 @@ export class PyodideStatisticsService {
     return this.hypothesisService.partialCorrelation(data, xCol, yCol, controlCols)
   }
 
+  async oneSampleProportionTest(successes: number, n: number, targetProportion?: number, alternative?: string): Promise<StatisticalTestResult> {
+    return this.hypothesisService.oneSampleProportionTest(successes, n, targetProportion, alternative)
+  }
+
   async calculateCorrelation(columnsData: Record<string, number[]>, method?: string): Promise<any> {
     return this.hypothesisService.calculateCorrelation(columnsData, method)
   }
@@ -170,6 +176,10 @@ export class PyodideStatisticsService {
 
   async repeatedMeasuresANOVA(data: number[][]): Promise<ANOVAResult> {
     return this.anovaService.repeatedMeasuresANOVA(data)
+  }
+
+  async manova(dependentVars: number[][], groups: string[]): Promise<MANOVAResult> {
+    return this.anovaService.manova(dependentVars, groups)
   }
 
   async tukeyHSD(groups: number[][], groupNames?: string[], alpha?: number): Promise<TukeyHSDResult> {
@@ -283,6 +293,14 @@ export class PyodideStatisticsService {
     return this.advancedService.cronbachAlpha(items)
   }
 
+  async arimaForecast(data: number[], p: number, d: number, q: number, steps: number): Promise<TimeSeriesResult> {
+    return this.advancedService.arimaForecast(data, p, d, q, steps)
+  }
+
+  async kaplanMeierSurvival(times: number[], events: number[]): Promise<SurvivalResult> {
+    return this.advancedService.kaplanMeierSurvival(times, events)
+  }
+
   // =================
   // 기존 내부 메서드들 (호환성)
   // =================
@@ -333,7 +351,7 @@ export class PyodideStatisticsService {
 
     try {
       // 데이터 구조 파악 (단일 열 또는 여러 열)
-      let columns: any[] = []
+      const columns: any[] = []
       if (Array.isArray(data) && data.length > 0) {
         if (typeof data[0] === 'object' && !Array.isArray(data[0])) {
           // 객체 배열인 경우 (DataRow[])

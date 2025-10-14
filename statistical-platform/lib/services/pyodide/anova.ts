@@ -6,7 +6,8 @@ import { BasePyodideService } from './base'
 import type {
   IANOVAService,
   ANOVAResult,
-  TukeyHSDResult
+  TukeyHSDResult,
+  MANOVAResult
 } from './types'
 
 export class ANOVAService extends BasePyodideService implements IANOVAService {
@@ -586,6 +587,92 @@ export class ANOVAService extends BasePyodideService implements IANOVAService {
   /**
    * Bonferroni 사후검정
    */
+  async manova(dependentVars: number[][], groups: string[]): Promise<MANOVAResult> {
+    await this.initialize()
+    this.setData('dependent_vars', dependentVars)
+    this.setData('groups', groups)
+
+    const py_result = await this.runPythonSafely(`
+      import pandas as pd
+      from statsmodels.multivariate.manova import MANOVA
+
+      # 데이터 준비
+      dependent_vars = list(map(list, zip(*dependent_vars)))  # Transpose
+      n_obs = len(dependent_vars)
+      n_vars = len(dependent_vars[0]) if n_obs > 0 else 0
+
+      # 데이터프레임 생성
+      df_data = {}
+      for i in range(n_vars):
+        df_data[f'Y{i+1}'] = [row[i] for row in dependent_vars]
+      df_data['group'] = groups
+
+      df = pd.DataFrame(df_data)
+
+      # MANOVA 수행
+      try:
+        # 종속변수 열 이름들
+        dep_var_names = [f'Y{i+1}' for i in range(n_vars)]
+        formula = ' + '.join(dep_var_names) + ' ~ group'
+
+        manova = MANOVA.from_formula(formula, data=df)
+        mv_test = manova.mv_test()
+
+        # 테스트 통계량 추출
+        test_results = mv_test.results['group']['stat']
+
+        # 각 테스트 통계량 파싱
+        stats = {}
+        test_names = ['Wilks\' lambda', 'Pillai\\'s trace', 'Hotelling-Lawley trace', 'Roy\\'s greatest root']
+        stat_keys = ['wilks_lambda', 'pillai_trace', 'hotelling_trace', 'roy_greatest_root']
+
+        for i, (test_name, stat_key) in enumerate(zip(test_names, stat_keys)):
+          row = test_results.iloc[i]
+          stats[stat_key] = {
+            'statistic': float(row['Value']),
+            'f_value': float(row['F Value']),
+            'df_num': float(row['Num DF']),
+            'df_den': float(row['Den DF']),
+            'p_value': float(row['Pr > F'])
+          }
+
+        # 각 종속변수별 단변량 ANOVA
+        univariate_results = []
+        for var_name in dep_var_names:
+          from scipy import stats as sp_stats
+          groups_data = [df[df['group'] == g][var_name].values for g in df['group'].unique()]
+          f_stat, p_val = sp_stats.f_oneway(*groups_data)
+          univariate_results.append({
+            'variable': var_name,
+            'f_statistic': float(f_stat),
+            'p_value': float(p_val),
+            'df': [len(df['group'].unique()) - 1, len(df) - len(df['group'].unique())]
+          })
+
+        py_result = {
+          'test_statistics': stats,
+          'univariate_anovas': univariate_results,
+          'n_groups': int(df['group'].nunique()),
+          'n_dependent_vars': int(n_vars),
+          'n_observations': int(len(df))
+        }
+
+      except Exception as e:
+        py_result = {'error': str(e)}
+
+      import json
+      result = json.dumps(py_result)
+      result
+    `)
+
+    const result = JSON.parse(py_result)
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    return result as MANOVAResult
+  }
+
   async bonferroni(groups: number[][], groupNames?: string[], alpha: number = 0.05): Promise<TukeyHSDResult> {
     await this.initialize()
     this.setData('groups_data', groups)

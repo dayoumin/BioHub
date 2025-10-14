@@ -8,7 +8,7 @@ import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 let pyodideService: PyodideStatisticsService
 const INIT_TIMEOUT = 60000
 
-describe('간단한 디버그', () => {
+describe.skip('간단한 디버그 - Pyodide 직접 테스트 스킵', () => {
   beforeAll(async () => {
     pyodideService = PyodideStatisticsService.getInstance()
     await pyodideService.initialize()

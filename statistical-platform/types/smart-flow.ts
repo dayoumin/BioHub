@@ -16,9 +16,6 @@ export interface ValidationResults {
   variables: string[]
   errors: string[]
   warnings: string[]
-}
-
-export interface ExtendedValidationResults extends ValidationResults {
   columnStats?: ColumnStatistics[]
 }
 

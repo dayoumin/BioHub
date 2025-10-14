@@ -472,4 +472,88 @@ export class HypothesisService extends BasePyodideService implements IHypothesis
 
     return result
   }
+
+  /**
+   * 일표본 비율 검정 (One-sample Proportion Test)
+   */
+  async oneSampleProportionTest(
+    successes: number,
+    n: number,
+    targetProportion: number = 0.5,
+    alternative: string = 'two-sided'
+  ): Promise<StatisticalTestResult> {
+    await this.initialize()
+    this.setData('successes', successes)
+    this.setData('n', n)
+    this.setData('p0', targetProportion)
+    this.setData('alternative', alternative)
+
+    const py_result = await this.runPythonSafely(`
+      from scipy import stats
+      import numpy as np
+
+      # 관측 비율
+      p_hat = successes / n
+
+      # 정규 근사 조건 확인
+      if n * p0 < 5 or n * (1 - p0) < 5:
+        py_result = {'error': 'Sample size too small for normal approximation'}
+      else:
+        # Z 통계량 계산
+        se = np.sqrt(p0 * (1 - p0) / n)
+        z_stat = (p_hat - p0) / se
+
+        # p-value 계산
+        if alternative == 'two-sided':
+          p_value = 2 * (1 - stats.norm.cdf(abs(z_stat)))
+        elif alternative == 'less':
+          p_value = stats.norm.cdf(z_stat)
+        elif alternative == 'greater':
+          p_value = 1 - stats.norm.cdf(z_stat)
+        else:
+          alternative = 'two-sided'
+          p_value = 2 * (1 - stats.norm.cdf(abs(z_stat)))
+
+        # 신뢰구간 계산 (Wilson score interval)
+        alpha = 0.05
+        z_critical = stats.norm.ppf(1 - alpha/2)
+
+        # Wilson score interval (더 정확한 신뢰구간)
+        center = (p_hat + z_critical**2 / (2*n)) / (1 + z_critical**2 / n)
+        margin = z_critical * np.sqrt(p_hat*(1-p_hat)/n + z_critical**2/(4*n**2)) / (1 + z_critical**2/n)
+        ci_lower = max(0, center - margin)
+        ci_upper = min(1, center + margin)
+
+        # 효과크기 (Cohen's h)
+        phi_hat = 2 * np.arcsin(np.sqrt(p_hat))
+        phi_0 = 2 * np.arcsin(np.sqrt(p0))
+        cohens_h = abs(phi_hat - phi_0)
+
+        py_result = {
+          'statistic': float(z_stat),
+          'pValue': float(p_value),
+          'alternative': alternative,
+          'method': 'One-sample proportion test (Z-test)',
+          'observedProportion': float(p_hat),
+          'targetProportion': float(p0),
+          'confidenceInterval': [float(ci_lower), float(ci_upper)],
+          'confidenceLevel': 0.95,
+          'effectSize': float(cohens_h),
+          'sampleSize': int(n),
+          'successes': int(successes),
+          'standardError': float(se)
+        }
+
+      import json
+      result = json.dumps(py_result)
+      result
+    `)
+
+    const result = JSON.parse(py_result)
+    if (result.error) {
+      throw new Error(result.error)
+    }
+
+    return result
+  }
 }

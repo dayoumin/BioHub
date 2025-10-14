@@ -4,25 +4,22 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
 import { Calculator } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { memo } from "react"
+import { memo, useEffect } from "react"
 
 // 네비게이션 아이템을 상수로 이동하여 리렌더링 시 재생성 방지
 const NAV_ITEMS = [
   { href: "/", label: "홈" },
-  { href: "/analysis", label: "통계 분석" },
-  { href: "/dashboard", label: "대시보드" },
-  { href: "/about", label: "소개" },
+  { href: "/experimental-design", label: "실험설계" },
+  { href: "/statistics", label: "통계분석" },
   { href: "/help", label: "도움말" },
-  { href: "/settings", label: "설정" },
 ] as const
 
 // 개별 네비게이션 아이템 컴포넌트를 memo로 최적화
 const NavItem = memo(({ href, label, isActive }: { href: string; label: string; isActive: boolean }) => (
-  <Link 
-    key={href} 
-    href={href} 
+  <Link
+    href={href}
     prefetch={true}
   >
     <Button 
@@ -43,6 +40,27 @@ NavItem.displayName = "NavItem"
 
 export const Header = memo(() => {
   const pathname = usePathname()
+  const router = useRouter()
+
+  // 메뉴를 열었을 때 다음에 방문할 확률이 높은 라우트 prefetch
+  useEffect(() => {
+    // 현재 페이지에 따라 관련 페이지 prefetch
+    const prefetchRelatedRoutes = () => {
+      if (pathname === '/') {
+        // 홈에서는 통계 분석과 대시보드를 prefetch
+        router.prefetch('/statistics')
+        router.prefetch('/dashboard')
+      } else if (pathname === '/statistics') {
+        // 통계 분석에서는 관련 페이지 prefetch
+        router.prefetch('/smart-analysis')
+        router.prefetch('/data')
+      }
+    }
+
+    // 약간의 지연을 두고 prefetch (즉시 실행하지 않음)
+    const timer = setTimeout(prefetchRelatedRoutes, 100)
+    return () => clearTimeout(timer)
+  }, [pathname, router])
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

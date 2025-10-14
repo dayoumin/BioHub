@@ -1,7 +1,32 @@
 # 5단계 통계 워크플로우 - 구현 현황
 
-**최종 업데이트**: 2025-01-17 20:00
+**최종 업데이트**: 2025-09-22
 **목적**: 구현 현황 추적 및 다음 단계 계획
+
+---
+
+## 🔄 Week 4 주요 업데이트
+
+### 통계 메서드 재구성 (39→41개)
+- ✅ **8개 카테고리로 재조직** (SPSS 기준)
+- ✅ **새 메서드 추가**:
+  - welchTTest: 등분산 가정 불필요
+  - oneSampleProportionTest: Wilson Score Interval
+  - 기타 고급 메서드 6개
+
+### UI/UX 개선
+- ✅ **8개 카테고리 탭 한 줄 표시**
+  - grid-cols-8 반응형 디자인
+- ✅ **비율검정 UI 통합**
+  - StatisticalAnalysisTemplate에 파라미터 구성
+
+### 코드 품질
+- ✅ **성능 최적화**
+  - Dynamic import로 모듈 지연 로딩
+  - Preload 함수 구현
+- ✅ **코드 정리**
+  - 매직 넘버 제거
+  - constants.ts, formatters.ts 파일 분리
 
 ---
 

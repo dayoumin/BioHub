@@ -9,20 +9,54 @@ interface ProgressStepperProps {
   currentStep: number
   completedSteps: number[]
   onStepClick: (stepId: number) => void
+  variant?: 'gray' | 'blue-purple'
+  className?: string
 }
 
 export function ProgressStepper({
   steps,
   currentStep,
   completedSteps,
-  onStepClick
+  onStepClick,
+  variant = 'gray',
+  className
 }: ProgressStepperProps) {
+  // 색상 variant별 스타일
+  const getProgressBarColors = () => {
+    if (variant === 'blue-purple') {
+      return 'h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500 ease-out'
+    }
+    return 'h-full bg-gradient-to-r from-gray-700 to-gray-900 dark:from-gray-300 dark:to-gray-100 transition-all duration-500 ease-out'
+  }
+
+  const getStepColors = (isCompleted: boolean, isActive: boolean, isPast: boolean) => {
+    if (variant === 'blue-purple') {
+      if (isCompleted) return 'bg-gradient-to-br from-blue-500 to-purple-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
+      if (isActive && !isCompleted) return 'bg-gradient-to-br from-blue-400 to-purple-500 border-blue-400 text-white shadow-lg shadow-blue-400/20'
+      if (!isCompleted && !isActive && isPast) return 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-600 text-blue-500'
+      return 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-400'
+    }
+
+    // gray variant (기본값)
+    if (isCompleted) return 'bg-gradient-to-br from-gray-700 to-gray-800 dark:from-gray-200 dark:to-gray-300 border-gray-700 dark:border-gray-300 text-white dark:text-black shadow-lg shadow-black/20 dark:shadow-white/20'
+    if (isActive && !isCompleted) return 'bg-gradient-to-br from-gray-600 to-gray-900 dark:from-gray-300 dark:to-gray-100 border-gray-600 dark:border-gray-300 text-white dark:text-black shadow-lg shadow-black/20 dark:shadow-white/20'
+    if (!isCompleted && !isActive && isPast) return 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500'
+    return 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-400'
+  }
+
+  const getRippleColors = () => {
+    if (variant === 'blue-purple') {
+      return 'w-14 h-14 rounded-full bg-blue-500/20 animate-ping'
+    }
+    return 'w-14 h-14 rounded-full bg-gray-500/20 dark:bg-gray-400/20 animate-ping'
+  }
+
   return (
-    <div className="relative py-4">
+    <div className={cn("relative py-4", className)}>
       {/* Progress Bar */}
       <div className="absolute top-9 left-0 w-full h-0.5 bg-gray-200 dark:bg-gray-700">
         <div
-          className="h-full bg-gradient-to-r from-gray-700 to-gray-900 dark:from-gray-300 dark:to-gray-100 transition-all duration-500 ease-out"
+          className={getProgressBarColors()}
           style={{
             width: `${Math.max(0, (Math.max(...completedSteps, currentStep) - 1) / (steps.length - 1) * 100)}%`
           }}
@@ -56,17 +90,14 @@ export function ProgressStepper({
                 {/* Ripple Effect for Current Step */}
                 {isActive && !isCompleted && (
                   <div className="absolute inset-0 -m-2">
-                    <div className="w-14 h-14 rounded-full bg-gray-500/20 dark:bg-gray-400/20 animate-ping" />
+                    <div className={getRippleColors()} />
                   </div>
                 )}
 
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
                   "border-2 relative z-10 shadow-sm",
-                  isCompleted && "bg-gradient-to-br from-gray-700 to-gray-800 dark:from-gray-200 dark:to-gray-300 border-gray-700 dark:border-gray-300 text-white dark:text-black shadow-lg shadow-black/20 dark:shadow-white/20",
-                  isActive && !isCompleted && "bg-gradient-to-br from-gray-600 to-gray-900 dark:from-gray-300 dark:to-gray-100 border-gray-600 dark:border-gray-300 text-white dark:text-black shadow-lg shadow-black/20 dark:shadow-white/20",
-                  !isCompleted && !isActive && isPast && "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500",
-                  !isCompleted && !isActive && !isPast && "bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-400",
+                  getStepColors(isCompleted, isActive, isPast),
                   isClickable && !isActive && "group-hover:scale-110 group-hover:shadow-md"
                 )}>
                   {isCompleted ? (

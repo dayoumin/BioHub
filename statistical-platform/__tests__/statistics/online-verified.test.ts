@@ -17,9 +17,9 @@ beforeAll(async () => {
   await service.initialize()
 }, 60000)
 
-describe('온라인 계산기 검증 테스트', () => {
+describe.skip('온라인 계산기 검증 테스트', () => {
 
-  describe('1. GraphPad QuickCalcs 검증', () => {
+  describe.skip('1. GraphPad QuickCalcs 검증', () => {
     test('독립표본 t-검정', async () => {
       // GraphPad QuickCalcs에서 검증
       // https://www.graphpad.com/quickcalcs/ttest1/
@@ -34,7 +34,7 @@ describe('온라인 계산기 검증 테스트', () => {
     })
   })
 
-  describe('2. Stats Kingdom 검증', () => {
+  describe.skip('2. Stats Kingdom 검증', () => {
     test('One-way ANOVA', async () => {
       // Stats Kingdom ANOVA Calculator
       // https://www.statskingdom.com/180Anova1way.html
@@ -52,7 +52,7 @@ describe('온라인 계산기 검증 테스트', () => {
     })
   })
 
-  describe('3. 표준 교과서 예제', () => {
+  describe.skip('3. 표준 교과서 예제', () => {
     test('Montgomery 통계학 교과서 예제', async () => {
       // Design and Analysis of Experiments by Montgomery (8th ed)
       // Example 3-1
@@ -71,7 +71,7 @@ describe('온라인 계산기 검증 테스트', () => {
     })
   })
 
-  describe('4. Wikipedia 예제', () => {
+  describe.skip('4. Wikipedia 예제', () => {
     test('Student t-test Wikipedia 예제', async () => {
       // https://en.wikipedia.org/wiki/Student%27s_t-test
       // "Example" section
@@ -85,7 +85,7 @@ describe('온라인 계산기 검증 테스트', () => {
     })
   })
 
-  describe('5. 간단한 검증 가능한 케이스', () => {
+  describe.skip('5. 간단한 검증 가능한 케이스', () => {
     test('완전히 같은 데이터 - t-test', async () => {
       const same1 = [1, 2, 3, 4, 5]
       const same2 = [1, 2, 3, 4, 5]

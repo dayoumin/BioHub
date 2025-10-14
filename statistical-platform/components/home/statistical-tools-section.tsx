@@ -66,12 +66,12 @@ export function StatisticalToolsSection() {
                 </div>
 
                 {/* 카테고리 링크 */}
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                   asChild
                 >
-                  <Link href={`/analysis?category=${category.id}`}>
+                  <Link href={`/statistics?category=${category.id}`}>
                     {category.title} 도구 보기
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
@@ -85,7 +85,7 @@ export function StatisticalToolsSection() {
       {/* 전체 도구 보기 버튼 */}
       <div className="text-center">
         <Button size="lg" variant="default" asChild>
-          <Link href="/analysis">
+          <Link href="/statistics">
             29개 전체 통계 도구 보기
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>

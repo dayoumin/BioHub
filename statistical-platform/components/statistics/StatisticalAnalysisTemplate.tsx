@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, lazy, Suspense } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -11,8 +11,27 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { StatisticalTest } from '@/lib/statistics/ui-config'
-import { StatisticalCalculator } from '@/lib/statistics/statistical-calculator'
-import Papa from 'papaparse'
+
+// 덩치 큰 모듈을 동적으로 import
+let Papa: typeof import('papaparse').default | null = null
+let StatisticalCalculator: any | null = null
+
+// Preload 함수들
+const preloadPapa = async () => {
+  if (!Papa) {
+    const module = await import('papaparse')
+    Papa = module.default
+  }
+  return Papa
+}
+
+const preloadStatisticalCalculator = async () => {
+  if (!StatisticalCalculator) {
+    const module = await import('@/lib/statistics/statistical-calculator')
+    StatisticalCalculator = module.StatisticalCalculator
+  }
+  return StatisticalCalculator
+}
 
 interface StatisticalAnalysisTemplateProps {
   method: StatisticalTest
@@ -46,6 +65,17 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
     setTimeout(() => setNotification(null), 5000)
   }, [])
 
+  // 탭 변경 시 필요한 모듈 preload
+  useEffect(() => {
+    if (activeTab === 'upload') {
+      // 업로드 탭에서 Papa 미리 로드
+      preloadPapa()
+    } else if (activeTab === 'parameters') {
+      // 파라미터 탭에서 StatisticalCalculator 미리 로드
+      preloadStatisticalCalculator()
+    }
+  }, [activeTab])
+
   // 예제 데이터 로드
   const loadExampleData = useCallback(async () => {
     if (!testDataPath) return
@@ -55,7 +85,8 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
       if (!response.ok) throw new Error('파일을 찾을 수 없습니다')
 
       const text = await response.text()
-      const parsed = Papa.parse(text, { header: true, dynamicTyping: true })
+      const PapaModule = await preloadPapa()
+      const parsed = PapaModule.parse(text, { header: true, dynamicTyping: true })
 
       if (parsed.data && parsed.data.length > 0) {
         // 빈 행 제거
@@ -74,7 +105,7 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
   }, [testDataPath, showNotification])
 
   // 파일 업로드 처리
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
@@ -83,7 +114,9 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
       return
     }
 
-    Papa.parse(file, {
+    try {
+      const PapaModule = await preloadPapa()
+      PapaModule.parse(file, {
       header: true,
       dynamicTyping: true,
       complete: (result) => {
@@ -103,6 +136,9 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
         showNotification('error', `업로드 실패: ${error.message}`)
       }
     })
+    } catch (err) {
+      showNotification('error', '파일 처리 모듈 로드 실패')
+    }
   }, [showNotification])
 
   // 파라미터 변경 처리
@@ -129,7 +165,8 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
     setIsAnalyzing(true)
     try {
       // 실제 통계 계산 실행
-      const result = await StatisticalCalculator.calculate(
+      const Calculator = await preloadStatisticalCalculator()
+      const result = await Calculator.calculate(
         method.id,
         uploadedData,
         parameters
@@ -530,6 +567,31 @@ function renderParameterForm(
             </div>
           )}
 
+          {param.type === 'multi-column-select' && (
+            <div className="grid grid-cols-2 gap-2">
+              {columns.map(col => {
+                const selected: string[] = Array.isArray(parameters[param.name]) ? parameters[param.name] : (param.defaultValue || [])
+                const isChecked = selected.includes(col)
+                return (
+                  <div key={col} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`${param.name}_${col}`}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        const next = new Set<string>(selected)
+                        if (checked) next.add(col); else next.delete(col)
+                        onChange(param.name, Array.from(next))
+                      }}
+                    />
+                    <Label htmlFor={`${param.name}_${col}`} className="font-normal cursor-pointer">
+                      {col}
+                    </Label>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
           {param.description && (
             <p className="text-sm text-muted-foreground">{param.description}</p>
           )}
@@ -544,8 +606,24 @@ function getRequiredParameters(methodId: string): string[] {
   const requiredParams: Record<string, string[]> = {
     'oneSampleTTest': ['column', 'popmean'],
     'twoSampleTTest': ['value_column', 'group_column'],
-    'pairedTTest': ['before_column', 'after_column'],
-    // 추가 메서드들...
+    'pairedTTest': ['column1', 'column2'],
+    'homogeneityTest': ['groupColumn', 'valueColumn'],
+    'oneWayANOVA': ['groupColumn', 'valueColumn'],
+    'twoWayANOVA': ['factor1Column', 'factor2Column', 'valueColumn'],
+    'manova': ['dependentColumns', 'groupColumn'],
+    'correlationAnalysis': ['columns'],
+    'simpleLinearRegression': ['independentColumn', 'dependentColumn'],
+    'multipleRegression': ['independentColumns', 'dependentColumn'],
+    'logisticRegression': ['independentColumns', 'dependentColumn'],
+    'mannWhitneyU': ['column1', 'column2'],
+    'wilcoxonSignedRank': ['column1', 'column2'],
+    'kruskalWallis': ['groupColumn', 'valueColumn'],
+    'dunnTest': ['groupColumn', 'valueColumn'],
+    'chiSquareTest': ['rowColumn', 'columnColumn'],
+    'timeSeriesDecomposition': ['column'],
+    'arimaForecast': ['column', 'p', 'd', 'q', 'steps'],
+    'kaplanMeierSurvival': ['timeColumn', 'eventColumn'],
+    'oneSampleProportionTest': ['column', 'expected_proportion']
   }
   return requiredParams[methodId] || []
 }
@@ -616,7 +694,530 @@ function getMethodParameters(methodId: string, columns: string[]) {
         description: '확실하지 않으면 체크 해제 (Welch t-test 수행)'
       }
     ],
+    'pairedTTest': [
+      {
+        name: 'column1',
+        label: '사전 측정 열',
+        type: 'column-select',
+        required: true,
+        description: '첫 번째(사전) 측정 열을 선택하세요'
+      },
+      {
+        name: 'column2',
+        label: '사후 측정 열',
+        type: 'column-select',
+        required: true,
+        description: '두 번째(사후) 측정 열을 선택하세요'
+      },
+      {
+        name: 'alternative',
+        label: '대립가설',
+        type: 'select',
+        defaultValue: 'two-sided',
+        options: [
+          { value: 'two-sided', label: '양측검정 (≠)' },
+          { value: 'less', label: '단측검정 (<)' },
+          { value: 'greater', label: '단측검정 (>)' }
+        ]
+      }
+    ],
+    'homogeneityTest': [
+      {
+        name: 'valueColumn',
+        label: '값 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'groupColumn',
+        label: '그룹 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'method',
+        label: '검정 방법',
+        type: 'select',
+        defaultValue: 'levene',
+        options: [
+          { value: 'levene', label: "Levene's Test" },
+          { value: 'bartlett', label: "Bartlett's Test" },
+          { value: 'fligner', label: 'Fligner-Killeen Test' }
+        ]
+      }
+    ],
+    'oneWayANOVA': [
+      {
+        name: 'valueColumn',
+        label: '값 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'groupColumn',
+        label: '그룹 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'postHoc',
+        label: '사후검정',
+        type: 'select',
+        defaultValue: 'none',
+        options: [
+          { value: 'none', label: '없음' },
+          { value: 'tukeyHSD', label: 'Tukey HSD' },
+          { value: 'bonferroni', label: 'Bonferroni' },
+          { value: 'gamesHowell', label: 'Games-Howell' }
+        ]
+      }
+    ],
+    'twoWayANOVA': [
+      {
+        name: 'valueColumn',
+        label: '값 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'factor1Column',
+        label: '요인 1 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'factor2Column',
+        label: '요인 2 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'interaction',
+        label: '상호작용 포함',
+        type: 'checkbox',
+        defaultValue: true,
+        checkboxLabel: '요인 상호작용 효과 포함'
+      }
+    ],
+    'correlationAnalysis': [
+      {
+        name: 'columns',
+        label: '변수 선택(2개 이상)',
+        type: 'multi-column-select',
+        required: true
+      },
+      {
+        name: 'method',
+        label: '상관계수 방법',
+        type: 'select',
+        defaultValue: 'pearson',
+        options: [
+          { value: 'pearson', label: 'Pearson' },
+          { value: 'spearman', label: 'Spearman' },
+          { value: 'kendall', label: 'Kendall' }
+        ]
+      }
+    ],
+    'simpleLinearRegression': [
+      {
+        name: 'independentColumn',
+        label: '독립변수(X)',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'dependentColumn',
+        label: '종속변수(Y)',
+        type: 'column-select',
+        required: true
+      }
+    ],
+    'multipleRegression': [
+      {
+        name: 'independentColumns',
+        label: '독립변수들(2개 이상)',
+        type: 'multi-column-select',
+        required: true
+      },
+      {
+        name: 'dependentColumn',
+        label: '종속변수(Y)',
+        type: 'column-select',
+        required: true
+      }
+    ],
+    'logisticRegression': [
+      {
+        name: 'independentColumns',
+        label: '독립변수들(2개 이상)',
+        type: 'multi-column-select',
+        required: true
+      },
+      {
+        name: 'dependentColumn',
+        label: '종속변수(0/1)',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'method',
+        label: '최적화 방법',
+        type: 'select',
+        defaultValue: 'newton-cg',
+        options: [
+          { value: 'newton-cg', label: 'newton-cg' },
+          { value: 'lbfgs', label: 'lbfgs' },
+          { value: 'liblinear', label: 'liblinear' }
+        ]
+      },
+      {
+        name: 'maxIter',
+        label: '최대 반복',
+        type: 'number',
+        defaultValue: 100,
+        min: 50,
+        max: 2000,
+        step: 50
+      }
+    ],
+    'mannWhitneyU': [
+      {
+        name: 'column1',
+        label: '그룹1 값 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'column2',
+        label: '그룹2 값 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'alternative',
+        label: '대립가설',
+        type: 'select',
+        defaultValue: 'two-sided',
+        options: [
+          { value: 'two-sided', label: '양측' },
+          { value: 'less', label: '단측(<)' },
+          { value: 'greater', label: '단측(>)' }
+        ]
+      }
+    ],
+    'wilcoxonSignedRank': [
+      {
+        name: 'column1',
+        label: '사전 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'column2',
+        label: '사후 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'alternative',
+        label: '대립가설',
+        type: 'select',
+        defaultValue: 'two-sided',
+        options: [
+          { value: 'two-sided', label: '양측' },
+          { value: 'less', label: '단측(<)' },
+          { value: 'greater', label: '단측(>)' }
+        ]
+      },
+      {
+        name: 'zeroMethod',
+        label: '영값 처리',
+        type: 'select',
+        defaultValue: 'pratt',
+        options: [
+          { value: 'pratt', label: 'pratt' },
+          { value: 'wilcox', label: 'wilcox' }
+        ]
+      }
+    ],
+    'kruskalWallis': [
+      {
+        name: 'valueColumn',
+        label: '값 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'groupColumn',
+        label: '그룹 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'postHoc',
+        label: '사후검정',
+        type: 'select',
+        defaultValue: 'none',
+        options: [
+          { value: 'none', label: '없음' },
+          { value: 'dunn', label: "Dunn's Test" }
+        ]
+      }
+    ],
+    'dunnTest': [
+      {
+        name: 'valueColumn',
+        label: '값 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'groupColumn',
+        label: '그룹 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'pAdjust',
+        label: 'p-value 보정',
+        type: 'select',
+        defaultValue: 'holm',
+        options: [
+          { value: 'holm', label: 'Holm' },
+          { value: 'bonferroni', label: 'Bonferroni' },
+          { value: 'fdr', label: 'FDR (BH)' }
+        ]
+      }
+    ],
+    'chiSquareTest': [
+      {
+        name: 'rowColumn',
+        label: '행 변수 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'columnColumn',
+        label: '열 변수 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'correction',
+        label: 'Yates 연속성 보정',
+        type: 'checkbox',
+        defaultValue: false
+      }
+    ],
+    'timeSeriesDecomposition': [
+      {
+        name: 'column',
+        label: '시계열 값 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'period',
+        label: '주기(선택)',
+        type: 'number',
+        description: '미지정 시 자동 감지'
+      }
+    ],
+    'manova': [
+      {
+        name: 'dependentColumns',
+        label: '종속변수 선택(2개 이상)',
+        type: 'multi-column-select',
+        required: true,
+        description: '동시에 분석할 종속변수들을 선택하세요'
+      },
+      {
+        name: 'groupColumn',
+        label: '그룹 변수',
+        type: 'column-select',
+        required: true,
+        description: '그룹을 구분하는 변수를 선택하세요'
+      }
+    ],
+    'arimaForecast': [
+      {
+        name: 'column',
+        label: '시계열 데이터 열',
+        type: 'column-select',
+        required: true
+      },
+      {
+        name: 'p',
+        label: '자기회귀 차수 (p)',
+        type: 'number',
+        required: true,
+        defaultValue: 1,
+        min: 0,
+        max: 5,
+        description: 'AR(p) - 과거 값의 개수'
+      },
+      {
+        name: 'd',
+        label: '차분 차수 (d)',
+        type: 'number',
+        required: true,
+        defaultValue: 1,
+        min: 0,
+        max: 2,
+        description: '비정상 시계열을 정상화하기 위한 차분 횟수'
+      },
+      {
+        name: 'q',
+        label: '이동평균 차수 (q)',
+        type: 'number',
+        required: true,
+        defaultValue: 1,
+        min: 0,
+        max: 5,
+        description: 'MA(q) - 과거 오차의 개수'
+      },
+      {
+        name: 'steps',
+        label: '예측 기간',
+        type: 'number',
+        required: true,
+        defaultValue: 12,
+        min: 1,
+        description: '미래 예측할 시점 수'
+      }
+    ],
+    'kaplanMeierSurvival': [
+      {
+        name: 'timeColumn',
+        label: '생존시간 열',
+        type: 'column-select',
+        required: true,
+        description: '사건 발생까지의 시간'
+      },
+      {
+        name: 'eventColumn',
+        label: '사건발생 열',
+        type: 'column-select',
+        required: true,
+        description: '0=중도절단, 1=사건발생'
+      }
+    ],
+    'pca': [
+      {
+        name: 'columns',
+        label: '변수 선택(2개 이상)',
+        type: 'multi-column-select',
+        required: true
+      },
+      {
+        name: 'nComponents',
+        label: '주성분 개수(선택)',
+        type: 'number'
+      },
+      {
+        name: 'standardize',
+        label: '표준화 사용',
+        type: 'checkbox',
+        defaultValue: true
+      }
+    ],
+    'kMeansClustering': [
+      {
+        name: 'columns',
+        label: '변수 선택(2개 이상)',
+        type: 'multi-column-select',
+        required: true
+      },
+      {
+        name: 'nClusters',
+        label: '클러스터 개수',
+        type: 'number',
+        defaultValue: 3,
+        min: 2,
+        step: 1
+      },
+      {
+        name: 'standardize',
+        label: '표준화 사용',
+        type: 'checkbox',
+        defaultValue: true
+      }
+    ],
+    'hierarchicalClustering': [
+      {
+        name: 'columns',
+        label: '변수 선택(2개 이상)',
+        type: 'multi-column-select',
+        required: true
+      },
+      {
+        name: 'method',
+        label: '연결 방법',
+        type: 'select',
+        defaultValue: 'ward',
+        options: [
+          { value: 'ward', label: 'ward' },
+          { value: 'complete', label: 'complete' },
+          { value: 'average', label: 'average' },
+          { value: 'single', label: 'single' }
+        ]
+      },
+      {
+        name: 'nClusters',
+        label: '클러스터 개수(선택)',
+        type: 'number',
+        step: 1
+      },
+      {
+        name: 'standardize',
+        label: '표준화 사용',
+        type: 'checkbox',
+        defaultValue: true
+      }
+    ],
     // 기본 파라미터 (메서드가 정의되지 않은 경우)
+    'oneSampleProportionTest': [
+      {
+        name: 'column',
+        label: '검정할 열',
+        type: 'column-select',
+        required: true,
+        description: '성공/실패, 1/0, Yes/No 등의 이진 데이터가 있는 열'
+      },
+      {
+        name: 'expected_proportion',
+        label: '기대 비율',
+        type: 'number',
+        required: true,
+        defaultValue: 0.5,
+        min: 0,
+        max: 1,
+        step: 0.01,
+        placeholder: '예: 0.5',
+        description: '비교할 기준 비율 (0과 1 사이의 값)'
+      },
+      {
+        name: 'alternative',
+        label: '대립가설',
+        type: 'select',
+        defaultValue: 'two-sided',
+        options: [
+          { value: 'two-sided', label: '양측검정' },
+          { value: 'greater', label: '단측검정 (크다)' },
+          { value: 'less', label: '단측검정 (작다)' }
+        ]
+      },
+      {
+        name: 'confidence_level',
+        label: '신뢰수준',
+        type: 'number',
+        defaultValue: 0.95,
+        min: 0.8,
+        max: 0.99,
+        step: 0.01,
+        description: '일반적으로 0.95 (95%) 사용'
+      }
+    ],
     'default': [
       {
         name: 'column',

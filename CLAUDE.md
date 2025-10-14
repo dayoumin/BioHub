@@ -8,372 +8,339 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **목표**: SPSS/R Studio 급 고급 통계 소프트웨어
 - **대상**: 수산과학 연구자, 통계 전문가, 데이터 분석가
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
+- **현재**: Phase 5-1 완료 (Registry Pattern + Groups), Phase 5-2 진행 중
 
-**핵심 기능**:
-- **기본 통계**: t-test, ANOVA, 회귀분석, 상관분석
-- **사후분석**: Tukey HSD, Games-Howell, Dunn's test
-- **고급 분석**: 검정력 분석, 효과크기, 다중비교 보정
+## ⚠️ AI 코딩 엄격 규칙 (CRITICAL)
 
-## 🏗️ 프로젝트 구조 (Next.js 15)
+### 1. TypeScript 타입 안전성 (최우선)
 
-### 🎯 핵심 개발 방향
-> **"단일 페이지 통합 분석 인터페이스" - 한 화면에서 모든 분석 완성**
+**필수 규칙**:
+- ❌ `any` 타입 절대 금지
+- ✅ `unknown` 사용 후 타입 가드로 안전하게 타입 좁히기
+- ✅ 모든 함수에 명시적 타입 지정 (파라미터 + 리턴)
+- ✅ `Promise<T>` 리턴 타입 명시 (async 함수)
+- ✅ null/undefined 체크 필수 (early return 패턴)
+- ✅ 옵셔널 체이닝 (`?.`) 적극 사용
+- ❌ Non-null assertion (`!`) 절대 금지 → 타입 가드로 대체
 
-```
-D:\Projects\Statics\
-├── app/                          # Next.js App Router
-│   ├── globals.css               # 전역 스타일
-│   ├── layout.tsx                # 루트 레이아웃
-│   ├── page.tsx                  # 홈페이지
-│   ├── (dashboard)/              # 라우트 그룹
-│   │   ├── layout.tsx            # 대시보드 레이아웃  
-│   │   ├── dashboard/page.tsx    # 메인 대시보드
-│   │   ├── analysis/             # 통계 분석 페이지들
-│   │   ├── data/                 # 데이터 관리
-│   │   └── settings/             # 설정
-│   └── api/                      # API Routes
-├── components/                   # React 컴포넌트
-│   ├── ui/                       # shadcn/ui 기본 컴포넌트
-│   ├── layout/                   # 레이아웃 컴포넌트
-│   ├── charts/                   # 시각화 컴포넌트
-│   ├── forms/                    # 폼 컴포넌트
-│   └── smart-flow/               # 스마트 플로우 컴포넌트
-│       └── steps/                # 단계별 컴포넌트
-│           └── validation/       # 🆕 데이터 검증 리팩토링
-│               ├── charts/       # 차트 컴포넌트
-│               ├── summary/       # 요약 컴포넌트
-│               ├── utils/         # 유틸리티 함수
-│               └── constants/     # 상수 및 타입
-├── lib/                          # 유틸리티 라이브러리
-│   ├── utils.ts                  # 공통 유틸
-│   ├── stores/                   # 상태 관리
-│   ├── services/                 # 서비스 로직
-│   │   └── pyodide-statistics.ts # Pyodide 통계 엔진
-│   └── statistics/               # 통계 분석 모듈
-├── public/                       # 정적 파일
-├── test-data/                    # 테스트용 CSV 파일들
-└── 계획 문서들/                   # 프로젝트 계획서들
-```
+**any → unknown 변환 패턴**:
+```typescript
+// ❌ 나쁜 예
+function process(data: any) {
+  return data.value
+}
 
-### 🔴 현재 개발 상태
-**Phase 1 Week 4 진행 중** (2025-09-18)
-
-#### ✅ Week 1 완료 (2025-09-11)
-- 5개 계획 문서 작성 완료 (A급 품질)
-- 기술 스택 확정: Next.js 15 + shadcn/ui + Pyodide + Tauri
-- 13주 개발 로드맵 완성
-- **Next.js 15.5.2 프로젝트 생성 완료!** (`statistical-platform`)
-- **모든 기본 페이지 구현 완료** (9개 페이지)
-- **통계 분석 엔진 구현** (Pyodide + SciPy)
-- **코드 품질 A급 달성** (컴포넌트 모듈화, Error Boundary, 상수 시스템)
-
-#### ✅ Week 2 완료 (2025-09-12)
-- ✅ **29개 통계 함수 모듈화 완료** (6개 카테고리로 체계적 정리)
-- ✅ **프로페셔널 랜딩 페이지 구현** ("스마트한 모두의 통계처리")
-- ✅ **통계 시나리오 엔진 구현** (데이터 특성 기반 자동 추천)
-- ✅ **스마트 분석 플로우 완성** (파일 업로드 → 검증 → 분석 목적 → 방법 추천)
-- ✅ **Perplexity 스타일 디자인 시스템 적용**
-- ✅ **단일 페이지 분석 플로우 설계 완료** (SINGLE_PAGE_ANALYSIS_FLOW.md)
-
-#### ✅ Week 3 완료 (2025-09-16) - 통합 분석 인터페이스
-**성과: 한 화면에서 모든 분석이 완성되는 가이드형 인터페이스 구현 완료**
-
-**구현 완료 사항**:
-- ✅ `/smart-flow` 페이지 및 모든 단계별 컴포넌트
-- ✅ ProgressStepper 컴포넌트 (5단계 진행 표시)
-- ✅ Zustand 기반 상태 관리 시스템 (세션 스토리지 연동)
-- ✅ 데이터 업로드/검증/분석/결과 전체 플로우
-- ✅ **분석 히스토리 패널** (AnalysisHistoryPanel.tsx)
-- ✅ **데이터 검증 서비스** (data-validation-service.ts)
-- ✅ **대용량 파일 처리** (large-file-processor.ts)
-- ✅ **PDF 보고서 생성** (pdf-report-service.ts)
-- ✅ **결과 시각화 컴포넌트** (ResultsVisualization.tsx)
-- ✅ About 페이지 추가 (플랫폼 소개)
-
-#### 🔄 Week 4 진행 중 (2025-09-17 ~ 23) - Pyodide 통계 엔진 및 UI 개선
-
-**완료된 작업:**
-- ✅ **Pyodide 통계 서비스 구현** (`lib/services/pyodide-statistics.ts`)
-- ✅ **27개 통계 메서드 구현**
-- ✅ **테스트 환경 구축** (Jest + Pyodide)
-- ✅ **통계 카테고리별 페이지** (`/analysis/[category]`)
-- ✅ **DataValidationStep 리팩토링**
-
-**현재 진행 작업:**
-- [ ] 전체 플로우 통합
-- [ ] 성능 최적화
-- [ ] E2E 테스트
-
-## 🚀 통계분석 프로세스
-
-### 5단계 지능형 프로세스
-1. **스마트 데이터 업로드**: 자동 형식 감지, 품질 평가
-2. **지능형 데이터 검증**: 3탭 체계 (기초통계, 가정검정, 시각화)
-3. **자동 분석 추천**: 데이터 특성 기반 방법 제안
-4. **지능형 분석 실행**: 가정 위반 시 대안 자동 실행
-5. **스마트 결과 해석**: 자동 해석 및 액션 제안
-
-
-## 📋 개발 가이드라인
-
-### 🛠️ 기술 스택
-```
-Frontend:
-├── Next.js 15 (App Router)
-├── TypeScript (완전한 타입 안전성)  
-├── shadcn/ui (전문가급 UI)
-└── Tailwind CSS (스타일링)
-
-통계 엔진:
-├── Pyodide (WebAssembly Python)
-├── scipy.stats (핵심 통계)
-├── numpy (수치 계산)
-└── pandas (데이터 처리)
-
-상태 관리:
-├── Zustand (글로벌 상태)
-└── TanStack Query (서버 상태)
-
-데스크탑:
-└── Tauri (Rust + Web)
-```
-
-
-
-## ⚠️ 극히 중요: 통계 분석 구현 원칙
-
-### 🔴 필수 준수 사항 - 절대 어기지 마세요!
-**모든 통계 계산은 반드시 Pyodide를 통해 Python의 과학 계산 라이브러리를 사용해야 합니다.**
-
-**⚠️ 이 규칙을 어기면 소프트웨어를 사용할 수 없습니다!**
-- 통계 분석의 신뢰성이 가장 중요합니다
-- JavaScript/TypeScript로 통계를 구현하면 정확도를 보장할 수 없습니다
-- 연구자들이 논문에 사용할 수 있는 신뢰할 수 있는 결과가 필요합니다
-- SciPy는 수십 년간 전 세계 과학자들이 검증한 라이브러리입니다
-
-#### ❌ 절대 하지 말아야 할 것
-1. **직접 구현 금지**: JavaScript/TypeScript로 통계 함수를 절대 직접 구현하지 마세요
-2. **lib/statistics.ts 같은 파일 생성 금지**: 통계 계산을 JS로 구현하는 파일을 만들지 마세요
-3. **수학 공식 직접 코딩 금지**: t-test, ANOVA 등의 수식을 직접 코딩하지 마세요
-
-#### ✅ 반드시 해야 할 것
-1. **Python 과학 계산 라이브러리 사용**:
-   - **SciPy**: 기본 통계 검정 및 분석
-   - **statsmodels**: 고급 통계 모델 (ANOVA, 회귀분석, 시계열)
-   - **scikit-learn**: 머신러닝 및 다변량 분석
-   - **pingouin**: 효과크기, 검정력 분석
-   - **scikit-posthocs**: 사후검정 (Dunn, Nemenyi 등)
-2. **신뢰성 보장**: 검증된 라이브러리만 사용
-3. **정확도 우선**: R/SPSS와 동일한 결과 보장
-4. **빠른 개발**: 검증된 라이브러리로 개발 시간 단축
-
-### 올바른 통계 엔진 사용 방법
-```javascript
-// ✅ 올바른 방법 - Pyodide + SciPy
-const pyodide = await loadPyodide()
-await pyodide.loadPackage(['scipy', 'numpy', 'pandas'])
-
-// T-test 예시
-const result = await pyodide.runPython(`
-  from scipy import stats
-  import numpy as np
-  
-  data1 = np.array([1, 2, 3, 4, 5])
-  data2 = np.array([2, 3, 4, 5, 6])
-  
-  result = stats.ttest_ind(data1, data2)
-  {
-    'statistic': float(result.statistic),
-    'pvalue': float(result.pvalue),
-    'df': len(data1) + len(data2) - 2
+// ✅ 좋은 예
+function process(data: unknown): number {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid data')
   }
-`)
+  if (!('value' in data) || typeof data.value !== 'number') {
+    throw new Error('Missing or invalid value')
+  }
+  return data.value
+}
 ```
 
-### 📈 통계 계산 구현 현황 (2025-09-18 업데이트)
+**상세 예제**: [AI-CODING-RULES.md](statistical-platform/docs/AI-CODING-RULES.md)
 
-#### ✅ Pyodide 기반 구현 완료
-**파일**: `lib/services/pyodide-statistics.ts`
+### 2. Pyodide 통계 계산 규칙 (CRITICAL)
 
-구현된 통계 기능 (27개 메서드):
+**통계 계산 구현 원칙**:
+- ❌ **JavaScript로 통계 함수 직접 구현 절대 금지**
+- ❌ **Python에서 알고리즘 직접 구현 절대 금지**
+- ✅ **반드시 검증된 통계 라이브러리 사용**
+  - SciPy: 기본 통계 (t-test, ANOVA, correlation 등)
+  - statsmodels: 회귀분석, GLM, 시계열 분석
+  - pingouin: 고급 통계 (effect size, post-hoc 등)
+  - pandas: 데이터 정제 및 그룹화
 
-**기술통계 (5개)**
-1. 기본 통계량: 평균, 중앙값, 표준편차, 왜도, 첨도
-2. 백분위수 및 IQR
-3. 변동계수 (CV)
-4. 표준오차 (SEM)
-5. 신뢰구간 계산
+**직접 구현이 허용되는 경우**:
+- 데이터 정제 (None, NaN 제거)
+- UI 포맷팅 (결과 변환)
+- 입력 검증 (샘플 크기 체크)
+- ⚠️ **통계 계산 로직은 직접 구현 금지!**
 
-**가정 검정 (6개)**
-1. 정규성: Shapiro-Wilk, Anderson-Darling, D'Agostino-Pearson
-2. 등분산성: Levene, Bartlett, Fligner-Killeen
-3. 이상치: IQR, Z-score, Grubbs test
-4. 자기상관: Durbin-Watson
+**직접 구현 시 반드시 사전 승인**:
+- 라이브러리에 해당 기능이 없는 경우
+- 사용자에게 먼저 물어보고 승인 받기
+- 예: "SciPy에 없는 기능입니다. 직접 구현할까요?"
 
-**가설 검정 (8개)**
-1. T-tests: 일표본, 독립표본, 대응표본
-2. ANOVA: 일원, 이원, 반복측정
-3. 비모수: Mann-Whitney U, Wilcoxon, Kruskal-Wallis, Friedman
-4. 카이제곱: 적합도, 독립성
-
-**상관/회귀 (4개)**
-1. 상관: Pearson, Spearman, Kendall
-2. 편상관 분석
-3. 회귀: 단순, 다중, 로지스틱
-4. 회귀 진단: VIF, 잔차 분석
-
-**사후검정 (4개)**
-1. 모수적: Tukey HSD, Bonferroni, Scheffé
-2. 비모수: Dunn, Nemenyi, Conover
-3. Games-Howell (등분산 가정 위반)
-4. 다중비교 보정: FDR, Bonferroni
-
-#### 🎯 중요 원칙
-- **신뢰성**: 모든 통계 계산은 SciPy를 통해 수행
-- **검증**: R/SPSS와 0.0001 오차 이내 보장
-- **성능**: Web Worker로 비동기 처리
-- **오류 처리**: 결측값 자동 제거, 최소 데이터 요구사항 검증
-
-### 사용 가능한 Python 통계 라이브러리들
+**나쁜 예** (절대 금지):
 ```python
-# SciPy (scipy.stats)
-- 기본 통계 검정: t-test, ANOVA, 상관분석
-- 정규성/등분산성 검정
-- 비모수 검정: Mann-Whitney, Wilcoxon, Kruskal-Wallis
-
-# statsmodels
-- 고급 ANOVA: 이원, 반복측정, 혼합 모델
-- 회귀분석: OLS, GLM, 로지스틱
-- 시계열 분석: ARIMA, SARIMA
-- 사후검정: Tukey HSD, 다중비교
-
-# pingouin
-- 효과크기: Cohen's d, eta-squared, omega-squared
-- 검정력 분석: 사전/사후 검정력
-- 편상관, 부분상관
-- Bayesian 통계
-
-# scikit-posthocs
-- 사후검정: Dunn, Nemenyi, Conover, Games-Howell
-- 다중비교 보정: Bonferroni, FDR, Holm
-
-# scikit-learn
-- 머신러닝 모델
-- 차원축소: PCA, LDA
-- 클러스터링: K-means, 계층적
-- 교차검증 및 모델 평가
+# ❌ 직접 구현 - Newton-Raphson
+def logistic_regression(X, y):
+    beta = np.zeros(...)
+    for i in range(100):
+        gradient = ...  # ← 직접 계산 금지!
 ```
+
+**좋은 예** (라이브러리 사용):
+```python
+# ✅ statsmodels 사용
+import statsmodels.api as sm
+def logistic_regression(X, y):
+    model = sm.Logit(y, X).fit()
+    return model.params
+```
+
+**기타 규칙**:
+- ✅ `pyodideService.descriptiveStats()` ← 실제 메서드명 확인 후 사용
+- ✅ 새 메서드 추가 전 `Grep`으로 기존 메서드 검색
+- ✅ Pyodide는 CDN에서 로드 (npm 패키지 사용 금지)
+
+### 3. 컴파일 체크 필수 (생성 후 즉시)
+
+```bash
+# 코드 작성 후 즉시 실행
+npx tsc --noEmit
+
+# 타입 오류 0개 확인
+npm run build
+```
+
+### 4. 리팩토링 후 정리 체크리스트
+
+- ✅ 타입/인터페이스 변경 시 `Grep`으로 이전 이름 완전 제거
+- ✅ `.backup`, `.old`, `.new` 같은 임시 파일 삭제
+- ✅ TypeScript 컴파일 체크로 타입 오류 0개 확인
+- ✅ 문서/주석에서도 이전 명칭 업데이트
+- ❌ 이전 파일/타입을 남겨두고 새 이름만 추가 금지
+
+### 5. 코드 스타일
+
+**이모지 사용 정책** (가독성 및 일관성):
+- ❌ **식별자에 이모지 절대 금지** (변수명, 함수명, 클래스명 - 구문 오류)
+- ✅ **주석에 이모지 허용** (예: `// ✅ TODO`)
+- ✅ **로그 메시지에 이모지 허용** (예: `console.log("🎯 시작")`)
+- ✅ **문자열 리터럴에 이모지 허용** (예: `const msg = "✅ 성공"`)
+- ⚠️ **하지만 코드 가독성을 위해 최소화 권장**
+
+**이모지 사용 가이드라인**:
+```typescript
+// ❌ 금지 - 식별자에 이모지 (구문 오류)
+const result✅ = 10
+function test🎯() {}
+
+// ✅ 허용 - 주석/로그/문자열
+// ✅ TODO: 테스트 작성
+console.log("🎯 분석 시작")
+const message = "✅ 테스트 통과"
+
+// ✅ 권장 - 영문만 사용 (더 명확)
+// TODO: Add test
+console.log("Analysis started")
+const message = "Test passed"
+```
+
+**기타 스타일**:
+- ✅ Next.js 15 App Router 사용 (Pages Router 금지)
+- ✅ shadcn/ui 컴포넌트 우선 사용
+- ✅ 모든 경로는 POSIX 형식 (슬래시 `/`) - 백슬래시 `\` 금지
+
+## 🏗️ 아키텍처 (Phase 5 Registry Pattern)
+
+### 구조 개요
+```
+사용자 → Groups (TypeScript) → PyodideService → Python Workers (SciPy/statsmodels)
+         ↓                       ↓
+    데이터 가공/검증         통계 계산 실행
+    UI 포맷팅               (Pyodide + Python Workers)
+```
+
+### 핵심 디렉토리
+```
+statistical-platform/
+├── lib/statistics/
+│   ├── registry/
+│   │   ├── method-metadata.ts       - 60개 메서드 메타데이터
+│   │   ├── statistical-registry.ts  - 동적 import 관리
+│   │   └── types.ts                 - 타입 정의
+│   ├── groups/                      - 6개 그룹
+│   │   ├── descriptive.group.ts     - 기술통계 (10개)
+│   │   ├── hypothesis.group.ts      - 가설검정 (8개)
+│   │   ├── regression.group.ts      - 회귀분석 (12개)
+│   │   ├── nonparametric.group.ts   - 비모수 (9개)
+│   │   ├── anova.group.ts           - 분산분석 (9개)
+│   │   └── advanced.group.ts        - 고급분석 (12개)
+│   └── method-router.ts             - 라우터 (115줄)
+├── lib/services/
+│   └── pyodide-statistics.ts        - 44개 메서드 (TypeScript 래퍼)
+└── public/workers/python/           - Python Workers (실제 통계 계산)
+    ├── worker1-descriptive.py       - Worker 1: 기술통계 (7개)
+    ├── worker2-hypothesis.py        - Worker 2: 가설검정 (6개)
+    ├── worker3-nonparametric-anova.py - Worker 3: 비모수/ANOVA (4개)
+    └── worker4-regression-advanced.py - Worker 4: 회귀/고급 (3개)
+```
+
+### 핵심 원칙
+- **Groups**: TypeScript로 데이터 검증/가공, UI 포맷팅만
+- **PyodideService**: Python Workers 호출 관리
+- **Python Workers**: 실제 통계 계산 (SciPy/statsmodels)
+- ❌ Groups에서 통계 직접 계산 금지
+- ✅ 모든 통계 계산은 Python Workers에서 실행
+
+### Python Workers 구조 (중요!)
+**Worker 1-4는 이미 구현되어 있음** (2025-10-13 완료)
+- [pyodide-statistics.ts](statistical-platform/lib/services/pyodide-statistics.ts)는 Python Worker 함수를 호출하는 TypeScript 래퍼
+- 새 메서드 추가 시: `public/workers/python/worker*.py`에 Python 함수 추가
+  - [worker1-descriptive.py](statistical-platform/public/workers/python/worker1-descriptive.py) - 기술통계
+  - [worker2-hypothesis.py](statistical-platform/public/workers/python/worker2-hypothesis.py) - 가설검정
+  - [worker3-nonparametric-anova.py](statistical-platform/public/workers/python/worker3-nonparametric-anova.py) - 비모수/ANOVA
+  - [worker4-regression-advanced.py](statistical-platform/public/workers/python/worker4-regression-advanced.py) - 회귀/고급
+- 메모리 효율: 필요한 Worker만 로드 (Lazy Loading)
+- 속도: 각 Worker는 독립적으로 병렬 실행 가능
+
+### 새 메서드 추가 워크플로우
+**Phase 5-2: Priority 1-2 메서드 추가 중 (24개)**
+
+1. **Python Worker에 함수 추가**
+   - 파일: `public/workers/python/worker*.py`
+   - 예: `def sign_test(before, after): ...`
+   - 라이브러리 사용: SciPy/statsmodels
+
+2. **pyodide-statistics.ts에 TypeScript 래퍼 추가**
+   - 파일: `lib/services/pyodide-statistics.ts`
+   - Python 함수 호출 + 타입 정의
+   - 예: `async signTest(before: number[], after: number[]): Promise<SignTestResult>`
+
+3. **Groups에서 호출**
+   - 파일: `lib/statistics/groups/*.group.ts`
+   - 데이터 검증/가공 → pyodideStats.signTest() 호출
+   - UI 포맷팅
+
+**현재 상태** (2025-10-13):
+- ✅ Worker 1: frequency_analysis, crosstab_analysis, one_sample_proportion_test (3개)
+- ✅ Worker 2: z_test, binomial_test, partial_correlation (3개)
+- ❌ Worker 3: sign_test, runs_test, mcnemar_test, cochran_q_test, mood_median_test (5개 추가 필요)
+- ❌ Priority 2: 13개 메서드 추가 필요 (회귀/고급 분석)
 
 ## 🔧 개발 명령어
 
-### 기본 개발 명령어
 ```bash
-# 프로젝트 생성 (첫날만)
-npx create-next-app@latest statistical-platform --typescript --tailwind --eslint --app
-
-# 개발 서버 실행  
-npm run dev
-
-# 빌드
-npm run build
-
-# 프로덕션 서버
-npm start
-
-# 타입 체크
-npm run type-check
-
-# 린터 실행
-npm run lint
+npm run dev          # 개발 서버
+npm run build        # 빌드
+npm test             # 테스트
+npx tsc --noEmit     # 타입 체크
+npm run lint         # 린터
 ```
 
-### shadcn/ui 설치
-```bash
-# shadcn/ui 초기화
-npx shadcn-ui@latest init
+## 📋 현재 작업 상태
 
-# 컴포넌트 설치
-npx shadcn-ui@latest add button input card table dialog
+**최신 상태** (2025-10-13):
+- ✅ Groups 파일 TypeScript 컴파일 에러: **0개**
+- ✅ Placeholder 제거 완료 (실제 데이터 처리)
+- ✅ 타입 안전성 강화 (검증 함수 추가)
+- ✅ 코드 품질: **4.8/5** (런타임 안정성, 타입 안전성 확보)
+
+**다음 작업** (2025-10-14 예정):
+- 🔜 P1: utils.ts 단위 테스트 작성
+- 🔜 P1: Groups 통합 테스트
+- 🔜 P2: regression.group.ts 리팩토링
+
+**📝 상세 작업 기록**: [dailywork.md](dailywork.md) 참조
+
+## 📚 문서 구조
+
+### 루트 문서 (5개만 유지)
+- **[CLAUDE.md](CLAUDE.md)** - AI 코딩 규칙 (이 파일)
+- **[README.md](README.md)** - 프로젝트 개요
+- **[ROADMAP.md](ROADMAP.md)** - 개발 로드맵
+- **[STATUS.md](STATUS.md)** - 프로젝트 현재 상태 (**매 작업 후 업데이트**)
+- **[dailywork.md](dailywork.md)** - 작업 기록 (**최근 7일만 유지**)
+
+### docs/ 디렉토리 구조
+```
+docs/
+├── planning/                        # 현재 진행 중인 계획
+│   └── pyodide-refactoring-plan.md # 리팩토링 종합 계획
+├── architecture/                    # 아키텍처 문서
+│   ├── system-overview.md
+│   ├── worker-service-architecture.md
+│   ├── TECHNICAL_ARCHITECTURE.md
+│   └── TECHNICAL_SPEC.md
+└── guides/                          # 가이드 문서
+    ├── PYODIDE_BROWSER_PYTHON_GUIDE.md
+    └── PYODIDE_ENVIRONMENT.md
 ```
 
-## 📊 품질 기준
+### statistical-platform/docs/ (구현 상세)
+```
+statistical-platform/docs/
+├── AI-CODING-RULES.md              # any → unknown 예제 10개
+├── phase5-architecture.md          # Phase 5 구조 설명
+├── phase5-implementation-plan.md   # Day 1-10 계획
+└── implementation-summary.md       # 메서드 구현 현황
+```
 
-### 통계 정확성
-- **정확도**: R/SPSS 결과와 0.0001 오차 이내
-- **가정 검정**: 모든 통계 검정 전 가정 확인
-- **효과크기**: Cohen's d, eta-squared 등 완전 구현
-- **신뢰구간**: 95%, 99% 신뢰구간 제공
+### archive/ (완료된 문서)
+```
+archive/
+├── 2025-10/                        # 2025년 10월 완료 문서
+│   ├── CODE_REVIEW_FINAL_2025-10-13.md
+│   ├── LIBRARY_MIGRATION_COMPLETE_2025-10-13.md
+│   └── ... (30개 이상)
+└── phases/                         # Phase 완료 보고서
+    ├── phase2-complete.md
+    ├── phase3-complete.md
+    └── phase4-runtime-test-complete.md
+```
 
-### 코드 품질
-- **TypeScript**: 엄격한 타입 체크
-- **ESLint**: 코딩 규칙 준수
-- **Prettier**: 코드 포맷팅 일관성
-- **테스트**: 주요 기능 단위/통합 테스트
+### 문서 관리 규칙 (AI 코딩 맞춤)
 
-### UI/UX 품질  
-- **접근성**: WCAG 2.1 AA 준수
-- **반응형**: 다양한 화면 크기 지원
-- **다크모드**: 완전한 다크/라이트 테마
-- **성능**: Core Web Vitals 기준 충족
+#### 문서 계층
+1. **Tier 1 - 영구 문서** (절대 변경 금지)
+   - `CLAUDE.md` - AI 코딩 규칙 (업데이트만)
+   - `README.md` - 프로젝트 소개
+   - `ROADMAP.md` - 마일스톤
 
-## 📝 주요 참조 문서
+2. **Tier 2 - 현재 상태 문서** (덮어쓰기 허용)
+   - `STATUS.md` - 프로젝트 현재 상태 (**매 작업 후 업데이트**)
+   - `dailywork.md` - 작업 기록 (**최근 7일만 유지**)
 
-### 프로젝트 계획서
-- `PROJECT_MASTER_PLAN.md` - 전체 프로젝트 개요
-- `TECHNICAL_ARCHITECTURE.md` - 기술 아키텍처 상세
-- `UI_UX_DESIGN_GUIDELINES.md` - 디자인 시스템
-- `STATISTICAL_ANALYSIS_SPECIFICATIONS.md` - 통계 기능 명세
-- `DEVELOPMENT_PHASE_CHECKLIST.md` - 개발 체크리스트
+#### AI 문서 생성 규칙 (CRITICAL)
+- ❌ **분석/검토 문서**: 새 파일 생성 금지 → STATUS.md에 요약만 추가
+- ❌ **계획 문서**: 기존 계획 문서가 있으면 → 기존 파일에 섹션 추가
+- ✅ **여러 관련 문서**: 반드시 1개로 통합 (예: 분석 4개 → 1개)
+- ✅ **완료 보고서**: 날짜 포함 시 `archive/YYYY-MM/`에 직접 생성
+- ❌ **대화 중 임시 문서**: 대화 종료 후 삭제 또는 STATUS.md에 통합
 
-### 현재 진행 문서
-- `SINGLE_PAGE_ANALYSIS_FLOW.md` - 단일 페이지 분석 플로우 설계
-- `NEXT_WEEK_TASKS.md` - Week 3 상세 계획
-- `PROJECT_STATUS.md` - 프로젝트 현황 보고서
+#### dailywork.md 운영 (중요!)
+- **최근 7일만 유지** (주말마다 이전 주를 `archive/dailywork/YYYY-MM.md`로 이동)
+- AI는 최근 7일만 읽으면 충분 (컨텍스트 제한)
+- 형식: 날짜별 체크리스트 (`## YYYY-MM-DD`)
 
-### 기술 문서
+#### 파일 이동 규칙
+1. **진행 중 계획**: `docs/planning/` (1개 파일로 통합)
+2. **완료된 작업**: `archive/YYYY-MM/`
+3. **날짜 포함 문서**: 즉시 archive
+4. **검색**: `find . -name "*.md" -not -path "*/archive/*"`
+
+### 외부 링크
 - Next.js 15: https://nextjs.org/docs
 - shadcn/ui: https://ui.shadcn.com
-- Tailwind CSS: https://tailwindcss.com
 - Pyodide: https://pyodide.org
 
-## ⚠️ 중요 주의사항
+### 핵심 파일 링크 (빠른 접근)
 
-### 개발 원칙
-1. **App Router 사용**: Pages Router 절대 사용 금지
-2. **TypeScript 엄격 모드**: any 타입 사용 금지  
-3. **shadcn/ui 컴포넌트**: 직접 스타일링보다 컴포넌트 우선
-4. **접근성 준수**: 모든 인터랙티브 요소에 ARIA 라벨
+**Groups (TypeScript - 데이터 처리)**
+- [utils.ts](statistical-platform/lib/statistics/groups/utils.ts) - 공통 유틸리티 (검증 함수)
+- [anova.group.ts](statistical-platform/lib/statistics/groups/anova.group.ts) - 분산분석
+- [hypothesis.group.ts](statistical-platform/lib/statistics/groups/hypothesis.group.ts) - 가설검정
+- [nonparametric.group.ts](statistical-platform/lib/statistics/groups/nonparametric.group.ts) - 비모수
+- [regression.group.ts](statistical-platform/lib/statistics/groups/regression.group.ts) - 회귀분석
+- [descriptive.group.ts](statistical-platform/lib/statistics/groups/descriptive.group.ts) - 기술통계
+- [advanced.group.ts](statistical-platform/lib/statistics/groups/advanced.group.ts) - 고급분석
 
-### 파일 관리
-1. **컴포넌트 명명**: PascalCase (예: DataTable.tsx)
-2. **페이지 파일**: 소문자 (예: page.tsx, layout.tsx)
-3. **유틸리티 함수**: camelCase (예: calculateMean.ts)
-4. **Git 커밋**: 작은 단위로 자주 커밋
+**Python Workers (실제 통계 계산)**
+- [worker1-descriptive.py](statistical-platform/public/workers/python/worker1-descriptive.py)
+- [worker2-hypothesis.py](statistical-platform/public/workers/python/worker2-hypothesis.py)
+- [worker3-nonparametric-anova.py](statistical-platform/public/workers/python/worker3-nonparametric-anova.py)
+- [worker4-regression-advanced.py](statistical-platform/public/workers/python/worker4-regression-advanced.py)
 
-### 성능 고려사항  
-1. **Dynamic Import**: 무거운 컴포넌트는 지연 로딩
-2. **이미지 최적화**: Next.js Image 컴포넌트 사용
-3. **Bundle 분석**: 정기적으로 번들 크기 확인
-4. **Pyodide 캐싱**: 통계 연산 결과 캐싱
-
-
-## 🤖 향후 AI 모델 통합 계획
-
-**Phase 2+ (기본 기능 완성 후)**: Ollama 기반 로컬 AI 모델 통합
-- **분석 방법 자동 추천**: 데이터 특성 분석 → 최적 통계 방법 제안  
-- **자동 데이터 품질 검사**: 이상치, 결측값, 분포 이상 자동 탐지
-- **지능적 결과 해석**: 맥락을 고려한 개인화된 해석 제공
-- **동적 워크플로**: 분석 결과에 따른 다음 단계 자동 제안
-
-**예상 효과**: 분석 시간 50-80% 단축, 초보자도 전문가급 분석 가능  
-**기술 스택**: Ollama + gemma2:2b/llama3.2:1b (로컬 실행)
-**구현 방식**: 기본 시스템과 분리된 AI 모듈 (선택적 활성화)
-
-*자세한 계획: `AI_MODEL_INTEGRATION_PLAN.md` 참조*
+**서비스 레이어**
+- [pyodide-statistics.ts](statistical-platform/lib/services/pyodide-statistics.ts) - TypeScript 래퍼
 
 ---
 
----
-
-*Last updated: 2025-09-18*
-*Current focus: Pyodide 통계 엔진 및 워크플로우 통합*
+**Updated**: 2025-10-13 | **Version**: P0.5 Complete | **Next**: P1 Testing

@@ -22,21 +22,54 @@ export const STATISTICS = {
 } as const
 
 // Pyodide 로딩 관련 상수
+// 단일 진실 공급원 (Single Source of Truth) - 모든 파일은 이 상수를 참조해야 함
+const PYODIDE_VERSION = 'v0.28.3'
+
 export const PYODIDE = {
-  CDN_URL: 'https://cdn.jsdelivr.net/pyodide/v0.28.2/full/',
-  SCRIPT_URL: 'https://cdn.jsdelivr.net/pyodide/v0.28.2/full/pyodide.js',
+  // 버전 관리
+  VERSION: PYODIDE_VERSION,
+  // 환경별 버전 오버라이드 (테스트/디버깅용)
+  // 예: NEXT_PUBLIC_PYODIDE_VERSION=v0.24.1 npm run dev
+  OVERRIDE_VERSION: typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_PYODIDE_VERSION,
+
+  // CDN URLs (자동 생성)
+  CDN_URL: `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/`,
+  SCRIPT_URL: `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full/pyodide.js`,
+
+  // 패키지 목록
   PACKAGES: ['numpy', 'scipy', 'pandas'],
+
+  // 로딩 진행률
   LOADING_PROGRESS: {
     IDLE: 0,
     BASIC: 40,
     SCIPY: 80,
     READY: 100
   },
+
+  // 타임아웃 설정
   TIMEOUT: {
     LOAD_SCRIPT: 30000,
     LOAD_PACKAGES: 60000
   }
 } as const
+
+/**
+ * Pyodide CDN URL을 동적으로 생성합니다
+ * 환경 변수(OVERRIDE_VERSION)가 있으면 우선 사용
+ *
+ * @returns 현재 사용 중인 Pyodide CDN URL 객체
+ */
+export function getPyodideCDNUrls() {
+  const version = PYODIDE.OVERRIDE_VERSION || PYODIDE.VERSION
+  const baseUrl = `https://cdn.jsdelivr.net/pyodide/${version}/full`
+
+  return {
+    version,
+    indexURL: `${baseUrl}/`,
+    scriptURL: `${baseUrl}/pyodide.js`
+  } as const
+}
 
 // UI 관련 상수
 export const UI = {

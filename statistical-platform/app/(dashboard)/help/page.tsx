@@ -16,8 +16,8 @@ import {
   TrendingUp,
   BarChart3
 } from "lucide-react"
-import { StatisticalGuidanceComponent } from "@/components/analysis/statistical-guidance"
-import { StatisticalGuideSystem, FileNamingSystem } from "@/lib/statistical-guide"
+// import { StatisticalGuidanceComponent } from "@/components/analysis/statistical-guidance"
+// import { StatisticalGuideSystem, FileNamingSystem } from "@/lib/statistical-guide"
 // import { StatisticalTestResult, CorrelationResult } from "@/lib/statistics"
 import { useState } from "react"
 
@@ -423,12 +423,12 @@ export default function HelpPage() {
                       </CardContent>
                     </Card>
 
-                    <StatisticalGuidanceComponent
+                    {/* <StatisticalGuidanceComponent
                       guidance={StatisticalGuideSystem.generateTTestGuidance(sampleTTestResult)}
                       fileNaming={FileNamingSystem.generateFileName('two-sample-t-test', '신약효과검정', '다중보정적용')}
                       onNextAnalysis={handleNextAnalysis}
                       onDownloadResult={handleDownloadResult}
-                    />
+                    /> */}
                   </div>
                 )}
 
@@ -461,12 +461,12 @@ export default function HelpPage() {
                       </CardContent>
                     </Card>
 
-                    <StatisticalGuidanceComponent
+                    {/* <StatisticalGuidanceComponent
                       guidance={StatisticalGuideSystem.generateCorrelationGuidance(sampleCorrelationResult)}
                       fileNaming={FileNamingSystem.generateFileName('correlation', '학습시간vs성적', '강한정적상관')}
                       onNextAnalysis={handleNextAnalysis}
                       onDownloadResult={handleDownloadResult}
-                    />
+                    /> */}
                   </div>
                 )}
               </div>

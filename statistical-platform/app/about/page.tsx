@@ -62,7 +62,7 @@ export default function AboutPage() {
                 className="text-lg px-8 py-6"
                 asChild
               >
-                <Link href="/analysis">
+                <Link href="/statistics">
                   <BarChart3 className="mr-2 h-5 w-5" />
                   전통적 분석 도구
                 </Link>

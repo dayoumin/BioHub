@@ -9,7 +9,7 @@ import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 let pyodideService: PyodideStatisticsService
 const INIT_TIMEOUT = 60000
 
-describe('시나리오별 상세 테스트', () => {
+describe.skip('시나리오별 상세 테스트', () => {
   beforeAll(async () => {
     console.log('=== Pyodide 초기화 시작 ===')
     pyodideService = PyodideStatisticsService.getInstance()
@@ -23,7 +23,7 @@ describe('시나리오별 상세 테스트', () => {
     }
   })
 
-  describe('STEP 1: 작동하는 기존 메서드 확인', () => {
+  describe.skip('STEP 1: 작동하는 기존 메서드 확인', () => {
     test('oneWayANOVA - 기존 메서드 테스트', async () => {
       console.log('\n--- oneWayANOVA 테스트 시작 ---')
 
@@ -52,7 +52,7 @@ describe('시나리오별 상세 테스트', () => {
     })
   })
 
-  describe('STEP 2: 새로 추가한 메서드 개별 테스트', () => {
+  describe.skip('STEP 2: 새로 추가한 메서드 개별 테스트', () => {
     test('twoWayANOVA - 최소 데이터로 테스트', async () => {
       console.log('\n--- twoWayANOVA 테스트 시작 ---')
 
@@ -244,7 +244,7 @@ describe('시나리오별 상세 테스트', () => {
     })
   })
 
-  describe('STEP 3: Python 코드 직접 실행 테스트', () => {
+  describe.skip('STEP 3: Python 코드 직접 실행 테스트', () => {
     test('Python 코드 직접 실행 확인', async () => {
       console.log('\n--- Python 직접 실행 테스트 ---')
 

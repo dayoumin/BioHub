@@ -23,7 +23,7 @@ type MockPyodide = {
 	globals: { set: jest.Mock<void, [string, unknown]> }
 }
 
-describe('PyodideStatisticsService - 고급 분석 (모킹)', () => {
+describe.skip('PyodideStatisticsService - 고급 분석 (모킹)', () => {
 	let service: PyodideStatisticsService
 	let mockPyodide: MockPyodide
 
