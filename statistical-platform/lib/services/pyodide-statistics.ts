@@ -538,35 +538,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     interpretation: string
     isIndependent: boolean
   }> {
-    await this.initialize()
-    await this.ensureWorker4Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker4_module import durbin_watson_test
-
-      residuals = ${JSON.stringify(residuals)}
-
-      try:
-        result = durbin_watson_test(residuals)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Durbin-Watson test 실행 실패: ${parsed.error}`)
-    }
-
-    return {
-      statistic: parsed.statistic,
-      interpretation: parsed.interpretation,
-      isIndependent: parsed.isIndependent
-    }
+    return this.callWorkerMethod<{
+      statistic: number
+      interpretation: string
+      isIndependent: boolean
+    }>(
+      4,
+      'durbin_watson_test',
+      { residuals },
+      { errorMessage: 'Durbin-Watson test 실행 실패' }
+    )
   }
 
   /**
@@ -1265,32 +1246,21 @@ sys.modules['${moduleName}'] = ${moduleName}
     predictions?: number[]
     df?: number
   }> {
-    await this.initialize()
-    await this.ensureWorker4Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker4_module import linear_regression
-
-      x = ${JSON.stringify(x)}
-      y = ${JSON.stringify(y)}
-
-      try:
-        result = linear_regression(x, y)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Linear regression 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      slope?: number
+      intercept?: number
+      rSquared: number
+      pvalue: number
+      fStatistic?: number
+      tStatistic?: number
+      predictions?: number[]
+      df?: number
+    }>(
+      4,
+      'linear_regression',
+      { x, y },
+      { errorMessage: 'Linear regression 실행 실패' }
+    )
   }
 
   /**
@@ -1377,31 +1347,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     totalExplainedVariance: number
     components: number[][]
   }> {
-    await this.initialize()
-    await this.ensureWorker4Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker4_module import pca_analysis
-
-      data_matrix = ${JSON.stringify(data)}
-
-      try:
-        result = pca_analysis(data_matrix, n_components=2)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`PCA 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      explainedVariance: number[]
+      totalExplainedVariance: number
+      components: number[][]
+    }>(
+      4,
+      'pca_analysis',
+      { data_matrix: data, n_components: 2 },
+      { errorMessage: 'PCA 실행 실패' }
+    )
   }
 
   /**
