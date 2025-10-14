@@ -27,6 +27,28 @@ declare global {
   }
 }
 
+/**
+ * Worker 메서드 호출 파라미터 타입
+ * JSON 직렬화 가능한 타입만 허용
+ */
+type WorkerMethodParam =
+  | number
+  | string
+  | boolean
+  | number[]
+  | string[]
+  | number[][]
+  | (number | string)[]
+  | null
+
+/**
+ * Worker 메서드 호출 옵션
+ */
+interface WorkerMethodOptions {
+  errorMessage?: string
+  skipValidation?: boolean
+}
+
 export class PyodideStatisticsService {
   private static instance: PyodideStatisticsService | null = null
   private pyodide: PyodideInterface | null = null
@@ -46,6 +68,148 @@ export class PyodideStatisticsService {
       }
     }
     return payload as T
+  }
+
+  // ========================================
+  // Option A: callWorkerMethod Helper
+  // 중복 코드 제거를 위한 공통 헬퍼 함수
+  // ========================================
+
+  /**
+   * Worker 메서드 공통 호출 헬퍼
+   *
+   * @template T 반환 타입
+   * @param workerNum Worker 번호 (1-4)
+   * @param methodName Python 함수명 (snake_case)
+   * @param params 파라미터 객체 (키: Python 파라미터명, 값: 직렬화 가능한 데이터)
+   * @param options 추가 옵션
+   * @returns Python 함수 실행 결과
+   */
+  private async callWorkerMethod<T>(
+    workerNum: 1 | 2 | 3 | 4,
+    methodName: string,
+    params: Record<string, WorkerMethodParam>,
+    options: WorkerMethodOptions = {}
+  ): Promise<T> {
+    // 1. 초기화
+    await this.initialize()
+    await this.ensureWorkerLoaded(workerNum)
+
+    if (!this.pyodide) {
+      throw new Error('Pyodide가 초기화되지 않았습니다')
+    }
+
+    // 2. 파라미터 검증 및 직렬화
+    const skipValidation = options.skipValidation ?? false
+    const paramsLines: string[] = []
+    const paramNames: string[] = []
+
+    for (const [key, value] of Object.entries(params)) {
+      if (!skipValidation) {
+        this.validateWorkerParam(key, value)
+      }
+      paramsLines.push(`${key} = ${JSON.stringify(value)}`)
+      paramNames.push(key)
+    }
+
+    const paramsCode = paramsLines.join('\n')
+    const paramNamesStr = paramNames.join(', ')
+
+    // 3. Python 코드 실행
+    const resultStr = await this.pyodide.runPythonAsync(`
+      import json
+      from worker${workerNum}_module import ${methodName}
+
+      ${paramsCode}
+
+      try:
+        result = ${methodName}(${paramNamesStr})
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    // 4. 결과 파싱 및 에러 처리
+    const parsed = this.parsePythonResult<T>(resultStr)
+
+    if ((parsed as any).error) {
+      const errorMsg = options.errorMessage || `${methodName} 실행 실패`
+      throw new Error(`${errorMsg}: ${(parsed as any).error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * Worker 메서드 파라미터 검증
+   *
+   * @param key 파라미터 이름
+   * @param value 파라미터 값
+   * @throws Error 검증 실패 시
+   */
+  private validateWorkerParam(key: string, value: WorkerMethodParam): void {
+    // null 허용
+    if (value === null) return
+
+    // undefined 금지
+    if (value === undefined) {
+      throw new Error(`파라미터 '${key}'가 undefined입니다`)
+    }
+
+    // 숫자 검증
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value)) {
+        throw new Error(`파라미터 '${key}'가 유효하지 않은 숫자입니다: ${value}`)
+      }
+      return
+    }
+
+    // 문자열/불린 검증 (통과)
+    if (typeof value === 'string' || typeof value === 'boolean') {
+      return
+    }
+
+    // 배열 검증
+    if (Array.isArray(value)) {
+      // 빈 배열 허용
+      if (value.length === 0) return
+
+      // 1차원 배열 (number[] | string[] | (number | string)[])
+      if (!Array.isArray(value[0])) {
+        for (let i = 0; i < value.length; i++) {
+          const item = value[i]
+          if (typeof item === 'number') {
+            if (!Number.isFinite(item)) {
+              throw new Error(`파라미터 '${key}[${i}]'가 유효하지 않은 숫자입니다: ${item}`)
+            }
+          } else if (typeof item !== 'string') {
+            throw new Error(`파라미터 '${key}[${i}]'가 유효하지 않은 타입입니다: ${typeof item}`)
+          }
+        }
+        return
+      }
+
+      // 2차원 배열 (number[][])
+      for (let i = 0; i < value.length; i++) {
+        const row = value[i]
+        if (!Array.isArray(row)) {
+          throw new Error(`파라미터 '${key}[${i}]'가 배열이 아닙니다`)
+        }
+
+        for (let j = 0; j < row.length; j++) {
+          const item = row[j]
+          if (typeof item !== 'number' || !Number.isFinite(item)) {
+            throw new Error(`파라미터 '${key}[${i}][${j}]'가 유효하지 않은 숫자입니다: ${item}`)
+          }
+        }
+      }
+      return
+    }
+
+    // 지원하지 않는 타입
+    throw new Error(`파라미터 '${key}'가 지원하지 않는 타입입니다: ${typeof value}`)
   }
 
   static getInstance(): PyodideStatisticsService {
@@ -585,31 +749,22 @@ sys.modules['${moduleName}'] = ${moduleName}
     skewness: number
     kurtosis: number
   }> {
-    await this.initialize()
-    await this.ensureWorker1Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker1_module import descriptive_stats
-
-      data = ${JSON.stringify(data)}
-
-      try:
-        result = descriptive_stats(data)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Descriptive stats 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      mean: number
+      median: number
+      std: number
+      min: number
+      max: number
+      q1: number
+      q3: number
+      skewness: number
+      kurtosis: number
+    }>(
+      1,
+      'descriptive_stats',
+      { data },
+      { errorMessage: 'Descriptive stats 실행 실패' }
+    )
   }
 
   /**

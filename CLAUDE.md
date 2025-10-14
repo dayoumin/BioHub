@@ -240,20 +240,81 @@ npm run lint         # 린터
 
 **📝 상세 작업 기록**: [dailywork.md](dailywork.md) 참조
 
-## 📚 참조 문서
+## 📚 문서 구조
 
-### AI 코딩 가이드
-- **[AI-CODING-RULES.md](statistical-platform/docs/AI-CODING-RULES.md)** - any → unknown 예제 10개, 타입 가드 패턴
+### 루트 문서 (5개만 유지)
+- **[CLAUDE.md](CLAUDE.md)** - AI 코딩 규칙 (이 파일)
+- **[README.md](README.md)** - 프로젝트 개요
+- **[ROADMAP.md](ROADMAP.md)** - 개발 로드맵
+- **[STATUS.md](STATUS.md)** - 프로젝트 현재 상태 (**매 작업 후 업데이트**)
+- **[dailywork.md](dailywork.md)** - 작업 기록 (**최근 7일만 유지**)
 
-### 아키텍처 & 구현
-- [Phase 5 아키텍처](statistical-platform/docs/phase5-architecture.md) - 전체 구조 설명
-- [Phase 5 구현 계획](statistical-platform/docs/phase5-implementation-plan.md) - Day 1-10 계획
-- [통계 메서드 구현 현황](statistical-platform/docs/implementation-summary.md) - 최신 현황
+### docs/ 디렉토리 구조
+```
+docs/
+├── planning/                        # 현재 진행 중인 계획
+│   └── pyodide-refactoring-plan.md # 리팩토링 종합 계획
+├── architecture/                    # 아키텍처 문서
+│   ├── system-overview.md
+│   ├── worker-service-architecture.md
+│   ├── TECHNICAL_ARCHITECTURE.md
+│   └── TECHNICAL_SPEC.md
+└── guides/                          # 가이드 문서
+    ├── PYODIDE_BROWSER_PYTHON_GUIDE.md
+    └── PYODIDE_ENVIRONMENT.md
+```
 
-### 완료 보고서
-- [Phase 2 완료](statistical-platform/docs/phase2-complete.md) - 리팩토링 상세
-- [Phase 3 완료](statistical-platform/docs/phase3-complete.md) - Pyodide 통합
-- [Phase 4 런타임 테스트](statistical-platform/docs/phase4-runtime-test-complete.md) - E2E 테스트
+### statistical-platform/docs/ (구현 상세)
+```
+statistical-platform/docs/
+├── AI-CODING-RULES.md              # any → unknown 예제 10개
+├── phase5-architecture.md          # Phase 5 구조 설명
+├── phase5-implementation-plan.md   # Day 1-10 계획
+└── implementation-summary.md       # 메서드 구현 현황
+```
+
+### archive/ (완료된 문서)
+```
+archive/
+├── 2025-10/                        # 2025년 10월 완료 문서
+│   ├── CODE_REVIEW_FINAL_2025-10-13.md
+│   ├── LIBRARY_MIGRATION_COMPLETE_2025-10-13.md
+│   └── ... (30개 이상)
+└── phases/                         # Phase 완료 보고서
+    ├── phase2-complete.md
+    ├── phase3-complete.md
+    └── phase4-runtime-test-complete.md
+```
+
+### 문서 관리 규칙 (AI 코딩 맞춤)
+
+#### 문서 계층
+1. **Tier 1 - 영구 문서** (절대 변경 금지)
+   - `CLAUDE.md` - AI 코딩 규칙 (업데이트만)
+   - `README.md` - 프로젝트 소개
+   - `ROADMAP.md` - 마일스톤
+
+2. **Tier 2 - 현재 상태 문서** (덮어쓰기 허용)
+   - `STATUS.md` - 프로젝트 현재 상태 (**매 작업 후 업데이트**)
+   - `dailywork.md` - 작업 기록 (**최근 7일만 유지**)
+
+#### AI 문서 생성 규칙 (CRITICAL)
+- ❌ **분석/검토 문서**: 새 파일 생성 금지 → STATUS.md에 요약만 추가
+- ❌ **계획 문서**: 기존 계획 문서가 있으면 → 기존 파일에 섹션 추가
+- ✅ **여러 관련 문서**: 반드시 1개로 통합 (예: 분석 4개 → 1개)
+- ✅ **완료 보고서**: 날짜 포함 시 `archive/YYYY-MM/`에 직접 생성
+- ❌ **대화 중 임시 문서**: 대화 종료 후 삭제 또는 STATUS.md에 통합
+
+#### dailywork.md 운영 (중요!)
+- **최근 7일만 유지** (주말마다 이전 주를 `archive/dailywork/YYYY-MM.md`로 이동)
+- AI는 최근 7일만 읽으면 충분 (컨텍스트 제한)
+- 형식: 날짜별 체크리스트 (`## YYYY-MM-DD`)
+
+#### 파일 이동 규칙
+1. **진행 중 계획**: `docs/planning/` (1개 파일로 통합)
+2. **완료된 작업**: `archive/YYYY-MM/`
+3. **날짜 포함 문서**: 즉시 archive
+4. **검색**: `find . -name "*.md" -not -path "*/archive/*"`
 
 ### 외부 링크
 - Next.js 15: https://nextjs.org/docs
