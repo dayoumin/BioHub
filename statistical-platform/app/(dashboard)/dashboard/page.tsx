@@ -367,7 +367,7 @@ export default function DashboardPage() {
                           {dataset.status === 'active' ? '활성' : 
                            dataset.status === 'error' ? '오류' : '처리됨'}
                         </Badge>
-                        <Link href={`/analysis?dataset=${dataset.id}`}>
+                        <Link href={`/statistics?dataset=${dataset.id}`}>
                           <Button variant="outline" size="sm">
                             <Activity className="h-4 w-4 mr-1" />
                             분석
@@ -595,7 +595,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </Link>
-                <Link href="/analysis">
+                <Link href="/statistics">
                   <div className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 p-3 rounded transition-colors">
                     <BarChart3 className="h-5 w-5 text-primary" />
                     <div>

@@ -48,12 +48,12 @@ export const Header = memo(() => {
     const prefetchRelatedRoutes = () => {
       if (pathname === '/') {
         // 홈에서는 통계 분석과 대시보드를 prefetch
-        router.prefetch('/analysis')
+        router.prefetch('/statistics')
         router.prefetch('/dashboard')
-      } else if (pathname === '/analysis') {
-        // 통계 분석에서는 카테고리별 페이지 prefetch
-        router.prefetch('/analysis/descriptive')
-        router.prefetch('/analysis/hypothesis')
+      } else if (pathname === '/statistics') {
+        // 통계 분석에서는 관련 페이지 prefetch
+        router.prefetch('/smart-analysis')
+        router.prefetch('/data')
       }
     }
 

@@ -142,12 +142,12 @@ export default function HomePage() {
                     )}
 
                     {/* 시작 버튼 */}
-                    <Link href={track.journey}>
-                      <Button className={`w-full ${track.color} hover:opacity-90 transition-all duration-300 text-white border-0`}>
+                    <Button asChild className={`w-full ${track.color} hover:opacity-90 transition-all duration-300 text-white border-0`}>
+                      <Link href={track.journey}>
                         {track.title.replace('하기', ' 시작')}
                         <ChevronRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               )
