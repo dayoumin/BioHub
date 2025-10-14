@@ -315,6 +315,9 @@ export class PyodideStatisticsService {
     // Pyodide 초기화
     console.log('[PyodideService] Pyodide 인스턴스 생성 중...')
     try {
+      if (!window.loadPyodide) {
+        throw new Error('window.loadPyodide가 로드되지 않았습니다')
+      }
       this.pyodide = await window.loadPyodide({
         indexURL: cdnUrls.indexURL
       })
