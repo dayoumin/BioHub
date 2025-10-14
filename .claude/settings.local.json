@@ -1,36 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)",
-      "Bash(npm run build:*)",
-      "Bash(npm test:*)",
-      "Bash(grep:*)",
-      "Bash(npm run dev:*)",
-      "Bash(npm run type-check:*)",
-      "Bash(npm run lint)",
-      "Bash(curl:*)",
-      "Bash(find:*)",
-      "Bash(git checkout:*)",
-      "Bash(mkdir:*)",
-      "Bash(npx tsc:*)",
-      "Bash(npx eslint:*)",
-      "WebSearch",
-      "Bash(cat:*)",
-      "Bash(python:*)",
-      "Bash(npx playwright test:*)",
-      "Bash(netstat:*)",
-      "Bash(findstr:*)",
-      "Bash(taskkill:*)",
-      "Bash(copy:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: complete Phase 4-1 Pyodide runtime testing\n\nPhase 4-1 Summary:\n- E2E tests: 3/3 passed (100%)\n- Fixed Python import issues in 30 methods\n- Verified singleton pattern with 44x performance improvement (11.8s -> 0.27s)\n- Confirmed Pyodide + NumPy + SciPy working in browser\n\nKey Changes:\n- pyodide-statistics.ts: Added import statements to all 30 runPythonAsync calls\n- pyodide-basic.spec.ts: Fixed getAttribute issues and rewrote Test 3 for consecutive calculations\n- Documentation: Added complete reports and daily log\n\nPerformance Results:\n- First calculation: 11.8s (with Pyodide initialization)\n- Second calculation: 0.27s (cached instance)\n- Improvement: 97.7% (44x faster)\n\nNext Steps:\n- Phase 4-2: Test 10-15 additional statistical methods\n- Performance optimization\n- Advanced visualizations\n\nGenerated with Claude Code (https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push:*)",
-      "Bash(node -e \"const m = require(''./lib/statistics/registry/method-metadata.ts''); console.log(Object.keys(m.METHOD_METADATA).length); console.log(Object.keys(m.METHOD_METADATA).join(''\\n''))\")",
-      "Bash(awk:*)",
-      "Bash(node:*)",
-      "Bash(mv:*)",
-      "Bash(sed:*)",
-      "Bash(git add:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nrefactor: implement callWorkerMethod helper in pyodide-statistics.ts\n\nOption A Implementation - Step 1\n\nChanges:\n- Added WorkerMethodParam and WorkerMethodOptions type definitions\n- Implemented callWorkerMethod<T>() helper method\n- Refactored descriptiveStats() to use the helper (36 lines → 17 lines, 53% reduction)\n\nBenefits:\n- Code duplication reduced\n- Type safety improved\n- Error handling centralized\n- Cleaner, more maintainable code\n\nNext Steps:\n- Refactor 2-3 more Worker 1 methods\n- Add unit tests for the helper\n- Apply to remaining 80+ methods\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit -m \"$(cat <<''EOF''\ndocs: add manual verification guide for callWorkerMethod helper\n\nTesting Approach\n\nChanges:\n- Added scripts/test-helper-refactoring.ts\n- Manual verification guide (browser console + UI testing)\n- Expected results documentation\n\nWhy Manual Testing:\n- Pyodide requires browser environment (Web Workers, WASM)\n- Jest runs in Node.js (no browser APIs)\n- UI testing is more practical for Pyodide integration\n\nVerification Methods:\n1. Browser console test with sample data\n2. UI-based testing through statistics page\n\nSuccess Criteria:\n- Mean: 5.5, Median: 5.5, Min: 1, Max: 10\n- All properties (std, q1, q3, skewness, kurtosis) present\n- No errors during execution\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

@@ -795,31 +795,17 @@ sys.modules['${moduleName}'] = ${moduleName}
     isNormal: boolean
     alpha: number
   }> {
-    await this.initialize()
-    await this.ensureWorker1Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker1_module import normality_test
-
-      data = ${JSON.stringify(data)}
-
-      try:
-        result = normality_test(data, alpha=${alpha})
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Normality test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      isNormal: boolean
+      alpha: number
+    }>(
+      1,
+      'normality_test',
+      { data, alpha },
+      { errorMessage: 'Normality test 실행 실패' }
+    )
   }
 
   /**
@@ -830,31 +816,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     outlierCount: number
     method: string
   }> {
-    await this.initialize()
-    await this.ensureWorker1Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker1_module import outlier_detection
-
-      data = ${JSON.stringify(data)}
-
-      try:
-        result = outlier_detection(data, method='${method}')
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Outlier detection 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      outlierIndices: number[]
+      outlierCount: number
+      method: string
+    }>(
+      1,
+      'outlier_detection',
+      { data, method },
+      { errorMessage: 'Outlier detection 실행 실패' }
+    )
   }
 
   /**
