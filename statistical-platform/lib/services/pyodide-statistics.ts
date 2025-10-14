@@ -540,35 +540,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     equalVariance: boolean
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import bartlett_test
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = bartlett_test(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Bartlett test 실행 실패: ${parsed.error}`)
-    }
-
-    return {
-      statistic: parsed.statistic,
-      pValue: parsed.pValue,
-      equalVariance: parsed.equalVariance
-    }
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      equalVariance: boolean
+    }>(
+      2,
+      'bartlett_test',
+      { groups },
+      { errorMessage: 'Bartlett test 실행 실패' }
+    )
   }
 
   /**
@@ -1054,36 +1035,24 @@ sys.modules['${moduleName}'] = ${moduleName}
     alternative: 'two-sided' | 'greater' | 'less' = 'two-sided'
   ): Promise<{
     pValue: number
-    observedProportion: number
+    successCount: number
+    totalCount: number
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import binomial_test
-
-      try:
-        result = binomial_test(
-          success_count=${successCount},
-          total_count=${totalCount},
-          probability=${probability},
-          alternative='${alternative}'
-        )
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Binomial test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      pValue: number
+      successCount: number
+      totalCount: number
+    }>(
+      2,
+      'binomial_test',
+      {
+        success_count: successCount,
+        total_count: totalCount,
+        probability,
+        alternative
+      },
+      { errorMessage: 'Binomial test 실행 실패' }
+    )
   }
 
   /**
@@ -1095,35 +1064,35 @@ sys.modules['${moduleName}'] = ${moduleName}
     yIdx: number,
     controlIndices: number[]
   ): Promise<{
-    partialCorrelation: number
+    correlation: number
     pValue: number
-  }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import partial_correlation
-
-      data_matrix = ${JSON.stringify(dataMatrix)}
-      control_indices = ${JSON.stringify(controlIndices)}
-
-      try:
-        result = partial_correlation(data_matrix, ${xIdx}, ${yIdx}, control_indices)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Partial correlation 실행 실패: ${parsed.error}`)
+    df: number
+    nObservations: number
+    confidenceInterval: {
+      lower: number
+      upper: number
     }
-
-    return parsed
+  }> {
+    return this.callWorkerMethod<{
+      correlation: number
+      pValue: number
+      df: number
+      nObservations: number
+      confidenceInterval: {
+        lower: number
+        upper: number
+      }
+    }>(
+      2,
+      'partial_correlation',
+      {
+        data_matrix: dataMatrix,
+        x_idx: xIdx,
+        y_idx: yIdx,
+        control_indices: controlIndices
+      },
+      { errorMessage: 'Partial correlation 실행 실패' }
+    )
   }
 
   /**
@@ -2296,26 +2265,20 @@ sys.modules['${moduleName}'] = ${moduleName}
     observed: number[]
     expected: number[]
   }> {
-    await this.initialize()
-    await this.ensureWorkerLoaded(2)
-
-    if (!this.pyodide) {
-      throw new Error('Pyodide가 초기���되지 않았습니다')
-    }
-
-    const observedJson = JSON.stringify(observed)
-    const expectedJson = expected ? JSON.stringify(expected) : 'None'
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import json
-      from worker2_hypothesis import chi_square_goodness_test
-      observed = json.loads('${observedJson}')
-      expected = json.loads('${expectedJson}') if '${expectedJson}' != 'None' else None
-      result = chi_square_goodness_test(observed, expected, ${alpha})
-      json.dumps(result)
-    `)
-
-    return this.parsePythonResult(resultStr)
+    return this.callWorkerMethod<{
+      chiSquare: number
+      pValue: number
+      degreesOfFreedom: number
+      criticalValue: number
+      reject: boolean
+      observed: number[]
+      expected: number[]
+    }>(
+      2,
+      'chi_square_goodness_test',
+      { observed, expected: expected ?? null, alpha },
+      { errorMessage: 'Chi-square goodness of fit test 실행 실패' }
+    )
   }
 
   /**
@@ -2335,25 +2298,21 @@ sys.modules['${moduleName}'] = ${moduleName}
     observedMatrix: number[][]
     expectedMatrix: number[][]
   }> {
-    await this.initialize()
-    await this.ensureWorkerLoaded(2)
-
-    if (!this.pyodide) {
-      throw new Error('Pyodide가 초기화되지 않았습니다')
-    }
-
-    const matrixJson = JSON.stringify(observedMatrix)
-    const yates = yatesCorrection ? 'True' : 'False'
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import json
-      from worker2_hypothesis import chi_square_independence_test
-      observed_matrix = json.loads('${matrixJson}')
-      result = chi_square_independence_test(observed_matrix, ${yates}, ${alpha})
-      json.dumps(result)
-    `)
-
-    return this.parsePythonResult(resultStr)
+    return this.callWorkerMethod<{
+      chiSquare: number
+      pValue: number
+      degreesOfFreedom: number
+      criticalValue: number
+      reject: boolean
+      cramersV: number
+      observedMatrix: number[][]
+      expectedMatrix: number[][]
+    }>(
+      2,
+      'chi_square_independence_test',
+      { observed_matrix: observedMatrix, yates_correction: yatesCorrection, alpha },
+      { errorMessage: 'Chi-square independence test 실행 실패' }
+    )
   }
 
 
