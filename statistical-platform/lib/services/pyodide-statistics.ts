@@ -118,6 +118,7 @@ export class PyodideStatisticsService {
       throw new Error('Pyodide가 초기화되지 않았습니다')
     }
 
+
     // 2. 파라미터 검증 및 직렬화
     const skipValidation = options.skipValidation ?? false
     const paramsLines: string[] = []
@@ -130,6 +131,7 @@ export class PyodideStatisticsService {
       paramsLines.push(`${key} = ${JSON.stringify(value)}`)
       paramNames.push(key)
     }
+
 
     const paramsCode = paramsLines.join('\n')
     const paramNamesStr = paramNames.join(', ')
@@ -158,6 +160,7 @@ export class PyodideStatisticsService {
       throw new Error(`${errorMsg}: ${parsed.error}`)
     }
 
+
     return parsed as T
   }
 
@@ -177,6 +180,7 @@ export class PyodideStatisticsService {
       throw new Error(`파라미터 '${key}'가 undefined입니다`)
     }
 
+
     // 숫자 검증
     if (typeof value === 'number') {
       if (!Number.isFinite(value)) {
@@ -185,10 +189,12 @@ export class PyodideStatisticsService {
       return
     }
 
+
     // 문자열/불린 검증 (통과)
     if (typeof value === 'string' || typeof value === 'boolean') {
       return
     }
+
 
     // 배열 검증
     if (Array.isArray(value)) {
@@ -210,12 +216,14 @@ export class PyodideStatisticsService {
         return
       }
 
+
       // 2차원 배열 (number[][])
       for (let i = 0; i < value.length; i++) {
         const row = value[i]
         if (!Array.isArray(row)) {
           throw new Error(`파라미터 '${key}[${i}]'가 배열이 아닙니다`)
         }
+
 
         for (let j = 0; j < row.length; j++) {
           const item = row[j]
@@ -226,6 +234,7 @@ export class PyodideStatisticsService {
       }
       return
     }
+
 
     // 지원하지 않는 타입
     throw new Error(`파라미터 '${key}'가 지원하지 않는 타입입니다: ${typeof value}`)
@@ -252,6 +261,7 @@ export class PyodideStatisticsService {
       return this.loadPromise
     }
 
+
     this.isLoading = true
     this.loadPromise = this._loadPyodide()
 
@@ -266,10 +276,12 @@ export class PyodideStatisticsService {
     }
   }
 
+
   private async _loadPyodide(): Promise<void> {
     if (typeof window === 'undefined') {
       throw new Error('Pyodide는 브라우저 환경에서만 사용 가능합니다')
     }
+
 
     console.log('[PyodideService] 초기화 시작...')
 
@@ -299,6 +311,7 @@ export class PyodideStatisticsService {
       console.log('[PyodideService] Pyodide 이미 로드됨')
     }
 
+
     // Pyodide 초기화
     console.log('[PyodideService] Pyodide 인스턴스 생성 중...')
     try {
@@ -313,6 +326,7 @@ export class PyodideStatisticsService {
       console.error('[PyodideService] Pyodide 인스턴스 생성 실패:', error)
       throw error
     }
+
 
     // 필수 패키지 로드 (캐싱됨)
     if (!this.packagesLoaded) {
@@ -336,6 +350,7 @@ export class PyodideStatisticsService {
     } else {
       console.log('[PyodideService] 패키지 이미 로드됨 (캐시 사용)')
     }
+
 
     // 기본 imports
     console.log('[PyodideService] Python 기본 imports 실행 중...')
@@ -367,6 +382,7 @@ export class PyodideStatisticsService {
       console.warn('[PyodideService] 추가 패키지 로드 실패 (무시):', error)
     }
   }
+
 
   /**
    * Worker 파일명 매핑
@@ -457,6 +473,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * IQR 방법으로 이상치 탐지 - Worker 1 사용
    */
@@ -482,6 +499,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       extremeOutliers: []
     }
   }
+
 
   /**
    * Levene 등분산성 검정
@@ -598,7 +616,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       reasons: string[]
       recommendations: string[]
     }
-  }> {
+    }> {
     const results: any = {
       normality: {},
       homogeneity: {},
@@ -609,6 +627,7 @@ sys.modules['${moduleName}'] = ${moduleName}
         recommendations: []
       }
     }
+
 
     // 정규성 검정
     if (data.values && data.values.length >= 3) {
@@ -623,6 +642,7 @@ sys.modules['${moduleName}'] = ${moduleName}
           }
         }
 
+
         // K-S test (큰 표본에 적합)
         if (data.values.length > 30) {
           results.normality.kolmogorovSmirnov = await this.kolmogorovSmirnovTest(data.values)
@@ -631,6 +651,7 @@ sys.modules['${moduleName}'] = ${moduleName}
         console.error('정규성 검정 실패:', error)
       }
     }
+
 
     // 등분산성 검정
     if (data.groups && data.groups.length >= 2) {
@@ -643,6 +664,7 @@ sys.modules['${moduleName}'] = ${moduleName}
           results.summary.recommendations.push("Welch's t-test 또는 Games-Howell 사용")
         }
 
+
         // Bartlett's test (정규분포일 때 더 강력)
         if (results.normality.shapiroWilk?.isNormal) {
           results.homogeneity.bartlett = await this.bartlettTest(data.groups)
@@ -651,6 +673,7 @@ sys.modules['${moduleName}'] = ${moduleName}
         console.error('등분산성 검정 실패:', error)
       }
     }
+
 
     // 독립성 검정
     if (data.residuals && data.residuals.length >= 2) {
@@ -666,12 +689,14 @@ sys.modules['${moduleName}'] = ${moduleName}
       }
     }
 
+
     // 종합 권장사항
     if (results.summary.canUseParametric) {
       results.summary.recommendations.push('모수 검정 사용 가능')
     } else {
       results.summary.recommendations.push('비모수 검정 우선 권장')
     }
+
 
     return results
   }
@@ -913,6 +938,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 이표본 t-검정 (Two-Sample t-Test) - Worker 2
    */
@@ -1072,7 +1098,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       lower: number
       upper: number
     }
-  }> {
+    }> {
     return this.callWorkerMethod<{
       correlation: number
       pValue: number
@@ -1136,6 +1162,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 일원분산분석 (One-way ANOVA)
    * @param groups 그룹별 데이터 배열
@@ -1157,6 +1184,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       df: [result.dfBetween, result.dfWithin]
     }
   }
+
 
   /**
    * 단순선형회귀분석
@@ -1211,6 +1239,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * Wilcoxon 부호순위 검정 - Worker 3
    */
@@ -1228,6 +1257,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * Kruskal-Wallis H 검정 - Worker 3
    */
@@ -1244,6 +1274,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * Tukey HSD 사후검정 - Worker 3
    */
@@ -1253,6 +1284,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       comparisons: result.comparisons
     }
   }
+
 
   /**
    * Chi-square 검정 - Worker 2
@@ -1269,6 +1301,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       df: result.df
     }
   }
+
 
   /**
    * PCA (주성분분석) - 간단한 구현
@@ -1305,6 +1338,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * Friedman 검정 (반복측정 비모수 검정)
    */
@@ -1321,6 +1355,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 요인분석 (Factor Analysis) - Worker 4 사용
    */
@@ -1333,33 +1368,18 @@ sys.modules['${moduleName}'] = ${moduleName}
     explainedVariance: number[]
     eigenvalues: number[]
   }> {
-    await this.initialize()
-    await this.ensureWorker4Loaded()
-
     const { nFactors = 2, rotation = 'varimax' } = options
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker4_module import factor_analysis
-
-      data_matrix = ${JSON.stringify(data)}
-
-      try:
-        result = factor_analysis(data_matrix, n_factors=${nFactors}, rotation='${rotation}')
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Factor analysis 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      loadings: number[][]
+      communalities: number[]
+      explainedVariance: number[]
+      eigenvalues: number[]
+    }>(
+      4,
+      'factor_analysis',
+      { data_matrix: data, n_factors: nFactors, rotation },
+      { errorMessage: 'Factor analysis 실행 실패' }
+    )
   }
 
   /**
@@ -1375,42 +1395,18 @@ sys.modules['${moduleName}'] = ${moduleName}
     silhouetteScore: number
     inertia?: number
   }> {
-    await this.initialize()
-    await this.ensureWorker4Loaded()
-
-    const {
-      nClusters = 3,
-      method = 'kmeans',
-      linkage = 'ward'
-    } = options
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker4_module import cluster_analysis
-
-      data_matrix = ${JSON.stringify(data)}
-
-      try:
-        result = cluster_analysis(
-          data_matrix,
-          n_clusters=${nClusters},
-          method='${method}',
-          linkage='${linkage}'
-        )
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Cluster analysis 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    const { nClusters = 3, method = 'kmeans', linkage = 'ward' } = options
+    return this.callWorkerMethod<{
+      clusters: number[]
+      centers?: number[][]
+      silhouetteScore: number
+      inertia?: number
+    }>(
+      4,
+      'cluster_analysis',
+      { data_matrix: data, n_clusters: nClusters, method, linkage },
+      { errorMessage: 'Cluster analysis 실행 실패' }
+    )
   }
 
   /**
@@ -1428,42 +1424,20 @@ sys.modules['${moduleName}'] = ${moduleName}
     acf?: number[]
     pacf?: number[]
   }> {
-    await this.initialize()
-    await this.ensureWorker4Loaded()
-
-    const {
-      seasonalPeriod = 12,
-      forecastPeriods = 6,
-      method = 'decomposition'
-    } = options
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker4_module import time_series_analysis
-
-      data = ${JSON.stringify(data)}
-
-      try:
-        result = time_series_analysis(
-          data,
-          seasonal_period=${seasonalPeriod},
-          forecast_periods=${forecastPeriods},
-          method='${method}'
-        )
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Time series analysis 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    const { seasonalPeriod = 12, forecastPeriods = 6, method = 'decomposition' } = options
+    return this.callWorkerMethod<{
+      trend?: number[]
+      seasonal?: number[]
+      residual?: number[]
+      forecast?: number[]
+      acf?: number[]
+      pacf?: number[]
+    }>(
+      4,
+      'time_series_analysis',
+      { data_values: data, seasonal_periods: seasonalPeriod, forecast_periods: forecastPeriods, method },
+      { errorMessage: 'Time series analysis 실행 실패' }
+    )
   }
 
   // ========== Wrapper 메서드들 (StatisticalCalculator와의 호환성) ==========
@@ -1486,6 +1460,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 등분산 검정
    */
@@ -1505,6 +1480,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 독립표본 t-검정 - Worker 2 래퍼
    */
@@ -1520,6 +1496,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 대응표본 t-검정 - Worker 2 래퍼
    */
@@ -1533,6 +1510,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 일원분산분석 - Worker 3 래퍼
    */
@@ -1545,6 +1523,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       dfWithin: result.dfWithin
     }
   }
+
 
   /**
    * 단순선형회귀 - 기존 regression 래퍼
@@ -1560,6 +1539,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 카이제곱 검정 - Worker 2 래퍼
    */
@@ -1571,6 +1551,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       df: result.df
     }
   }
+
 
   /**
    * 주성분 분석 - 기존 pca 래퍼
@@ -1586,6 +1567,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       cumulativeVariance.push(cumSum)
     }
 
+
     return {
       components: result.components,
       explainedVarianceRatio: result.explainedVariance,
@@ -1593,6 +1575,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       totalExplainedVariance: result.totalExplainedVariance
     }
   }
+
 
   /**
    * 이원분산분석 (Two-way ANOVA) - Worker 3 사용
@@ -1606,39 +1589,23 @@ sys.modules['${moduleName}'] = ${moduleName}
     residual: { df: number }
     anovaTable: Record<string, any>
   }> {
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
-
-    await this.ensureWorker3Loaded()
-
     // 데이터 변환: { factor1, factor2, value }[] → data_values, factor1_values, factor2_values
     const dataValues = data.map(d => d.value)
     const factor1Values = data.map(d => d.factor1)
     const factor2Values = data.map(d => d.factor2)
 
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import json
-      from worker3_module import two_way_anova
-
-      data_values = ${JSON.stringify(dataValues)}
-      factor1_values = ${JSON.stringify(factor1Values)}
-      factor2_values = ${JSON.stringify(factor2Values)}
-
-      try:
-        result = two_way_anova(data_values, factor1_values, factor2_values)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Two-way ANOVA 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      factor1: { fStatistic: number; pValue: number; df: number }
+      factor2: { fStatistic: number; pValue: number; df: number }
+      interaction: { fStatistic: number; pValue: number; df: number }
+      residual: { df: number }
+      anovaTable: Record<string, any>
+    }>(
+      3,
+      'two_way_anova',
+      { data_values: dataValues, factor1_values: factor1Values, factor2_values: factor2Values },
+      { errorMessage: 'Two-way ANOVA 실행 실패' }
+    )
   }
 
   /**
@@ -1658,6 +1625,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     }
   }
 
+
   /**
    * 다중회귀분석 (Multiple Linear Regression)
    */
@@ -1666,32 +1634,12 @@ sys.modules['${moduleName}'] = ${moduleName}
     y: number[],    // 종속변수
     variableNames: string[] = []
   ): Promise<any> {
-    await this.initialize()
-    await this.ensureWorker4Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker4_module import multiple_regression
-
-      X = ${JSON.stringify(X)}
-      y = ${JSON.stringify(y)}
-
-      try:
-        result = multiple_regression(X, y)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Multiple regression 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<any>(
+      4,
+      'multiple_regression',
+      { X, y },
+      { errorMessage: 'Multiple regression 실행 실패' }
+    )
   }
 
   /**
@@ -1702,32 +1650,12 @@ sys.modules['${moduleName}'] = ${moduleName}
     y: number[],    // 종속변수 (0 또는 1)
     variableNames: string[] = []
   ): Promise<any> {
-    await this.initialize()
-    await this.ensureWorker4Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker4_module import logistic_regression
-
-      X = ${JSON.stringify(X)}
-      y = ${JSON.stringify(y)}
-
-      try:
-        result = logistic_regression(X, y)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Logistic regression 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<any>(
+      4,
+      'logistic_regression',
+      { X, y },
+      { errorMessage: 'Logistic regression 실행 실패' }
+    )
   }
 
   /**
@@ -1759,6 +1687,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       matrix.push(row)
     }
 
+
     return { matrix }
   }
 
@@ -1781,43 +1710,27 @@ sys.modules['${moduleName}'] = ${moduleName}
     pAdjust: string = 'holm',
     alpha: number = 0.05
   ): Promise<any> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
+    const baseResult = await this.callWorkerMethod<any>(
+      3,
+      'dunn_test',
+      { groups, p_adjust: pAdjust },
+      { errorMessage: 'Dunn test 실행 실패' }
+    )
 
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import dunn_test
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = dunn_test(groups, p_adjust='${pAdjust}')
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Dunn test 실행 실패: ${parsed.error}`)
-    }
-
-    // groupNames 매핑 추가
-    const comparisons = parsed.comparisons.map((comp: any) => ({
+    // groupNames 맵핑 추가
+    const comparisons = baseResult.comparisons.map((comp: any) => ({
       ...comp,
       group1: groupNames[comp.group1] || comp.group1,
       group2: groupNames[comp.group2] || comp.group2
     }))
 
     return {
-      ...parsed,
+      ...baseResult,
       comparisons,
       alpha
     }
   }
+
 
   /**
    * Games-Howell Test (등분산 가정하지 않는 사후검정) - 직접 구현
@@ -1836,44 +1749,28 @@ sys.modules['${moduleName}'] = ${moduleName}
    * - 본 구현은 Studentized range distribution 대신 t-distribution을 사용 (더 보수적)
    * - 등분산을 가정하지 않아 Tukey HSD보다 robust함
    */
+
   async gamesHowellTest(
     groups: number[][],
     groupNames: string[],
     alpha: number = 0.05
   ): Promise<any> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
+    const baseResult = await this.callWorkerMethod<any>(
+      3,
+      'games_howell_test',
+      { groups },
+      { errorMessage: 'Games-Howell test 실행 실패' }
+    )
 
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import games_howell_test
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = games_howell_test(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Games-Howell test 실행 실패: ${parsed.error}`)
-    }
-
-    // groupNames 매핑 추가
-    const comparisons = parsed.comparisons.map((comp: any) => ({
+    // groupNames 맵핑 추가
+    const comparisons = baseResult.comparisons.map((comp: any) => ({
       ...comp,
       group1: groupNames[comp.group1] || comp.group1,
       group2: groupNames[comp.group2] || comp.group2
     }))
 
     return {
-      ...parsed,
+      ...baseResult,
       comparisons,
       alpha,
       significant_count: comparisons.filter((c: any) => c.pValue < alpha).length
@@ -1913,6 +1810,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       }
     }
 
+
     return {
       comparisons,
       num_comparisons,
@@ -1921,6 +1819,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       significant_count: comparisons.filter(c => c.significant).length
     }
   }
+
 
   // ========================================
   // Worker 3: Nonparametric & ANOVA Methods
@@ -2187,29 +2086,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     fStatistic: number
     pValue: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import manova
-
-      data_matrix = ${JSON.stringify(dataMatrix)}
-      group_values = ${JSON.stringify(groupValues)}
-      var_names = ${JSON.stringify(varNames)}
-
-      try:
-        result = manova(data_matrix, group_values, var_names)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`MANOVA 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      wilksLambda: number
+      fStatistic: number
+      pValue: number
+    }>(
+      3,
+      'manova',
+      { data_matrix: dataMatrix, group_values: groupValues, var_names: varNames },
+      { errorMessage: 'MANOVA 실행 실패' }
+    )
   }
 
   async scheffeTestWorker(groups: number[][]): Promise<{
@@ -2222,27 +2108,21 @@ sys.modules['${moduleName}'] = ${moduleName}
       reject: boolean
     }>
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import scheffe_test
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = scheffe_test(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Scheffe test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      comparisons: Array<{
+        group1: number
+        group2: number
+        meanDiff: number
+        fStatistic: number
+        pValue: number
+        reject: boolean
+      }>
+    }>(
+      3,
+      'scheffe_test',
+      { groups },
+      { errorMessage: 'Scheffe test 실행 실패' }
+    )
   }
 
   /**
