@@ -2045,56 +2045,31 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     uStatistic: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import mann_whitney_test
-
-      group1 = ${JSON.stringify(group1)}
-      group2 = ${JSON.stringify(group2)}
-
-      try:
-        result = mann_whitney_test(group1, group2)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Mann-Whitney test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      uStatistic: number
+    }>(
+      3,
+      'mann_whitney_test',
+      { group1, group2 },
+      { errorMessage: 'Mann-Whitney test 실행 실패' }
+    )
   }
 
   async wilcoxonTestWorker(values1: number[], values2: number[]): Promise<{
     statistic: number
     pValue: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import wilcoxon_test
-
-      values1 = ${JSON.stringify(values1)}
-      values2 = ${JSON.stringify(values2)}
-
-      try:
-        result = wilcoxon_test(values1, values2)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Wilcoxon test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+    }>(
+      3,
+      'wilcoxon_test',
+      { values1, values2 },
+      { errorMessage: 'Wilcoxon test 실행 실패' }
+    )
   }
 
   async kruskalWallisTestWorker(groups: number[][]): Promise<{
@@ -2102,27 +2077,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     df: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import kruskal_wallis_test
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = kruskal_wallis_test(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Kruskal-Wallis test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      df: number
+    }>(
+      3,
+      'kruskal_wallis_test',
+      { groups },
+      { errorMessage: 'Kruskal-Wallis test 실행 실패' }
+    )
   }
 
   async friedmanTestWorker(groups: number[][]): Promise<{
@@ -2130,27 +2094,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     rankings: number[]
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import friedman_test
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = friedman_test(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Friedman test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      rankings: number[]
+    }>(
+      3,
+      'friedman_test',
+      { groups },
+      { errorMessage: 'Friedman test 실행 실패' }
+    )
   }
 
   async oneWayAnovaWorker(groups: number[][]): Promise<{
