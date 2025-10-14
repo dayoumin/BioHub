@@ -2,7 +2,7 @@
  * 회귀분석 모듈
  */
 
-import { ensurePyodideReady, validateNumericArray, interpretPValue } from './utils'
+import { ensurePyodideReady, validateNumericArray, validateNumericMatrix, interpretPValue } from './utils'
 import { RegressionResult, StatisticalResult } from './types'
 
 /**

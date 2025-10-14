@@ -67,7 +67,9 @@ export const useAnalysisCacheStore = create<AnalysisCacheStore>()(
           // 캐시 크기 제한 (최대 10개)
           if (newCache.size > 10) {
             const firstKey = newCache.keys().next().value
-            newCache.delete(firstKey)
+            if (firstKey !== undefined) {
+              newCache.delete(firstKey)
+            }
           }
 
           console.log(`[AnalysisCache] 결과 캐싱: ${methodId}`)

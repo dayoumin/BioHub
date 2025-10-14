@@ -444,8 +444,8 @@ export default function ANCOVAPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onNext={() => {}}
+            onUploadComplete={(_file, data) => handleDataUpload(data)}
           />
 
           <Alert className="mt-4">

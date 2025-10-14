@@ -5,13 +5,14 @@
  * Registry Pattern의 핵심 구현
  */
 
-import { METHOD_METADATA } from './method-metadata'
+import { METHOD_METADATA, type MethodId } from './method-metadata'
 import type {
   StatisticalGroup,
   GroupModule,
   CalculationResult,
-  UsageStats
+  UsageStats,
 } from './types'
+import type { CalculatorContext, DataRow, MethodParameters } from '../calculator-types'
 
 /**
  * StatisticalRegistry
@@ -53,9 +54,9 @@ export class StatisticalRegistry {
    * @returns 계산 결과
    */
   async execute(
-    methodId: string,
-    data: any[],
-    params: any
+    methodId: MethodId,
+    data: DataRow[],
+    params: MethodParameters,
   ): Promise<CalculationResult> {
     try {
       // 1. 메타데이터 조회
@@ -117,37 +118,49 @@ export class StatisticalRegistry {
     // 현재는 임시 모듈 반환
     console.log(`[Registry] Loading group: ${groupId}`)
 
-    // 동적 import (Day 2-3에 활성화)
-    /*
-    switch (groupId) {
-      case 'descriptive':
-        const descriptive = await import('../groups/descriptive.group')
-        return descriptive.DescriptiveGroup
-      case 'hypothesis':
-        const hypothesis = await import('../groups/hypothesis.group')
-        return hypothesis.HypothesisGroup
-      case 'regression':
-        const regression = await import('../groups/regression.group')
-        return regression.RegressionGroup
-      case 'nonparametric':
-        const nonparametric = await import('../groups/nonparametric.group')
-        return nonparametric.NonparametricGroup
-      case 'anova':
-        const anova = await import('../groups/anova.group')
-        return anova.AnovaGroup
-      case 'advanced':
-        const advanced = await import('../groups/advanced.group')
-        return advanced.AdvancedGroup
-      default:
-        throw new Error(`Unknown group: ${groupId}`)
-    }
-    */
+    // Context는 나중에 StatisticalCalculator와 통합 시 전달받을 예정
+    const context = this.getContext()
 
-    // 임시 모듈 (Day 2-3까지)
+    switch (groupId) {
+      case 'descriptive': {
+        const { createDescriptiveGroup } = await import('../groups/descriptive.group')
+        return createDescriptiveGroup(context)
+      }
+      case 'hypothesis': {
+        const { createHypothesisGroup } = await import('../groups/hypothesis.group')
+        return createHypothesisGroup(context)
+      }
+      case 'regression': {
+        const { createRegressionGroup } = await import('../groups/regression.group')
+        return createRegressionGroup(context)
+      }
+      case 'nonparametric': {
+        const { createNonparametricGroup } = await import('../groups/nonparametric.group')
+        return createNonparametricGroup(context)
+      }
+      case 'anova': {
+        const { createAnovaGroup } = await import('../groups/anova.group')
+        return createAnovaGroup(context)
+      }
+      case 'advanced': {
+        const { createAdvancedGroup } = await import('../groups/advanced.group')
+        return createAdvancedGroup(context)
+      }
+      default: {
+        const exhaustiveCheck: never = groupId
+        throw new Error(`Unknown group: ${exhaustiveCheck}`)
+      }
+    }
+  }
+
+  /**
+   * Context 가져오기 (임시)
+   * 실제로는 StatisticalCalculator에서 전달받을 예정
+   */
+  private getContext(): CalculatorContext {
+    // TODO: StatisticalCalculator와 통합 시 실제 CalculatorContext 전달
     return {
-      id: groupId,
-      methods: [],
-      handlers: {}
+      pyodideService: null as any, // 실제 서비스가 주입될 때까지 null로 둡니다.
     }
   }
 

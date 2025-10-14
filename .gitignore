@@ -73,3 +73,5 @@ Desktop.ini
 # Temporary files
 *.tmp
 *.temp
+# Local settings (personal configurations)
+*.local.json

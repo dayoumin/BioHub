@@ -6,11 +6,10 @@
  */
 
 import type { PyodideInterface } from '@/types/pyodide'
+import { getPyodideCDNUrls } from '@/lib/constants'
 
-// Pyodide CDN 버전 및 URL 설정
-const PYODIDE_VERSION = 'v0.24.1'
-const PYODIDE_CDN_BASE = `https://cdn.jsdelivr.net/pyodide/${PYODIDE_VERSION}/full`
-const PYODIDE_SCRIPT_URL = `${PYODIDE_CDN_BASE}/pyodide.js`
+// Pyodide CDN URL 가져오기 (환경 변수 자동 반영)
+const cdnUrls = getPyodideCDNUrls()
 
 // 싱글톤 패턴: 캐시된 Pyodide 인스턴스
 let cachedPyodide: PyodideInterface | null = null
@@ -27,10 +26,10 @@ async function loadPyodideScript(): Promise<void> {
     return // 이미 로드됨
   }
 
-  console.log('[Pyodide Loader] CDN에서 Pyodide 스크립트 로딩 중...')
+  console.log(`[Pyodide Loader] CDN에서 Pyodide 스크립트 로딩 중... (버전: ${cdnUrls.version})`)
 
   const script = document.createElement('script')
-  script.src = PYODIDE_SCRIPT_URL
+  script.src = cdnUrls.scriptURL
   script.async = true
 
   await new Promise<void>((resolve, reject) => {
@@ -55,7 +54,7 @@ async function createPyodideInstance(): Promise<PyodideInterface> {
   console.log('[Pyodide Loader] Pyodide 인스턴스 생성 중...')
 
   const pyodide = await window.loadPyodide!({
-    indexURL: PYODIDE_CDN_BASE
+    indexURL: cdnUrls.indexURL
   })
 
   console.log('[Pyodide Loader] Pyodide 초기화 완료')
@@ -145,10 +144,10 @@ export async function loadPyodideWithPackages(
 /**
  * Pyodide 버전 정보를 가져옵니다
  *
- * @returns Pyodide 버전 (예: 'v0.24.1')
+ * @returns Pyodide 버전 (예: 'v0.28.3')
  */
 export function getPyodideVersion(): string {
-  return PYODIDE_VERSION
+  return cdnUrls.version
 }
 
 /**

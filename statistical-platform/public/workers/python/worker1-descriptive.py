@@ -242,3 +242,28 @@ def cronbach_alpha(items_matrix):
         'nItems': int(n_items),
         'nRespondents': int(items_matrix.shape[0])
     }
+
+
+def kolmogorov_smirnov_test(data):
+    """
+    Kolmogorov-Smirnov 정규성 검정 (K-S Test)
+
+    Shapiro-Wilk보다 큰 표본에 적합한 정규성 검정
+    """
+    clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
+
+    if len(clean_data) < 3:
+        raise ValueError("K-S test requires at least 3 observations")
+
+    # K-S 검정 (표준 정규분포와 비교)
+    statistic, p_value = stats.kstest(
+        clean_data,
+        'norm',
+        args=(np.mean(clean_data), np.std(clean_data))
+    )
+
+    return {
+        'statistic': float(statistic),
+        'pValue': float(p_value),
+        'isNormal': bool(p_value > 0.05)
+    }

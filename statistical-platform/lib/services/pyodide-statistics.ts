@@ -18,6 +18,7 @@ import type {
   RegressionResult
 } from '@/types/pyodide'
 import { withPyodideContext, retryPyodideOperation } from './pyodide-helper'
+import { getPyodideCDNUrls } from '@/lib/constants'
 
 declare global {
   interface Window {
@@ -55,13 +56,6 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * Pyodide가 초기화되었는지 확인
-   */
-  isInitialized(): boolean {
-    return this.pyodide !== null && this.packagesLoaded
-  }
-
-  /**
    * Pyodide 초기화 및 필요한 패키지 로드
    */
   async initialize(): Promise<void> {
@@ -96,11 +90,15 @@ export class PyodideStatisticsService {
 
     console.log('[PyodideService] 초기화 시작...')
 
+    // Pyodide CDN URL 가져오기 (환경 변수 자동 반영)
+    const cdnUrls = getPyodideCDNUrls()
+    console.log(`[PyodideService] 버전: ${cdnUrls.version}`)
+
     // Pyodide CDN에서 로드
     if (!window.loadPyodide) {
       console.log('[PyodideService] Pyodide 스크립트 로딩...')
       const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js'
+      script.src = cdnUrls.scriptURL
       script.async = true
 
       await new Promise((resolve, reject) => {
@@ -122,7 +120,7 @@ export class PyodideStatisticsService {
     console.log('[PyodideService] Pyodide 인스턴스 생성 중...')
     try {
       this.pyodide = await window.loadPyodide({
-        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/'
+        indexURL: cdnUrls.indexURL
       })
       console.log('[PyodideService] Pyodide 인스턴스 생성 완료')
 
@@ -188,67 +186,96 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * Shapiro-Wilk 정규성 검정
-   * @param data 숫자 배열
-   * @returns 검정 통계량과 p-value
+   * Worker 파일명 매핑
+   */
+  private getWorkerFileName(workerNum: 1 | 2 | 3 | 4): string {
+    const fileNames = {
+      1: 'descriptive',
+      2: 'hypothesis',
+      3: 'nonparametric-anova',
+      4: 'regression-advanced'
+    }
+    return fileNames[workerNum]
+  }
+
+  /**
+   * Worker 로드 공통 함수
+   */
+  private async ensureWorkerLoaded(workerNum: 1 | 2 | 3 | 4): Promise<void> {
+    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
+
+    const moduleName = `worker${workerNum}_module`
+    const fileName = this.getWorkerFileName(workerNum)
+
+    // 이미 로드되었는지 확인
+    const isLoaded = await this.pyodide.runPythonAsync(`
+      import sys
+      '${moduleName}' in sys.modules
+    `)
+
+    if (isLoaded === true) return
+
+    // Worker 파일 fetch
+    const response = await fetch(`/workers/python/worker${workerNum}-${fileName}.py`)
+    const workerCode = await response.text()
+
+    // Worker 모듈로 등록
+    await this.pyodide.runPythonAsync(`
+import sys
+from types import ModuleType
+
+${moduleName} = ModuleType('${moduleName}')
+exec("""${workerCode.replace(/`/g, '\\`')}""", ${moduleName}.__dict__)
+sys.modules['${moduleName}'] = ${moduleName}
+    `)
+  }
+
+  /**
+   * Worker 1 (descriptive) 로드
+   */
+  private async ensureWorker1Loaded(): Promise<void> {
+    return this.ensureWorkerLoaded(1)
+  }
+
+  /**
+   * Worker 2 (hypothesis) 로드
+   */
+  private async ensureWorker2Loaded(): Promise<void> {
+    return this.ensureWorkerLoaded(2)
+  }
+
+  /**
+   * Worker 3 (nonparametric-anova) 로드
+   */
+  private async ensureWorker3Loaded(): Promise<void> {
+    return this.ensureWorkerLoaded(3)
+  }
+
+  /**
+   * Worker 4 (regression-advanced) 로드
+   */
+  private async ensureWorker4Loaded(): Promise<void> {
+    return this.ensureWorkerLoaded(4)
+  }
+
+  /**
+   * Shapiro-Wilk 정규성 검정 - Worker 1 사용
    */
   async shapiroWilkTest(data: number[]): Promise<{
     statistic: number
     pValue: number
     isNormal: boolean
   }> {
-    await this.initialize()
-
-    // withPyodideContext를 사용하여 메모리 자동 정리
-    return withPyodideContext(this.pyodide, async (ctx) => {
-      // 네임스페이스가 적용된 글로벌 변수 설정
-      ctx.setGlobal('data_array', data)
-
-      const resultStr = await ctx.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # JavaScript 배열을 numpy 배열로 변환
-      np_array = np.array(data_array)
-
-      # 결측값 제거
-      clean_data = np_array[~np.isnan(np_array)]
-
-      # 최소 3개 데이터 필요
-      if len(clean_data) < 3:
-        result = {'statistic': None, 'pvalue': None, 'error': 'Insufficient data'}
-      else:
-        # Shapiro-Wilk 검정
-        statistic, pvalue = stats.shapiro(clean_data)
-        result = {
-          'statistic': float(statistic),
-          'pvalue': float(pvalue),
-          'sample_size': len(clean_data)
-        }
-
-      result_json = json.dumps(result)
-      result_json
-      `)
-
-      const parsed = JSON.parse(resultStr)
-
-      if (parsed.error) {
-        throw new Error(parsed.error)
-      }
-
-      return {
-        statistic: parsed.statistic,
-        pValue: parsed.pvalue,
-        isNormal: parsed.pvalue > 0.05 // 유의수준 0.05 기준
-      }
-    })
+    const result = await this.normalityTest(data)
+    return {
+      statistic: result.statistic,
+      pValue: result.pValue,
+      isNormal: result.isNormal
+    }
   }
 
   /**
-   * IQR 방법으로 이상치 탐지
-   * @param data 숫자 배열
-   * @returns 이상치 정보
+   * IQR 방법으로 이상치 탐지 - Worker 1 사용
    */
   async detectOutliersIQR(data: number[]): Promise<{
     q1: number
@@ -259,78 +286,18 @@ export class PyodideStatisticsService {
     mildOutliers: number[]
     extremeOutliers: number[]
   }> {
-    await this.initialize()
+    const stats = await this.descriptiveStats(data)
+    const outliers = await this.outlierDetection(data, 'iqr')
 
-    return withPyodideContext(this.pyodide, async (ctx) => {
-      ctx.setGlobal('data_array', data)
-
-      const resultStr = await ctx.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # JavaScript 배열을 numpy 배열로 변환
-      np_array = np.array(data_array)
-
-      # 결측값 제거
-      clean_data = np_array[~np.isnan(np_array)]
-
-      if len(clean_data) < 4:
-        result = {'error': 'Insufficient data for outlier detection'}
-      else:
-        # 사분위수 계산
-        q1 = np.percentile(clean_data, 25)
-        q3 = np.percentile(clean_data, 75)
-        iqr = q3 - q1
-
-        # 경계값 계산
-        lower_mild = q1 - 1.5 * iqr
-        upper_mild = q3 + 1.5 * iqr
-        lower_extreme = q1 - 3 * iqr
-        upper_extreme = q3 + 3 * iqr
-
-        # 이상치 분류
-        mild_outliers = []
-        extreme_outliers = []
-
-        for val in clean_data:
-          if val < lower_extreme or val > upper_extreme:
-            extreme_outliers.append(float(val))
-          elif val < lower_mild or val > upper_mild:
-            mild_outliers.append(float(val))
-
-        result = {
-          'q1': float(q1),
-          'q3': float(q3),
-          'iqr': float(iqr),
-          'lower_bound': float(lower_mild),
-          'upper_bound': float(upper_mild),
-          'mild_outliers': mild_outliers,
-          'extreme_outliers': extreme_outliers,
-          'total_outliers': len(mild_outliers) + len(extreme_outliers),
-          'outlier_percentage': (len(mild_outliers) + len(extreme_outliers)) / len(clean_data) * 100
-        }
-
-      result_json = json.dumps(result)
-      result_json
-      `)
-
-      const parsed = JSON.parse(resultStr)
-
-      if (parsed.error) {
-        throw new Error(parsed.error)
-      }
-
-      return {
-        q1: parsed.q1,
-        q3: parsed.q3,
-      iqr: parsed.iqr,
-      lowerBound: parsed.lower_bound,
-      upperBound: parsed.upper_bound,
-        mildOutliers: parsed.mild_outliers,
-        extremeOutliers: parsed.extreme_outliers
-      }
-    })
+    return {
+      q1: stats.q1,
+      q3: stats.q3,
+      iqr: stats.q3 - stats.q1,
+      lowerBound: stats.q1 - 1.5 * (stats.q3 - stats.q1),
+      upperBound: stats.q3 + 1.5 * (stats.q3 - stats.q1),
+      mildOutliers: [],  // Worker 1에서 세부 분류 미제공
+      extremeOutliers: []
+    }
   }
 
   /**
@@ -338,56 +305,47 @@ export class PyodideStatisticsService {
    * @param groups 그룹별 데이터 배열
    * @returns 검정 결과
    */
+  /**
+   * Levene 등분산성 검정 - Worker 2 사용
+   */
   async leveneTest(groups: number[][]): Promise<{
     statistic: number
     pValue: number
     equalVariance: boolean
   }> {
     await this.initialize()
+    await this.ensureWorker2Loaded()
 
-    this.pyodide.globals.set('groups_data', groups)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker2_module import levene_test
 
-      # 각 그룹 정제
-      clean_groups = []
-      for group in groups_data:
-        clean_group = [x for x in group if x is not None and not np.isnan(x)]
-        if len(clean_group) > 0:
-          clean_groups.append(clean_group)
+      groups = ${JSON.stringify(groups)}
 
-      if len(clean_groups) < 2:
-        result = {'error': 'Need at least 2 groups'}
-      else:
-        # Levene 검정
-        statistic, pvalue = stats.levene(*clean_groups)
-        result = {
-          'statistic': float(statistic),
-          'pvalue': float(pvalue)
-        }
+      try:
+        result = levene_test(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      result_json = json.dumps(result)
       result_json
     `)
 
-    const parsed = JSON.parse(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
 
     if (parsed.error) {
-      throw new Error(parsed.error)
+      throw new Error(`Levene test 실행 실패: ${parsed.error}`)
     }
 
     return {
       statistic: parsed.statistic,
-      pValue: parsed.pvalue,
-      equalVariance: parsed.pvalue > 0.05
+      pValue: parsed.pValue,
+      equalVariance: parsed.equalVariance
     }
   }
 
   /**
-   * 독립성 검정 (Durbin-Watson test)
+   * 독립성 검정 (Durbin-Watson test) - Worker 4 사용
    * 시계열 데이터나 회귀분석 잔차의 자기상관성 검정
    * @param residuals 잔차 또는 시계열 데이터
    * @returns DW 통계량 (2에 가까울수록 독립적)
@@ -398,61 +356,38 @@ export class PyodideStatisticsService {
     isIndependent: boolean
   }> {
     await this.initialize()
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
+    await this.ensureWorker4Loaded()
 
-    this.pyodide.globals.set('residuals', residuals)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker4_module import durbin_watson_test
 
-      # 결측값 제거
-      clean_data = np.array([x for x in residuals if x is not None and not np.isnan(x)])
+      residuals = ${JSON.stringify(residuals)}
 
-      if len(clean_data) < 2:
-        result = {'error': 'Need at least 2 observations'}
-      else:
-        # Durbin-Watson 통계량 계산
-        diff = np.diff(clean_data)
-        dw_statistic = np.sum(diff**2) / np.sum(clean_data**2)
+      try:
+        result = durbin_watson_test(residuals)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-        # 해석
-        if dw_statistic < 1.5:
-          interpretation = '양의 자기상관 존재'
-          is_independent = False
-        elif dw_statistic > 2.5:
-          interpretation = '음의 자기상관 존재'
-          is_independent = False
-        else:
-          interpretation = '자기상관 없음 (독립적)'
-          is_independent = True
-
-        result = {
-          'statistic': float(dw_statistic),
-          'interpretation': interpretation,
-          'is_independent': is_independent
-        }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    const parsedResult = this.parsePythonResult<any>(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
 
-    if (parsedResult.error) {
-      throw new Error(parsedResult.error)
+    if (parsed.error) {
+      throw new Error(`Durbin-Watson test 실행 실패: ${parsed.error}`)
     }
 
     return {
-      statistic: parsedResult.statistic,
-      interpretation: parsedResult.interpretation,
-      isIndependent: parsedResult.is_independent
+      statistic: parsed.statistic,
+      interpretation: parsed.interpretation,
+      isIndependent: parsed.isIndependent
     }
   }
 
   /**
-   * Bartlett's test for homogeneity of variances
+   * Bartlett's test for homogeneity of variances - Worker 2 사용
    * Levene's test보다 정규성에 민감하지만 더 강력한 검정
    */
   async bartlettTest(groups: number[][]): Promise<{
@@ -461,52 +396,38 @@ export class PyodideStatisticsService {
     equalVariance: boolean
   }> {
     await this.initialize()
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
+    await this.ensureWorker2Loaded()
 
-    this.pyodide.globals.set('groups_data', groups)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker2_module import bartlett_test
 
-      # 각 그룹에서 결측값 제거
-      clean_groups = []
-      for group in groups_data:
-        clean_group = [x for x in group if x is not None and not np.isnan(x)]
-        if len(clean_group) > 0:
-          clean_groups.append(clean_group)
+      groups = ${JSON.stringify(groups)}
 
-      if len(clean_groups) < 2:
-        result = {'error': 'Need at least 2 groups'}
-      else:
-        # Bartlett 검정
-        statistic, pvalue = stats.bartlett(*clean_groups)
-        result = {
-          'statistic': float(statistic),
-          'pvalue': float(pvalue),
-          'equal_variance': float(pvalue) > 0.05
-        }
+      try:
+        result = bartlett_test(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      result_json = json.dumps(result)
       result_json
     `)
 
-    const parsedResult = this.parsePythonResult<any>(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
 
-    if (parsedResult.error) {
-      throw new Error(parsedResult.error)
+    if (parsed.error) {
+      throw new Error(`Bartlett test 실행 실패: ${parsed.error}`)
     }
 
     return {
-      statistic: parsedResult.statistic,
-      pValue: parsedResult.pvalue,
-      equalVariance: parsedResult.equal_variance
+      statistic: parsed.statistic,
+      pValue: parsed.pValue,
+      equalVariance: parsed.equalVariance
     }
   }
 
   /**
-   * Kolmogorov-Smirnov test for normality
+   * Kolmogorov-Smirnov test for normality - Worker 1 사용
    * Shapiro-Wilk보다 큰 표본에 적합
    */
   async kolmogorovSmirnovTest(data: number[]): Promise<{
@@ -515,44 +436,33 @@ export class PyodideStatisticsService {
     isNormal: boolean
   }> {
     await this.initialize()
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
+    await this.ensureWorker1Loaded()
 
-    this.pyodide.globals.set('data_array', data)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker1_module import kolmogorov_smirnov_test
 
-      # 결측값 제거
-      clean_data = np.array([x for x in data_array if x is not None and not np.isnan(x)])
+      data = ${JSON.stringify(data)}
 
-      if len(clean_data) < 3:
-        result = {'error': 'Need at least 3 observations'}
-      else:
-        # K-S 검정
-        statistic, pvalue = stats.kstest(clean_data, 'norm',
-                                       args=(np.mean(clean_data), np.std(clean_data)))
-        result = {
-          'statistic': float(statistic),
-          'pvalue': float(pvalue),
-          'is_normal': float(pvalue) > 0.05
-        }
+      try:
+        result = kolmogorov_smirnov_test(data)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      result_json = json.dumps(result)
       result_json
     `)
 
-    const parsedResult = this.parsePythonResult<any>(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
 
-    if (parsedResult.error) {
-      throw new Error(parsedResult.error)
+    if (parsed.error) {
+      throw new Error(`K-S test 실행 실패: ${parsed.error}`)
     }
 
     return {
-      statistic: parsedResult.statistic,
-      pValue: parsedResult.pvalue,
-      isNormal: parsedResult.is_normal
+      statistic: parsed.statistic,
+      pValue: parsed.pValue,
+      isNormal: parsed.isNormal
     }
   }
 
@@ -675,68 +585,303 @@ export class PyodideStatisticsService {
     skewness: number
     kurtosis: number
   }> {
-    console.log('[descriptiveStats] 시작, 데이터 길이:', data.length)
+    await this.initialize()
+    await this.ensureWorker1Loaded()
 
-    try {
-      console.log('[descriptiveStats] 초기화 중...')
-      await this.initialize()
-      console.log('[descriptiveStats] 초기화 완료')
-    } catch (error) {
-      console.error('[descriptiveStats] 초기화 실패:', error)
-      throw error
-    }
-
-    console.log('[descriptiveStats] Pyodide 확인:', this.pyodide ? '있음' : '없음')
-    if (!this.pyodide) {
-      console.error('[descriptiveStats] Pyodide가 null입니다!')
-      console.log('[descriptiveStats] window.pyodide 값:', (window as any).pyodide)
-      throw new Error('Pyodide가 초기화되지 않았습니다')
-    }
-
-    console.log('[descriptiveStats] 데이터를 Python으로 전달 중...')
-    this.pyodide.globals.set('data_array', data)
-
-    console.log('[descriptiveStats] Python 코드 실행 중...')
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker1_module import descriptive_stats
 
-      # 결측값 제거
-      clean_data = np.array([x for x in data_array if x is not None and not np.isnan(x)])
+      data = ${JSON.stringify(data)}
 
-      if len(clean_data) == 0:
-        result = {'error': 'No valid data'}
-      else:
-        result = {
-          'mean': float(np.mean(clean_data)),
-          'median': float(np.median(clean_data)),
-          'std': float(np.std(clean_data, ddof=1)),
-          'variance': float(np.var(clean_data, ddof=1)),
-          'min': float(np.min(clean_data)),
-          'max': float(np.max(clean_data)),
-          'q1': float(np.percentile(clean_data, 25)),
-          'q3': float(np.percentile(clean_data, 75)),
-          'skewness': float(stats.skew(clean_data)),
-          'kurtosis': float(stats.kurtosis(clean_data)),
-          'n': int(len(clean_data))
-        }
+      try:
+        result = descriptive_stats(data)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      result_json = json.dumps(result)
       result_json
     `)
 
-    const result = JSON.parse(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
 
-    if (result.error) {
-      throw new Error(result.error)
+    if (parsed.error) {
+      throw new Error(`Descriptive stats 실행 실패: ${parsed.error}`)
     }
 
-    return this.parsePythonResult(resultStr)
+    return parsed
   }
 
   /**
-   * 상관계수 계산 (Pearson & Spearman)
+   * 정규성 검정 (Normality Test - Shapiro-Wilk)
+   */
+  async normalityTest(data: number[], alpha: number = 0.05): Promise<{
+    statistic: number
+    pValue: number
+    isNormal: boolean
+    alpha: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker1Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker1_module import normality_test
+
+      data = ${JSON.stringify(data)}
+
+      try:
+        result = normality_test(data, alpha=${alpha})
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Normality test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 이상치 탐지 (Outlier Detection)
+   */
+  async outlierDetection(data: number[], method: 'iqr' | 'zscore' = 'iqr'): Promise<{
+    outlierIndices: number[]
+    outlierCount: number
+    method: string
+  }> {
+    await this.initialize()
+    await this.ensureWorker1Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker1_module import outlier_detection
+
+      data = ${JSON.stringify(data)}
+
+      try:
+        result = outlier_detection(data, method='${method}')
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Outlier detection 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 빈도분석 (Frequency Analysis)
+   */
+  async frequencyAnalysis(values: (string | number)[]): Promise<{
+    categories: string[]
+    frequencies: number[]
+    percentages: number[]
+    cumulativePercentages: number[]
+    total: number
+    uniqueCount: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker1Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker1_module import frequency_analysis
+
+      values = ${JSON.stringify(values)}
+
+      try:
+        result = frequency_analysis(values)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Frequency analysis 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 교차표 분석 (Crosstab Analysis)
+   */
+  async crosstabAnalysis(rowValues: (string | number)[], colValues: (string | number)[]): Promise<{
+    rowCategories: string[]
+    colCategories: string[]
+    observedMatrix: number[][]
+    rowTotals: number[]
+    colTotals: number[]
+    grandTotal: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker1Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker1_module import crosstab_analysis
+
+      row_values = ${JSON.stringify(rowValues)}
+      col_values = ${JSON.stringify(colValues)}
+
+      try:
+        result = crosstab_analysis(row_values, col_values)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Crosstab analysis 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 일표본 비율검정 (One-Sample Proportion Test)
+   */
+  async oneSampleProportionTest(
+    successCount: number,
+    totalCount: number,
+    nullProportion: number = 0.5,
+    alternative: 'two-sided' | 'greater' | 'less' = 'two-sided',
+    alpha: number = 0.05
+  ): Promise<{
+    sampleProportion: number
+    nullProportion: number
+    zStatistic: number
+    pValueExact: number
+    pValueApprox: number
+    significant: boolean
+    alpha: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker1Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker1_module import one_sample_proportion_test
+
+      try:
+        result = one_sample_proportion_test(
+          success_count=${successCount},
+          total_count=${totalCount},
+          null_proportion=${nullProportion},
+          alternative='${alternative}',
+          alpha=${alpha}
+        )
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`One-sample proportion test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 신뢰도 분석 (Cronbach's Alpha) - Worker 1 버전
+   */
+  async cronbachAlphaWorker(itemsMatrix: number[][]): Promise<{
+    alpha: number
+    nItems: number
+    nRespondents: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker1Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker1_module import cronbach_alpha
+
+      items_matrix = ${JSON.stringify(itemsMatrix)}
+
+      try:
+        result = cronbach_alpha(items_matrix)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Cronbach's alpha 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 상관계수 계산 (Correlation Test) - Worker 2
+   */
+  async correlationTest(x: number[], y: number[], method: 'pearson' | 'spearman' | 'kendall' = 'pearson'): Promise<{
+    correlation: number
+    pValue: number
+    method: string
+  }> {
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker2_module import correlation_test
+
+      x = ${JSON.stringify(x)}
+      y = ${JSON.stringify(y)}
+
+      try:
+        result = correlation_test(x, y, method='${method}')
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Correlation test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 상관계수 계산 (Pearson & Spearman) - 기존 메서드 유지
    * @param x 첫 번째 변수
    * @param y 두 번째 변수
    * @returns 상관계수와 p-value
@@ -747,77 +892,292 @@ export class PyodideStatisticsService {
     kendall: { r: number; pValue: number }
   }> {
     await this.initialize()
+    await this.ensureWorker2Loaded()
 
-    this.pyodide.globals.set('x_array', x)
-    this.pyodide.globals.set('y_array', y)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # 쌍별 결측값 제거
-      x_list = list(x_array)
-      y_list = list(y_array)
-
-      clean_pairs = [(x, y) for x, y in zip(x_list, y_list)
-                     if x is not None and y is not None
-                     and not np.isnan(x) and not np.isnan(y)]
-
-      if len(clean_pairs) < 3:
-        result = {'error': 'Insufficient paired data'}
-      else:
-        x_clean = [p[0] for p in clean_pairs]
-        y_clean = [p[1] for p in clean_pairs]
-
-        # Pearson 상관계수
-        pearson_r, pearson_p = stats.pearsonr(x_clean, y_clean)
-
-        # Spearman 상관계수
-        spearman_r, spearman_p = stats.spearmanr(x_clean, y_clean)
-
-        # Kendall's tau
-        kendall_r, kendall_p = stats.kendalltau(x_clean, y_clean)
-
-        result = {
-          'pearson': {
-            'r': float(pearson_r),
-            'pvalue': float(pearson_p)
-          },
-          'spearman': {
-            'r': float(spearman_r),
-            'pvalue': float(spearman_p)
-          },
-          'kendall': {
-            'r': float(kendall_r),
-            'pvalue': float(kendall_p)
-          }
-        }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    const result = JSON.parse(resultStr)
-
-    if (result.error) {
-      throw new Error(result.error)
-    }
+    // Worker 2의 correlation_test를 3번 호출
+    const pearsonResult = await this.correlationTest(x, y, 'pearson')
+    const spearmanResult = await this.correlationTest(x, y, 'spearman')
+    const kendallResult = await this.correlationTest(x, y, 'kendall')
 
     return {
       pearson: {
-        r: result.pearson.r,
-        pValue: result.pearson.pvalue
+        r: pearsonResult.correlation,
+        pValue: pearsonResult.pValue
       },
       spearman: {
-        r: result.spearman.r,
-        pValue: result.spearman.pvalue
+        r: spearmanResult.correlation,
+        pValue: spearmanResult.pValue
       },
       kendall: {
-        r: result.kendall.r,
-        pValue: result.kendall.pvalue
+        r: kendallResult.correlation,
+        pValue: kendallResult.pValue
       }
     }
+  }
+
+  /**
+   * 이표본 t-검정 (Two-Sample t-Test) - Worker 2
+   */
+  async tTestTwoSample(group1: number[], group2: number[], equalVar: boolean = true): Promise<{
+    statistic: number
+    pValue: number
+    df: number
+    mean1: number
+    mean2: number
+    meanDiff: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker2_module import t_test_two_sample
+
+      group1 = ${JSON.stringify(group1)}
+      group2 = ${JSON.stringify(group2)}
+
+      try:
+        result = t_test_two_sample(group1, group2, equal_var=${equalVar})
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Two-sample t-test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 대응표본 t-검정 (Paired t-Test) - Worker 2
+   */
+  async tTestPaired(values1: number[], values2: number[]): Promise<{
+    statistic: number
+    pValue: number
+    df: number
+    meanDiff: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker2_module import t_test_paired
+
+      values1 = ${JSON.stringify(values1)}
+      values2 = ${JSON.stringify(values2)}
+
+      try:
+        result = t_test_paired(values1, values2)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Paired t-test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 일표본 t-검정 (One-Sample t-Test) - Worker 2
+   */
+  async tTestOneSample(data: number[], popmean: number = 0): Promise<{
+    statistic: number
+    pValue: number
+    df: number
+    sampleMean: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker2_module import t_test_one_sample
+
+      data = ${JSON.stringify(data)}
+
+      try:
+        result = t_test_one_sample(data, popmean=${popmean})
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`One-sample t-test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * Z-검정 (Z-Test) - Worker 2
+   */
+  async zTestWorker(data: number[], popmean: number, popstd: number): Promise<{
+    zStatistic: number
+    pValue: number
+    sampleMean: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker2_module import z_test
+
+      data = ${JSON.stringify(data)}
+
+      try:
+        result = z_test(data, popmean=${popmean}, popstd=${popstd})
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Z-test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 카이제곱 검정 (Chi-Square Test) - Worker 2
+   */
+  async chiSquareTestWorker(observedMatrix: number[][], yatesCorrection: boolean = false): Promise<{
+    chiSquare: number
+    pValue: number
+    df: number
+    expectedMatrix: number[][]
+  }> {
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker2_module import chi_square_test
+
+      observed_matrix = ${JSON.stringify(observedMatrix)}
+
+      try:
+        result = chi_square_test(observed_matrix, yates_correction=${yatesCorrection})
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Chi-square test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 이항검정 (Binomial Test) - Worker 2
+   */
+  async binomialTestWorker(
+    successCount: number,
+    totalCount: number,
+    probability: number = 0.5,
+    alternative: 'two-sided' | 'greater' | 'less' = 'two-sided'
+  ): Promise<{
+    pValue: number
+    observedProportion: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker2_module import binomial_test
+
+      try:
+        result = binomial_test(
+          success_count=${successCount},
+          total_count=${totalCount},
+          probability=${probability},
+          alternative='${alternative}'
+        )
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Binomial test 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
+  }
+
+  /**
+   * 편상관 (Partial Correlation) - Worker 2
+   */
+  async partialCorrelationWorker(
+    dataMatrix: number[][],
+    xIdx: number,
+    yIdx: number,
+    controlIndices: number[]
+  ): Promise<{
+    partialCorrelation: number
+    pValue: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker2_module import partial_correlation
+
+      data_matrix = ${JSON.stringify(dataMatrix)}
+      control_indices = ${JSON.stringify(controlIndices)}
+
+      try:
+        result = partial_correlation(data_matrix, ${xIdx}, ${yIdx}, control_indices)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Partial correlation 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
   }
 
   /**
@@ -836,113 +1196,29 @@ export class PyodideStatisticsService {
     df: number
     confidenceInterval?: { lower: number; upper: number }
   }> {
-    await this.initialize()
-
-    this.pyodide.globals.set('group1', group1)
-    this.pyodide.globals.set('group2', group2)
-    this.pyodide.globals.set('paired', options.paired || false)
-    this.pyodide.globals.set('equal_var', options.equalVar !== false)
-    this.pyodide.globals.set('t_type', options.type ?? 'independent')
-    this.pyodide.globals.set('mu', options.mu ?? 0)
-    this.pyodide.globals.set('alternative', options.alternative ?? 'two-sided')
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # 데이터 정리
-      g1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
-      g2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
-
-      if t_type == 'one-sample':
-        if len(g1) < 2:
-          result = {'error': 'Insufficient data for one-sample t-test'}
-        else:
-          t_stat, p_value = stats.ttest_1samp(g1, popmean=mu, alternative=alternative if alternative in ['two-sided','less','greater'] else 'two-sided')
-          df = len(g1) - 1
-          # 신뢰구간 (기본 95%)
-          alpha_level = 0.05
-          t_critical = stats.t.ppf(1 - alpha_level/2, df)
-          se = np.std(g1, ddof=1) / np.sqrt(len(g1))
-          mean = np.mean(g1)
-          ci_lower = mean - t_critical * se
-          ci_upper = mean + t_critical * se
-          result = {
-            'statistic': float(t_stat),
-            't': float(t_stat),
-            'pvalue': float(p_value),
-            'p': float(p_value),
-            'df': int(df),
-            'confidenceInterval': {
-              'lower': float(ci_lower),
-              'upper': float(ci_upper)
-            }
-          }
-      elif paired:
-        # 대응표본 t-검정
-        if len(g1) != len(g2):
-          result = {'error': 'Paired t-test requires equal sample sizes'}
-        else:
-          t_stat, p_value = stats.ttest_rel(g1, g2)
-          df = len(g1) - 1
-
-          # 신뢰구간 계산
-          mean_diff = np.mean(g1) - np.mean(g2)
-          se_diff = np.sqrt(np.var(g1 - g2) / len(g1))  # 대응표본용 SE
-          t_critical = stats.t.ppf(0.975, df)
-          ci_lower = mean_diff - t_critical * se_diff
-          ci_upper = mean_diff + t_critical * se_diff
-
-          result = {
-            'statistic': float(t_stat),
-            'pvalue': float(p_value),
-            'df': int(df),
-            'confidenceInterval': {
-              'lower': float(ci_lower),
-              'upper': float(ci_upper)
-            }
-          }
-      else:
-        # 독립표본 t-검정
-        t_stat, p_value = stats.ttest_ind(g1, g2, equal_var=equal_var)
-        df = len(g1) + len(g2) - 2
-
-        # 신뢰구간 계산
-        mean_diff = np.mean(g1) - np.mean(g2)
-        se_diff = np.sqrt(np.var(g1)/len(g1) + np.var(g2)/len(g2))
-        t_critical = stats.t.ppf(0.975, df)
-        ci_lower = mean_diff - t_critical * se_diff
-        ci_upper = mean_diff + t_critical * se_diff
-
-        result = {
-          'statistic': float(t_stat),
-          't': float(t_stat),
-          'pvalue': float(p_value),
-          'p': float(p_value),
-          'df': int(df),
-          'confidenceInterval': {
-            'lower': float(ci_lower),
-            'upper': float(ci_upper)
-          }
-        }
-        result = {
-          'statistic': float(t_stat),
-          't': float(t_stat),
-          'pvalue': float(p_value),
-          'p': float(p_value),
-          'df': int(df),
-          'confidenceInterval': {
-            'lower': float(ci_lower),
-            'upper': float(ci_upper)
-          }
-        }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    // Worker 2 호출로 간소화
+    if (options.type === 'one-sample' || (group2.length === 0 && options.mu !== undefined)) {
+      const result = await this.tTestOneSample(group1, options.mu ?? 0)
+      return {
+        statistic: result.statistic,
+        pvalue: result.pValue,
+        df: result.df
+      }
+    } else if (options.paired) {
+      const result = await this.tTestPaired(group1, group2)
+      return {
+        statistic: result.statistic,
+        pvalue: result.pValue,
+        df: result.df
+      }
+    } else {
+      const result = await this.tTestTwoSample(group1, group2, options.equalVar !== false)
+      return {
+        statistic: result.statistic,
+        pvalue: result.pValue,
+        df: result.df
+      }
+    }
   }
 
   /**
@@ -958,52 +1234,13 @@ export class PyodideStatisticsService {
     df: number[]
     etaSquared?: number
   }> {
-    await this.initialize()
-
-    this.pyodide.globals.set('groups_data', groups)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # 각 그룹 데이터 정리
-      groups_clean = []
-      for group in groups_data:
-        clean = [x for x in group if x is not None and not np.isnan(x)]
-        if len(clean) > 0:
-          groups_clean.append(clean)
-
-      if len(groups_clean) < 2:
-        result = {'error': 'ANOVA requires at least 2 groups'}
-      else:
-        # 일원분산분석
-        f_stat, p_value = stats.f_oneway(*groups_clean)
-
-        # 자유도 계산
-        n_groups = len(groups_clean)
-        n_total = sum(len(g) for g in groups_clean)
-        df_between = n_groups - 1
-        df_within = n_total - n_groups
-
-        # 효과크기 (eta-squared) 계산
-        grand_mean = np.mean([x for group in groups_clean for x in group])
-        ss_between = sum(len(g) * (np.mean(g) - grand_mean)**2 for g in groups_clean)
-        ss_total = sum((x - grand_mean)**2 for group in groups_clean for x in group)
-        eta_squared = ss_between / ss_total if ss_total > 0 else 0
-
-        result = {
-          'fStatistic': float(f_stat),
-          'pvalue': float(p_value),
-          'df': [int(df_between), int(df_within)],
-          'etaSquared': float(eta_squared)
-        }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    // Worker 3 호출로 간소화
+    const result = await this.oneWayAnovaWorker(groups)
+    return {
+      fStatistic: result.fStatistic,
+      pvalue: result.pValue,
+      df: [result.dfBetween, result.dfWithin]
+    }
   }
 
   /**
@@ -1026,69 +1263,35 @@ export class PyodideStatisticsService {
     df?: number
   }> {
     await this.initialize()
+    await this.ensureWorker4Loaded()
 
-    this.pyodide.globals.set('x_data', x)
-    this.pyodide.globals.set('y_data', y)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker4_module import linear_regression
 
-      # 데이터 정리
-      x_list = list(x_data)
-      y_list = list(y_data)
+      x = ${JSON.stringify(x)}
+      y = ${JSON.stringify(y)}
 
-      clean_pairs = [(x, y) for x, y in zip(x_list, y_list)
-                     if x is not None and y is not None
-                     and not np.isnan(x) and not np.isnan(y)]
+      try:
+        result = linear_regression(x, y)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      if len(clean_pairs) < 3:
-        result = {'error': 'Insufficient data for regression'}
-      else:
-        x_clean = np.array([p[0] for p in clean_pairs])
-        y_clean = np.array([p[1] for p in clean_pairs])
-
-        # 선형회귀
-        slope, intercept, r_value, p_value, std_err = stats.linregress(x_clean, y_clean)
-
-        # 예측값
-        predictions = slope * x_clean + intercept
-
-        # F-통계량 계산
-        n = len(x_clean)
-        df_model = 1
-        df_resid = n - 2
-        r_squared = r_value ** 2
-
-        if r_squared < 1:
-          f_stat = (r_squared / df_model) / ((1 - r_squared) / df_resid)
-        else:
-          f_stat = float('inf')
-
-        # t-통계량
-        t_stat = slope / std_err if std_err > 0 else float('inf')
-
-        result = {
-          'slope': float(slope),
-          'intercept': float(intercept),
-          'rSquared': float(r_squared),
-          'pvalue': float(p_value),
-          'fStatistic': float(f_stat),
-          'tStatistic': float(t_stat),
-          'predictions': predictions.tolist(),
-          'df': int(df_resid)
-        }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return this.parsePythonResult(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Linear regression 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
   }
 
   /**
-   * Mann-Whitney U 검정 (비모수)
+   * Mann-Whitney U 검정 - Worker 3
    */
   async mannWhitneyU(
     group1: number[],
@@ -1097,39 +1300,15 @@ export class PyodideStatisticsService {
     statistic: number
     pvalue: number
   }> {
-    await this.initialize()
-
-    this.pyodide.globals.set('group1', group1)
-    this.pyodide.globals.set('group2', group2)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # 데이터 정리
-      g1 = [x for x in group1 if x is not None and not np.isnan(x)]
-      g2 = [x for x in group2 if x is not None and not np.isnan(x)]
-
-      if len(g1) < 1 or len(g2) < 1:
-        result = {'error': 'Insufficient data for Mann-Whitney U test'}
-      else:
-        u_stat, p_value = stats.mannwhitneyu(g1, g2, alternative='two-sided')
-
-        result = {
-          'statistic': float(u_stat),
-          'pvalue': float(p_value)
-        }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    const result = await this.mannWhitneyTestWorker(group1, group2)
+    return {
+      statistic: result.statistic,
+      pvalue: result.pValue
+    }
   }
 
   /**
-   * Wilcoxon 부호순위 검정 (대응표본 비모수)
+   * Wilcoxon 부호순위 검정 - Worker 3
    */
   async wilcoxon(
     group1: number[],
@@ -1138,163 +1317,53 @@ export class PyodideStatisticsService {
     statistic: number
     pvalue: number
   }> {
-    await this.initialize()
-
-    this.pyodide.globals.set('group1', group1)
-    this.pyodide.globals.set('group2', group2)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # 데이터 정리
-      g1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
-      g2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
-
-      if len(g1) != len(g2):
-        result = {'error': 'Wilcoxon test requires equal sample sizes'}
-      elif len(g1) < 2:
-        result = {'error': 'Insufficient data for Wilcoxon test'}
-      else:
-        w_stat, p_value = stats.wilcoxon(g1, g2)
-
-        result = {
-          'statistic': float(w_stat),
-          'pvalue': float(p_value)
-        }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    const result = await this.wilcoxonTestWorker(group1, group2)
+    return {
+      statistic: result.statistic,
+      pvalue: result.pValue
+    }
   }
 
   /**
-   * Kruskal-Wallis H 검정 (일원분산분석 비모수)
+   * Kruskal-Wallis H 검정 - Worker 3
    */
   async kruskalWallis(groups: number[][]): Promise<{
     statistic: number
     pvalue: number
     df: number
   }> {
-    await this.initialize()
-
-    this.pyodide.globals.set('groups_data', groups)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # 각 그룹 데이터 정리
-      groups_clean = []
-      for group in groups_data:
-        clean = [x for x in group if x is not None and not np.isnan(x)]
-        if len(clean) > 0:
-          groups_clean.append(clean)
-
-      if len(groups_clean) < 2:
-        result = {'error': 'Kruskal-Wallis requires at least 2 groups'}
-      else:
-        h_stat, p_value = stats.kruskal(*groups_clean)
-        df = len(groups_clean) - 1
-
-        result = {
-          'statistic': float(h_stat),
-          'pvalue': float(p_value),
-          'df': int(df)
-        }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    const result = await this.kruskalWallisTestWorker(groups)
+    return {
+      statistic: result.statistic,
+      pvalue: result.pValue,
+      df: result.df
+    }
   }
 
   /**
-   * Tukey HSD 사후검정
+   * Tukey HSD 사후검정 - Worker 3
    */
   async tukeyHSD(groups: number[][]): Promise<any> {
-    await this.initialize()
-
-    this.pyodide.globals.set('groups_data', groups)
-
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # statsmodels가 없으므로 간단한 구현
-      groups_clean = []
-      for group in groups_data:
-        clean = [x for x in group if x is not None and not np.isnan(x)]
-        if len(clean) > 0:
-          groups_clean.append(clean)
-
-      n_groups = len(groups_clean)
-      comparisons = []
-
-      for i in range(n_groups):
-        for j in range(i+1, n_groups):
-          mean_diff = np.mean(groups_clean[i]) - np.mean(groups_clean[j])
-          # 간단한 t-test로 대체
-          t_stat, p_value = stats.ttest_ind(groups_clean[i], groups_clean[j])
-
-          comparisons.append({
-            'group1': i,
-            'group2': j,
-            'meanDiff': float(mean_diff),
-            'pvalue': float(p_value),
-            'significant': bool(p_value < 0.05)
-          })
-
-      result = {'comparisons': comparisons}
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    const result = await this.tukeyHSDWorker(groups)
+    return {
+      comparisons: result.comparisons
+    }
   }
 
   /**
-   * Chi-square 검정
+   * Chi-square 검정 - Worker 2
    */
   async chiSquare(contingencyTable: number[][]): Promise<{
     statistic: number
     pvalue: number
     df: number
   }> {
-    await this.initialize()
-
-    this.pyodide.globals.set('table_data', contingencyTable)
-
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      table = np.array(table_data)
-
-      if table.size == 0:
-        result = {'error': 'Empty contingency table'}
-      else:
-        chi2, p_value, dof, expected = stats.chi2_contingency(table)
-
-        result = {
-          'statistic': float(chi2),
-          'pvalue': float(p_value),
-          'pValue': float(p_value),
-          'df': int(dof)
-        }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    const result = await this.chiSquareTestWorker(contingencyTable)
+    return {
+      statistic: result.chiSquare,
+      pvalue: result.pValue,
+      df: result.df
+    }
   }
 
   /**
@@ -1306,90 +1375,45 @@ export class PyodideStatisticsService {
     components: number[][]
   }> {
     await this.initialize()
+    await this.ensureWorker4Loaded()
 
-    this.pyodide.globals.set('data_matrix', data)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker4_module import pca_analysis
 
-      # 데이터 행렬 정리
-      X = np.array(data_matrix)
+      data_matrix = ${JSON.stringify(data)}
 
-      # 평균 중심화
-      X_centered = X - np.mean(X, axis=0)
+      try:
+        result = pca_analysis(data_matrix, n_components=2)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      # 공분산 행렬
-      cov_matrix = np.cov(X_centered.T)
-
-      # 고유값, 고유벡터
-      eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
-
-      # 설명된 분산
-      total_variance = np.sum(eigenvalues)
-      explained_variance = eigenvalues / total_variance
-
-      result = {
-        'explainedVariance': explained_variance.tolist(),
-        'totalExplainedVariance': float(np.sum(explained_variance[:2])),  # 첫 2개 주성분
-        'components': eigenvectors[:, :2].tolist()
-      }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return this.parsePythonResult(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`PCA 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
   }
 
   /**
-   * Cronbach's Alpha (신뢰도 계수)
+   * Cronbach's Alpha (신뢰도 계수) - Worker 1 사용
    */
   async cronbachAlpha(items: number[][]): Promise<{
     alpha: number
     itemTotalCorrelations?: number[]
   }> {
-    await this.initialize()
-
-    this.pyodide.globals.set('items_data', items)
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      # 데이터 행렬로 변환
-      X = np.array(items_data)
-      n_items = X.shape[1]
-
-      if n_items < 2:
-        result = {'alpha': 0, 'error': 'Need at least 2 items'}
-      else:
-        # 각 항목의 분산
-        item_variances = np.var(X, axis=0, ddof=1)
-        total_variance = np.var(np.sum(X, axis=1), ddof=1)
-
-        # Cronbach's alpha 계산
-        alpha = (n_items / (n_items - 1)) * (1 - np.sum(item_variances) / total_variance)
-
-        # 항목-전체 상관
-        total_scores = np.sum(X, axis=1)
-        item_total_corr = []
-        for i in range(n_items):
-          corr = np.corrcoef(X[:, i], total_scores)[0, 1]
-          item_total_corr.append(float(corr))
-
-        result = {
-          'alpha': float(alpha),
-          'itemTotalCorrelations': item_total_corr
-        }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    // Worker 1의 cronbach_alpha 호출
+    const result = await this.cronbachAlphaWorker(items)
+    return {
+      alpha: result.alpha,
+      itemTotalCorrelations: undefined  // Worker 1은 itemTotalCorrelations 미제공
+    }
   }
 
   /**
@@ -1400,38 +1424,16 @@ export class PyodideStatisticsService {
     pvalue: number
     rankings: number[]
   }> {
-    await this.initialize()
-    if (!this.pyodide) throw new Error('Pyodide not initialized')
-
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      data = np.array(${JSON.stringify(data)})
-
-      # Friedman 검정
-      statistic, pvalue = stats.friedmanchisquare(*data.T)
-
-      # 순위 계산
-      ranks = stats.rankdata(data, axis=1, method='average')
-      mean_ranks = np.mean(ranks, axis=0)
-
-      result = {
-        'statistic': float(statistic),
-        'pvalue': float(pvalue),
-        'rankings': mean_ranks.tolist()
-      }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return this.parsePythonResult(resultStr)
+    const result = await this.friedmanTestWorker(data)
+    return {
+      statistic: result.statistic,
+      pvalue: result.pValue,
+      rankings: result.rankings
+    }
   }
 
   /**
-   * 요인분석 (Factor Analysis)
+   * 요인분석 (Factor Analysis) - Worker 4 사용
    */
   async factorAnalysis(data: number[][], options: {
     nFactors?: number
@@ -1443,56 +1445,36 @@ export class PyodideStatisticsService {
     eigenvalues: number[]
   }> {
     await this.initialize()
-    if (!this.pyodide) throw new Error('Pyodide not initialized')
+    await this.ensureWorker4Loaded()
 
     const { nFactors = 2, rotation = 'varimax' } = options
 
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker4_module import factor_analysis
 
-      from sklearn.decomposition import FactorAnalysis
+      data_matrix = ${JSON.stringify(data)}
 
-      data = np.array(${JSON.stringify(data)})
+      try:
+        result = factor_analysis(data_matrix, n_factors=${nFactors}, rotation='${rotation}')
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      # 표준화
-      from sklearn.preprocessing import StandardScaler
-      scaler = StandardScaler()
-      data_scaled = scaler.fit_transform(data)
-
-      # 요인분석
-      fa = FactorAnalysis(n_components=${nFactors}, rotation='${rotation}')
-      fa.fit(data_scaled)
-
-      # 결과 추출
-      loadings = fa.components_.T  # 적재값
-      communalities = 1 - fa.noise_variance_  # 공통성
-
-      # 설명된 분산 계산
-      explained_var = np.var(fa.transform(data_scaled), axis=0)
-      total_var = np.sum(explained_var)
-      explained_var_ratio = explained_var / total_var if total_var > 0 else explained_var
-
-      # 고유값 계산 (근사)
-      eigenvalues = explained_var * len(loadings[0])
-
-      result = {
-        'loadings': loadings.tolist(),
-        'communalities': communalities.tolist(),
-        'explainedVariance': explained_var_ratio.tolist(),
-        'eigenvalues': eigenvalues.tolist()
-      }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return this.parsePythonResult(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Factor analysis 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
   }
 
   /**
-   * 군집분석 (Cluster Analysis)
+   * 군집분석 (Cluster Analysis) - Worker 4 사용
    */
   async clusterAnalysis(data: number[][], options: {
     nClusters?: number
@@ -1505,7 +1487,7 @@ export class PyodideStatisticsService {
     inertia?: number
   }> {
     await this.initialize()
-    if (!this.pyodide) throw new Error('Pyodide not initialized')
+    await this.ensureWorker4Loaded()
 
     const {
       nClusters = 3,
@@ -1513,60 +1495,37 @@ export class PyodideStatisticsService {
       linkage = 'ward'
     } = options
 
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker4_module import cluster_analysis
 
-      from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN
-      from sklearn.metrics import silhouette_score
-      from sklearn.preprocessing import StandardScaler
+      data_matrix = ${JSON.stringify(data)}
 
-      data = np.array(${JSON.stringify(data)})
+      try:
+        result = cluster_analysis(
+          data_matrix,
+          n_clusters=${nClusters},
+          method='${method}',
+          linkage='${linkage}'
+        )
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      # 표준화
-      scaler = StandardScaler()
-      data_scaled = scaler.fit_transform(data)
-
-      # 군집분석
-      if '${method}' == 'kmeans':
-        model = KMeans(n_clusters=${nClusters}, random_state=42)
-        clusters = model.fit_predict(data_scaled)
-        centers = scaler.inverse_transform(model.cluster_centers_)
-        inertia = float(model.inertia_)
-      elif '${method}' == 'hierarchical':
-        model = AgglomerativeClustering(n_clusters=${nClusters}, linkage='${linkage}')
-        clusters = model.fit_predict(data_scaled)
-        centers = None
-        inertia = None
-      else:  # dbscan
-        model = DBSCAN(eps=0.5, min_samples=5)
-        clusters = model.fit_predict(data_scaled)
-        centers = None
-        inertia = None
-
-      # Silhouette score 계산
-      if len(np.unique(clusters)) > 1:
-        silhouette = float(silhouette_score(data_scaled, clusters))
-      else:
-        silhouette = 0.0
-
-      result = {
-        'clusters': clusters.tolist(),
-        'centers': centers.tolist() if centers is not None else None,
-        'silhouetteScore': silhouette,
-        'inertia': inertia
-      }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return result
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Cluster analysis 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
   }
 
   /**
-   * 시계열 분석 (Time Series Analysis)
+   * 시계열 분석 (Time Series Analysis) - Worker 4 사용
    */
   async timeSeriesAnalysis(data: number[], options: {
     seasonalPeriod?: number
@@ -1581,7 +1540,7 @@ export class PyodideStatisticsService {
     pacf?: number[]
   }> {
     await this.initialize()
-    if (!this.pyodide) throw new Error('Pyodide not initialized')
+    await this.ensureWorker4Loaded()
 
     const {
       seasonalPeriod = 12,
@@ -1589,73 +1548,33 @@ export class PyodideStatisticsService {
       method = 'decomposition'
     } = options
 
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker4_module import time_series_analysis
 
-      from statsmodels.tsa.seasonal import seasonal_decompose
-      from statsmodels.tsa.stattools import acf, pacf
+      data = ${JSON.stringify(data)}
 
-      data = np.array(${JSON.stringify(data)})
+      try:
+        result = time_series_analysis(
+          data,
+          seasonal_period=${seasonalPeriod},
+          forecast_periods=${forecastPeriods},
+          method='${method}'
+        )
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      result = {}
-
-      if '${method}' == 'decomposition':
-        # 시계열 분해
-        if len(data) >= 2 * ${seasonalPeriod}:
-          from statsmodels.tsa.seasonal import STL
-          stl = STL(data, seasonal=${seasonalPeriod})
-          decomposition = stl.fit()
-
-          result['trend'] = decomposition.trend.tolist()
-          result['seasonal'] = decomposition.seasonal.tolist()
-          result['residual'] = decomposition.resid.tolist()
-        else:
-          # 데이터가 짧을 경우 간단한 이동평균
-          window = min(${seasonalPeriod}, len(data) // 2)
-          trend = np.convolve(data, np.ones(window)/window, mode='same')
-          result['trend'] = trend.tolist()
-          result['seasonal'] = [0] * len(data)
-          result['residual'] = (data - trend).tolist()
-
-      # ACF/PACF 계산
-      max_lags = min(40, len(data) // 2)
-      acf_values = acf(data, nlags=max_lags, fft=True)
-      pacf_values = pacf(data, nlags=max_lags, method='ols')
-
-      result['acf'] = acf_values.tolist()
-      result['pacf'] = pacf_values.tolist()
-
-      # 간단한 지수평활 예측
-      if '${method}' == 'exponential' or True:  # 항상 예측 추가
-        from statsmodels.tsa.holtwinters import ExponentialSmoothing
-
-        if len(data) >= 10:
-          # Holt-Winters 지수평활
-          try:
-            model = ExponentialSmoothing(
-              data,
-              seasonal_periods=${seasonalPeriod},
-              seasonal='add' if len(data) >= 2 * ${seasonalPeriod} else None
-            )
-            fit = model.fit()
-            forecast = fit.forecast(${forecastPeriods})
-            result['forecast'] = forecast.tolist()
-          except:
-            # 실패시 단순 이동평균
-            last_mean = np.mean(data[-min(${seasonalPeriod}, len(data)):])
-            result['forecast'] = [float(last_mean)] * ${forecastPeriods}
-        else:
-          # 데이터가 너무 적을 때
-          last_mean = np.mean(data)
-          result['forecast'] = [float(last_mean)] * ${forecastPeriods}
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return result
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Time series analysis 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
   }
 
   // ========== Wrapper 메서드들 (StatisticalCalculator와의 호환성) ==========
@@ -1686,149 +1605,10 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * 일표본 t-검정
+   * 일표본 t-검정 - Worker 2 래퍼
    */
   async oneSampleTTest(data: number[], popmean: number, alternative: string = 'two-sided'): Promise<any> {
-    const result = await this.tTest(data, [], {
-      type: 'one-sample',
-      mu: popmean,
-      alternative
-    })
-    return {
-      statistic: result.t,
-      pValue: result.p,
-      df: result.df,
-      ci_lower: result.confidence_interval?.[0] || 0,
-      ci_upper: result.confidence_interval?.[1] || 0
-    }
-  }
-
-  /**
-   * 독립표본 t-검정
-   */
-  async twoSampleTTest(group1: number[], group2: number[], equalVar: boolean = true): Promise<any> {
-    const result = await this.tTest(group1, group2, {
-      type: 'independent',
-      equal_var: equalVar
-    })
-
-    // 효과크기 계산
-    const mean1 = group1.reduce((a, b) => a + b, 0) / group1.length
-    const mean2 = group2.reduce((a, b) => a + b, 0) / group2.length
-    const std1 = Math.sqrt(group1.reduce((a, b) => a + Math.pow(b - mean1, 2), 0) / (group1.length - 1))
-    const std2 = Math.sqrt(group2.reduce((a, b) => a + Math.pow(b - mean2, 2), 0) / (group2.length - 1))
-    const pooledStd = Math.sqrt(((group1.length - 1) * std1 * std1 + (group2.length - 1) * std2 * std2) / (group1.length + group2.length - 2))
-    const cohensD = (mean1 - mean2) / pooledStd
-
-    return {
-      statistic: result.t,
-      pValue: result.p,
-      df: result.df,
-      mean1,
-      mean2,
-      std1,
-      std2,
-      cohensD,
-      ci_lower: result.confidence_interval?.[0] || 0,
-      ci_upper: result.confidence_interval?.[1] || 0
-    }
-  }
-
-  /**
-   * 대응표본 t-검정
-   */
-  async pairedTTest(values1: number[], values2: number[], alternative: string = 'two-sided'): Promise<any> {
-    const result = await this.tTest(values1, values2, {
-      type: 'paired',
-      alternative
-    })
-
-    const mean1 = values1.reduce((a, b) => a + b, 0) / values1.length
-    const mean2 = values2.reduce((a, b) => a + b, 0) / values2.length
-    const std1 = Math.sqrt(values1.reduce((a, b) => a + Math.pow(b - mean1, 2), 0) / (values1.length - 1))
-    const std2 = Math.sqrt(values2.reduce((a, b) => a + Math.pow(b - mean2, 2), 0) / (values2.length - 1))
-
-    return {
-      statistic: result.t,
-      pValue: result.p,
-      df: result.df,
-      mean1,
-      mean2,
-      std1,
-      std2,
-      ci_lower: result.confidence_interval?.[0] || 0,
-      ci_upper: result.confidence_interval?.[1] || 0
-    }
-  }
-
-  /**
-   * 일원분산분석
-   */
-  async oneWayANOVA(groups: number[][]): Promise<any> {
-    const result = await this.anova(groups)
-
-    // 제곱합 및 평균제곱 계산
-    const allData = groups.flat()
-    const grandMean = allData.reduce((a, b) => a + b, 0) / allData.length
-
-    let ssb = 0 // 처리 간 제곱합
-    let ssw = 0 // 처리 내 제곱합
-
-    groups.forEach(group => {
-      const groupMean = group.reduce((a, b) => a + b, 0) / group.length
-      ssb += group.length * Math.pow(groupMean - grandMean, 2)
-      group.forEach(val => {
-        ssw += Math.pow(val - groupMean, 2)
-      })
-    })
-
-    const dfb = groups.length - 1
-    const dfw = allData.length - groups.length
-    const msb = ssb / dfb
-    const msw = ssw / dfw
-
-    return {
-      fStatistic: result.fStatistic,
-      pValue: result.pvalue,
-      ssb,
-      ssw,
-      dfb,
-      dfw,
-      msb,
-      msw
-    }
-  }
-
-  /**
-   * 단순선형회귀
-   */
-  async simpleLinearRegression(xValues: number[], yValues: number[]): Promise<any> {
-    const result = await this.regression(xValues, yValues)
-
-    // 회귀에서 제공한 통계 재매핑 및 유도값 계산
-    const n = xValues.length
-    const df = n - 2
-    const stdErr = result.tStatistic && Number.isFinite(result.tStatistic) && result.tStatistic !== 0
-      ? Math.abs(result.slope / result.tStatistic)
-      : 0
-
-    return {
-      slope: result.slope,
-      intercept: result.intercept,
-      rSquared: result.rSquared,
-      adjRSquared: 1 - (1 - result.rSquared) * (n - 1) / (n - 2),
-      standardError: stdErr,
-      fStatistic: result.fStatistic,
-      // 선형회귀의 pvalue는 기울기 계수의 p-value임
-      pvalue: result.pvalue,
-    }
-  }
-
-  /**
-   * 카이제곱 검정
-   */
-  async chiSquareTest(observedMatrix: number[][], correction: boolean = false): Promise<any> {
-    const result = await this.chiSquare(observedMatrix)
+    const result = await this.tTestOneSample(data, popmean)
     return {
       statistic: result.statistic,
       pValue: result.pValue,
@@ -1837,7 +1617,74 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * 주성분 분석
+   * 독립표본 t-검정 - Worker 2 래퍼
+   */
+  async twoSampleTTest(group1: number[], group2: number[], equalVar: boolean = true): Promise<any> {
+    const result = await this.tTestTwoSample(group1, group2, equalVar)
+    return {
+      statistic: result.statistic,
+      pValue: result.pValue,
+      df: result.df,
+      mean1: result.mean1,
+      mean2: result.mean2,
+      meanDiff: result.meanDiff
+    }
+  }
+
+  /**
+   * 대응표본 t-검정 - Worker 2 래퍼
+   */
+  async pairedTTest(values1: number[], values2: number[], alternative: string = 'two-sided'): Promise<any> {
+    const result = await this.tTestPaired(values1, values2)
+    return {
+      statistic: result.statistic,
+      pValue: result.pValue,
+      df: result.df,
+      meanDiff: result.meanDiff
+    }
+  }
+
+  /**
+   * 일원분산분석 - Worker 3 래퍼
+   */
+  async oneWayANOVA(groups: number[][]): Promise<any> {
+    const result = await this.oneWayAnovaWorker(groups)
+    return {
+      fStatistic: result.fStatistic,
+      pValue: result.pValue,
+      dfBetween: result.dfBetween,
+      dfWithin: result.dfWithin
+    }
+  }
+
+  /**
+   * 단순선형회귀 - 기존 regression 래퍼
+   */
+  async simpleLinearRegression(xValues: number[], yValues: number[]): Promise<any> {
+    const result = await this.regression(xValues, yValues)
+    return {
+      slope: result.slope,
+      intercept: result.intercept,
+      rSquared: result.rSquared,
+      fStatistic: result.fStatistic,
+      pvalue: result.pvalue
+    }
+  }
+
+  /**
+   * 카이제곱 검정 - Worker 2 래퍼
+   */
+  async chiSquareTest(observedMatrix: number[][], correction: boolean = false): Promise<any> {
+    const result = await this.chiSquareTestWorker(observedMatrix, correction)
+    return {
+      statistic: result.chiSquare,
+      pValue: result.pValue,
+      df: result.df
+    }
+  }
+
+  /**
+   * 주성분 분석 - 기존 pca 래퍼
    */
   async performPCA(dataMatrix: number[][], columns: string[], nComponents?: number, standardize: boolean = true): Promise<any> {
     const result = await this.pca(dataMatrix)
@@ -1845,116 +1692,61 @@ export class PyodideStatisticsService {
     // 누적 분산 계산
     const cumulativeVariance = []
     let cumSum = 0
-    for (const ratio of result.explained_variance_ratio) {
+    for (const ratio of result.explainedVariance) {
       cumSum += ratio
       cumulativeVariance.push(cumSum)
     }
 
     return {
       components: result.components,
-      eigenvalues: result.eigenvalues,
-      explainedVarianceRatio: result.explained_variance_ratio,
-      cumulativeVariance
+      explainedVarianceRatio: result.explainedVariance,
+      cumulativeVariance,
+      totalExplainedVariance: result.totalExplainedVariance
     }
   }
 
   /**
-   * 이원분산분석 (Two-way ANOVA)
+   * 이원분산분석 (Two-way ANOVA) - Worker 3 사용
    */
-  async twoWayANOVA(
-    data: Array<{ factor1: string; factor2: string; value: number }>,
-    interaction: boolean = true
-  ): Promise<any> {
+  async twoWayAnova(
+    data: Array<{ factor1: string; factor2: string; value: number }>
+  ): Promise<{
+    factor1: { fStatistic: number; pValue: number; df: number }
+    factor2: { fStatistic: number; pValue: number; df: number }
+    interaction: { fStatistic: number; pValue: number; df: number }
+    residual: { df: number }
+    anovaTable: Record<string, any>
+  }> {
     if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
 
-    // Python 내에서 JS 불리언을 직접 평가하지 않도록, formula를 미리 구성
-    const formula = interaction
-      ? "value ~ C(factor1) + C(factor2) + C(factor1):C(factor2)"
-      : "value ~ C(factor1) + C(factor2)"
+    await this.ensureWorker3Loaded()
 
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    // 데이터 변환: { factor1, factor2, value }[] → data_values, factor1_values, factor2_values
+    const dataValues = data.map(d => d.value)
+    const factor1Values = data.map(d => d.factor1)
+    const factor2Values = data.map(d => d.factor2)
+
+    const resultStr = await this.pyodide.runPythonAsync(`
       import json
+      from worker3_module import two_way_anova
 
-      import pandas as pd
-      from statsmodels.formula.api import ols
-      from statsmodels.stats.anova import anova_lm
+      data_values = ${JSON.stringify(dataValues)}
+      factor1_values = ${JSON.stringify(factor1Values)}
+      factor2_values = ${JSON.stringify(factor2Values)}
 
       try:
-        # 데이터 준비
-        data = ${JSON.stringify(data)}
-        df = pd.DataFrame(data)
-
-        # ANOVA 모델 적합
-        formula = """${formula}"""
-        model = ols(formula, data=df).fit()
-        anova_table = anova_lm(model, typ=2)
-
-        # 안전 접근 함수
-        def safe_get(name, col):
-          try:
-            return anova_table.loc[name, col]
-          except Exception:
-            return None
-
-        # 요인별 지표 계산 (mean_sq는 sum_sq/df로 계산)
-        f1_ss = safe_get('C(factor1)', 'sum_sq')
-        f1_df = safe_get('C(factor1)', 'df')
-        f1_f  = safe_get('C(factor1)', 'F')
-        f1_p  = safe_get('C(factor1)', 'PR(>F)')
-
-        f2_ss = safe_get('C(factor2)', 'sum_sq')
-        f2_df = safe_get('C(factor2)', 'df')
-        f2_f  = safe_get('C(factor2)', 'F')
-        f2_p  = safe_get('C(factor2)', 'PR(>F)')
-
-        int_ss = safe_get('C(factor1):C(factor2)', 'sum_sq')
-        int_df = safe_get('C(factor1):C(factor2)', 'df')
-        int_f  = safe_get('C(factor1):C(factor2)', 'F')
-        int_p  = safe_get('C(factor1):C(factor2)', 'PR(>F)')
-
-        res_ss = safe_get('Residual', 'sum_sq')
-        res_df = safe_get('Residual', 'df')
-
-        result = {
-          # 테스트에서 기대하는 평탄화된 키 제공
-          'factor1_ss': float(f1_ss) if f1_ss is not None else None,
-          'factor1_df': int(f1_df) if f1_df is not None else None,
-          'factor1_ms': (float(f1_ss)/float(f1_df)) if (f1_ss is not None and f1_df) else None,
-          'factor1_f': float(f1_f) if f1_f is not None else None,
-          'factor1_p': float(f1_p) if f1_p is not None else None,
-
-          'factor2_ss': float(f2_ss) if f2_ss is not None else None,
-          'factor2_df': int(f2_df) if f2_df is not None else None,
-          'factor2_ms': (float(f2_ss)/float(f2_df)) if (f2_ss is not None and f2_df) else None,
-          'factor2_f': float(f2_f) if f2_f is not None else None,
-          'factor2_p': float(f2_p) if f2_p is not None else None,
-
-          'interaction_ss': float(int_ss) if int_ss is not None else None,
-          'interaction_df': int(int_df) if int_df is not None else None,
-          'interaction_ms': (float(int_ss)/float(int_df)) if (int_ss is not None and int_df) else None,
-          'interaction_f': float(int_f) if int_f is not None else None,
-          'interaction_p': float(int_p) if int_p is not None else None,
-
-          'residual_ss': float(res_ss) if res_ss is not None else None,
-          'residual_df': int(res_df) if res_df is not None else None,
-          'residual_ms': (float(res_ss)/float(res_df)) if (res_ss is not None and res_df) else None,
-
-          # 원본 테이블도 제공 (디버깅/표시용)
-          'anova_table': anova_table.to_dict()
-        }
+        result = two_way_anova(data_values, factor1_values, factor2_values)
+        result_json = json.dumps(result)
       except Exception as e:
-        result = {'error': str(e)}
+        result_json = json.dumps({'error': str(e)})
 
-      result_json = json.dumps(result)
       result_json
     `)
 
-    const parsed = JSON.parse(resultStr)
+    const parsed = this.parsePythonResult<any>(resultStr)
 
     if (parsed.error) {
-      throw new Error(parsed.error)
+      throw new Error(`Two-way ANOVA 실행 실패: ${parsed.error}`)
     }
 
     return parsed
@@ -1968,58 +1760,13 @@ export class PyodideStatisticsService {
     groupNames: string[],
     alpha: number = 0.05
   ): Promise<any> {
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
-
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-
-      import pandas as pd
-      from statsmodels.stats.multicomp import pairwise_tukeyhsd
-
-      # 데이터 준비
-      groups = ${JSON.stringify(groups)}
-      group_names = ${JSON.stringify(groupNames)}
-      alpha = ${alpha}
-
-      # 데이터를 long format으로 변환
-      data = []
-      group_labels = []
-
-      for i, group_data in enumerate(groups):
-        data.extend(group_data)
-        group_labels.extend([group_names[i]] * len(group_data))
-
-      # Tukey HSD 수행
-      tukey = pairwise_tukeyhsd(endog=data, groups=group_labels, alpha=alpha)
-
-      # 결과 파싱
-      comparisons = []
-      for i in range(len(tukey.summary().data[1:])):
-        row = tukey.summary().data[i+1]
-        comparisons.append({
-          'group1': str(row[0]),
-          'group2': str(row[1]),
-          'meandiff': float(row[2]),
-          'p-adj': float(row[3]),
-          'pvalue': float(row[3]),
-          'lower': float(row[4]),
-          'upper': float(row[5]),
-          'reject': bool(row[6])
-        })
-
-      result = {
-        'comparisons': comparisons,
-        'alpha': alpha,
-        'reject_count': sum(1 for c in comparisons if c['reject'])
-      }
-
-      result_json = json.dumps(result)
-      result_json
-    `)
-
-    return result
+    // Worker 3의 tukeyHSD 사용
+    const result = await this.tukeyHSD(groups)
+    return {
+      comparisons: result.comparisons,
+      alpha,
+      reject_count: result.comparisons.filter((c: any) => c.reject || c.pValue < alpha).length
+    }
   }
 
   /**
@@ -2030,154 +1777,68 @@ export class PyodideStatisticsService {
     y: number[],    // 종속변수
     variableNames: string[] = []
   ): Promise<any> {
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
+    await this.initialize()
+    await this.ensureWorker4Loaded()
 
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker4_module import multiple_regression
 
-      import statsmodels.api as sm
+      X = ${JSON.stringify(X)}
+      y = ${JSON.stringify(y)}
 
-      # 데이터 준비
-      X = np.array(${JSON.stringify(X)})
-      y = np.array(${JSON.stringify(y)})
-      var_names = ${JSON.stringify(variableNames)}
+      try:
+        result = multiple_regression(X, y)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      # 절편 추가
-      X = sm.add_constant(X)
-
-      # 모델 학습
-      model = sm.OLS(y, X).fit()
-
-      # 계수 및 통계량 추출
-      coefficients = []
-      for i, coef in enumerate(model.params):
-        var_name = 'const' if i == 0 else (var_names[i-1] if var_names else f'X{i}')
-        coefficients.append({
-          'variable': var_name,
-          'coef': float(coef),
-          'std_err': float(model.bse[i]),
-          't': float(model.tvalues[i]),
-          'p_value': float(model.pvalues[i]),
-          'conf_int_lower': float(model.conf_int()[i][0]),
-          'conf_int_upper': float(model.conf_int()[i][1])
-        })
-
-      # VIF 계산 (다중공선성)
-      from statsmodels.stats.outliers_influence import variance_inflation_factor
-      vif_data = []
-      for i in range(X.shape[1]):
-        if i > 0:  # 절편 제외
-          vif = variance_inflation_factor(X, i)
-          vif_data.append(float(vif))
-
-      result = {
-        'coefficients': coefficients,
-        'r_squared': float(model.rsquared),
-        'adj_r_squared': float(model.rsquared_adj),
-        'f_statistic': float(model.fvalue),
-        'f_pvalue': float(model.f_pvalue),
-        'aic': float(model.aic),
-        'bic': float(model.bic),
-        'mse': float(model.mse_resid),
-        'durbin_watson': float(sm.stats.durbin_watson(model.resid)),
-        'vif': vif_data,
-        'n_obs': int(model.nobs),
-        'df_model': int(model.df_model),
-        'df_resid': int(model.df_resid)
-      }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return result
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Multiple regression 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
   }
 
   /**
-   * 로지스틱 회귀분석
+   * 로지스틱 회귀분석 - Worker 4
    */
   async logisticRegression(
     X: number[][],  // 독립변수들
     y: number[],    // 종속변수 (0 또는 1)
     variableNames: string[] = []
   ): Promise<any> {
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
+    await this.initialize()
+    await this.ensureWorker4Loaded()
 
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker4_module import logistic_regression
 
-      from sklearn.linear_model import LogisticRegression
-      from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-      from sklearn.model_selection import train_test_split
-      import statsmodels.api as sm
+      X = ${JSON.stringify(X)}
+      y = ${JSON.stringify(y)}
 
-      # 데이터 준비
-      X = np.array(${JSON.stringify(X)})
-      y = np.array(${JSON.stringify(y)})
-      var_names = ${JSON.stringify(variableNames)}
-
-      # statsmodels로 상세 분석
-      X_sm = sm.add_constant(X)
-      logit_model = sm.Logit(y, X_sm).fit()
-
-      # 계수 및 통계량 추출
-      coefficients = []
-      for i, coef in enumerate(logit_model.params):
-        var_name = 'const' if i == 0 else (var_names[i-1] if var_names else f'X{i}')
-        coefficients.append({
-          'variable': var_name,
-          'coef': float(coef),
-          'std_err': float(logit_model.bse[i]),
-          'z': float(logit_model.tvalues[i]),  # Wald statistic
-          'p_value': float(logit_model.pvalues[i]),
-          'odds_ratio': float(np.exp(coef)),
-          'conf_int_lower': float(logit_model.conf_int()[i][0]),
-          'conf_int_upper': float(logit_model.conf_int()[i][1])
-        })
-
-      # sklearn으로 예측 성능 평가
-      lr = LogisticRegression(max_iter=1000)
-      lr.fit(X, y)
-      y_pred = lr.predict(X)
-      y_proba = lr.predict_proba(X)[:, 1]
-
-      # 성능 지표
-      accuracy = accuracy_score(y, y_pred)
-      precision = precision_score(y, y_pred, zero_division=0)
-      recall = recall_score(y, y_pred, zero_division=0)
-      f1 = f1_score(y, y_pred, zero_division=0)
-
-      # AUC 계산 (예외 처리)
       try:
-        auc = roc_auc_score(y, y_proba)
-      except:
-        auc = None
+        result = logistic_regression(X, y)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      result = {
-        'coefficients': coefficients,
-        'log_likelihood': float(logit_model.llf),
-        'aic': float(logit_model.aic),
-        'bic': float(logit_model.bic),
-        'pseudo_r_squared': float(logit_model.prsquared),
-        'accuracy': float(accuracy),
-        'precision': float(precision),
-        'recall': float(recall),
-        'f1_score': float(f1),
-        'auc': float(auc) if auc else None,
-        'n_obs': int(logit_model.nobs),
-        'df_model': int(logit_model.df_model),
-        'df_resid': int(logit_model.df_resid)
-      }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return result
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Logistic regression 실행 실패: ${parsed.error}`)
+    }
+
+    return parsed
   }
 
   /**
@@ -2231,120 +1892,42 @@ export class PyodideStatisticsService {
     pAdjust: string = 'holm',
     alpha: number = 0.05
   ): Promise<any> {
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
+    await this.initialize()
+    await this.ensureWorker3Loaded()
 
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker3_module import dunn_test
 
-      # Dunn Test 직접 구현
       groups = ${JSON.stringify(groups)}
-      group_names = ${JSON.stringify(groupNames)}
-      alpha = ${alpha}
-      p_adjust = "${pAdjust}"
 
-      # 모든 데이터 합치기 및 순위 계산
-      all_data = []
-      group_indices = []
-      for i, group in enumerate(groups):
-        all_data.extend(group)
-        group_indices.extend([i] * len(group))
+      try:
+        result = dunn_test(groups, p_adjust='${pAdjust}')
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      all_data = np.array(all_data)
-      group_indices = np.array(group_indices)
-
-      # 순위 계산
-      ranks = rankdata(all_data)
-
-      # 그룹별 순위 평균
-      mean_ranks = []
-      n_groups = len(groups)
-      for i in range(n_groups):
-        group_ranks = ranks[group_indices == i]
-        mean_ranks.append(np.mean(group_ranks))
-
-      # 전체 순위 평균
-      N = len(all_data)
-      mean_rank_all = (N + 1) / 2
-
-      # 표준편차 계산 (ties 보정)
-      from collections import Counter
-      ties = Counter(all_data)
-      tie_correction = sum((t**3 - t) for t in ties.values() if t > 1)
-
-      if tie_correction > 0:
-        S2 = (N * (N + 1) * (2 * N + 1) / 6 - tie_correction / 2) / (N - 1)
-      else:
-        S2 = N * (N + 1) / 12
-
-      # Pairwise 비교
-      comparisons = []
-      p_values = []
-
-      for i in range(n_groups):
-        for j in range(i + 1, n_groups):
-          n1 = len(groups[i])
-          n2 = len(groups[j])
-
-          # z-score 계산
-          z = abs(mean_ranks[i] - mean_ranks[j]) / np.sqrt(S2 * (1/n1 + 1/n2))
-
-          # p-value (양측검정)
-          p = 2 * (1 - stats.norm.cdf(z))
-
-          comparisons.append({
-            'group1': group_names[i],
-            'group2': group_names[j],
-            'z_statistic': float(z),
-            'p_value': float(p),
-            'mean_rank_diff': float(abs(mean_ranks[i] - mean_ranks[j]))
-          })
-          p_values.append(p)
-
-      # p-value 보정
-      p_values = np.array(p_values)
-
-      if p_adjust == 'bonferroni':
-        adjusted_p = np.minimum(p_values * len(p_values), 1.0)
-      elif p_adjust == 'holm':
-        # Holm-Bonferroni 보정
-        sorted_idx = np.argsort(p_values)
-        adjusted_p = np.zeros_like(p_values)
-        for idx, i in enumerate(sorted_idx):
-          adjusted_p[i] = min(p_values[i] * (len(p_values) - idx), 1.0)
-        # 누적 최댓값 보정
-        for i in range(1, len(adjusted_p)):
-          adjusted_p[sorted_idx[i]] = max(adjusted_p[sorted_idx[i]], adjusted_p[sorted_idx[i-1]])
-      elif p_adjust == 'fdr':  # Benjamini-Hochberg
-        sorted_idx = np.argsort(p_values)
-        adjusted_p = np.zeros_like(p_values)
-        n = len(p_values)
-        for idx, i in enumerate(sorted_idx):
-          adjusted_p[i] = min(p_values[i] * n / (idx + 1), 1.0)
-        # 누적 최소값 보정
-        for i in range(len(adjusted_p) - 2, -1, -1):
-          adjusted_p[sorted_idx[i]] = min(adjusted_p[sorted_idx[i]], adjusted_p[sorted_idx[i+1]])
-      else:  # no adjustment
-        adjusted_p = p_values
-
-      # 보정된 p-value 추가
-      for i, comp in enumerate(comparisons):
-        comp['p_adjusted'] = float(adjusted_p[i])
-        comp['significant'] = adjusted_p[i] < alpha
-
-      result = {
-        'comparisons': comparisons,
-        'alpha': alpha,
-        'p_adjust_method': p_adjust,
-        'significant_count': sum(1 for c in comparisons if c['significant'])
-      }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return result
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Dunn test 실행 실패: ${parsed.error}`)
+    }
+
+    // groupNames 매핑 추가
+    const comparisons = parsed.comparisons.map((comp: any) => ({
+      ...comp,
+      group1: groupNames[comp.group1] || comp.group1,
+      group2: groupNames[comp.group2] || comp.group2
+    }))
+
+    return {
+      ...parsed,
+      comparisons,
+      alpha
+    }
   }
 
   /**
@@ -2369,157 +1952,566 @@ export class PyodideStatisticsService {
     groupNames: string[],
     alpha: number = 0.05
   ): Promise<any> {
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
+    await this.initialize()
+    await this.ensureWorker3Loaded()
 
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker3_module import games_howell_test
 
-      # Games-Howell Test 직접 구현
       groups = ${JSON.stringify(groups)}
-      group_names = ${JSON.stringify(groupNames)}
-      alpha = ${alpha}
 
-      n_groups = len(groups)
+      try:
+        result = games_howell_test(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      # 그룹별 통계량 계산
-      means = [np.mean(g) for g in groups]
-      vars = [np.var(g, ddof=1) for g in groups]
-      ns = [len(g) for g in groups]
-
-      comparisons = []
-
-      for i in range(n_groups):
-        for j in range(i + 1, n_groups):
-          # 평균 차이
-          mean_diff = abs(means[i] - means[j])
-
-          # 표준오차
-          se = np.sqrt(vars[i]/ns[i] + vars[j]/ns[j])
-
-          # 자유도 (Welch-Satterthwaite 근사)
-          df = (vars[i]/ns[i] + vars[j]/ns[j])**2 / (
-              (vars[i]/ns[i])**2 / (ns[i]-1) +
-              (vars[j]/ns[j])**2 / (ns[j]-1)
-          )
-
-          # t-통계량
-          t = mean_diff / se
-
-          # Studentized range distribution 대신 t-distribution 사용 (근사)
-          # 실제 Games-Howell은 Tukey's 분포를 사용하지만 구현 복잡도로 인해 t-분포로 대체
-          # 다중비교 보정을 위해 약간 보수적인 기준 적용
-          q_crit = stats.t.ppf(1 - alpha/(n_groups*(n_groups-1)/2), df)
-
-          # p-value
-          p = 2 * (1 - stats.t.cdf(t, df)) * (n_groups*(n_groups-1)/2)  # Bonferroni-style 보정
-          p = min(p, 1.0)
-
-          # 신뢰구간
-          ci_lower = mean_diff - q_crit * se
-          ci_upper = mean_diff + q_crit * se
-
-          comparisons.append({
-            'group1': group_names[i],
-            'group2': group_names[j],
-            'mean_diff': float(mean_diff),
-            'std_error': float(se),
-            't_statistic': float(t),
-            'df': float(df),
-            'p_value': float(p),
-            'ci_lower': float(ci_lower),
-            'ci_upper': float(ci_upper),
-            'significant': p < alpha
-          })
-
-      result = {
-        'comparisons': comparisons,
-        'alpha': alpha,
-        'significant_count': sum(1 for c in comparisons if c['significant'])
-      }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return result
+    const parsed = this.parsePythonResult<any>(resultStr)
+
+    if (parsed.error) {
+      throw new Error(`Games-Howell test 실행 실패: ${parsed.error}`)
+    }
+
+    // groupNames 매핑 추가
+    const comparisons = parsed.comparisons.map((comp: any) => ({
+      ...comp,
+      group1: groupNames[comp.group1] || comp.group1,
+      group2: groupNames[comp.group2] || comp.group2
+    }))
+
+    return {
+      ...parsed,
+      comparisons,
+      alpha,
+      significant_count: comparisons.filter((c: any) => c.pValue < alpha).length
+    }
   }
 
   /**
-   * Bonferroni 사후검정
+   * Bonferroni 사후검정 - Worker 2 t-test 사용
    */
   async performBonferroni(groups: number[][], groupNames: string[], alpha: number = 0.05): Promise<any> {
-    if (!this.pyodide) {
-      await this.initialize()
+    await this.initialize()
+    await this.ensureWorker2Loaded()
+
+    const n_groups = groups.length
+    const num_comparisons = n_groups * (n_groups - 1) / 2
+    const adjusted_alpha = alpha / num_comparisons
+
+    const comparisons = []
+
+    // 모든 쌍 비교
+    for (let i = 0; i < n_groups; i++) {
+      for (let j = i + 1; j < n_groups; j++) {
+        const result = await this.tTestTwoSample(groups[i], groups[j])
+
+        // Bonferroni 보정
+        const adjusted_p = Math.min(result.pValue * num_comparisons, 1.0)
+
+        comparisons.push({
+          group1: groupNames[i],
+          group2: groupNames[j],
+          mean_diff: result.meanDiff,
+          t_statistic: result.statistic,
+          p_value: result.pValue,
+          adjusted_p: adjusted_p,
+          significant: adjusted_p < alpha
+        })
+      }
     }
 
-    const result = await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
+    return {
+      comparisons,
+      num_comparisons,
+      original_alpha: alpha,
+      adjusted_alpha,
+      significant_count: comparisons.filter(c => c.significant).length
+    }
+  }
+
+  // ========================================
+  // Worker 3: Nonparametric & ANOVA Methods
+  // ========================================
+
+  async mannWhitneyTestWorker(group1: number[], group2: number[]): Promise<{
+    statistic: number
+    pValue: number
+    uStatistic: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
       import json
+      from worker3_module import mann_whitney_test
 
-      groups = ${JSON.stringify(groups)}
-      group_names = ${JSON.stringify(groupNames)}
-      alpha = ${alpha}
+      group1 = ${JSON.stringify(group1)}
+      group2 = ${JSON.stringify(group2)}
 
-      n_groups = len(groups)
-      num_comparisons = n_groups * (n_groups - 1) // 2
-      adjusted_alpha = alpha / num_comparisons
+      try:
+        result = mann_whitney_test(group1, group2)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
 
-      comparisons = []
-
-      for i in range(n_groups):
-        for j in range(i + 1, n_groups):
-          # Independent t-test for each pair
-          t_stat, p_value = stats.ttest_ind(groups[i], groups[j])
-
-          # Apply Bonferroni correction
-          adjusted_p = min(p_value * num_comparisons, 1.0)
-
-          # Calculate mean difference and confidence interval
-          mean1, mean2 = np.mean(groups[i]), np.mean(groups[j])
-          mean_diff = mean1 - mean2
-
-          # Standard error
-          var1, var2 = np.var(groups[i], ddof=1), np.var(groups[j], ddof=1)
-          n1, n2 = len(groups[i]), len(groups[j])
-          se = np.sqrt(var1/n1 + var2/n2)
-
-          # Degrees of freedom (Welch's approximation)
-          df = (var1/n1 + var2/n2)**2 / ((var1/n1)**2/(n1-1) + (var2/n2)**2/(n2-1))
-
-          # Critical value for confidence interval (using adjusted alpha)
-          t_crit = stats.t.ppf(1 - adjusted_alpha/2, df)
-          ci_lower = mean_diff - t_crit * se
-          ci_upper = mean_diff + t_crit * se
-
-          comparisons.append({
-            'group1': group_names[i],
-            'group2': group_names[j],
-            'mean_diff': float(mean_diff),
-            'std_error': float(se),
-            't_statistic': float(t_stat),
-            'p_value': float(p_value),
-            'adjusted_p': float(adjusted_p),
-            'ci_lower': float(ci_lower),
-            'ci_upper': float(ci_upper),
-            'significant': adjusted_p < alpha
-          })
-
-      result = {
-        'comparisons': comparisons,
-        'num_comparisons': num_comparisons,
-        'original_alpha': alpha,
-        'adjusted_alpha': adjusted_alpha,
-        'significant_count': sum(1 for c in comparisons if c['significant'])
-      }
-
-      result_json = json.dumps(result)
       result_json
     `)
 
-    return result
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Mann-Whitney test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async wilcoxonTestWorker(values1: number[], values2: number[]): Promise<{
+    statistic: number
+    pValue: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import wilcoxon_test
+
+      values1 = ${JSON.stringify(values1)}
+      values2 = ${JSON.stringify(values2)}
+
+      try:
+        result = wilcoxon_test(values1, values2)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Wilcoxon test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async kruskalWallisTestWorker(groups: number[][]): Promise<{
+    statistic: number
+    pValue: number
+    df: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import kruskal_wallis_test
+
+      groups = ${JSON.stringify(groups)}
+
+      try:
+        result = kruskal_wallis_test(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Kruskal-Wallis test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async friedmanTestWorker(groups: number[][]): Promise<{
+    statistic: number
+    pValue: number
+    rankings: number[]
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import friedman_test
+
+      groups = ${JSON.stringify(groups)}
+
+      try:
+        result = friedman_test(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Friedman test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async oneWayAnovaWorker(groups: number[][]): Promise<{
+    fStatistic: number
+    pValue: number
+    dfBetween: number
+    dfWithin: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import one_way_anova
+
+      groups = ${JSON.stringify(groups)}
+
+      try:
+        result = one_way_anova(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`One-way ANOVA 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async twoWayAnovaWorker(dataValues: number[], factor1Values: (string | number)[], factor2Values: (string | number)[]): Promise<{
+    mainEffect1: { fStatistic: number; pValue: number }
+    mainEffect2: { fStatistic: number; pValue: number }
+    interaction: { fStatistic: number; pValue: number }
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import two_way_anova
+
+      data_values = ${JSON.stringify(dataValues)}
+      factor1_values = ${JSON.stringify(factor1Values)}
+      factor2_values = ${JSON.stringify(factor2Values)}
+
+      try:
+        result = two_way_anova(data_values, factor1_values, factor2_values)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Two-way ANOVA 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async tukeyHSDWorker(groups: number[][]): Promise<{
+    comparisons: Array<{
+      group1: number
+      group2: number
+      meanDiff: number
+      pValue: number
+      reject: boolean
+    }>
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import tukey_hsd
+
+      groups = ${JSON.stringify(groups)}
+
+      try:
+        result = tukey_hsd(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Tukey HSD test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async signTestWorker(before: number[], after: number[]): Promise<{
+    statistic: number
+    pValue: number
+    nPositive: number
+    nNegative: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import sign_test
+
+      before = ${JSON.stringify(before)}
+      after = ${JSON.stringify(after)}
+
+      try:
+        result = sign_test(before, after)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Sign test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async runsTestWorker(sequence: (number | string)[]): Promise<{
+    nRuns: number
+    expectedRuns: number
+    zStatistic: number
+    pValue: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import runs_test
+
+      sequence = ${JSON.stringify(sequence)}
+
+      try:
+        result = runs_test(sequence)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Runs test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async mcnemarTestWorker(contingencyTable: number[][]): Promise<{
+    statistic: number
+    pValue: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import mcnemar_test
+
+      contingency_table = ${JSON.stringify(contingencyTable)}
+
+      try:
+        result = mcnemar_test(contingency_table)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`McNemar test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async cochranQTestWorker(dataMatrix: number[][]): Promise<{
+    qStatistic: number
+    pValue: number
+    df: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import cochran_q_test
+
+      data_matrix = ${JSON.stringify(dataMatrix)}
+
+      try:
+        result = cochran_q_test(data_matrix)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Cochran Q test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async moodMedianTestWorker(groups: number[][]): Promise<{
+    statistic: number
+    pValue: number
+    grandMedian: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import mood_median_test
+
+      groups = ${JSON.stringify(groups)}
+
+      try:
+        result = mood_median_test(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Mood median test 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async repeatedMeasuresAnovaWorker(
+    dataMatrix: number[][],
+    subjectIds: (string | number)[],
+    timeLabels: (string | number)[]
+  ): Promise<{
+    fStatistic: number
+    pValue: number
+    df: { between: number; within: number }
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import repeated_measures_anova
+
+      data_matrix = ${JSON.stringify(dataMatrix)}
+      subject_ids = ${JSON.stringify(subjectIds)}
+      time_labels = ${JSON.stringify(timeLabels)}
+
+      try:
+        result = repeated_measures_anova(data_matrix, subject_ids, time_labels)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Repeated measures ANOVA 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async ancovaWorker(yValues: number[], groupValues: (string | number)[], covariates: number[][]): Promise<{
+    fStatistic: number
+    pValue: number
+    adjustedMeans: number[]
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import ancova
+
+      y_values = ${JSON.stringify(yValues)}
+      group_values = ${JSON.stringify(groupValues)}
+      covariates = ${JSON.stringify(covariates)}
+
+      try:
+        result = ancova(y_values, group_values, covariates)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`ANCOVA 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async manovaWorker(
+    dataMatrix: number[][],
+    groupValues: (string | number)[],
+    varNames: string[]
+  ): Promise<{
+    wilksLambda: number
+    fStatistic: number
+    pValue: number
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import manova
+
+      data_matrix = ${JSON.stringify(dataMatrix)}
+      group_values = ${JSON.stringify(groupValues)}
+      var_names = ${JSON.stringify(varNames)}
+
+      try:
+        result = manova(data_matrix, group_values, var_names)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`MANOVA 실행 실패: ${parsed.error}`)
+    return parsed
+  }
+
+  async scheffeTestWorker(groups: number[][]): Promise<{
+    comparisons: Array<{
+      group1: number
+      group2: number
+      meanDiff: number
+      fStatistic: number
+      pValue: number
+      reject: boolean
+    }>
+  }> {
+    await this.initialize()
+    await this.ensureWorker3Loaded()
+
+    const resultStr = await this.pyodide!.runPythonAsync(`
+      import json
+      from worker3_module import scheffe_test
+
+      groups = ${JSON.stringify(groups)}
+
+      try:
+        result = scheffe_test(groups)
+        result_json = json.dumps(result)
+      except Exception as e:
+        result_json = json.dumps({'error': str(e)})
+
+      result_json
+    `)
+
+    const parsed = this.parsePythonResult<any>(resultStr)
+    if (parsed.error) throw new Error(`Scheffe test 실행 실패: ${parsed.error}`)
+    return parsed
   }
 
   /**

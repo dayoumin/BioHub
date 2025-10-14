@@ -91,48 +91,44 @@ export class AnovaExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      // 데이터 구조화
-      const structuredData = {
-        values: data.map(row => row[dependent]),
-        factor1: data.map(row => row[factor1]),
-        factor2: data.map(row => row[factor2])
-      }
+      // 데이터 구조화: { factor1, factor2, value } 형식으로 변환
+      const formattedData = data.map(row => ({
+        factor1: String(row[factor1]),
+        factor2: String(row[factor2]),
+        value: Number(row[dependent])
+      }))
 
-      const result = await pyodideStats.twoWayAnova(
-        structuredData.values,
-        structuredData.factor1,
-        structuredData.factor2
-      )
+      const result = await pyodideStats.twoWayAnova(formattedData)
 
       return {
         metadata: this.createMetadata('이원 분산분석', data.length, startTime),
         mainResults: {
-          statistic: result.fStatistic.factor1,
-          pvalue: result.pvalue.factor1,
+          statistic: result.factor1.fStatistic,
+          pvalue: result.factor1.pValue,
           interpretation: this.interpretTwoWayAnova(result)
         },
         additionalInfo: {
           factor1: {
             name: factor1,
-            fStatistic: result.fStatistic.factor1,
-            pvalue: result.pvalue.factor1,
-            df: result.df.factor1
+            fStatistic: result.factor1.fStatistic,
+            pvalue: result.factor1.pValue,
+            df: result.factor1.df
           },
           factor2: {
             name: factor2,
-            fStatistic: result.fStatistic.factor2,
-            pvalue: result.pvalue.factor2,
-            df: result.df.factor2
+            fStatistic: result.factor2.fStatistic,
+            pvalue: result.factor2.pValue,
+            df: result.factor2.df
           },
           interaction: {
-            fStatistic: result.fStatistic.interaction,
-            pvalue: result.pvalue.interaction,
-            df: result.df.interaction
+            fStatistic: result.interaction.fStatistic,
+            pvalue: result.interaction.pValue,
+            df: result.interaction.df
           }
         },
         visualizationData: {
           type: 'interaction-plot',
-          data: structuredData
+          data: formattedData
         }
       }
     } catch (error) {
@@ -256,16 +252,20 @@ export class AnovaExecutor extends BaseExecutor {
   /**
    * 이원분산분석 결과 해석
    */
-  private interpretTwoWayAnova(result: any): string {
+  private interpretTwoWayAnova(result: {
+    factor1: { fStatistic: number; pValue: number; df: number }
+    factor2: { fStatistic: number; pValue: number; df: number }
+    interaction: { fStatistic: number; pValue: number; df: number }
+  }): string {
     const interpretations = []
 
-    if (result.pvalue.factor1 < 0.05) {
+    if (result.factor1.pValue < 0.05) {
       interpretations.push('주효과 1 유의')
     }
-    if (result.pvalue.factor2 < 0.05) {
+    if (result.factor2.pValue < 0.05) {
       interpretations.push('주효과 2 유의')
     }
-    if (result.pvalue.interaction < 0.05) {
+    if (result.interaction.pValue < 0.05) {
       interpretations.push('상호작용 효과 유의')
     }
 

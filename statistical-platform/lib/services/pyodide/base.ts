@@ -6,6 +6,7 @@
  */
 
 import type { PyodideInterface } from './types'
+import { getPyodideCDNUrls } from '@/lib/constants'
 
 export abstract class BasePyodideService {
   protected pyodide: PyodideInterface | null = null
@@ -66,11 +67,15 @@ export abstract class BasePyodideService {
 
     console.log('[BasePyodideService] 초기화 시작...')
 
+    // Pyodide CDN URL 가져오기 (환경 변수 자동 반영)
+    const cdnUrls = getPyodideCDNUrls()
+    console.log(`[BasePyodideService] 버전: ${cdnUrls.version}`)
+
     // Pyodide CDN에서 로드
     if (!window.loadPyodide) {
       console.log('[BasePyodideService] Pyodide 스크립트 로딩...')
       const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js'
+      script.src = cdnUrls.scriptURL
       script.async = true
 
       await new Promise((resolve, reject) => {
@@ -91,8 +96,11 @@ export abstract class BasePyodideService {
     // Pyodide 초기화
     console.log('[BasePyodideService] Pyodide 인스턴스 생성 중...')
     try {
+      if (!window.loadPyodide) {
+        throw new Error('window.loadPyodide가 로드되지 않았습니다')
+      }
       BasePyodideService.pyodideInstance = await window.loadPyodide({
-        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/'
+        indexURL: cdnUrls.indexURL
       })
       console.log('[BasePyodideService] Pyodide 인스턴스 생성 완료')
 

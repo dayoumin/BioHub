@@ -333,34 +333,30 @@ export default function ANOVAPage() {
       description="분산 분석할 데이터 파일을 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onNext={handleDataUpload} />
+      <DataUploadStep
+        onNext={() => {}}
+        onUploadComplete={(file, data) => {
+          const uploadedData: UploadedData = {
+            data: data as Record<string, unknown>[],
+            fileName: file.name,
+            columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : []
+          }
+          handleDataUpload(uploadedData)
+        }}
+      />
     </StepCard>
   )
 
   const renderVariableSelection = () => {
     if (!uploadedData) return null
 
-    const requirements = getVariableRequirements(
-      anovaType === 'oneWay' ? 'oneWayANOVA' :
-      anovaType === 'twoWay' ? 'twoWayANOVA' :
-      'repeatedMeasuresANOVA'
-    )
+    // Type guard for anovaType to ensure it's not empty string
+    const currentAnovaType = anovaType as 'oneWay' | 'twoWay' | 'repeated'
+    if (!currentAnovaType) return null
 
-    // 변수 타입 자동 감지
-    const columns = Object.keys(uploadedData.data[0] || {})
-    const variables = columns.map(col => ({
-      name: col,
-      type: detectVariableType(
-        uploadedData.data.map(row => row[col]),
-        col
-      ),
-      stats: {
-        missing: 0,
-        unique: [...new Set(uploadedData.data.map(row => row[col]))].length,
-        min: Math.min(...uploadedData.data.map(row => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map(row => Number(row[col]) || 0))
-      }
-    }))
+    const methodId = currentAnovaType === 'oneWay' ? 'oneWayANOVA' :
+      currentAnovaType === 'twoWay' ? 'twoWayANOVA' :
+      'repeatedMeasuresANOVA'
 
     return (
       <StepCard
@@ -369,10 +365,25 @@ export default function ANOVAPage() {
         icon={<Users className="w-5 h-5 text-primary" />}
       >
         <VariableSelector
-          variables={variables}
-          requirements={requirements}
-          onSelectionChange={handleVariableSelection}
-          methodName={anovaTypeInfo[anovaType].title}
+          methodId={methodId}
+          data={uploadedData.data}
+          onVariablesSelected={(variables) => {
+            const selectedVars: SelectedVariables = {
+              dependent: (variables.dependent as string) || '',
+              independent: Array.isArray(variables.independent)
+                ? variables.independent as string[]
+                : variables.independent
+                  ? [variables.independent as string]
+                  : [],
+              covariates: variables.covariates
+                ? Array.isArray(variables.covariates)
+                  ? variables.covariates as string[]
+                  : [variables.covariates as string]
+                : undefined
+            }
+            handleVariableSelection(selectedVars)
+          }}
+          onBack={() => setCurrentStep(1)}
         />
       </StepCard>
     )
@@ -601,7 +612,11 @@ export default function ANOVAPage() {
       steps={steps}
       currentStep={currentStep}
       onStepChange={setCurrentStep}
-      onRun={() => handleAnalysis(selectedVariables)}
+      onRun={() => {
+        if (selectedVariables) {
+          handleAnalysis(selectedVariables)
+        }
+      }}
       onReset={() => {
         setCurrentStep(0)
         setAnovaType('')

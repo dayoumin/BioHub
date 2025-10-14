@@ -142,10 +142,10 @@ const message = "Test passed"
 
 ### 구조 개요
 ```
-사용자 → Groups (TypeScript) → PyodideService → Python (SciPy/statsmodels)
+사용자 → Groups (TypeScript) → PyodideService → Python Workers (SciPy/statsmodels)
          ↓                       ↓
     데이터 가공/검증         통계 계산 실행
-    UI 포맷팅               (Pyodide Worker)
+    UI 포맷팅               (Pyodide + Python Workers)
 ```
 
 ### 핵심 디렉토리
@@ -164,15 +164,56 @@ statistical-platform/
 │   │   ├── anova.group.ts           - 분산분석 (9개)
 │   │   └── advanced.group.ts        - 고급분석 (12개)
 │   └── method-router.ts             - 라우터 (115줄)
-└── lib/services/
-    └── pyodide-statistics.ts        - 41개 Python 메서드
+├── lib/services/
+│   └── pyodide-statistics.ts        - 44개 메서드 (TypeScript 래퍼)
+└── public/workers/python/           - Python Workers (실제 통계 계산)
+    ├── worker1-descriptive.py       - Worker 1: 기술통계 (7개)
+    ├── worker2-hypothesis.py        - Worker 2: 가설검정 (6개)
+    ├── worker3-nonparametric-anova.py - Worker 3: 비모수/ANOVA (4개)
+    └── worker4-regression-advanced.py - Worker 4: 회귀/고급 (3개)
 ```
 
 ### 핵심 원칙
 - **Groups**: TypeScript로 데이터 검증/가공, UI 포맷팅만
-- **PyodideService**: Python 실행 (통계 계산 전담)
+- **PyodideService**: Python Workers 호출 관리
+- **Python Workers**: 실제 통계 계산 (SciPy/statsmodels)
 - ❌ Groups에서 통계 직접 계산 금지
-- ✅ 모든 통계 계산은 Pyodide + Python
+- ✅ 모든 통계 계산은 Python Workers에서 실행
+
+### Python Workers 구조 (중요!)
+**Worker 1-4는 이미 구현되어 있음** (2025-10-13 완료)
+- [pyodide-statistics.ts](statistical-platform/lib/services/pyodide-statistics.ts)는 Python Worker 함수를 호출하는 TypeScript 래퍼
+- 새 메서드 추가 시: `public/workers/python/worker*.py`에 Python 함수 추가
+  - [worker1-descriptive.py](statistical-platform/public/workers/python/worker1-descriptive.py) - 기술통계
+  - [worker2-hypothesis.py](statistical-platform/public/workers/python/worker2-hypothesis.py) - 가설검정
+  - [worker3-nonparametric-anova.py](statistical-platform/public/workers/python/worker3-nonparametric-anova.py) - 비모수/ANOVA
+  - [worker4-regression-advanced.py](statistical-platform/public/workers/python/worker4-regression-advanced.py) - 회귀/고급
+- 메모리 효율: 필요한 Worker만 로드 (Lazy Loading)
+- 속도: 각 Worker는 독립적으로 병렬 실행 가능
+
+### 새 메서드 추가 워크플로우
+**Phase 5-2: Priority 1-2 메서드 추가 중 (24개)**
+
+1. **Python Worker에 함수 추가**
+   - 파일: `public/workers/python/worker*.py`
+   - 예: `def sign_test(before, after): ...`
+   - 라이브러리 사용: SciPy/statsmodels
+
+2. **pyodide-statistics.ts에 TypeScript 래퍼 추가**
+   - 파일: `lib/services/pyodide-statistics.ts`
+   - Python 함수 호출 + 타입 정의
+   - 예: `async signTest(before: number[], after: number[]): Promise<SignTestResult>`
+
+3. **Groups에서 호출**
+   - 파일: `lib/statistics/groups/*.group.ts`
+   - 데이터 검증/가공 → pyodideStats.signTest() 호출
+   - UI 포맷팅
+
+**현재 상태** (2025-10-13):
+- ✅ Worker 1: frequency_analysis, crosstab_analysis, one_sample_proportion_test (3개)
+- ✅ Worker 2: z_test, binomial_test, partial_correlation (3개)
+- ❌ Worker 3: sign_test, runs_test, mcnemar_test, cochran_q_test, mood_median_test (5개 추가 필요)
+- ❌ Priority 2: 13개 메서드 추가 필요 (회귀/고급 분석)
 
 ## 🔧 개발 명령어
 
@@ -186,14 +227,18 @@ npm run lint         # 린터
 
 ## 📋 현재 작업 상태
 
-**Phase 5-1 완료** (2025-10-10):
-- ✅ Registry Pattern + Groups 구조 완성
-- ✅ 60개 메서드 메타데이터 등록
-- ✅ pyodide-statistics.ts 41개 Python 구현
+**최신 상태** (2025-10-13):
+- ✅ Groups 파일 TypeScript 컴파일 에러: **0개**
+- ✅ Placeholder 제거 완료 (실제 데이터 처리)
+- ✅ 타입 안전성 강화 (검증 함수 추가)
+- ✅ 코드 품질: **4.8/5** (런타임 안정성, 타입 안전성 확보)
 
-**Phase 5-2 다음** (진행 예정):
-- 🔄 우선순위 1-2 (24개) 메서드 pyodide-statistics.ts 통합
-- 📄 상세: [implementation-summary.md](statistical-platform/docs/implementation-summary.md)
+**다음 작업** (2025-10-14 예정):
+- 🔜 P1: utils.ts 단위 테스트 작성
+- 🔜 P1: Groups 통합 테스트
+- 🔜 P2: regression.group.ts 리팩토링
+
+**📝 상세 작업 기록**: [dailywork.md](dailywork.md) 참조
 
 ## 📚 참조 문서
 
@@ -215,6 +260,26 @@ npm run lint         # 린터
 - shadcn/ui: https://ui.shadcn.com
 - Pyodide: https://pyodide.org
 
+### 핵심 파일 링크 (빠른 접근)
+
+**Groups (TypeScript - 데이터 처리)**
+- [utils.ts](statistical-platform/lib/statistics/groups/utils.ts) - 공통 유틸리티 (검증 함수)
+- [anova.group.ts](statistical-platform/lib/statistics/groups/anova.group.ts) - 분산분석
+- [hypothesis.group.ts](statistical-platform/lib/statistics/groups/hypothesis.group.ts) - 가설검정
+- [nonparametric.group.ts](statistical-platform/lib/statistics/groups/nonparametric.group.ts) - 비모수
+- [regression.group.ts](statistical-platform/lib/statistics/groups/regression.group.ts) - 회귀분석
+- [descriptive.group.ts](statistical-platform/lib/statistics/groups/descriptive.group.ts) - 기술통계
+- [advanced.group.ts](statistical-platform/lib/statistics/groups/advanced.group.ts) - 고급분석
+
+**Python Workers (실제 통계 계산)**
+- [worker1-descriptive.py](statistical-platform/public/workers/python/worker1-descriptive.py)
+- [worker2-hypothesis.py](statistical-platform/public/workers/python/worker2-hypothesis.py)
+- [worker3-nonparametric-anova.py](statistical-platform/public/workers/python/worker3-nonparametric-anova.py)
+- [worker4-regression-advanced.py](statistical-platform/public/workers/python/worker4-regression-advanced.py)
+
+**서비스 레이어**
+- [pyodide-statistics.ts](statistical-platform/lib/services/pyodide-statistics.ts) - TypeScript 래퍼
+
 ---
 
-**Updated**: 2025-10-13 | **Version**: Phase 5-1 Complete | **Next**: Priority 1-2 Integration
+**Updated**: 2025-10-13 | **Version**: P0.5 Complete | **Next**: P1 Testing

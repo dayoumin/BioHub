@@ -194,30 +194,105 @@ def correlation_test(x, y, method='pearson'):
 def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
     """
     부분상관분석 (Partial Correlation)
-    
-    잔차 방법으로 통제변수의 영향 제거 후 상관계수 계산
+
+    pingouin.partial_corr 사용
     """
+    try:
+        import pingouin as pg
+    except ImportError:
+        raise ImportError("pingouin library is required for partial correlation. Install with: pip install pingouin")
+
+    import pandas as pd
+
     data_matrix = np.array(data_matrix)
 
     if data_matrix.shape[0] < 3:
         raise ValueError("Partial correlation requires at least 3 complete cases")
 
-    # 잔차 계산 방법으로 부분상관 계산
-    x = data_matrix[:, x_idx]
-    y = data_matrix[:, y_idx]
-    controls = data_matrix[:, control_indices]
+    # None/NaN 필터링 (행 단위 - 필요한 열만 체크)
+    required_cols = [x_idx, y_idx] + list(control_indices)
+    valid_rows = []
 
-    try:
-        # x와 y 각각에서 통제변수의 영향 제거
-        x_resid = x - controls @ np.linalg.lstsq(controls, x, rcond=None)[0]
-        y_resid = y - controls @ np.linalg.lstsq(controls, y, rcond=None)[0]
+    for i in range(data_matrix.shape[0]):
+        row_values = [data_matrix[i, col] for col in required_cols]
+        if all(val is not None and not np.isnan(val) for val in row_values):
+            valid_rows.append(i)
 
-        # 잔차 간 상관계수
-        r, p_value = stats.pearsonr(x_resid, y_resid)
+    if len(valid_rows) < 3:
+        raise ValueError(f"Partial correlation requires at least 3 valid observations, got {len(valid_rows)}")
 
-        return {
-            'correlation': float(r),
-            'pValue': _safe_float(p_value)
-        }
-    except np.linalg.LinAlgError as e:
-        raise ValueError(f"Singular matrix in partial correlation: {e}")
+    # 유효한 데이터만 선택
+    data_clean = data_matrix[valid_rows]
+
+    # DataFrame 생성
+    col_names = ['x', 'y'] + [f'control{i}' for i in range(len(control_indices))]
+    df_data = {
+        'x': data_clean[:, x_idx],
+        'y': data_clean[:, y_idx]
+    }
+    for i, ctrl_idx in enumerate(control_indices):
+        df_data[f'control{i}'] = data_clean[:, ctrl_idx]
+
+    df = pd.DataFrame(df_data)
+
+    # pingouin partial_corr
+    covar_cols = [f'control{i}' for i in range(len(control_indices))]
+    result = pg.partial_corr(data=df, x='x', y='y', covar=covar_cols)
+
+    return {
+        'correlation': float(result['r'].iloc[0]),
+        'pValue': _safe_float(result['p-val'].iloc[0]),
+        'nObservations': int(len(valid_rows))
+    }
+
+
+def levene_test(groups):
+    """
+    Levene 등분산성 검정 (Levene's Test)
+
+    정규성 가정에 강건한 등분산성 검정
+    """
+    # 각 그룹에서 결측값 제거
+    clean_groups = []
+    for group in groups:
+        clean_group = [x for x in group if x is not None and not np.isnan(x)]
+        if len(clean_group) > 0:
+            clean_groups.append(clean_group)
+
+    if len(clean_groups) < 2:
+        raise ValueError("Levene test requires at least 2 groups")
+
+    # Levene 검정
+    statistic, p_value = stats.levene(*clean_groups)
+
+    return {
+        'statistic': float(statistic),
+        'pValue': _safe_float(p_value),
+        'equalVariance': p_value > 0.05
+    }
+
+
+def bartlett_test(groups):
+    """
+    Bartlett 등분산성 검정 (Bartlett's Test)
+
+    정규성 가정에 민감하지만 더 강력한 검정
+    """
+    # 각 그룹에서 결측값 제거
+    clean_groups = []
+    for group in groups:
+        clean_group = [x for x in group if x is not None and not np.isnan(x)]
+        if len(clean_group) > 0:
+            clean_groups.append(clean_group)
+
+    if len(clean_groups) < 2:
+        raise ValueError("Bartlett test requires at least 2 groups")
+
+    # Bartlett 검정
+    statistic, p_value = stats.bartlett(*clean_groups)
+
+    return {
+        'statistic': float(statistic),
+        'pValue': _safe_float(p_value),
+        'equalVariance': p_value > 0.05
+    }
