@@ -122,8 +122,8 @@ export const DataValidationStep = memo(function DataValidationStep({
     )
   }
 
-  const hasErrors = validationResults.errors.length > 0
-  const hasWarnings = validationResults.warnings.length > 0
+  const hasErrors = (validationResults.errors?.length || 0) > 0
+  const hasWarnings = (validationResults.warnings?.length || 0) > 0
 
   // Type-safe column stats extraction
   const columnStats = useMemo(() =>
@@ -711,7 +711,7 @@ export const DataValidationStep = memo(function DataValidationStep({
               </div>
 
               {/* 권장사항 */}
-              {(validationResults.warnings.length > 0 || validationResults.errors.length > 0) && (
+              {((validationResults.warnings?.length || 0) > 0 || (validationResults.errors?.length || 0) > 0) && (
                 <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
                   <p className="text-sm font-medium mb-2">데이터 개선 권장사항</p>
                   <ul className="text-xs space-y-1">
