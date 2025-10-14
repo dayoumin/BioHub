@@ -29,7 +29,8 @@
       "Bash(node:*)",
       "Bash(mv:*)",
       "Bash(sed:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nrefactor: implement callWorkerMethod helper in pyodide-statistics.ts\n\nOption A Implementation - Step 1\n\nChanges:\n- Added WorkerMethodParam and WorkerMethodOptions type definitions\n- Implemented callWorkerMethod<T>() helper method\n- Refactored descriptiveStats() to use the helper (36 lines → 17 lines, 53% reduction)\n\nBenefits:\n- Code duplication reduced\n- Type safety improved\n- Error handling centralized\n- Cleaner, more maintainable code\n\nNext Steps:\n- Refactor 2-3 more Worker 1 methods\n- Add unit tests for the helper\n- Apply to remaining 80+ methods\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

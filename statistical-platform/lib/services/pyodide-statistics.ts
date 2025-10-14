@@ -49,6 +49,25 @@ interface WorkerMethodOptions {
   skipValidation?: boolean
 }
 
+/**
+ * Python 에러 응답 타입
+ */
+interface PythonErrorResponse {
+  error: string
+}
+
+/**
+ * Python 에러 응답 타입 가드
+ */
+function isPythonError(obj: unknown): obj is PythonErrorResponse {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'error' in obj &&
+    typeof (obj as Record<string, unknown>).error === 'string'
+  )
+}
+
 export class PyodideStatisticsService {
   private static instance: PyodideStatisticsService | null = null
   private pyodide: PyodideInterface | null = null
@@ -132,14 +151,14 @@ export class PyodideStatisticsService {
     `)
 
     // 4. 결과 파싱 및 에러 처리
-    const parsed = this.parsePythonResult<T>(resultStr)
+    const parsed = this.parsePythonResult<T | PythonErrorResponse>(resultStr)
 
-    if ((parsed as any).error) {
+    if (isPythonError(parsed)) {
       const errorMsg = options.errorMessage || `${methodName} 실행 실패`
-      throw new Error(`${errorMsg}: ${(parsed as any).error}`)
+      throw new Error(`${errorMsg}: ${parsed.error}`)
     }
 
-    return parsed
+    return parsed as T
   }
 
   /**
