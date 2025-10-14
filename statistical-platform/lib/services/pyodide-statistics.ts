@@ -2225,27 +2225,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     df: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import cochran_q_test
-
-      data_matrix = ${JSON.stringify(dataMatrix)}
-
-      try:
-        result = cochran_q_test(data_matrix)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Cochran Q test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      qStatistic: number
+      pValue: number
+      df: number
+    }>(
+      3,
+      'cochran_q_test',
+      { data_matrix: dataMatrix },
+      { errorMessage: 'Cochran Q test 실행 실패' }
+    )
   }
 
   async moodMedianTestWorker(groups: number[][]): Promise<{
@@ -2253,27 +2242,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     grandMedian: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import mood_median_test
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = mood_median_test(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Mood median test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      grandMedian: number
+    }>(
+      3,
+      'mood_median_test',
+      { groups },
+      { errorMessage: 'Mood median test 실행 실패' }
+    )
   }
 
   async repeatedMeasuresAnovaWorker(
@@ -2285,29 +2263,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     df: { between: number; within: number }
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import repeated_measures_anova
-
-      data_matrix = ${JSON.stringify(dataMatrix)}
-      subject_ids = ${JSON.stringify(subjectIds)}
-      time_labels = ${JSON.stringify(timeLabels)}
-
-      try:
-        result = repeated_measures_anova(data_matrix, subject_ids, time_labels)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Repeated measures ANOVA 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      fStatistic: number
+      pValue: number
+      df: { between: number; within: number }
+    }>(
+      3,
+      'repeated_measures_anova',
+      { data_matrix: dataMatrix, subject_ids: subjectIds, time_labels: timeLabels },
+      { errorMessage: 'Repeated measures ANOVA 실행 실패' }
+    )
   }
 
   async ancovaWorker(yValues: number[], groupValues: (string | number)[], covariates: number[][]): Promise<{
@@ -2315,29 +2280,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     adjustedMeans: number[]
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import ancova
-
-      y_values = ${JSON.stringify(yValues)}
-      group_values = ${JSON.stringify(groupValues)}
-      covariates = ${JSON.stringify(covariates)}
-
-      try:
-        result = ancova(y_values, group_values, covariates)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`ANCOVA 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      fStatistic: number
+      pValue: number
+      adjustedMeans: number[]
+    }>(
+      3,
+      'ancova',
+      { y_values: yValues, group_values: groupValues, covariates },
+      { errorMessage: 'ANCOVA 실행 실패' }
+    )
   }
 
   async manovaWorker(
