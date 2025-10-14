@@ -96,7 +96,7 @@ export default function HomePage() {
               const Icon = track.icon
               return (
                 <Card key={track.id} className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50">
-                  <div className="absolute inset-0 bg-gradient-to-br opacity-5 group-hover:opacity-10 transition-opacity duration-300"
+                  <div className="absolute inset-0 bg-gradient-to-br opacity-5 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"
                        style={{background: `linear-gradient(135deg, var(--primary), var(--primary-foreground))`}} />
 
                   <CardHeader className="relative">
