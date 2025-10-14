@@ -1,27 +1,36 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-10-14 23:30
+**최종 업데이트**: 2025-10-14 23:45
 **현재 Phase**: Phase 5-2 (Priority 1-2 메서드 추가)
 
 ---
 
 ## 🎯 진행 중 작업
 
-### Option A: pyodide-statistics.ts 리팩토링
-**상태**: 계획 완료, 구현 대기
-**우선순위**: P0 (즉시 시작)
-**예상 기간**: 3-4일
+**없음** (Option A 리팩토링 완료!)
 
-**목표**:
-- 중복 코드 1,400줄 제거 (2,641줄 → 1,500줄)
-- `callWorkerMethod<T>()` 헬퍼 구현
-- 70개 메서드 리팩토링
+---
+
+## ✅ 방금 완료
+
+### Option A: callWorkerMethod 헬퍼 리팩토링 ✅
+**완료일**: 2025-10-14
+**브랜치**: `refactor/option-a-helper`
+
+**성과**:
+- ✅ `callWorkerMethod<T>()` 헬퍼 구현 완료
+- ✅ Worker 1-4 전체 메서드(32개) 리팩토링 완료
+- ✅ 중복 코드 대폭 제거 (초기화, Worker 로드, 에러 처리 통일)
+- ✅ 타입 안전성 향상 (파라미터 검증 함수)
+
+**리팩토링된 메서드**:
+- Worker 1: 7개 (descriptive, normality, outlier 등)
+- Worker 2: 8개 (t-test, correlation, chi-square 등)
+- Worker 3: 14개 (Mann-Whitney, ANOVA, Tukey 등)
+- Worker 4: 3개 (regression, PCA, Durbin-Watson)
 
 **다음 단계**:
-1. Git 브랜치 생성: `refactor/option-a-helper`
-2. Day 1 작업 시작 (4시간)
-
-**참조**: [docs/planning/pyodide-refactoring-plan.md](docs/planning/pyodide-refactoring-plan.md)
+- PR 생성 및 master 병합 대기
 
 ---
 
@@ -42,6 +51,8 @@
 ## ✅ 최근 완료 (최근 7일)
 
 ### 2025-10-14 (월)
+- [x] **Option A 리팩토링 완료** (Worker 1-4, 32개 메서드)
+- [x] callWorkerMethod 헬퍼 구현
 - [x] 문서 정리 완료 (44개 → 4개)
 - [x] 리팩토링 계획 수립 (Option A/B)
 - [x] CLAUDE.md 문서 구조 섹션 추가
