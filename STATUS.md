@@ -19,42 +19,57 @@
 
 **성과**:
 - ✅ `callWorkerMethod<T>()` 헬퍼 구현 완료
-- ✅ Worker 1-4 전체 메서드(32개) 리팩토링 완료
+- ✅ **48개 메서드** callWorkerMethod로 리팩토링 완료
 - ✅ 중복 코드 대폭 제거 (초기화, Worker 로드, 에러 처리 통일)
 - ✅ 타입 안전성 향상 (파라미터 검증 함수)
+- ✅ 파일 크기 126줄 감소 (2,370 → 2,244줄)
 
-**리팩토링된 메서드**:
-- Worker 1: 7개 (descriptive, normality, outlier 등)
-- Worker 2: 8개 (t-test, correlation, chi-square 등)
-- Worker 3: 14개 (Mann-Whitney, ANOVA, Tukey 등)
-- Worker 4: 3개 (regression, PCA, Durbin-Watson)
+**프로젝트 구조**:
+- Registry 메타데이터: 60개 메서드
+- Groups 구현: 60개 메서드
+- pyodide-statistics.ts: 77개 메서드 (48개 리팩토링 + 래퍼/유틸리티)
+
+**리팩토링된 메서드** (48개):
+- Worker 1: 10개 (descriptive, normality, outlier, frequency, crosstab 등)
+- Worker 2: 12개 (t-test, correlation, chi-square, binomial, partial 등)
+- Worker 3: 16개 (Mann-Whitney, Wilcoxon, ANOVA, Tukey, Dunn 등)
+- Worker 4: 10개 (regression, logistic, PCA, factor, cluster, timeseries 등)
 
 **다음 단계**:
-- PR 생성 및 master 병합 대기
+- 테스트 실행 및 검증
+- PR 생성 및 master 병합
 
 ---
 
 ## 📋 대기 중 작업
 
-1. **Priority 1 메서드 추가** (5개)
-   - sign_test, runs_test, mcnemar_test, cochran_q_test, mood_median_test
+1. **리팩토링 검증** (즉시)
+   - 자동화 테스트 실행 (npm test)
+   - Worker별 샘플 테스트 (8개)
+   - UI 연결 확인 (4개 주요 기능)
+   - 참조: [docs/planning/refactoring-test-plan.md](docs/planning/refactoring-test-plan.md)
 
-2. **Priority 2 메서드 추가** (13개)
-   - 회귀/고급 분석
+2. **핸들러 파일 에러 수정** (별도 이슈)
+   - TypeScript 에러 ~690개 (기존 코드)
+   - 테스트 파일 업데이트
+   - 타입 정의 추가
 
 3. **Option B 리팩토링** (Phase 9)
    - Worker별 서비스 분리
-   - 전제조건: Option A 완료
+   - 전제조건: Option A 완료 ✅
 
 ---
 
 ## ✅ 최근 완료 (최근 7일)
 
 ### 2025-10-14 (월)
-- [x] **Option A 리팩토링 완료** (Worker 1-4, 32개 메서드)
+- [x] **Option A 리팩토링 완료** (Worker 1-4, 48개 메서드)
 - [x] callWorkerMethod 헬퍼 구현
+- [x] Worker 3-4 나머지 메서드 리팩토링 (10개)
+- [x] pyodide-statistics.ts TypeScript 에러 수정 (0개)
+- [x] 프로젝트 현황 정확히 파악 (60개 메서드 검증)
+- [x] 테스트 계획 수립
 - [x] 문서 정리 완료 (44개 → 4개)
-- [x] 리팩토링 계획 수립 (Option A/B)
 - [x] CLAUDE.md 문서 구조 섹션 추가
 
 ### 2025-10-13 (일)
