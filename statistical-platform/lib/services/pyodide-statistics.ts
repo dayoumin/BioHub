@@ -839,31 +839,19 @@ sys.modules['${moduleName}'] = ${moduleName}
     total: number
     uniqueCount: number
   }> {
-    await this.initialize()
-    await this.ensureWorker1Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker1_module import frequency_analysis
-
-      values = ${JSON.stringify(values)}
-
-      try:
-        result = frequency_analysis(values)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Frequency analysis 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      categories: string[]
+      frequencies: number[]
+      percentages: number[]
+      cumulativePercentages: number[]
+      total: number
+      uniqueCount: number
+    }>(
+      1,
+      'frequency_analysis',
+      { values },
+      { errorMessage: 'Frequency analysis 실행 실패' }
+    )
   }
 
   /**
@@ -877,32 +865,19 @@ sys.modules['${moduleName}'] = ${moduleName}
     colTotals: number[]
     grandTotal: number
   }> {
-    await this.initialize()
-    await this.ensureWorker1Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker1_module import crosstab_analysis
-
-      row_values = ${JSON.stringify(rowValues)}
-      col_values = ${JSON.stringify(colValues)}
-
-      try:
-        result = crosstab_analysis(row_values, col_values)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Crosstab analysis 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      rowCategories: string[]
+      colCategories: string[]
+      observedMatrix: number[][]
+      rowTotals: number[]
+      colTotals: number[]
+      grandTotal: number
+    }>(
+      1,
+      'crosstab_analysis',
+      { row_values: rowValues, col_values: colValues },
+      { errorMessage: 'Crosstab analysis 실행 실패' }
+    )
   }
 
   /**
@@ -923,35 +898,20 @@ sys.modules['${moduleName}'] = ${moduleName}
     significant: boolean
     alpha: number
   }> {
-    await this.initialize()
-    await this.ensureWorker1Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker1_module import one_sample_proportion_test
-
-      try:
-        result = one_sample_proportion_test(
-          success_count=${successCount},
-          total_count=${totalCount},
-          null_proportion=${nullProportion},
-          alternative='${alternative}',
-          alpha=${alpha}
-        )
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`One-sample proportion test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      sampleProportion: number
+      nullProportion: number
+      zStatistic: number
+      pValueExact: number
+      pValueApprox: number
+      significant: boolean
+      alpha: number
+    }>(
+      1,
+      'one_sample_proportion_test',
+      { success_count: successCount, total_count: totalCount, null_proportion: nullProportion, alternative, alpha },
+      { errorMessage: 'One-sample proportion test 실행 실패' }
+    )
   }
 
   /**
@@ -962,31 +922,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     nItems: number
     nRespondents: number
   }> {
-    await this.initialize()
-    await this.ensureWorker1Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker1_module import cronbach_alpha
-
-      items_matrix = ${JSON.stringify(itemsMatrix)}
-
-      try:
-        result = cronbach_alpha(items_matrix)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Cronbach's alpha 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      alpha: number
+      nItems: number
+      nRespondents: number
+    }>(
+      1,
+      'cronbach_alpha',
+      { items_matrix: itemsMatrix },
+      { errorMessage: "Cronbach's alpha 실행 실패" }
+    )
   }
 
   /**
