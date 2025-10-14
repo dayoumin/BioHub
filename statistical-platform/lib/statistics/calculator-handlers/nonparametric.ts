@@ -4,7 +4,7 @@
  * Mann-Whitney U, Wilcoxon, Kruskal-Wallis, Dunn, Chi-Square 검정
  */
 
-import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
 import {
   extractNumericColumn,
   extractGroupedData,
@@ -14,11 +14,11 @@ import {
 } from './common-utils'
 
 export const createNonparametricHandlers = (context: CalculatorContext): HandlerMap => ({
-  mannWhitneyU: (data, parameters) => mannWhitneyU(context, data, parameters),
-  wilcoxonSignedRank: (data, parameters) => wilcoxonSignedRank(context, data, parameters),
-  kruskalWallis: (data, parameters) => kruskalWallis(context, data, parameters),
-  dunnTest: (data, parameters) => dunnTest(context, data, parameters),
-  chiSquareTest: (data, parameters) => chiSquareTest(context, data, parameters)
+  mannWhitneyU: (data: DataRow[], parameters: MethodParameters) => mannWhitneyU(context, data, parameters),
+  wilcoxonSignedRank: (data: DataRow[], parameters: MethodParameters) => wilcoxonSignedRank(context, data, parameters),
+  kruskalWallis: (data: DataRow[], parameters: MethodParameters) => kruskalWallis(context, data, parameters),
+  dunnTest: (data: DataRow[], parameters: MethodParameters) => dunnTest(context, data, parameters),
+  chiSquareTest: (data: DataRow[], parameters: MethodParameters) => chiSquareTest(context, data, parameters)
 })
 
 /**

@@ -195,12 +195,16 @@ def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
     """
     부분상관분석 (Partial Correlation)
 
-    pingouin.partial_corr 사용
+    statsmodels와 SciPy를 사용하여 pingouin 라이선스 문제 해결
+
+    원리: 통제 변수의 영향을 제거한 두 변수 간의 순수한 상관관계
+    1. 각 변수(X, Y)를 통제 변수들로 선형 회귀하여 잔차(residuals) 계산
+    2. 두 잔차 간의 피어슨 상관계수 계산
     """
     try:
-        import pingouin as pg
+        import statsmodels.api as sm
     except ImportError:
-        raise ImportError("pingouin library is required for partial correlation. Install with: pip install pingouin")
+        raise ImportError("statsmodels library is required for partial correlation. Install with: pip install statsmodels")
 
     import pandas as pd
 
@@ -225,7 +229,6 @@ def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
     data_clean = data_matrix[valid_rows]
 
     # DataFrame 생성
-    col_names = ['x', 'y'] + [f'control{i}' for i in range(len(control_indices))]
     df_data = {
         'x': data_clean[:, x_idx],
         'y': data_clean[:, y_idx]
@@ -235,14 +238,51 @@ def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
 
     df = pd.DataFrame(df_data)
 
-    # pingouin partial_corr
-    covar_cols = [f'control{i}' for i in range(len(control_indices))]
-    result = pg.partial_corr(data=df, x='x', y='y', covar=covar_cols)
+    # 통제 변수가 충분한지 확인
+    n = len(df)
+    k = len(control_indices)
+
+    if n < k + 3:
+        raise ValueError(f"Sample size ({n}) must be greater than number of control variables ({k}) + 2")
+
+    # 통제 변수 행렬 (상수항 포함)
+    control_cols = [f'control{i}' for i in range(k)]
+    controls = sm.add_constant(df[control_cols])
+
+    # 1. Y에서 통제 변수의 영향 제거 (잔차 계산)
+    y_model = sm.OLS(df['y'], controls).fit()
+    y_residuals = y_model.resid
+
+    # 2. X에서 통제 변수의 영향 제거 (잔차 계산)
+    x_model = sm.OLS(df['x'], controls).fit()
+    x_residuals = x_model.resid
+
+    # 3. 두 잔차 간의 피어슨 상관계수 계산
+    corr_result = stats.pearsonr(x_residuals, y_residuals)
+
+    # 자유도 계산 (n - k - 2)
+    df_residual = n - k - 2
+
+    # 신뢰구간 계산 (Fisher's z-transformation)
+    r = corr_result.statistic
+    z = np.arctanh(r)
+    se = 1 / np.sqrt(df_residual - 1)
+    z_crit = stats.norm.ppf(1 - 0.05 / 2)  # 95% 신뢰구간
+    lower_z = z - z_crit * se
+    upper_z = z + z_crit * se
+
+    lower_corr = np.tanh(lower_z)
+    upper_corr = np.tanh(upper_z)
 
     return {
-        'correlation': float(result['r'].iloc[0]),
-        'pValue': _safe_float(result['p-val'].iloc[0]),
-        'nObservations': int(len(valid_rows))
+        'correlation': float(r),
+        'pValue': _safe_float(corr_result.pvalue),
+        'df': int(df_residual),
+        'nObservations': int(n),
+        'confidenceInterval': {
+            'lower': float(lower_corr),
+            'upper': float(upper_corr)
+        }
     }
 
 

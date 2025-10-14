@@ -4,7 +4,7 @@
  * PCA, K-means, 계층적 군집, 시계열 분석, 생존 분석 등
  */
 
-import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
 import {
   extractNumericColumn,
   formatPValue,
@@ -12,16 +12,16 @@ import {
 } from './common-utils'
 
 export const createAdvancedHandlers = (context: CalculatorContext): HandlerMap => ({
-  pca: (data, parameters) => principalComponentAnalysis(context, data, parameters),
-  kMeansClustering: (data, parameters) => kMeansClustering(context, data, parameters),
-  hierarchicalClustering: (data, parameters) => hierarchicalClustering(context, data, parameters),
-  timeSeriesDecomposition: (data, parameters) => timeSeriesDecomposition(context, data, parameters),
-  arimaForecast: (data, parameters) => arimaForecast(context, data, parameters),
-  kaplanMeierSurvival: (data, parameters) => kaplanMeierSurvival(context, data, parameters),
-  mixedEffectsModel: (data, parameters) => mixedEffectsModel(context, data, parameters),
-  sarimaForecast: (data, parameters) => sarimaForecast(context, data, parameters),
-  varModel: (data, parameters) => varModel(context, data, parameters),
-  coxRegression: (data, parameters) => coxRegression(context, data, parameters)
+  pca: (data: DataRow[], parameters: MethodParameters) => principalComponentAnalysis(context, data, parameters),
+  kMeansClustering: (data: DataRow[], parameters: MethodParameters) => kMeansClustering(context, data, parameters),
+  hierarchicalClustering: (data: DataRow[], parameters: MethodParameters) => hierarchicalClustering(context, data, parameters),
+  timeSeriesDecomposition: (data: DataRow[], parameters: MethodParameters) => timeSeriesDecomposition(context, data, parameters),
+  arimaForecast: (data: DataRow[], parameters: MethodParameters) => arimaForecast(context, data, parameters),
+  kaplanMeierSurvival: (data: DataRow[], parameters: MethodParameters) => kaplanMeierSurvival(context, data, parameters),
+  mixedEffectsModel: (data: DataRow[], parameters: MethodParameters) => mixedEffectsModel(context, data, parameters),
+  sarimaForecast: (data: DataRow[], parameters: MethodParameters) => sarimaForecast(context, data, parameters),
+  varModel: (data: DataRow[], parameters: MethodParameters) => varModel(context, data, parameters),
+  coxRegression: (data: DataRow[], parameters: MethodParameters) => coxRegression(context, data, parameters)
 })
 
 /**
@@ -29,11 +29,10 @@ export const createAdvancedHandlers = (context: CalculatorContext): HandlerMap =
  */
 const principalComponentAnalysis = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const columns = parameters.columns
-  const nComponents = parameters.nComponents || 2
+  const { columns, nComponents = 2 } = parameters as PCAParams
 
   if (!columns || columns.length < 2) {
     return { success: false, error: '최소 2개 이상의 변수가 필요합니다' }
@@ -113,11 +112,10 @@ const principalComponentAnalysis = async (
  */
 const kMeansClustering = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const columns = parameters.columns
-  const k = parameters.k || 3
+  const { columns, k = 3 } = parameters as KMeansClusteringParams
 
   if (!columns || columns.length < 1) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('변수') }
@@ -176,12 +174,10 @@ const kMeansClustering = async (
  */
 const hierarchicalClustering = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const columns = parameters.columns
-  const method = parameters.method || 'ward'
-  const metric = parameters.metric || 'euclidean'
+  const { columns, method = 'ward', metric = 'euclidean' } = parameters as HierarchicalClusteringParams
 
   if (!columns || columns.length < 1) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('변수') }
@@ -228,12 +224,10 @@ const hierarchicalClustering = async (
  */
 const timeSeriesDecomposition = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const valueColumn = parameters.valueColumn
-  const period = parameters.period || 12
-  const model = parameters.model || 'additive'
+  const { valueColumn, period = 12, model = 'additive' } = parameters as TimeSeriesDecompositionParams
 
   if (!valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('시계열 값') }
@@ -273,12 +267,10 @@ const timeSeriesDecomposition = async (
  */
 const arimaForecast = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const valueColumn = parameters.valueColumn
-  const order = parameters.order || [1, 1, 1]
-  const steps = parameters.steps || 10
+  const { valueColumn, order = [1, 1, 1], steps = 10 } = parameters as ARIMAForecastParams
 
   if (!valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('시계열 값') }
@@ -307,11 +299,10 @@ const arimaForecast = async (
  */
 const kaplanMeierSurvival = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const timeColumn = parameters.timeColumn
-  const eventColumn = parameters.eventColumn
+  const { timeColumn, eventColumn } = parameters as KaplanMeierSurvivalParams
 
   if (!timeColumn || !eventColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['시간', '사건']) }
@@ -341,12 +332,10 @@ const kaplanMeierSurvival = async (
  */
 const mixedEffectsModel = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const dependentColumn = parameters.dependentColumn
-  const fixedEffects = parameters.fixedEffects || []
-  const randomEffects = parameters.randomEffects || []
+  const { dependentColumn, fixedEffects = [], randomEffects = [] } = parameters as MixedEffectsModelParams
 
   if (!dependentColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('종속변수') }
@@ -377,13 +366,11 @@ const mixedEffectsModel = async (
  */
 const sarimaForecast = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const valueColumn = parameters.valueColumn
-  const order = parameters.order || [1, 1, 1]
-  const seasonalOrder = parameters.seasonalOrder || [1, 1, 1, 12]
-  const steps = parameters.steps || 10
+  const { valueColumn, order = [1, 1, 1], seasonalOrder = [1, 1, 1, 12], steps = 10 } =
+    parameters as SARIMAForecastParams
 
   if (!valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('시계열 값') }
@@ -411,11 +398,10 @@ const sarimaForecast = async (
  */
 const varModel = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const columns = parameters.columns
-  const lag = parameters.lag || 1
+  const { columns, lag = 1 } = parameters as VARModelParams
 
   if (!columns || columns.length < 2) {
     return { success: false, error: '최소 2개 이상의 시계열 변수가 필요합니다' }
@@ -443,12 +429,10 @@ const varModel = async (
  */
 const coxRegression = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const timeColumn = parameters.timeColumn
-  const eventColumn = parameters.eventColumn
-  const covariates = parameters.covariates || []
+  const { timeColumn, eventColumn, covariates = [] } = parameters as CoxRegressionParams
 
   if (!timeColumn || !eventColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['시간', '사건']) }

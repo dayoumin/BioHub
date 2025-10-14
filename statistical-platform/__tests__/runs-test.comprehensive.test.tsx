@@ -1,12 +1,24 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import RunsTestPage from '../app/(dashboard)/statistics/runs-test/page'
+import RunsTestPage from '../app/(dashboard)/statistics/runs-test/page' // Assuming this is the correct path
+
+interface MethodInfo {
+  formula: string;
+  usage: string;
+}
+
+interface StatisticsPageLayoutProps {
+  children: React.ReactNode;
+  title: string;
+  methodInfo?: MethodInfo;
+  onReset: () => void;
+}
 
 // Mock the required modules
 jest.mock('@/components/statistics/StatisticsPageLayout', () => {
   return {
-    StatisticsPageLayout: ({ children, title, methodInfo, onReset }: any) => (
+    StatisticsPageLayout: ({ children, title, methodInfo, onReset }: StatisticsPageLayoutProps) => (
       <div data-testid="statistics-layout">
         <h1>{title}</h1>
         <div data-testid="method-info">
@@ -17,7 +29,7 @@ jest.mock('@/components/statistics/StatisticsPageLayout', () => {
         {children}
       </div>
     ),
-    StepCard: ({ children, title, description }: any) => (
+    StepCard: ({ children, title, description }: { children: React.ReactNode, title: string, description: string }) => (
       <div data-testid="step-card">
         <h2>{title}</h2>
         <p>{description}</p>
@@ -30,7 +42,7 @@ jest.mock('@/components/statistics/StatisticsPageLayout', () => {
 // 실제 데이터로 테스트하기 위한 Mock
 jest.mock('@/components/smart-flow/steps/DataUploadStep', () => {
   return {
-    DataUploadStep: ({ onNext }: any) => (
+    DataUploadStep: ({ onNext }: { onNext: (data: any) => void }) => (
       <div data-testid="data-upload">
         <button
           data-testid="upload-perfect-random"
@@ -81,7 +93,7 @@ jest.mock('@/components/smart-flow/steps/DataUploadStep', () => {
 
 jest.mock('@/components/variable-selection/VariableSelector', () => {
   return {
-    VariableSelector: ({ onSelectionChange, variables }: any) => (
+    VariableSelector: ({ onSelectionChange, variables }: { onSelectionChange: (selection: any) => void, variables: { name: string }[] }) => (
       <div data-testid="variable-selector">
         <p>Variables: {variables?.map((v: any) => v.name).join(', ')}</p>
         <button
@@ -221,7 +233,7 @@ describe('RunsTestPage - Comprehensive Tests', () => {
       }, { timeout: 3000 })
 
       // 군집화된 데이터는 런이 적을 것으로 예상
-      const resultText = screen.getByTestId('statistics-layout').textContent
+      const resultText = (screen.getByTestId('statistics-layout') as HTMLElement).textContent
       expect(resultText).toBeTruthy()
     })
 
@@ -237,7 +249,7 @@ describe('RunsTestPage - Comprehensive Tests', () => {
       }, { timeout: 3000 })
 
       // 교대 패턴 데이터는 런이 많을 것으로 예상
-      const resultText = screen.getByTestId('statistics-layout').textContent
+      const resultText = (screen.getByTestId('statistics-layout') as HTMLElement).textContent
       expect(resultText).toBeTruthy()
     })
   })
@@ -277,7 +289,7 @@ describe('RunsTestPage - Comprehensive Tests', () => {
   describe('에지 케이스 및 에러 처리', () => {
     it('빈 데이터에 대해 적절히 처리한다', async () => {
       // Mock empty data upload
-      jest.mocked(require('@/components/smart-flow/steps/DataUploadStep')).DataUploadStep =
+      (require('@/components/smart-flow/steps/DataUploadStep') as any).DataUploadStep =
         ({ onNext }: any) => (
           <button onClick={() => onNext({
             data: [],
@@ -294,7 +306,7 @@ describe('RunsTestPage - Comprehensive Tests', () => {
 
     it('단일 값 데이터에 대해 적절히 처리한다', async () => {
       // Mock single value data
-      jest.mocked(require('@/components/smart-flow/steps/DataUploadStep')).DataUploadStep =
+      (require('@/components/smart-flow/steps/DataUploadStep') as any).DataUploadStep =
         ({ onNext }: any) => (
           <button onClick={() => onNext({
             data: [{ value: 10 }],
@@ -313,7 +325,7 @@ describe('RunsTestPage - Comprehensive Tests', () => {
   describe('수학적 정확성 검증', () => {
     it('런 검정 공식이 올바르게 구현되었는지 확인한다', async () => {
       // 알려진 결과가 있는 테스트 데이터
-      jest.mocked(require('@/components/smart-flow/steps/DataUploadStep')).DataUploadStep =
+      (require('@/components/smart-flow/steps/DataUploadStep') as any).DataUploadStep =
         ({ onNext }: any) => (
           <button onClick={() => onNext({
             data: [

@@ -1,10 +1,10 @@
-import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
 
 export const createDescriptiveHandlers = (context: CalculatorContext): HandlerMap => ({
-  calculateDescriptiveStats: (data, parameters) =>
+  calculateDescriptiveStats: (data: DataRow[], parameters: MethodParameters) =>
     calculateDescriptiveStats(context, data, parameters),
-  normalityTest: (data, parameters) => normalityTest(context, data, parameters),
-  homogeneityTest: (data, parameters) => homogeneityTest(context, data, parameters)
+  normalityTest: (data: DataRow[], parameters: MethodParameters) => normalityTest(context, data, parameters),
+  homogeneityTest: (data: DataRow[], parameters: MethodParameters) => homogeneityTest(context, data, parameters)
 })
 
 const calculateDescriptiveStats = async (

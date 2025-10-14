@@ -4,11 +4,11 @@
  * 두 범주형 변수 간의 교차 빈도 분석
  */
 
-import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
 import { ERROR_MESSAGES } from './common-utils'
 
 export const createCrosstabHandlers = (context: CalculatorContext): HandlerMap => ({
-  crosstabAnalysis: (data, parameters) => crosstabAnalysis(context, data, parameters)
+  crosstabAnalysis: (data: DataRow[], parameters: MethodParameters) => crosstabAnalysis(context, data, parameters)
 })
 
 /**
@@ -43,13 +43,11 @@ export const createCrosstabHandlers = (context: CalculatorContext): HandlerMap =
  */
 const crosstabAnalysis = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const rowVariable = parameters.rowVariable
-  const columnVariable = parameters.columnVariable
-  const performChiSquare = parameters.performChiSquare !== false
-  const alpha = parameters.alpha || 0.05
+  const { rowVariable, columnVariable, performChiSquare = true, alpha = 0.05 } =
+    parameters as CrosstabAnalysisParams
 
   if (!rowVariable || !columnVariable) {
     return {
@@ -86,49 +84,43 @@ const crosstabAnalysis = async (
     }
   }
 
-  // JavaScript에서 직접 교차표 계산 (Pyodide 호출 대신)
-  const crosstabResult = calculateCrosstab(rowValues, colValues)
+  // Pyodide를 통해 교차표 분석 및 카이제곱 검정 동시 수행
+  const result = await context.pyodideService.crosstabAnalysis(
+    rowValues,
+    colValues,
+    performChiSquare,
+    alpha
+  )
 
-  // 카이제곱 검정 수행 (선택적)
-  let chiSquareResult = null
-  if (performChiSquare && crosstabResult.observedMatrix.length > 1 && crosstabResult.observedMatrix[0].length > 1) {
-    try {
-      chiSquareResult = await context.pyodideService.chiSquareTest(
-        crosstabResult.observedMatrix,
-        false
-      )
-    } catch (error) {
-      console.error('카이제곱 검정 실패:', error)
-    }
-  }
+  const { crosstabTable, rowTotals, colTotals, grandTotal, chiSquareResult, rowCategories, colCategories } = result
 
   // 교차표를 표 형식으로 변환
-  const crosstabTableData = crosstabResult.rowCategories.map((rowCat, rowIdx) => {
+  const crosstabTableData = rowCategories.map((rowCat: string, rowIdx: number) => {
     const rowData: any = { [rowVariable]: rowCat }
 
-    crosstabResult.colCategories.forEach((colCat, colIdx) => {
-      rowData[colCat] = crosstabResult.observedMatrix[rowIdx][colIdx]
+    colCategories.forEach((colCat: string, colIdx: number) => {
+      rowData[colCat] = crosstabTable[rowIdx][colIdx]
     })
 
-    rowData['합계'] = crosstabResult.rowTotals[rowIdx]
+    rowData['합계'] = rowTotals[rowIdx]
     return rowData
   })
 
   // 열 합계 행 추가
   const totalRow: any = { [rowVariable]: '합계' }
-  crosstabResult.colCategories.forEach((colCat, idx) => {
-    totalRow[colCat] = crosstabResult.colTotals[idx]
+  colCategories.forEach((colCat: string, idx: number) => {
+    totalRow[colCat] = colTotals[idx]
   })
-  totalRow['합계'] = crosstabResult.grandTotal
+  totalRow['합계'] = grandTotal
   crosstabTableData.push(totalRow)
 
   // 비율 테이블 (백분율)
-  const percentageTableData = crosstabResult.rowCategories.map((rowCat, rowIdx) => {
+  const percentageTableData = rowCategories.map((rowCat: string, rowIdx: number) => {
     const rowData: any = { [rowVariable]: rowCat }
 
-    crosstabResult.colCategories.forEach((colCat, colIdx) => {
-      const count = crosstabResult.observedMatrix[rowIdx][colIdx]
-      const percentage = ((count / crosstabResult.grandTotal) * 100).toFixed(1)
+    colCategories.forEach((colCat: string, colIdx: number) => {
+      const count = crosstabTable[rowIdx][colIdx]
+      const percentage = ((count / grandTotal) * 100).toFixed(1)
       rowData[colCat] = `${count} (${percentage}%)`
     })
 
@@ -137,9 +129,9 @@ const crosstabAnalysis = async (
 
   // 결과 구성
   const metrics = [
-    { name: '총 관측치 수', value: crosstabResult.grandTotal },
-    { name: '행 범주 수', value: crosstabResult.rowCategories.length },
-    { name: '열 범주 수', value: crosstabResult.colCategories.length }
+    { name: '총 관측치 수', value: grandTotal },
+    { name: '행 범주 수', value: rowCategories.length },
+    { name: '열 범주 수', value: colCategories.length }
   ]
 
   if (chiSquareResult) {
@@ -181,7 +173,7 @@ const crosstabAnalysis = async (
 
   // 해석 생성
   let interpretation = `${rowVariable}과(와) ${columnVariable} 간의 교차표를 분석했습니다. `
-  interpretation += `총 ${crosstabResult.grandTotal}개의 관측치가 ${crosstabResult.rowCategories.length}×${crosstabResult.colCategories.length} 교차표로 분류되었습니다.`
+  interpretation += `총 ${grandTotal}개의 관측치가 ${rowCategories.length}×${colCategories.length} 교차표로 분류되었습니다.`
 
   if (chiSquareResult) {
     interpretation += `\n\n카이제곱 독립성 검정 결과, p-value는 ${chiSquareResult.pValue.toFixed(4)}이며, `
@@ -197,55 +189,5 @@ const crosstabAnalysis = async (
       tables,
       interpretation
     }
-  }
-}
-
-/**
- * JavaScript로 교차표 직접 계산
- */
-function calculateCrosstab(
-  rowValues: (string | number)[],
-  colValues: (string | number)[]
-): {
-  rowCategories: string[]
-  colCategories: string[]
-  observedMatrix: number[][]
-  rowTotals: number[]
-  colTotals: number[]
-  grandTotal: number
-} {
-  // 고유 범주 추출
-  const rowSet = new Set(rowValues.map(String))
-  const colSet = new Set(colValues.map(String))
-
-  const rowCategories = Array.from(rowSet).sort()
-  const colCategories = Array.from(colSet).sort()
-
-  // 교차표 행렬 초기화
-  const observedMatrix: number[][] = Array(rowCategories.length)
-    .fill(0)
-    .map(() => Array(colCategories.length).fill(0))
-
-  // 빈도 계산
-  for (let i = 0; i < rowValues.length; i++) {
-    const rowIdx = rowCategories.indexOf(String(rowValues[i]))
-    const colIdx = colCategories.indexOf(String(colValues[i]))
-    observedMatrix[rowIdx][colIdx]++
-  }
-
-  // 행/열 합계 계산
-  const rowTotals = observedMatrix.map(row => row.reduce((a, b) => a + b, 0))
-  const colTotals = colCategories.map((_, colIdx) =>
-    observedMatrix.reduce((sum, row) => sum + row[colIdx], 0)
-  )
-  const grandTotal = rowTotals.reduce((a, b) => a + b, 0)
-
-  return {
-    rowCategories,
-    colCategories,
-    observedMatrix,
-    rowTotals,
-    colTotals,
-    grandTotal
   }
 }

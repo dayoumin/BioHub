@@ -4,10 +4,10 @@
  * Cronbach's α 등 신뢰도 검증 메서드
  */
 
-import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
 
 export const createReliabilityHandlers = (context: CalculatorContext): HandlerMap => ({
-  cronbachAlpha: (data, parameters) => cronbachAlpha(context, data, parameters)
+  cronbachAlpha: (data: DataRow[], parameters: MethodParameters) => cronbachAlpha(context, data, parameters)
 })
 
 /**
@@ -38,10 +38,10 @@ export const createReliabilityHandlers = (context: CalculatorContext): HandlerMa
  */
 const cronbachAlpha = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const columns = parameters.columns
+  const { columns } = parameters as CronbachAlphaParams
 
   if (!columns || !Array.isArray(columns) || columns.length < 2) {
     return {

@@ -4,7 +4,7 @@
  * One-Way/Two-Way ANOVA, MANOVA, Tukey HSD, Bonferroni, Games-Howell
  */
 
-import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
 import {
   extractNumericColumn,
   extractGroupedData,
@@ -15,12 +15,12 @@ import {
 } from './common-utils'
 
 export const createAnovaHandlers = (context: CalculatorContext): HandlerMap => ({
-  oneWayANOVA: (data, parameters) => oneWayANOVA(context, data, parameters),
-  twoWayANOVA: (data, parameters) => twoWayANOVA(context, data, parameters),
-  manova: (data, parameters) => manova(context, data, parameters),
-  tukeyHSD: (data, parameters) => tukeyHSD(context, data, parameters),
-  bonferroni: (data, parameters) => bonferroni(context, data, parameters),
-  gamesHowell: (data, parameters) => gamesHowell(context, data, parameters)
+  oneWayANOVA: (data: DataRow[], parameters: MethodParameters) => oneWayANOVA(context, data, parameters),
+  twoWayANOVA: (data: DataRow[], parameters: MethodParameters) => twoWayANOVA(context, data, parameters),
+  manova: (data: DataRow[], parameters: MethodParameters) => manova(context, data, parameters),
+  tukeyHSD: (data: DataRow[], parameters: MethodParameters) => tukeyHSD(context, data, parameters),
+  bonferroni: (data: DataRow[], parameters: MethodParameters) => bonferroni(context, data, parameters),
+  gamesHowell: (data: DataRow[], parameters: MethodParameters) => gamesHowell(context, data, parameters)
 })
 
 /**
@@ -28,12 +28,10 @@ export const createAnovaHandlers = (context: CalculatorContext): HandlerMap => (
  */
 const oneWayANOVA = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const groupColumn = parameters.groupColumn
-  const valueColumn = parameters.valueColumn
-  const alpha = parameters.alpha || 0.05
+  const { groupColumn, valueColumn, alpha = 0.05 } = parameters as OneWayANOVAParams
 
   if (!groupColumn || !valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['그룹', '측정값']) }
@@ -135,13 +133,10 @@ const oneWayANOVA = async (
  */
 const twoWayANOVA = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const factor1Column = parameters.factor1Column
-  const factor2Column = parameters.factor2Column
-  const valueColumn = parameters.valueColumn
-  const alpha = parameters.alpha || 0.05
+  const { factor1Column, factor2Column, valueColumn, alpha = 0.05 } = parameters as TwoWayANOVAParams
 
   if (!factor1Column || !factor2Column || !valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['요인1', '요인2', '측정값']) }
@@ -155,56 +150,58 @@ const twoWayANOVA = async (
     return { success: false, error: '각 요인은 최소 2개 이상의 수준이 필요합니다' }
   }
 
-  // 데이터 추출
-  const values = extractNumericColumn(data, valueColumn)
-  const factor1 = data.map(row => row[factor1Column])
-  const factor2 = data.map(row => row[factor2Column])
+  // 데이터 변환: { factor1, factor2, value } 형식으로
+  const formattedData = data.map(row => ({
+    factor1: String(row[factor1Column]),
+    factor2: String(row[factor2Column]),
+    value: Number(row[valueColumn])
+  }))
 
-  const result = await context.pyodideService.twoWayANOVA(values, factor1, factor2, factor1Levels, factor2Levels)
+  const result = await context.pyodideService.twoWayAnova(formattedData)
 
   // ANOVA 테이블 (주효과 + 상호작용)
   const anovaTable = [
     {
       '변동원': factor1Column,
-      '제곱합': result.ssFactor1?.toFixed(4) ?? '-',
-      '자유도': result.dfFactor1?.toString() ?? '-',
-      'F': result.fFactor1?.toFixed(4) ?? '-',
-      'p-value': formatPValue(result.pFactor1 ?? 1)
+      '제곱합': '-',
+      '자유도': result.factor1.df.toString(),
+      'F': result.factor1.fStatistic.toFixed(4),
+      'p-value': formatPValue(result.factor1.pValue)
     },
     {
       '변동원': factor2Column,
-      '제곱합': result.ssFactor2?.toFixed(4) ?? '-',
-      '자유도': result.dfFactor2?.toString() ?? '-',
-      'F': result.fFactor2?.toFixed(4) ?? '-',
-      'p-value': formatPValue(result.pFactor2 ?? 1)
+      '제곱합': '-',
+      '자유도': result.factor2.df.toString(),
+      'F': result.factor2.fStatistic.toFixed(4),
+      'p-value': formatPValue(result.factor2.pValue)
     },
     {
       '변동원': `${factor1Column} × ${factor2Column}`,
-      '제곱합': result.ssInteraction?.toFixed(4) ?? '-',
-      '자유도': result.dfInteraction?.toString() ?? '-',
-      'F': result.fInteraction?.toFixed(4) ?? '-',
-      'p-value': formatPValue(result.pInteraction ?? 1)
+      '제곱합': '-',
+      '자유도': result.interaction.df.toString(),
+      'F': result.interaction.fStatistic.toFixed(4),
+      'p-value': formatPValue(result.interaction.pValue)
     },
     {
       '변동원': '오차 (Error)',
-      '제곱합': result.ssError?.toFixed(4) ?? '-',
-      '자유도': result.dfError?.toString() ?? '-',
+      '제곱합': '-',
+      '자유도': result.residual.df.toString(),
       'F': '-',
       'p-value': '-'
     }
   ]
 
-  const { isSignificant: sig1 } = interpretSignificance(result.pFactor1 ?? 1, alpha)
-  const { isSignificant: sig2 } = interpretSignificance(result.pFactor2 ?? 1, alpha)
-  const { isSignificant: sigInt } = interpretSignificance(result.pInteraction ?? 1, alpha)
+  const { isSignificant: sig1 } = interpretSignificance(result.factor1.pValue, alpha)
+  const { isSignificant: sig2 } = interpretSignificance(result.factor2.pValue, alpha)
+  const { isSignificant: sigInt } = interpretSignificance(result.interaction.pValue, alpha)
 
   return {
     success: true,
     data: {
       metrics: [
-        { name: `${factor1Column} F`, value: result.fFactor1?.toFixed(4) ?? '-' },
-        { name: `${factor2Column} F`, value: result.fFactor2?.toFixed(4) ?? '-' },
-        { name: '상호작용 F', value: result.fInteraction?.toFixed(4) ?? '-' }
+        { name: `${factor1Column} F`, value: result.factor1.fStatistic.toFixed(4) },
+        { name: `${factor2Column} F`, value: result.factor2.fStatistic.toFixed(4) },
+        { name: '상호작용 F', value: result.interaction.fStatistic.toFixed(4) }
       ],
       tables: [
         {
@@ -230,12 +227,10 @@ const twoWayANOVA = async (
  */
 const manova = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const groupColumn = parameters.groupColumn
-  const dependentColumns = parameters.dependentColumns
-  const alpha = parameters.alpha || 0.05
+  const { groupColumn, dependentColumns, alpha = 0.05 } = parameters as MANOVAParams
 
   if (!groupColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('그룹') }
@@ -295,12 +290,10 @@ const manova = async (
  */
 const tukeyHSD = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const groupColumn = parameters.groupColumn
-  const valueColumn = parameters.valueColumn
-  const alpha = parameters.alpha || 0.05
+  const { groupColumn, valueColumn, alpha = 0.05 } = parameters as TukeyHSDParams
 
   if (!groupColumn || !valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['그룹', '측정값']) }
@@ -353,12 +346,10 @@ const tukeyHSD = async (
  */
 const bonferroni = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const groupColumn = parameters.groupColumn
-  const valueColumn = parameters.valueColumn
-  const alpha = parameters.alpha || 0.05
+  const { groupColumn, valueColumn, alpha = 0.05 } = parameters as BonferroniParams
 
   if (!groupColumn || !valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['그룹', '측정값']) }
@@ -411,12 +402,10 @@ const bonferroni = async (
  */
 const gamesHowell = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const groupColumn = parameters.groupColumn
-  const valueColumn = parameters.valueColumn
-  const alpha = parameters.alpha || 0.05
+  const { groupColumn, valueColumn, alpha = 0.05 } = parameters as GamesHowellParams
 
   if (!groupColumn || !valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['그룹', '측정값']) }

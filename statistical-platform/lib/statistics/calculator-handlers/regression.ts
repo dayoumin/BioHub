@@ -4,7 +4,7 @@
  * 단순/다중 회귀, 로지스틱 회귀, 상관분석 핸들러
  */
 
-import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
 import {
   extractNumericColumn,
   extractMatrixData,
@@ -16,10 +16,10 @@ import {
 } from './common-utils'
 
 export const createRegressionHandlers = (context: CalculatorContext): HandlerMap => ({
-  simpleLinearRegression: (data, parameters) => simpleLinearRegression(context, data, parameters),
-  multipleRegression: (data, parameters) => multipleRegression(context, data, parameters),
-  logisticRegression: (data, parameters) => logisticRegression(context, data, parameters),
-  correlationAnalysis: (data, parameters) => correlationAnalysis(context, data, parameters)
+  simpleLinearRegression: (data: DataRow[], parameters: MethodParameters) => simpleLinearRegression(context, data, parameters),
+  multipleRegression: (data: DataRow[], parameters: MethodParameters) => multipleRegression(context, data, parameters),
+  logisticRegression: (data: DataRow[], parameters: MethodParameters) => logisticRegression(context, data, parameters),
+  correlationAnalysis: (data: DataRow[], parameters: MethodParameters) => correlationAnalysis(context, data, parameters)
 })
 
 /**

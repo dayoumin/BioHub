@@ -137,27 +137,27 @@ def two_way_anova(data_matrix, factor1_levels, factor2_levels):
 def tukey_hsd(groups):
     """
     Tukey HSD 사후검정
-    
+
     SciPy 1.10+ 필요
     """
     from scipy.stats import tukey_hsd as scipy_tukey
-    
+
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
-    
+
     # 각 그룹이 최소 1개 이상의 관측치를 가져야 함
     for i, group in enumerate(clean_groups):
         if len(group) == 0:
             raise ValueError(f"Group {i} has no valid observations")
-    
+
     try:
         result = scipy_tukey(*clean_groups)
-        
+
         # SciPy 버전에 따라 pvalue 속성이 다를 수 있음
         if hasattr(result, 'pvalue'):
             p_value = float(result.pvalue)
         else:
             p_value = None
-        
+
         return {
             'statistic': float(result.statistic),
             'pValue': p_value,
@@ -165,3 +165,178 @@ def tukey_hsd(groups):
         }
     except AttributeError as e:
         raise ValueError(f"SciPy version may not support tukey_hsd: {e}")
+
+
+# Priority 1 Methods (5 additional)
+
+def sign_test(before, after):
+    """
+    부호검정 (Sign Test)
+
+    대응표본 비모수 검정
+    """
+    from scipy.stats import binomtest
+
+    before = np.array(before)
+    after = np.array(after)
+
+    if len(before) != len(after):
+        raise ValueError("Before and after must have same length")
+
+    diff = after - before
+
+    n_positive = np.sum(diff > 0)
+    n_negative = np.sum(diff < 0)
+    n_ties = np.sum(diff == 0)
+    n_total = n_positive + n_negative
+
+    if n_total == 0:
+        raise ValueError("All differences are zero (ties)")
+
+    # 이항검정 (p=0.5)
+    result = binomtest(n_positive, n_total, 0.5)
+
+    return {
+        'nPositive': int(n_positive),
+        'nNegative': int(n_negative),
+        'nTies': int(n_ties),
+        'pValue': float(result.pvalue)
+    }
+
+
+def runs_test(sequence):
+    """
+    Runs 검정 (Runs Test for Randomness)
+
+    무작위성 검정
+    """
+    # None/NaN 정제
+    sequence = np.array([x for x in sequence if x is not None and not np.isnan(x)])
+
+    if len(sequence) < 10:
+        raise ValueError("Runs test requires at least 10 observations")
+
+    # 중앙값 기준으로 이분화
+    median = np.median(sequence)
+    binary = (sequence > median).astype(int)
+
+    # Runs 개수 계산
+    runs = 1 + np.sum(binary[1:] != binary[:-1])
+
+    # 각 값의 개수
+    n1 = np.sum(binary == 0)
+    n2 = np.sum(binary == 1)
+    n = n1 + n2
+
+    if n1 == 0 or n2 == 0:
+        raise ValueError("All values are on one side of median")
+
+    # 기대 runs 및 분산
+    expected_runs = (2 * n1 * n2) / n + 1
+    var_runs = (2 * n1 * n2 * (2 * n1 * n2 - n)) / (n**2 * (n - 1))
+
+    # Z-통계량
+    z_statistic = (runs - expected_runs) / np.sqrt(var_runs)
+
+    # p-value (양측검정)
+    p_value = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
+
+    return {
+        'nRuns': int(runs),
+        'expectedRuns': float(expected_runs),
+        'n1': int(n1),
+        'n2': int(n2),
+        'zStatistic': float(z_statistic),
+        'pValue': float(p_value)
+    }
+
+
+def mcnemar_test(contingency_table):
+    """
+    McNemar 검정
+
+    대응표본 범주형 검정
+    """
+    table = np.array(contingency_table)
+
+    if table.shape != (2, 2):
+        raise ValueError("McNemar test requires 2x2 contingency table")
+
+    # b와 c (불일치 셀)
+    b = table[0, 1]
+    c = table[1, 0]
+
+    # 연속성 보정 여부
+    use_correction = (b + c) < 25
+
+    if use_correction:
+        # 연속성 보정
+        statistic = (abs(b - c) - 1)**2 / (b + c) if (b + c) > 0 else 0
+    else:
+        statistic = (b - c)**2 / (b + c) if (b + c) > 0 else 0
+
+    # p-value (카이제곱 분포, df=1)
+    p_value = 1 - stats.chi2.cdf(statistic, df=1)
+
+    return {
+        'statistic': float(statistic),
+        'pValue': float(p_value),
+        'continuityCorrection': bool(use_correction),
+        'discordantPairs': {'b': int(b), 'c': int(c)}
+    }
+
+
+def cochran_q_test(data_matrix):
+    """
+    Cochran Q 검정
+
+    다중 대응표본 범주형 검정
+    """
+    data_matrix = np.array(data_matrix)
+    n, k = data_matrix.shape  # n subjects, k conditions
+
+    if k < 3:
+        raise ValueError("Cochran Q requires at least 3 conditions")
+
+    # 각 행과 열의 합
+    row_sums = data_matrix.sum(axis=1)
+    col_sums = data_matrix.sum(axis=0)
+
+    # Q 통계량 계산 (0으로 나누기 방지)
+    G = col_sums.sum()
+    denominator = k * G - np.sum(row_sums**2)
+
+    if denominator == 0:
+        raise ValueError("Invalid data: denominator is zero in Cochran Q calculation")
+
+    Q = (k - 1) * (k * np.sum(col_sums**2) - G**2) / denominator
+
+    # p-value (카이제곱 분포, df=k-1)
+    df = k - 1
+    p_value = 1 - stats.chi2.cdf(Q, df)
+
+    return {
+        'qStatistic': float(Q),
+        'pValue': float(p_value),
+        'df': int(df)
+    }
+
+
+def mood_median_test(groups):
+    """
+    Mood Median 검정
+
+    비모수 중앙값 검정
+    """
+    if len(groups) < 2:
+        raise ValueError("Mood median test requires at least 2 groups")
+
+    # scipy.stats.median_test 사용
+    statistic, p_value, grand_median, contingency_table = stats.median_test(*groups)
+
+    return {
+        'statistic': float(statistic),
+        'pValue': float(p_value),
+        'grandMedian': float(grand_median),
+        'contingencyTable': contingency_table.tolist()
+    }

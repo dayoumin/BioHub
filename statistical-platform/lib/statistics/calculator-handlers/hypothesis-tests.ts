@@ -4,7 +4,7 @@
  * t-검정, 비율검정 등 가설검정 관련 핸들러
  */
 
-import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
 import {
   extractNumericColumn,
   extractGroupedData,
@@ -16,10 +16,10 @@ import {
 } from './common-utils'
 
 export const createHypothesisHandlers = (context: CalculatorContext): HandlerMap => ({
-  oneSampleTTest: (data, parameters) => oneSampleTTest(context, data, parameters),
-  twoSampleTTest: (data, parameters) => twoSampleTTest(context, data, parameters),
-  pairedTTest: (data, parameters) => pairedTTest(context, data, parameters),
-  welchTTest: (data, parameters) => welchTTest(context, data, parameters)
+  oneSampleTTest: (data: DataRow[], parameters: MethodParameters) => oneSampleTTest(context, data, parameters),
+  twoSampleTTest: (data: DataRow[], parameters: MethodParameters) => twoSampleTTest(context, data, parameters),
+  pairedTTest: (data: DataRow[], parameters: MethodParameters) => pairedTTest(context, data, parameters),
+  welchTTest: (data: DataRow[], parameters: MethodParameters) => welchTTest(context, data, parameters)
   // TODO: oneSampleProportionTest - Pyodide 서비스에 메서드 추가 필요
 })
 
@@ -28,11 +28,10 @@ export const createHypothesisHandlers = (context: CalculatorContext): HandlerMap
  */
 const oneSampleTTest = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const column = parameters.column
-  const popmean = parameters.popmean
+  const { column, popmean } = parameters as OneSampleTTestParams
 
   if (!column || popmean === undefined) {
     return { success: false, error: ERROR_MESSAGES.MISSING_REQUIRED_PARAMS }
@@ -88,11 +87,10 @@ const oneSampleTTest = async (
  */
 const twoSampleTTest = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const groupColumn = parameters.groupColumn
-  const valueColumn = parameters.valueColumn
+  const { groupColumn, valueColumn, equal_var: equalVar = true } = parameters as TwoSampleTTestParams
 
   if (!groupColumn || !valueColumn) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['그룹 열', '값 열']) }
@@ -108,7 +106,6 @@ const twoSampleTTest = async (
 
   const group1 = groups[groupNames[0]]
   const group2 = groups[groupNames[1]]
-  const equalVar = parameters.equal_var ?? true
 
   const result = await context.pyodideService.twoSampleTTest(group1, group2, equalVar)
 
@@ -164,11 +161,10 @@ const twoSampleTTest = async (
  */
 const pairedTTest = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const column1 = parameters.column1
-  const column2 = parameters.column2
+  const { column1, column2 } = parameters as PairedTTestParams
 
   if (!column1 || !column2) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['첫 번째 열', '두 번째 열']) }
@@ -229,8 +225,8 @@ const pairedTTest = async (
  */
 const welchTTest = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
   // Welch t-test는 독립표본 t-검정과 동일하지만 equal_var=False
   return twoSampleTTest(context, data, { ...parameters, equal_var: false })
@@ -241,12 +237,10 @@ const welchTTest = async (
  */
 const oneSampleProportionTest = async (
   context: CalculatorContext,
-  data: any[],
-  parameters: Record<string, any>
+  data: DataRow[],
+  parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const column = parameters.column
-  const value = parameters.value
-  const p0 = parameters.p0
+  const { column, value, p0 } = parameters as OneSampleProportionTestParams
 
   if (!column || value === undefined || p0 === undefined) {
     return { success: false, error: '필수 파라미터를 입력하세요' }
