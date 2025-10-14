@@ -39,24 +39,34 @@ model = sm.OLS(y_clean, X_with_const).fit()
 
 ---
 
-### 2. **partial_correlation** (Worker 2)
-**파일**: `statistical-platform/public/workers/python/worker2-hypothesis.py:194-246`
+### 2. **partial_correlation** (Worker 2) - ⚠️ 2025-10-14 라이선스 이슈로 재수정
+**파일**: `statistical-platform/public/workers/python/worker2-hypothesis.py:194-286`
 
-**변경 사항**:
+**변경 사항 (2025-10-13 → 2025-10-14)**:
 ```python
-# ❌ Before: np.linalg.lstsq 잔차 계산
-x_resid = x - controls @ np.linalg.lstsq(controls, x, rcond=None)[0]
-y_resid = y - controls @ np.linalg.lstsq(controls, y, rcond=None)[0]
-
-# ✅ After: pingouin.partial_corr
+# ❌ Before (2025-10-13): pingouin.partial_corr (GPL-3.0 라이선스)
 result = pg.partial_corr(data=df, x='x', y='y', covar=covar_cols)
+
+# ✅ After (2025-10-14): statsmodels.api.OLS + scipy.stats.pearsonr (BSD-3 라이선스)
+# 1. Y에서 통제변수 영향 제거 (잔차 계산)
+y_model = sm.OLS(df['y'], sm.add_constant(control_cols)).fit()
+y_residuals = y_model.resid
+
+# 2. X에서 통제변수 영향 제거 (잔차 계산)
+x_model = sm.OLS(df['x'], sm.add_constant(control_cols)).fit()
+x_residuals = x_model.resid
+
+# 3. 두 잔차 간의 피어슨 상관계수 계산
+corr_result = stats.pearsonr(x_residuals, y_residuals)
 ```
 
-**개선 사항**:
-- pingouin 전문 라이브러리 사용
-- None/NaN 자동 처리
-- p-value 정확도 향상
-- nObservations 추가
+**개선 사항 (라이선스 및 기능)**:
+- ✅ **GPL-3.0 → BSD-3 라이선스** (상업적 사용 가능)
+- ✅ **Pyodide 호환성 확보** (pingouin은 Pyodide에 없음)
+- ✅ statsmodels OLS로 잔차 기반 부분상관 구현
+- ✅ Fisher's z-transformation으로 신뢰구간 계산
+- ✅ None/NaN 자동 처리 유지
+- ✅ df (자유도), confidenceInterval 추가
 
 ---
 
@@ -121,7 +131,7 @@ z_statistic, p_value = runstest_1samp(sequence, cutoff='median', correction=True
 
 ### 수정 항목 (9개)
 - ✅ **multiple_regression** - statsmodels.api.OLS
-- ✅ **partial_correlation** - pingouin.partial_corr
+- ✅ **partial_correlation** - ~~pingouin.partial_corr~~ → **statsmodels.api.OLS + scipy.stats.pearsonr** (2025-10-14 라이선스 이슈)
 - ✅ **logistic_regression** - statsmodels.api.Logit
 - ✅ **runs_test** - statsmodels.sandbox.stats.runs.runstest_1samp
 - ✅ **sign_test** - scipy.stats.binomtest
@@ -152,8 +162,10 @@ z_statistic, p_value = runstest_1samp(sequence, cutoff='median', correction=True
 - `anova_lm` - 분산분석
 - `MANOVA` - 다변량 분산분석
 
-### 3. **pingouin**
-- `partial_corr` - 부분상관분석
+### 3. ~~**pingouin**~~ (2025-10-14 제거)
+- ~~`partial_corr` - 부분상관분석~~ (GPL-3.0 라이선스)
+- **제거 이유**: Pyodide에 없음 + 상업적 사용 불가
+- **대체**: statsmodels.api.OLS (잔차 기반 부분상관)
 
 ---
 
@@ -180,12 +192,29 @@ z_statistic, p_value = runstest_1samp(sequence, cutoff='median', correction=True
 ## 📝 추가 권장 사항
 
 ### Pyodide 환경 확인 필요
-- `pingouin` - partial_correlation에서 사용 (설치 확인 필요)
+- ~~`pingouin`~~ - ❌ Pyodide에 없음 (2025-10-14 확인), statsmodels로 대체 완료
 - `scikit-posthocs` - dunn_test, games_howell_test에서 사용 (선택 사항)
-- `sklearn` - factor_analysis, cluster_analysis에서 사용 (선택 사항)
+- `sklearn` - ✅ Pyodide v0.24.1 포함 (v1.3.1)
+
+---
+
+## 🔒 라이선스 정리 (2025-10-14)
+
+### 사용 중인 라이브러리 라이선스
+| 라이브러리 | 라이선스 | 상업적 사용 | 비고 |
+|-----------|---------|-----------|------|
+| NumPy | BSD-3 | ✅ 가능 | 제약 없음 |
+| SciPy | BSD-3 | ✅ 가능 | 제약 없음 |
+| Pandas | BSD-3 | ✅ 가능 | 제약 없음 |
+| statsmodels | BSD-3 | ✅ 가능 | 제약 없음 |
+| scikit-learn | BSD-3 | ✅ 가능 | 제약 없음 |
+| ~~pingouin~~ | GPL-3.0 | ❌ **불가** | **제거 완료** |
+
+### 결론
+**모든 통계 라이브러리가 BSD-3 라이선스로 상업적 사용 가능합니다.**
 
 ---
 
 **작성자**: Claude Code
-**최종 수정**: 2025-10-13 17:30
+**최종 수정**: 2025-10-14 (pingouin 제거)
 **버전**: Phase 5-2

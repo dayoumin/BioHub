@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pyodide v0.28.3 호환성 테스트</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js"></script>
+</head>
+<body>
+    <h1>Pyodide v0.28.3 호환성 테스트</h1>
+    <pre id="output">로딩 중...</pre>
+
+    <script>
+        async function main() {
+            const output = document.getElementById('output');
+            output.textContent = 'Pyodide 로딩 중...\n';
+
+            try {
+                // Pyodide 로드
+                const pyodide = await loadPyodide({
+                    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.28.3/full/'
+                });
+                output.textContent += '✅ Pyodide v0.28.3 로드 성공\n';
+
+                // NumPy, SciPy 로드
+                output.textContent += 'NumPy, SciPy, statsmodels 로딩 중...\n';
+                await pyodide.loadPackage(['numpy', 'scipy', 'pandas', 'statsmodels']);
+                output.textContent += '✅ 패키지 로드 성공\n\n';
+
+                // 버전 확인
+                const versions = await pyodide.runPythonAsync(`
+import json
+import numpy as np
+import scipy
+import pandas as pd
+import statsmodels
+
+versions = {
+    'numpy': np.__version__,
+    'scipy': scipy.__version__,
+    'pandas': pd.__version__,
+    'statsmodels': statsmodels.__version__
+}
+json.dumps(versions)
+                `);
+
+                const versionData = JSON.parse(versions);
+                output.textContent += '📦 패키지 버전:\n';
+                output.textContent += `- NumPy: ${versionData.numpy}\n`;
+                output.textContent += `- SciPy: ${versionData.scipy}\n`;
+                output.textContent += `- Pandas: ${versionData.pandas}\n`;
+                output.textContent += `- statsmodels: ${versionData.statsmodels}\n\n`;
+
+                // Worker 2 partial_correlation 테스트
+                output.textContent += 'Worker 2 (partial_correlation) 테스트 중...\n';
+
+                const worker2Response = await fetch('/workers/python/worker2-hypothesis.py');
+                const worker2Code = await worker2Response.text();
+                await pyodide.runPythonAsync(worker2Code);
+
+                const partialCorrTest = await pyodide.runPythonAsync(`
+import json
+import numpy as np
+
+# 테스트 데이터 생성
+np.random.seed(42)
+n = 50
+Z1 = np.random.randn(n)
+X = 0.8 * Z1 + 0.2 * np.random.randn(n)
+Y = 0.7 * Z1 + 0.3 * np.random.randn(n)
+
+# 데이터 행렬 구성
+data_matrix = np.column_stack([X, Y, Z1])
+
+# partial_correlation 실행
+result = partial_correlation(data_matrix, 0, 1, [2])
+json.dumps(result)
+                `);
+
+                const partialCorrResult = JSON.parse(partialCorrTest);
+                output.textContent += '✅ partial_correlation 테스트 성공!\n';
+                output.textContent += `- Correlation: ${partialCorrResult.correlation.toFixed(4)}\n`;
+                output.textContent += `- p-value: ${partialCorrResult.pValue.toFixed(4)}\n`;
+                output.textContent += `- df: ${partialCorrResult.df}\n`;
+                output.textContent += `- n: ${partialCorrResult.nObservations}\n`;
+                output.textContent += `- CI: [${partialCorrResult.confidenceInterval.lower.toFixed(4)}, ${partialCorrResult.confidenceInterval.upper.toFixed(4)}]\n\n`;
+
+                // Worker 4 PCA 테스트 (NumPy 2.x SVD)
+                output.textContent += 'Worker 4 (PCA with NumPy SVD) 테스트 중...\n';
+
+                const worker4Response = await fetch('/workers/python/worker4-regression-advanced.py');
+                const worker4Code = await worker4Response.text();
+                await pyodide.runPythonAsync(worker4Code);
+
+                const pcaTest = await pyodide.runPythonAsync(`
+import json
+data = [[1, 2, 3], [2, 3, 4], [3, 4, 5], [4, 5, 6]]
+result = pca_analysis(data, n_components=2)
+json.dumps(result)
+                `);
+
+                const pcaResult = JSON.parse(pcaTest);
+                output.textContent += '✅ PCA (NumPy 2.2.5 SVD) 테스트 성공!\n';
+                output.textContent += `- Components: ${pcaResult.components.length}x${pcaResult.components[0].length}\n`;
+                output.textContent += `- Explained Variance: ${pcaResult.explainedVarianceRatio.map(v => v.toFixed(3)).join(', ')}\n\n`;
+
+                output.textContent += '🎉 모든 테스트 성공! Pyodide v0.28.3 호환성 확인 완료!\n';
+
+            } catch (error) {
+                output.textContent += `\n❌ 에러 발생:\n${error}\n${error.stack}`;
+            }
+        }
+
+        main();
+    </script>
+</body>
+</html>
