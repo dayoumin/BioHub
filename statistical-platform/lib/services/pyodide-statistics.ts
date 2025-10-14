@@ -1,8 +1,17 @@
 /**
- * Pyodide 기반 통계 계산 서비스
+ * ⚠️⚠️⚠️ IMPORTANT: Python Worker 호출 래퍼 전용 파일 ⚠️⚠️⚠️
  *
- * 모든 통계 계산은 Python의 SciPy/NumPy를 통해 수행되어야 합니다.
- * JavaScript 통계 라이브러리는 신뢰성이 검증되지 않았으므로 사용하지 않습니다.
+ * 이 파일은 Python Worker를 호출하는 TypeScript 래퍼만 포함합니다.
+ *
+ * ❌ 새 메서드를 이 파일에 직접 추가하지 마세요!
+ * ✅ 올바른 방법:
+ *    1. Python Worker 파일에 함수 추가 (public/workers/python/worker*.py)
+ *    2. 이 파일에 callWorkerMethod 래퍼만 추가
+ *    3. Registry 메타데이터 추가 (lib/statistics/registry/method-metadata.ts)
+ *    4. Groups 핸들러 추가 (lib/statistics/groups/*.group.ts)
+ *
+ * 모든 통계 계산은 Python의 SciPy/statsmodels를 통해 수행됩니다.
+ * JavaScript로 통계 알고리즘을 직접 구현하지 마세요!
  */
 
 import type {
