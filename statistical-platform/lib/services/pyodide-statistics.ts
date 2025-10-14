@@ -496,35 +496,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     equalVariance: boolean
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import levene_test
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = levene_test(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Levene test 실행 실패: ${parsed.error}`)
-    }
-
-    return {
-      statistic: parsed.statistic,
-      pValue: parsed.pValue,
-      equalVariance: parsed.equalVariance
-    }
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      equalVariance: boolean
+    }>(
+      2,
+      'levene_test',
+      { groups },
+      { errorMessage: 'Levene test 실행 실패' }
+    )
   }
 
   /**
@@ -599,35 +580,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     isNormal: boolean
   }> {
-    await this.initialize()
-    await this.ensureWorker1Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker1_module import kolmogorov_smirnov_test
-
-      data = ${JSON.stringify(data)}
-
-      try:
-        result = kolmogorov_smirnov_test(data)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`K-S test 실행 실패: ${parsed.error}`)
-    }
-
-    return {
-      statistic: parsed.statistic,
-      pValue: parsed.pValue,
-      isNormal: parsed.isNormal
-    }
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      isNormal: boolean
+    }>(
+      1,
+      'kolmogorov_smirnov_test',
+      { data },
+      { errorMessage: 'K-S test 실행 실패' }
+    )
   }
 
   /**
@@ -2338,7 +2300,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     await this.ensureWorkerLoaded(2)
 
     if (!this.pyodide) {
-      throw new Error('Pyodide가 초기화되지 않았습니다')
+      throw new Error('Pyodide가 초기���되지 않았습니다')
     }
 
     const observedJson = JSON.stringify(observed)
