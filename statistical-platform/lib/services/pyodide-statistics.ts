@@ -2517,6 +2517,110 @@ sys.modules['${moduleName}'] = ${moduleName}
   /**
    * Pyodide 초기화 여부 확인
    */
+
+  /**
+   * 카이제곱 적합도 검정 (Chi-Square Goodness of Fit Test)
+   */
+  async chiSquareGoodnessTest(
+    observed: number[],
+    expected?: number[] | null,
+    alpha: number = 0.05
+  ): Promise<{
+    chiSquare: number
+    pValue: number
+    degreesOfFreedom: number
+    criticalValue: number
+    reject: boolean
+    observed: number[]
+    expected: number[]
+  }> {
+    await this.initialize()
+    await this.ensureWorkerLoaded(2)
+
+    if (!this.pyodide) {
+      throw new Error('Pyodide가 초기화되지 않았습니다')
+    }
+
+    const observedJson = JSON.stringify(observed)
+    const expectedJson = expected ? JSON.stringify(expected) : 'None'
+
+    const resultStr = await this.pyodide.runPythonAsync(`
+      import json
+      from worker2_hypothesis import chi_square_goodness_test
+      observed = json.loads('${observedJson}')
+      expected = json.loads('${expectedJson}') if '${expectedJson}' != 'None' else None
+      result = chi_square_goodness_test(observed, expected, ${alpha})
+      json.dumps(result)
+    `)
+
+    return this.parsePythonResult(resultStr)
+  }
+
+  /**
+   * 카이제곱 독립성 검정 (Chi-Square Test of Independence)
+   */
+  async chiSquareIndependenceTest(
+    observedMatrix: number[][],
+    yatesCorrection: boolean = false,
+    alpha: number = 0.05
+  ): Promise<{
+    chiSquare: number
+    pValue: number
+    degreesOfFreedom: number
+    criticalValue: number
+    reject: boolean
+    cramersV: number
+    observedMatrix: number[][]
+    expectedMatrix: number[][]
+  }> {
+    await this.initialize()
+    await this.ensureWorkerLoaded(2)
+
+    if (!this.pyodide) {
+      throw new Error('Pyodide가 초기화되지 않았습니다')
+    }
+
+    const matrixJson = JSON.stringify(observedMatrix)
+    const yates = yatesCorrection ? 'True' : 'False'
+
+    const resultStr = await this.pyodide.runPythonAsync(`
+      import json
+      from worker2_hypothesis import chi_square_independence_test
+      observed_matrix = json.loads('${matrixJson}')
+      result = chi_square_independence_test(observed_matrix, ${yates}, ${alpha})
+      json.dumps(result)
+    `)
+
+    return this.parsePythonResult(resultStr)
+  }
+
+
+  // ========================================
+  // 메서드 별칭 (Method Aliases)
+  // 레거시 코드 호환성을 위한 별칭
+  // ========================================
+
+  /**
+   * 별칭: calculateDescriptiveStats → descriptiveStats
+   */
+  async calculateDescriptiveStats(data: number[]): Promise<any> {
+    return this.descriptiveStats(data)
+  }
+
+  /**
+   * 별칭: twoWayANOVA → twoWayAnovaWorker
+   */
+  async twoWayANOVA(...args: Parameters<typeof this.twoWayAnovaWorker>): Promise<ReturnType<typeof this.twoWayAnovaWorker>> {
+    return this.twoWayAnovaWorker(...args)
+  }
+
+  /**
+   * 별칭: repeatedMeasuresAnova → repeatedMeasuresAnovaWorker
+   */
+  async repeatedMeasuresAnova(...args: Parameters<typeof this.repeatedMeasuresAnovaWorker>): Promise<ReturnType<typeof this.repeatedMeasuresAnovaWorker>> {
+    return this.repeatedMeasuresAnovaWorker(...args)
+  }
+
   isInitialized(): boolean {
     const initialized = this.pyodide !== null
     console.log(`[PyodideService.isInitialized] ${initialized ? '초기화됨' : '초기화 안됨'}`)

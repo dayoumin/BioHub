@@ -336,3 +336,83 @@ def bartlett_test(groups):
         'pValue': _safe_float(p_value),
         'equalVariance': p_value > 0.05
     }
+
+
+def chi_square_goodness_test(observed, expected=None, alpha=0.05):
+    """
+    카이제곱 적합도 검정 (Chi-Square Goodness of Fit Test)
+    
+    단일 범주형 변수가 예상 분포를 따르는지 검정
+    """
+    observed = np.array(observed, dtype=float)
+    
+    # None/NaN 제거
+    observed = observed[~np.isnan(observed)]
+    
+    if len(observed) < 2:
+        raise ValueError("Observed frequencies must have at least 2 values")
+    
+    if expected is None:
+        # 균등 분포 가정
+        expected = np.full_like(observed, np.sum(observed) / len(observed))
+    else:
+        expected = np.array(expected, dtype=float)
+        expected = expected[~np.isnan(expected)]
+        
+        if len(observed) != len(expected):
+            raise ValueError("Observed and expected must have same length")
+    
+    # SciPy chisquare 사용
+    chi2_stat, p_value = stats.chisquare(f_obs=observed, f_exp=expected)
+    
+    df = len(observed) - 1
+    critical_value = stats.chi2.ppf(1 - alpha, df)
+    
+    return {
+        'chiSquare': float(chi2_stat),
+        'pValue': _safe_float(p_value),
+        'degreesOfFreedom': int(df),
+        'criticalValue': float(critical_value),
+        'reject': bool(p_value < alpha),
+        'observed': observed.tolist(),
+        'expected': expected.tolist()
+    }
+
+
+def chi_square_independence_test(observed_matrix, yates_correction=False, alpha=0.05):
+    """
+    카이제곱 독립성 검정 (Chi-Square Test of Independence)
+    
+    두 범주형 변수 간 독립성 검정 (분할표)
+    """
+    observed = np.array(observed_matrix, dtype=float)
+    
+    if observed.size == 0:
+        raise ValueError("Empty observed matrix")
+    
+    if observed.ndim != 2:
+        raise ValueError("Observed matrix must be 2-dimensional")
+    
+    # SciPy chi2_contingency 사용
+    chi2_stat, p_value, dof, expected = stats.chi2_contingency(
+        observed, 
+        correction=yates_correction
+    )
+    
+    critical_value = stats.chi2.ppf(1 - alpha, dof)
+    
+    # Cramér's V (효과 크기)
+    n = np.sum(observed)
+    min_dim = min(observed.shape[0], observed.shape[1])
+    cramers_v = np.sqrt(chi2_stat / (n * (min_dim - 1))) if min_dim > 1 else 0.0
+    
+    return {
+        'chiSquare': float(chi2_stat),
+        'pValue': _safe_float(p_value),
+        'degreesOfFreedom': int(dof),
+        'criticalValue': float(critical_value),
+        'reject': bool(p_value < alpha),
+        'cramersV': float(cramers_v),
+        'observedMatrix': observed.tolist(),
+        'expectedMatrix': expected.tolist()
+    }
