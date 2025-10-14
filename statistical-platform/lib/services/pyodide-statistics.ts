@@ -942,32 +942,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     method: string
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import correlation_test
-
-      x = ${JSON.stringify(x)}
-      y = ${JSON.stringify(y)}
-
-      try:
-        result = correlation_test(x, y, method='${method}')
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Correlation test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      correlation: number
+      pValue: number
+      method: string
+    }>(
+      2,
+      'correlation_test',
+      { x, y, method },
+      { errorMessage: 'Correlation test 실행 실패' }
+    )
   }
 
   /**
@@ -1016,32 +1000,19 @@ sys.modules['${moduleName}'] = ${moduleName}
     mean2: number
     meanDiff: number
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import t_test_two_sample
-
-      group1 = ${JSON.stringify(group1)}
-      group2 = ${JSON.stringify(group2)}
-
-      try:
-        result = t_test_two_sample(group1, group2, equal_var=${equalVar})
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Two-sample t-test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      df: number
+      mean1: number
+      mean2: number
+      meanDiff: number
+    }>(
+      2,
+      't_test_two_sample',
+      { group1, group2, equal_var: equalVar },
+      { errorMessage: 'Two-sample t-test 실행 실패' }
+    )
   }
 
   /**
@@ -1053,32 +1024,17 @@ sys.modules['${moduleName}'] = ${moduleName}
     df: number
     meanDiff: number
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import t_test_paired
-
-      values1 = ${JSON.stringify(values1)}
-      values2 = ${JSON.stringify(values2)}
-
-      try:
-        result = t_test_paired(values1, values2)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Paired t-test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      df: number
+      meanDiff: number
+    }>(
+      2,
+      't_test_paired',
+      { values1, values2 },
+      { errorMessage: 'Paired t-test 실행 실패' }
+    )
   }
 
   /**
@@ -1090,31 +1046,17 @@ sys.modules['${moduleName}'] = ${moduleName}
     df: number
     sampleMean: number
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import t_test_one_sample
-
-      data = ${JSON.stringify(data)}
-
-      try:
-        result = t_test_one_sample(data, popmean=${popmean})
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`One-sample t-test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      df: number
+      sampleMean: number
+    }>(
+      2,
+      't_test_one_sample',
+      { data, popmean },
+      { errorMessage: 'One-sample t-test 실행 실패' }
+    )
   }
 
   /**
@@ -1125,31 +1067,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     sampleMean: number
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import z_test
-
-      data = ${JSON.stringify(data)}
-
-      try:
-        result = z_test(data, popmean=${popmean}, popstd=${popstd})
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Z-test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      zStatistic: number
+      pValue: number
+      sampleMean: number
+    }>(
+      2,
+      'z_test',
+      { data, popmean, popstd },
+      { errorMessage: 'Z-test 실행 실패' }
+    )
   }
 
   /**
@@ -1161,31 +1088,17 @@ sys.modules['${moduleName}'] = ${moduleName}
     df: number
     expectedMatrix: number[][]
   }> {
-    await this.initialize()
-    await this.ensureWorker2Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker2_module import chi_square_test
-
-      observed_matrix = ${JSON.stringify(observedMatrix)}
-
-      try:
-        result = chi_square_test(observed_matrix, yates_correction=${yatesCorrection})
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-
-    if (parsed.error) {
-      throw new Error(`Chi-square test 실행 실패: ${parsed.error}`)
-    }
-
-    return parsed
+    return this.callWorkerMethod<{
+      chiSquare: number
+      pValue: number
+      df: number
+      expectedMatrix: number[][]
+    }>(
+      2,
+      'chi_square_test',
+      { observed_matrix: observedMatrix, yates_correction: yatesCorrection },
+      { errorMessage: 'Chi-square test 실행 실패' }
+    )
   }
 
   /**
