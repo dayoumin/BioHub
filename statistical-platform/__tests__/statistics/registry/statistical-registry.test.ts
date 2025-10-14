@@ -19,9 +19,9 @@ describe('StatisticalRegistry - Day 1', () => {
   })
 
   describe('메타데이터 검증', () => {
-    it('50개 메서드 메타데이터가 정의되어 있어야 함', () => {
+    it('60개 메서드 메타데이터가 정의되어 있어야 함', () => {
       const methodIds = Object.keys(METHOD_METADATA)
-      expect(methodIds).toHaveLength(50)
+      expect(methodIds).toHaveLength(60)
     })
 
     it('모든 메서드가 그룹에 속해야 함', () => {

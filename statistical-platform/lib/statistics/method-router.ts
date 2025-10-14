@@ -17,10 +17,6 @@ import { createAdvancedHandlers } from './calculator-handlers/advanced'
 import { createReliabilityHandlers } from './calculator-handlers/reliability'
 import { createCrosstabHandlers } from './calculator-handlers/crosstab'
 import { createProportionTestHandlers } from './calculator-handlers/proportion-test'
-import { createNonparametricExtendedHandlers } from './calculator-handlers/nonparametric-extended'
-import { createAnovaExtendedHandlers } from './calculator-handlers/anova-extended'
-import { createRegressionExtendedHandlers } from './calculator-handlers/regression-extended'
-import { createAdvancedExtendedHandlers } from './calculator-handlers/advanced-extended'
 
 /**
  * 메서드 라우터 클래스
@@ -49,11 +45,7 @@ export class MethodRouter {
       createAdvancedHandlers,
       createReliabilityHandlers,
       createProportionTestHandlers,
-      createCrosstabHandlers,
-      createNonparametricExtendedHandlers,
-      createAnovaExtendedHandlers,
-      createRegressionExtendedHandlers,
-      createAdvancedExtendedHandlers
+      createCrosstabHandlers
     ]
 
     handlerFactories.forEach(factory => {
