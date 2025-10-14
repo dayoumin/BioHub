@@ -2112,27 +2112,17 @@ sys.modules['${moduleName}'] = ${moduleName}
     dfBetween: number
     dfWithin: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import one_way_anova
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = one_way_anova(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`One-way ANOVA 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      fStatistic: number
+      pValue: number
+      dfBetween: number
+      dfWithin: number
+    }>(
+      3,
+      'one_way_anova',
+      { groups },
+      { errorMessage: 'One-way ANOVA 실행 실���' }
+    )
   }
 
   async twoWayAnovaWorker(dataValues: number[], factor1Values: (string | number)[], factor2Values: (string | number)[]): Promise<{
@@ -2140,29 +2130,16 @@ sys.modules['${moduleName}'] = ${moduleName}
     mainEffect2: { fStatistic: number; pValue: number }
     interaction: { fStatistic: number; pValue: number }
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import two_way_anova
-
-      data_values = ${JSON.stringify(dataValues)}
-      factor1_values = ${JSON.stringify(factor1Values)}
-      factor2_values = ${JSON.stringify(factor2Values)}
-
-      try:
-        result = two_way_anova(data_values, factor1_values, factor2_values)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Two-way ANOVA 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      mainEffect1: { fStatistic: number; pValue: number }
+      mainEffect2: { fStatistic: number; pValue: number }
+      interaction: { fStatistic: number; pValue: number }
+    }>(
+      3,
+      'two_way_anova',
+      { data_values: dataValues, factor1_values: factor1Values, factor2_values: factor2Values },
+      { errorMessage: 'Two-way ANOVA 실행 실패' }
+    )
   }
 
   async tukeyHSDWorker(groups: number[][]): Promise<{
@@ -2174,27 +2151,20 @@ sys.modules['${moduleName}'] = ${moduleName}
       reject: boolean
     }>
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import tukey_hsd
-
-      groups = ${JSON.stringify(groups)}
-
-      try:
-        result = tukey_hsd(groups)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Tukey HSD test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      comparisons: Array<{
+        group1: number
+        group2: number
+        meanDiff: number
+        pValue: number
+        reject: boolean
+      }>
+    }>(
+      3,
+      'tukey_hsd',
+      { groups },
+      { errorMessage: 'Tukey HSD test 실행 실패' }
+    )
   }
 
   async signTestWorker(before: number[], after: number[]): Promise<{
@@ -2203,28 +2173,17 @@ sys.modules['${moduleName}'] = ${moduleName}
     nPositive: number
     nNegative: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import sign_test
-
-      before = ${JSON.stringify(before)}
-      after = ${JSON.stringify(after)}
-
-      try:
-        result = sign_test(before, after)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Sign test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      nPositive: number
+      nNegative: number
+    }>(
+      3,
+      'sign_test',
+      { before, after },
+      { errorMessage: 'Sign test 실행 실패' }
+    )
   }
 
   async runsTestWorker(sequence: (number | string)[]): Promise<{
@@ -2233,54 +2192,32 @@ sys.modules['${moduleName}'] = ${moduleName}
     zStatistic: number
     pValue: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import runs_test
-
-      sequence = ${JSON.stringify(sequence)}
-
-      try:
-        result = runs_test(sequence)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`Runs test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      nRuns: number
+      expectedRuns: number
+      zStatistic: number
+      pValue: number
+    }>(
+      3,
+      'runs_test',
+      { sequence },
+      { errorMessage: 'Runs test 실행 실패' }
+    )
   }
 
   async mcnemarTestWorker(contingencyTable: number[][]): Promise<{
     statistic: number
     pValue: number
   }> {
-    await this.initialize()
-    await this.ensureWorker3Loaded()
-
-    const resultStr = await this.pyodide!.runPythonAsync(`
-      import json
-      from worker3_module import mcnemar_test
-
-      contingency_table = ${JSON.stringify(contingencyTable)}
-
-      try:
-        result = mcnemar_test(contingency_table)
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    const parsed = this.parsePythonResult<any>(resultStr)
-    if (parsed.error) throw new Error(`McNemar test 실행 실패: ${parsed.error}`)
-    return parsed
+    return this.callWorkerMethod<{
+      statistic: number
+      pValue: number
+    }>(
+      3,
+      'mcnemar_test',
+      { contingency_table: contingencyTable },
+      { errorMessage: 'McNemar test 실행 실패' }
+    )
   }
 
   async cochranQTestWorker(dataMatrix: number[][]): Promise<{
