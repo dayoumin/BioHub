@@ -7,7 +7,7 @@
 
 ## 🎯 진행 중 작업
 
-**없음** (Option A 리팩토링 및 테스트 검증 완료!)
+**대기 중** (PR #1 병합 대기)
 
 ---
 
@@ -54,18 +54,29 @@
 - Worker 4: 10개 (regression, logistic, PCA, factor, cluster, timeseries 등)
 
 **다음 단계**:
-- TypeScript 빌드 최종 확인
-- PR 생성 및 master 병합
+- ✅ TypeScript 빌드 확인 완료
+- ✅ PR #1 생성 완료
+- 🔲 PR #1 병합 (내일)
 
 ---
 
 ## 📋 대기 중 작업
 
-1. **최종 빌드 확인** (즉시)
-   - `npm run build` 실행
-   - 빌드 에러 0개 확인
+1. **PR #1 병합** (내일 첫 작업)
+   - https://github.com/dayoumin/Statistics/pull/1
+   - Labels 추가: `refactoring`
+   - Merge 실행
 
-2. **테스트 파일 타입 에러 수정** (별도 이슈)
+2. **Phase 5-2: Worker Pool Lazy Loading** (내일 시작)
+   - 📝 상세 계획: [phase5-2-worker-pool-plan.md](docs/planning/phase5-2-worker-pool-plan.md)
+   - 예상 기간: 1.5-2일 (8-12시간)
+   - 목표: 초기 로딩 11초 → 0.8초 (92% 개선)
+   - 작업 내용:
+     - Day 1: Worker Pool 인프라 (480줄)
+     - Day 2: 패키지 로더 & 통합 (300줄)
+     - Day 3: 최적화 & 테스트 (500줄)
+
+3. **테스트 파일 타입 에러 수정** (별도 이슈)
    - __tests__ 디렉토리 타입 에러 (핵심 로직 아님)
    - 통합 테스트 타입 정의 업데이트
    - 우선순위: 낮음 (핵심 기능에 영향 없음)

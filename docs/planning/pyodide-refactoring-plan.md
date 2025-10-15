@@ -376,13 +376,15 @@ async descriptiveStats(data: number[]): Promise<DescriptiveStatsResult> {
 
 ---
 
-## 3. Option B: 장기 계획
+## 3. Option B: 장기 계획 (워커별 서비스 분리)
 
 ### 3.1. 목표
-- Worker별 서비스 분리
-- Facade 패턴으로 기존 API 유지
-- 병렬 개발 가능
-- 기간: 3-4일 (Phase 9)
+- Worker별 서비스 분리 (Worker 1-4 독립 클래스)
+- Facade 패턴으로 기존 API 유지 (외부 호출 무변경)
+- 병렬 개발 가능 (팀 협업 시 파일 충돌 최소화)
+- 테스트 독립성 향상 (Worker별 단위 테스트)
+- 기간: 6-8일 (Phase 9)
+- 전제조건: ✅ Option A 완료 필수
 
 ### 3.2. 아키텍처 설계
 
@@ -546,36 +548,393 @@ export class PyodideStatisticsService {
 
 ---
 
-### 3.3. 구현 일정
+### 3.3. 상세 구현 계획 (사용자 제안 반영)
 
-#### Day 1 (4시간)
-- [ ] PyodideManager 구현
-- [ ] Worker1Service 구현 (10개 메서드)
-- [ ] Facade 구현 (Worker1 위임)
-- [ ] 테스트 실행
+#### Phase 1: 현재 구조 파악 및 문서화 (Day 1-2, 8시간)
 
-#### Day 2 (6시간)
-- [ ] Worker2Service (20개 메서드)
-- [ ] Worker3Service (30개 메서드)
-- [ ] Worker4Service (10개 메서드)
-- [ ] 테스트 실행
+**목표**:
+- pyodide-statistics.ts의 모든 메서드/유틸/초기화 흐름 완전 분석
+- 함수별 호출 그래프 작성
+- 의존 관계 매핑 (예: 두 메서드가 서로 재사용하는 유틸)
 
-#### Day 3 (4시간)
-- [ ] Facade에서 복잡한 메서드 구현
-  - `checkAllAssumptions()`
-  - `correlation()`
-  - `calculateCorrelation()`
-  - `performBonferroni()`
-- [ ] 전체 테스트 실행
+**작업 내용**:
+1. **Worker별 메서드 분류** (2시간)
+   - Worker 1: 10개 메서드 → 의존성 분석
+   - Worker 2: 20개 메서드 → 의존성 분석
+   - Worker 3: 30개 메서드 → 의존성 분석
+   - Worker 4: 10개 메서드 → 의존성 분석
+   - 공통 헬퍼 식별: `callWorkerMethod`, `parsePythonResult`, `validateWorkerParam` 등
 
-#### Day 4 (2시간)
-- [ ] 문서 업데이트
-- [ ] 최종 검증
-- [ ] Git 커밋 및 PR
+2. **초기화 흐름 분석** (2시간)
+   - `initialize()` → Pyodide CDN 로드 → 패키지 로드
+   - `ensureWorkerLoaded(workerNum)` → Worker 파일 fetch → 모듈 등록
+   - 싱글톤 패턴 분석 (`getInstance()`)
+   - 상태 관리: `pyodide`, `loadedWorkers`, `packagesLoaded`
+
+3. **UI 레이어 반환 타입 정리** (2시간)
+   - Groups가 기대하는 모든 반환 타입 수집
+   - 타입 호환성 확인 (Worker 서비스 분리 후에도 유지)
+   - 특수 케이스: `checkAllAssumptions()`, `performBonferroni()` 등 복잡한 메서드
+
+4. **호출 그래프 문서화** (2시간)
+   - Mermaid 다이어그램 작성
+   - 순환 의존성 체크
+   - 공통 유틸 재사용 패턴 분석
+
+**산출물**:
+- `docs/planning/option-b-structure-analysis.md` (구조 분석 보고서)
+- `docs/planning/option-b-call-graph.md` (호출 그래프 다이어그램)
+- `docs/planning/option-b-type-compatibility.md` (타입 호환성 체크리스트)
 
 ---
 
-### 3.4. 예상 효과
+#### Phase 2: 사전 준비 - 공통 모듈 추출 (Day 3-4, 8시간)
+
+**목표**:
+- 공통 헬퍼/초기화 로직을 `services/pyodide/core` 모듈로 이동
+- 향후 Worker 서비스에서 재사용 가능하도록 인터페이스 정의
+- 싱글톤/상태 관리 안전성 검증
+
+**작업 내용**:
+
+1. **PyodideCore 모듈 생성** (3시간)
+   ```typescript
+   // services/pyodide/core/pyodide-core.ts
+   export class PyodideCore {
+     private static instance: PyodideCore | null = null
+     private pyodide: PyodideInterface | null = null
+     private loadedWorkers = new Set<number>()
+
+     // 초기화
+     async initialize(): Promise<PyodideInterface>
+
+     // Worker 로딩
+     async ensureWorkerLoaded(workerNum: 1 | 2 | 3 | 4): Promise<void>
+
+     // Python 실행 (Option A의 callWorkerMethod 이동)
+     async callWorkerMethod<T>(...): Promise<T>
+
+     // 상태 관리
+     isInitialized(): boolean
+     dispose(): void
+   }
+   ```
+
+2. **공통 유틸리티 모듈 생성** (2시간)
+   ```typescript
+   // services/pyodide/core/utils.ts
+   export function parsePythonResult<T>(payload: any): T
+   export function validateWorkerParam(key: string, value: WorkerMethodParam): void
+   export function isPythonError(obj: unknown): obj is PythonErrorResponse
+   ```
+
+3. **타입 정의 모듈 생성** (1시간)
+   ```typescript
+   // services/pyodide/core/types.ts
+   export type WorkerMethodParam = number | string | boolean | number[] | ...
+   export interface WorkerMethodOptions { ... }
+   export interface PythonErrorResponse { ... }
+   ```
+
+4. **기존 코드에서 공통 모듈 사용** (2시간)
+   - pyodide-statistics.ts에서 PyodideCore import
+   - 기존 메서드들이 PyodideCore 사용하도록 수정
+   - 테스트 실행 → 회귀 확인
+
+**검증 포인트**:
+- ✅ PyodideCore 싱글톤 동작 확인
+- ✅ 여러 Worker 서비스가 동일한 Pyodide 인스턴스 공유
+- ✅ 상태 공유 문제 없음 (Worker 로드 상태, 패키지 로드 상태)
+
+**산출물**:
+- `services/pyodide/core/pyodide-core.ts` (250줄)
+- `services/pyodide/core/utils.ts` (100줄)
+- `services/pyodide/core/types.ts` (50줄)
+
+---
+
+#### Phase 3: 워커별 서비스 클래스 분할 (Day 5-6, 10시간)
+
+**목표**: Worker 1-4용 독립 서비스 클래스 생성
+
+**순서**: Worker 4 → Worker 3 → Worker 2 → Worker 1 (의존도 높은 것부터)
+
+**작업 내용**:
+
+1. **Worker 4 서비스 생성** (2시간)
+   ```typescript
+   // services/pyodide/workers/worker4-regression.service.ts
+   export class Worker4RegressionService {
+     private core: PyodideCore
+
+     constructor(core: PyodideCore) {
+       this.core = core
+     }
+
+     // 10개 메서드 이동
+     async linearRegression(x: number[], y: number[]): Promise<RegressionResult>
+     async multipleRegression(X: number[][], y: number[]): Promise<any>
+     async logisticRegression(X: number[][], y: number[]): Promise<any>
+     async pcaAnalysis(dataMatrix: number[][], nComponents: number): Promise<any>
+     async factorAnalysis(dataMatrix: number[][], options: any): Promise<any>
+     async clusterAnalysis(dataMatrix: number[][], options: any): Promise<any>
+     async timeSeriesAnalysis(data: number[], options: any): Promise<any>
+     async durbinWatsonTest(residuals: number[]): Promise<any>
+     // ... (총 10개)
+   }
+   ```
+   - 리턴 타입 유지 (UI 레이어 호환성)
+   - 후처리 로직도 함께 이동 (예: 예측값 계산, 포맷팅)
+   - 타입 체크: `npx tsc --noEmit`
+
+2. **Worker 3 서비스 생성** (3시간)
+   ```typescript
+   // services/pyodide/workers/worker3-nonparametric.service.ts
+   export class Worker3NonparametricService {
+     private core: PyodideCore
+
+     // 30개 메서드 이동 (비모수 + ANOVA)
+     async mannWhitneyTest(group1: number[], group2: number[]): Promise<any>
+     async wilcoxonTest(values1: number[], values2: number[]): Promise<any>
+     async kruskalWallisTest(groups: number[][]): Promise<any>
+     async friedmanTest(groups: number[][]): Promise<any>
+     async oneWayAnova(groups: number[][]): Promise<any>
+     async twoWayAnova(dataValues: number[], factor1: any[], factor2: any[]): Promise<any>
+     async tukeyHSD(groups: number[][]): Promise<any>
+     async dunnTest(groups: number[][], groupNames: string[], pAdjust: string): Promise<any>
+     async gamesHowellTest(groups: number[][], groupNames: string[]): Promise<any>
+     // ... (총 30개)
+   }
+   ```
+   - 특수 후처리: Dunn/Games-Howell의 `groupName` 매핑 로직 포함
+   - 타입 체크
+
+3. **Worker 2 서비스 생성** (3시간)
+   ```typescript
+   // services/pyodide/workers/worker2-hypothesis.service.ts
+   export class Worker2HypothesisService {
+     private core: PyodideCore
+
+     // 20개 메서드 이동 (가설검정)
+     async tTestOneSample(data: number[], popmean: number): Promise<any>
+     async tTestTwoSample(group1: number[], group2: number[], equalVar: boolean): Promise<any>
+     async tTestPaired(values1: number[], values2: number[]): Promise<any>
+     async correlationTest(x: number[], y: number[], method: string): Promise<any>
+     async partialCorrelation(dataMatrix: number[][], xIdx: number, yIdx: number, controlIndices: number[]): Promise<any>
+     async chiSquareTest(observedMatrix: number[][], yatesCorrection: boolean): Promise<any>
+     async leveneTest(groups: number[][]): Promise<any>
+     async bartlettTest(groups: number[][]): Promise<any>
+     // ... (총 20개)
+   }
+   ```
+   - 타입 체크
+
+4. **Worker 1 서비스 생성** (2시간)
+   ```typescript
+   // services/pyodide/workers/worker1-descriptive.service.ts
+   export class Worker1DescriptiveService {
+     private core: PyodideCore
+
+     // 10개 메서드 이동 (기술통계)
+     async descriptiveStats(data: number[]): Promise<DescriptiveStatsResult>
+     async normalityTest(data: number[], alpha: number): Promise<NormalityTestResult>
+     async outlierDetection(data: number[], method: string): Promise<OutlierResult>
+     async frequencyAnalysis(values: (string | number)[]): Promise<any>
+     async crosstabAnalysis(rowValues: any[], colValues: any[]): Promise<any>
+     async oneSampleProportionTest(...): Promise<any>
+     async cronbachAlpha(itemsMatrix: number[][]): Promise<any>
+     async kolmogorovSmirnovTest(data: number[]): Promise<any>
+     // ... (총 10개)
+   }
+   ```
+   - 타입 체크
+
+**검증 포인트** (각 Worker 완료 후):
+- ✅ `npx tsc --noEmit` → 에러 0개
+- ✅ Worker 서비스 단위 테스트 작성 (Mock PyodideCore)
+- ✅ 기존 메서드와 동일한 반환 타입 확인
+
+**산출물**:
+- `services/pyodide/workers/worker1-descriptive.service.ts` (400줄)
+- `services/pyodide/workers/worker2-hypothesis.service.ts` (500줄)
+- `services/pyodide/workers/worker3-nonparametric.service.ts` (700줄)
+- `services/pyodide/workers/worker4-regression.service.ts` (300줄)
+
+---
+
+#### Phase 4: 상위 파사드 구축 (Day 7, 4시간)
+
+**목표**: 기존 pyodide-statistics.ts를 Facade 계층으로 축소
+
+**작업 내용**:
+
+1. **Facade 클래스 재구성** (2시간)
+   ```typescript
+   // services/pyodide-statistics.ts (350줄)
+   export class PyodideStatisticsService {
+     private static instance: PyodideStatisticsService | null = null
+     private core: PyodideCore
+     private worker1: Worker1DescriptiveService
+     private worker2: Worker2HypothesisService
+     private worker3: Worker3NonparametricService
+     private worker4: Worker4RegressionService
+
+     private constructor() {
+       this.core = PyodideCore.getInstance()
+       this.worker1 = new Worker1DescriptiveService(this.core)
+       this.worker2 = new Worker2HypothesisService(this.core)
+       this.worker3 = new Worker3NonparametricService(this.core)
+       this.worker4 = new Worker4RegressionService(this.core)
+     }
+
+     // ========== Worker 위임 (70개 메서드) ==========
+     async descriptiveStats(data: number[]) {
+       return this.worker1.descriptiveStats(data)
+     }
+
+     async tTestOneSample(data: number[], popmean?: number) {
+       return this.worker2.tTestOneSample(data, popmean ?? 0)
+     }
+
+     // ========== 복잡한 메서드 (여러 Worker 조합) ==========
+     async checkAllAssumptions(data: any) {
+       const results: any = {}
+       if (data.values) {
+         results.normality = await this.worker1.normalityTest(data.values)
+       }
+       if (data.groups) {
+         results.homogeneity = await this.worker2.leveneTest(data.groups)
+       }
+       if (data.residuals) {
+         results.independence = await this.worker4.durbinWatsonTest(data.residuals)
+       }
+       return results
+     }
+
+     async correlation(x: number[], y: number[]) {
+       const pearsonResult = await this.worker2.correlationTest(x, y, 'pearson')
+       const spearmanResult = await this.worker2.correlationTest(x, y, 'spearman')
+       const kendallResult = await this.worker2.correlationTest(x, y, 'kendall')
+       return { pearson: {...}, spearman: {...}, kendall: {...} }
+     }
+
+     // ========== 레거시 별칭 유지 ==========
+     async calculateDescriptiveStats(data: number[]) {
+       return this.descriptiveStats(data)
+     }
+   }
+   ```
+
+2. **Barrel 파일 생성** (1시간)
+   ```typescript
+   // services/pyodide/index.ts
+   export { PyodideStatisticsService, pyodideStats } from './pyodide-statistics'
+   export { PyodideCore } from './core/pyodide-core'
+   export * from './core/types'
+   ```
+
+3. **기존 import 경로 확인** (1시간)
+   - Groups: `@/lib/services/pyodide-statistics` → 유지
+   - calculator-handlers: 동일
+   - app 페이지: 동일
+   - **결론**: 외부 코드 수정 불필요 ✅
+
+**검증 포인트**:
+- ✅ 외부 호출부 (`StatisticalCalculator` 등) 코드 변경 0개
+- ✅ `pyodideStats.<method>()` 모든 호출 동작 확인
+- ✅ 타입 체크: `npx tsc --noEmit`
+
+---
+
+#### Phase 5: 검증 및 마이그레이션 (Day 8, 4시간)
+
+**작업 내용**:
+
+1. **TypeScript 컴파일 체크** (30분)
+   ```bash
+   npx tsc --noEmit
+   # 목표: 에러 0개
+   ```
+
+2. **주요 워커 기능 통합 테스트** (2시간)
+   - Worker 1: `descriptiveStats()`, `normalityTest()`
+   - Worker 2: `tTestTwoSample()`, `correlationTest()`
+   - Worker 3: `oneWayAnova()`, `tukeyHSD()`
+   - Worker 4: `linearRegression()`, `pcaAnalysis()`
+   - 복잡한 메서드: `checkAllAssumptions()`, `correlation()`
+
+3. **핵심 통계 시나리오 UI 스모크 테스트** (1시간)
+   - app/descriptive 페이지: 기술통계 + 정규성 검정
+   - app/t-test 페이지: 독립표본 t-검정
+   - app/anova 페이지: 일원분산분석 + Tukey HSD
+   - app/regression 페이지: 단순선형회귀
+
+4. **개발자 문서 갱신** (30분)
+   - `docs/architecture/pyodide-service-architecture.md` 생성
+     - PyodideCore 사용법
+     - Worker 서비스 독립 개발 가이드
+     - 새 메서드 추가 프로세스 (어떤 Worker에 추가?)
+   - CLAUDE.md 업데이트 (새 구조 반영)
+
+**최종 체크리스트**:
+- [ ] TypeScript 컴파일 에러 0개
+- [ ] 모든 통합 테스트 통과
+- [ ] UI 스모크 테스트 통과
+- [ ] 개발자 문서 갱신 완료
+- [ ] Git 커밋 및 PR 생성
+
+---
+
+### 3.4. 단점 보완 전략
+
+#### 단점 1: 파일/클래스 분산으로 인한 관리 비용
+**대응**:
+- ✅ Barrel 파일 (`index.ts`) 사용 → 외부에서 간단히 import
+- ✅ 문서화: 각 Worker 책임 명확히 정리
+- ✅ 명명 규칙 통일: `Worker[N][Category]Service`
+
+#### 단점 2: 중복 코드 위험
+**대응**:
+- ✅ 공통 DTO/파서/에러 핸들러를 `core/utils.ts`로 모음
+- ✅ Worker 서비스는 `PyodideCore.callWorkerMethod()` 재사용
+- ✅ 코드 리뷰 시 중복 체크
+
+#### 단점 3: 상태 공유 문제
+**대응**:
+- ✅ **싱글톤 PyodideCore**: 모든 Worker가 동일한 Pyodide 인스턴스 공유
+- ✅ **의존성 주입**: Worker 서비스는 생성자에서 PyodideCore 받음
+- ✅ **상태 캡슐화**: Worker 로드 상태는 PyodideCore만 관리
+
+#### 단점 4: 테스트 복잡도 증가
+**대응**:
+- ✅ **공용 인터페이스**: Mock PyodideCore로 모든 Worker 테스트
+- ✅ **통합 테스트 유지**: Facade API 기준 테스트 → 기존 테스트 재사용
+- ✅ **단위 테스트 추가**: Worker별 독립 테스트 (더 빠른 피드백)
+
+---
+
+### 3.5. 점진적 리팩토링 실행 순서 (요약)
+
+```
+Phase 1 (Day 1-2): 구조 파악 → 문서화
+  ↓
+Phase 2 (Day 3-4): 공통 모듈 추출 (PyodideCore, utils, types)
+  ↓
+Phase 3 (Day 5-6): Worker 서비스 분할 (Worker 4→3→2→1)
+  ↓
+Phase 4 (Day 7): Facade 재구성 (위임 + 복잡한 메서드)
+  ↓
+Phase 5 (Day 8): 검증 + 테스트 + 문서 갱신
+```
+
+**각 단계마다**:
+- ✅ TypeScript 빌드 (`npx tsc --noEmit`)
+- ✅ 테스트 실행 (회귀 방지)
+- ✅ Git 커밋 (단계별 롤백 가능)
+
+---
+
+### 3.6. 예상 효과
 
 | 지표 | Before (Option A) | After (Option B) | 개선 |
 |------|-------------------|------------------|------|
@@ -583,6 +942,28 @@ export class PyodideStatisticsService {
 | **병렬 개발** | 불가 (코드 충돌) | 가능 (독립 파일) | **∞** |
 | **테스트 속도** | 전체 실행 | Worker별 실행 | **4배 ↑** |
 | **확장성** | 중간 | 높음 | **67% ↑** |
+| **신규 메서드 추가** | 1개 파일 수정 | 해당 Worker만 수정 | **4배 ↑** |
+| **코드 리뷰** | 2,000줄 검토 | 500줄 검토 | **4배 ↑** |
+
+**파일 구조 변화**:
+```
+Before (Option A):
+  pyodide-statistics.ts (1,500줄)
+
+After (Option B):
+  pyodide-statistics.ts (350줄, Facade)
+  core/
+    pyodide-core.ts (250줄)
+    utils.ts (100줄)
+    types.ts (50줄)
+  workers/
+    worker1-descriptive.service.ts (400줄)
+    worker2-hypothesis.service.ts (500줄)
+    worker3-nonparametric.service.ts (700줄)
+    worker4-regression.service.ts (300줄)
+
+총 줄 수: 1,500줄 → 2,650줄 (증가하지만 구조화됨)
+```
 
 ---
 

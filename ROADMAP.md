@@ -126,36 +126,47 @@ Phase 6+: 고도화 (예정)
 
 ## 🔄 진행 중인 Phase
 
-### Phase 5-2: 우선순위 1-2 메서드 통합 (진행 중)
+### Phase 5-2: 구현 검증 및 TypeScript 래퍼 추가 (진행 중)
 
-**목표**: 우선순위 1-2 (24개) 메서드 pyodide-statistics.ts 통합
+**목표**: Python Worker 구현 100% TypeScript 래퍼 완성
 
-**현황**:
-- ✅ Python 코드 작성 완료 (priority1-implementation.md, priority2-implementation.md)
-- ✅ 메타데이터 등록 완료 (60개 중 24개)
-- 🔄 **pyodide-statistics.ts 통합 필요** (현재 41개 → 목표 65개)
+**정확한 현황** (2025-10-15 검증):
+- ✅ **Python Worker 함수**: 55개 (100% 완성)
+- ✅ **TypeScript 메서드**: 76개 (별칭 포함)
+- ✅ **완전 매칭**: 43개 (78%)
+- ⚠️ **TypeScript 래퍼 필요**: 12개 (22%)
 
 **작업 내용**:
-1. pyodide-statistics.ts에 24개 메서드 추가
-2. TypeScript 타입 정의 및 검증
-3. Groups 핸들러 연결 확인
-4. 통합 테스트 작성
+1. ✅ 실제 파일 검증 스크립트 작성 (generate-complete-mapping.js)
+2. ✅ 정확한 매핑 테이블 생성 (implementation-status.md)
+3. 🔄 TypeScript 래퍼 12개 추가
+4. ✅ 문서 전면 업데이트
 
-**우선순위 1 (11개)**:
-- frequency, crosstab, oneSampleProportionTest, zTest, binomialTest
-- partialCorrelation, signTest, runsTest, mcNemarTest
-- cochranQTest, moodMedianTest
+**TypeScript 래퍼 추가 필요 (12개)** - 모두 Worker 4:
+| # | Python 함수 | TypeScript 메서드 | 우선순위 |
+|---|-------------|------------------|---------|
+| 1 | linear_regression | linearRegression | High |
+| 2 | pca_analysis | pcaAnalysis | High |
+| 3 | curve_estimation | curveEstimation | High |
+| 4 | binary_logistic | binaryLogistic | High |
+| 5 | nonlinear_regression | nonlinearRegression | Medium |
+| 6 | stepwise_regression | stepwiseRegression | Medium |
+| 7 | multinomial_logistic | multinomialLogistic | Medium |
+| 8 | ordinal_logistic | ordinalLogistic | Medium |
+| 9 | probit_regression | probitRegression | Medium |
+| 10 | poisson_regression | poissonRegression | Medium |
+| 11 | durbin_watson_test | durbinWatsonTest | Medium |
+| 12 | negative_binomial_regression | negativeBinomialRegression | Low |
 
-**우선순위 2 (13개)**:
-- curveEstimation, nonlinearRegression, stepwiseRegression
-- binaryLogistic, multinomialLogistic, ordinalLogistic
-- probitRegression, poissonRegression, negativeBinomial
-- repeatedMeasuresAnova, ancova, manova, scheffeTest
+**최종 목표**:
+- 현재: 43/55 (78%)
+- 목표: 55/55 (100%)
+- 예상 시간: 3시간
 
-**문서**:
-- [implementation-summary.md](statistical-platform/docs/implementation-summary.md)
-- [priority1-implementation.md](statistical-platform/docs/priority1-implementation.md)
-- [priority2-implementation.md](statistical-platform/docs/priority2-implementation.md)
+**문서** (✅ 최신):
+- **[implementation-status.md](docs/implementation-status.md)** ⭐ 정확한 매핑 테이블
+- [complete-mapping.json](statistical-platform/complete-mapping.json) - 기계 판독용
+- [generate-complete-mapping.js](statistical-platform/generate-complete-mapping.js) - 검증 스크립트
 
 ---
 
@@ -349,22 +360,31 @@ Phase 6+: 고도화 (예정)
 
 ---
 
-## 📊 현재 구현 현황 (2025-10-13 기준)
+## 📊 현재 구현 현황 (2025-10-15 검증)
 
-### 통계 메서드 구현 상태
+### 통계 메서드 구현 상태 (정확한 현황)
 
-| 카테고리 | 메타데이터 등록 | Python 구현 | 완료율 |
-|---------|----------------|------------|--------|
-| 기술통계 (Descriptive) | 10개 | 10개 | 100% |
-| 가설검정 (Hypothesis) | 8개 | 8개 | 100% |
-| 회귀분석 (Regression) | 12개 | 5개 | 42% |
-| 비모수 (Nonparametric) | 9개 | 6개 | 67% |
-| 분산분석 (ANOVA) | 9개 | 6개 | 67% |
-| 고급분석 (Advanced) | 12개 | 6개 | 50% |
-| **합계** | **60개** | **41개** | **68%** |
+| Worker | Python 함수 | TypeScript 래퍼 | 완료율 |
+|--------|------------|----------------|--------|
+| **Worker 1: Descriptive** | 8개 | 8개 | **100%** ✅ |
+| **Worker 2: Hypothesis** | 12개 | 12개 | **100%** ✅ |
+| **Worker 3: Nonparametric + ANOVA** | 18개 | 18개 | **100%** ✅ |
+| **Worker 4: Regression + Advanced** | 17개 | 5개 | **29%** ⚠️ |
+| **합계** | **55개** | **43개** | **78%** |
+
+### Worker별 상세 현황
+
+**✅ Worker 1-3: 완전 구현** (38/38, 100%)
+- Worker 1: descriptive_stats, normality_test, outlier_detection, frequency_analysis, crosstab_analysis, one_sample_proportion_test, cronbach_alpha, kolmogorov_smirnov_test
+- Worker 2: 모든 t-test 변형, z_test, chi_square (3종), binomial_test, correlation_test, partial_correlation, levene_test, bartlett_test
+- Worker 3: 모든 비모수 검정 (9개), 모든 ANOVA (9개)
+
+**⚠️ Worker 4: 부분 구현** (5/17, 29%)
+- ✅ 구현: multiple_regression, logistic_regression, factor_analysis, cluster_analysis, time_series_analysis
+- ❌ 미구현: linear_regression, pca_analysis, curve_estimation, binary_logistic, multinomial_logistic, ordinal_logistic, probit_regression, poisson_regression, negative_binomial_regression, nonlinear_regression, stepwise_regression, durbin_watson_test (12개)
 
 ### 다음 단계 (Phase 5-2)
-**우선순위 1-2: 24개 메서드 통합** → **85% 달성 목표** (41개 → 65개)
+**Worker 4 TypeScript 래퍼 12개 추가** → **100% 달성** (43개 → 55개)
 
 ---
 
@@ -430,6 +450,7 @@ Phase 6+: 고도화 (예정)
 
 ---
 
-**최종 업데이트**: 2025-10-13
-**현재 Phase**: 5-2 (우선순위 1-2 메서드 통합)
-**다음 마일스톤**: Phase 5-3 (Worker Pool 통합)
+**최종 업데이트**: 2025-10-15
+**현재 Phase**: 5-2 (구현 검증 및 TypeScript 래퍼 추가)
+**현재 진행률**: 43/55 (78%) → 목표 55/55 (100%)
+**다음 마일스톤**: Phase 5-3 (Worker Pool Lazy Loading)
