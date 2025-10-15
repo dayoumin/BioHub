@@ -77,6 +77,16 @@ function isPythonError(obj: unknown): obj is PythonErrorResponse {
   )
 }
 
+/**
+ * Worker별 추가 패키지 정의 (Phase 5-2 Lazy Loading)
+ */
+const WORKER_EXTRA_PACKAGES = Object.freeze<Record<1 | 2 | 3 | 4, readonly string[]>>({
+  1: [], // Worker 1: NumPy + SciPy (이미 로드됨)
+  2: ['statsmodels', 'pandas'], // Worker 2: partial correlation 등에서 statsmodels/pandas 사용
+  3: ['statsmodels', 'pandas'], // Worker 3: statsmodels + pandas 의존
+  4: ['statsmodels', 'scikit-learn'] // Worker 4: statsmodels + sklearn 추가
+});
+
 export class PyodideStatisticsService {
   private static instance: PyodideStatisticsService | null = null
   private pyodide: PyodideInterface | null = null
@@ -432,14 +442,7 @@ export class PyodideStatisticsService {
     const startTime = performance.now()
 
     // Phase 5-2: Worker별 필요 패키지 동적 로드
-    const workerPackages: Record<number, string[]> = {
-      1: [],  // Worker 1: NumPy + SciPy (이미 로드됨)
-      2: ['statsmodels', 'pandas'],  // Worker 2: partial correlation 등에서 statsmodels/pandas 사용
-      3: ['statsmodels', 'pandas'],  // Worker 3: statsmodels + pandas 의존
-      4: ['statsmodels', 'scikit-learn']  // Worker 4: statsmodels + sklearn 추가
-    }
-
-    const packagesToLoad = workerPackages[workerNum] || []
+    const packagesToLoad = WORKER_EXTRA_PACKAGES[workerNum] ?? []
 
     if (packagesToLoad.length > 0) {
       console.log(`[Worker ${workerNum}] 추가 패키지 로딩: ${packagesToLoad.join(', ')}`)
