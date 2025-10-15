@@ -9,7 +9,8 @@ import { Progress } from '@/components/ui/progress'
 import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { cn } from '@/lib/utils'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
+import { ChevronRight } from 'lucide-react'
 import { DataValidationService, DATA_LIMITS } from '@/lib/services/data-validation-service'
 import { LargeFileProcessor, ProcessingProgress } from '@/lib/services/large-file-processor'
 import { ExcelProcessor, SheetInfo } from '@/lib/services/excel-processor'
@@ -23,26 +24,23 @@ import {
 } from '@/components/ui/select'
 
 import type { DataUploadStepProps } from '@/types/smart-flow-navigation'
+import { UI_TEXT } from '@/lib/constants/ui-text'
 
 export function DataUploadStep({
-  onUploadComplete
+  onUploadComplete,
+  onNext,
+  canGoNext,
+  currentStep,
+  totalSteps
 }: DataUploadStepProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<ProcessingProgress | null>(null)
   const [memoryWarning, setMemoryWarning] = useState(false)
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [excelSheets, setExcelSheets] = useState<SheetInfo[] | null>(null)
   const [selectedSheet, setSelectedSheet] = useState<number>(0)
   const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null)
-
-  // Helper: 업로드 성공 처리 (DRY 원칙)
-  const handleUploadSuccess = useCallback((file: File, data: DataRow[]) => {
-    onUploadComplete(file, data)
-    toast.success('파일 업로드 성공', {
-      description: `${data.length.toLocaleString()}행의 데이터를 불러왔습니다`
-    })
-    setIsUploading(false)
-  }, [onUploadComplete])
 
   const handleFileProcess = useCallback(async (file: File) => {
     setIsUploading(true)
@@ -119,7 +117,12 @@ export function DataUploadStep({
             return
           }
 
-          handleUploadSuccess(file, dataRows)
+          setUploadedFileName(file.name)
+          onUploadComplete(file, dataRows)
+          toast.success('파일 업로드 성공', {
+            description: `${dataRows.length.toLocaleString()}행의 데이터를 불러왔습니다`
+          })
+          setIsUploading(false)
           setProgress(null)
         } else {
           // 일반 처리 (작은 파일)
@@ -150,7 +153,12 @@ export function DataUploadStep({
                 return
               }
 
-              handleUploadSuccess(file, dataRows)
+              setUploadedFileName(file.name)
+              onUploadComplete(file, dataRows)
+              toast.success('파일 업로드 성공', {
+                description: `${dataRows.length.toLocaleString()}행의 데이터를 불러왔습니다`
+              })
+              setIsUploading(false)
             },
             header: true,
             dynamicTyping: true,
@@ -190,7 +198,12 @@ export function DataUploadStep({
             maxRows: DATA_LIMITS.MAX_ROWS
           })
 
-          handleUploadSuccess(file, data)
+          setUploadedFileName(file.name)
+          onUploadComplete(file, data)
+          toast.success('Excel 파일 업로드 성공', {
+            description: `${data.length.toLocaleString()}행의 데이터를 불러왔습니다`
+          })
+          setIsUploading(false)
         } else {
           // 다중 시트면 선택 UI 표시
           setExcelSheets(sheets)
@@ -211,7 +224,7 @@ export function DataUploadStep({
       })
       setIsUploading(false)
     }
-  }, [handleUploadSuccess])
+  }, [onUploadComplete])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -232,17 +245,22 @@ export function DataUploadStep({
         maxRows: DATA_LIMITS.MAX_ROWS
       })
 
-      handleUploadSuccess(pendingExcelFile, data)
+      setUploadedFileName(pendingExcelFile.name)
+      onUploadComplete(pendingExcelFile, data)
+      toast.success('Excel 시트 로드 성공', {
+        description: `${data.length.toLocaleString()}행의 데이터를 불러왔습니다`
+      })
 
       // 상태 초기화
       setExcelSheets(null)
       setPendingExcelFile(null)
       setSelectedSheet(0)
+      setIsUploading(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Excel 시트 처리 중 오류가 발생했습니다.')
       setIsUploading(false)
     }
-  }, [pendingExcelFile, selectedSheet, handleUploadSuccess])
+  }, [pendingExcelFile, selectedSheet, onUploadComplete])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -256,29 +274,25 @@ export function DataUploadStep({
   })
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>데이터 업로드</CardTitle>
-        <CardDescription>분석할 파일을 선택하세요</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div
+    <div className="space-y-6">
+      <div 
         {...getRootProps()}
         className={cn(
-          "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
+          "border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer",
           isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50",
           isUploading && "pointer-events-none opacity-50"
         )}
       >
         <input {...getInputProps()} />
-        <Upload className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-        <h3 className="text-base font-semibold mb-2">
+        <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-lg font-semibold mb-2">
           {isDragActive ? '파일을 놓으세요' : '파일을 드래그하거나 클릭하여 업로드'}
         </h3>
-        <p className="text-sm text-muted-foreground mb-3">
-          CSV 최대 100MB, Excel 최대 20MB | 최대 {DATA_LIMITS.MAX_ROWS.toLocaleString()}행
-        </p>
-        <Button variant="outline" disabled={isUploading} size="sm">
+        <div className="space-y-1 text-sm text-muted-foreground mb-4">
+          <p>최대 파일 크기: 50MB | 최대 데이터: 100,000행</p>
+          <p>지원 형식: CSV (Excel은 CSV로 변환 필요)</p>
+        </div>
+        <Button variant="outline" disabled={isUploading}>
           {isUploading ? '업로드 중...' : '파일 선택'}
         </Button>
       </div>
@@ -380,9 +394,9 @@ export function DataUploadStep({
       )}
 
       {/* 도움말 */}
-      <div className="bg-muted/50 rounded-lg p-3">
-        <h4 className="text-sm font-medium mb-1.5">💡 도움말</h4>
-        <ul className="text-xs text-muted-foreground space-y-0.5">
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-medium mb-2">💡 도움말</h4>
+        <ul className="text-sm text-muted-foreground space-y-1">
           <li>• 첫 번째 행은 변수명(헤더)이어야 합니다</li>
           <li>• CSV: 최대 100MB | Excel: 최대 20MB</li>
           <li>• Excel 파일의 경우 여러 시트가 있으면 선택할 수 있습니다</li>
@@ -390,7 +404,6 @@ export function DataUploadStep({
           <li>• 결측값은 빈 셀로 표시해주세요</li>
         </ul>
       </div>
-      </CardContent>
-    </Card>
+    </div>
   )
 }

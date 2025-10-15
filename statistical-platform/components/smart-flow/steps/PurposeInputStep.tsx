@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { ChevronRight, AlertCircle, Check, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MethodSelector } from './purpose/MethodSelector'
@@ -241,13 +240,8 @@ export function PurposeInputStep({
   }, [selectedMethod, canGoNext])
 
   return (
-    <Card className="w-full h-full flex flex-col">
-      <CardHeader>
-        <CardTitle>Step 3: 분석 목표 설정</CardTitle>
-      </CardHeader>
-
-      <CardContent className="flex-1 overflow-auto">
-        <div className="space-y-6">
+    <div className="w-full h-full flex flex-col space-y-6">
+      <div className="space-y-6">
           {/* 분석 목적 입력 */}
           <div>
             <label className="text-sm font-medium mb-2 block">
@@ -338,7 +332,7 @@ export function PurposeInputStep({
             </Alert>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

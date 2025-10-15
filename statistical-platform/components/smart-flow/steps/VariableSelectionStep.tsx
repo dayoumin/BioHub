@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -104,9 +103,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               변수 선택
@@ -123,9 +121,9 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             </Badge>
           )}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent>
+      <div className="space-y-6">
         {/* UI 모드 선택 */}
         <Tabs value={selectedMode} onValueChange={(v) => setSelectedMode(v as any)} className="mb-4">
           <TabsList className="grid w-full grid-cols-3">
@@ -197,7 +195,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             </AlertDescription>
           </Alert>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

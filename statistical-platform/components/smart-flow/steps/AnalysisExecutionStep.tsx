@@ -10,7 +10,6 @@ import {
   Play,
   X
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -19,7 +18,6 @@ import type { AnalysisResult } from '@/lib/services/executors'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
-import { UI_TEXT } from '@/lib/constants/ui-text'
 import type { AnalysisExecutionStepProps } from '@/types/smart-flow-navigation'
 import type { StatisticalMethod } from '@/lib/statistics/method-mapping'
 
@@ -229,16 +227,8 @@ export function AnalysisExecutionStep({
   }, [uploadedData])
 
   return (
-    <Card className="w-full h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5" />
-          {UI_TEXT.analysisExecution.title}
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="flex-1 overflow-auto">
-        <div className="space-y-6">
+    <div className="w-full h-full flex flex-col space-y-6">
+      <div className="space-y-6">
           {/* 오류 표시 */}
           {error && (
             <Alert variant="destructive">
@@ -414,7 +404,7 @@ export function AnalysisExecutionStep({
             </Alert>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
