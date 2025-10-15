@@ -342,19 +342,19 @@ export class PyodideStatisticsService {
 
     // 필수 패키지 로드 (캐싱됨)
     if (!this.packagesLoaded) {
-      console.log('[PyodideService] 패키지 로딩 중... (numpy, scipy, pandas)')
+      console.log('[PyodideService] 패키지 로딩 중... (numpy, scipy)')
       const startTime = performance.now()
       try {
-        // 핵심 패키지 로드 (pandas 포함 - import에서 필요)
-        await this.pyodide.loadPackage(['numpy', 'scipy', 'pandas'])
+        // Phase 5-2: 초기 로딩 최적화 - NumPy + SciPy만 로드 (11초 → 2초)
+        // 모든 Worker가 SciPy를 사용하므로 scipy 필수
+        await this.pyodide.loadPackage(['numpy', 'scipy'])
         console.log('[PyodideService] 핵심 패키지 로드 완료')
 
-        // 추가 패키지는 백그라운드에서 로드
-        this.loadAdditionalPackages()
+        // 추가 패키지는 Worker 로드 시 동적 로드 (ensureWorkerLoaded)
         this.packagesLoaded = true
 
         const loadTime = ((performance.now() - startTime) / 1000).toFixed(2)
-        console.log(`[PyodideService] 초기 패키지 로드 시간: ${loadTime}초`)
+        console.log(`[PyodideService] 초기 패키지 로드 시간: ${loadTime}초 (최적화: pandas 제외)`)
       } catch (error) {
         console.error('[PyodideService] 패키지 로드 실패:', error)
         throw error
@@ -364,18 +364,16 @@ export class PyodideStatisticsService {
     }
 
 
-    // 기본 imports
+    // 기본 imports (pandas 제외)
     console.log('[PyodideService] Python 기본 imports 실행 중...')
     await this.pyodide.runPythonAsync(`
       import numpy as np
       from scipy import stats
       import json
-
-      import pandas as pd
       import warnings
       warnings.filterwarnings('ignore')
     `)
-    console.log('[PyodideService] 초기화 완료!')
+    console.log('[PyodideService] 초기화 완료! (pandas는 필요시 Worker에서 로드)')
   }
 
   /**
@@ -411,6 +409,7 @@ export class PyodideStatisticsService {
 
   /**
    * Worker 로드 공통 함수
+   * Phase 5-2: Worker별 패키지 Lazy Loading 추가
    */
   private async ensureWorkerLoaded(workerNum: 1 | 2 | 3 | 4): Promise<void> {
     if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
@@ -424,7 +423,37 @@ export class PyodideStatisticsService {
       '${moduleName}' in sys.modules
     `)
 
-    if (isLoaded === true) return
+    if (isLoaded === true) {
+      console.log(`[Worker ${workerNum}] 이미 로드됨`)
+      return
+    }
+
+    console.log(`[Worker ${workerNum}] 로딩 시작...`)
+    const startTime = performance.now()
+
+    // Phase 5-2: Worker별 필요 패키지 동적 로드
+    const workerPackages: Record<number, string[]> = {
+      1: [],  // Worker 1: NumPy + SciPy (이미 로드됨)
+      2: ['statsmodels', 'pandas'],  // Worker 2: partial correlation 등에서 statsmodels/pandas 사용
+      3: ['statsmodels', 'pandas'],  // Worker 3: statsmodels + pandas 의존
+      4: ['statsmodels', 'scikit-learn']  // Worker 4: statsmodels + sklearn 추가
+    }
+
+    const packagesToLoad = workerPackages[workerNum] || []
+
+    if (packagesToLoad.length > 0) {
+      console.log(`[Worker ${workerNum}] 추가 패키지 로딩: ${packagesToLoad.join(', ')}`)
+      const packageStartTime = performance.now()
+
+      try {
+        await this.pyodide.loadPackage(packagesToLoad)
+        const packageLoadTime = ((performance.now() - packageStartTime) / 1000).toFixed(2)
+        console.log(`[Worker ${workerNum}] 패키지 로드 완료 (${packageLoadTime}초)`)
+      } catch (error) {
+        console.error(`[Worker ${workerNum}] 패키지 로드 실패:`, error)
+        throw error
+      }
+    }
 
     // Worker 파일 fetch
     const response = await fetch(`/workers/python/worker${workerNum}-${fileName}.py`)
@@ -439,6 +468,9 @@ ${moduleName} = ModuleType('${moduleName}')
 exec("""${workerCode.replace(/`/g, '\\`')}""", ${moduleName}.__dict__)
 sys.modules['${moduleName}'] = ${moduleName}
     `)
+
+    const loadTime = ((performance.now() - startTime) / 1000).toFixed(2)
+    console.log(`[Worker ${workerNum}] 로드 완료 (총 ${loadTime}초)`)
   }
 
   /**
