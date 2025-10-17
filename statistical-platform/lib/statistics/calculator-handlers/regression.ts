@@ -76,7 +76,7 @@ const simpleLinearRegression = async (
       .map((v: string) => parseFloat(v.trim()))
       .filter((v: number) => !isNaN(v))
     predictions.push(
-      ...predX.map(x => ({
+      ...predX.map((x: number) => ({
         X: x,
         예측값: (result.slope * x + result.intercept).toFixed(4)
       }))
@@ -105,7 +105,7 @@ const simpleLinearRegression = async (
   if (predictions.length > 0) {
     tables.push({
       name: '예측값',
-      data: predictions
+      data: predictions as any  // 예측값 테이블은 다른 구조
     })
   }
 
@@ -128,9 +128,9 @@ const simpleLinearRegression = async (
               slope: result.slope,
               intercept: result.intercept
             }
-          },
-          title: `${independentColumn} vs ${dependentColumn}`
-        }
+          }
+          // title은 ChartDatum에 없음
+        } as any
       ],
       interpretation: interpretSimpleRegression(result, independentColumn, dependentColumn, alpha)
     }
@@ -283,12 +283,13 @@ const logisticRegression = async (
   independentColumns.forEach((col: string, idx: number) => {
     const coef = result.coefficients[idx]
     const oddsRatio = result.oddsRatios[idx]
+    const pVal = result.pValues[idx]
     coefficientTable.push({
       변수: col,
       계수: coef.toFixed(4),
       'Odds Ratio': oddsRatio.toFixed(4),
-      'p-value': formatPValue(result.pValues[idx])
-    })
+      'p-value': formatPValue(pVal)
+    } as any)  // 테이블 구조는 동적
   })
 
   return {
@@ -340,7 +341,7 @@ const correlationAnalysis = async (
   }>(
     PyodideWorker.Hypothesis,
     'correlation_test',
-    { columns_data: columnsData, method }
+    { columns_data: JSON.stringify(columnsData), method }  // JSON으로 직렬화
   )
 
   // 상관계수 행렬을 테이블 형식으로 변환

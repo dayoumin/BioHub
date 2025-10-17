@@ -8,14 +8,12 @@
  */
 
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
-import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 import { useAnalysisCacheStore } from '@/lib/stores/analysis-cache-store'
 import type { CalculationResult } from '@/types/statistics/calculation'
 import { MethodRouter } from './method-router'
 
 export class StatisticalCalculator {
   private static pyodideCore = PyodideCoreService.getInstance()
-  private static pyodideService = PyodideStatisticsService.getInstance()
   private static initializationPromise: Promise<void> | null = null
   private static router: MethodRouter | null = null
 
@@ -62,8 +60,7 @@ export class StatisticalCalculator {
       // 라우터 초기화 (Pyodide 초기화 후)
       if (!this.router) {
         this.router = new MethodRouter({
-          pyodideCore: this.pyodideCore,
-          pyodideService: this.pyodideService
+          pyodideCore: this.pyodideCore
         })
       }
 
