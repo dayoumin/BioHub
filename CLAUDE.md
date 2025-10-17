@@ -246,6 +246,138 @@ npx tsc --noEmit     # 타입 체크
 npm run lint         # 린터
 ```
 
+## 🚀 배포 방식 (CRITICAL - 데이터 프라이버시)
+
+### 배포 철학: 100% 로컬 실행, 데이터 외부 유출 없음
+
+**이 프로젝트의 핵심 가치**:
+- ✅ **연구 데이터 보안**: 의료/수산과학 데이터는 절대 외부로 전송 안 됨
+- ✅ **개인 PC에서만 실행**: Pyodide가 브라우저에서 Python 실행
+- ✅ **서버 없음**: Static HTML 배포로 서버 의존성 제거
+
+### Static HTML Export (권장 배포 방식)
+
+**설정 완료** (2025-10-17):
+```typescript
+// next.config.ts
+const nextConfig: NextConfig = {
+  output: 'export',           // Static HTML 생성
+  trailingSlash: true,       // 정적 호스팅 호환
+  images: { unoptimized: true }, // 이미지 최적화 비활성화
+}
+```
+
+**빌드 명령어**:
+```bash
+npm run build
+# → out/ 폴더에 순수 HTML/CSS/JS 생성
+```
+
+**배포 위치** (`out/` 폴더):
+```
+out/
+├── index.html              # 메인 페이지
+├── statistics/             # 통계 분석 페이지들
+│   ├── anova/
+│   ├── regression/
+│   ├── pca/
+│   └── ... (60개 페이지)
+├── _next/                  # Next.js 최적화된 JS/CSS
+└── favicon.ico
+```
+
+### 배포 옵션 비교
+
+| 방식 | 서버 필요 | 데이터 전송 | 비용 | 사용 대상 |
+|------|----------|------------|------|----------|
+| **Static HTML** (권장) | ❌ | ❌ 없음 | 무료 | 개인 PC, 연구실 |
+| 서버 배포 (Vercel 등) | ✅ | ⚠️ 가능 | 유료 | 공개 서비스 |
+
+### Static HTML 배포 방법
+
+#### Option A: 로컬 파일로 사용 (가장 안전)
+```bash
+# 1. 빌드
+npm run build
+
+# 2. out/ 폴더를 원하는 위치에 복사
+cp -r out/ ~/Desktop/통계프로그램/
+
+# 3. index.html을 브라우저로 열기
+# → 완전히 오프라인에서 작동
+```
+
+#### Option B: GitHub Pages (무료 호스팅)
+```bash
+# 1. 빌드
+npm run build
+
+# 2. GitHub Pages 설정 (Settings → Pages)
+# 3. gh-pages 브랜치에 out/ 폴더 푸시
+```
+
+#### Option C: Netlify/Vercel Static (무료)
+- `out/` 폴더 드래그 앤 드롭
+- 자동 HTTPS
+- CDN 가속
+
+### 데이터 보안 보장
+
+**Static HTML 방식의 보안성**:
+```
+사용자 PC (브라우저)
+  ↓
+HTML 로드 (로컬 또는 CDN)
+  ↓
+Pyodide 로드 (CDN: https://cdn.jsdelivr.net/pyodide/)
+  ↓
+Python 코드 실행 (브라우저 메모리)
+  ↓
+통계 계산 (SciPy/statsmodels)
+  ↓
+결과 표시 (브라우저)
+
+✅ 데이터는 절대 외부로 전송되지 않음!
+```
+
+**vs 서버 방식 (사용 안 함)**:
+```
+사용자 PC → 인터넷 → 서버 → 계산 → 결과
+         ↑
+    ❌ 데이터 유출 위험!
+```
+
+### 주의사항
+
+1. **Dynamic Routes 제한**:
+   - `/results/[id]` 같은 동적 라우트는 사용 불가
+   - 해결: 제거하거나 클라이언트 사이드 라우팅 사용
+
+2. **API Routes 사용 불가**:
+   - `app/api/` 폴더는 Static Export에서 작동 안 함
+   - 해결: 모든 로직을 클라이언트에서 처리 (Pyodide)
+
+3. **Image Optimization**:
+   - `images.unoptimized: true` 필요
+   - Next.js Image 컴포넌트는 기본 `<img>`로 변환됨
+
+### 배포 체크리스트
+
+빌드 전 확인사항:
+- [ ] `output: 'export'` 설정 확인
+- [ ] Dynamic routes 제거 또는 `generateStaticParams()` 추가
+- [ ] API routes 미사용 확인
+- [ ] Pyodide CDN 사용 (npm 패키지 아님)
+- [ ] 모든 통계 계산이 클라이언트 사이드인지 확인
+
+빌드 후 확인사항:
+- [ ] `out/` 폴더 생성 확인
+- [ ] `out/index.html` 브라우저로 열어서 테스트
+- [ ] Pyodide 초기화 성공 (콘솔 확인)
+- [ ] 통계 분석 정상 작동 확인
+
+---
+
 ## 📋 현재 작업 상태
 
 **최신 상태** (2025-10-17):

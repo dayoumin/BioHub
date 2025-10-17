@@ -2,6 +2,17 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // Static HTML export 설정 (서버 불필요)
+  output: 'export',
+
+  // Trailing slash for static hosting compatibility
+  trailingSlash: true,
+
+  // Image optimization disabled for static export
+  images: {
+    unoptimized: true,
+  },
+
   experimental: {
     optimizePackageImports: ['lucide-react', '@/components/ui']
   },
