@@ -87,6 +87,164 @@ const WORKER_EXTRA_PACKAGES = Object.freeze<Record<1 | 2 | 3 | 4, readonly strin
   4: ['statsmodels', 'scikit-learn'] // Worker 4: statsmodels + sklearn 추가
 });
 
+// ========================================
+// Worker 4 타입 정의
+// ========================================
+
+// Priority 1 메서드 타입 (3개)
+
+/**
+ * 선형 회귀분석 결과 타입 (linear_regression)
+ */
+type LinearRegressionResult = {
+  slope: number
+  intercept: number
+  rSquared: number
+  pValue: number
+  stdErr: number
+  nPairs: number
+}
+
+/**
+ * 주성분 분석 결과 타입 (pca_analysis)
+ */
+type PCAAnalysisResult = {
+  components: number[][]
+  explainedVariance: number[]
+  explainedVarianceRatio: number[]
+  cumulativeVariance: number[]
+}
+
+/**
+ * Durbin-Watson 검정 결과 타입 (durbin_watson_test)
+ */
+type DurbinWatsonTestResult = {
+  statistic: number
+  interpretation: string
+  isIndependent: boolean
+}
+
+// Priority 2 메서드 타입 (9개)
+
+/**
+ * 곡선 추정 결과 타입
+ */
+type CurveEstimationResult = {
+  modelType: string
+  coefficients: number[]
+  rSquared: number
+  predictions: number[]
+  residuals: number[]
+  nPairs: number
+}
+
+/**
+ * 비선형 회귀 결과 타입
+ */
+type NonlinearRegressionResult = {
+  modelType: string
+  parameters: number[]
+  parameterErrors: number[]
+  rSquared: number
+  predictions: number[]
+  residuals: number[]
+  nPairs: number
+}
+
+/**
+ * 단계적 회귀 결과 타입
+ */
+type StepwiseRegressionResult = {
+  selectedVariables: string[]
+  selectedIndices?: number[]
+  rSquaredHistory?: number[]
+  coefficients: number[]
+  stdErrors?: number[]
+  tValues?: number[]
+  pValues?: number[]
+  rSquared: number
+  adjustedRSquared?: number
+}
+
+/**
+ * 이항 로지스틱 회귀 결과 타입
+ */
+type BinaryLogisticResult = {
+  coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
+  pValues: number[]
+  predictions: number[]
+  accuracy: number
+  aic: number
+  bic: number
+  pseudoRSquared: number
+}
+
+/**
+ * 다항 로지스틱 회귀 결과 타입
+ */
+type MultinomialLogisticResult = {
+  coefficients: number[][]
+  pValues: number[][]
+  predictions: number[][]
+  accuracy: number
+  aic: number
+  bic: number
+}
+
+/**
+ * 순서형 로지스틱 회귀 결과 타입
+ */
+type OrdinalLogisticResult = {
+  coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
+  pValues: number[]
+  aic: number
+  bic: number
+}
+
+/**
+ * 프로빗 회귀 결과 타입
+ */
+type ProbitRegressionResult = {
+  coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
+  pValues: number[]
+  predictions: number[]
+  accuracy: number
+  aic: number
+  bic: number
+}
+
+/**
+ * 포아송 회귀 결과 타입
+ */
+type PoissonRegressionResult = {
+  coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
+  pValues: number[]
+  deviance: number
+  pearsonChi2: number
+  aic: number
+  bic: number
+}
+
+/**
+ * 음이항 회귀 결과 타입
+ */
+type NegativeBinomialRegressionResult = {
+  coefficients: number[]
+  stdErrors: number[]
+  zValues: number[]
+  pValues: number[]
+  aic: number
+  bic: number
+}
+
 export class PyodideStatisticsService {
   private static instance: PyodideStatisticsService | null = null
   private pyodide: PyodideInterface | null = null
@@ -442,7 +600,7 @@ export class PyodideStatisticsService {
     const startTime = performance.now()
 
     // Phase 5-2: Worker별 필요 패키지 동적 로드
-    const packagesToLoad = WORKER_EXTRA_PACKAGES[workerNum] ?? []
+    const packagesToLoad = [...(WORKER_EXTRA_PACKAGES[workerNum] ?? [])]
 
     if (packagesToLoad.length > 0) {
       console.log(`[Worker ${workerNum}] 추가 패키지 로딩: ${packagesToLoad.join(', ')}`)
@@ -579,21 +737,16 @@ sys.modules['${moduleName}'] = ${moduleName}
    * @param residuals 잔차 또는 시계열 데이터
    * @returns DW 통계량 (2에 가까울수록 독립적)
    */
+  /**
+   * Durbin-Watson 검정 (레거시 API)
+   * @see durbinWatsonTest - 새 메서드 사용 권장
+   */
   async testIndependence(residuals: number[]): Promise<{
     statistic: number
     interpretation: string
     isIndependent: boolean
   }> {
-    return this.callWorkerMethod<{
-      statistic: number
-      interpretation: string
-      isIndependent: boolean
-    }>(
-      4,
-      'durbin_watson_test',
-      { residuals },
-      { errorMessage: 'Durbin-Watson test 실행 실패' }
-    )
+    return this.durbinWatsonTest(residuals)
   }
 
   /**
@@ -1234,9 +1387,8 @@ sys.modules['${moduleName}'] = ${moduleName}
 
 
   /**
-   * 단순선형회귀분석
-   * @param x 독립변수
-   * @param y 종속변수
+   * 단순선형회귀분석 (레거시 API)
+   * @see linearRegression - 새 메서드 사용 권장
    */
   async regression(
     x: number[],
@@ -1252,25 +1404,22 @@ sys.modules['${moduleName}'] = ${moduleName}
     predictions?: number[]
     df?: number
   }> {
-    return this.callWorkerMethod<{
-      slope?: number
-      intercept?: number
-      rSquared: number
-      pvalue: number
-      fStatistic?: number
-      tStatistic?: number
-      predictions?: number[]
-      df?: number
-    }>(
-      4,
-      'linear_regression',
-      { x, y },
-      { errorMessage: 'Linear regression 실행 실패' }
-    )
+    const result = await this.linearRegression(x, y)
+    return {
+      slope: result.slope,
+      intercept: result.intercept,
+      rSquared: result.rSquared,
+      pvalue: result.pValue,
+      fStatistic: undefined,
+      tStatistic: undefined,
+      predictions: undefined,
+      df: result.nPairs - 2
+    }
   }
 
   /**
-   * Mann-Whitney U 검정 - Worker 3
+   * Mann-Whitney U 검정 (레거시 API)
+   * @see mannWhitneyTestWorker - 새 메서드 사용 권장
    */
   async mannWhitneyU(
     group1: number[],
@@ -1288,7 +1437,8 @@ sys.modules['${moduleName}'] = ${moduleName}
 
 
   /**
-   * Wilcoxon 부호순위 검정 - Worker 3
+   * Wilcoxon 부호순위 검정 (레거시 API)
+   * @see wilcoxonTestWorker - 새 메서드 사용 권장
    */
   async wilcoxon(
     group1: number[],
@@ -1306,7 +1456,8 @@ sys.modules['${moduleName}'] = ${moduleName}
 
 
   /**
-   * Kruskal-Wallis H 검정 - Worker 3
+   * Kruskal-Wallis H 검정 (레거시 API)
+   * @see kruskalWallisTestWorker - 새 메서드 사용 권장
    */
   async kruskalWallis(groups: number[][]): Promise<{
     statistic: number
@@ -1323,7 +1474,8 @@ sys.modules['${moduleName}'] = ${moduleName}
 
 
   /**
-   * Tukey HSD 사후검정 - Worker 3
+   * Tukey HSD 사후검정 (레거시 API)
+   * @see tukeyHSDWorker - 새 메서드 사용 권장
    */
   async tukeyHSD(groups: number[][]): Promise<any> {
     const result = await this.tukeyHSDWorker(groups)
@@ -1351,23 +1503,20 @@ sys.modules['${moduleName}'] = ${moduleName}
 
 
   /**
-   * PCA (주성분분석) - 간단한 구현
+   * PCA (주성분분석) - 레거시 API
+   * @see pcaAnalysis - 새 메서드 사용 권장
    */
   async pca(data: number[][]): Promise<{
     explainedVariance: number[]
     totalExplainedVariance: number
     components: number[][]
   }> {
-    return this.callWorkerMethod<{
-      explainedVariance: number[]
-      totalExplainedVariance: number
-      components: number[][]
-    }>(
-      4,
-      'pca_analysis',
-      { data_matrix: data, n_components: 2 },
-      { errorMessage: 'PCA 실행 실패' }
-    )
+    const result = await this.pcaAnalysis(data, 2)
+    return {
+      components: result.components,
+      explainedVariance: result.explainedVariance,
+      totalExplainedVariance: result.cumulativeVariance[result.cumulativeVariance.length - 1]
+    }
   }
 
   /**
@@ -1387,7 +1536,8 @@ sys.modules['${moduleName}'] = ${moduleName}
 
 
   /**
-   * Friedman 검정 (반복측정 비모수 검정)
+   * Friedman 검정 (레거시 API)
+   * @see friedmanTestWorker - 새 메서드 사용 권장
    */
   async friedman(data: number[][]): Promise<{
     statistic: number
@@ -2169,6 +2319,318 @@ sys.modules['${moduleName}'] = ${moduleName}
       'scheffe_test',
       { groups },
       { errorMessage: 'Scheffe test 실행 실패' }
+    )
+  }
+
+  // ========================================
+  // Worker 4: Priority 2 Regression Methods
+  // ========================================
+
+  /**
+   * 곡선 추정 (Curve Estimation)
+   *
+   * 다양한 모델 타입으로 데이터를 피팅:
+   * - linear: 선형 (y = ax + b)
+   * - quadratic: 2차 (y = ax^2 + bx + c)
+   * - cubic: 3차 (y = ax^3 + bx^2 + cx + d)
+   * - exponential: 지수 (y = a * exp(bx))
+   * - logarithmic: 로그 (y = a + b*ln(x))
+   * - power: 거듭제곱 (y = a * x^b)
+   *
+   * @param xValues 독립변수
+   * @param yValues 종속변수
+   * @param modelType 모델 타입
+   * @returns 곡선 추정 결과
+   */
+  async curveEstimation(
+    xValues: number[],
+    yValues: number[],
+    modelType: 'linear' | 'quadratic' | 'cubic' | 'exponential' | 'logarithmic' | 'power' = 'linear'
+  ): Promise<CurveEstimationResult> {
+    return this.callWorkerMethod<CurveEstimationResult>(
+      4,
+      'curve_estimation',
+      { x_values: xValues, y_values: yValues, model_type: modelType },
+      { errorMessage: 'Curve estimation 실행 실패' }
+    )
+  }
+
+  /**
+   * 비선형 회귀분석 (Nonlinear Regression)
+   *
+   * scipy.optimize.curve_fit을 사용한 비선형 최적화:
+   * - exponential: a * exp(bx)
+   * - logistic: L / (1 + exp(-k(x - x0)))
+   * - gompertz: a * exp(-b * exp(-cx))
+   * - power: a * x^b
+   * - hyperbolic: (a * x) / (b + x)
+   *
+   * @param xValues 독립변수
+   * @param yValues 종속변수
+   * @param modelType 모델 타입
+   * @param initialGuess 초기값 (선택)
+   * @returns 비선형 회귀 결과
+   */
+  async nonlinearRegression(
+    xValues: number[],
+    yValues: number[],
+    modelType: 'exponential' | 'logistic' | 'gompertz' | 'power' | 'hyperbolic' = 'exponential',
+    initialGuess: number[] | null = null
+  ): Promise<NonlinearRegressionResult> {
+    return this.callWorkerMethod<NonlinearRegressionResult>(
+      4,
+      'nonlinear_regression',
+      {
+        x_values: xValues,
+        y_values: yValues,
+        model_type: modelType,
+        initial_guess: initialGuess
+      },
+      { errorMessage: 'Nonlinear regression 실행 실패' }
+    )
+  }
+
+  /**
+   * 단계적 회귀분석 (Stepwise Regression)
+   *
+   * 변수 선택을 자동화하는 회귀분석:
+   * - forward: 전진 선택법 (변수를 하나씩 추가)
+   * - backward: 후진 제거법 (변수를 하나씩 제거)
+   *
+   * @param yValues 종속변수
+   * @param xMatrix 독립변수 행렬
+   * @param variableNames 변수 이름 (선택)
+   * @param method 선택 방법
+   * @param entryThreshold 진입 p-value 임계값
+   * @param stayThreshold 유지 p-value 임계값
+   * @returns 단계적 회귀 결과
+   */
+  async stepwiseRegression(
+    yValues: number[],
+    xMatrix: number[][],
+    variableNames: string[] | null = null,
+    method: 'forward' | 'backward' = 'forward',
+    entryThreshold: number = 0.05,
+    stayThreshold: number = 0.10
+  ): Promise<StepwiseRegressionResult> {
+    return this.callWorkerMethod<StepwiseRegressionResult>(
+      4,
+      'stepwise_regression',
+      {
+        y_values: yValues,
+        x_matrix: xMatrix,
+        variable_names: variableNames,
+        method,
+        entry_threshold: entryThreshold,
+        stay_threshold: stayThreshold
+      },
+      { errorMessage: 'Stepwise regression 실행 실패' }
+    )
+  }
+
+  /**
+   * 이항 로지스틱 회귀 (Binary Logistic Regression)
+   *
+   * 종속변수가 0/1 이진 변수인 로지스틱 회귀
+   * logisticRegression과 유사하지만 별도 구현
+   *
+   * @param xMatrix 독립변수 행렬
+   * @param yValues 종속변수 (0 또는 1)
+   * @returns 이항 로지스틱 회귀 결과
+   */
+  async binaryLogistic(
+    xMatrix: number[][],
+    yValues: number[]
+  ): Promise<BinaryLogisticResult> {
+    return this.callWorkerMethod<BinaryLogisticResult>(
+      4,
+      'binary_logistic',
+      { x_matrix: xMatrix, y_values: yValues },
+      { errorMessage: 'Binary logistic regression 실행 실패' }
+    )
+  }
+
+  /**
+   * 다항 로지스틱 회귀 (Multinomial Logistic Regression)
+   *
+   * 종속변수가 3개 이상의 범주를 가지는 로지스틱 회귀
+   * 예: 선호도(낮음/중간/높음), 등급(A/B/C/D/F)
+   *
+   * @param xMatrix 독립변수 행렬
+   * @param yValues 종속변수 (0, 1, 2, ...)
+   * @returns 다항 로지스틱 회귀 결과
+   */
+  async multinomialLogistic(
+    xMatrix: number[][],
+    yValues: number[]
+  ): Promise<MultinomialLogisticResult> {
+    return this.callWorkerMethod<MultinomialLogisticResult>(
+      4,
+      'multinomial_logistic',
+      { x_matrix: xMatrix, y_values: yValues },
+      { errorMessage: 'Multinomial logistic regression 실행 실패' }
+    )
+  }
+
+  /**
+   * 순서형 로지스틱 회귀 (Ordinal Logistic Regression)
+   *
+   * 종속변수가 순서가 있는 범주형 변수인 로지스틱 회귀
+   * 예: 만족도(매우 불만족 < 불만족 < 보통 < 만족 < 매우 만족)
+   *
+   * @param xMatrix 독립변수 행렬
+   * @param yValues 종속변수 (0, 1, 2, ... 순서 있음)
+   * @returns 순서형 로지스틱 회귀 결과
+   */
+  async ordinalLogistic(
+    xMatrix: number[][],
+    yValues: number[]
+  ): Promise<OrdinalLogisticResult> {
+    return this.callWorkerMethod<OrdinalLogisticResult>(
+      4,
+      'ordinal_logistic',
+      { x_matrix: xMatrix, y_values: yValues },
+      { errorMessage: 'Ordinal logistic regression 실행 실패' }
+    )
+  }
+
+  /**
+   * 프로빗 회귀분석 (Probit Regression)
+   *
+   * 로지스틱 회귀와 유사하지만 정규분포 누적분포함수(CDF) 사용
+   * 극단값에 대해 로지스틱보다 민감하지 않음
+   *
+   * @param xMatrix 독립변수 행렬
+   * @param yValues 종속변수 (0 또는 1)
+   * @returns 프로빗 회귀 결과
+   */
+  async probitRegression(
+    xMatrix: number[][],
+    yValues: number[]
+  ): Promise<ProbitRegressionResult> {
+    return this.callWorkerMethod<ProbitRegressionResult>(
+      4,
+      'probit_regression',
+      { x_matrix: xMatrix, y_values: yValues },
+      { errorMessage: 'Probit regression 실행 실패' }
+    )
+  }
+
+  /**
+   * 포아송 회귀분석 (Poisson Regression)
+   *
+   * 종속변수가 카운트 데이터(0, 1, 2, ...)인 경우
+   * 예: 하루 방문자 수, 사고 발생 건수, 이메일 수신 개수
+   *
+   * @param xMatrix 독립변수 행렬
+   * @param yValues 종속변수 (0 이상 정수)
+   * @returns 포아송 회귀 결과
+   */
+  async poissonRegression(
+    xMatrix: number[][],
+    yValues: number[]
+  ): Promise<PoissonRegressionResult> {
+    return this.callWorkerMethod<PoissonRegressionResult>(
+      4,
+      'poisson_regression',
+      { x_matrix: xMatrix, y_values: yValues },
+      { errorMessage: 'Poisson regression 실행 실패' }
+    )
+  }
+
+  /**
+   * 음이항 회귀분석 (Negative Binomial Regression)
+   *
+   * 과대산포(overdispersion)가 있는 카운트 데이터
+   * 포아송 회귀의 가정(평균=분산)을 만족하지 않을 때 사용
+   *
+   * @param xMatrix 독립변수 행렬
+   * @param yValues 종속변수 (0 이상 정수)
+   * @returns 음이항 회귀 결과
+   */
+  async negativeBinomialRegression(
+    xMatrix: number[][],
+    yValues: number[]
+  ): Promise<NegativeBinomialRegressionResult> {
+    return this.callWorkerMethod<NegativeBinomialRegressionResult>(
+      4,
+      'negative_binomial_regression',
+      { x_matrix: xMatrix, y_values: yValues },
+      { errorMessage: 'Negative binomial regression 실행 실패' }
+    )
+  }
+
+  // ========================================
+  // Worker 4: Priority 1 Methods (3개)
+  // ========================================
+
+  /**
+   * 선형 회귀분석 (Linear Regression)
+   *
+   * scipy.stats.linregress를 사용한 단순선형회귀
+   * - 기울기, 절편, R², p-value, 표준오차 계산
+   * - 최소 3개의 유효한 데이터 쌍 필요
+   *
+   * @param x 독립변수
+   * @param y 종속변수
+   * @returns 선형 회귀분석 결과
+   */
+  async linearRegression(
+    x: number[],
+    y: number[]
+  ): Promise<LinearRegressionResult> {
+    return this.callWorkerMethod<LinearRegressionResult>(
+      4,
+      'linear_regression',
+      { x, y },
+      { errorMessage: 'Linear regression 실행 실패' }
+    )
+  }
+
+  /**
+   * 주성분 분석 (PCA - Principal Component Analysis)
+   *
+   * numpy.linalg.svd를 사용한 주성분 분석
+   * - 차원 축소 및 데이터 시각화
+   * - 설명된 분산 비율 계산
+   * - 누적 분산 제공
+   *
+   * @param dataMatrix 데이터 행렬 (행: 관측치, 열: 변수)
+   * @param nComponents 추출할 주성분 개수 (기본값: 2)
+   * @returns PCA 분석 결과
+   */
+  async pcaAnalysis(
+    dataMatrix: number[][],
+    nComponents: number = 2
+  ): Promise<PCAAnalysisResult> {
+    return this.callWorkerMethod<PCAAnalysisResult>(
+      4,
+      'pca_analysis',
+      { data_matrix: dataMatrix, n_components: nComponents },
+      { errorMessage: 'PCA analysis 실행 실패' }
+    )
+  }
+
+  /**
+   * Durbin-Watson 검정 (Durbin-Watson Test)
+   *
+   * 회귀분석 잔차의 자기상관(autocorrelation) 검정
+   * - DW 통계량: 0 ~ 4 범위
+   * - 2에 가까울수록 독립적 (자기상관 없음)
+   * - < 1.5: 양의 자기상관 (Positive autocorrelation)
+   * - > 2.5: 음의 자기상관 (Negative autocorrelation)
+   *
+   * @param residuals 회귀분석 잔차 또는 시계열 데이터
+   * @returns Durbin-Watson 검정 결과
+   */
+  async durbinWatsonTest(
+    residuals: number[]
+  ): Promise<DurbinWatsonTestResult> {
+    return this.callWorkerMethod<DurbinWatsonTestResult>(
+      4,
+      'durbin_watson_test',
+      { residuals },
+      { errorMessage: 'Durbin-Watson test 실행 실패' }
     )
   }
 

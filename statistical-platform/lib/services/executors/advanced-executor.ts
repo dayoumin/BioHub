@@ -16,9 +16,9 @@ export class AdvancedExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.pca(data, nComponents)
+      const result = await pyodideStats.pcaAnalysis(data, nComponents)
 
-      const totalVariance = result.explainedVarianceRatio.reduce((a, b) => a + b, 0)
+      const totalVariance = result.explainedVarianceRatio.reduce((a: number, b: number) => a + b, 0)
 
       return {
         metadata: this.createMetadata('주성분분석', data.length, startTime),
@@ -30,13 +30,14 @@ export class AdvancedExecutor extends BaseExecutor {
         additionalInfo: {
           components: result.components,
           explainedVarianceRatio: result.explainedVarianceRatio,
-          singularValues: result.singularValues,
+          explainedVariance: result.explainedVariance,
+          cumulativeVariance: result.cumulativeVariance,
           nComponents
         },
         visualizationData: {
           type: 'pca-biplot',
           data: {
-            transformedData: result.transformedData,
+            transformedData: result.components,
             loadings: result.components
           }
         }
