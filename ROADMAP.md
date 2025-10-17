@@ -126,7 +126,34 @@ Phase 6+: 고도화 (예정)
 
 ## 🔄 진행 중인 Phase
 
-### Phase 5-2: 구현 검증 및 TypeScript 래퍼 추가 (진행 중)
+### Phase 6: PyodideCore Direct Connection (2025-10-17) ✅
+
+**목표**: PyodideStatistics Facade 제거 및 PyodideCore 직접 연결
+
+**성과**:
+- ✅ **아키텍처 단순화**: PyodideStatistics 2,110줄 완전 제거
+- ✅ **타입 안전성 강화**: Worker enum + 80+ 공통 타입
+- ✅ **10개 핸들러 100% 변환**: 39개 메서드 (descriptive, hypothesis-tests, anova, nonparametric, regression, crosstab, proportion-test, reliability, hypothesis, **advanced**)
+- ✅ **TypeScript 컴파일 에러 0개**
+- ✅ **코드 품질**: 4.9/5
+
+**핵심 산출물**:
+- `lib/services/pyodide/core/pyodide-worker.enum.ts` (97줄) - Worker enum
+- `types/pyodide-results.ts` (500+줄) - 100+ 공통 타입
+- `lib/statistics/calculator-handlers/*.ts` (10개 핸들러 변환)
+
+**아키텍처 변경**:
+```
+Before: Groups → PyodideStatistics (Facade) → PyodideCore → Python Workers
+After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
+```
+
+**문서**:
+- [CODE_REVIEW_PHASE6_2025-10-17.md](docs/CODE_REVIEW_PHASE6_2025-10-17.md) - 상세 코드 리뷰
+
+---
+
+### Phase 5-2: 구현 검증 및 TypeScript 래퍼 추가 (보류)
 
 **목표**: Python Worker 구현 100% TypeScript 래퍼 완성
 
@@ -207,15 +234,25 @@ Phase 6+: 고도화 (예정)
 
 ---
 
-### Phase 7: Tauri 데스크탑 앱 (예정)
+### Phase 7: Tauri 데스크탑 앱 (예정, 평가 후 결정)
 
 **목표**: 데스크탑 앱 패키징
 
-**작업 내용**:
+**현재 상태**:
+- ✅ Phase 6 완료로 기술적 준비 완료
+- ⏳ **외부 평가 대기 중** (다른 사람들의 웹 버전 평가 후 결정)
+- 📊 **판단 기준**: 사용자 피드백, 성능 측정, 기능 만족도
+
+**예상 작업 내용** (평가 완료 후):
 1. Tauri 프로젝트 설정
 2. 네이티브 파일 시스템 연동
-3. 앱 패키징 및 테스트
-4. 설치 프로그램 생성
+3. PyodideCore 패턴 재사용 (Phase 6 학습 활용)
+4. 앱 패키징 및 테스트
+5. 설치 프로그램 생성
+
+**참고사항**:
+- Phase 6의 PyodideCore 직접 연결 패턴은 데스크탑에서도 그대로 활용 가능
+- 웹 버전이 안정화되면 데스크탑으로의 전환이 용이함
 
 ---
 

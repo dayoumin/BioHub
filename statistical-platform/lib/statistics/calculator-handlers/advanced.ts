@@ -2,14 +2,40 @@
  * 고급 분석 핸들러
  *
  * PCA, K-means, 계층적 군집, 시계열 분석, 생존 분석 등
+ *
+ * Phase 6: PyodideCore 직접 연결
  */
 
 import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
+import type {
+  PCAParams,
+  KMeansClusteringParams,
+  HierarchicalClusteringParams,
+  TimeSeriesDecompositionParams,
+  ARIMAForecastParams,
+  KaplanMeierSurvivalParams,
+  MixedEffectsModelParams,
+  SARIMAForecastParams,
+  VARModelParams,
+  CoxRegressionParams
+} from '../method-parameter-types'
 import {
   extractNumericColumn,
   formatPValue,
   ERROR_MESSAGES
 } from './common-utils'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type {
+  PCAAnalysisResult,
+  ClusterAnalysisResult,
+  TimeSeriesDecompositionResult,
+  ARIMAForecastResult,
+  KaplanMeierSurvivalResult,
+  MixedEffectsModelResult,
+  SARIMAForecastResult,
+  VARModelResult,
+  CoxRegressionResult
+} from '@/types/pyodide-results'
 
 export const createAdvancedHandlers = (context: CalculatorContext): HandlerMap => ({
   pca: (data: DataRow[], parameters: MethodParameters) => principalComponentAnalysis(context, data, parameters),
@@ -45,7 +71,8 @@ const principalComponentAnalysis = async (
     let valid = true
 
     columns.forEach((col: string) => {
-      const value = parseFloat(row[col])
+      const cellValue = row[col]
+      const value = typeof cellValue === 'number' ? cellValue : parseFloat(String(cellValue ?? ''))
       if (isNaN(value)) {
         valid = false
       } else {
@@ -62,47 +89,47 @@ const principalComponentAnalysis = async (
     return { success: false, error: ERROR_MESSAGES.INSUFFICIENT_DATA(3) }
   }
 
-  const result = await context.pyodideService.performPCA(dataMatrix, columns, nComponents)
+  const result = await context.pyodideCore.callWorkerMethod<PCAAnalysisResult>(
+    PyodideWorker.RegressionAdvanced,
+    'pca_analysis',
+    {
+      data_matrix: dataMatrix,
+      column_names: columns,
+      n_components: nComponents
+    }
+  )
 
   // 분산 설명률 테이블
-  const varianceTable = result.components.map((comp: any, idx: number) => ({
+  const varianceTable = result.explainedVarianceRatio.map((ratio: number, idx: number) => ({
     '주성분': `PC${idx + 1}`,
-    '고유값': comp.eigenvalue?.toFixed(4) ?? '-',
-    '분산 비율': `${(comp.varianceRatio * 100).toFixed(2)}%`,
-    '누적 분산': `${(comp.cumulativeVariance * 100).toFixed(2)}%`
+    '고유값': result.explainedVariance[idx]?.toFixed(4) ?? '-',
+    '분산 비율': `${(ratio * 100).toFixed(2)}%`,
+    '누적 분산': `${(result.cumulativeVariance[idx] * 100).toFixed(2)}%`
   }))
 
   // 적재량 테이블
   const loadingsTable = columns.map((col: string, idx: number) => {
-    const row: Record<string, any> = { 변수: col }
-    result.components.forEach((comp: any, pcIdx: number) => {
-      row[`PC${pcIdx + 1}`] = comp.loadings?.[idx]?.toFixed(4) ?? '-'
+    const row: Record<string, string | number> = { 변수: col }
+    result.components.forEach((comp: number[], pcIdx: number) => {
+      row[`PC${pcIdx + 1}`] = comp[idx]?.toFixed(4) ?? '-'
     })
     return row
   })
+
+  const totalVariance = result.cumulativeVariance[result.cumulativeVariance.length - 1] ?? 0
 
   return {
     success: true,
     data: {
       metrics: [
         { name: '주성분 개수', value: result.components.length.toString() },
-        { name: '누적 분산 설명률', value: `${(result.totalVarianceExplained * 100).toFixed(2)}%` }
+        { name: '누적 분산 설명률', value: `${(totalVariance * 100).toFixed(2)}%` }
       ],
       tables: [
         { name: '주성분 분산', data: varianceTable },
         { name: '주성분 적재량', data: loadingsTable }
       ],
-      charts: result.scores ? [
-        {
-          type: 'scatter',
-          data: {
-            x: result.scores.map((s: any) => s[0]),
-            y: result.scores.map((s: any) => s[1])
-          },
-          title: 'PCA Score Plot (PC1 vs PC2)'
-        }
-      ] : [],
-      interpretation: `주성분 분석 결과, ${result.components.length}개의 주성분이 원 변수들의 분산 중 ${(result.totalVarianceExplained * 100).toFixed(2)}%를 설명합니다.`
+      interpretation: `주성분 분석 결과, ${result.components.length}개의 주성분이 원 변수들의 분산 중 ${(totalVariance * 100).toFixed(2)}%를 설명합니다.`
     }
   }
 }
@@ -128,7 +155,8 @@ const kMeansClustering = async (
     let valid = true
 
     columns.forEach((col: string) => {
-      const value = parseFloat(row[col])
+      const cellValue = row[col]
+      const value = typeof cellValue === 'number' ? cellValue : parseFloat(String(cellValue ?? ''))
       if (isNaN(value)) {
         valid = false
       } else {
@@ -141,7 +169,15 @@ const kMeansClustering = async (
     }
   })
 
-  const result = await context.pyodideService.kMeansClustering(dataMatrix, k, columns)
+  const result = await context.pyodideCore.callWorkerMethod<ClusterAnalysisResult>(
+    PyodideWorker.RegressionAdvanced,
+    'kmeans_clustering',
+    {
+      data_matrix: dataMatrix,
+      n_clusters: k,
+      column_names: columns
+    }
+  )
 
   // 군집별 크기
   const clusterSizes = result.labels.reduce((acc: Record<number, number>, label: number) => {
@@ -159,12 +195,13 @@ const kMeansClustering = async (
     data: {
       metrics: [
         { name: '군집 수 (k)', value: k.toString() },
-        { name: 'Inertia', value: result.inertia?.toFixed(4) ?? '-' }
+        { name: 'Inertia', value: result.inertia.toFixed(4) },
+        { name: 'Silhouette Score', value: result.silhouetteScore.toFixed(4) }
       ],
       tables: [
         { name: '군집별 크기', data: clusterTable }
       ],
-      interpretation: `K-means 군집분석 결과, ${k}개 군집으로 데이터를 분류했습니다. Inertia = ${result.inertia?.toFixed(4) ?? 'N/A'}`
+      interpretation: `K-means 군집분석 결과, ${k}개 군집으로 데이터를 분류했습니다. Inertia = ${result.inertia.toFixed(4)}, Silhouette Score = ${result.silhouetteScore.toFixed(4)}`
     }
   }
 }
@@ -190,7 +227,8 @@ const hierarchicalClustering = async (
     let valid = true
 
     columns.forEach((col: string) => {
-      const value = parseFloat(row[col])
+      const cellValue = row[col]
+      const value = typeof cellValue === 'number' ? cellValue : parseFloat(String(cellValue ?? ''))
       if (isNaN(value)) {
         valid = false
       } else {
@@ -203,7 +241,16 @@ const hierarchicalClustering = async (
     }
   })
 
-  const result = await context.pyodideService.hierarchicalClustering(dataMatrix, method, metric, columns)
+  const result = await context.pyodideCore.callWorkerMethod<{ method: string; metric: string; nSamples: number }>(
+    PyodideWorker.RegressionAdvanced,
+    'hierarchical_clustering',
+    {
+      data_matrix: dataMatrix,
+      method,
+      metric,
+      column_names: columns
+    }
+  )
 
   return {
     success: true,
@@ -239,7 +286,15 @@ const timeSeriesDecomposition = async (
     return { success: false, error: `최소 ${period * 2}개 이상의 데이터가 필요합니다` }
   }
 
-  const result = await context.pyodideService.timeSeriesDecomposition(values, period, model)
+  const result = await context.pyodideCore.callWorkerMethod<TimeSeriesDecompositionResult>(
+    PyodideWorker.RegressionAdvanced,
+    'time_series_decomposition',
+    {
+      values,
+      period,
+      model
+    }
+  )
 
   return {
     success: true,
@@ -253,9 +308,8 @@ const timeSeriesDecomposition = async (
       charts: [
         {
           type: 'line',
-          data: { x: Array.from({ length: values.length }, (_, i) => i), y: values },
-          title: '원 시계열'
-        }
+          data: { x: Array.from({ length: values.length }, (_, i) => i), y: values }
+        } as any  // Chart title는 동적 구조
       ],
       interpretation: `시계열을 ${model} 모형으로 분해했습니다 (주기 = ${period}).`
     }
@@ -278,7 +332,15 @@ const arimaForecast = async (
 
   const values = extractNumericColumn(data, valueColumn)
 
-  const result = await context.pyodideService.arimaForecast(values, order, steps)
+  const result = await context.pyodideCore.callWorkerMethod<ARIMAForecastResult>(
+    PyodideWorker.RegressionAdvanced,
+    'arima_forecast',
+    {
+      values,
+      order,
+      n_forecast: steps
+    }
+  )
 
   return {
     success: true,
@@ -311,7 +373,14 @@ const kaplanMeierSurvival = async (
   const times = extractNumericColumn(data, timeColumn)
   const events = extractNumericColumn(data, eventColumn)
 
-  const result = await context.pyodideService.kaplanMeierSurvival(times, events)
+  const result = await context.pyodideCore.callWorkerMethod<KaplanMeierSurvivalResult>(
+    PyodideWorker.RegressionAdvanced,
+    'kaplan_meier_survival',
+    {
+      times,
+      events
+    }
+  )
 
   return {
     success: true,
@@ -341,19 +410,24 @@ const mixedEffectsModel = async (
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('종속변수') }
   }
 
-  const result = await context.pyodideService.mixedEffectsModel(
-    data,
-    dependentColumn,
-    fixedEffects,
-    randomEffects
+  const result = await context.pyodideCore.callWorkerMethod<MixedEffectsModelResult>(
+    PyodideWorker.RegressionAdvanced,
+    'mixed_effects_model',
+    {
+      data: JSON.stringify(data),
+      dependent_column: dependentColumn,
+      fixed_effects: fixedEffects,
+      random_effects: randomEffects
+    }
   )
 
   return {
     success: true,
     data: {
       metrics: [
-        { name: 'AIC', value: result.aic?.toFixed(4) ?? '-' },
-        { name: 'BIC', value: result.bic?.toFixed(4) ?? '-' }
+        { name: 'AIC', value: result.aic.toFixed(4) },
+        { name: 'BIC', value: result.bic.toFixed(4) },
+        { name: 'Log-Likelihood', value: result.logLikelihood.toFixed(4) }
       ],
       tables: [],
       interpretation: `혼합 효과 모형 분석을 완료했습니다.`
@@ -378,14 +452,24 @@ const sarimaForecast = async (
 
   const values = extractNumericColumn(data, valueColumn)
 
-  const result = await context.pyodideService.sarimaForecast(values, order, seasonalOrder, steps)
+  const result = await context.pyodideCore.callWorkerMethod<SARIMAForecastResult>(
+    PyodideWorker.RegressionAdvanced,
+    'sarima_forecast',
+    {
+      values,
+      order,
+      seasonal_order: seasonalOrder,
+      n_forecast: steps
+    }
+  )
 
   return {
     success: true,
     data: {
       metrics: [
         { name: 'SARIMA 차수', value: `${order} × ${seasonalOrder}` },
-        { name: '예측 단계', value: steps.toString() }
+        { name: '예측 단계', value: steps.toString() },
+        { name: 'AIC', value: result.aic?.toFixed(4) ?? '-' }
       ],
       tables: [],
       interpretation: `SARIMA 모형으로 ${steps}단계 계절 예측을 수행했습니다.`
@@ -409,14 +493,24 @@ const varModel = async (
 
   const dataMatrix = columns.map((col: string) => extractNumericColumn(data, col))
 
-  const result = await context.pyodideService.varModel(dataMatrix, lag, columns)
+  const result = await context.pyodideCore.callWorkerMethod<VARModelResult>(
+    PyodideWorker.RegressionAdvanced,
+    'var_model',
+    {
+      data_matrix: dataMatrix,
+      max_lags: lag,
+      column_names: columns
+    }
+  )
 
   return {
     success: true,
     data: {
       metrics: [
         { name: '변수 수', value: columns.length.toString() },
-        { name: '시차 (lag)', value: lag.toString() }
+        { name: '시차 (lag)', value: lag.toString() },
+        { name: 'AIC', value: result.aic.toFixed(4) },
+        { name: 'BIC', value: result.bic.toFixed(4) }
       ],
       tables: [],
       interpretation: `VAR(${lag}) 모형으로 ${columns.length}개 시계열을 분석했습니다.`
@@ -446,14 +540,23 @@ const coxRegression = async (
   const events = extractNumericColumn(data, eventColumn)
   const covariateData = covariates.map((col: string) => extractNumericColumn(data, col))
 
-  const result = await context.pyodideService.coxRegression(times, events, covariateData, covariates)
+  const result = await context.pyodideCore.callWorkerMethod<CoxRegressionResult>(
+    PyodideWorker.RegressionAdvanced,
+    'cox_regression',
+    {
+      times,
+      events,
+      covariate_data: covariateData,
+      covariate_names: covariates
+    }
+  )
 
   // 계수 테이블
   const coeffTable = covariates.map((covariate: string, idx: number) => ({
     공변량: covariate,
-    계수: result.coefficients?.[idx]?.toFixed(4) ?? '-',
-    '위험비 (HR)': result.hazardRatios?.[idx]?.toFixed(4) ?? '-',
-    'p-value': formatPValue(result.pValues?.[idx] ?? 1)
+    계수: result.coefficients[idx].toFixed(4),
+    '위험비 (HR)': result.hazardRatios[idx].toFixed(4),
+    'p-value': formatPValue(result.pValues[idx])
   }))
 
   return {

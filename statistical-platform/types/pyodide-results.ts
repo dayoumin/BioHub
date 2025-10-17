@@ -385,6 +385,95 @@ export interface DurbinWatsonTestResult {
   isIndependent: boolean
 }
 
+/**
+ * 시계열 분해 결과
+ */
+export interface TimeSeriesDecompositionResult {
+  trend: number[]
+  seasonal: number[]
+  residual: number[]
+  observed: number[]
+}
+
+/**
+ * ARIMA 예측 결과
+ */
+export interface ARIMAForecastResult {
+  forecast: number[]
+  confidenceIntervals?: {
+    lower: number[]
+    upper: number[]
+  }
+  aic?: number
+  bic?: number
+}
+
+/**
+ * SARIMA 예측 결과
+ */
+export interface SARIMAForecastResult {
+  forecast: number[]
+  confidenceIntervals?: {
+    lower: number[]
+    upper: number[]
+  }
+  aic?: number
+  bic?: number
+}
+
+/**
+ * VAR 모형 결과
+ */
+export interface VARModelResult {
+  coefficients: number[][][]  // [equation][variable][lag]
+  residuals: number[][]
+  aic: number
+  bic: number
+  forecast?: number[][]
+}
+
+/**
+ * Kaplan-Meier 생존분석 결과
+ */
+export interface KaplanMeierSurvivalResult {
+  survivalFunction: number[]
+  times: number[]
+  events: number[]
+  nRisk: number[]
+  medianSurvival?: number
+}
+
+/**
+ * Cox 비례위험 회귀 결과
+ */
+export interface CoxRegressionResult {
+  coefficients: number[]
+  hazardRatios: number[]
+  pValues: number[]
+  confidenceIntervals?: Array<{
+    lower: number
+    upper: number
+  }>
+  concordance?: number
+}
+
+/**
+ * 혼합 효과 모형 결과
+ */
+export interface MixedEffectsModelResult {
+  fixedEffects: {
+    coefficients: number[]
+    standardErrors: number[]
+    pValues: number[]
+  }
+  randomEffects: {
+    variances: number[]
+  }
+  aic: number
+  bic: number
+  logLikelihood: number
+}
+
 // ========================================
 // 공통 타입
 // ========================================

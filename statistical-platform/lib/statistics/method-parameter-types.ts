@@ -240,7 +240,8 @@ export interface PCAParams extends BaseParameters {
 
 export interface KMeansClusteringParams extends BaseParameters {
   columns: string[]
-  nClusters: number
+  k?: number  // Alias for nClusters
+  nClusters?: number
   maxIterations?: number
   randomState?: number
 }
@@ -272,20 +273,23 @@ export interface TimeSeriesDecompositionParams extends BaseParameters {
 export interface ARIMAForecastParams extends BaseParameters {
   valueColumn: string
   order: [number, number, number]  // (p, d, q)
-  nForecast: number
+  steps?: number  // Alias for nForecast
+  nForecast?: number
 }
 
 export interface SARIMAForecastParams extends BaseParameters {
   valueColumn: string
   order: [number, number, number]  // (p, d, q)
   seasonalOrder: [number, number, number, number]  // (P, D, Q, s)
-  nForecast: number
+  steps?: number  // Alias for nForecast
+  nForecast?: number
 }
 
 export interface VARModelParams extends BaseParameters {
   columns: string[]
+  lag?: number  // Alias for maxLags
   maxLags?: number
-  nForecast: number
+  nForecast?: number
 }
 
 export interface KaplanMeierSurvivalParams extends BaseParameters {
@@ -297,14 +301,17 @@ export interface KaplanMeierSurvivalParams extends BaseParameters {
 export interface CoxRegressionParams extends BaseParameters {
   timeColumn: string
   eventColumn: string
-  covariateColumns: string[]
+  covariates?: string[]  // Alias for covariateColumns
+  covariateColumns?: string[]
 }
 
 export interface MixedEffectsModelParams extends BaseParameters {
   dependentColumn: string
-  fixedEffectColumns: string[]
-  randomEffectColumns: string[]
-  groupColumn: string
+  fixedEffects?: string[]  // Alias for fixedEffectColumns
+  randomEffects?: string[]  // Alias for randomEffectColumns
+  fixedEffectColumns?: string[]
+  randomEffectColumns?: string[]
+  groupColumn?: string
 }
 
 export interface PowerAnalysisParams extends BaseParameters {
