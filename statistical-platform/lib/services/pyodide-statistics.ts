@@ -26,66 +26,7 @@ import type {
   TukeyHSDResult,
   RegressionResult
 } from '@/types/pyodide'
-import { withPyodideContext, retryPyodideOperation } from './pyodide-helper'
-import { getPyodideCDNUrls } from '@/lib/constants'
-
-declare global {
-  interface Window {
-    pyodide?: PyodideInterface
-    loadPyodide?: (config: { indexURL: string }) => Promise<PyodideInterface>
-  }
-}
-
-/**
- * Worker 메서드 호출 파라미터 타입
- * JSON 직렬화 가능한 타입만 허용
- */
-type WorkerMethodParam =
-  | number
-  | string
-  | boolean
-  | number[]
-  | string[]
-  | number[][]
-  | (number | string)[]
-  | null
-
-/**
- * Worker 메서드 호출 옵션
- */
-interface WorkerMethodOptions {
-  errorMessage?: string
-  skipValidation?: boolean
-}
-
-/**
- * Python 에러 응답 타입
- */
-interface PythonErrorResponse {
-  error: string
-}
-
-/**
- * Python 에러 응답 타입 가드
- */
-function isPythonError(obj: unknown): obj is PythonErrorResponse {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    'error' in obj &&
-    typeof (obj as Record<string, unknown>).error === 'string'
-  )
-}
-
-/**
- * Worker별 추가 패키지 정의 (Phase 5-2 Lazy Loading)
- */
-const WORKER_EXTRA_PACKAGES = Object.freeze<Record<1 | 2 | 3 | 4, readonly string[]>>({
-  1: [], // Worker 1: NumPy + SciPy (이미 로드됨)
-  2: ['statsmodels', 'pandas'], // Worker 2: partial correlation 등에서 statsmodels/pandas 사용
-  3: ['statsmodels', 'pandas'], // Worker 3: statsmodels + pandas 의존
-  4: ['statsmodels', 'scikit-learn'] // Worker 4: statsmodels + sklearn 추가
-});
+import { PyodideCoreService } from './pyodide/core/pyodide-core.service'
 
 // ========================================
 // Worker 4 타입 정의
@@ -247,174 +188,10 @@ type NegativeBinomialRegressionResult = {
 
 export class PyodideStatisticsService {
   private static instance: PyodideStatisticsService | null = null
-  private pyodide: PyodideInterface | null = null
-  private isLoading = false
-  private loadPromise: Promise<void> | null = null
-  private packagesLoaded = false
+  private core: PyodideCoreService
 
-  private constructor() {}
-
-  private parsePythonResult<T>(payload: any): T {
-    if (typeof payload === 'string') {
-      try {
-        return JSON.parse(payload) as T
-      } catch {
-        // 문자열이지만 JSON 아님
-        return payload as T
-      }
-    }
-    return payload as T
-  }
-
-  // ========================================
-  // Option A: callWorkerMethod Helper
-  // 중복 코드 제거를 위한 공통 헬퍼 함수
-  // ========================================
-
-  /**
-   * Worker 메서드 공통 호출 헬퍼
-   *
-   * @template T 반환 타입
-   * @param workerNum Worker 번호 (1-4)
-   * @param methodName Python 함수명 (snake_case)
-   * @param params 파라미터 객체 (키: Python 파라미터명, 값: 직렬화 가능한 데이터)
-   * @param options 추가 옵션
-   * @returns Python 함수 실행 결과
-   */
-  private async callWorkerMethod<T>(
-    workerNum: 1 | 2 | 3 | 4,
-    methodName: string,
-    params: Record<string, WorkerMethodParam>,
-    options: WorkerMethodOptions = {}
-  ): Promise<T> {
-    // 1. 초기화
-    await this.initialize()
-    await this.ensureWorkerLoaded(workerNum)
-
-    if (!this.pyodide) {
-      throw new Error('Pyodide가 초기화되지 않았습니다')
-    }
-
-
-    // 2. 파라미터 검증 및 직렬화
-    const skipValidation = options.skipValidation ?? false
-    const paramsLines: string[] = []
-    const paramNames: string[] = []
-
-    for (const [key, value] of Object.entries(params)) {
-      if (!skipValidation) {
-        this.validateWorkerParam(key, value)
-      }
-      paramsLines.push(`${key} = ${JSON.stringify(value)}`)
-      paramNames.push(key)
-    }
-
-
-    const paramsCode = paramsLines.join('\n')
-    const paramNamesStr = paramNames.join(', ')
-
-    // 3. Python 코드 실행
-    const resultStr = await this.pyodide.runPythonAsync(`
-      import json
-      from worker${workerNum}_module import ${methodName}
-
-      ${paramsCode}
-
-      try:
-        result = ${methodName}(${paramNamesStr})
-        result_json = json.dumps(result)
-      except Exception as e:
-        result_json = json.dumps({'error': str(e)})
-
-      result_json
-    `)
-
-    // 4. 결과 파싱 및 에러 처리
-    const parsed = this.parsePythonResult<T | PythonErrorResponse>(resultStr)
-
-    if (isPythonError(parsed)) {
-      const errorMsg = options.errorMessage || `${methodName} 실행 실패`
-      throw new Error(`${errorMsg}: ${parsed.error}`)
-    }
-
-
-    return parsed as T
-  }
-
-  /**
-   * Worker 메서드 파라미터 검증
-   *
-   * @param key 파라미터 이름
-   * @param value 파라미터 값
-   * @throws Error 검증 실패 시
-   */
-  private validateWorkerParam(key: string, value: WorkerMethodParam): void {
-    // null 허용
-    if (value === null) return
-
-    // undefined 금지
-    if (value === undefined) {
-      throw new Error(`파라미터 '${key}'가 undefined입니다`)
-    }
-
-
-    // 숫자 검증
-    if (typeof value === 'number') {
-      if (!Number.isFinite(value)) {
-        throw new Error(`파라미터 '${key}'가 유효하지 않은 숫자입니다: ${value}`)
-      }
-      return
-    }
-
-
-    // 문자열/불린 검증 (통과)
-    if (typeof value === 'string' || typeof value === 'boolean') {
-      return
-    }
-
-
-    // 배열 검증
-    if (Array.isArray(value)) {
-      // 빈 배열 허용
-      if (value.length === 0) return
-
-      // 1차원 배열 (number[] | string[] | (number | string)[])
-      if (!Array.isArray(value[0])) {
-        for (let i = 0; i < value.length; i++) {
-          const item = value[i]
-          if (typeof item === 'number') {
-            if (!Number.isFinite(item)) {
-              throw new Error(`파라미터 '${key}[${i}]'가 유효하지 않은 숫자입니다: ${item}`)
-            }
-          } else if (typeof item !== 'string') {
-            throw new Error(`파라미터 '${key}[${i}]'가 유효하지 않은 타입입니다: ${typeof item}`)
-          }
-        }
-        return
-      }
-
-
-      // 2차원 배열 (number[][])
-      for (let i = 0; i < value.length; i++) {
-        const row = value[i]
-        if (!Array.isArray(row)) {
-          throw new Error(`파라미터 '${key}[${i}]'가 배열이 아닙니다`)
-        }
-
-
-        for (let j = 0; j < row.length; j++) {
-          const item = row[j]
-          if (typeof item !== 'number' || !Number.isFinite(item)) {
-            throw new Error(`파라미터 '${key}[${i}][${j}]'가 유효하지 않은 숫자입니다: ${item}`)
-          }
-        }
-      }
-      return
-    }
-
-
-    // 지원하지 않는 타입
-    throw new Error(`파라미터 '${key}'가 지원하지 않는 타입입니다: ${typeof value}`)
+  private constructor() {
+    this.core = PyodideCoreService.getInstance()
   }
 
   static getInstance(): PyodideStatisticsService {
@@ -425,241 +202,10 @@ export class PyodideStatisticsService {
   }
 
   /**
-   * Pyodide 초기화 및 필요한 패키지 로드
+   * Pyodide 초기화 (PyodideCoreService에 위임)
    */
   async initialize(): Promise<void> {
-    console.log('[PyodideService.initialize] 시작')
-    if (this.isInitialized()) {
-      console.log('[PyodideService.initialize] 이미 초기화됨 (빠른 반환)')
-      return
-    }
-    if (this.isLoading && this.loadPromise) {
-      console.log('[PyodideService.initialize] 이미 로딩 중, 기다리는 중...')
-      return this.loadPromise
-    }
-
-
-    this.isLoading = true
-    this.loadPromise = this._loadPyodide()
-
-    try {
-      await this.loadPromise
-      console.log('[PyodideService.initialize] 초기화 성공!')
-    } catch (error) {
-      console.error('[PyodideService.initialize] 초기화 실패:', error)
-      throw error
-    } finally {
-      this.isLoading = false
-    }
-  }
-
-
-  private async _loadPyodide(): Promise<void> {
-    if (typeof window === 'undefined') {
-      throw new Error('Pyodide는 브라우저 환경에서만 사용 가능합니다')
-    }
-
-
-    console.log('[PyodideService] 초기화 시작...')
-
-    // Pyodide CDN URL 가져오기 (환경 변수 자동 반영)
-    const cdnUrls = getPyodideCDNUrls()
-    console.log(`[PyodideService] 버전: ${cdnUrls.version}`)
-
-    // Pyodide CDN에서 로드
-    if (!window.loadPyodide) {
-      console.log('[PyodideService] Pyodide 스크립트 로딩...')
-      const script = document.createElement('script')
-      script.src = cdnUrls.scriptURL
-      script.async = true
-
-      await new Promise((resolve, reject) => {
-        script.onload = () => {
-          console.log('[PyodideService] 스크립트 로드 완료')
-          resolve(true)
-        }
-        script.onerror = (error) => {
-          console.error('[PyodideService] 스크립트 로드 실패:', error)
-          reject(new Error('Pyodide 스크립트 로드 실패'))
-        }
-        document.head.appendChild(script)
-      })
-    } else {
-      console.log('[PyodideService] Pyodide 이미 로드됨')
-    }
-
-
-    // Pyodide 초기화
-    console.log('[PyodideService] Pyodide 인스턴스 생성 중...')
-    try {
-      if (!window.loadPyodide) {
-        throw new Error('window.loadPyodide가 로드되지 않았습니다')
-      }
-      this.pyodide = await window.loadPyodide({
-        indexURL: cdnUrls.indexURL
-      })
-      console.log('[PyodideService] Pyodide 인스턴스 생성 완료')
-
-      // window.pyodide에도 저장 (디버깅용)
-      ;(window as any).pyodide = this.pyodide
-    } catch (error) {
-      console.error('[PyodideService] Pyodide 인스턴스 생성 실패:', error)
-      throw error
-    }
-
-
-    // 필수 패키지 로드 (캐싱됨)
-    if (!this.packagesLoaded) {
-      console.log('[PyodideService] 패키지 로딩 중... (numpy, scipy)')
-      const startTime = performance.now()
-      try {
-        // Phase 5-2: 초기 로딩 최적화 - NumPy + SciPy만 로드 (11초 → 2초)
-        // 모든 Worker가 SciPy를 사용하므로 scipy 필수
-        await this.pyodide.loadPackage(['numpy', 'scipy'])
-        console.log('[PyodideService] 핵심 패키지 로드 완료')
-
-        // 추가 패키지는 Worker 로드 시 동적 로드 (ensureWorkerLoaded)
-        this.packagesLoaded = true
-
-        const loadTime = ((performance.now() - startTime) / 1000).toFixed(2)
-        console.log(`[PyodideService] 초기 패키지 로드 시간: ${loadTime}초 (최적화: pandas 제외)`)
-      } catch (error) {
-        console.error('[PyodideService] 패키지 로드 실패:', error)
-        throw error
-      }
-    } else {
-      console.log('[PyodideService] 패키지 이미 로드됨 (캐시 사용)')
-    }
-
-
-    // 기본 imports (pandas 제외)
-    console.log('[PyodideService] Python 기본 imports 실행 중...')
-    await this.pyodide.runPythonAsync(`
-      import numpy as np
-      from scipy import stats
-      import json
-      import warnings
-      warnings.filterwarnings('ignore')
-    `)
-    console.log('[PyodideService] 초기화 완료! (pandas는 필요시 Worker에서 로드)')
-  }
-
-  /**
-   * 추가 패키지를 백그라운드에서 로드
-   */
-  private async loadAdditionalPackages(): Promise<void> {
-    if (!this.pyodide) return
-
-    console.log('[PyodideService] 추가 패키지 백그라운드 로딩 시작...')
-    try {
-      // scikit-learn, statsmodels는 필요시에만 로드
-      // 실제 사용 시점에 동적으로 로드하도록 개선 가능
-      // 예: 고급 분석 메서드 사용 시 로드
-      console.log('[PyodideService] 추가 패키지는 필요시 동적 로드됩니다')
-    } catch (error) {
-      console.warn('[PyodideService] 추가 패키지 로드 실패 (무시):', error)
-    }
-  }
-
-
-  /**
-   * Worker 파일명 매핑
-   */
-  private getWorkerFileName(workerNum: 1 | 2 | 3 | 4): string {
-    const fileNames = {
-      1: 'descriptive',
-      2: 'hypothesis',
-      3: 'nonparametric-anova',
-      4: 'regression-advanced'
-    }
-    return fileNames[workerNum]
-  }
-
-  /**
-   * Worker 로드 공통 함수
-   * Phase 5-2: Worker별 패키지 Lazy Loading 추가
-   */
-  private async ensureWorkerLoaded(workerNum: 1 | 2 | 3 | 4): Promise<void> {
-    if (!this.pyodide) throw new Error('Pyodide가 초기화되지 않았습니다')
-
-    const moduleName = `worker${workerNum}_module`
-    const fileName = this.getWorkerFileName(workerNum)
-
-    // 이미 로드되었는지 확인
-    const isLoaded = await this.pyodide.runPythonAsync(`
-      import sys
-      '${moduleName}' in sys.modules
-    `)
-
-    if (isLoaded === true) {
-      console.log(`[Worker ${workerNum}] 이미 로드됨`)
-      return
-    }
-
-    console.log(`[Worker ${workerNum}] 로딩 시작...`)
-    const startTime = performance.now()
-
-    // Phase 5-2: Worker별 필요 패키지 동적 로드
-    const packagesToLoad = [...(WORKER_EXTRA_PACKAGES[workerNum] ?? [])]
-
-    if (packagesToLoad.length > 0) {
-      console.log(`[Worker ${workerNum}] 추가 패키지 로딩: ${packagesToLoad.join(', ')}`)
-      const packageStartTime = performance.now()
-
-      try {
-        await this.pyodide.loadPackage(packagesToLoad)
-        const packageLoadTime = ((performance.now() - packageStartTime) / 1000).toFixed(2)
-        console.log(`[Worker ${workerNum}] 패키지 로드 완료 (${packageLoadTime}초)`)
-      } catch (error) {
-        console.error(`[Worker ${workerNum}] 패키지 로드 실패:`, error)
-        throw error
-      }
-    }
-
-    // Worker 파일 fetch
-    const response = await fetch(`/workers/python/worker${workerNum}-${fileName}.py`)
-    const workerCode = await response.text()
-
-    // Worker 모듈로 등록
-    await this.pyodide.runPythonAsync(`
-import sys
-from types import ModuleType
-
-${moduleName} = ModuleType('${moduleName}')
-exec("""${workerCode.replace(/`/g, '\\`')}""", ${moduleName}.__dict__)
-sys.modules['${moduleName}'] = ${moduleName}
-    `)
-
-    const loadTime = ((performance.now() - startTime) / 1000).toFixed(2)
-    console.log(`[Worker ${workerNum}] 로드 완료 (총 ${loadTime}초)`)
-  }
-
-  /**
-   * Worker 1 (descriptive) 로드
-   */
-  private async ensureWorker1Loaded(): Promise<void> {
-    return this.ensureWorkerLoaded(1)
-  }
-
-  /**
-   * Worker 2 (hypothesis) 로드
-   */
-  private async ensureWorker2Loaded(): Promise<void> {
-    return this.ensureWorkerLoaded(2)
-  }
-
-  /**
-   * Worker 3 (nonparametric-anova) 로드
-   */
-  private async ensureWorker3Loaded(): Promise<void> {
-    return this.ensureWorkerLoaded(3)
-  }
-
-  /**
-   * Worker 4 (regression-advanced) 로드
-   */
-  private async ensureWorker4Loaded(): Promise<void> {
-    return this.ensureWorkerLoaded(4)
+    return this.core.initialize()
   }
 
   /**
@@ -719,7 +265,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     equalVariance: boolean
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       equalVariance: boolean
@@ -758,7 +304,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     equalVariance: boolean
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       equalVariance: boolean
@@ -779,7 +325,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     isNormal: boolean
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       isNormal: boolean
@@ -917,7 +463,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     skewness: number
     kurtosis: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       mean: number
       median: number
       std: number
@@ -944,7 +490,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     isNormal: boolean
     alpha: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       isNormal: boolean
@@ -965,7 +511,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     outlierCount: number
     method: string
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       outlierIndices: number[]
       outlierCount: number
       method: string
@@ -988,7 +534,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     total: number
     uniqueCount: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       categories: string[]
       frequencies: number[]
       percentages: number[]
@@ -1014,7 +560,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     colTotals: number[]
     grandTotal: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       rowCategories: string[]
       colCategories: string[]
       observedMatrix: number[][]
@@ -1047,7 +593,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     significant: boolean
     alpha: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       sampleProportion: number
       nullProportion: number
       zStatistic: number
@@ -1071,7 +617,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     nItems: number
     nRespondents: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       alpha: number
       nItems: number
       nRespondents: number
@@ -1091,7 +637,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     method: string
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       correlation: number
       pValue: number
       method: string
@@ -1115,7 +661,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     kendall: { r: number; pValue: number }
   }> {
     await this.initialize()
-    await this.ensureWorker2Loaded()
+    await this.core.ensureWorker2Loaded()
 
     // Worker 2의 correlation_test를 3번 호출
     const pearsonResult = await this.correlationTest(x, y, 'pearson')
@@ -1150,7 +696,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     mean2: number
     meanDiff: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       df: number
@@ -1174,7 +720,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     df: number
     meanDiff: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       df: number
@@ -1196,7 +742,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     df: number
     sampleMean: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       df: number
@@ -1217,7 +763,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     sampleMean: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       zStatistic: number
       pValue: number
       sampleMean: number
@@ -1238,7 +784,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     df: number
     expectedMatrix: number[][]
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       chiSquare: number
       pValue: number
       df: number
@@ -1264,7 +810,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     successCount: number
     totalCount: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       pValue: number
       successCount: number
       totalCount: number
@@ -1299,7 +845,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       upper: number
     }
     }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       correlation: number
       pValue: number
       df: number
@@ -1566,7 +1112,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     eigenvalues: number[]
   }> {
     const { nFactors = 2, rotation = 'varimax' } = options
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       loadings: number[][]
       communalities: number[]
       explainedVariance: number[]
@@ -1593,7 +1139,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     inertia?: number
   }> {
     const { nClusters = 3, method = 'kmeans', linkage = 'ward' } = options
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       clusters: number[]
       centers?: number[][]
       silhouetteScore: number
@@ -1622,7 +1168,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pacf?: number[]
   }> {
     const { seasonalPeriod = 12, forecastPeriods = 6, method = 'decomposition' } = options
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       trend?: number[]
       seasonal?: number[]
       residual?: number[]
@@ -1791,7 +1337,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     const factor1Values = data.map(d => d.factor1)
     const factor2Values = data.map(d => d.factor2)
 
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       factor1: { fStatistic: number; pValue: number; df: number }
       factor2: { fStatistic: number; pValue: number; df: number }
       interaction: { fStatistic: number; pValue: number; df: number }
@@ -1831,7 +1377,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     y: number[],    // 종속변수
     variableNames: string[] = []
   ): Promise<any> {
-    return this.callWorkerMethod<any>(
+    return this.core.callWorkerMethod<any>(
       4,
       'multiple_regression',
       { X, y },
@@ -1847,7 +1393,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     y: number[],    // 종속변수 (0 또는 1)
     variableNames: string[] = []
   ): Promise<any> {
-    return this.callWorkerMethod<any>(
+    return this.core.callWorkerMethod<any>(
       4,
       'logistic_regression',
       { X, y },
@@ -1907,7 +1453,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pAdjust: string = 'holm',
     alpha: number = 0.05
   ): Promise<any> {
-    const baseResult = await this.callWorkerMethod<any>(
+    const baseResult = await this.core.callWorkerMethod<any>(
       3,
       'dunn_test',
       { groups, p_adjust: pAdjust },
@@ -1952,7 +1498,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     groupNames: string[],
     alpha: number = 0.05
   ): Promise<any> {
-    const baseResult = await this.callWorkerMethod<any>(
+    const baseResult = await this.core.callWorkerMethod<any>(
       3,
       'games_howell_test',
       { groups },
@@ -1979,7 +1525,7 @@ sys.modules['${moduleName}'] = ${moduleName}
    */
   async performBonferroni(groups: number[][], groupNames: string[], alpha: number = 0.05): Promise<any> {
     await this.initialize()
-    await this.ensureWorker2Loaded()
+    await this.core.ensureWorker2Loaded()
 
     const n_groups = groups.length
     const num_comparisons = n_groups * (n_groups - 1) / 2
@@ -2027,7 +1573,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     uStatistic: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       uStatistic: number
@@ -2043,7 +1589,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     statistic: number
     pValue: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
     }>(
@@ -2059,7 +1605,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     df: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       df: number
@@ -2076,7 +1622,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     rankings: number[]
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       rankings: number[]
@@ -2094,7 +1640,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     dfBetween: number
     dfWithin: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       fStatistic: number
       pValue: number
       dfBetween: number
@@ -2112,7 +1658,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     mainEffect2: { fStatistic: number; pValue: number }
     interaction: { fStatistic: number; pValue: number }
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       mainEffect1: { fStatistic: number; pValue: number }
       mainEffect2: { fStatistic: number; pValue: number }
       interaction: { fStatistic: number; pValue: number }
@@ -2133,7 +1679,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       reject: boolean
     }>
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       comparisons: Array<{
         group1: number
         group2: number
@@ -2155,7 +1701,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     nPositive: number
     nNegative: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       nPositive: number
@@ -2174,7 +1720,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     zStatistic: number
     pValue: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       nRuns: number
       expectedRuns: number
       zStatistic: number
@@ -2191,7 +1737,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     statistic: number
     pValue: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
     }>(
@@ -2207,7 +1753,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     df: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       qStatistic: number
       pValue: number
       df: number
@@ -2224,7 +1770,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     grandMedian: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       grandMedian: number
@@ -2245,7 +1791,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     df: { between: number; within: number }
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       fStatistic: number
       pValue: number
       df: { between: number; within: number }
@@ -2262,7 +1808,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     pValue: number
     adjustedMeans: number[]
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       fStatistic: number
       pValue: number
       adjustedMeans: number[]
@@ -2283,7 +1829,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     fStatistic: number
     pValue: number
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       wilksLambda: number
       fStatistic: number
       pValue: number
@@ -2305,7 +1851,7 @@ sys.modules['${moduleName}'] = ${moduleName}
       reject: boolean
     }>
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       comparisons: Array<{
         group1: number
         group2: number
@@ -2347,7 +1893,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     yValues: number[],
     modelType: 'linear' | 'quadratic' | 'cubic' | 'exponential' | 'logarithmic' | 'power' = 'linear'
   ): Promise<CurveEstimationResult> {
-    return this.callWorkerMethod<CurveEstimationResult>(
+    return this.core.callWorkerMethod<CurveEstimationResult>(
       4,
       'curve_estimation',
       { x_values: xValues, y_values: yValues, model_type: modelType },
@@ -2377,7 +1923,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     modelType: 'exponential' | 'logistic' | 'gompertz' | 'power' | 'hyperbolic' = 'exponential',
     initialGuess: number[] | null = null
   ): Promise<NonlinearRegressionResult> {
-    return this.callWorkerMethod<NonlinearRegressionResult>(
+    return this.core.callWorkerMethod<NonlinearRegressionResult>(
       4,
       'nonlinear_regression',
       {
@@ -2413,7 +1959,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     entryThreshold: number = 0.05,
     stayThreshold: number = 0.10
   ): Promise<StepwiseRegressionResult> {
-    return this.callWorkerMethod<StepwiseRegressionResult>(
+    return this.core.callWorkerMethod<StepwiseRegressionResult>(
       4,
       'stepwise_regression',
       {
@@ -2442,7 +1988,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     xMatrix: number[][],
     yValues: number[]
   ): Promise<BinaryLogisticResult> {
-    return this.callWorkerMethod<BinaryLogisticResult>(
+    return this.core.callWorkerMethod<BinaryLogisticResult>(
       4,
       'binary_logistic',
       { x_matrix: xMatrix, y_values: yValues },
@@ -2464,7 +2010,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     xMatrix: number[][],
     yValues: number[]
   ): Promise<MultinomialLogisticResult> {
-    return this.callWorkerMethod<MultinomialLogisticResult>(
+    return this.core.callWorkerMethod<MultinomialLogisticResult>(
       4,
       'multinomial_logistic',
       { x_matrix: xMatrix, y_values: yValues },
@@ -2486,7 +2032,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     xMatrix: number[][],
     yValues: number[]
   ): Promise<OrdinalLogisticResult> {
-    return this.callWorkerMethod<OrdinalLogisticResult>(
+    return this.core.callWorkerMethod<OrdinalLogisticResult>(
       4,
       'ordinal_logistic',
       { x_matrix: xMatrix, y_values: yValues },
@@ -2508,7 +2054,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     xMatrix: number[][],
     yValues: number[]
   ): Promise<ProbitRegressionResult> {
-    return this.callWorkerMethod<ProbitRegressionResult>(
+    return this.core.callWorkerMethod<ProbitRegressionResult>(
       4,
       'probit_regression',
       { x_matrix: xMatrix, y_values: yValues },
@@ -2530,7 +2076,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     xMatrix: number[][],
     yValues: number[]
   ): Promise<PoissonRegressionResult> {
-    return this.callWorkerMethod<PoissonRegressionResult>(
+    return this.core.callWorkerMethod<PoissonRegressionResult>(
       4,
       'poisson_regression',
       { x_matrix: xMatrix, y_values: yValues },
@@ -2552,7 +2098,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     xMatrix: number[][],
     yValues: number[]
   ): Promise<NegativeBinomialRegressionResult> {
-    return this.callWorkerMethod<NegativeBinomialRegressionResult>(
+    return this.core.callWorkerMethod<NegativeBinomialRegressionResult>(
       4,
       'negative_binomial_regression',
       { x_matrix: xMatrix, y_values: yValues },
@@ -2579,7 +2125,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     x: number[],
     y: number[]
   ): Promise<LinearRegressionResult> {
-    return this.callWorkerMethod<LinearRegressionResult>(
+    return this.core.callWorkerMethod<LinearRegressionResult>(
       4,
       'linear_regression',
       { x, y },
@@ -2603,7 +2149,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     dataMatrix: number[][],
     nComponents: number = 2
   ): Promise<PCAAnalysisResult> {
-    return this.callWorkerMethod<PCAAnalysisResult>(
+    return this.core.callWorkerMethod<PCAAnalysisResult>(
       4,
       'pca_analysis',
       { data_matrix: dataMatrix, n_components: nComponents },
@@ -2626,7 +2172,7 @@ sys.modules['${moduleName}'] = ${moduleName}
   async durbinWatsonTest(
     residuals: number[]
   ): Promise<DurbinWatsonTestResult> {
-    return this.callWorkerMethod<DurbinWatsonTestResult>(
+    return this.core.callWorkerMethod<DurbinWatsonTestResult>(
       4,
       'durbin_watson_test',
       { residuals },
@@ -2654,7 +2200,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     observed: number[]
     expected: number[]
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       chiSquare: number
       pValue: number
       degreesOfFreedom: number
@@ -2687,7 +2233,7 @@ sys.modules['${moduleName}'] = ${moduleName}
     observedMatrix: number[][]
     expectedMatrix: number[][]
   }> {
-    return this.callWorkerMethod<{
+    return this.core.callWorkerMethod<{
       chiSquare: number
       pValue: number
       degreesOfFreedom: number
@@ -2732,18 +2278,14 @@ sys.modules['${moduleName}'] = ${moduleName}
   }
 
   isInitialized(): boolean {
-    const initialized = this.pyodide !== null
-    console.log(`[PyodideService.isInitialized] ${initialized ? '초기화됨' : '초기화 안됨'}`)
-    return initialized
+    return this.core.isInitialized()
   }
 
   /**
    * Pyodide 인스턴스 정리
    */
   dispose(): void {
-    if (this.pyodide) {
-      this.pyodide = null
-    }
+    this.core.dispose()
     PyodideStatisticsService.instance = null
   }
 }
