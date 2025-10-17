@@ -534,6 +534,38 @@ if (transposedMatrix.length !== allVars.length) {
 
 ---
 
+## 2025-10-17 (목) - 저녁
+
+### 📝 .next 캐시 문제 해결 (10분)
+
+**배경**
+- 사용자가 개발 서버에서 ERR_FILE_NOT_FOUND 오류 발견
+- 빌드 파일들(CSS, JS)을 찾지 못하는 문제
+- 원인: `.next` 디렉토리 캐시 손상
+
+**해결 방법**
+- `.next` 디렉토리 삭제: `rm -rf statistical-platform/.next`
+- 개발 서버 재시작: `npm run dev`
+- Next.js가 자동으로 클린 빌드 수행
+
+**결과**
+- ✅ 캐시 정리 완료
+- ✅ 사용자에게 재시작 가이드 제공
+- ⚠️ Git 추적: `.next` 파일은 빌드 아티팩트이므로 커밋하지 않음
+
+**프로덕션 빌드 확인**
+- `npm run build` 성공
+- Static HTML export: `statistical-platform/out/`
+- 61개 정적 페이지 생성 완료
+
+**다음 주 작업 예정**
+- Priority 1: E2E 실제 브라우저 테스트 (3-4시간)
+- Priority 2: Performance Benchmarking (2-3시간)
+- Priority 3: Documentation (2시간)
+- 상세: [STATUS.md](STATUS.md) 참조
+
+---
+
 ## 2025-10-14 (일)
 
 ### ✅ Phase 5-1 작업 커밋 및 푸시 (1시간)
