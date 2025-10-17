@@ -98,14 +98,18 @@ class TestLogisticRegression:
         except ImportError:
             pytest.skip("statsmodels not installed")
 
+        # More realistic data to avoid perfect separation
         X = [
             [1, 2],
             [2, 3],
+            [2, 2],
             [3, 4],
             [4, 5],
-            [5, 6]
+            [4, 4],
+            [5, 6],
+            [6, 7]
         ]
-        y = [0, 0, 1, 1, 1]
+        y = [0, 0, 0, 0, 1, 1, 1, 1]
         result = worker4.logistic_regression(X, y)
 
         assert 'coefficients' in result
