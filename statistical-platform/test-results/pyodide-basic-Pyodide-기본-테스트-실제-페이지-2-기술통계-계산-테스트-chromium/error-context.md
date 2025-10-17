@@ -1,0 +1,56 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Statistical Analysis Platform - Home" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e6] [cursor=pointer]
+          - heading "통계 분석 플랫폼" [level=1] [ref=e8] [cursor=pointer]
+        - generic [ref=e9]:
+          - navigation "Main navigation" [ref=e10]:
+            - link "홈" [ref=e11] [cursor=pointer]:
+              - /url: /
+              - button "홈" [ref=e12]
+            - link "실험설계" [ref=e13] [cursor=pointer]:
+              - /url: /experimental-design
+              - button "실험설계" [ref=e14]
+            - link "통계분석" [ref=e15] [cursor=pointer]:
+              - /url: /statistics
+              - button "통계분석" [ref=e16]
+            - link "도움말" [ref=e17] [cursor=pointer]:
+              - /url: /help
+              - button "도움말" [ref=e18]
+          - button "Toggle theme" [ref=e19]:
+            - img
+            - generic [ref=e20]: Toggle theme
+    - main [ref=e21]:
+      - generic [ref=e23]:
+        - generic [ref=e25]: 기술통계 (Descriptive Statistics) 실제 실행 테스트
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - generic [ref=e28]: 테스트 데이터 (쉼표로 구분)
+            - textbox "1,2,3,4,5" [ref=e29]
+          - button "기술통계 실행" [ref=e30]
+          - generic [ref=e31]:
+            - generic [ref=e32]: 에러 발생
+            - generic [ref=e33]: "Traceback (most recent call last): File \"/lib/python313.zip/_pyodide/_base.py\", line 597, in eval_code_async await CodeRunner( ...<9 lines>... .run_async(globals, locals) File \"/lib/python313.zip/_pyodide/_base.py\", line 411, in run_async coroutine = eval(self.code, globals, locals) File \"<exec>\", line 1, in <module> NameError: name 'sys' is not defined. Did you forget to import 'sys'?"
+          - generic [ref=e34]:
+            - generic [ref=e35]: 테스트 설명
+            - generic [ref=e36]: 이 페이지는 Pyodide를 사용한 실제 기술통계 계산을 테스트합니다. NumPy와 SciPy를 사용하여 평균, 표준편차, 최소값, 최대값, 중앙값을 계산합니다.
+    - region "Notifications alt+T"
+  - generic [ref=e41] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e42] [cursor=pointer]:
+      - img [ref=e43] [cursor=pointer]
+    - generic [ref=e46] [cursor=pointer]:
+      - button "Open issues overlay" [ref=e47] [cursor=pointer]:
+        - generic [ref=e48] [cursor=pointer]:
+          - generic [ref=e49] [cursor=pointer]: "0"
+          - generic [ref=e50] [cursor=pointer]: "1"
+        - generic [ref=e51] [cursor=pointer]: Issue
+      - button "Collapse issues badge" [ref=e52] [cursor=pointer]:
+        - img [ref=e53] [cursor=pointer]
+  - alert [ref=e55]
+```

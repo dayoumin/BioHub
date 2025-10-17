@@ -4,6 +4,7 @@
 # - Estimated memory: ~200MB
 # - Cold start time: ~3.8s
 
+import json
 from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
@@ -536,38 +537,47 @@ def factor_analysis(data_matrix, n_factors=2, rotation='varimax'):
     }
 
 
-def cluster_analysis(data_matrix, n_clusters=3, method='kmeans'):
+def _cluster_analysis(data_matrix, n_clusters=3, method='kmeans', metric='euclidean'):
     from sklearn.cluster import KMeans, AgglomerativeClustering
     from sklearn.metrics import silhouette_score, calinski_harabasz_score
 
-    data = np.array(data_matrix)
+    data = np.array(data_matrix, dtype=float)
+    if data.ndim != 2:
+        raise ValueError("data_matrix must be a 2D array")
 
-    if data.shape[0] < n_clusters:
+    n_samples, n_features = data.shape
+
+    if n_samples < n_clusters:
         raise ValueError(f"Number of samples ({data.shape[0]}) must be >= n_clusters ({n_clusters})")
 
     if method == 'kmeans':
         clusterer = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    elif method == 'hierarchical':
-        clusterer = AgglomerativeClustering(n_clusters=n_clusters)
-    else:
-        raise ValueError(f"Unknown method: {method}. Use 'kmeans' or 'hierarchical'")
-
-    labels = clusterer.fit_predict(data)
-
-    if hasattr(clusterer, 'cluster_centers_'):
+        labels = clusterer.fit_predict(data)
+        inertia = float(clusterer.inertia_)
         centers = clusterer.cluster_centers_.tolist()
-    else:
+    elif method == 'hierarchical':
+        # AgglomerativeClustering in sklearn 1.4+ uses 'metric' argument
+        clusterer = AgglomerativeClustering(n_clusters=n_clusters, linkage=method if method in {'ward', 'complete', 'average', 'single'} else 'ward', metric=metric)
+        labels = clusterer.fit_predict(data)
+        inertia = None  # Inertia is not defined for hierarchical clustering
         centers = []
         for i in range(n_clusters):
             cluster_data = data[labels == i]
             if len(cluster_data) > 0:
-                centers.append(np.mean(cluster_data, axis=0).tolist())
+                centers.append(cluster_data.mean(axis=0).tolist())
             else:
-                centers.append([0.0] * data.shape[1])
+                centers.append([0.0] * n_features)
+    else:
+        raise ValueError(f"Unknown method: {method}. Use 'kmeans' or 'hierarchical'")
 
-    if len(np.unique(labels)) > 1:
-        silhouette = float(silhouette_score(data, labels))
-        calinski = float(calinski_harabasz_score(data, labels))
+    unique_labels = np.unique(labels)
+    if len(unique_labels) > 1 and n_samples > n_clusters:
+        try:
+            silhouette = float(silhouette_score(data, labels, metric='euclidean' if method == 'kmeans' else metric))
+            calinski = float(calinski_harabasz_score(data, labels))
+        except Exception:
+            silhouette = 0.0
+            calinski = 0.0
     else:
         silhouette = 0.0
         calinski = 0.0
@@ -581,7 +591,35 @@ def cluster_analysis(data_matrix, n_clusters=3, method='kmeans'):
         'silhouetteScore': silhouette,
         'calinskiScore': calinski,
         'nClusters': int(n_clusters),
-        'method': method
+        'method': method,
+        'metric': metric,
+        'inertia': inertia
+    }
+
+
+def kmeans_clustering(data_matrix, n_clusters=3, column_names=None):
+    result = _cluster_analysis(data_matrix, n_clusters=n_clusters, method='kmeans')
+    inertia = float(result['inertia']) if result['inertia'] is not None else 0.0
+
+    return {
+        'labels': result['labels'],
+        'centers': result['centers'],
+        'clusterSizes': result['clusterSizes'],
+        'silhouetteScore': result['silhouetteScore'],
+        'inertia': inertia
+    }
+
+
+def hierarchical_clustering(data_matrix, n_clusters=3, method='ward', metric='euclidean', column_names=None):
+    result = _cluster_analysis(data_matrix, n_clusters=n_clusters, method=method, metric=metric)
+
+    return {
+        'labels': result['labels'],
+        'centers': result['centers'],
+        'clusterSizes': result['clusterSizes'],
+        'method': method,
+        'metric': metric,
+        'nSamples': len(data_matrix)
     }
 
 
@@ -623,6 +661,267 @@ def time_series_analysis(data_values, seasonal_periods=12):
         'acf': [float(v) for v in acf_values],
         'pacf': [float(v) for v in pacf_values],
         'seasonalPeriods': int(seasonal_periods)
+    }
+
+
+def time_series_decomposition(values, period=12, model='additive'):
+    from statsmodels.tsa.seasonal import seasonal_decompose
+
+    data = np.array(values, dtype=float)
+    if data.ndim != 1:
+        data = data.flatten()
+
+    if len(data) < max(3, period * 2):
+        raise ValueError(f"Time series must have at least {period * 2} observations for seasonal decomposition")
+
+    decomposition = seasonal_decompose(data, model=model, period=period, extrapolate_trend='freq')
+
+    def _clean_arr(arr):
+        return [float(v) if v is not None and not np.isnan(v) else None for v in np.array(arr)]
+
+    return {
+        'trend': _clean_arr(decomposition.trend),
+        'seasonal': _clean_arr(decomposition.seasonal),
+        'residual': _clean_arr(decomposition.resid),
+        'observed': data.tolist()
+    }
+
+
+def arima_forecast(values, order=(1, 1, 1), n_forecast=10):
+    from statsmodels.tsa.arima.model import ARIMA
+
+    data = np.array(values, dtype=float)
+    if data.ndim != 1:
+        data = data.flatten()
+
+    model = ARIMA(data, order=tuple(order))
+    fitted = model.fit()
+
+    forecast_res = fitted.get_forecast(steps=int(n_forecast))
+    predicted = forecast_res.predicted_mean.tolist()
+    conf_int = forecast_res.conf_int()
+    lower = conf_int.iloc[:, 0].tolist() if hasattr(conf_int, "iloc") else [float(v[0]) for v in conf_int]
+    upper = conf_int.iloc[:, 1].tolist() if hasattr(conf_int, "iloc") else [float(v[1]) for v in conf_int]
+
+    return {
+        'forecast': [float(v) for v in predicted],
+        'confidenceIntervals': {
+            'lower': [float(v) for v in lower],
+            'upper': [float(v) for v in upper]
+        },
+        'aic': float(fitted.aic) if fitted.aic is not None else None,
+        'bic': float(fitted.bic) if fitted.bic is not None else None
+    }
+
+
+def sarima_forecast(values, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12), n_forecast=10):
+    from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+    data = np.array(values, dtype=float)
+    if data.ndim != 1:
+        data = data.flatten()
+
+    model = SARIMAX(
+        data,
+        order=tuple(order),
+        seasonal_order=tuple(seasonal_order),
+        enforce_stationarity=False,
+        enforce_invertibility=False
+    )
+    fitted = model.fit(disp=False)
+
+    forecast_res = fitted.get_forecast(steps=int(n_forecast))
+    predicted = forecast_res.predicted_mean.tolist()
+    conf_int = forecast_res.conf_int()
+    lower = conf_int.iloc[:, 0].tolist() if hasattr(conf_int, "iloc") else [float(v[0]) for v in conf_int]
+    upper = conf_int.iloc[:, 1].tolist() if hasattr(conf_int, "iloc") else [float(v[1]) for v in conf_int]
+
+    return {
+        'forecast': [float(v) for v in predicted],
+        'confidenceIntervals': {
+            'lower': [float(v) for v in lower],
+            'upper': [float(v) for v in upper]
+        },
+        'aic': float(fitted.aic) if fitted.aic is not None else None,
+        'bic': float(fitted.bic) if fitted.bic is not None else None
+    }
+
+
+def var_model(data_matrix, max_lags=1, column_names=None):
+    from statsmodels.tsa.api import VAR
+
+    data = np.array(data_matrix, dtype=float)
+    if data.ndim != 2:
+        raise ValueError("data_matrix must be a 2D array")
+
+    model = VAR(data)
+    results = model.fit(maxlags=max_lags)
+
+    coefs = results.coefs  # shape (lag_order, neqs, neqs)
+    lag_order = coefs.shape[0]
+    coefficients: List[List[List[float]]] = []
+    for eq_idx in range(coefs.shape[1]):
+        eq_coeffs: List[List[float]] = []
+        for var_idx in range(coefs.shape[2]):
+            eq_coeffs.append([float(coefs[lag, eq_idx, var_idx]) for lag in range(lag_order)])
+        coefficients.append(eq_coeffs)
+
+    residuals = results.resid.tolist() if results.resid is not None else []
+
+    forecast = []
+    if lag_order > 0:
+        try:
+            forecast = results.forecast(data[-lag_order:], steps=1).tolist()
+        except Exception:
+            forecast = []
+
+    return {
+        'coefficients': coefficients,
+        'residuals': residuals,
+        'aic': float(results.aic),
+        'bic': float(results.bic),
+        'forecast': forecast
+    }
+
+
+def mixed_effects_model(data, dependent_column, fixed_effects=None, random_effects=None):
+    import pandas as pd
+    import statsmodels.api as sm
+    from statsmodels.regression.mixed_linear_model import MixedLM
+
+    if isinstance(data, str):
+        records = json.loads(data)
+    else:
+        records = data
+
+    if not isinstance(records, (list, tuple)):
+        raise ValueError("data must be a JSON string or iterable of records")
+
+    df = pd.DataFrame(records)
+
+    fixed_effects = fixed_effects or []
+    random_effects = random_effects or []
+
+    if dependent_column not in df.columns:
+        raise ValueError(f"dependent_column '{dependent_column}' not found in data")
+
+    exog = df[fixed_effects] if fixed_effects else pd.DataFrame(index=df.index)
+    exog = sm.add_constant(exog, has_constant='add')
+
+    if random_effects:
+        group_col = random_effects[0]
+        if group_col not in df.columns:
+            raise ValueError(f"random effect column '{group_col}' not found in data")
+        groups = df[group_col]
+    else:
+        groups = pd.Series(np.ones(len(df)), index=df.index)
+
+    model = MixedLM(endog=df[dependent_column], exog=exog, groups=groups)
+    result = model.fit()
+
+    fe_names = result.model.exog_names
+    fixed_coefficients = [float(result.fe_params[name]) for name in fe_names]
+    fixed_std_errors = [float(result.bse_fe[name]) if hasattr(result, "bse_fe") else float(result.bse[name]) for name in fe_names]
+    fixed_pvalues = [float(result.pvalues[name]) for name in fe_names]
+
+    random_variances = []
+    if hasattr(result, "cov_re") and result.cov_re is not None:
+        random_variances = [float(var) for var in np.diag(result.cov_re)]
+
+    return {
+        'fixedEffects': {
+            'coefficients': fixed_coefficients,
+            'standardErrors': fixed_std_errors,
+            'pValues': fixed_pvalues
+        },
+        'randomEffects': {
+            'variances': random_variances
+        },
+        'aic': float(result.aic),
+        'bic': float(result.bic),
+        'logLikelihood': float(result.llf)
+    }
+
+
+def kaplan_meier_survival(times, events):
+    times_array = np.array(times, dtype=float)
+    events_array = np.array(events, dtype=int)
+
+    order = np.argsort(times_array)
+    times_sorted = times_array[order]
+    events_sorted = events_array[order]
+
+    unique_event_times = np.unique(times_sorted[events_sorted == 1])
+
+    survival_probabilities: List[float] = []
+    risk_counts: List[int] = []
+    cumulative = 1.0
+
+    for event_time in unique_event_times:
+        at_risk = int(np.sum(times_sorted >= event_time))
+        events_at_time = int(np.sum((times_sorted == event_time) & (events_sorted == 1)))
+
+        if at_risk == 0:
+            continue
+
+        risk_counts.append(at_risk)
+        cumulative *= (at_risk - events_at_time) / at_risk
+        survival_probabilities.append(float(cumulative))
+
+    median_survival = None
+    for time_value, surv in zip(unique_event_times, survival_probabilities):
+        if surv <= 0.5:
+            median_survival = float(time_value)
+            break
+
+    return {
+        'survivalFunction': survival_probabilities,
+        'times': times_sorted.tolist(),
+        'events': events_sorted.tolist(),
+        'nRisk': risk_counts,
+        'medianSurvival': median_survival
+    }
+
+
+def cox_regression(times, events, covariate_data, covariate_names):
+    import pandas as pd
+    from statsmodels.duration.hazard_regression import PHReg
+
+    if covariate_data and len(covariate_data) != len(covariate_names):
+        raise ValueError("covariate_data length must match covariate_names length")
+
+    df = pd.DataFrame({name: covariate_data[idx] for idx, name in enumerate(covariate_names)})
+    df['time'] = np.array(times, dtype=float)
+    df['event'] = np.array(events, dtype=int)
+
+    model = PHReg(endog=df['time'], exog=df[covariate_names], status=df['event'])
+    result = model.fit()
+
+    coefficients = [float(coeff) for coeff in result.params]
+    hazard_ratios = [float(np.exp(coeff)) for coeff in result.params]
+    pvalues = [float(p) for p in result.pvalues]
+
+    conf_int_df = result.conf_int()
+    confidence_intervals = []
+    if conf_int_df is not None:
+        for idx in range(len(conf_int_df)):
+            confidence_intervals.append({
+                'lower': float(conf_int_df.iloc[idx, 0]),
+                'upper': float(conf_int_df.iloc[idx, 1])
+            })
+
+    concordance = None
+    if hasattr(result, "concordance"):
+        concordance = float(result.concordance)
+    elif hasattr(result, "concordance_index"):
+        concordance = float(result.concordance_index)
+
+    return {
+        'coefficients': coefficients,
+        'hazardRatios': hazard_ratios,
+        'pValues': pvalues,
+        'confidenceIntervals': confidence_intervals,
+        'concordance': concordance
     }
 
 

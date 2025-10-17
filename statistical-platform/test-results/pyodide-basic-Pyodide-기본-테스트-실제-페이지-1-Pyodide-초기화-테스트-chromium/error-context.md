@@ -1,0 +1,53 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - link "Statistical Analysis Platform - Home" [ref=e5] [cursor=pointer]:
+          - /url: /
+          - img [ref=e6] [cursor=pointer]
+          - heading "통계 분석 플랫폼" [level=1] [ref=e8] [cursor=pointer]
+        - generic [ref=e9]:
+          - navigation "Main navigation" [ref=e10]:
+            - link "홈" [ref=e11] [cursor=pointer]:
+              - /url: /
+              - button "홈" [ref=e12]
+            - link "실험설계" [ref=e13] [cursor=pointer]:
+              - /url: /experimental-design
+              - button "실험설계" [ref=e14]
+            - link "통계분석" [ref=e15] [cursor=pointer]:
+              - /url: /statistics
+              - button "통계분석" [ref=e16]
+            - link "도움말" [ref=e17] [cursor=pointer]:
+              - /url: /help
+              - button "도움말" [ref=e18]
+          - button "Toggle theme" [ref=e19]:
+            - img
+            - generic [ref=e20]: Toggle theme
+    - main [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e25]: Pyodide 초기화 테스트
+          - generic [ref=e26]:
+            - generic [ref=e28]: "상태: 초기화 완료"
+            - generic [ref=e29]:
+              - generic [ref=e30]:
+                - generic [ref=e31]: NumPy
+                - generic [ref=e32]: ⏳ 대기 중
+              - generic [ref=e33]:
+                - generic [ref=e34]: SciPy
+                - generic [ref=e35]: ⏳ 대기 중
+            - generic [ref=e36]:
+              - generic [ref=e37]: 로딩 시간
+              - generic [ref=e38]: 10.39초
+        - generic [ref=e39]:
+          - generic [ref=e41]: Worker 1-4 Critical Bug Fix 검증
+          - button "Run Worker Tests" [ref=e43]
+    - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e49] [cursor=pointer]:
+    - img [ref=e50] [cursor=pointer]
+  - alert [ref=e53]
+  - generic [ref=e56]: ✅ 통계 엔진 준비 완료
+```
