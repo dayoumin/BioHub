@@ -169,6 +169,11 @@ const kMeansClustering = async (
     }
   })
 
+  // ✅ K-means 제약: n_samples >= n_clusters
+  if (dataMatrix.length < k) {
+    return { success: false, error: `유효한 데이터 수(${dataMatrix.length})가 군집 수(${k})보다 작습니다. 최소 ${k}개 이상의 유효한 데이터가 필요합니다.` }
+  }
+
   const result = await context.pyodideCore.callWorkerMethod<ClusterAnalysisResult>(
     PyodideWorker.RegressionAdvanced,
     'kmeans_clustering',
@@ -240,6 +245,11 @@ const hierarchicalClustering = async (
       dataMatrix.push(values)
     }
   })
+
+  // ✅ 계층적 군집 제약: 최소 2개 이상
+  if (dataMatrix.length < 2) {
+    return { success: false, error: ERROR_MESSAGES.INSUFFICIENT_DATA(2) }
+  }
 
   const result = await context.pyodideCore.callWorkerMethod<{ method: string; metric: string; nSamples: number }>(
     PyodideWorker.RegressionAdvanced,
@@ -332,6 +342,12 @@ const arimaForecast = async (
 
   const values = extractNumericColumn(data, valueColumn)
 
+  // ✅ ARIMA 최소 길이 검증: p + d + q + 1 이상
+  const minLength = order[0] + order[1] + order[2] + 1
+  if (values.length < minLength) {
+    return { success: false, error: `ARIMA(${order.join(',')}) 모형은 최소 ${minLength}개 이상의 데이터가 필요합니다 (현재: ${values.length}개)` }
+  }
+
   const result = await context.pyodideCore.callWorkerMethod<ARIMAForecastResult>(
     PyodideWorker.RegressionAdvanced,
     'arima_forecast',
@@ -370,8 +386,26 @@ const kaplanMeierSurvival = async (
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMNS(['시간', '사건']) }
   }
 
-  const times = extractNumericColumn(data, timeColumn)
-  const events = extractNumericColumn(data, eventColumn)
+  // ✅ 행 단위 필터링: times와 events가 정렬 유지
+  const times: number[] = []
+  const events: number[] = []
+
+  data.forEach(row => {
+    const timeValue = row[timeColumn]
+    const eventValue = row[eventColumn]
+    const time = typeof timeValue === 'number' ? timeValue : parseFloat(String(timeValue ?? ''))
+    const event = typeof eventValue === 'number' ? eventValue : parseFloat(String(eventValue ?? ''))
+
+    // 둘 다 유효한 경우에만 추가 (행 순서 유지)
+    if (!isNaN(time) && !isNaN(event)) {
+      times.push(time)
+      events.push(event)
+    }
+  })
+
+  if (times.length < 2) {
+    return { success: false, error: ERROR_MESSAGES.INSUFFICIENT_DATA(2) }
+  }
 
   const result = await context.pyodideCore.callWorkerMethod<KaplanMeierSurvivalResult>(
     PyodideWorker.RegressionAdvanced,
@@ -452,6 +486,12 @@ const sarimaForecast = async (
 
   const values = extractNumericColumn(data, valueColumn)
 
+  // ✅ SARIMA 최소 길이 검증: p + d + q + P + D + Q + s 이상
+  const minLength = order[0] + order[1] + order[2] + seasonalOrder[0] + seasonalOrder[1] + seasonalOrder[2] + seasonalOrder[3]
+  if (values.length < minLength) {
+    return { success: false, error: `SARIMA${order}×${seasonalOrder} 모형은 최소 ${minLength}개 이상의 데이터가 필요합니다 (현재: ${values.length}개)` }
+  }
+
   const result = await context.pyodideCore.callWorkerMethod<SARIMAForecastResult>(
     PyodideWorker.RegressionAdvanced,
     'sarima_forecast',
@@ -491,7 +531,33 @@ const varModel = async (
     return { success: false, error: '최소 2개 이상의 시계열 변수가 필요합니다' }
   }
 
-  const dataMatrix = columns.map((col: string) => extractNumericColumn(data, col))
+  // ✅ 행 단위 필터링: 모든 열이 유효한 행만 포함
+  // 결과: [[row1_col1, row1_col2, ...], [row2_col1, row2_col2, ...]]
+  const dataMatrix: number[][] = []
+
+  data.forEach(row => {
+    const rowValues: number[] = []
+    let allValid = true
+
+    for (const col of columns) {
+      const cellValue = row[col]
+      const value = typeof cellValue === 'number' ? cellValue : parseFloat(String(cellValue ?? ''))
+      if (isNaN(value)) {
+        allValid = false
+        break
+      }
+      rowValues.push(value)
+    }
+
+    // 모든 열이 유효한 경우에만 추가 (행 순서 유지)
+    if (allValid) {
+      dataMatrix.push(rowValues)
+    }
+  })
+
+  if (dataMatrix.length < lag + 2) {
+    return { success: false, error: `최소 ${lag + 2}개 이상의 유효한 시계열 데이터가 필요합니다` }
+  }
 
   const result = await context.pyodideCore.callWorkerMethod<VARModelResult>(
     PyodideWorker.RegressionAdvanced,
@@ -536,9 +602,42 @@ const coxRegression = async (
     return { success: false, error: '최소 1개 이상의 공변량이 필요합니다' }
   }
 
-  const times = extractNumericColumn(data, timeColumn)
-  const events = extractNumericColumn(data, eventColumn)
-  const covariateData = covariates.map((col: string) => extractNumericColumn(data, col))
+  // ✅ 행 단위 필터링: 모든 값이 유효한 행만 포함
+  const times: number[] = []
+  const events: number[] = []
+  const covariateData: number[][] = covariates.map(() => [])
+
+  data.forEach(row => {
+    const timeValue = row[timeColumn]
+    const eventValue = row[eventColumn]
+    const time = typeof timeValue === 'number' ? timeValue : parseFloat(String(timeValue ?? ''))
+    const event = typeof eventValue === 'number' ? eventValue : parseFloat(String(eventValue ?? ''))
+
+    // 공변량 값 추출
+    const covValues: number[] = []
+    let allValid = !isNaN(time) && !isNaN(event)
+
+    for (const col of covariates) {
+      const covValue = row[col]
+      const cov = typeof covValue === 'number' ? covValue : parseFloat(String(covValue ?? ''))
+      if (isNaN(cov)) {
+        allValid = false
+        break
+      }
+      covValues.push(cov)
+    }
+
+    // 모든 값이 유효한 경우에만 추가 (행 순서 유지)
+    if (allValid) {
+      times.push(time)
+      events.push(event)
+      covValues.forEach((val, idx) => covariateData[idx].push(val))
+    }
+  })
+
+  if (times.length < covariates.length + 1) {
+    return { success: false, error: `최소 ${covariates.length + 1}개 이상의 유효한 데이터가 필요합니다` }
+  }
 
   const result = await context.pyodideCore.callWorkerMethod<CoxRegressionResult>(
     PyodideWorker.RegressionAdvanced,
