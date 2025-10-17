@@ -3,10 +3,10 @@
  * 각 메서드가 실제로 데이터를 처리하고 결과를 반환하는지 확인
  */
 
-import { PyodideStatisticsService } from '@/lib/services/pyodide'
+import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 
 // Mock Pyodide 모듈
-jest.mock('@/lib/services/pyodide/base', () => {
+jest.mock('@/lib/services/pyodide/core/pyodide-core', () => {
   const mockRunPython = jest.fn().mockImplementation(async (code: string) => {
     // 모든 코드에 대해 성공적인 응답 반환
     // 특정 조건이나 코드 내용에 관계없이 항상 기본 응답 사용

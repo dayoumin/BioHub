@@ -3,11 +3,11 @@
  * Pyodide 서비스 리팩토링 후 정상 작동 확인
  */
 
-import { PyodideStatisticsService } from '@/lib/services/pyodide'
+import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 import { StatisticalCalculator } from '@/lib/statistics/statistical-calculator'
 
 // Mock Pyodide 모듈
-jest.mock('@/lib/services/pyodide/base', () => {
+jest.mock('@/lib/services/pyodide/core/pyodide-core', () => {
   const mockRunPython = jest.fn().mockImplementation(async (code: string) => {
     // 간단한 Mock 응답 - JSON string 반환
     if (code.includes('stats.ttest_1samp')) {

@@ -165,13 +165,20 @@ statistical-platform/
 │   │   └── advanced.group.ts        - 고급분석 (12개)
 │   └── method-router.ts             - 라우터 (115줄)
 ├── lib/services/
-│   └── pyodide-statistics.ts        - 44개 메서드 (TypeScript 래퍼)
+│   ├── pyodide-core.ts              - PyodideCore (421 lines)
+│   ├── pyodide-statistics.ts        - PyodideStatistics (2,110 lines)
+│   └── pyodide/core/                - Core implementation
 └── public/workers/python/           - Python Workers (실제 통계 계산)
-    ├── worker1-descriptive.py       - Worker 1: 기술통계 (7개)
-    ├── worker2-hypothesis.py        - Worker 2: 가설검정 (6개)
-    ├── worker3-nonparametric-anova.py - Worker 3: 비모수/ANOVA (4개)
-    └── worker4-regression-advanced.py - Worker 4: 회귀/고급 (3개)
+    ├── worker1-descriptive.py       - Worker 1: 기술통계 (214 lines)
+    ├── worker2-hypothesis.py        - Worker 2: 가설검정 (338 lines)
+    ├── worker3-nonparametric-anova.py - Worker 3: 비모수/ANOVA (614 lines)
+    └── worker4-regression-advanced.py - Worker 4: 회귀/고급 (656 lines)
 ```
+
+**Legacy Files (아카이브 완료 - 2025-10-17)**:
+- `archive/pyodide-legacy-2025-10/` - 레거시 Pyodide 파일 (10개, 4,184 lines)
+- 더 이상 사용하지 않는 서비스 모듈들 (Phase 5 이전 구조)
+- Git 히스토리에 보관되어 필요 시 복원 가능
 
 ### 핵심 원칙
 - **Groups**: TypeScript로 데이터 검증/가공, UI 포맷팅만
@@ -227,16 +234,18 @@ npm run lint         # 린터
 
 ## 📋 현재 작업 상태
 
-**최신 상태** (2025-10-13):
-- ✅ Groups 파일 TypeScript 컴파일 에러: **0개**
-- ✅ Placeholder 제거 완료 (실제 데이터 처리)
-- ✅ 타입 안전성 강화 (검증 함수 추가)
-- ✅ 코드 품질: **4.8/5** (런타임 안정성, 타입 안전성 확보)
+**최신 상태** (2025-10-17):
+- ✅ Option B Day 1-4 리팩토링 완료
+- ✅ PyodideCore + PyodideStatistics 아키텍처 (4.8/5 품질)
+- ✅ Python Workers 4개 완전 분리 (1,822 lines)
+- ✅ TypeScript 컴파일 에러: **0개**
+- ✅ 레거시 파일 정리 완료 (4,184 lines → archive)
+- ✅ 코드 품질: **4.8/5** (프로덕션 준비 완료)
 
-**다음 작업** (2025-10-14 예정):
-- 🔜 P1: utils.ts 단위 테스트 작성
-- 🔜 P1: Groups 통합 테스트
-- 🔜 P2: regression.group.ts 리팩토링
+**다음 작업** (권장):
+- 🔜 P1: Python Type Hints 추가 (4시간)
+- 🔜 P1: Python Worker 단위 테스트 (4시간)
+- 🔜 P2: Phase 6-7 계획 수립
 
 **📝 상세 작업 기록**: [dailywork.md](dailywork.md) 참조
 
@@ -343,4 +352,4 @@ archive/
 
 ---
 
-**Updated**: 2025-10-13 | **Version**: P0.5 Complete | **Next**: P1 Testing
+**Updated**: 2025-10-17 | **Version**: Option B Day 1-4 Complete | **Next**: Testing & Documentation
