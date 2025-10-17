@@ -100,12 +100,12 @@ export function PurposeInputStep({
 
     const timer = setTimeout(() => {
       try {
-        // 컬럼 타입/이름 수집 (없으면 안전한 기본값)
+        {/* 컬럼 타입/이름 수집 (없으면 안전한 기본값) */}
         const columns: any[] = validationResults.columns || []
         const columnTypes = columns.map((c) => (c.type === 'date' ? 'datetime' : c.type))
         const columnNames = columns.map((c) => c.name)
 
-        // 결측/이상치 비율 추정
+        {/* 결측/이상치 비율 추정 */}
         const missingRatio = (() => {
           const denom = (validationResults.totalRows || 0) * (validationResults.columnCount || 0)
           if (!denom) return 0
@@ -120,7 +120,7 @@ export function PurposeInputStep({
           return Math.max(0, Math.min(1, outliers / denom))
         })()
 
-        // 가정 플래그
+        {/* 가정 플래그 */}
         const isNormallyDistributed = (
           assumptionResults?.normality?.shapiroWilk?.isNormal === true ||
           assumptionResults?.normality?.kolmogorovSmirnov?.isNormal === true
@@ -147,7 +147,7 @@ export function PurposeInputStep({
         }
 
         const result = SmartRecommender.recommend(context as any)
-        // SmartRecommender가 반환하는 방법을 표준 타입으로 사용 (id/name/description/category 필드 호환)
+        {/* SmartRecommender가 반환하는 방법을 표준 타입으로 사용 (id/name/description/category 필드 호환) */}
         setSmartMethods(result.methods || [])
       } catch (e) {
         console.error('SmartRecommender failed:', e)
@@ -190,7 +190,8 @@ export function PurposeInputStep({
 
   const handleQuestionTypeSelect = (typeId: string) => {
     setSelectedQuestionType(typeId)
-    setSelectedMethod(null) // 질문 유형 변경시 선택된 방법 초기화
+    setSelectedMethod(null)
+    {/* 질문 유형 변경시 선택된 방법 초기화 */}
   }
 
   const handleMethodSelect = (method: StatisticalMethod) => {
@@ -198,15 +199,15 @@ export function PurposeInputStep({
 
     const requirements = checkMethodRequirements(method, dataProfile)
     if (!requirements.canUse) {
-      // 요구사항 미충족시 경고만 표시, 선택은 가능
+      {/* 요구사항 미충족시 경고만 표시, 선택은 가능 */}
       logger.warn('Method requirements not met', { warnings: requirements.warnings })
     }
 
-    // 로컬 상태와 전역 스토어 모두 업데이트하여 canProceedToNext가 true가 되도록 함
+    {/* 로컬 상태와 전역 스토어 모두 업데이트하여 canProceedToNext가 true가 되도록 함 */}
     setSelectedMethod(method)
     setSelectedMethodInStore(method)
 
-    // 변수 자동 매핑
+    {/* 변수 자동 매핑 */}
     if (validationResults?.columns) {
       const columnInfo: ColumnInfo[] = (validationResults.columns as any[]).map((col: any) => ({
         name: col.name,
@@ -216,8 +217,10 @@ export function PurposeInputStep({
       }))
 
       const mapping = autoMapVariables(method, columnInfo)
-      setVariableMapping(mapping) // 로컬 상태
-      setVariableMappingInStore(mapping) // 스토어에도 저장
+      setVariableMapping(mapping)
+      {/* 로컬 상태 */}
+      setVariableMappingInStore(mapping)
+      {/* 스토어에도 저장 */}
       setShowVariableMapping(true)
     }
   }
@@ -235,15 +238,14 @@ export function PurposeInputStep({
   useEffect(() => {
     const canProceed = selectedMethod !== null
     if (canGoNext !== canProceed) {
-      // 상태 업데이트가 필요한 경우에만 처리
+      {/* 상태 업데이트가 필요한 경우에만 처리 */}
     }
   }, [selectedMethod, canGoNext])
 
   return (
     <div className="w-full h-full flex flex-col space-y-6">
-      <div className="space-y-6">
-          {/* 분석 목적 입력 */}
-          <div>
+      {/* 분석 목적 입력 */}
+      <div>
             <label className="text-sm font-medium mb-2 block">
               무엇을 알고 싶으신가요? (선택사항)
             </label>
@@ -331,8 +333,6 @@ export function PurposeInputStep({
               </AlertDescription>
             </Alert>
           )}
-        </div>
-      </div>
     </div>
   )
 }

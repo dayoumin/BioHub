@@ -27,11 +27,11 @@ const ResultsActionStep = lazy(() => import('@/components/smart-flow/steps/Resul
 const AnalysisHistoryPanel = lazy(() => import('@/components/smart-flow/AnalysisHistoryPanel').then(m => ({ default: m.AnalysisHistoryPanel })))
 
 const steps: StepConfig[] = [
-  { id: 1, name: '데이터 업로드', icon: Upload, description: '분석할 데이터 파일을 업로드하세요' },
-  { id: 2, name: '데이터 검증', icon: CheckCircle, description: '데이터를 자동으로 검증합니다' },
-  { id: 3, name: '분석 목적', icon: Sparkles, description: '무엇을 알고 싶은지 알려주세요' },
-  { id: 4, name: '통계 분석', icon: BarChart3, description: '최적의 통계 방법으로 분석합니다' },
-  { id: 5, name: '결과 및 액션', icon: FileText, description: '결과를 확인하고 다음 단계를 선택하세요' }
+  { id: 1, name: '데이터 업로드', icon: Upload, description: '' },
+  { id: 2, name: '데이터 검증', icon: CheckCircle, description: '' },
+  { id: 3, name: '분석 목적', icon: Sparkles, description: '' },
+  { id: 4, name: '통계 분석', icon: BarChart3, description: '' },
+  { id: 5, name: '결과 및 액션', icon: FileText, description: '' }
 ]
 
 export default function SmartFlowPage() {

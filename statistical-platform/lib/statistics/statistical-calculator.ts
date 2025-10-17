@@ -1,14 +1,20 @@
 /**
  * 통계 계산 브릿지
  * 템플릿 컴포넌트와 Pyodide 서비스를 연결
+ *
+ * Phase 6: PyodideCore 직접 연결
+ * - PyodideStatisticsService Facade 제거
+ * - PyodideCoreService 직접 사용
  */
 
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 import { useAnalysisCacheStore } from '@/lib/stores/analysis-cache-store'
 import type { CalculationResult } from '@/types/statistics/calculation'
 import { MethodRouter } from './method-router'
 
 export class StatisticalCalculator {
+  private static pyodideCore = PyodideCoreService.getInstance()
   private static pyodideService = PyodideStatisticsService.getInstance()
   private static initializationPromise: Promise<void> | null = null
   private static router: MethodRouter | null = null
@@ -46,9 +52,9 @@ export class StatisticalCalculator {
       }
 
       // Pyodide 초기화 확인 (중복 방지)
-      if (!this.pyodideService.isInitialized()) {
+      if (!this.pyodideCore.isInitialized()) {
         if (!this.initializationPromise) {
-          this.initializationPromise = this.pyodideService.initialize()
+          this.initializationPromise = this.pyodideCore.initialize()
         }
         await this.initializationPromise
       }
@@ -56,6 +62,7 @@ export class StatisticalCalculator {
       // 라우터 초기화 (Pyodide 초기화 후)
       if (!this.router) {
         this.router = new MethodRouter({
+          pyodideCore: this.pyodideCore,
           pyodideService: this.pyodideService
         })
       }

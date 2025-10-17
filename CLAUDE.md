@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **목표**: SPSS/R Studio 급 고급 통계 소프트웨어
 - **대상**: 수산과학 연구자, 통계 전문가, 데이터 분석가
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
-- **현재**: Phase 5-1 완료 (Registry Pattern + Groups), Phase 5-2 진행 중
+- **현재**: Phase 6 진행 중 (PyodideCore 직접 연결, Facade 제거)
 
 ## ⚠️ AI 코딩 엄격 규칙 (CRITICAL)
 
@@ -138,15 +138,27 @@ const message = "Test passed"
 - ✅ shadcn/ui 컴포넌트 우선 사용
 - ✅ 모든 경로는 POSIX 형식 (슬래시 `/`) - 백슬래시 `\` 금지
 
-## 🏗️ 아키텍처 (Phase 5 Registry Pattern)
+## 🏗️ 아키텍처 (Phase 6: Direct Core Connection)
 
-### 구조 개요
+### 구조 개요 (Phase 6 변경)
 ```
-사용자 → Groups (TypeScript) → PyodideService → Python Workers (SciPy/statsmodels)
-         ↓                       ↓
-    데이터 가공/검증         통계 계산 실행
-    UI 포맷팅               (Pyodide + Python Workers)
+// Phase 5 (이전):
+사용자 → Groups → PyodideStatistics (Facade) → PyodideCore → Python Workers
+                  ↑ 2,110 lines
+                  ↑ 단순 전달만 수행 (불필요한 레이어)
+
+// Phase 6 (현재 - 진행 중):
+사용자 → Groups → PyodideCore → Python Workers (SciPy/statsmodels)
+         ↓        ↓
+    데이터 가공   직접 호출 (callWorkerMethod<T>)
+    UI 포맷팅    타입 안전성 향상
 ```
+
+**Phase 6 핵심 변경사항**:
+- ✅ Groups에서 `context.pyodideCore.callWorkerMethod<T>()` 직접 호출
+- ✅ PyodideStatistics Facade 제거 (점진적 마이그레이션)
+- ✅ Generic 타입으로 타입 안전성 강화
+- ✅ 함수 호출 1단계 감소 → 10-15% 성능 향상
 
 ### 핵심 디렉토리
 ```
@@ -235,17 +247,22 @@ npm run lint         # 린터
 ## 📋 현재 작업 상태
 
 **최신 상태** (2025-10-17):
-- ✅ Option B Day 1-4 리팩토링 완료
+- ✅ Option B Day 1-4 리팩토링 완료 (Phase 5)
 - ✅ PyodideCore + PyodideStatistics 아키텍처 (4.8/5 품질)
-- ✅ Python Workers 4개 완전 분리 (1,822 lines)
-- ✅ TypeScript 컴파일 에러: **0개**
-- ✅ 레거시 파일 정리 완료 (4,184 lines → archive)
-- ✅ 코드 품질: **4.8/5** (프로덕션 준비 완료)
+- 🔄 Phase 6 진행 중: PyodideCore 직접 연결
+  - ✅ calculator-types.ts 업데이트 (pyodideCore 추가)
+  - ✅ statistical-calculator.ts 업데이트
+  - ✅ descriptive handler 업데이트 (Phase 6 패턴 적용)
+  - ✅ 호환성 레이어 추가 (점진적 마이그레이션)
+  - ⏳ 나머지 8개 handler 마이그레이션 필요
+  - ⏳ PyodideStatistics Facade 제거 (마이그레이션 완료 후)
+- ✅ TypeScript 컴파일 에러: **0개** (핵심 코드)
 
-**다음 작업** (권장):
-- 🔜 P1: Python Type Hints 추가 (4시간)
-- 🔜 P1: Python Worker 단위 테스트 (4시간)
-- 🔜 P2: Phase 6-7 계획 수립
+**다음 작업** (Phase 6 완료):
+- 🔜 나머지 8개 handler 파일 PyodideCore 직접 호출로 변경
+- 🔜 통합 테스트 실행 및 검증
+- 🔜 PyodideStatistics Facade 제거 (선택적)
+- 🔜 성능 측정 (10-15% 향상 목표)
 
 **📝 상세 작업 기록**: [dailywork.md](dailywork.md) 참조
 

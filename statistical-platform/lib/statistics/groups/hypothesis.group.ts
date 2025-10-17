@@ -434,10 +434,10 @@ function createPartialCorrelationHandler(context: CalculatorContext): MethodHand
       success: true,
       data: {
         metrics: [
-          { name: '부분상관계수', value: result.partialCorrelation.toFixed(4) },
+          { name: '부분상관계수', value: result.correlation.toFixed(4) },
           { name: 'p-value', value: result.pValue.toFixed(4) }
         ],
-        interpretation: `통제 변수를 고려한 부분상관계수는 ${result.partialCorrelation.toFixed(3)}입니다.`
+        interpretation: `통제 변수를 고려한 부분상관계수는 ${result.correlation.toFixed(3)}입니다.`
       }
     }
   }

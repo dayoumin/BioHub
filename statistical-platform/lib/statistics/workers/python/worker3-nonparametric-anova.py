@@ -1,20 +1,10 @@
-"""
-Worker 3: Nonparametric & ANOVA Python Module
-
-비모수검정 + 분산분석 그룹 (18개 메서드)
-- 패키지: SciPy, Statsmodels
-- 예상 메모리: 140MB
-- 예상 로딩: 2.3초
-"""
 
 import numpy as np
 from scipy import stats
 
 
-# Nonparametric Tests (9개)
 
 def mann_whitney_test(group1, group2):
-    """Mann-Whitney U 검정"""
     group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
     group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
     
@@ -30,12 +20,6 @@ def mann_whitney_test(group1, group2):
 
 
 def wilcoxon_test(values1, values2):
-    """
-    Wilcoxon 부호순위 검정
-    
-    쌍(pair) 단위로 데이터 정제하여 통계적 정확성 보장
-    """
-    # 쌍 단위로 정제 (양쪽 모두 유효한 값만 선택)
     pairs = [(v1, v2) for v1, v2 in zip(values1, values2) 
              if v1 is not None and v2 is not None 
              and not np.isnan(v1) and not np.isnan(v2)]
@@ -56,10 +40,8 @@ def wilcoxon_test(values1, values2):
 
 
 def kruskal_wallis_test(groups):
-    """Kruskal-Wallis H 검정"""
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
     
-    # 각 그룹이 최소 1개 이상의 관측치를 가져야 함
     for i, group in enumerate(clean_groups):
         if len(group) == 0:
             raise ValueError(f"Group {i} has no valid observations")
@@ -74,10 +56,8 @@ def kruskal_wallis_test(groups):
 
 
 def friedman_test(groups):
-    """Friedman 검정"""
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
     
-    # 모든 그룹이 같은 길이를 가져야 함 (repeated measures)
     lengths = [len(g) for g in clean_groups]
     if len(set(lengths)) > 1:
         raise ValueError(f"Friedman test requires equal group sizes, got: {lengths}")
@@ -90,13 +70,10 @@ def friedman_test(groups):
     }
 
 
-# ANOVA Tests (9개)
 
 def one_way_anova(groups):
-    """일원 분산분석 (One-Way ANOVA)"""
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
     
-    # 각 그룹이 최소 2개 이상의 관측치를 가져야 함
     for i, group in enumerate(clean_groups):
         if len(group) < 2:
             raise ValueError(f"Group {i} must have at least 2 observations")
@@ -112,12 +89,6 @@ def one_way_anova(groups):
 
 
 def two_way_anova(data_matrix, factor1_levels, factor2_levels):
-    """
-    이원 분산분석 (Two-Way ANOVA)
-    
-    주의: 완전한 구현을 위해서는 statsmodels 사용 권장
-    현재는 기본적인 제곱합만 계산
-    """
     data_matrix = np.array(data_matrix)
     
     if data_matrix.size == 0:
@@ -126,7 +97,6 @@ def two_way_anova(data_matrix, factor1_levels, factor2_levels):
     grand_mean = np.mean(data_matrix)
     ss_total = np.sum((data_matrix - grand_mean) ** 2)
     
-    # 실제 Two-Way ANOVA는 statsmodels 권장
     return {
         'ssTotal': float(ss_total),
         'grandMean': float(grand_mean),
@@ -135,16 +105,10 @@ def two_way_anova(data_matrix, factor1_levels, factor2_levels):
 
 
 def tukey_hsd(groups):
-    """
-    Tukey HSD 사후검정
-
-    SciPy 1.10+ 필요
-    """
     from scipy.stats import tukey_hsd as scipy_tukey
 
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
 
-    # 각 그룹이 최소 1개 이상의 관측치를 가져야 함
     for i, group in enumerate(clean_groups):
         if len(group) == 0:
             raise ValueError(f"Group {i} has no valid observations")
@@ -152,7 +116,6 @@ def tukey_hsd(groups):
     try:
         result = scipy_tukey(*clean_groups)
 
-        # SciPy 버전에 따라 pvalue 속성이 다를 수 있음
         if hasattr(result, 'pvalue'):
             p_value = float(result.pvalue)
         else:
@@ -170,11 +133,6 @@ def tukey_hsd(groups):
 # Priority 1 Methods (5 additional)
 
 def sign_test(before, after):
-    """
-    부호검정 (Sign Test)
-
-    대응표본 비모수 검정
-    """
     from scipy.stats import binomtest
 
     before = np.array(before)
@@ -193,7 +151,6 @@ def sign_test(before, after):
     if n_total == 0:
         raise ValueError("All differences are zero (ties)")
 
-    # 이항검정 (p=0.5)
     result = binomtest(n_positive, n_total, 0.5)
 
     return {
@@ -205,25 +162,16 @@ def sign_test(before, after):
 
 
 def runs_test(sequence):
-    """
-    Runs 검정 (Runs Test for Randomness)
-
-    무작위성 검정
-    """
-    # None/NaN 정제
     sequence = np.array([x for x in sequence if x is not None and not np.isnan(x)])
 
     if len(sequence) < 10:
         raise ValueError("Runs test requires at least 10 observations")
 
-    # 중앙값 기준으로 이분화
     median = np.median(sequence)
     binary = (sequence > median).astype(int)
 
-    # Runs 개수 계산
     runs = 1 + np.sum(binary[1:] != binary[:-1])
 
-    # 각 값의 개수
     n1 = np.sum(binary == 0)
     n2 = np.sum(binary == 1)
     n = n1 + n2
@@ -231,14 +179,11 @@ def runs_test(sequence):
     if n1 == 0 or n2 == 0:
         raise ValueError("All values are on one side of median")
 
-    # 기대 runs 및 분산
     expected_runs = (2 * n1 * n2) / n + 1
     var_runs = (2 * n1 * n2 * (2 * n1 * n2 - n)) / (n**2 * (n - 1))
 
-    # Z-통계량
     z_statistic = (runs - expected_runs) / np.sqrt(var_runs)
 
-    # p-value (양측검정)
     p_value = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
 
     return {
@@ -252,30 +197,21 @@ def runs_test(sequence):
 
 
 def mcnemar_test(contingency_table):
-    """
-    McNemar 검정
-
-    대응표본 범주형 검정
-    """
     table = np.array(contingency_table)
 
     if table.shape != (2, 2):
         raise ValueError("McNemar test requires 2x2 contingency table")
 
-    # b와 c (불일치 셀)
     b = table[0, 1]
     c = table[1, 0]
 
-    # 연속성 보정 여부
     use_correction = (b + c) < 25
 
     if use_correction:
-        # 연속성 보정
         statistic = (abs(b - c) - 1)**2 / (b + c) if (b + c) > 0 else 0
     else:
         statistic = (b - c)**2 / (b + c) if (b + c) > 0 else 0
 
-    # p-value (카이제곱 분포, df=1)
     p_value = 1 - stats.chi2.cdf(statistic, df=1)
 
     return {
@@ -287,22 +223,15 @@ def mcnemar_test(contingency_table):
 
 
 def cochran_q_test(data_matrix):
-    """
-    Cochran Q 검정
-
-    다중 대응표본 범주형 검정
-    """
     data_matrix = np.array(data_matrix)
     n, k = data_matrix.shape  # n subjects, k conditions
 
     if k < 3:
         raise ValueError("Cochran Q requires at least 3 conditions")
 
-    # 각 행과 열의 합
     row_sums = data_matrix.sum(axis=1)
     col_sums = data_matrix.sum(axis=0)
 
-    # Q 통계량 계산 (0으로 나누기 방지)
     G = col_sums.sum()
     denominator = k * G - np.sum(row_sums**2)
 
@@ -311,7 +240,6 @@ def cochran_q_test(data_matrix):
 
     Q = (k - 1) * (k * np.sum(col_sums**2) - G**2) / denominator
 
-    # p-value (카이제곱 분포, df=k-1)
     df = k - 1
     p_value = 1 - stats.chi2.cdf(Q, df)
 
@@ -323,15 +251,9 @@ def cochran_q_test(data_matrix):
 
 
 def mood_median_test(groups):
-    """
-    Mood Median 검정
-
-    비모수 중앙값 검정
-    """
     if len(groups) < 2:
         raise ValueError("Mood median test requires at least 2 groups")
 
-    # scipy.stats.median_test 사용
     statistic, p_value, grand_median, contingency_table = stats.median_test(*groups)
 
     return {

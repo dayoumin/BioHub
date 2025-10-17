@@ -1,3 +1,4 @@
+import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import type { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 import type { CalculationResult } from '@/types/statistics/calculation'
 import type { CanonicalMethodId } from '@/types/statistics/method-contracts'
@@ -27,8 +28,13 @@ export type HandlerMap = Partial<Record<CanonicalMethodId, MethodHandler>>
 /**
  * 계산 컨텍스트
  *
- * 핸들러가 사용할 수 있는 서비스들을 포함
+ * Phase 6: PyodideCore 직접 연결
+ * - pyodideCore: 새로운 방식 (권장) - callWorkerMethod() 직접 호출
+ * - pyodideService: 임시 호환성 레이어 (점진적 마이그레이션용)
+ *
+ * @deprecated pyodideService는 Phase 6 완료 후 제거 예정
  */
 export interface CalculatorContext {
+  pyodideCore: PyodideCoreService
   pyodideService: PyodideStatisticsService
 }

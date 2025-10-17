@@ -1,15 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import {
-  BarChart3,
-  CheckCircle,
-  Loader2,
-  AlertCircle,
-  Pause,
-  Play,
-  X
-} from 'lucide-react'
+import { BarChart3, CheckCircle, Loader2, AlertCircle, Pause, Play, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -215,6 +207,7 @@ export function AnalysisExecutionStep({
     if (!isCancelled && !analysisResult) {
       runAnalysis()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // 의도적으로 빈 배열 사용
 
   // 예상 시간 업데이트
@@ -228,9 +221,8 @@ export function AnalysisExecutionStep({
 
   return (
     <div className="w-full h-full flex flex-col space-y-6">
-      <div className="space-y-6">
-          {/* 오류 표시 */}
-          {error && (
+      {/* 오류 표시 */}
+      {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
@@ -299,11 +291,12 @@ export function AnalysisExecutionStep({
             {/* 컨트롤 버튼 */}
             {progress < 100 && !error && (
               <div className="flex justify-center gap-3 mt-6">
+                {/* 일시정지/재개 버튼 (75% 이후로는 일시정지 불가) */}
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handlePauseResume}
-                  disabled={progress >= 75} // 75% 이후로는 일시정지 불가
+                  disabled={progress >= 75}
                 >
                   {isPaused ? (
                     <>
@@ -403,8 +396,6 @@ export function AnalysisExecutionStep({
               </AlertDescription>
             </Alert>
           )}
-        </div>
-      </div>
     </div>
   )
 }

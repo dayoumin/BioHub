@@ -105,22 +105,21 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              변수 선택
-              <Badge variant="secondary">{selectedMethod.name}</Badge>
-            </CardTitle>
-            <CardDescription>
-              {methodRequirements.description}
-            </CardDescription>
+        <div>
+          <div className="flex items-center gap-2 text-xl font-semibold">
+            변수 선택
+            <Badge variant="secondary">{selectedMethod.name}</Badge>
           </div>
-          {isValid && (
-            <Badge className="bg-green-500 text-white">
-              <CheckCircle2 className="w-4 h-4 mr-1" />
-              변수 선택 완료
-            </Badge>
-          )}
+          <p className="text-sm text-muted-foreground">
+            {methodRequirements.description}
+          </p>
         </div>
+        {isValid && (
+          <Badge className="bg-green-500 text-white">
+            <CheckCircle2 className="w-4 h-4 mr-1" />
+            변수 선택 완료
+          </Badge>
+        )}
       </div>
 
       <div className="space-y-6">

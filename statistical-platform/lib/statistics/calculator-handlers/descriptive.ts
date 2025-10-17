@@ -22,7 +22,27 @@ const calculateDescriptiveStats = async (
     return { success: false, error: '유효한 숫자 데이터가 없습니다' }
   }
 
-  const result = await context.pyodideService.descriptiveStats(values)
+  // Phase 6: PyodideCore 직접 호출
+  const result = await context.pyodideCore.callWorkerMethod<{
+    mean: number
+    median: number
+    std: number
+    min: number
+    max: number
+    q1: number
+    q3: number
+    iqr: number
+    variance: number
+    skewness: number
+    kurtosis: number
+    mode?: number
+    n: number
+  }>(
+    1,
+    'descriptive_stats',
+    { data: values },
+    { errorMessage: 'Descriptive stats 실행 실패' }
+  )
 
   return {
     success: true,
@@ -72,7 +92,18 @@ const normalityTest = async (
   }
 
   const alpha = parameters.alpha || 0.05
-  const result = await context.pyodideService.shapiroWilkTest(values)
+  // Phase 6: PyodideCore 직접 호출
+  const result = await context.pyodideCore.callWorkerMethod<{
+    statistic: number
+    pValue: number
+    isNormal: boolean
+    alpha: number
+  }>(
+    1,
+    'normality_test',
+    { data: values, alpha },
+    { errorMessage: 'Normality test 실행 실패' }
+  )
   const isNormal = result.pValue > alpha
 
   return {
@@ -132,10 +163,17 @@ const homogeneityTest = async (
 
   const groupArrays = groupNames.map(name => groups[name])
 
-  // 메서드에 따라 적절한 함수 호출
-  const result = method === 'bartlett'
-    ? await context.pyodideService.bartlettTest(groupArrays)
-    : await context.pyodideService.leveneTest(groupArrays)
+  // Phase 6: PyodideCore 직접 호출 (메서드에 따라 분기)
+  const result = await context.pyodideCore.callWorkerMethod<{
+    statistic: number
+    pValue: number
+    equalVariance: boolean
+  }>(
+    2,
+    method === 'bartlett' ? 'bartlett_test' : 'levene_test',
+    { groups: groupArrays },
+    { errorMessage: `${method === 'bartlett' ? 'Bartlett' : 'Levene'} test 실행 실패` }
+  )
 
   const groupStats = groupNames.map(name => {
     const values = groups[name]
