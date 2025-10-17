@@ -1,4 +1,10 @@
 import type { CalculatorContext, HandlerMap, CalculationResult } from '../calculator-types'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type {
+  OneSampleTTestResult,
+  TwoSampleTTestResult,
+  PairedTTestResult
+} from '@/types/pyodide-results'
 
 export const createHypothesisHandlers = (context: CalculatorContext): HandlerMap => ({
   oneSampleTTest: (data, parameters) => oneSampleTTest(context, data, parameters),
@@ -29,7 +35,11 @@ const oneSampleTTest = async (
   const confidence = parameters.confidence || 0.95
   const alpha = 1 - confidence
 
-  const result = await context.pyodideService.oneSampleTTest(values, popmean, alternative)
+  const result = await context.pyodideCore.callWorkerMethod<OneSampleTTestResult>(
+    PyodideWorker.Hypothesis,
+    't_test_one_sample',
+    { data: values, popmean, alternative }
+  )
 
   const mean = values.reduce((a, b) => a + b, 0) / values.length
   const std = Math.sqrt(values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (values.length - 1))
@@ -96,7 +106,11 @@ const twoSampleTTest = async (
   const group2 = groups[groupNames[1]]
   const equalVar = parameters.equal_var ?? true
 
-  const result = await context.pyodideService.twoSampleTTest(group1, group2, equalVar)
+  const result = await context.pyodideCore.callWorkerMethod<TwoSampleTTestResult>(
+    PyodideWorker.Hypothesis,
+    't_test_two_sample',
+    { group1, group2, equal_var: equalVar }
+  )
 
   return {
     success: true,
@@ -168,7 +182,11 @@ const pairedTTest = async (
   const values2 = pairs.map(p => p[1])
   const differences = pairs.map(p => p[1] - p[0])
 
-  const result = await context.pyodideService.pairedTTest(values1, values2, alternative)
+  const result = await context.pyodideCore.callWorkerMethod<PairedTTestResult>(
+    PyodideWorker.Hypothesis,
+    't_test_paired',
+    { values1, values2, alternative }
+  )
 
   const meanDiff = differences.reduce((a, b) => a + b, 0) / differences.length
   const stdDiff = Math.sqrt(differences.reduce((a, b) => a + Math.pow(b - meanDiff, 2), 0) / (differences.length - 1))
@@ -251,11 +269,13 @@ const oneSampleProportionTest = async (
     return { success: false, error: '표본 크기가 정규 근사 조건을 만족하지 않습니다 (np≥5, n(1-p)≥5)' }
   }
 
-  const result = await context.pyodideService.oneSampleProportionTest(
-    successes,
-    n,
-    targetProportion,
-    alternative
+  const result = await context.pyodideCore.callWorkerMethod<{
+    statistic: number
+    pValue: number
+  }>(
+    PyodideWorker.Descriptive,
+    'one_sample_proportion_test',
+    { successes, n, p0: targetProportion, alternative }
   )
 
   const zCritical = 1.96

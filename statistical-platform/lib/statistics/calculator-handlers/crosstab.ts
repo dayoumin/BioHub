@@ -5,7 +5,10 @@
  */
 
 import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
+import type { CrosstabAnalysisParams } from '../method-parameter-types'
 import { ERROR_MESSAGES } from './common-utils'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type { CrosstabAnalysisResult } from '@/types/pyodide-results'
 
 export const createCrosstabHandlers = (context: CalculatorContext): HandlerMap => ({
   crosstabAnalysis: (data: DataRow[], parameters: MethodParameters) => crosstabAnalysis(context, data, parameters)
@@ -72,8 +75,11 @@ const crosstabAnalysis = async (
     const colVal = row[columnVariable]
 
     if (rowVal !== null && rowVal !== undefined && colVal !== null && colVal !== undefined) {
-      rowValues.push(rowVal)
-      colValues.push(colVal)
+      // Convert to string or number (exclude boolean)
+      const rowValConverted = typeof rowVal === 'boolean' ? String(rowVal) : rowVal
+      const colValConverted = typeof colVal === 'boolean' ? String(colVal) : colVal
+      rowValues.push(rowValConverted)
+      colValues.push(colValConverted)
     }
   })
 
@@ -84,15 +90,25 @@ const crosstabAnalysis = async (
     }
   }
 
-  // Pyodide를 통해 교차표 분석 및 카이제곱 검정 동시 수행
-  const result = await context.pyodideService.crosstabAnalysis(
-    rowValues,
-    colValues,
-    performChiSquare,
-    alpha
+  // Phase 6: PyodideCore 직접 호출
+  const result = await context.pyodideCore.callWorkerMethod<CrosstabAnalysisResult & {
+    chiSquareResult?: {
+      statistic: number
+      pValue: number
+      df: number
+    }
+  }>(
+    PyodideWorker.Descriptive,
+    'crosstab_analysis',
+    {
+      row_values: rowValues,
+      col_values: colValues,
+      perform_chi_square: performChiSquare,
+      alpha
+    }
   )
 
-  const { crosstabTable, rowTotals, colTotals, grandTotal, chiSquareResult, rowCategories, colCategories } = result
+  const { crosstab: crosstabTable, rowTotals, columnTotals: colTotals, grandTotal, chiSquareResult, rowLabels: rowCategories, columnLabels: colCategories } = result
 
   // 교차표를 표 형식으로 변환
   const crosstabTableData = rowCategories.map((rowCat: string, rowIdx: number) => {
@@ -136,8 +152,8 @@ const crosstabAnalysis = async (
 
   if (chiSquareResult) {
     metrics.push(
-      { name: '카이제곱 통계량', value: chiSquareResult.statistic.toFixed(4) },
-      { name: 'p-value', value: chiSquareResult.pValue.toFixed(4) },
+      { name: '카이제곱 통계량', value: chiSquareResult.statistic },
+      { name: 'p-value', value: chiSquareResult.pValue },
       { name: '자유도', value: chiSquareResult.df }
     )
   }

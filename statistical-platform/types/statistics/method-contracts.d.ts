@@ -33,6 +33,8 @@ export type CanonicalMethodId =
   | "sarimaForecast"
   | "varModel"
   | "coxRegression"
+  | "crosstabAnalysis"
+  | "cronbachAlpha"
 
 export type StatisticalMethodId =
   | CanonicalMethodId

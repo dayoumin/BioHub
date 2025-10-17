@@ -5,6 +5,8 @@
  */
 
 import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
+import type { CronbachAlphaParams } from '../method-parameter-types'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 export const createReliabilityHandlers = (context: CalculatorContext): HandlerMap => ({
   cronbachAlpha: (data: DataRow[], parameters: MethodParameters) => cronbachAlpha(context, data, parameters)
@@ -58,7 +60,12 @@ const cronbachAlpha = async (
     let valid = true
 
     columns.forEach((col: string) => {
-      const value = parseFloat(row[col])
+      const rawValue = row[col]
+      if (rawValue === null || rawValue === undefined) {
+        valid = false
+        return
+      }
+      const value = parseFloat(String(rawValue))
       if (isNaN(value)) {
         valid = false
       } else {
@@ -78,8 +85,15 @@ const cronbachAlpha = async (
     }
   }
 
-  // Pyodide 호출
-  const result = await context.pyodideService.cronbachAlpha(itemsMatrix)
+  // Phase 6: PyodideCore 직접 호출
+  const result = await context.pyodideCore.callWorkerMethod<{
+    alpha: number
+    itemTotalCorrelations?: number[]
+  }>(
+    PyodideWorker.Descriptive,
+    'cronbach_alpha',
+    { items_matrix: itemsMatrix }
+  )
 
   // 신뢰도 해석
   const interpretation = interpretCronbachAlpha(result.alpha)

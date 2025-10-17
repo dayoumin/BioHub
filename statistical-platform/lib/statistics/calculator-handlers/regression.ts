@@ -14,6 +14,12 @@ import {
   getMinimumRegressionSampleSize,
   ERROR_MESSAGES
 } from './common-utils'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type {
+  LinearRegressionResult,
+  MultipleRegressionResult,
+  LogisticRegressionResult
+} from '@/types/pyodide-results'
 
 export const createRegressionHandlers = (context: CalculatorContext): HandlerMap => ({
   simpleLinearRegression: (data: DataRow[], parameters: MethodParameters) => simpleLinearRegression(context, data, parameters),
@@ -56,7 +62,11 @@ const simpleLinearRegression = async (
   const xValues = validData.map(d => d.x)
   const yValues = validData.map(d => d.y)
 
-  const result = await context.pyodideService.simpleLinearRegression(xValues, yValues)
+  const result = await context.pyodideCore.callWorkerMethod<LinearRegressionResult>(
+    PyodideWorker.RegressionAdvanced,
+    'linear_regression',
+    { x: xValues, y: yValues }
+  )
 
   // 예측값 계산
   const predictions: Array<{ X: number; 예측값: string }> = []
@@ -85,11 +95,9 @@ const simpleLinearRegression = async (
       name: '모형 적합도',
       data: [
         { 측정치: '결정계수 (R²)', 값: result.rSquared.toFixed(4) },
-        { 측정치: 'F-통계량', 값: (result.fStatistic ?? 0).toFixed(4) },
-        {
-          측정치: 'F-검정 p-value',
-          값: formatPValue(result.pvalue ?? result.fPvalue ?? 0)
-        }
+        { 측정치: 'p-value', 값: formatPValue(result.pValue) },
+        { 측정치: '표준오차', 값: result.stdErr.toFixed(4) },
+        { 측정치: '관측치 수', 값: result.nPairs }
       ]
     }
   ]
@@ -106,8 +114,8 @@ const simpleLinearRegression = async (
     data: {
       metrics: [
         { name: '결정계수 (R²)', value: result.rSquared.toFixed(4) },
-        { name: 'F-통계량', value: (result.fStatistic ?? 0).toFixed(4) },
-        { name: 'p-value', value: formatPValue(result.pvalue ?? result.fPvalue ?? 0) }
+        { name: 'p-value', value: formatPValue(result.pValue) },
+        { name: '표준오차', value: result.stdErr.toFixed(4) }
       ],
       tables,
       charts: [
@@ -164,10 +172,10 @@ const multipleRegression = async (
     }
   }
 
-  const result = await context.pyodideService.multipleRegression(
-    xMatrix,
-    yValues,
-    independentColumns
+  const result = await context.pyodideCore.callWorkerMethod<MultipleRegressionResult>(
+    PyodideWorker.RegressionAdvanced,
+    'multiple_regression',
+    { X: xMatrix, y: yValues }
   )
 
   // 계수 테이블 생성
@@ -184,8 +192,8 @@ const multipleRegression = async (
     coefficientTable.push({
       변수: col,
       계수: result.coefficients[idx].toFixed(4),
-      't-통계량': result.tStatistics ? result.tStatistics[idx].toFixed(4) : '-',
-      'p-value': result.pValues ? formatPValue(result.pValues[idx]) : '-'
+      't-통계량': result.tStatistics[idx].toFixed(4),
+      'p-value': formatPValue(result.pValues[idx])
     })
   })
 
@@ -194,9 +202,9 @@ const multipleRegression = async (
     data: {
       metrics: [
         { name: '결정계수 (R²)', value: result.rSquared.toFixed(4) },
-        { name: '수정 R²', value: (result.adjRSquared ?? result.rSquared).toFixed(4) },
-        { name: 'F-통계량', value: (result.fStatistic ?? 0).toFixed(4) },
-        { name: 'p-value', value: formatPValue(result.pValue ?? 0) }
+        { name: '수정 R²', value: result.adjustedRSquared.toFixed(4) },
+        { name: 'F-통계량', value: result.fStatistic.toFixed(4) },
+        { name: 'p-value', value: formatPValue(result.pValue) }
       ],
       tables: [
         {
@@ -209,10 +217,10 @@ const multipleRegression = async (
             { 측정치: '결정계수 (R²)', 값: result.rSquared.toFixed(4) },
             {
               측정치: '수정 R²',
-              값: (result.adjRSquared ?? result.rSquared).toFixed(4)
+              값: result.adjustedRSquared.toFixed(4)
             },
-            { 측정치: 'F-통계량', 값: (result.fStatistic ?? 0).toFixed(4) },
-            { 측정치: 'p-value', 값: formatPValue(result.pValue ?? 0) }
+            { 측정치: 'F-통계량', 값: result.fStatistic.toFixed(4) },
+            { 측정치: 'p-value', 값: formatPValue(result.pValue) }
           ]
         }
       ],
@@ -257,12 +265,10 @@ const logisticRegression = async (
     }
   }
 
-  const result = await context.pyodideService.logisticRegression(
-    xMatrix,
-    yValues,
-    independentColumns,
-    method,
-    maxIter
+  const result = await context.pyodideCore.callWorkerMethod<LogisticRegressionResult>(
+    PyodideWorker.RegressionAdvanced,
+    'logistic_regression',
+    { X: xMatrix, y: yValues }
   )
 
   // 계수 테이블
@@ -276,10 +282,12 @@ const logisticRegression = async (
 
   independentColumns.forEach((col: string, idx: number) => {
     const coef = result.coefficients[idx]
+    const oddsRatio = result.oddsRatios[idx]
     coefficientTable.push({
       변수: col,
       계수: coef.toFixed(4),
-      'Odds Ratio': Math.exp(coef).toFixed(4)
+      'Odds Ratio': oddsRatio.toFixed(4),
+      'p-value': formatPValue(result.pValues[idx])
     })
   })
 
@@ -287,8 +295,7 @@ const logisticRegression = async (
     success: true,
     data: {
       metrics: [
-        { name: '정확도', value: ((result.accuracy ?? 0) * 100).toFixed(2) + '%' },
-        { name: 'AUC', value: (result.auc ?? 0).toFixed(4) }
+        { name: '정확도', value: (result.accuracy * 100).toFixed(2) + '%' }
       ],
       tables: [
         {
@@ -298,9 +305,7 @@ const logisticRegression = async (
         {
           name: '모형 평가',
           data: [
-            { 측정치: '정확도 (Accuracy)', 값: ((result.accuracy ?? 0) * 100).toFixed(2) + '%' },
-            { 측정치: 'AUC', 값: (result.auc ?? 0).toFixed(4) },
-            { 측정치: '반복 횟수', 값: result.nIterations ?? maxIter }
+            { 측정치: '정확도 (Accuracy)', 값: (result.accuracy * 100).toFixed(2) + '%' }
           ]
         }
       ],
@@ -330,7 +335,13 @@ const correlationAnalysis = async (
   })
 
   const method = parameters.method || 'pearson'
-  const result = await context.pyodideService.calculateCorrelation(columnsData, method)
+  const result = await context.pyodideCore.callWorkerMethod<{
+    matrix: number[][]
+  }>(
+    PyodideWorker.Hypothesis,
+    'correlation_test',
+    { columns_data: columnsData, method }
+  )
 
   // 상관계수 행렬을 테이블 형식으로 변환
   const correlationTable: any[] = []
@@ -365,54 +376,49 @@ const correlationAnalysis = async (
 // ============================================================================
 
 const interpretSimpleRegression = (
-  result: any,
+  result: LinearRegressionResult,
   independentColumn: string,
   dependentColumn: string,
   alpha: number
 ): string => {
   const rSquaredPercent = (result.rSquared * 100).toFixed(2)
-  const pValue = result.pvalue ?? result.fPvalue ?? 0
-  const isSignificant = pValue < alpha
+  const isSignificant = result.pValue < alpha
 
   return (
     `${independentColumn}는 ${dependentColumn}의 분산 중 ${rSquaredPercent}%를 설명합니다. ` +
     `회귀 모형은 통계적으로 ${isSignificant ? '유의합니다' : '유의하지 않습니다'} ` +
-    `(F-검정 p-value = ${formatPValue(pValue)}). ` +
+    `(p-value = ${formatPValue(result.pValue)}). ` +
     `회귀식: ${dependentColumn} = ${result.intercept.toFixed(4)} + ${result.slope.toFixed(4)} × ${independentColumn}`
   )
 }
 
 const interpretMultipleRegression = (
-  result: any,
+  result: MultipleRegressionResult,
   independentColumns: string[],
   dependentColumn: string,
   alpha: number
 ): string => {
   const rSquaredPercent = (result.rSquared * 100).toFixed(2)
-  const adjRSquaredPercent = ((result.adjRSquared ?? result.rSquared) * 100).toFixed(2)
-  const pValue = result.pValue ?? 0
-  const isSignificant = pValue < alpha
+  const adjRSquaredPercent = (result.adjustedRSquared * 100).toFixed(2)
+  const isSignificant = result.pValue < alpha
 
   return (
     `${independentColumns.length}개 독립변수들이 ${dependentColumn}의 분산 중 ${rSquaredPercent}%를 설명합니다 ` +
     `(수정 R² = ${adjRSquaredPercent}%). ` +
     `모형은 통계적으로 ${isSignificant ? '유의합니다' : '유의하지 않습니다'} ` +
-    `(F-검정 p-value = ${formatPValue(pValue)}).`
+    `(F-검정 p-value = ${formatPValue(result.pValue)}).`
   )
 }
 
 const interpretLogisticRegression = (
-  result: any,
+  result: LogisticRegressionResult,
   independentColumns: string[],
   dependentColumn: string
 ): string => {
-  const accuracyPercent = ((result.accuracy ?? 0) * 100).toFixed(2)
-  const auc = result.auc ?? 0
-  const aucQuality = interpretAUC(auc)
+  const accuracyPercent = (result.accuracy * 100).toFixed(2)
 
   return (
     `로지스틱 회귀 모형의 정확도는 ${accuracyPercent}%입니다. ` +
-    `AUC = ${auc.toFixed(4)}로 ${aucQuality} 분류 성능을 보입니다. ` +
     `${independentColumns.length}개 독립변수로 ${dependentColumn}을(를) 예측합니다.`
   )
 }

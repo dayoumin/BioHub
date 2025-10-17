@@ -5,6 +5,12 @@
  */
 
 import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
+import type {
+  OneSampleTTestParams,
+  TwoSampleTTestParams,
+  PairedTTestParams,
+  OneSampleProportionTestParams
+} from '../method-parameter-types'
 import {
   extractNumericColumn,
   extractGroupedData,
@@ -14,6 +20,12 @@ import {
   interpretSignificance,
   ERROR_MESSAGES
 } from './common-utils'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type {
+  OneSampleTTestResult,
+  TwoSampleTTestResult,
+  PairedTTestResult
+} from '@/types/pyodide-results'
 
 export const createHypothesisHandlers = (context: CalculatorContext): HandlerMap => ({
   oneSampleTTest: (data: DataRow[], parameters: MethodParameters) => oneSampleTTest(context, data, parameters),
@@ -42,7 +54,11 @@ const oneSampleTTest = async (
     return { success: false, error: ERROR_MESSAGES.INSUFFICIENT_DATA(2) }
   }
 
-  const result = await context.pyodideService.oneSampleTTest(values, popmean)
+  const result = await context.pyodideCore.callWorkerMethod<OneSampleTTestResult>(
+    PyodideWorker.Hypothesis,
+    't_test_one_sample',
+    { data: values, popmean }
+  )
 
   return {
     success: true,
@@ -107,7 +123,11 @@ const twoSampleTTest = async (
   const group1 = groups[groupNames[0]]
   const group2 = groups[groupNames[1]]
 
-  const result = await context.pyodideService.twoSampleTTest(group1, group2, equalVar)
+  const result = await context.pyodideCore.callWorkerMethod<TwoSampleTTestResult>(
+    PyodideWorker.Hypothesis,
+    't_test_two_sample',
+    { group1, group2, equal_var: equalVar }
+  )
 
   return {
     success: true,
@@ -181,7 +201,11 @@ const pairedTTest = async (
     return { success: false, error: ERROR_MESSAGES.INSUFFICIENT_DATA(2) }
   }
 
-  const result = await context.pyodideService.pairedTTest(values1, values2)
+  const result = await context.pyodideCore.callWorkerMethod<PairedTTestResult>(
+    PyodideWorker.Hypothesis,
+    't_test_paired',
+    { values1, values2 }
+  )
 
   return {
     success: true,
@@ -240,21 +264,31 @@ const oneSampleProportionTest = async (
   data: DataRow[],
   parameters: MethodParameters
 ): Promise<CalculationResult> => {
-  const { column, value, p0 } = parameters as OneSampleProportionTestParams
+  const { variable, successValue, nullProportion = 0.5 } = parameters as OneSampleProportionTestParams
 
-  if (!column || value === undefined || p0 === undefined) {
+  if (!variable || successValue === undefined) {
     return { success: false, error: '필수 파라미터를 입력하세요' }
   }
 
-  const values = data.map(row => row[column])
-  const successes = values.filter(v => v === value).length
+  const values = data.map(row => row[variable])
+  const successes = values.filter(v => v === successValue).length
   const total = values.length
 
   if (total < 10) {
     return { success: false, error: '최소 10개 이상의 데이터가 필요합니다' }
   }
 
-  const result = await context.pyodideService.oneSampleProportionTest(successes, total, p0)
+  const result = await context.pyodideCore.callWorkerMethod<{
+    proportion: number
+    statistic: number
+    pValue: number
+    ci_lower: number
+    ci_upper: number
+  }>(
+    PyodideWorker.Descriptive,
+    'one_sample_proportion_test',
+    { successes, total, p0: nullProportion }
+  )
 
   return {
     success: true,
@@ -271,7 +305,7 @@ const oneSampleProportionTest = async (
             { 항목: '성공 횟수', 값: successes },
             { 항목: '전체 시행', 값: total },
             { 항목: '표본 비율', 값: result.proportion.toFixed(4) },
-            { 항목: '귀무가설 비율', 값: p0.toFixed(4) },
+            { 항목: '귀무가설 비율', 값: nullProportion.toFixed(4) },
             { 항목: 'z-통계량', 값: result.statistic.toFixed(4) },
             { 항목: 'p-value', 값: result.pValue.toFixed(4) },
             {
@@ -281,7 +315,7 @@ const oneSampleProportionTest = async (
           ]
         }
       ],
-      interpretation: interpretProportionTest(result, p0)
+      interpretation: interpretProportionTest(result, nullProportion)
     }
   }
 }

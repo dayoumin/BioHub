@@ -5,10 +5,11 @@
  */
 
 import type { CalculatorContext, HandlerMap, CalculationResult, DataRow } from '../calculator-types'
-
 import type { OneSampleProportionTestParams } from '../method-parameter-types'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+
 export const createProportionTestHandlers = (context: CalculatorContext): HandlerMap => ({
-  oneSampleProportionTest: (data, parameters) => oneSampleProportionTest(context, data, parameters)
+  oneSampleProportionTest: (data, parameters) => oneSampleProportionTest(context, data, parameters as OneSampleProportionTestParams)
 })
 
 /**
@@ -102,15 +103,33 @@ const oneSampleProportionTest = async (
     }
   }
 
-  // Pyodide 호출
+  // Phase 6: PyodideCore 직접 호출
   let result
   try {
-    result = await context.pyodideService.oneSampleProportionTest(
-      successCount,
-      totalCount,
-      nullProportion,
-      alternative,
-      alpha
+    result = await context.pyodideCore.callWorkerMethod<{
+      sampleProportion: number
+      nullProportion: number
+      successCount: number
+      totalCount: number
+      zStatistic: number
+      pValueExact: number
+      pValueApprox: number
+      significant: boolean
+      confidenceInterval: {
+        lower: number
+        upper: number
+        level: number
+      }
+    }>(
+      PyodideWorker.Descriptive,
+      'one_sample_proportion_test',
+      {
+        successes: successCount,
+        total: totalCount,
+        p0: nullProportion,
+        alternative,
+        alpha
+      }
     )
   } catch (error) {
     return {

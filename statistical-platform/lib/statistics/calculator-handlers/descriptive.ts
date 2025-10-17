@@ -1,4 +1,10 @@
 import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type {
+  DescriptiveStatsResult,
+  NormalityTestResult,
+  HomogeneityTestResult
+} from '@/types/pyodide-results'
 
 export const createDescriptiveHandlers = (context: CalculatorContext): HandlerMap => ({
   calculateDescriptiveStats: (data: DataRow[], parameters: MethodParameters) =>
@@ -22,26 +28,11 @@ const calculateDescriptiveStats = async (
     return { success: false, error: '유효한 숫자 데이터가 없습니다' }
   }
 
-  // Phase 6: PyodideCore 직접 호출
-  const result = await context.pyodideCore.callWorkerMethod<{
-    mean: number
-    median: number
-    std: number
-    min: number
-    max: number
-    q1: number
-    q3: number
-    iqr: number
-    variance: number
-    skewness: number
-    kurtosis: number
-    mode?: number
-    n: number
-  }>(
-    1,
+  // Phase 6: PyodideCore 직접 호출 (공통 타입 + enum 사용)
+  const result = await context.pyodideCore.callWorkerMethod<DescriptiveStatsResult>(
+    PyodideWorker.Descriptive,
     'descriptive_stats',
-    { data: values },
-    { errorMessage: 'Descriptive stats 실행 실패' }
+    { data: values }
   )
 
   return {
@@ -92,17 +83,11 @@ const normalityTest = async (
   }
 
   const alpha = parameters.alpha || 0.05
-  // Phase 6: PyodideCore 직접 호출
-  const result = await context.pyodideCore.callWorkerMethod<{
-    statistic: number
-    pValue: number
-    isNormal: boolean
-    alpha: number
-  }>(
-    1,
+  // Phase 6: PyodideCore 직접 호출 (공통 타입 + enum 사용)
+  const result = await context.pyodideCore.callWorkerMethod<NormalityTestResult>(
+    PyodideWorker.Descriptive,
     'normality_test',
-    { data: values, alpha },
-    { errorMessage: 'Normality test 실행 실패' }
+    { data: values, alpha }
   )
   const isNormal = result.pValue > alpha
 
@@ -163,16 +148,11 @@ const homogeneityTest = async (
 
   const groupArrays = groupNames.map(name => groups[name])
 
-  // Phase 6: PyodideCore 직접 호출 (메서드에 따라 분기)
-  const result = await context.pyodideCore.callWorkerMethod<{
-    statistic: number
-    pValue: number
-    equalVariance: boolean
-  }>(
-    2,
+  // Phase 6: PyodideCore 직접 호출 (공통 타입 + enum 사용)
+  const result = await context.pyodideCore.callWorkerMethod<HomogeneityTestResult>(
+    PyodideWorker.Hypothesis,
     method === 'bartlett' ? 'bartlett_test' : 'levene_test',
-    { groups: groupArrays },
-    { errorMessage: `${method === 'bartlett' ? 'Bartlett' : 'Levene'} test 실행 실패` }
+    { groups: groupArrays }
   )
 
   const groupStats = groupNames.map(name => {

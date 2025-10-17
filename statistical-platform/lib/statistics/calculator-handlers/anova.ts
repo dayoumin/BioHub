@@ -5,6 +5,14 @@
  */
 
 import type { CalculatorContext, HandlerMap, CalculationResult, DataRow, MethodParameters } from '../calculator-types'
+import type {
+  OneWayANOVAParams,
+  TwoWayANOVAParams,
+  MANOVAParams,
+  TukeyHSDParams,
+  BonferroniParams,
+  GamesHowellParams
+} from '../method-parameter-types'
 import {
   extractNumericColumn,
   extractGroupedData,
@@ -13,6 +21,12 @@ import {
   interpretEffectSize,
   ERROR_MESSAGES
 } from './common-utils'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type {
+  OneWayAnovaResult,
+  TwoWayAnovaResult,
+  PostHocTestResult
+} from '@/types/pyodide-results'
 
 export const createAnovaHandlers = (context: CalculatorContext): HandlerMap => ({
   oneWayANOVA: (data: DataRow[], parameters: MethodParameters) => oneWayANOVA(context, data, parameters),
@@ -53,36 +67,40 @@ const oneWayANOVA = async (
   }
 
   const groupArrays = groupNames.map(name => groups[name])
-  const result = await context.pyodideService.oneWayANOVA(groupArrays, groupNames)
+  const result = await context.pyodideCore.callWorkerMethod<OneWayAnovaResult>(
+    PyodideWorker.NonparametricAnova,
+    'one_way_anova',
+    { groups: groupArrays }
+  )
 
   const { isSignificant, comparison, conclusion } = interpretSignificance(result.pValue, alpha)
 
-  // 효과크기 (eta-squared)
-  const etaSquared = result.etaSquared ?? 0
+  // 효과크기 (eta-squared) 계산
+  const etaSquared = result.sumSquaresBetween / (result.sumSquaresBetween + result.sumSquaresWithin)
   const effectLabel = interpretEffectSize(Math.sqrt(etaSquared)) // Cohen's f 근사
 
   // ANOVA 테이블
   const anovaTable = [
     {
       '변동원': '그룹 간 (Between)',
-      '제곱합': result.ssBetween?.toFixed(4) ?? '-',
-      '자유도': result.dfBetween?.toString() ?? (groupNames.length - 1).toString(),
-      '평균제곱': result.msBetween?.toFixed(4) ?? '-',
+      '제곱합': result.sumSquaresBetween.toFixed(4),
+      '자유도': result.dfBetween.toString(),
+      '평균제곱': result.meanSquaresBetween.toFixed(4),
       'F': result.fStatistic.toFixed(4),
       'p-value': formatPValue(result.pValue)
     },
     {
       '변동원': '그룹 내 (Within)',
-      '제곱합': result.ssWithin?.toFixed(4) ?? '-',
-      '자유도': result.dfWithin?.toString() ?? '-',
-      '평균제곱': result.msWithin?.toFixed(4) ?? '-',
+      '제곱합': result.sumSquaresWithin.toFixed(4),
+      '자유도': result.dfWithin.toString(),
+      '평균제곱': result.meanSquaresWithin.toFixed(4),
       'F': '-',
       'p-value': '-'
     },
     {
       '변동원': '전체 (Total)',
-      '제곱합': result.ssTotal?.toFixed(4) ?? '-',
-      '자유도': result.dfTotal?.toString() ?? '-',
+      '제곱합': (result.sumSquaresBetween + result.sumSquaresWithin).toFixed(4),
+      '자유도': (result.dfBetween + result.dfWithin).toString(),
       '평균제곱': '-',
       'F': '-',
       'p-value': '-'
@@ -157,50 +175,58 @@ const twoWayANOVA = async (
     value: Number(row[valueColumn])
   }))
 
-  const result = await context.pyodideService.twoWayAnova(formattedData)
+  const result = await context.pyodideCore.callWorkerMethod<TwoWayAnovaResult>(
+    PyodideWorker.NonparametricAnova,
+    'two_way_anova',
+    {
+      data_values: formattedData.map(d => d.value),
+      factor1_values: formattedData.map(d => d.factor1),
+      factor2_values: formattedData.map(d => d.factor2)
+    }
+  )
 
   // ANOVA 테이블 (주효과 + 상호작용)
   const anovaTable = [
     {
       '변동원': factor1Column,
       '제곱합': '-',
-      '자유도': result.factor1.df.toString(),
-      'F': result.factor1.fStatistic.toFixed(4),
-      'p-value': formatPValue(result.factor1.pValue)
+      '자유도': '-',
+      'F': result.mainEffect1.fStatistic.toFixed(4),
+      'p-value': formatPValue(result.mainEffect1.pValue)
     },
     {
       '변동원': factor2Column,
       '제곱합': '-',
-      '자유도': result.factor2.df.toString(),
-      'F': result.factor2.fStatistic.toFixed(4),
-      'p-value': formatPValue(result.factor2.pValue)
+      '자유도': '-',
+      'F': result.mainEffect2.fStatistic.toFixed(4),
+      'p-value': formatPValue(result.mainEffect2.pValue)
     },
     {
       '변동원': `${factor1Column} × ${factor2Column}`,
       '제곱합': '-',
-      '자유도': result.interaction.df.toString(),
+      '자유도': '-',
       'F': result.interaction.fStatistic.toFixed(4),
       'p-value': formatPValue(result.interaction.pValue)
     },
     {
       '변동원': '오차 (Error)',
       '제곱합': '-',
-      '자유도': result.residual.df.toString(),
+      '자유도': '-',
       'F': '-',
       'p-value': '-'
     }
   ]
 
-  const { isSignificant: sig1 } = interpretSignificance(result.factor1.pValue, alpha)
-  const { isSignificant: sig2 } = interpretSignificance(result.factor2.pValue, alpha)
+  const { isSignificant: sig1 } = interpretSignificance(result.mainEffect1.pValue, alpha)
+  const { isSignificant: sig2 } = interpretSignificance(result.mainEffect2.pValue, alpha)
   const { isSignificant: sigInt } = interpretSignificance(result.interaction.pValue, alpha)
 
   return {
     success: true,
     data: {
       metrics: [
-        { name: `${factor1Column} F`, value: result.factor1.fStatistic.toFixed(4) },
-        { name: `${factor2Column} F`, value: result.factor2.fStatistic.toFixed(4) },
+        { name: `${factor1Column} F`, value: result.mainEffect1.fStatistic.toFixed(4) },
+        { name: `${factor2Column} F`, value: result.mainEffect2.fStatistic.toFixed(4) },
         { name: '상호작용 F', value: result.interaction.fStatistic.toFixed(4) }
       ],
       tables: [
@@ -249,9 +275,23 @@ const manova = async (
 
   // 종속변수별 데이터 행렬 구성
   const dependentData = dependentColumns.map((col: string) => extractNumericColumn(data, col))
-  const groupLabels = data.map(row => row[groupColumn])
+  const groupLabels = data.map(row => String(row[groupColumn] ?? ''))
 
-  const result = await context.pyodideService.manova(dependentData, groupLabels, groups)
+  const result = await context.pyodideCore.callWorkerMethod<{
+    wilksLambda: number
+    fStatistic: number
+    pValue: number
+    df1: number
+    df2: number
+  }>(
+    PyodideWorker.NonparametricAnova,
+    'manova',
+    {
+      data_matrix: dependentData,
+      group_values: groupLabels,
+      var_names: dependentColumns
+    }
+  )
 
   const { isSignificant, comparison, conclusion } = interpretSignificance(result.pValue, alpha)
 
@@ -308,7 +348,11 @@ const tukeyHSD = async (
   }
 
   const groupArrays = groupNames.map(name => groups[name])
-  const result = await context.pyodideService.performTukeyHSD(groupArrays, groupNames, alpha)
+  const result = await context.pyodideCore.callWorkerMethod<PostHocTestResult>(
+    PyodideWorker.NonparametricAnova,
+    'tukey_hsd',
+    { groups: groupArrays }
+  )
 
   // 쌍별 비교 테이블
   const pairwiseTable = result.comparisons.map((comp: any) => ({
@@ -364,7 +408,11 @@ const bonferroni = async (
   }
 
   const groupArrays = groupNames.map(name => groups[name])
-  const result = await context.pyodideService.performBonferroni(groupArrays, groupNames, alpha)
+  const result = await context.pyodideCore.callWorkerMethod<PostHocTestResult>(
+    PyodideWorker.NonparametricAnova,
+    'bonferroni_post_hoc',
+    { groups: groupArrays }
+  )
 
   // 쌍별 비교 테이블
   const pairwiseTable = result.comparisons.map((comp: any) => ({
@@ -420,7 +468,11 @@ const gamesHowell = async (
   }
 
   const groupArrays = groupNames.map(name => groups[name])
-  const result = await context.pyodideService.gamesHowellTest(groupArrays, groupNames, alpha)
+  const result = await context.pyodideCore.callWorkerMethod<PostHocTestResult>(
+    PyodideWorker.NonparametricAnova,
+    'games_howell_test',
+    { groups: groupArrays }
+  )
 
   // 쌍별 비교 테이블
   const pairwiseTable = result.comparisons.map((comp: any) => ({

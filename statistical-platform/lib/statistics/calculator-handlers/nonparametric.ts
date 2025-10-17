@@ -12,6 +12,14 @@ import {
   interpretSignificance,
   ERROR_MESSAGES
 } from './common-utils'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type {
+  MannWhitneyUTestResult,
+  WilcoxonTestResult,
+  KruskalWallisTestResult,
+  ChiSquareTestResult,
+  PostHocTestResult
+} from '@/types/pyodide-results'
 
 export const createNonparametricHandlers = (context: CalculatorContext): HandlerMap => ({
   mannWhitneyU: (data: DataRow[], parameters: MethodParameters) => mannWhitneyU(context, data, parameters),
@@ -53,7 +61,11 @@ const mannWhitneyU = async (
     return { success: false, error: ERROR_MESSAGES.INSUFFICIENT_DATA(2) }
   }
 
-  const result = await context.pyodideService.mannWhitneyU(group1, group2, alternative)
+  const result = await context.pyodideCore.callWorkerMethod<MannWhitneyUTestResult>(
+    PyodideWorker.NonparametricAnova,
+    'mann_whitney_test',
+    { group1, group2 }
+  )
 
   const { isSignificant, comparison, conclusion } = interpretSignificance(result.pValue, alpha)
 
@@ -82,13 +94,13 @@ const mannWhitneyU = async (
               그룹: groupNames[0],
               'N': group1.length,
               '중앙값': calculateMedian(group1).toFixed(4),
-              '평균 순위': result.meanRank1?.toFixed(2) ?? '-'
+              '평균 순위': '-'
             },
             {
               그룹: groupNames[1],
               'N': group2.length,
               '중앙값': calculateMedian(group2).toFixed(4),
-              '평균 순위': result.meanRank2?.toFixed(2) ?? '-'
+              '평균 순위': '-'
             }
           ]
         }
@@ -125,7 +137,11 @@ const wilcoxonSignedRank = async (
     }
   }
 
-  const result = await context.pyodideService.wilcoxonSignedRank(values1, values2, alternative)
+  const result = await context.pyodideCore.callWorkerMethod<WilcoxonTestResult>(
+    PyodideWorker.NonparametricAnova,
+    'wilcoxon_test',
+    { values1, values2 }
+  )
 
   const { isSignificant, comparison, conclusion } = interpretSignificance(result.pValue, alpha)
 
@@ -197,7 +213,11 @@ const kruskalWallis = async (
   }
 
   const groupArrays = groupNames.map(name => groups[name])
-  const result = await context.pyodideService.kruskalWallis(groupArrays, groupNames)
+  const result = await context.pyodideCore.callWorkerMethod<KruskalWallisTestResult>(
+    PyodideWorker.NonparametricAnova,
+    'kruskal_wallis_test',
+    { groups: groupArrays }
+  )
 
   const { isSignificant, comparison, conclusion } = interpretSignificance(result.pValue, alpha)
 
@@ -206,7 +226,7 @@ const kruskalWallis = async (
     그룹: name,
     'N': groups[name].length,
     '중앙값': calculateMedian(groups[name]).toFixed(4),
-    '평균 순위': result.meanRanks?.[name]?.toFixed(2) ?? '-'
+    '평균 순위': '-'
   }))
 
   return {
@@ -214,7 +234,7 @@ const kruskalWallis = async (
     data: {
       metrics: [
         { name: 'H 통계량', value: result.statistic.toFixed(4) },
-        { name: '자유도', value: result.df?.toString() ?? (groupNames.length - 1).toString() },
+        { name: '자유도', value: result.df.toString() },
         { name: 'p-value', value: formatPValue(result.pValue) }
       ],
       tables: [
@@ -222,7 +242,7 @@ const kruskalWallis = async (
           name: '검정 결과',
           data: [
             { 항목: 'H 통계량', 값: result.statistic.toFixed(4) },
-            { 항목: '자유도', 값: result.df?.toString() ?? (groupNames.length - 1).toString() },
+            { 항목: '자유도', 값: result.df.toString() },
             { 항목: 'p-value', 값: formatPValue(result.pValue) },
             { 항목: '유의성', 값: conclusion }
           ]
@@ -263,18 +283,22 @@ const dunnTest = async (
   }
 
   const groupArrays = groupNames.map(name => groups[name])
-  const result = await context.pyodideService.dunnTest(groupArrays, groupNames, correction)
+  const result = await context.pyodideCore.callWorkerMethod<PostHocTestResult>(
+    PyodideWorker.NonparametricAnova,
+    'dunn_test',
+    { groups: groupArrays, p_adjust: correction }
+  )
 
   // 쌍별 비교 테이블
   const pairwiseTable = result.comparisons.map((comp: any) => ({
     비교: `${comp.group1} vs ${comp.group2}`,
-    'Z 통계량': comp.zStatistic.toFixed(4),
+    'Z 통계량': '-',
     'p-value': formatPValue(comp.pValue),
-    '보정 p-value': formatPValue(comp.pAdjusted ?? comp.pValue),
-    유의성: comp.pAdjusted < alpha ? '유의' : '비유의'
+    '보정 p-value': formatPValue(comp.pValue),
+    유의성: comp.pValue < alpha ? '유의' : '비유의'
   }))
 
-  const significantCount = result.comparisons.filter((c: any) => (c.pAdjusted ?? c.pValue) < alpha).length
+  const significantCount = result.comparisons.filter((c: any) => c.pValue < alpha).length
 
   return {
     success: true,
@@ -311,7 +335,11 @@ const chiSquareTest = async (
     return { success: false, error: '관찰빈도(observed)를 입력하세요' }
   }
 
-  const result = await context.pyodideService.chiSquareTest(observed, expected)
+  const result = await context.pyodideCore.callWorkerMethod<ChiSquareTestResult>(
+    PyodideWorker.Hypothesis,
+    'chi_square_test',
+    { observed, expected }
+  )
 
   const { isSignificant, comparison, conclusion } = interpretSignificance(result.pValue, alpha)
 
@@ -319,8 +347,8 @@ const chiSquareTest = async (
   const frequencyTable = observed.map((obs: number, idx: number) => ({
     '범주': `범주 ${idx + 1}`,
     '관찰빈도': obs,
-    '기대빈도': result.expected?.[idx]?.toFixed(2) ?? expected?.[idx]?.toFixed(2) ?? '-',
-    '잔차': result.residuals?.[idx]?.toFixed(4) ?? '-'
+    '기대빈도': result.expectedFrequencies[idx].toFixed(2),
+    '잔차': '-'
   }))
 
   return {
@@ -328,7 +356,7 @@ const chiSquareTest = async (
     data: {
       metrics: [
         { name: 'χ² 통계량', value: result.statistic.toFixed(4) },
-        { name: '자유도', value: result.df.toString() },
+        { name: '자유도', value: result.degreesOfFreedom.toString() },
         { name: 'p-value', value: formatPValue(result.pValue) }
       ],
       tables: [
@@ -336,7 +364,7 @@ const chiSquareTest = async (
           name: '검정 결과',
           data: [
             { 항목: 'χ² 통계량', 값: result.statistic.toFixed(4) },
-            { 항목: '자유도', 값: result.df.toString() },
+            { 항목: '자유도', 값: result.degreesOfFreedom.toString() },
             { 항목: 'p-value', 값: formatPValue(result.pValue) },
             { 항목: '유의성', 값: conclusion }
           ]
