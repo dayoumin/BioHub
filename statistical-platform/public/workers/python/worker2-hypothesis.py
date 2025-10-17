@@ -1,20 +1,17 @@
-"""
-Worker 2: Hypothesis Testing Python Module
+# Worker 2: Hypothesis Testing Python Module
+# Notes:
+# - Dependencies: NumPy, SciPy, statsmodels
+# - Estimated memory: ~90MB
+# - Cold start time: ~1.2s
 
-가설검정 그룹 (8개 메서드)
-- 패키지: NumPy, SciPy, Statsmodels
-- 예상 메모리: 90MB
-- 예상 로딩: 1.2초
-"""
-
+from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
 import math
 
 
-def _safe_float(value):
-    """Convert value to JSON-safe float (replace NaN/Infinity with None)"""
+def _safe_float(value: Optional[float]) -> Optional[float]:
     if value is None:
         return None
     if math.isnan(value) or math.isinf(value):
@@ -22,10 +19,11 @@ def _safe_float(value):
     return float(value)
 
 
-def t_test_two_sample(group1, group2, equal_var=True):
-    """
-    독립표본 t-검정 (Independent Samples t-test)
-    """
+def t_test_two_sample(
+    group1: List[Union[float, int, None]],
+    group2: List[Union[float, int, None]],
+    equal_var: bool = True
+) -> Dict[str, Union[float, int, None]]:
     group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
     group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
 
@@ -34,7 +32,6 @@ def t_test_two_sample(group1, group2, equal_var=True):
 
     statistic, p_value = stats.ttest_ind(group1, group2, equal_var=equal_var)
 
-    # Cohen's d 효과크기
     pooled_std = np.sqrt(((len(group1) - 1) * np.var(group1, ddof=1) +
                           (len(group2) - 1) * np.var(group2, ddof=1)) /
                          (len(group1) + len(group2) - 2))
@@ -53,13 +50,10 @@ def t_test_two_sample(group1, group2, equal_var=True):
     }
 
 
-def t_test_paired(values1, values2):
-    """
-    대응표본 t-검정 (Paired Samples t-test)
-    
-    쌍(pair) 단위로 데이터 정제하여 통계적 정확성 보장
-    """
-    # 쌍 단위로 정제 (양쪽 모두 유효한 값만 선택)
+def t_test_paired(
+    values1: List[Union[float, int, None]],
+    values2: List[Union[float, int, None]]
+) -> Dict[str, Union[float, int, None]]:
     pairs = [(v1, v2) for v1, v2 in zip(values1, values2) 
              if v1 is not None and v2 is not None 
              and not np.isnan(v1) and not np.isnan(v2)]
@@ -81,10 +75,10 @@ def t_test_paired(values1, values2):
     }
 
 
-def t_test_one_sample(data, popmean=0):
-    """
-    일표본 t-검정 (One-Sample t-test)
-    """
+def t_test_one_sample(
+    data: List[Union[float, int, None]],
+    popmean: float = 0
+) -> Dict[str, Union[float, None]]:
     clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
 
     if len(clean_data) < 2:
@@ -99,10 +93,11 @@ def t_test_one_sample(data, popmean=0):
     }
 
 
-def z_test(data, popmean, popstd):
-    """
-    Z-검정 (Z-test)
-    """
+def z_test(
+    data: List[Union[float, int, None]],
+    popmean: float,
+    popstd: float
+) -> Dict[str, Union[float, None]]:
     clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
 
     if len(clean_data) < 30:
@@ -120,10 +115,10 @@ def z_test(data, popmean, popstd):
     }
 
 
-def chi_square_test(observed_matrix, yates_correction=False):
-    """
-    카이제곱 검정 (Chi-Square Test)
-    """
+def chi_square_test(
+    observed_matrix: List[List[int]],
+    yates_correction: bool = False
+) -> Dict[str, Union[float, int, List[List[float]], None]]:
     observed = np.array(observed_matrix)
 
     if observed.size == 0:
@@ -139,19 +134,18 @@ def chi_square_test(observed_matrix, yates_correction=False):
     }
 
 
-def binomial_test(success_count, total_count, probability=0.5, alternative='two-sided'):
-    """
-    이항 검정 (Binomial Test)
-    
-    SciPy 1.12+ 호환 (binomtest 사용)
-    """
+def binomial_test(
+    success_count: int,
+    total_count: int,
+    probability: float = 0.5,
+    alternative: Literal['two-sided', 'less', 'greater'] = 'two-sided'
+) -> Dict[str, Union[float, int, None]]:
     if total_count < 1:
         raise ValueError("Total count must be at least 1")
 
     if success_count < 0 or success_count > total_count:
         raise ValueError(f"Invalid success_count: must be 0 <= {success_count} <= {total_count}")
 
-    # SciPy 1.12+ 호환
     binom_result = binomtest(success_count, total_count, probability, alternative=alternative)
     p_value = binom_result.pvalue
 
@@ -162,10 +156,11 @@ def binomial_test(success_count, total_count, probability=0.5, alternative='two-
     }
 
 
-def correlation_test(x, y, method='pearson'):
-    """
-    상관분석 (Correlation Test)
-    """
+def correlation_test(
+    x: List[Union[float, int, None]],
+    y: List[Union[float, int, None]],
+    method: Literal['pearson', 'spearman', 'kendall'] = 'pearson'
+) -> Dict[str, Union[float, str, None]]:
     x = np.array([val for val in x if val is not None and not np.isnan(val)])
     y = np.array([val for val in y if val is not None and not np.isnan(val)])
 
@@ -191,16 +186,12 @@ def correlation_test(x, y, method='pearson'):
     }
 
 
-def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
-    """
-    부분상관분석 (Partial Correlation)
-
-    statsmodels와 SciPy를 사용하여 pingouin 라이선스 문제 해결
-
-    원리: 통제 변수의 영향을 제거한 두 변수 간의 순수한 상관관계
-    1. 각 변수(X, Y)를 통제 변수들로 선형 회귀하여 잔차(residuals) 계산
-    2. 두 잔차 간의 피어슨 상관계수 계산
-    """
+def partial_correlation(
+    data_matrix: List[List[Union[float, int, None]]],
+    x_idx: int,
+    y_idx: int,
+    control_indices: List[int]
+) -> Dict[str, Union[float, int, Dict[str, float], None]]:
     try:
         import statsmodels.api as sm
     except ImportError:
@@ -213,7 +204,6 @@ def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
     if data_matrix.shape[0] < 3:
         raise ValueError("Partial correlation requires at least 3 complete cases")
 
-    # None/NaN 필터링 (행 단위 - 필요한 열만 체크)
     required_cols = [x_idx, y_idx] + list(control_indices)
     valid_rows = []
 
@@ -225,10 +215,8 @@ def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
     if len(valid_rows) < 3:
         raise ValueError(f"Partial correlation requires at least 3 valid observations, got {len(valid_rows)}")
 
-    # 유효한 데이터만 선택
     data_clean = data_matrix[valid_rows]
 
-    # DataFrame 생성
     df_data = {
         'x': data_clean[:, x_idx],
         'y': data_clean[:, y_idx]
@@ -238,36 +226,28 @@ def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
 
     df = pd.DataFrame(df_data)
 
-    # 통제 변수가 충분한지 확인
     n = len(df)
     k = len(control_indices)
 
     if n < k + 3:
         raise ValueError(f"Sample size ({n}) must be greater than number of control variables ({k}) + 2")
 
-    # 통제 변수 행렬 (상수항 포함)
     control_cols = [f'control{i}' for i in range(k)]
     controls = sm.add_constant(df[control_cols])
 
-    # 1. Y에서 통제 변수의 영향 제거 (잔차 계산)
     y_model = sm.OLS(df['y'], controls).fit()
     y_residuals = y_model.resid
 
-    # 2. X에서 통제 변수의 영향 제거 (잔차 계산)
     x_model = sm.OLS(df['x'], controls).fit()
     x_residuals = x_model.resid
 
-    # 3. 두 잔차 간의 피어슨 상관계수 계산
     corr_result = stats.pearsonr(x_residuals, y_residuals)
 
-    # 자유도 계산 (n - k - 2)
     df_residual = n - k - 2
 
-    # 신뢰구간 계산 (Fisher's z-transformation)
     r = corr_result.statistic
     z = np.arctanh(r)
     se = 1 / np.sqrt(df_residual - 1)
-    z_crit = stats.norm.ppf(1 - 0.05 / 2)  # 95% 신뢰구간
     lower_z = z - z_crit * se
     upper_z = z + z_crit * se
 
@@ -286,13 +266,9 @@ def partial_correlation(data_matrix, x_idx, y_idx, control_indices):
     }
 
 
-def levene_test(groups):
-    """
-    Levene 등분산성 검정 (Levene's Test)
-
-    정규성 가정에 강건한 등분산성 검정
-    """
-    # 각 그룹에서 결측값 제거
+def levene_test(
+    groups: List[List[Union[float, int, None]]]
+) -> Dict[str, Union[float, bool, None]]:
     clean_groups = []
     for group in groups:
         clean_group = [x for x in group if x is not None and not np.isnan(x)]
@@ -302,7 +278,6 @@ def levene_test(groups):
     if len(clean_groups) < 2:
         raise ValueError("Levene test requires at least 2 groups")
 
-    # Levene 검정
     statistic, p_value = stats.levene(*clean_groups)
 
     return {
@@ -312,13 +287,9 @@ def levene_test(groups):
     }
 
 
-def bartlett_test(groups):
-    """
-    Bartlett 등분산성 검정 (Bartlett's Test)
-
-    정규성 가정에 민감하지만 더 강력한 검정
-    """
-    # 각 그룹에서 결측값 제거
+def bartlett_test(
+    groups: List[List[Union[float, int, None]]]
+) -> Dict[str, Union[float, bool, None]]:
     clean_groups = []
     for group in groups:
         clean_group = [x for x in group if x is not None and not np.isnan(x)]
@@ -328,7 +299,6 @@ def bartlett_test(groups):
     if len(clean_groups) < 2:
         raise ValueError("Bartlett test requires at least 2 groups")
 
-    # Bartlett 검정
     statistic, p_value = stats.bartlett(*clean_groups)
 
     return {
@@ -338,36 +308,32 @@ def bartlett_test(groups):
     }
 
 
-def chi_square_goodness_test(observed, expected=None, alpha=0.05):
-    """
-    카이제곱 적합도 검정 (Chi-Square Goodness of Fit Test)
-    
-    단일 범주형 변수가 예상 분포를 따르는지 검정
-    """
+def chi_square_goodness_test(
+    observed: List[Union[float, int]],
+    expected: Optional[List[Union[float, int]]] = None,
+    alpha: float = 0.05
+) -> Dict[str, Union[float, int, bool, List[float], None]]:
     observed = np.array(observed, dtype=float)
-    
-    # None/NaN 제거
+
     observed = observed[~np.isnan(observed)]
-    
+
     if len(observed) < 2:
         raise ValueError("Observed frequencies must have at least 2 values")
-    
+
     if expected is None:
-        # 균등 분포 가정
         expected = np.full_like(observed, np.sum(observed) / len(observed))
     else:
         expected = np.array(expected, dtype=float)
         expected = expected[~np.isnan(expected)]
-        
+
         if len(observed) != len(expected):
             raise ValueError("Observed and expected must have same length")
-    
-    # SciPy chisquare 사용
+
     chi2_stat, p_value = stats.chisquare(f_obs=observed, f_exp=expected)
-    
+
     df = len(observed) - 1
     critical_value = stats.chi2.ppf(1 - alpha, df)
-    
+
     return {
         'chiSquare': float(chi2_stat),
         'pValue': _safe_float(p_value),
@@ -379,12 +345,11 @@ def chi_square_goodness_test(observed, expected=None, alpha=0.05):
     }
 
 
-def chi_square_independence_test(observed_matrix, yates_correction=False, alpha=0.05):
-    """
-    카이제곱 독립성 검정 (Chi-Square Test of Independence)
-    
-    두 범주형 변수 간 독립성 검정 (분할표)
-    """
+def chi_square_independence_test(
+    observed_matrix: List[List[Union[float, int]]],
+    yates_correction: bool = False,
+    alpha: float = 0.05
+) -> Dict[str, Union[float, int, bool, List[List[float]], None]]:
     observed = np.array(observed_matrix, dtype=float)
     
     if observed.size == 0:
@@ -393,7 +358,6 @@ def chi_square_independence_test(observed_matrix, yates_correction=False, alpha=
     if observed.ndim != 2:
         raise ValueError("Observed matrix must be 2-dimensional")
     
-    # SciPy chi2_contingency 사용
     chi2_stat, p_value, dof, expected = stats.chi2_contingency(
         observed, 
         correction=yates_correction
@@ -401,7 +365,6 @@ def chi_square_independence_test(observed_matrix, yates_correction=False, alpha=
     
     critical_value = stats.chi2.ppf(1 - alpha, dof)
     
-    # Cramér's V (효과 크기)
     n = np.sum(observed)
     min_dim = min(observed.shape[0], observed.shape[1])
     cramers_v = np.sqrt(chi2_stat / (n * (min_dim - 1))) if min_dim > 1 else 0.0
@@ -416,3 +379,4 @@ def chi_square_independence_test(observed_matrix, yates_correction=False, alpha=
         'observedMatrix': observed.tolist(),
         'expectedMatrix': expected.tolist()
     }
+

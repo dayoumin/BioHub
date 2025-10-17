@@ -1,23 +1,15 @@
-"""
-Worker 4: Regression & Advanced Analysis Python Module
+# Worker 4: Advanced Regression Python Module
+# Notes:
+# - Dependencies: NumPy, SciPy, statsmodels, scikit-learn
+# - Estimated memory: ~200MB
+# - Cold start time: ~3.8s
 
-회귀분석 + 고급분석 그룹 (24개 메서드)
-- 패키지: SciPy, Statsmodels, Sklearn
-- 예상 메모리: 200MB  
-- 예상 로딩: 3.8초
-"""
-
+from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
 
 
 def linear_regression(x, y):
-    """
-    선형 회귀분석
-    
-    쌍(pair) 단위로 데이터 정제하여 통계적 정확성 보장
-    """
-    # 쌍 단위로 정제 (양쪽 모두 유효한 값만 선택)
     pairs = [(x_val, y_val) for x_val, y_val in zip(x, y) 
              if x_val is not None and y_val is not None 
              and not np.isnan(x_val) and not np.isnan(y_val)]
@@ -41,27 +33,19 @@ def linear_regression(x, y):
 
 
 def multiple_regression(X, y):
-    """
-    다중 회귀분석 (Multiple Regression)
-
-    statsmodels.api.OLS 사용
-    """
     import statsmodels.api as sm
 
-    # None/NaN 필터링 (행 단위)
     X_array = np.array(X)
     y_array = np.array(y)
 
     if X_array.shape[0] != len(y_array):
         raise ValueError(f"X and y must have same length: {X_array.shape[0]} != {len(y_array)}")
 
-    # 각 행에서 None/NaN 체크 (X의 모든 열 + y 모두 유효한 행만 선택)
     valid_rows = []
     for i in range(len(y_array)):
         y_val = y_array[i]
         x_row = X_array[i]
 
-        # y가 유효하고, x_row의 모든 값이 유효한 경우만
         if (y_val is not None and not np.isnan(y_val) and
             all(x is not None and not np.isnan(x) for x in x_row)):
             valid_rows.append(i)
@@ -75,7 +59,6 @@ def multiple_regression(X, y):
     if X_clean.shape[0] < X_clean.shape[1] + 1:
         raise ValueError(f"Insufficient observations: need at least {X_clean.shape[1] + 1}, got {X_clean.shape[0]}")
 
-    # statsmodels OLS (절편 추가)
     X_with_const = sm.add_constant(X_clean)
     model = sm.OLS(y_clean, X_with_const).fit()
 
@@ -94,21 +77,14 @@ def multiple_regression(X, y):
 
 
 def logistic_regression(X, y):
-    """
-    로지스틱 회귀분석 (Logistic Regression)
-
-    statsmodels.api.Logit 사용
-    """
     import statsmodels.api as sm
 
-    # None/NaN 필터링 (행 단위)
     X_array = np.array(X)
     y_array = np.array(y)
 
     if X_array.shape[0] != len(y_array):
         raise ValueError(f"X and y must have same length: {X_array.shape[0]} != {len(y_array)}")
 
-    # 각 행에서 None/NaN 체크
     valid_rows = []
     for i in range(len(y_array)):
         y_val = y_array[i]
@@ -124,11 +100,9 @@ def logistic_regression(X, y):
     X_clean = X_array[valid_rows]
     y_clean = y_array[valid_rows]
 
-    # statsmodels Logit (절편 추가)
     X_with_const = sm.add_constant(X_clean)
     model = sm.Logit(y_clean, X_with_const).fit(disp=0)
 
-    # 예측
     predictions_prob = model.predict(X_with_const)
     predictions_class = (predictions_prob > 0.5).astype(int)
     accuracy = np.mean(predictions_class == y_clean)
@@ -150,11 +124,6 @@ def logistic_regression(X, y):
 
 
 def pca_analysis(data_matrix, n_components=2):
-    """
-    주성분 분석 (PCA)
-    
-    NumPy SVD로 직접 구현 (sklearn보다 빠름)
-    """
     data_matrix = np.array(data_matrix)
     
     if data_matrix.shape[0] < 2:
@@ -163,17 +132,13 @@ def pca_analysis(data_matrix, n_components=2):
     if data_matrix.shape[1] < n_components:
         raise ValueError(f"Cannot extract {n_components} components from {data_matrix.shape[1]} features")
     
-    # 데이터 중심화
     mean = np.mean(data_matrix, axis=0)
     centered_data = data_matrix - mean
     
-    # SVD 계산
     U, S, Vt = np.linalg.svd(centered_data, full_matrices=False)
     
-    # 주성분 점수 계산
     components = U[:, :n_components] * S[:n_components]
     
-    # 설명된 분산 비율
     explained_variance = (S ** 2) / (data_matrix.shape[0] - 1)
     total_variance = np.sum(explained_variance)
     explained_variance_ratio = explained_variance[:n_components] / total_variance
@@ -183,19 +148,12 @@ def pca_analysis(data_matrix, n_components=2):
         'explainedVariance': explained_variance[:n_components].tolist(),
         'explainedVarianceRatio': explained_variance_ratio.tolist(),
         'cumulativeVariance': np.cumsum(explained_variance_ratio).tolist(),
-        'loadings': Vt[:n_components].T.tolist()  # 주성분 적재값
     }
 
 
 # Priority 2 Methods - Regression (9 methods)
 
 def curve_estimation(x_values, y_values, model_type='linear'):
-    """
-    곡선추정 (Curve Estimation)
-
-    Models: linear, quadratic, cubic, exponential, logarithmic, power
-    """
-    # None/NaN 쌍 단위 정제
     pairs = [(x_val, y_val) for x_val, y_val in zip(x_values, y_values)
              if x_val is not None and y_val is not None
              and not np.isnan(x_val) and not np.isnan(y_val)]
@@ -262,19 +220,8 @@ def curve_estimation(x_values, y_values, model_type='linear'):
 
 
 def nonlinear_regression(x_values, y_values, model_type='exponential', initial_guess=None):
-    """
-    비선형 회귀 (Nonlinear Regression) - 사전 정의된 모델만 지원
-
-    Models:
-    - exponential: y = a * exp(b * x)
-    - logistic: y = L / (1 + exp(-k * (x - x0)))
-    - gompertz: y = a * exp(-b * exp(-c * x))
-    - power: y = a * x^b
-    - hyperbolic: y = (a * x) / (b + x)
-    """
     from scipy.optimize import curve_fit
 
-    # None/NaN 쌍 단위 정제
     pairs = [(x_val, y_val) for x_val, y_val in zip(x_values, y_values)
              if x_val is not None and y_val is not None
              and not np.isnan(x_val) and not np.isnan(y_val)]
@@ -285,7 +232,6 @@ def nonlinear_regression(x_values, y_values, model_type='exponential', initial_g
     x = np.array([p[0] for p in pairs])
     y = np.array([p[1] for p in pairs])
 
-    # 모델 함수 정의
     if model_type == 'exponential':
         def model_func(x, a, b):
             return a * np.exp(b * x)
@@ -314,7 +260,6 @@ def nonlinear_regression(x_values, y_values, model_type='exponential', initial_g
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
-    # curve_fit으로 파라미터 추정
     try:
         popt, pcov = curve_fit(model_func, x, y, p0=initial_guess)
     except RuntimeError as e:
@@ -328,7 +273,6 @@ def nonlinear_regression(x_values, y_values, model_type='exponential', initial_g
     ss_tot = np.sum((y - np.mean(y)) ** 2)
     r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
-    # 파라미터 표준오차
     param_errors = np.sqrt(np.diag(pcov))
 
     return {
@@ -344,11 +288,6 @@ def nonlinear_regression(x_values, y_values, model_type='exponential', initial_g
 
 def stepwise_regression(y_values, x_matrix, variable_names=None,
                        method='forward', entry_threshold=0.05, stay_threshold=0.10):
-    """
-    단계적 회귀분석 (Stepwise Regression)
-
-    method: 'forward', 'backward'
-    """
     import statsmodels.api as sm
 
     y = np.array(y_values)
@@ -439,7 +378,6 @@ def stepwise_regression(y_values, x_matrix, variable_names=None,
 
 
 def binary_logistic(x_matrix, y_values):
-    """이항 로지스틱 회귀 (Binary Logistic Regression)"""
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
@@ -465,7 +403,6 @@ def binary_logistic(x_matrix, y_values):
 
 
 def multinomial_logistic(x_matrix, y_values):
-    """다항 로지스틱 회귀 (Multinomial Logistic Regression)"""
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
@@ -488,7 +425,6 @@ def multinomial_logistic(x_matrix, y_values):
 
 
 def ordinal_logistic(x_matrix, y_values):
-    """순서형 로지스틱 회귀 (Ordinal Logistic Regression)"""
     from statsmodels.miscmodels.ordinal_model import OrderedModel
 
     X = np.array(x_matrix)
@@ -507,7 +443,6 @@ def ordinal_logistic(x_matrix, y_values):
 
 
 def probit_regression(x_matrix, y_values):
-    """프로빗 회귀 (Probit Regression)"""
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
@@ -532,7 +467,6 @@ def probit_regression(x_matrix, y_values):
 
 
 def poisson_regression(x_matrix, y_values):
-    """포아송 회귀 (Poisson Regression)"""
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
@@ -553,7 +487,6 @@ def poisson_regression(x_matrix, y_values):
 
 
 def negative_binomial_regression(x_matrix, y_values):
-    """음이항 회귀 (Negative Binomial Regression)"""
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
@@ -572,11 +505,6 @@ def negative_binomial_regression(x_matrix, y_values):
 
 
 def factor_analysis(data_matrix, n_factors=2, rotation='varimax'):
-    """
-    요인분석 (Factor Analysis)
-
-    sklearn.decomposition.FactorAnalysis 사용
-    """
     from sklearn.decomposition import FactorAnalysis
 
     data = np.array(data_matrix)
@@ -587,17 +515,13 @@ def factor_analysis(data_matrix, n_factors=2, rotation='varimax'):
     if data.shape[1] < n_factors:
         raise ValueError(f"Cannot extract {n_factors} factors from {data.shape[1]} variables")
 
-    # FactorAnalysis 수행
     fa = FactorAnalysis(n_components=n_factors, random_state=42)
     fa.fit(data)
 
-    # 요인 적재값
     loadings = fa.components_.T
 
-    # 공통성 계산 (각 변수가 요인에 의해 설명되는 분산)
     communalities = np.sum(loadings ** 2, axis=1)
 
-    # 설명된 분산
     explained_variance = np.var(fa.transform(data), axis=0)
     total_variance = np.sum(np.var(data, axis=0))
     explained_variance_ratio = explained_variance / total_variance
@@ -613,11 +537,6 @@ def factor_analysis(data_matrix, n_factors=2, rotation='varimax'):
 
 
 def cluster_analysis(data_matrix, n_clusters=3, method='kmeans'):
-    """
-    군집분석 (Cluster Analysis)
-
-    sklearn.cluster.KMeans 사용
-    """
     from sklearn.cluster import KMeans, AgglomerativeClustering
     from sklearn.metrics import silhouette_score, calinski_harabasz_score
 
@@ -633,14 +552,11 @@ def cluster_analysis(data_matrix, n_clusters=3, method='kmeans'):
     else:
         raise ValueError(f"Unknown method: {method}. Use 'kmeans' or 'hierarchical'")
 
-    # 군집화 수행
     labels = clusterer.fit_predict(data)
 
-    # 군집 중심 (K-means만)
     if hasattr(clusterer, 'cluster_centers_'):
         centers = clusterer.cluster_centers_.tolist()
     else:
-        # Hierarchical clustering의 경우 각 군집의 평균 계산
         centers = []
         for i in range(n_clusters):
             cluster_data = data[labels == i]
@@ -649,7 +565,6 @@ def cluster_analysis(data_matrix, n_clusters=3, method='kmeans'):
             else:
                 centers.append([0.0] * data.shape[1])
 
-    # 평가 지표
     if len(np.unique(labels)) > 1:
         silhouette = float(silhouette_score(data, labels))
         calinski = float(calinski_harabasz_score(data, labels))
@@ -657,7 +572,6 @@ def cluster_analysis(data_matrix, n_clusters=3, method='kmeans'):
         silhouette = 0.0
         calinski = 0.0
 
-    # 각 군집의 크기
     cluster_sizes = [int(np.sum(labels == i)) for i in range(n_clusters)]
 
     return {
@@ -672,11 +586,6 @@ def cluster_analysis(data_matrix, n_clusters=3, method='kmeans'):
 
 
 def time_series_analysis(data_values, seasonal_periods=12):
-    """
-    시계열 분석 (Time Series Analysis)
-
-    statsmodels.tsa.seasonal.seasonal_decompose 사용
-    """
     from statsmodels.tsa.seasonal import seasonal_decompose
     from statsmodels.tsa.stattools import adfuller, acf, pacf
 
@@ -685,7 +594,6 @@ def time_series_analysis(data_values, seasonal_periods=12):
     if len(data) < seasonal_periods * 2:
         raise ValueError(f"Time series must have at least {seasonal_periods * 2} observations for seasonal decomposition")
 
-    # 계절성 분해
     try:
         decomposition = seasonal_decompose(data, model='additive', period=seasonal_periods, extrapolate_trend='freq')
 
@@ -693,18 +601,15 @@ def time_series_analysis(data_values, seasonal_periods=12):
         seasonal = decomposition.seasonal
         residual = decomposition.resid
     except Exception as e:
-        # 분해 실패 시 기본값
         trend = np.full(len(data), np.nan)
         seasonal = np.zeros(len(data))
         residual = data
 
-    # 정상성 검정 (ADF test)
     adf_result = adfuller(data, autolag='AIC')
     adf_statistic = float(adf_result[0])
     adf_pvalue = float(adf_result[1])
     is_stationary = adf_pvalue < 0.05
 
-    # ACF, PACF 계산
     acf_values = acf(data, nlags=min(20, len(data) // 2 - 1))
     pacf_values = pacf(data, nlags=min(20, len(data) // 2 - 1))
 
@@ -722,34 +627,31 @@ def time_series_analysis(data_values, seasonal_periods=12):
 
 
 def durbin_watson_test(residuals):
-    """
-    Durbin-Watson 독립성 검정 (Durbin-Watson Test)
-
-    회귀분석 잔차의 자기상관성 검정
-    DW 통계량이 2에 가까울수록 독립적임
-    """
     clean_data = np.array([x for x in residuals if x is not None and not np.isnan(x)])
 
     if len(clean_data) < 2:
         raise ValueError("Durbin-Watson test requires at least 2 observations")
 
-    # Durbin-Watson 통계량 계산
     diff = np.diff(clean_data)
     dw_statistic = np.sum(diff ** 2) / np.sum(clean_data ** 2)
 
-    # 해석
+    # Durbin-Watson 통계량 해석 (0 ~ 4 범위)
+    # 2에 가까울수록 자기상관 없음 (독립적)
+    # 0에 가까울수록 양의 자기상관 (Positive autocorrelation)
+    # 4에 가까울수록 음의 자기상관 (Negative autocorrelation)
     if dw_statistic < 1.5:
-        interpretation = '양의 자기상관 존재'
         is_independent = False
+        interpretation = "Positive autocorrelation detected (DW < 1.5)"
     elif dw_statistic > 2.5:
-        interpretation = '음의 자기상관 존재'
         is_independent = False
+        interpretation = "Negative autocorrelation detected (DW > 2.5)"
     else:
-        interpretation = '자기상관 없음 (독립적)'
         is_independent = True
+        interpretation = "No significant autocorrelation (1.5 <= DW <= 2.5)"
 
     return {
         'statistic': float(dw_statistic),
         'interpretation': interpretation,
         'isIndependent': is_independent
     }
+

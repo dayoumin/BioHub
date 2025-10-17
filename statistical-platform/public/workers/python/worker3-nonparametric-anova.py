@@ -1,20 +1,16 @@
-"""
-Worker 3: Nonparametric & ANOVA Python Module
+# Worker 3: Nonparametric ANOVA Python Module
+# Notes:
+# - Dependencies: NumPy, SciPy, statsmodels, pandas
+# - Estimated memory: ~140MB
+# - Cold start time: ~2.3s
 
-비모수검정 + 분산분석 그룹 (18개 메서드)
-- 패키지: SciPy, Statsmodels
-- 예상 메모리: 140MB
-- 예상 로딩: 2.3초
-"""
-
+from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
 
 
-# Nonparametric Tests (9개)
 
 def mann_whitney_test(group1, group2):
-    """Mann-Whitney U 검정"""
     group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
     group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
     
@@ -30,12 +26,6 @@ def mann_whitney_test(group1, group2):
 
 
 def wilcoxon_test(values1, values2):
-    """
-    Wilcoxon 부호순위 검정
-    
-    쌍(pair) 단위로 데이터 정제하여 통계적 정확성 보장
-    """
-    # 쌍 단위로 정제 (양쪽 모두 유효한 값만 선택)
     pairs = [(v1, v2) for v1, v2 in zip(values1, values2) 
              if v1 is not None and v2 is not None 
              and not np.isnan(v1) and not np.isnan(v2)]
@@ -56,10 +46,8 @@ def wilcoxon_test(values1, values2):
 
 
 def kruskal_wallis_test(groups):
-    """Kruskal-Wallis H 검정"""
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
     
-    # 각 그룹이 최소 1개 이상의 관측치를 가져야 함
     for i, group in enumerate(clean_groups):
         if len(group) == 0:
             raise ValueError(f"Group {i} has no valid observations")
@@ -74,10 +62,8 @@ def kruskal_wallis_test(groups):
 
 
 def friedman_test(groups):
-    """Friedman 검정"""
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
     
-    # 모든 그룹이 같은 길이를 가져야 함 (repeated measures)
     lengths = [len(g) for g in clean_groups]
     if len(set(lengths)) > 1:
         raise ValueError(f"Friedman test requires equal group sizes, got: {lengths}")
@@ -90,13 +76,10 @@ def friedman_test(groups):
     }
 
 
-# ANOVA Tests (9개)
 
 def one_way_anova(groups):
-    """일원 분산분석 (One-Way ANOVA)"""
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
     
-    # 각 그룹이 최소 2개 이상의 관측치를 가져야 함
     for i, group in enumerate(clean_groups):
         if len(group) < 2:
             raise ValueError(f"Group {i} must have at least 2 observations")
@@ -112,16 +95,10 @@ def one_way_anova(groups):
 
 
 def two_way_anova(data_values, factor1_values, factor2_values):
-    """
-    이원 분산분석 (Two-Way ANOVA)
-
-    statsmodels OLS를 사용한 완전한 구현
-    """
     import statsmodels.api as sm
     from statsmodels.formula.api import ols
     import pandas as pd
 
-    # 입력 검증
     if len(data_values) != len(factor1_values) or len(data_values) != len(factor2_values):
         raise ValueError(
             f"All inputs must have same length: data({len(data_values)}), "
@@ -132,19 +109,16 @@ def two_way_anova(data_values, factor1_values, factor2_values):
     if n_samples < 4:
         raise ValueError(f"Two-way ANOVA requires at least 4 observations, got {n_samples}")
 
-    # 데이터프레임 생성
     df = pd.DataFrame({
         'value': data_values,
         'factor1': factor1_values,
         'factor2': factor2_values
     })
 
-    # Two-Way ANOVA (interaction 포함)
     formula = 'value ~ C(factor1) + C(factor2) + C(factor1):C(factor2)'
     model = ols(formula, data=df).fit()
     anova_table = sm.stats.anova_lm(model, typ=2)
 
-    # 결과 추출
     result = {
         'factor1': {
             'fStatistic': float(anova_table.loc['C(factor1)', 'F']),
@@ -171,16 +145,10 @@ def two_way_anova(data_values, factor1_values, factor2_values):
 
 
 def tukey_hsd(groups):
-    """
-    Tukey HSD 사후검정
-
-    SciPy 1.10+ 필요
-    """
     from scipy.stats import tukey_hsd as scipy_tukey
 
     clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
 
-    # 각 그룹이 최소 1개 이상의 관측치를 가져야 함
     for i, group in enumerate(clean_groups):
         if len(group) == 0:
             raise ValueError(f"Group {i} has no valid observations")
@@ -188,7 +156,6 @@ def tukey_hsd(groups):
     try:
         result = scipy_tukey(*clean_groups)
 
-        # SciPy 버전에 따라 pvalue 속성이 다를 수 있음
         if hasattr(result, 'pvalue'):
             p_value = float(result.pvalue)
         else:
@@ -206,11 +173,6 @@ def tukey_hsd(groups):
 # Priority 1 Methods (5 additional)
 
 def sign_test(before, after):
-    """
-    부호검정 (Sign Test)
-
-    대응표본 비모수 검정
-    """
     from scipy.stats import binomtest
 
     before = np.array(before)
@@ -233,7 +195,6 @@ def sign_test(before, after):
     if n_total == 0:
         raise ValueError("All differences are zero (ties)")
 
-    # 이항검정 (p=0.5)
     result = binomtest(n_positive, n_total, 0.5)
 
     return {
@@ -245,23 +206,15 @@ def sign_test(before, after):
 
 
 def runs_test(sequence):
-    """
-    Runs 검정 (Runs Test for Randomness)
-
-    statsmodels.sandbox.stats.runs.runstest_1samp 사용
-    """
     from statsmodels.sandbox.stats.runs import runstest_1samp
 
-    # None/NaN 정제
     sequence = np.array([x for x in sequence if x is not None and not np.isnan(x)])
 
     if len(sequence) < 10:
         raise ValueError("Runs test requires at least 10 observations")
 
-    # statsmodels runstest_1samp (중앙값 기준, 보정 사용)
     z_statistic, p_value = runstest_1samp(sequence, cutoff='median', correction=True)
 
-    # 추가 정보 계산 (사용자 편의를 위해)
     median = np.median(sequence)
     binary = (sequence > median).astype(int)
     runs = 1 + np.sum(binary[1:] != binary[:-1])
@@ -281,30 +234,21 @@ def runs_test(sequence):
 
 
 def mcnemar_test(contingency_table):
-    """
-    McNemar 검정
-
-    대응표본 범주형 검정
-    """
     table = np.array(contingency_table)
 
     if table.shape != (2, 2):
         raise ValueError("McNemar test requires 2x2 contingency table")
 
-    # b와 c (불일치 셀)
     b = table[0, 1]
     c = table[1, 0]
 
-    # 연속성 보정 여부
     use_correction = (b + c) < 25
 
     if use_correction:
-        # 연속성 보정
         statistic = (abs(b - c) - 1)**2 / (b + c) if (b + c) > 0 else 0
     else:
         statistic = (b - c)**2 / (b + c) if (b + c) > 0 else 0
 
-    # p-value (카이제곱 분포, df=1)
     p_value = 1 - stats.chi2.cdf(statistic, df=1)
 
     return {
@@ -316,11 +260,6 @@ def mcnemar_test(contingency_table):
 
 
 def cochran_q_test(data_matrix):
-    """
-    Cochran Q 검정
-
-    다중 대응표본 범주형 검정
-    """
     data_matrix = np.array(data_matrix)
 
     if data_matrix.size == 0:
@@ -337,11 +276,9 @@ def cochran_q_test(data_matrix):
     if k < 3:
         raise ValueError(f"Cochran Q requires at least 3 conditions, got {k}")
 
-    # 각 행과 열의 합
     row_sums = data_matrix.sum(axis=1)
     col_sums = data_matrix.sum(axis=0)
 
-    # Q 통계량 계산 (0으로 나누기 방지)
     G = col_sums.sum()
     denominator = k * G - np.sum(row_sums**2)
 
@@ -350,7 +287,6 @@ def cochran_q_test(data_matrix):
 
     Q = (k - 1) * (k * np.sum(col_sums**2) - G**2) / denominator
 
-    # p-value (카이제곱 분포, df=k-1)
     df = k - 1
     p_value = 1 - stats.chi2.cdf(Q, df)
 
@@ -362,15 +298,9 @@ def cochran_q_test(data_matrix):
 
 
 def mood_median_test(groups):
-    """
-    Mood Median 검정
-
-    비모수 중앙값 검정
-    """
     if len(groups) < 2:
         raise ValueError("Mood median test requires at least 2 groups")
 
-    # scipy.stats.median_test 사용
     statistic, p_value, grand_median, contingency_table = stats.median_test(*groups)
 
     return {
@@ -384,11 +314,6 @@ def mood_median_test(groups):
 # Priority 2 Methods - ANOVA (4 methods)
 
 def repeated_measures_anova(data_matrix, subject_ids, time_labels):
-    """
-    반복측정 분산분석 (Repeated Measures ANOVA)
-
-    data_matrix: n subjects × k timepoints
-    """
     from statsmodels.stats.anova import AnovaRM
     import pandas as pd
 
@@ -414,7 +339,6 @@ def repeated_measures_anova(data_matrix, subject_ids, time_labels):
     if len(time_labels) != n_timepoints:
         raise ValueError(f"Time labels length {len(time_labels)} must match number of timepoints {n_timepoints}")
 
-    # 데이터프레임 생성 (long format)
     data_long = []
     for i, subject_id in enumerate(subject_ids):
         for j, time_label in enumerate(time_labels):
@@ -443,16 +367,10 @@ def repeated_measures_anova(data_matrix, subject_ids, time_labels):
 
 
 def ancova(y_values, group_values, covariates):
-    """
-    공분산분석 (ANCOVA)
-
-    covariates: list of covariate arrays
-    """
     import statsmodels.formula.api as smf
     import statsmodels.api as sm
     import pandas as pd
 
-    # 입력 검증
     if not covariates or len(covariates) == 0:
         raise ValueError("ANCOVA requires at least 1 covariate")
 
@@ -467,7 +385,6 @@ def ancova(y_values, group_values, covariates):
     if n_samples < 3:
         raise ValueError(f"ANCOVA requires at least 3 observations, got {n_samples}")
 
-    # 데이터프레임 생성
     data = {
         'y': y_values,
         'group': group_values
@@ -478,14 +395,12 @@ def ancova(y_values, group_values, covariates):
 
     df = pd.DataFrame(data)
 
-    # 공변량 추가한 모델
     cov_formula = ' + '.join([f'cov{i}' for i in range(len(covariates))])
     formula = f'y ~ C(group) + {cov_formula}'
 
     model = smf.ols(formula, data=df).fit()
     anova_table = sm.stats.anova_lm(model, typ=2)
 
-    # 조정된 평균 계산
     group_means = df.groupby('group')['y'].mean()
 
     return {
@@ -499,15 +414,9 @@ def ancova(y_values, group_values, covariates):
 
 
 def manova(data_matrix, group_values, var_names):
-    """
-    다변량 분산분석 (MANOVA)
-
-    data_matrix: n observations × p variables
-    """
     from statsmodels.multivariate.manova import MANOVA
     import pandas as pd
 
-    # 입력 검증
     if not data_matrix or len(data_matrix) == 0:
         raise ValueError("Empty data matrix")
 
@@ -523,12 +432,10 @@ def manova(data_matrix, group_values, var_names):
     if len(var_names) != n_vars:
         raise ValueError(f"var_names length ({len(var_names)}) must match data_matrix columns ({n_vars})")
 
-    # 각 행이 동일한 길이인지 확인
     for i, row in enumerate(data_matrix):
         if len(row) != n_vars:
             raise ValueError(f"Row {i} has {len(row)} values, expected {n_vars}")
 
-    # 데이터프레임 생성
     df_dict = {'group': group_values}
     for i, var_name in enumerate(var_names):
         df_dict[var_name] = [row[i] for row in data_matrix]
@@ -540,7 +447,6 @@ def manova(data_matrix, group_values, var_names):
     maov = MANOVA.from_formula(formula, data=df)
     result = maov.mv_test()
 
-    # Wilks' Lambda 추출
     test_results = result.results['group']['stat']
 
     return {
@@ -558,16 +464,9 @@ def manova(data_matrix, group_values, var_names):
 
 
 def scheffe_test(groups):
-    """
-    Scheffe 사후검정 (Scheffe Test)
-
-    groups: list of arrays (각 그룹의 데이터)
-    """
-    # 입력 검증
     if len(groups) < 3:
         raise ValueError(f"Scheffe test requires at least 3 groups, got {len(groups)}")
 
-    # 각 그룹을 NumPy 배열로 변환하고 검증
     clean_groups = []
     for i, group in enumerate(groups):
         arr = np.array(group)
@@ -581,28 +480,23 @@ def scheffe_test(groups):
     group_means = [np.mean(g) for g in groups]
     group_ns = [len(g) for g in groups]
 
-    # 전체 평균
     grand_mean = np.mean(np.concatenate(groups))
 
-    # MSE (Mean Square Error) 계산
     ss_within = sum(np.sum((g - np.mean(g))**2) for g in groups)
     df_within = n_total - k
     mse = ss_within / df_within
 
-    # 모든 쌍 비교
     comparisons = []
     for i in range(k):
         for j in range(i+1, k):
             mean_diff = group_means[i] - group_means[j]
 
-            # Scheffe 통계량
             se = np.sqrt(mse * (1/group_ns[i] + 1/group_ns[j]))
             f_stat = (mean_diff ** 2) / ((k - 1) * se ** 2)
 
             # p-value
             p_value = 1 - stats.f.cdf(f_stat, k - 1, df_within)
 
-            # 임계값
             critical_f = stats.f.ppf(0.95, k - 1, df_within)
             critical_value = np.sqrt((k - 1) * critical_f) * se
 
@@ -624,23 +518,15 @@ def scheffe_test(groups):
 
 
 def dunn_test(groups, p_adjust='holm'):
-    """
-    Dunn 사후검정 (Dunn's Test)
-
-    Kruskal-Wallis 검정 후 사후검정
-    scikit-posthocs 라이브러리 사용
-    """
     try:
         import scikit_posthocs as sp
         import pandas as pd
     except ImportError:
         raise ImportError("scikit-posthocs library is required for Dunn test. Install with: pip install scikit-posthocs")
 
-    # 입력 검증
     if len(groups) < 2:
         raise ValueError(f"Dunn test requires at least 2 groups, got {len(groups)}")
 
-    # 각 그룹 정제
     clean_groups = []
     for i, group in enumerate(groups):
         arr = np.array([x for x in group if x is not None and not np.isnan(x)])
@@ -648,7 +534,6 @@ def dunn_test(groups, p_adjust='holm'):
             raise ValueError(f"Group {i} has no valid observations")
         clean_groups.append(arr)
 
-    # Long format 데이터 생성
     data_list = []
     group_labels = []
     for i, group in enumerate(clean_groups):
@@ -660,10 +545,8 @@ def dunn_test(groups, p_adjust='holm'):
         'group': group_labels
     })
 
-    # Dunn test 수행
     dunn_result = sp.posthoc_dunn(df, val_col='data', group_col='group', p_adjust=p_adjust)
 
-    # 결과 파싱
     comparisons = []
     n_groups = len(clean_groups)
     for i in range(n_groups):
@@ -684,23 +567,15 @@ def dunn_test(groups, p_adjust='holm'):
 
 
 def games_howell_test(groups):
-    """
-    Games-Howell 사후검정 (Games-Howell Test)
-
-    등분산을 가정하지 않는 사후검정
-    scikit-posthocs 라이브러리 사용
-    """
     try:
         import scikit_posthocs as sp
         import pandas as pd
     except ImportError:
         raise ImportError("scikit-posthocs library is required for Games-Howell test")
 
-    # 입력 검증
     if len(groups) < 2:
         raise ValueError(f"Games-Howell test requires at least 2 groups, got {len(groups)}")
 
-    # 각 그룹 정제
     clean_groups = []
     for i, group in enumerate(groups):
         arr = np.array([x for x in group if x is not None and not np.isnan(x)])
@@ -708,7 +583,6 @@ def games_howell_test(groups):
             raise ValueError(f"Group {i} has no valid observations")
         clean_groups.append(arr)
 
-    # Long format 데이터 생성
     data_list = []
     group_labels = []
     for i, group in enumerate(clean_groups):
@@ -720,10 +594,8 @@ def games_howell_test(groups):
         'group': group_labels
     })
 
-    # Games-Howell test 수행
     gh_result = sp.posthoc_gameshowell(df, val_col='data', group_col='group')
 
-    # 결과 파싱
     comparisons = []
     n_groups = len(clean_groups)
     for i in range(n_groups):
@@ -740,3 +612,4 @@ def games_howell_test(groups):
         'comparisons': comparisons,
         'nComparisons': len(comparisons)
     }
+
