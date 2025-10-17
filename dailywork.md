@@ -562,6 +562,11 @@ if (transposedMatrix.length !== allVars.length) {
 - Priority 1: E2E 실제 브라우저 테스트 (3-4시간)
 - Priority 2: Performance Benchmarking (2-3시간)
 - Priority 3: Documentation (2시간)
+- Priority 4: 통계 관련 파일 정리 및 문서화 (1-2시간)
+  - Python Workers 4개 체계적 정리
+  - TypeScript Handlers 10개 인덱스 작성
+  - Groups 6개 메서드 매핑표
+  - 타입 정의 파일 통합 검토
 - 상세: [STATUS.md](STATUS.md) 참조
 
 ---
