@@ -217,7 +217,7 @@ PDF 보고서 생성을 담당합니다.
 #### 사용 예시
 
 ```typescript
-await PDFReportService.generate(analysisResults, {
+await PDFReportService.generate(results, {
   title: '통계 분석 보고서',
   author: '연구자',
   includeCharts: true,
@@ -234,7 +234,7 @@ Excel 파일 내보내기를 담당합니다.
 #### 사용 예시
 
 ```typescript
-await ExcelExportService.export(analysisResults, {
+await ExcelExportService.export(results, {
   filename: 'analysis_results.xlsx',
   includeCharts: true,
   sheets: ['Summary', 'Data', 'Results']
@@ -267,7 +267,7 @@ interface SmartFlowState {
   // 분석
   analysisPurpose: string
   selectedMethod: StatisticalMethod | null
-  analysisResults: AnalysisResult | null
+  results: AnalysisResult | null
 
   // UI
   isLoading: boolean
@@ -311,12 +311,12 @@ function MyComponent() {
 | `goToPreviousStep()` | 이전 단계로 이동 |
 | `navigateToStep(step)` | 특정 단계로 이동 |
 | `setUploadedFile(file)` | 업로드 파일 설정 |
-| `setUploadedData(data)` | 데이터 설정 |
+| `actions.setUploadedData(data)` | 데이터 설정 |
 | `setValidationResults(results)` | 검증 결과 설정 |
 | `setAnalysisPurpose(purpose)` | 분석 목적 설정 |
 | `setSelectedMethod(method)` | 분석 방법 설정 |
-| `setAnalysisResults(results)` | 분석 결과 설정 |
-| `setError(error)` | 에러 설정 |
+| `setresults(results)` | 분석 결과 설정 |
+| `actions.setError(error)` | 에러 설정 |
 | `reset()` | 전체 상태 초기화 |
 
 ---

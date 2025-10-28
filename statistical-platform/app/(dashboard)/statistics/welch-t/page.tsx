@@ -118,7 +118,7 @@ export default function WelchTPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -160,7 +160,7 @@ export default function WelchTPage() {
         }
       }
 
-      actions.setResults(mockResults)
+      setResults(mockResults)
       setIsAnalyzing(false)
       actions.setCurrentStep(3)
       setActiveTab('summary')

@@ -9,7 +9,7 @@ export const useAsyncError = () => {
 
   return useCallback(
     (error: Error) => {
-      setError(() => {
+      actions.setError(() => {
         throw error
       })
     },

@@ -1,23 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(wc:*)",
-      "Bash(for page in cluster discriminant poisson stepwise sign-test)",
-      "Bash(do)",
-      "Bash(for page in cluster discriminant poisson ordinal-regression stepwise three-way-anova two-way-anova welch-t sign-test runs-test mcnemar factor-analysis pca)",
-      "Bash(do npx tsc --noEmit \"app/(dashboard)/statistics/$page/page.tsx\")",
-      "Bash(timeout 120 npm run build:*)",
+      "Bash(git push)",
+      "Bash(npm test:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git push:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run build:*)",
       "Bash(find:*)",
-      "Bash(for page in cluster discriminant pca factor-analysis)",
-      "Bash(do echo \"=== $page ===\")",
-      "Bash(grep:*)",
-      "Bash(for file in chi-square-goodness chi-square-independence ks-test manova mixed-model reliability repeated-measures wilcoxon)",
+      "Read(//d/**)",
+      "Bash(wc:*)",
       "Bash(git checkout:*)",
-      "Bash(python scripts/rag/initialize-registry.py:*)",
-      "Bash(python:*)",
-      "Bash(git add:*)"
+      "Bash(rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

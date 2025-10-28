@@ -65,7 +65,7 @@ export default function KolmogorovSmirnovTestPage() {
   const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
   const [selectedVariables, setSelectedVariables] = useState<VariableSelection | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<KSTestResult | null>(null)
+  const [results, setresults] = useState<KSTestResult | null>(null)
 
   // K-S 검정 단계 정의
   const steps: StatisticsStep[] = [
@@ -251,14 +251,14 @@ export default function KolmogorovSmirnovTestPage() {
   const runAnalysis = useCallback(async (variables: VariableSelection) => {
     if (!uploadedData) return
 
-    setIsAnalyzing(true)
+    setIsAnalyzing(true)()
     setCurrentStep(3)
 
     try {
       setTimeout(() => {
         const variable2 = variables.variables.length > 1 ? variables.variables[1] : undefined
         const result = calculateKSTest(uploadedData.data, variables.variables[0], variable2)
-        setAnalysisResults(result)
+        setresults(result)
         setIsAnalyzing(false)
       }, 1500)
     } catch (error) {
@@ -414,7 +414,7 @@ export default function KolmogorovSmirnovTestPage() {
   }
 
   const renderResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
     const {
       testType,
@@ -428,7 +428,7 @@ export default function KolmogorovSmirnovTestPage() {
       effectSize,
       sampleSizes,
       distributionInfo
-    } = analysisResults
+    } = results
 
     return (
       <StepCard
@@ -617,13 +617,13 @@ export default function KolmogorovSmirnovTestPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={actions.setCurrentStep}
+      onStepChange={setCurrentStep}
       onRun={() => selectedVariables && runAnalysis(selectedVariables)}
       onReset={() => {
         setCurrentStep(0)
         setUploadedData(null)
         setSelectedVariables(null)
-        setAnalysisResults(null)
+        setresults(null)
       }}
       isRunning={isAnalyzing}
       showProgress={true}

@@ -169,18 +169,18 @@ export default function TTestPage() {
 
   // 데이터 업로드 완료
   const handleDataUpload = useCallback((uploadedData: UploadedData) => {
-    if (actions.setUploadedData) {
+    if (setUploadedData) {
       actions.setUploadedData(uploadedData)
     }
     actions.setCurrentStep(2)
-    if (actions.setError) {
+    if (setError) {
       actions.setError('')
     }
   }, [actions])
 
   // 변수 선택 완료
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (actions.setSelectedVariables) {
+    if (setSelectedVariables) {
       actions.setSelectedVariables(variables)
     }
     runAnalysis(variables)
@@ -190,7 +190,7 @@ export default function TTestPage() {
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) return
 
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       // 모의 결과 생성 (실제로는 Pyodide 사용)
@@ -216,7 +216,7 @@ export default function TTestPage() {
         }
       }
 
-      actions.completeAnalysis(mockResult, 3)
+      actions.setResults(mockResult)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }

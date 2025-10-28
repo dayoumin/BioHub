@@ -32,6 +32,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 
 // Data interfaces
@@ -76,13 +77,12 @@ interface ReliabilityResult {
 }
 
 export default function ReliabilityAnalysisPage() {
-  // State
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<ReliabilityResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Hook for state management
+  const { state, actions } = useStatisticsPage<ReliabilityResult, VariableAssignment>{
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
   const [analysisOptions, setAnalysisOptions] = useState({
     model: 'alpha' as 'alpha' | 'split-half' | 'parallel',
     scaleIfDeleted: true,
@@ -102,7 +102,7 @@ export default function ReliabilityAnalysisPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
@@ -147,12 +147,12 @@ export default function ReliabilityAnalysisPage() {
       _id: index
     }))
     setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
+    actions.setCurrentStep(2)
+    actions.setError(null)
   }, [])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.variables && variables.variables.length >= 2) {
       runAnalysis(variables)
     }
@@ -160,12 +160,12 @@ export default function ReliabilityAnalysisPage() {
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.variables || variables.variables.length < 2) {
-      setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
+    actions.setError(null)
 
     try {
       // 실제 Pyodide 분석 실행
@@ -178,13 +178,13 @@ export default function ReliabilityAnalysisPage() {
         }
       )
 
-      setAnalysisResult(result)
-      setCurrentStep(3)
+      actions.setResults(result)
+      actions.setCurrentStep(3)
     } catch (err) {
       console.error('신뢰도 분석 실패:', err)
-      setError('신뢰도 분석 중 오류가 발생했습니다.')
+      actions.setError('신뢰도 분석 중 오류가 발생했습니다.')
     } finally {
-      setIsAnalyzing(false)
+      // isAnalyzing managed by hook
     }
   }
 
@@ -284,7 +284,7 @@ export default function ReliabilityAnalysisPage() {
             </Alert>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -305,7 +305,7 @@ export default function ReliabilityAnalysisPage() {
           />
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -323,7 +323,7 @@ export default function ReliabilityAnalysisPage() {
             methodId="reliability"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           {/* 분석 옵션 */}
@@ -527,7 +527,7 @@ export default function ReliabilityAnalysisPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -535,7 +535,7 @@ export default function ReliabilityAnalysisPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.setCurrentStep(0)}>
                 새로운 분석
               </Button>
             </div>

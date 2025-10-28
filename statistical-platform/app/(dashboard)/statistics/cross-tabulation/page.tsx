@@ -123,7 +123,7 @@ export default function CrossTabulationPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -218,7 +218,7 @@ export default function CrossTabulationPage() {
         }
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.setResults(mockResults)
       setActiveTab('summary')
     }, 1500)
   }
@@ -484,7 +484,7 @@ export default function CrossTabulationPage() {
                 title="범주형 변수 선택"
                 description="행 변수와 열 변수로 사용할 범주형 변수 2개를 선택하세요"
                 onMappingChange={(mapping: Record<string, unknown>) => {
-                  actions.updateVariableMapping(mapping)
+                  actions.setSelectedVariables(mapping)
                   if (Object.keys(mapping).length >= 2) {
                     actions.setCurrentStep(1)
                   }

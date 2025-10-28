@@ -327,7 +327,7 @@ export default function ClusterAnalysisPage() {
       return
     }
 
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       let finalNumClusters = numClusters
@@ -774,7 +774,7 @@ export default function ClusterAnalysisPage() {
           </Button>
           <Button onClick={() => {
             actions.setCurrentStep(1)
-            actions.setResults(null)
+            setResults(null)
             actions.setSelectedVariables([])
             actions.setUploadedData([])
           }}>

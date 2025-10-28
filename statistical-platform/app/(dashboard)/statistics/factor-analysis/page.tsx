@@ -295,7 +295,7 @@ export default function FactorAnalysisPage() {
       return
     }
 
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       let result: FactorAnalysisResult
@@ -825,7 +825,7 @@ export default function FactorAnalysisPage() {
           </Button>
           <Button onClick={() => {
             actions.setCurrentStep(1)
-            actions.setResults(null)
+            setResults(null)
             actions.setSelectedVariables([])
             actions.setUploadedData([])
           }}>

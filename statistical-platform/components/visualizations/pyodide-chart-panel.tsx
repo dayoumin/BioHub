@@ -71,12 +71,12 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
   
   const generateChart = async () => {
     if (pyodideState.status !== 'ready') {
-      setError('Pyodide is not ready. Please wait for it to load.')
+      actions.setError('Pyodide is not ready. Please wait for it to load.')
       return
     }
     
     setIsGenerating(true)
-    setError(null)
+    actions.setError(null)
     
     try {
       let imageData = ''
@@ -217,7 +217,7 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
       
       setChartImage(imageData)
     } catch (err: any) {
-      setError(err.message || 'An error occurred while generating the chart')
+      actions.setError(err.message || 'An error occurred while generating the chart')
     } finally {
       setIsGenerating(false)
     }

@@ -346,7 +346,7 @@ export default function DiscriminantPage() {
   const runAnalysis = useCallback(async (variables: VariableSelection) => {
     if (!uploadedData) return
 
-    actions.startAnalysis()
+    actions.startAnalysis()()
     actions.setCurrentStep(3)
 
     try {
@@ -356,7 +356,7 @@ export default function DiscriminantPage() {
           variables.dependentVariable,
           variables.independentVariables
         )
-        actions.completeAnalysis(result, 3)
+        actions.setResults(result)
       }, 2000)
     } catch (error) {
       console.error('판별분석 중 오류:', error)
@@ -519,7 +519,7 @@ export default function DiscriminantPage() {
   }
 
   const renderResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
     const {
       functions,
@@ -529,7 +529,7 @@ export default function DiscriminantPage() {
       classificationResults,
       equalityTests,
       interpretation
-    } = analysisResults
+    } = results
 
     const groups = Object.keys(confusionMatrix)
 

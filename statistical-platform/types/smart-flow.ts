@@ -110,7 +110,7 @@ export interface SmartFlowState {
   uploadedData: DataRow[] | null
   validationResults: ValidationResults | null
   analysisConfig: AnalysisConfig | null
-  analysisResults: AnalysisResult | null
+  results: AnalysisResult | null
   isLoading: boolean
   error: string | null
 }

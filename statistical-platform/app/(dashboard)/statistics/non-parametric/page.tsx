@@ -140,7 +140,7 @@ export default function NonParametricTestPage() {
 
   // Mock 분석 실행
   const runAnalysis = async () => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     // Mock 결과 생성
     setTimeout(() => {
@@ -204,7 +204,7 @@ export default function NonParametricTestPage() {
         variables: ['Variable1', 'GroupVar']
       }
 
-      actions.setResults(mockResult)
+      setResults(mockResult)
       setActiveTab('results')
     }, 1500)
   }
@@ -323,7 +323,7 @@ export default function NonParametricTestPage() {
             {/* 변수 선택 */}
             <VariableSelector
               requirements={getVariableRequirements()}
-              onMappingChange={actions.updateVariableMapping}
+              onMappingChange={setSelectedVariables}
               title="변수 선택"
               description={`${currentTest.name}에 필요한 변수를 선택하세요`}
             />

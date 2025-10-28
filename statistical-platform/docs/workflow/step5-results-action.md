@@ -191,7 +191,7 @@ interface AnalysisResult {
 ```tsx
 // 컴포넌트 사용
 <ResultsActionStep
-  results={analysisResults}
+  results={results}
   onNewAnalysis={() => navigate('/new-analysis')}
   onExport={(format) => exportResults(format)}
   onDeepDive={(method) => startDeepAnalysis(method)}
@@ -201,13 +201,13 @@ interface AnalysisResult {
 const exportResults = async (format: 'pdf' | 'excel' | 'csv') => {
   switch(format) {
     case 'pdf':
-      await PDFReportService.generate(analysisResults)
+      await PDFReportService.generate(results)
       break
     case 'excel':
-      await ExcelExportService.export(analysisResults)
+      await ExcelExportService.export(results)
       break
     case 'csv':
-      await CSVExportService.export(analysisResults)
+      await CSVExportService.export(results)
       break
   }
 }

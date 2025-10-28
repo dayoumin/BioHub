@@ -51,7 +51,7 @@ export interface AnalysisExecutionStepProps extends StepNavigationProps {
 }
 
 export interface ResultsActionStepProps extends StepNavigationProps {
-  analysisResults: any
+  results: any
   onNewAnalysis: () => void
   onExport: () => void
 }

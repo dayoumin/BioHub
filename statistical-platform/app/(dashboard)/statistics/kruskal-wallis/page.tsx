@@ -171,7 +171,7 @@ export default function KruskalWallisPage() {
       return
     }
 
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       // 실제 Pyodide 분석 실행
@@ -181,7 +181,7 @@ export default function KruskalWallisPage() {
         variables.independent[0]
       )
 
-      actions.completeAnalysis(result, 3)
+      actions.setResults(result)
     } catch (err) {
       console.error('Kruskal-Wallis 검정 실패:', err)
       actions.setError('Kruskal-Wallis 검정 중 오류가 발생했습니다.')

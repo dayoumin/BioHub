@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const { 
     datasets, 
     projects, 
-    analysisResults, 
+    results, 
     getActiveDatasets, 
     getRecentAnalyses, 
     getCompletedAnalyses 
@@ -27,15 +27,15 @@ export default function DashboardPage() {
   // 실제 데이터 기반 통계
   const totalProjects = projects.length
   const totalDatasets = datasets.length
-  const totalAnalyses = analysisResults.length
-  const successRate = analysisResults.length > 0 
-    ? (completedAnalyses.length / analysisResults.length) * 100 
+  const totalAnalyses = results.length
+  const successRate = results.length > 0 
+    ? (completedAnalyses.length / results.length) * 100 
     : 0
 
   // 차트 데이터 생성
   const chartData = useMemo(() => {
     // 분석 타입별 통계
-    const analysisTypeCount = analysisResults.reduce((acc, analysis) => {
+    const analysisTypeCount = results.reduce((acc, analysis) => {
       const type = analysis.testType || 'Other'
       acc[type] = (acc[type] || 0) + 1
       return acc
@@ -53,7 +53,7 @@ export default function DashboardPage() {
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
       const monthName = date.toLocaleDateString('ko-KR', { month: 'short' })
-      const monthAnalyses = analysisResults.filter(analysis => {
+      const monthAnalyses = results.filter(analysis => {
         const analysisDate = new Date(analysis.createdAt)
         return analysisDate.getMonth() === date.getMonth() && 
                analysisDate.getFullYear() === date.getFullYear()
@@ -87,12 +87,12 @@ export default function DashboardPage() {
       monthlyActivity,
       datasetStatusData
     }
-  }, [analysisResults, datasets, totalAnalyses])
+  }, [results, datasets, totalAnalyses])
 
   // 최근 성과 메트릭
   const recentMetrics = useMemo(() => {
     const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    const recent30Analyses = analysisResults.filter(a => new Date(a.createdAt) > last30Days)
+    const recent30Analyses = results.filter(a => new Date(a.createdAt) > last30Days)
     const recent30Datasets = datasets.filter(d => new Date(d.uploadedAt) > last30Days)
     
     return {
@@ -100,13 +100,13 @@ export default function DashboardPage() {
       recent30Datasets: recent30Datasets.length,
       avgAnalysesPerWeek: (recent30Analyses.length / 4.3).toFixed(1),
       mostUsedTest: Object.entries(
-        analysisResults.reduce((acc, a) => {
+        results.reduce((acc, a) => {
           acc[a.testType] = (acc[a.testType] || 0) + 1
           return acc
         }, {} as Record<string, number>)
       ).sort(([,a], [,b]) => b - a)[0]?.[0] || 'None'
     }
-  }, [analysisResults, datasets])
+  }, [results, datasets])
 
   return (
     <div className="space-y-6">
@@ -624,7 +624,7 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {analysisResults.length === 0 ? (
+                {results.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Clock className="h-8 w-8 mx-auto mb-2" />
                     <p className="text-sm">최근 활동이 없습니다</p>

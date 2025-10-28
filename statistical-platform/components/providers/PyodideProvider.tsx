@@ -48,7 +48,7 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
 
     console.log('[PyodideProvider] Pyodide 초기화 시작...')
     setIsLoading(true)
-    setError(null)
+    actions.setError(null)
 
     try {
       const startTime = performance.now()
@@ -68,7 +68,7 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
       console.log(`[PyodideProvider] Pyodide 초기화 완료! (소요시간: ${loadTime}초)`)
     } catch (err) {
       console.error('[PyodideProvider] Pyodide 초기화 실패 (모든 재시도 실패):', err)
-      setError(err instanceof Error ? err.message : 'Pyodide 초기화 실패')
+      actions.setError(err instanceof Error ? err.message : 'Pyodide 초기화 실패')
     } finally {
       setIsLoading(false)
     }
@@ -116,7 +116,7 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
             </div>
             <button
               onClick={() => {
-                setError(null)
+                actions.setError(null)
                 initializeStartedRef.current = false // 리셋하여 다시 시도 가능하게 함
                 initPyodide()
               }}

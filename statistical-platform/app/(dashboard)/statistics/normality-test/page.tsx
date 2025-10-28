@@ -95,7 +95,7 @@ export default function NormalityTestPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -154,7 +154,7 @@ export default function NormalityTestPage() {
         }
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.setResults(mockResults)
       setActiveTab('summary')
     }, 1500)
   }
@@ -450,7 +450,7 @@ export default function NormalityTestPage() {
                 title="수치형 변수 선택"
                 description="연속형 데이터를 가진 변수를 선택하세요"
                 onMappingChange={(mapping) => {
-                  actions.updateVariableMapping(mapping)
+                  actions.setSelectedVariables(mapping)
                   if (Object.keys(mapping).length > 0) {
                     actions.setCurrentStep(1)
                   }

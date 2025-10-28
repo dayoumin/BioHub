@@ -95,17 +95,17 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
 
   const handleAnalysis = useCallback(async (variableMapping: VariableMapping) => {
     if (!variableMapping.predictor || variableMapping.predictor.length === 0) {
-      setError('용량(농도) 변수를 선택해주세요.')
+      actions.setError('용량(농도) 변수를 선택해주세요.')
       return
     }
 
     if (!variableMapping.target || variableMapping.target.length === 0) {
-      setError('반응 변수를 선택해주세요.')
+      actions.setError('반응 변수를 선택해주세요.')
       return
     }
 
     setIsLoading(true)
-    setError(null)
+    actions.setError(null)
 
     try {
       const doseData = variableMapping.predictor[0].data
@@ -287,7 +287,7 @@ except Exception as e:
       const analysisResult = await pyodideService.runPython(pythonCode)
       setResult(analysisResult)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
     }
@@ -602,9 +602,9 @@ export default function DoseResponsePage() {
       ...row as Record<string, unknown>,
       _id: index
     }))
-    setUploadedData(processedData)
+    actions.setUploadedData(processedData)
     setCurrentStep(2)
-    setError(null)
+    actions.setError(null)
   }, [])
 
   return (

@@ -31,6 +31,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -111,12 +112,12 @@ interface MixedModelResult {
 }
 
 export default function MixedModelPage() {
-  const [currentStep, setCurrentStep] = useState<number>(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [_selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<MixedModelResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
+  // Hook for state management
+  const { state, actions } = useStatisticsPage<MixedModelResult, VariableAssignment>{
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -136,7 +137,7 @@ export default function MixedModelPage() {
       } catch (err) {
         if (isMounted && !abortController.signal.aborted) {
           console.error('Pyodide 초기화 실패:', err)
-          setError('통계 엔진을 초기화할 수 없습니다.')
+          actions.setError('통계 엔진을 초기화할 수 없습니다.')
         }
       }
     }
@@ -208,17 +209,17 @@ export default function MixedModelPage() {
 
   const handleDataUpload = useCallback((data: DataRow[]) => {
     setUploadedData(data)
-    setCurrentStep(2)
+    actions.setCurrentStep(2)
   }, [])
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {
-      setError('데이터나 통계 엔진이 준비되지 않았습니다.')
+      actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
+    actions.setError(null)
 
     try {
       // Mock Mixed Model 결과
@@ -335,18 +336,18 @@ export default function MixedModelPage() {
         }
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(3)
+      actions.setResults(mockResult)
+      actions.setCurrentStep(3)
     } catch (err) {
       console.error('Mixed Model 분석 실패:', err)
-      setError('선형 혼합 모형 분석 중 오류가 발생했습니다.')
+      actions.setError('선형 혼합 모형 분석 중 오류가 발생했습니다.')
     } finally {
-      setIsAnalyzing(false)
+      // isAnalyzing managed by hook
     }
   }, [uploadedData, pyodide])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent &&
         variables.dependent.length === 1 && variables.independent.length >= 1) {
       runAnalysis(variables)
@@ -456,7 +457,7 @@ export default function MixedModelPage() {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -511,7 +512,7 @@ export default function MixedModelPage() {
           </div>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -529,7 +530,7 @@ export default function MixedModelPage() {
             methodId="mixed-model"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -1103,7 +1104,7 @@ export default function MixedModelPage() {
           </Tabs>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               다시 분석
             </Button>
             <Button>

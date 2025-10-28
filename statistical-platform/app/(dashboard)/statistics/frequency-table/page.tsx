@@ -93,7 +93,7 @@ export default function FrequencyTablePage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -111,7 +111,7 @@ export default function FrequencyTablePage() {
         uniqueValues: 4
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.setResults(mockResults)
       setActiveTab('summary')
     }, 1500)
   }
@@ -254,7 +254,7 @@ export default function FrequencyTablePage() {
                 title="범주형 변수 선택"
                 description="문자열이나 범주로 구성된 변수를 선택하세요"
                 onMappingChange={(mapping) => {
-                  actions.updateVariableMapping(mapping)
+                  actions.setSelectedVariables(mapping)
                   if (Object.keys(mapping).length > 0) {
                     actions.setCurrentStep(1)
                   }

@@ -126,7 +126,7 @@ interface AppStore {
   analysis: {
     type: AnalysisType
     options: AnalysisOptions
-    results: AnalysisResults | null
+    results: results | null
     isRunning: boolean
     progress: number
   }

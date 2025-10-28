@@ -83,7 +83,7 @@ interface PartialCorrelationResult {
   interpretation: string
 }
 
-interface AnalysisResults {
+interface results {
   correlationMatrix: CorrelationResult[]
   pairwiseCorrelations: PairwiseCorrelation[]
   scatterPlots: ScatterPlotData[]
@@ -103,11 +103,11 @@ interface AnalysisResults {
 
 export default function CorrelationPage() {
   // Custom hook: common state management
-  const { state, actions } = useStatisticsPage<AnalysisResults, VariableSelection>({
+  const { state, actions } = useStatisticsPage<results, VariableSelection>({
     withUploadedData: true,
     withError: false
   })
-  const { currentStep, uploadedData, selectedVariables, results: analysisResults, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results: results, isAnalyzing } = state
 
   // Page-specific state
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
@@ -194,14 +194,14 @@ export default function CorrelationPage() {
   }
 
   const handleDataUpload = (data: UploadedData) => {
-    if (actions.setUploadedData) {
+    if (setUploadedData) {
       actions.setUploadedData(data)
     }
     actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: VariableSelection) => {
-    if (actions.setSelectedVariables) {
+    if (setSelectedVariables) {
       actions.setSelectedVariables(variables)
     }
     // 자동으로 분석 실행
@@ -209,7 +209,7 @@ export default function CorrelationPage() {
   }
 
   const handleAnalysis = async (_variables: VariableSelection) => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
     setTimeout(() => {
@@ -229,7 +229,7 @@ export default function CorrelationPage() {
         [0.145, 0.234, 0.008, 0.000]
       ]
 
-      const mockResults: AnalysisResults = {
+      const mockResults: results = {
         correlationMatrix: variables.map((v1, i) =>
           variables.map((v2, j) => ({
             var1: v1,
@@ -310,7 +310,7 @@ export default function CorrelationPage() {
         } : null
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.setResults(mockResults)
     }, 2000)
   }
 
@@ -456,9 +456,9 @@ export default function CorrelationPage() {
   }
 
   const renderResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
-    const { pairwiseCorrelations, scatterPlots, assumptions, partialCorrelation, sampleSize } = analysisResults
+    const { pairwiseCorrelations, scatterPlots, assumptions, partialCorrelation, sampleSize } = results
 
     // 상관계수 해석 기준
     const interpretCorrelation = (r: number) => {

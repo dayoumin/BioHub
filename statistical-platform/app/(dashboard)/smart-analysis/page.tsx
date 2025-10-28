@@ -375,7 +375,7 @@ export default function SmartAnalysisPage() {
               </p>
               <Button onClick={() => {
                 setCurrentStep('analysis')
-                setIsAnalyzing(true)
+                actions.startAnalysis()
                 // 3초 후 자동으로 결과 단계로 이동하고 분석 결과 저장
                 setTimeout(() => {
                   // 분석 결과를 store에 저장

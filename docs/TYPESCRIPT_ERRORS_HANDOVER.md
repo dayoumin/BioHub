@@ -53,12 +53,12 @@ Argument of type 'SelectedVariables' is not assignable to parameter of type 'Rec
 ```typescript
 // Before
 onMappingChange={(mapping) => {
-  actions.updateVariableMapping(mapping)
+  actions.setSelectedVariables(mapping)
 }}
 
 // After
 onMappingChange={(mapping) => {
-  actions.updateVariableMapping(mapping as VariableMapping)
+  actions.setSelectedVariables(mapping as VariableMapping)
 }}
 ```
 

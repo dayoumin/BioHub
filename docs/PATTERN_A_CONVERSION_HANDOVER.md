@@ -60,7 +60,7 @@ const { currentStep, uploadedData, selectedVariables: variableAssignment, result
 
 // setter 호출 변경
 // setCurrentStep(n) → actions.setCurrentStep(n)
-// setError(msg) → actions.setError(msg)
+// actions.setError(msg) → actions.setError(msg)
 // 등등...
 ```
 

@@ -69,12 +69,12 @@ const MannKendallTest: React.FC<MannKendallTestProps> = ({ selectedTest }) => {
 
   const handleAnalysis = useCallback(async (variableMapping: VariableMapping) => {
     if (!variableMapping.target || variableMapping.target.length === 0) {
-      setError('시계열 변수를 선택해주세요.')
+      actions.setError('시계열 변수를 선택해주세요.')
       return
     }
 
     setIsLoading(true)
-    setError(null)
+    actions.setError(null)
 
     try {
       const timeData = variableMapping.target[0].data
@@ -120,7 +120,7 @@ else:
       const analysisResult = await pyodideService.runPython(pythonCode)
       setResult(analysisResult)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
     }
@@ -438,7 +438,7 @@ export default function MannKendallPage() {
   const [currentStep, setCurrentStep] = useState(0)
 
   const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    setUploadedData(data)
+    actions.setUploadedData(data)
     setCurrentStep(2) // Move to next step
   }, [])
 

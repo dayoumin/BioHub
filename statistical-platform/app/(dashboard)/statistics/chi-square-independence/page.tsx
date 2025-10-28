@@ -30,6 +30,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Helper functions
 function interpretCramersV(value: number): string {
@@ -84,13 +85,12 @@ interface ChiSquareIndependenceResult {
 }
 
 export default function ChiSquareIndependencePage() {
-  // State
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<ChiSquareIndependenceResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Hook for state management
+  const { state, actions } = useStatisticsPage<ChiSquareIndependenceResult, VariableAssignment>{
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -110,7 +110,7 @@ export default function ChiSquareIndependencePage() {
       } catch (err) {
         if (isMounted && !abortController.signal.aborted) {
           console.error('Pyodide 초기화 실패:', err)
-          setError('통계 엔진을 초기화할 수 없습니다.')
+          actions.setError('통계 엔진을 초기화할 수 없습니다.')
         }
       }
     }
@@ -174,18 +174,18 @@ export default function ChiSquareIndependencePage() {
       _id: index
     })) as DataRow[]
     setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
+    actions.setCurrentStep(2)
+    actions.setError(null)
   }, [])
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.independent || !variables.dependent) {
-      setError('분석을 실행할 수 없습니다. 두 개의 범주형 변수를 선택해주세요.')
+      actions.setError('분석을 실행할 수 없습니다. 두 개의 범주형 변수를 선택해주세요.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
+    actions.setError(null)
 
     try {
       // Convert DataRow[] to contingency table (number[][])
@@ -193,8 +193,8 @@ export default function ChiSquareIndependencePage() {
       const colVar = variables.independent[0]
 
       // Get unique values for each variable
-      const rowValues = [...new Set(uploadedData.map(row => String(row[rowVar])))]
-      const colValues = [...new Set(uploadedData.map(row => String(row[colVar])))]
+      const rowValues = [...new Set(uploadedData.data.map(row => String(row[rowVar])))]
+      const colValues = [...new Set(uploadedData.data.map(row => String(row[colVar])))]
 
       // Create contingency table matrix (using Array.from for safety)
       const matrix: number[][] = Array.from(
@@ -203,7 +203,7 @@ export default function ChiSquareIndependencePage() {
       )
 
       // Fill the contingency table
-      uploadedData.forEach(row => {
+      uploadedData.data.forEach(row => {
         const rowIdx = rowValues.indexOf(String(row[rowVar]))
         const colIdx = colValues.indexOf(String(row[colVar]))
         if (rowIdx >= 0 && colIdx >= 0) {
@@ -291,19 +291,19 @@ export default function ChiSquareIndependencePage() {
         }
       }
 
-      setAnalysisResult(transformedResult)
-      setCurrentStep(3)
+      actions.setResults(transformedResult)
+      actions.setCurrentStep(3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('카이제곱 독립성 검정 실패:', errorMessage)
-      setError(`카이제곱 독립성 검정 중 오류가 발생했습니다: ${errorMessage}`)
+      actions.setError(`카이제곱 독립성 검정 중 오류가 발생했습니다: ${errorMessage}`)
     } finally {
-      setIsAnalyzing(false)
+      // isAnalyzing managed by hook
     }
   }, [uploadedData, pyodide])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.independent && variables.dependent &&
         variables.independent.length === 1 && variables.dependent.length === 1) {
       runAnalysis(variables)
@@ -335,7 +335,7 @@ export default function ChiSquareIndependencePage() {
       icon={<Grid3X3 className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -401,7 +401,7 @@ export default function ChiSquareIndependencePage() {
             </Alert>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -418,7 +418,7 @@ export default function ChiSquareIndependencePage() {
         >
           <DataUploadStep
             onUploadComplete={handleDataUploadComplete}
-            onNext={() => setCurrentStep(2)}
+            onNext={() => actions.setCurrentStep(2)}
           />
 
           <Alert className="mt-4">
@@ -433,7 +433,7 @@ export default function ChiSquareIndependencePage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -451,7 +451,7 @@ export default function ChiSquareIndependencePage() {
             methodId="chi_square_independence"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -777,7 +777,7 @@ export default function ChiSquareIndependencePage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -785,7 +785,7 @@ export default function ChiSquareIndependencePage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.setCurrentStep(0)}>
                 새로운 분석
               </Button>
             </div>

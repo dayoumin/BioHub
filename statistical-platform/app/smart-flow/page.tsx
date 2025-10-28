@@ -61,7 +61,7 @@ export default function SmartFlowPage() {
     uploadedData,
     validationResults,
     selectedMethod,
-    analysisResults,
+    results,
     isLoading,
     error,
     setUploadedFile,
@@ -69,7 +69,7 @@ export default function SmartFlowPage() {
     setValidationResults,
     setAnalysisPurpose,
     setSelectedMethod,
-    setAnalysisResults,
+    setresults,
     setError,
     canProceedToNext,
     goToNextStep,
@@ -90,7 +90,7 @@ export default function SmartFlowPage() {
   const handleUploadComplete = useCallback((file: File, data: DataRow[]) => {
     try {
       setUploadedFile(file)
-      setUploadedData(data)
+      actions.setUploadedData(data)
 
       // 향상된 데이터 검증
       const validation = performDataValidation(data)
@@ -101,7 +101,7 @@ export default function SmartFlowPage() {
         goToNextStep()
       }
     } catch (err) {
-      setError('데이터 업로드 중 오류가 발생했습니다: ' + (err as Error).message)
+      actions.setError('데이터 업로드 중 오류가 발생했습니다: ' + (err as Error).message)
     }
   }, [setUploadedFile, setUploadedData, setValidationResults, goToNextStep, setError])
 
@@ -112,9 +112,9 @@ export default function SmartFlowPage() {
   }, [setAnalysisPurpose, setSelectedMethod, goToNextStep])
 
   const handleAnalysisComplete = useCallback((results: AnalysisResult) => {
-    setAnalysisResults(results)
+    setresults(results)
     goToNextStep()
-  }, [setAnalysisResults, goToNextStep])
+  }, [setresults, goToNextStep])
 
   // 데이터 검증 수행 (상세 검증 포함)
   const performDataValidation = (data: DataRow[]): ValidationResults => {
@@ -344,7 +344,7 @@ export default function SmartFlowPage() {
             {currentStep === 5 && (
               <div className="animate-in fade-in duration-500">
                 <Suspense fallback={<SkeletonCard />}>
-                  <ResultsActionStep results={analysisResults} />
+                  <ResultsActionStep results={results} />
                 </Suspense>
               </div>
             )}

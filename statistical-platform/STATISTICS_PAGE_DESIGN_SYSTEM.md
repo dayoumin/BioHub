@@ -212,14 +212,14 @@ const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
 // 데이터 업로드 처리
 const handleDataUpload = useCallback((data: any[]) => {
   const processedData = data.map((row, index) => ({ ...row, _id: index }))
-  setUploadedData(processedData)
+  actions.setUploadedData(processedData)
   setCurrentStep(2)
-  setError(null)
+  actions.setError(null)
 }, [])
 
 // 변수 선택 처리
 const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-  setSelectedVariables(variables)
+  actions.setSelectedVariables(variables)
   if (/* 변수 검증 조건 */) {
     runAnalysis(variables)
   }
@@ -227,14 +227,14 @@ const handleVariableSelection = useCallback((variables: VariableAssignment) => {
 
 // 분석 실행
 const runAnalysis = async (variables: VariableAssignment) => {
-  setIsAnalyzing(true)
-  setError(null)
+  actions.startAnalysis()
+  actions.setError(null)
   try {
     const result = await pyodide.분석메서드(uploadedData, ...)
-    setAnalysisResult(result)
+    actions.setResults(result)
     setCurrentStep(3)
   } catch (err) {
-    setError('분석 중 오류가 발생했습니다.')
+    actions.setError('분석 중 오류가 발생했습니다.')
   } finally {
     setIsAnalyzing(false)
   }

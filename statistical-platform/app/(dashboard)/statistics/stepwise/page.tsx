@@ -135,7 +135,7 @@ export default function StepwiseRegressionPage() {
   }
 
   const runStepwiseAnalysis = async (variables: SelectedVariables) => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       // Load Pyodide with required packages
@@ -416,9 +416,9 @@ json.dumps(results)
 `
 
       const result = pyodide.runPython(pythonCode)
-      const analysisResults: StepwiseResults = JSON.parse(result)
+      const results: StepwiseResults = JSON.parse(result)
 
-      actions.setResults(analysisResults)
+      setResults(results)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }

@@ -163,7 +163,7 @@ export default function ExperimentalDesignPage() {
     const newData = { ...stepData, ...data }
     setStepData(newData)
     setIsLoading(true)
-    setError(null)
+    actions.setError(null)
 
     try {
       // 다음 단계로 이동 (handleNext와 동일한 로직)
@@ -302,7 +302,7 @@ export default function ExperimentalDesignPage() {
         }
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다')
+      actions.setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다')
     } finally {
       setIsLoading(false)
     }
@@ -362,7 +362,7 @@ export default function ExperimentalDesignPage() {
 
   const handleNext = async () => {
     setIsLoading(true)
-    setError(null)
+    actions.setError(null)
 
     try {
       if (currentStep === 'purpose' && stepData.purpose) {
@@ -499,7 +499,7 @@ export default function ExperimentalDesignPage() {
         }
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다')
+      actions.setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다')
     } finally {
       setIsLoading(false)
     }
@@ -885,7 +885,7 @@ export default function ExperimentalDesignPage() {
     setCurrentStep('purpose')
     setStepData({})
     setRecommendedDesign(null)
-    setError(null)
+    actions.setError(null)
     setIsLoading(false)
   }
 

@@ -81,14 +81,14 @@ Agent 3 → response-surface/page.tsx
 ```typescript
 // Before
 const handleDataUpload = useCallback((data: unknown[]) => {
-  setUploadedData(data)
+  actions.setUploadedData(data)
 }, [])
 
 <DataUploadStep onNext={handleDataUpload} />
 
 // After
 const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-  setUploadedData(processedData)
+  actions.setUploadedData(processedData)
   setCurrentStep(2)
 }, [])
 
@@ -489,9 +489,9 @@ git push
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
   ```
 - **Setter 변환**:
-  - `setIsAnalyzing(true)` → `actions.startAnalysis()`
-  - `setResults(result); setCurrentStep(3)` → `actions.completeAnalysis(result, 3)`
-  - `setUploadedData(data)` → `actions.setUploadedData(data)`
+  - `actions.startAnalysis()` → `actions.startAnalysis()()`
+  - `setResults(result); setCurrentStep(3)` → `actions.setResults(result)`
+  - `actions.setUploadedData(data)` → `actions.setUploadedData(data)`
 
 **검증 결과**:
 - ✅ TypeScript 컴파일: hooks/use-statistics-page.ts - 에러 **0개**

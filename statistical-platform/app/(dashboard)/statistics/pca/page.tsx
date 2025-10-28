@@ -336,13 +336,13 @@ export default function PCAPage() {
   const runAnalysis = useCallback(async (variables: VariableSelection) => {
     if (!uploadedData) return
 
-    setIsAnalyzing(true)
+    actions.startAnalysis()
     actions.setCurrentStep(3)
 
     try {
       setTimeout(() => {
         const result = calculatePCA(uploadedData.data, variables.variables)
-        setAnalysisResults(result)
+        setresults(result)
         setIsAnalyzing(false)
       }, 2000)
     } catch (error) {
@@ -504,7 +504,7 @@ export default function PCAPage() {
   }
 
   const renderResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
     const {
       components,
@@ -513,7 +513,7 @@ export default function PCAPage() {
       screeData,
       interpretation,
       variableContributions: _variableContributions // 향후 차트에서 사용 예정
-    } = analysisResults
+    } = results
 
     return (
       <StepCard
@@ -769,7 +769,7 @@ export default function PCAPage() {
         actions.setCurrentStep(0)
         actions.setUploadedData(null)
         actions.setSelectedVariables(null)
-        setAnalysisResults(null)
+        setresults(null)
       }}
       isRunning={isAnalyzing}
       showProgress={true}

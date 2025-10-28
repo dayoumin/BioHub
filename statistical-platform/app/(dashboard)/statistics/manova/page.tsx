@@ -243,7 +243,7 @@ export default function ManovaPage() {
       return
     }
 
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       // Mock MANOVA 결과
@@ -358,11 +358,11 @@ export default function ManovaPage() {
         }
       }
 
-      actions.completeAnalysis(mockResult, 3)
+      actions.setResults(mockResult)
     } catch (err) {
       console.error('MANOVA 분석 실패:', err)
       actions.setError('MANOVA 분석 중 오류가 발생했습니다.')
-      actions.stopAnalysis()
+      setIsAnalyzing(false)()
     }
   }, [uploadedData, pyodide, actions])
 

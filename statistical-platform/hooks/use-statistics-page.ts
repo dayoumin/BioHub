@@ -216,9 +216,9 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
    * 분석 시작 (isAnalyzing = true, error 초기화)
    */
   const startAnalysis = useCallback(() => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
     if (withError) {
-      setError(null)
+      actions.setError(null)
     }
   }, [withError])
 
@@ -226,7 +226,7 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
    * 에러 설정 (isAnalyzing = false)
    */
   const handleSetError = useCallback((errorMessage: string) => {
-    setError(errorMessage)
+    actions.setError(errorMessage)
     setIsAnalyzing(false)
   }, [])
 
@@ -234,10 +234,10 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
    * 분석 완료 (결과 설정 + isAnalyzing = false + 단계 이동)
    */
   const completeAnalysis = useCallback((
-    analysisResults: TResult,
+    results: TResult,
     nextStepNum?: number
   ) => {
-    setResults(analysisResults)
+    setResults(results)
     setIsAnalyzing(false)
     if (nextStepNum !== undefined) {
       setCurrentStep(nextStepNum)
@@ -252,9 +252,9 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
     setVariableMapping({})
     setResults(null)
     setIsAnalyzing(false)
-    setUploadedData(null)
-    setSelectedVariables(null)
-    setError(null)
+    actions.setUploadedData(null)
+    actions.setSelectedVariables(null)
+    actions.setError(null)
   }, [initialStep])
 
   // ============================================================================

@@ -148,13 +148,13 @@ export default function MannWhitneyPage() {
       columns: processedData.length > 0 ? Object.keys(processedData[0]) : []
     }
 
-    actions.setUploadedData?.(uploadedDataObj)
+    setUploadedData?.(uploadedDataObj)
     actions.setCurrentStep(2)
-    actions.setError?.('')
+    setError?.('')
   }, [actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables?.(variables)
+    setSelectedVariables?.(variables)
     if (variables.dependent && variables.independent && variables.dependent.length === 1 && variables.independent.length === 1) {
       runAnalysis(variables)
     }
@@ -162,11 +162,11 @@ export default function MannWhitneyPage() {
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.independent) {
-      actions.setError?.('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      setError?.('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
 
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       // 실제 Pyodide 분석 실행
@@ -176,11 +176,11 @@ export default function MannWhitneyPage() {
         variables.independent[0]
       ) as MannWhitneyResult
 
-      actions.completeAnalysis(result, 3)
+      actions.setResults(result)
     } catch (err) {
       console.error('Mann-Whitney U 검정 실패:', err)
-      actions.setError?.('Mann-Whitney U 검정 중 오류가 발생했습니다.')
-      actions.startAnalysis() // Re-set analyzing to false
+      setError?.('Mann-Whitney U 검정 중 오류가 발생했습니다.')
+      actions.startAnalysis()() // Re-set analyzing to false
     }
   }
 

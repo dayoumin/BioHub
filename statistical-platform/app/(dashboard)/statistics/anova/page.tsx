@@ -108,7 +108,7 @@ export default function ANOVAPage() {
     withUploadedData: true,
     withError: false
   })
-  const { currentStep, uploadedData, selectedVariables, results: analysisResults, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results: results, isAnalyzing } = state
 
   // Page-specific state
   const [anovaType, setAnovaType] = useState<'oneWay' | 'twoWay' | 'repeated' | ''>('')
@@ -182,14 +182,14 @@ export default function ANOVAPage() {
   }
 
   const handleDataUpload = (data: UploadedData) => {
-    if (actions.setUploadedData) {
+    if (setUploadedData) {
       actions.setUploadedData(data)
     }
     actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: SelectedVariables) => {
-    if (actions.setSelectedVariables) {
+    if (setSelectedVariables) {
       actions.setSelectedVariables(variables)
     }
     // 자동으로 분석 실행
@@ -197,7 +197,7 @@ export default function ANOVAPage() {
   }
 
   const handleAnalysis = async (_variables: SelectedVariables) => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
     setTimeout(() => {
@@ -248,7 +248,7 @@ export default function ANOVAPage() {
         ]
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.setResults(mockResults)
     }, 2000)
   }
 
@@ -396,9 +396,9 @@ export default function ANOVAPage() {
   }
 
   const renderResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
-    const { groups, postHoc, assumptions, anovaTable, powerAnalysis } = analysisResults
+    const { groups, postHoc, assumptions, anovaTable, powerAnalysis } = results
 
     // 그룹 평균 비교 차트 데이터
     const groupMeansData = groups.map(g => ({
@@ -417,17 +417,17 @@ export default function ANOVAPage() {
       >
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
-          <Alert className={analysisResults.pValue < 0.05 ? "border-green-500 bg-green-50" : "border-yellow-500 bg-yellow-50"}>
+          <Alert className={results.pValue < 0.05 ? "border-green-500 bg-green-50" : "border-yellow-500 bg-yellow-50"}>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>분석 결과</AlertTitle>
             <AlertDescription>
               <div className="mt-2 space-y-2">
                 <p className="font-medium">
-                  F({analysisResults.dfBetween}, {analysisResults.dfWithin}) = {analysisResults.fStatistic.toFixed(3)},
-                  p = {analysisResults.pValue.toFixed(4)}
+                  F({results.dfBetween}, {results.dfWithin}) = {results.fStatistic.toFixed(3)},
+                  p = {results.pValue.toFixed(4)}
                 </p>
                 <p>
-                  {analysisResults.pValue < 0.05
+                  {results.pValue < 0.05
                     ? "✅ 그룹 간 평균에 통계적으로 유의한 차이가 있습니다 (p < 0.05)"
                     : "❌ 그룹 간 평균에 통계적으로 유의한 차이가 없습니다 (p ≥ 0.05)"}
                 </p>
@@ -496,7 +496,7 @@ export default function ANOVAPage() {
           </Card>
 
           {/* 사후검정 결과 */}
-          {analysisResults.pValue < 0.05 && (
+          {results.pValue < 0.05 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">사후검정 결과 (Tukey HSD)</CardTitle>
@@ -537,11 +537,11 @@ export default function ANOVAPage() {
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm">Eta-squared (η²)</span>
-                  <Badge>{analysisResults.etaSquared.toFixed(3)}</Badge>
+                  <Badge>{results.etaSquared.toFixed(3)}</Badge>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Omega-squared (ω²)</span>
-                  <Badge>{analysisResults.omegaSquared.toFixed(3)}</Badge>
+                  <Badge>{results.omegaSquared.toFixed(3)}</Badge>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm">Cohen&apos;s f</span>

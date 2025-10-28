@@ -72,7 +72,7 @@ interface AppState {
   // Data
   datasets: Dataset[]
   projects: Project[]
-  analysisResults: AnalysisResult[]
+  results: AnalysisResult[]
   
   // UI State
   isLoading: boolean
@@ -117,7 +117,7 @@ export const useAppStore = create<AppState>()(
         // Initial state
         datasets: [],
         projects: [],
-        analysisResults: [],
+        results: [],
         isLoading: false,
         currentPage: '/',
         sidebarOpen: true,
@@ -191,14 +191,14 @@ export const useAppStore = create<AppState>()(
             createdAt: new Date(),
           }
           set((state) => ({
-            analysisResults: [...state.analysisResults, newResult],
+            results: [...state.results, newResult],
           }))
           return newId
         },
 
         updateAnalysisResult: (id, updates) =>
           set((state) => ({
-            analysisResults: state.analysisResults.map((result) =>
+            results: state.results.map((result) =>
               result.id === id ? { ...result, ...updates } : result
             ),
           })),
@@ -227,12 +227,12 @@ export const useAppStore = create<AppState>()(
 
         getAnalysisResultById: (id) => {
           const state = get()
-          return state.analysisResults.find((result) => result.id === id)
+          return state.results.find((result) => result.id === id)
         },
 
         getAnalysisResult: (id) => {
           const state = get()
-          return state.analysisResults.find((result) => result.id === id)
+          return state.results.find((result) => result.id === id)
         },
 
         getActiveDatasets: () => {
@@ -242,21 +242,21 @@ export const useAppStore = create<AppState>()(
 
         getRecentAnalyses: (limit = 10) => {
           const state = get()
-          return state.analysisResults
+          return state.results
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
             .slice(0, limit)
         },
 
         getAnalysesByDataset: (datasetId) => {
           const state = get()
-          return state.analysisResults
+          return state.results
             .filter((result) => result.datasetId === datasetId)
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         },
 
         getCompletedAnalyses: () => {
           const state = get()
-          return state.analysisResults
+          return state.results
             .filter((result) => result.status === 'completed')
             .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
         },
@@ -266,7 +266,7 @@ export const useAppStore = create<AppState>()(
         partialize: (state) => ({
           datasets: state.datasets,
           projects: state.projects,
-          analysisResults: state.analysisResults,
+          results: state.results,
           preferences: state.preferences,
         }),
       }

@@ -205,7 +205,7 @@ export default function RepeatedMeasuresANOVAPage() {
 
     // AbortController로 비동기 작업 취소 지원
     const abortController = new AbortController()
-    setIsAnalyzing(true)
+    setIsAnalyzing(true)()
     setError(null)
 
     try {

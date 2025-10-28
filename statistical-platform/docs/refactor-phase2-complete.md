@@ -196,12 +196,12 @@ non-parametric 페이지 → mannWhitneyU, wilcoxonSignedRank, kruskalWallis, du
 현재 대부분의 페이지가 `setTimeout()`으로 Mock 데이터 생성 중:
 ```typescript
 const handleAnalysis = async (_variables) => {
-  setIsAnalyzing(true)
+  actions.startAnalysis()
 
   // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
   setTimeout(() => {
     const mockResults = { /* ... */ }
-    setAnalysisResults(mockResults)
+    setresults(mockResults)
   }, 2000)
 }
 ```

@@ -39,6 +39,26 @@ import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar } from 'recharts'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
+
+type LinearRegressionResults = {
+  coefficients: Array<{ name: string; estimate: number; stdError: number; tValue: number; pValue: number; ci: number[] }>
+  rSquared: number
+  adjustedRSquared: number
+  fStatistic: number
+  fPValue: number
+  residualStdError: number
+  scatterData: Array<{ x: number; y: number; predicted: number }>
+  residualPlot: Array<{ fitted: number; residual: number; standardized: number }>
+  vif?: Array<{ variable: string; vif: number }> | null
+}
+
+type LogisticRegressionResults = {
+  coefficients: Array<{ name: string; estimate: number; stdError: number; zValue: number; pValue: number; oddsRatio: number }>
+  modelFit: { aic: number; bic: number; mcFaddenR2: number; accuracy: number; sensitivity: number; specificity: number; auc: number }
+  confusionMatrix: { tp: number; fp: number; tn: number; fn: number; precision: number; recall: number; f1Score: number }
+  rocCurve: Array<{ fpr: number; tpr: number }>
+}
 
 export default function RegressionPage() {
   // Custom hook: common state management
@@ -46,7 +66,7 @@ export default function RegressionPage() {
     withUploadedData: true,
     withError: false
   })
-  const { currentStep, uploadedData, selectedVariables, results: analysisResults, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results: results, isAnalyzing } = state
 
   // Page-specific state
   const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
@@ -120,22 +140,22 @@ export default function RegressionPage() {
   }
 
   const handleDataUpload = (data: unknown) => {
-    if (actions.setUploadedData) {
-      actions.setUploadedData(data)
+    if (setUploadedData) {
+      actions.setUploadedData(data as UploadedData | null)
     }
     actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: unknown) => {
-    if (actions.setSelectedVariables) {
-      actions.setSelectedVariables(variables)
+    if (setSelectedVariables) {
+      actions.setSelectedVariables(variables as Record<string, unknown> | null)
     }
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
   const handleAnalysis = async (variables: unknown) => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
     setTimeout(() => {
@@ -204,7 +224,7 @@ export default function RegressionPage() {
         }))
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.setResults(mockResults)
     }, 2000)
   }
 
@@ -299,7 +319,7 @@ export default function RegressionPage() {
       description="회귀분석할 데이터 파일을 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onNext={handleDataUpload} />
+      <DataUploadStep onUploadComplete={() => {}} onNext={() => {}} />
     </StepCard>
   )
 
@@ -345,9 +365,9 @@ export default function RegressionPage() {
   }
 
   const renderLinearResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
-    const { coefficients, rSquared, adjustedRSquared, fStatistic, fPValue, scatterData, residualPlot, vif } = analysisResults
+    const { coefficients, rSquared, adjustedRSquared, fStatistic, fPValue, scatterData, residualPlot, vif } = results as LinearRegressionResults
 
     return (
       <div className="space-y-6">
@@ -370,7 +390,7 @@ export default function RegressionPage() {
                 <p className="text-xs text-muted-foreground">모델 전체 유의성 검정</p>
               </div>
               <div>
-                <p className="text-sm font-medium">잔차 표준오차 = {analysisResults.residualStdError.toFixed(2)}</p>
+                <p className="text-sm font-medium">잔차 표준오차 = {results.residualStdError.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">예측 오차의 표준편차</p>
               </div>
             </div>
@@ -498,9 +518,9 @@ export default function RegressionPage() {
   }
 
   const renderLogisticResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
-    const { coefficients, modelFit, confusionMatrix, rocCurve } = analysisResults
+    const { coefficients, modelFit, confusionMatrix, rocCurve } = results as LogisticRegressionResults
 
     return (
       <div className="space-y-6">
@@ -649,7 +669,7 @@ export default function RegressionPage() {
   }
 
   const renderResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
     return (
       <StepCard

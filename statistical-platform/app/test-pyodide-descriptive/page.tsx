@@ -20,7 +20,7 @@ export default function TestPyodideDescriptivePage() {
 
   const runTest = async () => {
     setLoading(true)
-    setError('')
+    actions.setError('')
     setResult(null)
 
     try {
@@ -50,7 +50,7 @@ export default function TestPyodideDescriptivePage() {
       })
     } catch (err) {
       console.error('[Test] 기술통계 오류:', err)
-      setError(err instanceof Error ? err.message : String(err))
+      actions.setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
     }

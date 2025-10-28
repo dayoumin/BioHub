@@ -234,7 +234,7 @@ export default function McNemarTestPage() {
   const runAnalysis = useCallback(async (variables: VariableSelection) => {
     if (!uploadedData || variables.variables.length < 2) return
 
-    setIsAnalyzing(true)
+    actions.startAnalysis()
     actions.setCurrentStep(3)
 
     try {
@@ -244,7 +244,7 @@ export default function McNemarTestPage() {
           variables.variables[0],
           variables.variables[1]
         )
-        setAnalysisResults(result)
+        setresults(result)
         setIsAnalyzing(false)
       }, 1500)
     } catch (error) {
@@ -434,7 +434,7 @@ export default function McNemarTestPage() {
   }
 
   const renderResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
     const {
       variable1,
@@ -448,7 +448,7 @@ export default function McNemarTestPage() {
       discordantPairs,
       effectSize,
       continuityCorrection
-    } = analysisResults
+    } = results
 
     return (
       <StepCard
@@ -692,7 +692,7 @@ export default function McNemarTestPage() {
         actions.setCurrentStep(0)
         actions.setUploadedData(null)
         actions.setSelectedVariables(null)
-        setAnalysisResults(null)
+        setresults(null)
       }}
       isRunning={isAnalyzing}
       showProgress={true}

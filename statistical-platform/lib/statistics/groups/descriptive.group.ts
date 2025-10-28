@@ -450,7 +450,7 @@ function createCrosstabHandler(_context: CalculatorContext): MethodHandler {
       return { success: false, error: '유효한 데이터가 없습니다' }
     }
 
-    // 교차표 계산
+    // 교차표 계산 (단순 데이터 구조화이므로 TypeScript에서 처리)
     const crosstabResult = calculateCrosstab(rowValues, colValues)
 
     // 교차표를 표 형식으로 변환

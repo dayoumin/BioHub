@@ -168,7 +168,7 @@ export default function SignTestPage() {
   const runSignTest = useCallback(async () => {
     if (!canProceedToAnalysis || !uploadedData || !pyodideReady) return
 
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     try {
       // Mock implementation - will be replaced with actual Pyodide + SciPy call
@@ -234,7 +234,7 @@ export default function SignTestPage() {
         }
       }
 
-      actions.setResults(mockResult)
+      setResults(mockResult)
       actions.setCurrentStep(3)
     } catch (error) {
       console.error('분석 중 오류:', error)
@@ -548,7 +548,7 @@ export default function SignTestPage() {
     handleVariableSelection
   ])
 
-  const renderAnalysisResults = useCallback(() => {
+  const renderresults = useCallback(() => {
     if (!results) {
       return (
         <StepCard title="분석 실행">
@@ -997,7 +997,7 @@ export default function SignTestPage() {
     { title: '소개', component: renderIntroductionStep },
     { title: '데이터 업로드', component: renderDataUploadStep },
     { title: '변수 선택', component: renderVariableSelectionStep },
-    { title: '분석 결과', component: renderAnalysisResults }
+    { title: '분석 결과', component: renderresults }
   ]
 
   return (

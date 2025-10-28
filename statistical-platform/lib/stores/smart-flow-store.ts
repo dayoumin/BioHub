@@ -33,7 +33,7 @@ export interface AnalysisHistory {
     validationResults: ValidationResults | null
     analysisPurpose: string
     selectedMethod: StatisticalMethod | null
-    analysisResults: AnalysisResult | null
+    results: AnalysisResult | null
   }
 }
 
@@ -82,7 +82,7 @@ interface SmartFlowState {
   variableMapping: VariableMapping | null
 
   // 분석 결과
-  analysisResults: AnalysisResult | null
+  results: AnalysisResult | null
 
   // 히스토리
   analysisHistory: AnalysisHistory[]
@@ -104,7 +104,7 @@ interface SmartFlowState {
   setAnalysisPurpose: (purpose: string) => void
   setSelectedMethod: (method: StatisticalMethod | null) => void
   setVariableMapping: (mapping: VariableMapping | null) => void
-  setAnalysisResults: (results: AnalysisResult | null) => void
+  setresults: (results: AnalysisResult | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   
@@ -138,7 +138,7 @@ const initialState = {
   analysisPurpose: '',
   selectedMethod: null,
   variableMapping: null,
-  analysisResults: null,
+  results: null,
   analysisHistory: [],
   currentHistoryId: null,
   isLoading: false,
@@ -166,14 +166,14 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setAnalysisPurpose: (purpose) => set({ analysisPurpose: purpose }),
       setSelectedMethod: (method) => set({ selectedMethod: method }),
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),
-      setAnalysisResults: (results) => set({ analysisResults: results }),
+      setresults: (results) => set({ results: results }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error: error }),
       
       // 히스토리 관리
       saveToHistory: (name) => {
         const state = get()
-        if (!state.analysisResults) return
+        if (!state.results) return
         
         const historyEntry: AnalysisHistory = {
           id: `analysis-${Date.now()}`,
@@ -183,13 +183,13 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           method: state.selectedMethod,
           dataFileName: state.uploadedFile?.name || 'unknown',
           dataRowCount: state.uploadedData?.length || 0,
-          results: state.analysisResults,
+          results: state.results,
           stepData: {
             uploadedData: state.uploadedData,
             validationResults: state.validationResults,
             analysisPurpose: state.analysisPurpose,
             selectedMethod: state.selectedMethod,
-            analysisResults: state.analysisResults,
+            results: state.results,
           }
         }
         
@@ -209,7 +209,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
             validationResults: history.stepData.validationResults,
             analysisPurpose: history.stepData.analysisPurpose,
             selectedMethod: history.stepData.selectedMethod,
-            analysisResults: history.stepData.analysisResults,
+            results: history.stepData.results,
             currentHistoryId: historyId,
             currentStep: 5, // 결과 단계로 이동
             completedSteps: [1, 2, 3, 4, 5]
@@ -304,7 +304,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         validationResults: state.validationResults,
         selectedMethod: state.selectedMethod,
         variableMapping: state.variableMapping,
-        analysisResults: state.analysisResults,
+        results: state.results,
         uploadedFileName: state.uploadedFileName,
         // File 객체는 직렬화할 수 없으므로 제외
       }),

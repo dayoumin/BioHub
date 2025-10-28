@@ -131,7 +131,7 @@ interface AnalysisFlowState {
   validationResults: ValidationResult | null
   analysisPurpose: string
   selectedMethod: StatisticalMethod | null
-  analysisResults: AnalysisResult | null
+  results: AnalysisResult | null
   
   // Actions
   setStep: (step: number) => void

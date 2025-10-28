@@ -101,17 +101,17 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
 
   const handleAnalysis = useCallback(async (variableMapping: VariableMapping) => {
     if (!variableMapping.predictor || variableMapping.predictor.length < 2) {
-      setError('반응표면 분석에는 최소 2개의 예측변수가 필요합니다.')
+      actions.setError('반응표면 분석에는 최소 2개의 예측변수가 필요합니다.')
       return
     }
 
     if (!variableMapping.target || variableMapping.target.length === 0) {
-      setError('반응변수를 선택해주세요.')
+      actions.setError('반응변수를 선택해주세요.')
       return
     }
 
     setIsLoading(true)
-    setError(null)
+    actions.setError(null)
 
     try {
       const predictorData = variableMapping.predictor.map(v => v.data)
@@ -308,7 +308,7 @@ anova_table = {
       const analysisResult = await pyodideService.runPython(pythonCode)
       setResult(analysisResult)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
     }
@@ -595,7 +595,7 @@ export default function ResponseSurfacePage() {
   const [uploadedData, setUploadedData] = useState<unknown[] | null>(null)
 
   const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    setUploadedData(data)
+    actions.setUploadedData(data)
     setCurrentStep(2)
   }, [])
 

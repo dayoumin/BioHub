@@ -128,7 +128,7 @@ export default function ChiSquareTestPage() {
 
   // Mock 분석 실행
   const runAnalysis = async () => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     setTimeout(() => {
       const mockResult: StatisticalResult = {
@@ -186,7 +186,7 @@ export default function ChiSquareTestPage() {
         groups: tableRows * tableCols
       }
 
-      actions.setResults(mockResult)
+      setResults(mockResult)
       setActiveTab('results')
     }, 1500)
   }
@@ -399,7 +399,7 @@ export default function ChiSquareTestPage() {
             {/* 또는 변수 선택 */}
             <VariableSelector
               requirements={getVariableRequirements()}
-              onMappingChange={actions.updateVariableMapping}
+              onMappingChange={setSelectedVariables}
               title="또는 데이터에서 변수 선택"
               description="CSV 파일에서 범주형 변수를 선택하면 자동으로 분할표를 생성합니다"
             />

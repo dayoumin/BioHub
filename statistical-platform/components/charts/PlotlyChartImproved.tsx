@@ -60,12 +60,12 @@ export const PlotlyChartImproved = memo(function PlotlyChartImproved({
         // Only update state if still mounted
         if (isMountedRef.current) {
           setIsLoading(false)
-          setError(null)
+          actions.setError(null)
         }
       } catch (err) {
         if (isMountedRef.current) {
           const error = err instanceof Error ? err : new Error('Chart validation failed')
-          setError(error)
+          actions.setError(error)
           onError?.(error)
           setIsLoading(false)
         }

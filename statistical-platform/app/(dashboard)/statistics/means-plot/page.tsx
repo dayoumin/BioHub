@@ -98,14 +98,14 @@ export default function MeansPlotPage() {
   }
 
   const handleVariablesSelected = (variables: unknown) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     setCurrentStep(4)
     runMeansPlotAnalysis(variables)
   }
 
   const runMeansPlotAnalysis = async (variables: SelectedVariables) => {
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
+    actions.setError(null)
 
     try {
       // Load Pyodide with required packages
@@ -196,11 +196,11 @@ json.dumps(results)
 `
 
       const result = pyodide.runPython(pythonCode)
-      const analysisResults: MeansPlotResults = JSON.parse(result)
+      const results: MeansPlotResults = JSON.parse(result)
 
-      setResults(analysisResults)
+      setResults(results)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     } finally {
       setIsAnalyzing(false)
     }

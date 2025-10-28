@@ -172,7 +172,7 @@ export default function TwoWayAnovaPage() {
   }
 
   const runTwoWayAnovaAnalysis = async (variables: SelectedVariables) => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       // Load Pyodide with required packages
@@ -377,9 +377,9 @@ json.dumps(results)
 `
 
       const result = pyodide.runPython(pythonCode)
-      const analysisResults: TwoWayAnovaResults = JSON.parse(result)
+      const results: TwoWayAnovaResults = JSON.parse(result)
 
-      actions.setResults(analysisResults)
+      setResults(results)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }

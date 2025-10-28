@@ -91,7 +91,7 @@ describe('useStatisticsPage', () => {
       const mapping = { column1: 'value1', column2: 'value2' }
 
       act(() => {
-        result.current.actions.updateVariableMapping(mapping)
+        result.current.actions.setSelectedVariables(mapping)
       })
 
       expect(result.current.state.variableMapping).toEqual(mapping)
@@ -101,11 +101,11 @@ describe('useStatisticsPage', () => {
       const { result } = renderHook(() => useStatisticsPage<MockResults>())
 
       act(() => {
-        result.current.actions.updateVariableMapping({ col1: 'val1' })
+        result.current.actions.setSelectedVariables({ col1: 'val1' })
       })
 
       act(() => {
-        result.current.actions.updateVariableMapping({ col2: 'val2' })
+        result.current.actions.setSelectedVariables({ col2: 'val2' })
       })
 
       expect(result.current.state.variableMapping).toEqual({ col2: 'val2' })
@@ -119,7 +119,7 @@ describe('useStatisticsPage', () => {
       )
 
       act(() => {
-        result.current.actions.startAnalysis()
+        result.current.actions.startAnalysis()()
       })
 
       expect(result.current.state.isAnalyzing).toBe(true)
@@ -132,7 +132,7 @@ describe('useStatisticsPage', () => {
       const mockResults: MockResults = { mean: 10, std: 2, count: 100 }
 
       act(() => {
-        result.current.actions.setResults(mockResults)
+        result.current.setResults(mockResults)
       })
 
       expect(result.current.state.results).toEqual(mockResults)
@@ -144,11 +144,11 @@ describe('useStatisticsPage', () => {
       const mockResults: MockResults = { mean: 10, std: 2, count: 100 }
 
       act(() => {
-        result.current.actions.startAnalysis()
+        result.current.actions.startAnalysis()()
       })
 
       act(() => {
-        result.current.actions.completeAnalysis(mockResults, 3)
+        result.current.actions.setResults(mockResults)
       })
 
       expect(result.current.state.results).toEqual(mockResults)
@@ -201,7 +201,7 @@ describe('useStatisticsPage', () => {
       })
 
       act(() => {
-        result.current.actions.startAnalysis()
+        result.current.actions.startAnalysis()()
       })
 
       expect(result.current.state.error).toBeNull()
@@ -216,8 +216,8 @@ describe('useStatisticsPage', () => {
 
       expect(result.current.state.uploadedData).toBeNull()
       expect(result.current.state.selectedVariables).toBeNull()
-      expect(result.current.actions.setUploadedData).toBeDefined()
-      expect(result.current.actions.setSelectedVariables).toBeDefined()
+      expect(result.current.setUploadedData).toBeDefined()
+      expect(result.current.setSelectedVariables).toBeDefined()
     })
 
     it('should not have uploadedData when withUploadedData is false', () => {
@@ -225,8 +225,8 @@ describe('useStatisticsPage', () => {
 
       expect(result.current.state.uploadedData).toBeUndefined()
       expect(result.current.state.selectedVariables).toBeUndefined()
-      expect(result.current.actions.setUploadedData).toBeUndefined()
-      expect(result.current.actions.setSelectedVariables).toBeUndefined()
+      expect(result.current.setUploadedData).toBeUndefined()
+      expect(result.current.setSelectedVariables).toBeUndefined()
     })
 
     it('should set uploadedData', () => {
@@ -241,7 +241,7 @@ describe('useStatisticsPage', () => {
       }
 
       act(() => {
-        result.current.actions.setUploadedData?.(mockData)
+        result.current.setUploadedData?.(mockData)
       })
 
       expect(result.current.state.uploadedData).toEqual(mockData)
@@ -255,7 +255,7 @@ describe('useStatisticsPage', () => {
       const mockVars = { independent: 'col1', dependent: 'col2' }
 
       act(() => {
-        result.current.actions.setSelectedVariables?.(mockVars)
+        result.current.setSelectedVariables?.(mockVars)
       })
 
       expect(result.current.state.selectedVariables).toEqual(mockVars)
@@ -275,10 +275,10 @@ describe('useStatisticsPage', () => {
       // Set various states
       act(() => {
         result.current.actions.setCurrentStep(3)
-        result.current.actions.updateVariableMapping({ col: 'val' })
-        result.current.actions.setResults({ mean: 10, std: 2, count: 100 })
+        result.current.actions.setSelectedVariables({ col: 'val' })
+        result.current.setResults({ mean: 10, std: 2, count: 100 })
         result.current.actions.setError('Error')
-        result.current.actions.setUploadedData?.({
+        result.current.setUploadedData?.({
           data: [],
           fileName: 'test.csv',
           columns: []
@@ -316,7 +316,7 @@ describe('useStatisticsPage', () => {
       }
 
       act(() => {
-        result.current.actions.setResults(customResult)
+        result.current.setResults(customResult)
       })
 
       // Type check: should be CustomResult, not MockResults
@@ -333,7 +333,7 @@ describe('useStatisticsPage', () => {
 
       // Step 1: Select variables
       act(() => {
-        result.current.actions.updateVariableMapping({ var1: 'column1' })
+        result.current.actions.setSelectedVariables({ var1: 'column1' })
         result.current.actions.nextStep()
       })
 
@@ -342,7 +342,7 @@ describe('useStatisticsPage', () => {
 
       // Step 2: Start analysis
       act(() => {
-        result.current.actions.startAnalysis()
+        result.current.actions.startAnalysis()()
       })
 
       expect(result.current.state.isAnalyzing).toBe(true)
@@ -351,7 +351,7 @@ describe('useStatisticsPage', () => {
       const mockResults: MockResults = { mean: 15.5, std: 3.2, count: 50 }
 
       act(() => {
-        result.current.actions.completeAnalysis(mockResults, 3)
+        result.current.actions.setResults(mockResults)
       })
 
       expect(result.current.state.results).toEqual(mockResults)
@@ -366,7 +366,7 @@ describe('useStatisticsPage', () => {
       )
 
       act(() => {
-        result.current.actions.startAnalysis()
+        result.current.actions.startAnalysis()()
       })
 
       act(() => {

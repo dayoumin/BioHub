@@ -181,7 +181,7 @@ export default function OrdinalRegressionPage() {
   const runOrdinalRegression = useCallback(async () => {
     if (!canProceedToAnalysis || !uploadedData || !pyodideReady) return
 
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     try {
       // Mock implementation - will be replaced with actual Pyodide + statsmodels call
@@ -316,7 +316,7 @@ export default function OrdinalRegressionPage() {
         }
       }
 
-      actions.setResults(mockResult)
+      setResults(mockResult)
       actions.setCurrentStep(2)
     } catch (error) {
       console.error('분석 중 오류:', error)
@@ -543,7 +543,7 @@ export default function OrdinalRegressionPage() {
     handleVariableSelection
   ])
 
-  const renderAnalysisResults = useCallback(() => {
+  const renderresults = useCallback(() => {
     if (!results) {
       return (
         <StepCard title="분석 실행">
@@ -978,7 +978,7 @@ export default function OrdinalRegressionPage() {
     { title: '소개', component: renderIntroductionStep },
     { title: '데이터 업로드', component: renderDataUploadStep },
     { title: '변수 선택', component: renderVariableSelectionStep },
-    { title: '분석 결과', component: renderAnalysisResults }
+    { title: '분석 결과', component: renderresults }
   ]
 
   return (

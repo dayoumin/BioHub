@@ -77,11 +77,11 @@ const { currentStep, uploadedData, selectedVariables, results: analysisResult, i
 ### 3. Setter 호출 변환
 ```typescript
 // Before
-setIsAnalyzing(true)
-setError(null)
+actions.startAnalysis()
+actions.setError(null)
 
 // After
-actions.startAnalysis()
+actions.startAnalysis()()
 
 // Before
 setResults(result)
@@ -89,10 +89,10 @@ setIsAnalyzing(false)
 setCurrentStep(3)
 
 // After
-actions.completeAnalysis(result, 3)
+actions.setResults(result)
 
 // Before
-setUploadedData(data)
+actions.setUploadedData(data)
 
 // After
 actions.setUploadedData(data)
@@ -108,10 +108,10 @@ actions.setCurrentStep(step)
 ```typescript
 // Before
 setCurrentStep(0)
-setUploadedData(null)
-setSelectedVariables(null)
+actions.setUploadedData(null)
+actions.setSelectedVariables(null)
 setResults(null)
-setError(null)
+actions.setError(null)
 
 // After
 actions.reset()
@@ -169,7 +169,7 @@ actions.reset()
 ### 1. 변수명 불일치
 일부 페이지는 `results` 대신 다른 이름 사용:
 - `analysisResult` (t-test)
-- `analysisResults` (anova)
+- `results` (anova)
 - `testResults` (chi-square)
 
 **해결**: destructuring에서 rename

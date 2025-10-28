@@ -94,7 +94,7 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
           Object.values(row).some(val => val !== null && val !== undefined && val !== '')
         )
 
-        setUploadedData(cleanData)
+        actions.setUploadedData(cleanData)
         setColumns(Object.keys(cleanData[0]))
         setActiveTab('parameters')
         showNotification('success', `예제 데이터 로드 완료: ${cleanData.length}개 행`)
@@ -126,7 +126,7 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
             Object.values(row).some(val => val !== null && val !== undefined && val !== '')
           )
 
-          setUploadedData(cleanData)
+          actions.setUploadedData(cleanData)
           setColumns(Object.keys(cleanData[0]))
           setActiveTab('parameters')
           showNotification('success', `데이터 업로드 완료: ${cleanData.length}개 행`)
@@ -162,7 +162,7 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
       }
     }
 
-    setIsAnalyzing(true)
+    actions.startAnalysis()
     try {
       // 실제 통계 계산 실행
       const Calculator = await preloadStatisticalCalculator()

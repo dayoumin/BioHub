@@ -32,6 +32,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -66,13 +67,12 @@ interface ChiSquareGoodnessResult {
 }
 
 export default function ChiSquareGoodnessPage() {
-  // State
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<ChiSquareGoodnessResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Hook for state management
+  const { state, actions } = useStatisticsPage<ChiSquareGoodnessResult, VariableAssignment>{
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
   const [expectedProportions, setExpectedProportions] = useState<Record<string, number>>({})
   const [useUniformDistribution, setUseUniformDistribution] = useState(true)
 
@@ -92,7 +92,7 @@ export default function ChiSquareGoodnessPage() {
       } catch (err) {
         if (isActive) {
           console.error('Pyodide 초기화 실패:', err)
-          setError('통계 엔진을 초기화할 수 없습니다.')
+          actions.setError('통계 엔진을 초기화할 수 없습니다.')
         }
       }
     }
@@ -155,12 +155,12 @@ export default function ChiSquareGoodnessPage() {
       _id: index
     })) as DataRow[]
     setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
+    actions.setCurrentStep(2)
+    actions.setError(null)
   }, [])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
 
     // 범주형 변수의 고유값들을 찾아서 기댓값 설정 UI 준비
     if (variables.dependent && variables.dependent.length === 1 && uploadedData) {
@@ -184,15 +184,15 @@ export default function ChiSquareGoodnessPage() {
 
   const runAnalysis = async () => {
     if (!uploadedData || !pyodide || !selectedVariables?.dependent) {
-      setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
 
     // AbortController로 비동기 작업 취소 지원
     const abortController = new AbortController()
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
+    actions.setError(null)
 
     try {
       // 선택된 변수에서 값 추출
@@ -215,26 +215,26 @@ export default function ChiSquareGoodnessPage() {
       ])
 
       if (!abortController.signal.aborted) {
-        setAnalysisResult(result as ChiSquareGoodnessResult)
-        setCurrentStep(3)
+        actions.setResults(result as ChiSquareGoodnessResult)
+        actions.setCurrentStep(3)
       }
     } catch (err) {
       if (!abortController.signal.aborted) {
         console.error('카이제곱 적합도 검정 실패:', err)
-        setError(err instanceof Error && err.message.includes('취소')
+        actions.setError(err instanceof Error && err.message.includes('취소')
           ? err.message
           : '카이제곱 적합도 검정 중 오류가 발생했습니다.')
       }
     } finally {
       if (!abortController.signal.aborted) {
-        setIsAnalyzing(false)
+        // isAnalyzing managed by hook
       }
     }
 
     // Cleanup function to cancel ongoing analysis
     return () => {
       abortController.abort()
-      setIsAnalyzing(false)
+      // isAnalyzing managed by hook
     }
   }
 
@@ -272,7 +272,7 @@ export default function ChiSquareGoodnessPage() {
       icon={<PieChart className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -338,7 +338,7 @@ export default function ChiSquareGoodnessPage() {
             </Alert>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -355,7 +355,7 @@ export default function ChiSquareGoodnessPage() {
         >
           <DataUploadStep
             onUploadComplete={handleDataUploadComplete}
-            onNext={() => setCurrentStep(2)}
+            onNext={() => actions.setCurrentStep(2)}
           />
 
           <Alert className="mt-4">
@@ -370,7 +370,7 @@ export default function ChiSquareGoodnessPage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -388,7 +388,7 @@ export default function ChiSquareGoodnessPage() {
             methodId="chi_square_goodness"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           {selectedVariables && Object.keys(expectedProportions).length > 0 && (
@@ -728,7 +728,7 @@ export default function ChiSquareGoodnessPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -736,7 +736,7 @@ export default function ChiSquareGoodnessPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.setCurrentStep(0)}>
                 새로운 분석
               </Button>
             </div>

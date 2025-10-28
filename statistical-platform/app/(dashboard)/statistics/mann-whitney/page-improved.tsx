@@ -128,7 +128,7 @@ export default function MannWhitneyPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        setError(MANN_WHITNEY_TEXTS.errors.pyodideInit)
+        actions.setError(MANN_WHITNEY_TEXTS.errors.pyodideInit)
       }
     }
     initPyodide()
@@ -141,13 +141,13 @@ export default function MannWhitneyPage() {
       _id: index
     })) as DataRow[]
 
-    setUploadedData(processedData)
+    actions.setUploadedData(processedData)
     setCurrentStep(2)
-    setError(null)
+    actions.setError(null)
   }, [])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent &&
         variables.dependent.length === 1 && variables.independent.length === 1) {
       runAnalysis(variables)
@@ -156,12 +156,12 @@ export default function MannWhitneyPage() {
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || !variables.independent) {
-      setError(MANN_WHITNEY_TEXTS.errors.analysisExecution)
+      actions.setError(MANN_WHITNEY_TEXTS.errors.analysisExecution)
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
+    actions.setError(null)
 
     try {
       const result = await pyodide.mannWhitneyUTest(
@@ -170,11 +170,11 @@ export default function MannWhitneyPage() {
         variables.independent[0]
       )
 
-      setAnalysisResult(result)
+      actions.setResults(result)
       setCurrentStep(3)
     } catch (err) {
       console.error('Mann-Whitney U 검정 실패:', err)
-      setError(MANN_WHITNEY_TEXTS.errors.analysisFailed)
+      actions.setError(MANN_WHITNEY_TEXTS.errors.analysisFailed)
     } finally {
       setIsAnalyzing(false)
     }
@@ -196,7 +196,7 @@ export default function MannWhitneyPage() {
       icon={<Activity className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}

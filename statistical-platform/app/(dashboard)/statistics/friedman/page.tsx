@@ -170,7 +170,7 @@ export default function FriedmanPage() {
       return
     }
 
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     try {
       // 실제 Pyodide 분석 실행
@@ -179,7 +179,7 @@ export default function FriedmanPage() {
         variables.dependent
       )
 
-      actions.completeAnalysis(result, 3)
+      actions.setResults(result)
     } catch (err) {
       console.error('Friedman 검정 실패:', err)
       actions.setError('Friedman 검정 중 오류가 발생했습니다.')

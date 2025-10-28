@@ -110,7 +110,7 @@ export default function DescriptiveStatsPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    actions.startAnalysis()
+    actions.startAnalysis()()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -165,7 +165,7 @@ export default function DescriptiveStatsPage() {
         analysisDate: new Date().toLocaleString('ko-KR')
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.setResults(mockResults)
       setActiveTab('summary')
     }, 1500)
   }
@@ -368,7 +368,7 @@ export default function DescriptiveStatsPage() {
                 title="수치형 변수 선택"
                 description="숫자로 구성된 변수를 선택하세요 (여러 변수 선택 가능)"
                 onMappingChange={(mapping) => {
-                  actions.updateVariableMapping(mapping)
+                  actions.setSelectedVariables(mapping)
                   if (Object.keys(mapping).length > 0) {
                     actions.setCurrentStep(1)
                   }

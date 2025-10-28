@@ -79,7 +79,7 @@ export default function [MethodName]Page() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
@@ -100,13 +100,13 @@ export default function [MethodName]Page() {
   // 🔴 필수 Event Handlers
   const handleDataUpload = useCallback((data: any[]) => {
     const processedData = data.map((row, index) => ({ ...row, _id: index }))
-    setUploadedData(processedData)
+    actions.setUploadedData(processedData)
     setCurrentStep(2)
-    setError(null)
+    actions.setError(null)
   }, [])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     // 분석 자동 실행 로직
   }, [])
 

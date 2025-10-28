@@ -200,14 +200,14 @@ export default function RunsTestPage() {
   const runAnalysis = useCallback(async (variables: VariableSelection) => {
     if (!uploadedData) return
 
-    setIsAnalyzing(true)
+    actions.startAnalysis()
     actions.setCurrentStep(3)
 
     try {
       // 실제 계산 사용 (시뮬레이션 지연 포함)
       setTimeout(() => {
         const result = calculateRunsTest(uploadedData.data, variables.variables[0])
-        setAnalysisResults(result)
+        setresults(result)
         setIsAnalyzing(false)
       }, 1500)
     } catch (error) {
@@ -356,9 +356,9 @@ export default function RunsTestPage() {
   }
 
   const renderResults = () => {
-    if (!analysisResults) return null
+    if (!results) return null
 
-    const { totalRuns, expectedRuns, zStatistic, pValue, significant, statistics, runSequence, interpretation } = analysisResults
+    const { totalRuns, expectedRuns, zStatistic, pValue, significant, statistics, runSequence, interpretation } = results
 
     return (
       <StepCard
@@ -536,7 +536,7 @@ export default function RunsTestPage() {
         actions.setCurrentStep(0)
         actions.setUploadedData(null)
         actions.setSelectedVariables(null)
-        setAnalysisResults(null)
+        setresults(null)
       }}
       isRunning={isAnalyzing}
       showProgress={true}
