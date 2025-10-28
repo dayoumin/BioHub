@@ -89,28 +89,26 @@ def logistic_regression(X, y):
 
 
 def pca_analysis(data_matrix, n_components=2):
+    from sklearn.decomposition import PCA
+
     data_matrix = np.array(data_matrix)
-    
+
     if data_matrix.shape[0] < 2:
         raise ValueError("PCA requires at least 2 observations")
-    
+
     if data_matrix.shape[1] < n_components:
         raise ValueError(f"Cannot extract {n_components} components from {data_matrix.shape[1]} features")
-    
-    mean = np.mean(data_matrix, axis=0)
-    centered_data = data_matrix - mean
-    
-    U, S, Vt = np.linalg.svd(centered_data, full_matrices=False)
-    
-    components = U[:, :n_components] * S[:n_components]
-    
-    explained_variance = (S ** 2) / (data_matrix.shape[0] - 1)
-    total_variance = np.sum(explained_variance)
-    explained_variance_ratio = explained_variance[:n_components] / total_variance
-    
+
+    # Use sklearn for PCA
+    pca = PCA(n_components=n_components)
+    components = pca.fit_transform(data_matrix)
+
+    explained_variance = pca.explained_variance_
+    explained_variance_ratio = pca.explained_variance_ratio_
+
     return {
         'components': components.tolist(),
-        'explainedVariance': explained_variance[:n_components].tolist(),
+        'explainedVariance': explained_variance.tolist(),
         'explainedVarianceRatio': explained_variance_ratio.tolist(),
         'cumulativeVariance': np.cumsum(explained_variance_ratio).tolist(),
     }
@@ -798,41 +796,41 @@ def mixed_effects_model(data, dependent_column, fixed_effects=None, random_effec
 
 
 def kaplan_meier_survival(times, events):
+    try:
+        from lifelines import KaplanMeierFitter
+    except ImportError:
+        raise ImportError("lifelines library is required for Kaplan-Meier survival analysis. Install with: pip install lifelines")
+
     times_array = np.array(times, dtype=float)
     events_array = np.array(events, dtype=int)
 
-    order = np.argsort(times_array)
-    times_sorted = times_array[order]
-    events_sorted = events_array[order]
+    if len(times_array) != len(events_array):
+        raise ValueError(f"times and events must have same length: {len(times_array)} != {len(events_array)}")
 
-    unique_event_times = np.unique(times_sorted[events_sorted == 1])
+    if len(times_array) < 2:
+        raise ValueError(f"Kaplan-Meier requires at least 2 observations, got {len(times_array)}")
 
-    survival_probabilities: List[float] = []
-    risk_counts: List[int] = []
-    cumulative = 1.0
+    # Use lifelines for Kaplan-Meier estimation
+    kmf = KaplanMeierFitter()
+    kmf.fit(times_array, events_array)
 
-    for event_time in unique_event_times:
-        at_risk = int(np.sum(times_sorted >= event_time))
-        events_at_time = int(np.sum((times_sorted == event_time) & (events_sorted == 1)))
+    # Extract survival function
+    survival_function = kmf.survival_function_
+    times_km = survival_function.index.tolist()
+    survival_probs = survival_function['KM_estimate'].tolist()
 
-        if at_risk == 0:
-            continue
+    # Extract number at risk
+    event_table = kmf.event_table
+    n_risk = event_table['at_risk'].tolist() if 'at_risk' in event_table.columns else []
 
-        risk_counts.append(at_risk)
-        cumulative *= (at_risk - events_at_time) / at_risk
-        survival_probabilities.append(float(cumulative))
-
-    median_survival = None
-    for time_value, surv in zip(unique_event_times, survival_probabilities):
-        if surv <= 0.5:
-            median_survival = float(time_value)
-            break
+    # Get median survival time
+    median_survival = float(kmf.median_survival_time_) if not np.isnan(kmf.median_survival_time_) else None
 
     return {
-        'survivalFunction': survival_probabilities,
-        'times': times_sorted.tolist(),
-        'events': events_sorted.tolist(),
-        'nRisk': risk_counts,
+        'survivalFunction': [float(s) for s in survival_probs],
+        'times': [float(t) for t in times_km],
+        'events': events_array.tolist(),
+        'nRisk': [int(n) for n in n_risk],
         'medianSurvival': median_survival
     }
 
@@ -880,13 +878,15 @@ def cox_regression(times, events, covariate_data, covariate_names):
 
 
 def durbin_watson_test(residuals):
+    from statsmodels.stats.stattools import durbin_watson
+
     clean_data = clean_array(residuals)
 
     if len(clean_data) < 2:
         raise ValueError("Durbin-Watson test requires at least 2 observations")
 
-    diff = np.diff(clean_data)
-    dw_statistic = np.sum(diff ** 2) / np.sum(clean_data ** 2)
+    # Use statsmodels for Durbin-Watson test
+    dw_statistic = durbin_watson(clean_data)
 
     # Durbin-Watson 통계량 해석 (0 ~ 4 범위)
     # 2에 가까울수록 자기상관 없음 (독립적)

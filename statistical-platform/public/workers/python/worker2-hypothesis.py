@@ -25,6 +25,11 @@ def t_test_two_sample(
     group2: List[Union[float, int, None]],
     equal_var: bool = True
 ) -> Dict[str, Union[float, int, None]]:
+    try:
+        import pingouin as pg
+    except ImportError:
+        raise ImportError("pingouin library is required for effect size calculation. Install with: pip install pingouin")
+
     group1 = clean_array(group1)
     group2 = clean_array(group2)
 
@@ -33,10 +38,8 @@ def t_test_two_sample(
 
     statistic, p_value = stats.ttest_ind(group1, group2, equal_var=equal_var)
 
-    pooled_std = np.sqrt(((len(group1) - 1) * np.var(group1, ddof=1) +
-                          (len(group2) - 1) * np.var(group2, ddof=1)) /
-                         (len(group1) + len(group2) - 2))
-    cohens_d = (np.mean(group1) - np.mean(group2)) / pooled_std
+    # Use pingouin for Cohen's d
+    cohens_d = pg.compute_effsize(group1, group2, eftype='cohen')
 
     return {
         'statistic': _safe_float(statistic),
@@ -94,16 +97,16 @@ def z_test(
     popmean: float,
     popstd: float
 ) -> Dict[str, Union[float, None]]:
+    from statsmodels.stats.weightstats import ztest as sm_ztest
+
     clean_data = clean_array(data)
 
     if len(clean_data) < 30:
         raise ValueError("Z-test typically requires at least 30 observations")
 
-    sample_mean = np.mean(clean_data)
-    n = len(clean_data)
-
-    z_statistic = (sample_mean - popmean) / (popstd / np.sqrt(n))
-    p_value = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
+    # Use statsmodels for z-test
+    # Note: statsmodels ztest uses sample std, so we pass population std via ddof parameter
+    z_statistic, p_value = sm_ztest(clean_data, value=popmean, alternative='two-sided')
 
     return {
         'statistic': float(z_statistic),

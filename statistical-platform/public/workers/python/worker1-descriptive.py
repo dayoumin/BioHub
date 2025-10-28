@@ -183,6 +183,12 @@ def one_sample_proportion_test(
 
 
 def cronbach_alpha(items_matrix: List[List[Union[float, int]]]) -> Dict[str, Union[float, int]]:
+    try:
+        import pingouin as pg
+        import pandas as pd
+    except ImportError:
+        raise ImportError("pingouin library is required for Cronbach's alpha. Install with: pip install pingouin")
+
     items_matrix = np.array(items_matrix)
 
     if items_matrix.shape[0] < 2:
@@ -192,18 +198,19 @@ def cronbach_alpha(items_matrix: List[List[Union[float, int]]]) -> Dict[str, Uni
         raise ValueError("Cronbach's alpha requires at least 2 items")
 
     n_items = items_matrix.shape[1]
+    n_respondents = items_matrix.shape[0]
 
-    item_variances = np.var(items_matrix, axis=0, ddof=1)
+    # Convert to DataFrame for pingouin
+    df = pd.DataFrame(items_matrix, columns=[f'item_{i}' for i in range(n_items)])
 
-    total_scores = np.sum(items_matrix, axis=1)
-    total_variance = np.var(total_scores, ddof=1)
-
-    alpha = (n_items / (n_items - 1)) * (1 - np.sum(item_variances) / total_variance)
+    # Use pingouin for Cronbach's alpha
+    alpha_result = pg.cronbach_alpha(df)
+    alpha_value = alpha_result[0]  # Returns tuple (alpha, confidence_interval)
 
     return {
-        'alpha': float(alpha),
+        'alpha': float(alpha_value),
         'nItems': int(n_items),
-        'nRespondents': int(items_matrix.shape[0])
+        'nRespondents': int(n_respondents)
     }
 
 

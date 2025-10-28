@@ -230,6 +230,8 @@ def runs_test(sequence):
 
 
 def mcnemar_test(contingency_table):
+    from statsmodels.stats.contingency_tables import mcnemar
+
     table = np.array(contingency_table)
 
     if table.shape != (2, 2):
@@ -238,24 +240,22 @@ def mcnemar_test(contingency_table):
     b = table[0, 1]
     c = table[1, 0]
 
+    # Use statsmodels for McNemar test
+    # Automatic correction for small samples (b + c < 25)
     use_correction = (b + c) < 25
-
-    if use_correction:
-        statistic = (abs(b - c) - 1)**2 / (b + c) if (b + c) > 0 else 0
-    else:
-        statistic = (b - c)**2 / (b + c) if (b + c) > 0 else 0
-
-    p_value = 1 - stats.chi2.cdf(statistic, df=1)
+    result = mcnemar(table, exact=False, correction=use_correction)
 
     return {
-        'statistic': float(statistic),
-        'pValue': float(p_value),
+        'statistic': float(result.statistic),
+        'pValue': float(result.pvalue),
         'continuityCorrection': bool(use_correction),
         'discordantPairs': {'b': int(b), 'c': int(c)}
     }
 
 
 def cochran_q_test(data_matrix):
+    from statsmodels.stats.contingency_tables import cochrans_q
+
     data_matrix = np.array(data_matrix)
 
     if data_matrix.size == 0:
@@ -272,24 +272,13 @@ def cochran_q_test(data_matrix):
     if k < 3:
         raise ValueError(f"Cochran Q requires at least 3 conditions, got {k}")
 
-    row_sums = data_matrix.sum(axis=1)
-    col_sums = data_matrix.sum(axis=0)
-
-    G = col_sums.sum()
-    denominator = k * G - np.sum(row_sums**2)
-
-    if denominator == 0:
-        raise ValueError("Invalid data: denominator is zero in Cochran Q calculation")
-
-    Q = (k - 1) * (k * np.sum(col_sums**2) - G**2) / denominator
-
-    df = k - 1
-    p_value = 1 - stats.chi2.cdf(Q, df)
+    # Use statsmodels for Cochran Q test
+    result = cochrans_q(data_matrix)
 
     return {
-        'qStatistic': float(Q),
-        'pValue': float(p_value),
-        'df': int(df)
+        'qStatistic': float(result.statistic),
+        'pValue': float(result.pvalue),
+        'df': int(k - 1)
     }
 
 
@@ -460,50 +449,56 @@ def manova(data_matrix, group_values, var_names):
 
 
 def scheffe_test(groups):
+    try:
+        import scikit_posthocs as sp
+        import pandas as pd
+    except ImportError:
+        raise ImportError("scikit-posthocs library is required for Scheffe test. Install with: pip install scikit-posthocs")
+
     if len(groups) < 3:
         raise ValueError(f"Scheffe test requires at least 3 groups, got {len(groups)}")
 
-    clean_groups = []
-    for i, group in enumerate(groups):
-        arr = np.array(group)
-        if len(arr) < 2:
-            raise ValueError(f"Group {i} must have at least 2 observations, got {len(arr)}")
-        clean_groups.append(arr)
+    clean_groups = clean_groups_helper(groups)
 
-    groups = clean_groups
-    k = len(groups)
-    n_total = sum(len(g) for g in groups)
-    group_means = [np.mean(g) for g in groups]
-    group_ns = [len(g) for g in groups]
+    for i, group in enumerate(clean_groups):
+        if len(group) < 2:
+            raise ValueError(f"Group {i} must have at least 2 observations, got {len(group)}")
 
-    grand_mean = np.mean(np.concatenate(groups))
+    # Prepare data for scikit-posthocs
+    data_list = []
+    group_labels = []
+    for i, group in enumerate(clean_groups):
+        data_list.extend(group)
+        group_labels.extend([i] * len(group))
 
-    ss_within = sum(np.sum((g - np.mean(g))**2) for g in groups)
+    df = pd.DataFrame({
+        'data': data_list,
+        'group': group_labels
+    })
+
+    # Use scikit-posthocs for Scheffe test
+    scheffe_result = sp.posthoc_scheffe(df, val_col='data', group_col='group')
+
+    # Calculate MSE and df for additional info
+    k = len(clean_groups)
+    n_total = sum(len(g) for g in clean_groups)
+    ss_within = sum(np.sum((g - np.mean(g))**2) for g in clean_groups)
     df_within = n_total - k
     mse = ss_within / df_within
 
+    # Extract pairwise comparisons
     comparisons = []
     for i in range(k):
-        for j in range(i+1, k):
-            mean_diff = group_means[i] - group_means[j]
-
-            se = np.sqrt(mse * (1/group_ns[i] + 1/group_ns[j]))
-            f_stat = (mean_diff ** 2) / ((k - 1) * se ** 2)
-
-            # p-value
-            p_value = 1 - stats.f.cdf(f_stat, k - 1, df_within)
-
-            critical_f = stats.f.ppf(0.95, k - 1, df_within)
-            critical_value = np.sqrt((k - 1) * critical_f) * se
+        for j in range(i + 1, k):
+            p_value = scheffe_result.iloc[i, j]
+            mean_diff = float(np.mean(clean_groups[i]) - np.mean(clean_groups[j]))
 
             comparisons.append({
-                'group1': i,
-                'group2': j,
-                'meanDiff': float(mean_diff),
-                'fStatistic': float(f_stat),
+                'group1': int(i),
+                'group2': int(j),
+                'meanDiff': mean_diff,
                 'pValue': float(p_value),
-                'criticalValue': float(critical_value),
-                'significant': p_value < 0.05
+                'significant': float(p_value) < 0.05
             })
 
     return {

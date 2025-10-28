@@ -1,0 +1,18 @@
+# Python Testing Requirements
+# For library compliance tests
+
+# Core dependencies (already in project)
+numpy>=1.24.0
+scipy>=1.10.0
+statsmodels>=0.14.0
+scikit-learn>=1.2.0
+pandas>=2.0.0
+
+# New libraries used in improved methods
+pingouin>=0.5.3          # For Cohen's d, Cronbach's alpha
+scikit-posthocs>=0.9.0   # For Scheffé test
+lifelines>=0.28.0        # For Kaplan-Meier survival analysis
+
+# Testing framework
+pytest>=7.4.0
+pytest-cov>=4.1.0        # For coverage reports
