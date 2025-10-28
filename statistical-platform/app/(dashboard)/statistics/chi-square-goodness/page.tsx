@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -196,12 +195,17 @@ export default function ChiSquareGoodnessPage() {
     setError(null)
 
     try {
+      // 선택된 변수에서 값 추출
+      const variableData = uploadedData
+        .map(row => row[selectedVariables.dependent[0]])
+        .filter(val => val !== null && val !== undefined)
+        .map(val => Number(val))
+
       // 실제 Pyodide 분석 실행
       const result = await Promise.race([
         pyodide.chiSquareGoodnessTest(
-          uploadedData,
-          selectedVariables.dependent[0],
-          useUniformDistribution ? null : expectedProportions
+          variableData,
+          useUniformDistribution ? null : Object.values(expectedProportions).map(p => p / Object.values(expectedProportions).reduce((a, b) => a + b, 1))
         ),
         new Promise((_, reject) => {
           abortController.signal.addEventListener('abort', () => {
@@ -268,7 +272,7 @@ export default function ChiSquareGoodnessPage() {
       icon={<PieChart className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={actions.setCurrentStep}
+      onStepChange={setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
