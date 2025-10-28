@@ -149,7 +149,7 @@ export default function ChiSquareGoodnessPage() {
   }), [])
 
   // Event handlers
-  const handleDataUpload = useCallback((data: unknown[]) => {
+  const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
     const processedData = data.map((row, index) => ({
       ...row as Record<string, unknown>,
       _id: index
@@ -354,8 +354,8 @@ export default function ChiSquareGoodnessPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onUploadComplete={handleDataUploadComplete}
+            onNext={() => setCurrentStep(2)}
           />
 
           <Alert className="mt-4">

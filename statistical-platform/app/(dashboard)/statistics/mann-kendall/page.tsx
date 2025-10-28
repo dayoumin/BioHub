@@ -434,6 +434,13 @@ else:
 
 export default function MannKendallPage() {
   const [selectedTest, setSelectedTest] = useState('original')
+  const [uploadedData, setUploadedData] = useState<unknown[] | null>(null)
+  const [currentStep, setCurrentStep] = useState(0)
+
+  const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
+    setUploadedData(data)
+    setCurrentStep(2) // Move to next step
+  }, [])
 
   return (
     <StatisticsPageLayout
@@ -511,7 +518,12 @@ export default function MannKendallPage() {
         {
           title: "데이터 업로드",
           description: "시계열 데이터를 업로드하세요. 시간 순서대로 정렬된 연속형 변수가 필요합니다.",
-          content: <DataUploadStep />
+          content: (
+            <DataUploadStep
+              onUploadComplete={handleDataUploadComplete}
+              onNext={() => setCurrentStep(2)}
+            />
+          )
         },
         {
           title: "변수 선택 및 분석",

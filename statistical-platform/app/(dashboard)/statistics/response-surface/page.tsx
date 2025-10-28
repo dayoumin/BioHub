@@ -591,6 +591,13 @@ export default function ResponseSurfacePage() {
   const [selectedModel, setSelectedModel] = useState('second_order')
   const [includeInteraction, setIncludeInteraction] = useState(true)
   const [includeQuadratic, setIncludeQuadratic] = useState(true)
+  const [currentStep, setCurrentStep] = useState(1)
+  const [uploadedData, setUploadedData] = useState<unknown[] | null>(null)
+
+  const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
+    setUploadedData(data)
+    setCurrentStep(2)
+  }, [])
 
   return (
     <StatisticsPageLayout
@@ -701,7 +708,12 @@ export default function ResponseSurfacePage() {
         {
           title: "데이터 업로드",
           description: "여러 요인(독립변수)과 해당하는 반응값(종속변수) 데이터를 업로드하세요.",
-          content: <DataUploadStep />
+          content: (
+            <DataUploadStep
+              onUploadComplete={handleDataUploadComplete}
+              onNext={() => setCurrentStep(3)}
+            />
+          )
         },
         {
           title: "변수 선택 및 분석",

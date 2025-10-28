@@ -592,6 +592,20 @@ except Exception as e:
 
 export default function DoseResponsePage() {
   const [selectedModel, setSelectedModel] = useState('logistic4')
+  const [currentStep, setCurrentStep] = useState(1)
+  const [uploadedData, setUploadedData] = useState<Record<string, unknown>[]>([])
+  const [error, setError] = useState<string | null>(null)
+
+  // Event handlers
+  const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
+    const processedData = data.map((row, index) => ({
+      ...row as Record<string, unknown>,
+      _id: index
+    }))
+    setUploadedData(processedData)
+    setCurrentStep(2)
+    setError(null)
+  }, [])
 
   return (
     <StatisticsPageLayout
@@ -675,7 +689,10 @@ export default function DoseResponsePage() {
         {
           title: "데이터 업로드",
           description: "용량(농도) 데이터와 해당하는 생물학적 반응 데이터를 업로드하세요.",
-          content: <DataUploadStep />
+          content: <DataUploadStep
+            onUploadComplete={handleDataUploadComplete}
+            onNext={() => setCurrentStep(2)}
+          />
         },
         {
           title: "변수 선택 및 분석",
