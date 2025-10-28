@@ -31,6 +31,14 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 
+// Helper functions
+function interpretCramersV(value: number): string {
+  if (value < 0.1) return '매우 약함 (Very weak)'
+  if (value < 0.3) return '약함 (Weak)'
+  if (value < 0.5) return '중간 (Moderate)'
+  return '강함 (Strong)'
+}
+
 // Data interfaces
 interface DataRow {
   [key: string]: string | number | null | undefined
@@ -160,7 +168,7 @@ export default function ChiSquareIndependencePage() {
   }), [])
 
   // Event handlers
-  const handleDataUpload = useCallback((data: unknown[]) => {
+  const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
     const processedData = data.map((row, index) => ({
       ...row as Record<string, unknown>,
       _id: index
@@ -170,56 +178,137 @@ export default function ChiSquareIndependencePage() {
     setError(null)
   }, [])
 
+  const runAnalysis = useCallback(async (variables: VariableAssignment) => {
+    if (!uploadedData || !pyodide || !variables.independent || !variables.dependent) {
+      setError('분석을 실행할 수 없습니다. 두 개의 범주형 변수를 선택해주세요.')
+      return
+    }
+
+    setIsAnalyzing(true)
+    setError(null)
+
+    try {
+      // Convert DataRow[] to contingency table (number[][])
+      const rowVar = variables.dependent[0]
+      const colVar = variables.independent[0]
+
+      // Get unique values for each variable
+      const rowValues = [...new Set(uploadedData.map(row => String(row[rowVar])))]
+      const colValues = [...new Set(uploadedData.map(row => String(row[colVar])))]
+
+      // Create contingency table matrix (using Array.from for safety)
+      const matrix: number[][] = Array.from(
+        { length: rowValues.length },
+        () => Array.from({ length: colValues.length }, () => 0)
+      )
+
+      // Fill the contingency table
+      uploadedData.forEach(row => {
+        const rowIdx = rowValues.indexOf(String(row[rowVar]))
+        const colIdx = colValues.indexOf(String(row[colVar]))
+        if (rowIdx >= 0 && colIdx >= 0) {
+          matrix[rowIdx][colIdx]++
+        }
+      })
+
+      // Call Pyodide function with number[][]
+      const pyodideResult = await pyodide.chiSquareIndependenceTest(matrix)
+
+      // Transform Pyodide result to page interface
+      const totalN = pyodideResult.observedMatrix.flat().reduce((sum, val) => sum + val, 0)
+
+      // Calculate standardized residuals and contributions
+      const crosstab: CrossTabCell[][] = pyodideResult.observedMatrix.map((row, rowIdx) =>
+        row.map((observed, colIdx) => {
+          const expected = pyodideResult.expectedMatrix[rowIdx][colIdx]
+          const residual = observed - expected
+          const standardizedResidual = residual / Math.sqrt(expected)
+          const contribution = (residual ** 2) / expected
+
+          return {
+            observed,
+            expected,
+            residual,
+            standardizedResidual,
+            contribution,
+            row: rowValues[rowIdx],
+            column: colValues[colIdx]
+          }
+        })
+      )
+
+      // Calculate minimum expected frequency and cells below 5
+      const allExpected = pyodideResult.expectedMatrix.flat()
+      const minimumExpectedFrequency = Math.min(...allExpected)
+      const cellsBelow5 = allExpected.filter(val => val < 5).length
+      const totalCells = allExpected.length
+
+      // Check if 2x2 table for Phi coefficient
+      const is2x2Table = rowValues.length === 2 && colValues.length === 2
+      const phi = is2x2Table ? pyodideResult.cramersV :
+        Math.sqrt(pyodideResult.chiSquare / totalN)
+
+      const transformedResult: ChiSquareIndependenceResult = {
+        statistic: pyodideResult.chiSquare,
+        pValue: pyodideResult.pValue,
+        degreesOfFreedom: pyodideResult.degreesOfFreedom,
+        crosstab,
+        marginals: {
+          rowTotals: Object.fromEntries(
+            rowValues.map((label, idx) => [
+              label,
+              pyodideResult.observedMatrix[idx].reduce((sum, val) => sum + val, 0)
+            ])
+          ),
+          columnTotals: Object.fromEntries(
+            colValues.map((label, idx) => [
+              label,
+              pyodideResult.observedMatrix.reduce((sum, row) => sum + row[idx], 0)
+            ])
+          ),
+          total: totalN
+        },
+        effectSizes: {
+          cramersV: pyodideResult.cramersV,
+          phi: phi,
+          cramersVInterpretation: interpretCramersV(pyodideResult.cramersV),
+          phiInterpretation: is2x2Table ? interpretCramersV(phi) : 'N/A (2×2 테이블에만 적용)'
+        },
+        assumptions: {
+          minimumExpectedFrequency,
+          cellsBelow5,
+          totalCells,
+          assumptionMet: minimumExpectedFrequency >= 5 && cellsBelow5 === 0
+        },
+        interpretation: {
+          summary: pyodideResult.reject
+            ? '두 변수 간 유의한 연관성이 있습니다.'
+            : '두 변수 간 유의한 연관성이 없습니다.',
+          association: interpretCramersV(pyodideResult.cramersV),
+          recommendations: minimumExpectedFrequency < 5
+            ? ['일부 셀의 기대빈도가 5 미만입니다. Fisher의 정확검정을 고려하세요.']
+            : []
+        }
+      }
+
+      setAnalysisResult(transformedResult)
+      setCurrentStep(3)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('카이제곱 독립성 검정 실패:', errorMessage)
+      setError(`카이제곱 독립성 검정 중 오류가 발생했습니다: ${errorMessage}`)
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }, [uploadedData, pyodide])
+
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
     setSelectedVariables(variables)
     if (variables.independent && variables.dependent &&
         variables.independent.length === 1 && variables.dependent.length === 1) {
       runAnalysis(variables)
     }
-  }, [])
-
-  const runAnalysis = async (variables: VariableAssignment) => {
-    if (!uploadedData || !pyodide || !variables.independent || !variables.dependent) {
-      setError('분석을 실행할 수 없습니다. 두 개의 범주형 변수를 선택해주세요.')
-      return
-    }
-
-    // AbortController로 비동기 작업 취소 지원
-    const abortController = new AbortController()
-    setIsAnalyzing(true)
-    setError(null)
-
-    try {
-      if (abortController.signal.aborted) return
-
-      // 실제 Pyodide 분석 실행
-      const result = await pyodide.chiSquareIndependenceTest(
-        uploadedData,
-        variables.dependent[0],
-        variables.independent[0]
-      )
-
-      if (abortController.signal.aborted) return
-
-      setAnalysisResult(result)
-      setCurrentStep(3)
-    } catch (err) {
-      if (!abortController.signal.aborted) {
-        console.error('카이제곱 독립성 검정 실패:', err)
-        setError('카이제곱 독립성 검정 중 오류가 발생했습니다.')
-      }
-    } finally {
-      if (!abortController.signal.aborted) {
-        setIsAnalyzing(false)
-      }
-    }
-
-    // 컴포넌트 언마운트 시 작업 취소를 위한 cleanup 함수 반환
-    return () => {
-      abortController.abort()
-      setIsAnalyzing(false)
-    }
-  }
+  }, [runAnalysis])
 
   const getCramersVInterpretation = (v: number) => {
     if (v >= 0.5) return { level: '강한 연관성', color: 'text-red-600', bg: 'bg-red-50' }
@@ -246,7 +335,7 @@ export default function ChiSquareIndependencePage() {
       icon={<Grid3X3 className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={actions.setCurrentStep}
+      onStepChange={setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -328,8 +417,8 @@ export default function ChiSquareIndependencePage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onUploadComplete={handleDataUploadComplete}
+            onNext={() => setCurrentStep(2)}
           />
 
           <Alert className="mt-4">
