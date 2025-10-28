@@ -24,6 +24,7 @@ import {
 
 // Components
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
@@ -133,12 +134,15 @@ interface ThreeWayAnovaResult {
 }
 
 export default function ThreeWayAnovaPage() {
-  const [currentStep, setCurrentStep] = useState<number>(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<ThreeWayAnovaResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
   const [_selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<ThreeWayAnovaResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -155,10 +159,11 @@ export default function ThreeWayAnovaPage() {
         if (isMounted && !abortController.signal.aborted) {
           setPyodide(pyodideStats)
         }
+
       } catch (err) {
         if (isMounted && !abortController.signal.aborted) {
           console.error('Pyodide 초기화 실패:', err)
-          setError('통계 엔진을 초기화할 수 없습니다.')
+          actions.setError('통계 엔진을 초기화할 수 없습니다.')
         }
       }
     }
@@ -227,18 +232,17 @@ export default function ThreeWayAnovaPage() {
   }), [])
 
   const handleDataUpload = useCallback((data: DataRow[]) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(2)
   }, [])
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {
-      setError('데이터나 통계 엔진이 준비되지 않았습니다.')
+      actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       // Mock 삼원분산분석 결과
@@ -338,18 +342,16 @@ export default function ThreeWayAnovaPage() {
         }
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(3)
+      actions.setResults(mockResult)
+      actions.setCurrentStep(3)
     } catch (err) {
       console.error('삼원분산분석 실패:', err)
-      setError('삼원분산분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
+      actions.setError('삼원분산분석 중 오류가 발생했습니다.')
     }
   }, [uploadedData, pyodide])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent &&
         variables.dependent.length === 1 && variables.independent.length === 3) {
       runAnalysis(variables)
@@ -379,7 +381,7 @@ export default function ThreeWayAnovaPage() {
       icon={<Layers className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -459,7 +461,7 @@ export default function ThreeWayAnovaPage() {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -493,7 +495,7 @@ export default function ThreeWayAnovaPage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -511,7 +513,7 @@ export default function ThreeWayAnovaPage() {
             methodId="three-way-anova"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -529,7 +531,7 @@ export default function ThreeWayAnovaPage() {
       )}
 
       {/* Step 4: 결과 */}
-      {currentStep === 3 && analysisResult && (
+      {currentStep === 3 && results && (
         <StepCard
           title="삼원분산분석 결과"
           description="주효과, 상호작용, 사후검정 결과"
@@ -572,7 +574,7 @@ export default function ThreeWayAnovaPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {analysisResult.mainEffects.map((effect, index) => {
+                        {results.mainEffects.map((effect, index) => {
                           const effectSize = getEffectSizeInterpretation(effect.etaSquared)
                           return (
                             <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
@@ -623,7 +625,7 @@ export default function ThreeWayAnovaPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {analysisResult.twoWayInteractions.map((interaction, index) => {
+                        {results.twoWayInteractions.map((interaction, index) => {
                           const effectSize = getEffectSizeInterpretation(interaction.etaSquared)
                           return (
                             <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
@@ -674,17 +676,17 @@ export default function ThreeWayAnovaPage() {
                       </thead>
                       <tbody>
                         <tr className="bg-white">
-                          <td className="border border-gray-300 px-4 py-2 font-medium">{analysisResult.threeWayInteraction.factors}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-center">{analysisResult.threeWayInteraction.sumSquares.toFixed(2)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-center">{analysisResult.threeWayInteraction.degreesOfFreedom}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-center">{analysisResult.threeWayInteraction.meanSquare.toFixed(2)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{analysisResult.threeWayInteraction.fStatistic.toFixed(2)}</td>
+                          <td className="border border-gray-300 px-4 py-2 font-medium">{results.threeWayInteraction.factors}</td>
+                          <td className="border border-gray-300 px-4 py-2 text-center">{results.threeWayInteraction.sumSquares.toFixed(2)}</td>
+                          <td className="border border-gray-300 px-4 py-2 text-center">{results.threeWayInteraction.degreesOfFreedom}</td>
+                          <td className="border border-gray-300 px-4 py-2 text-center">{results.threeWayInteraction.meanSquare.toFixed(2)}</td>
+                          <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{results.threeWayInteraction.fStatistic.toFixed(2)}</td>
                           <td className="border border-gray-300 px-4 py-2 text-center">
-                            <PValueBadge value={analysisResult.threeWayInteraction.pValue} />
+                            <PValueBadge value={results.threeWayInteraction.pValue} />
                           </td>
                           <td className="border border-gray-300 px-4 py-2 text-center">
                             <Badge variant="outline" className="text-gray-600 bg-gray-50">
-                              {analysisResult.threeWayInteraction.etaSquared.toFixed(3)}
+                              {results.threeWayInteraction.etaSquared.toFixed(3)}
                             </Badge>
                           </td>
                         </tr>
@@ -692,12 +694,12 @@ export default function ThreeWayAnovaPage() {
                     </table>
                   </div>
 
-                  {analysisResult.threeWayInteraction.pValue > 0.05 && (
+                  {results.threeWayInteraction.pValue > 0.05 && (
                     <Alert className="mt-4">
                       <CheckCircle className="h-4 w-4" />
                       <AlertTitle>3원 상호작용 결과</AlertTitle>
                       <AlertDescription>
-                        3원 상호작용이 유의하지 않으므로(p = {analysisResult.threeWayInteraction.pValue.toFixed(3)}),
+                        3원 상호작용이 유의하지 않으므로(p = {results.threeWayInteraction.pValue.toFixed(3)}),
                         2원 상호작용과 주효과에 집중하여 해석할 수 있습니다.
                       </AlertDescription>
                     </Alert>
@@ -714,14 +716,14 @@ export default function ThreeWayAnovaPage() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="p-4 bg-gray-50 rounded-lg">
                       <h4 className="font-medium mb-2">오차 (Error)</h4>
-                      <p className="text-sm">제곱합: {analysisResult.error.sumSquares.toFixed(2)}</p>
-                      <p className="text-sm">자유도: {analysisResult.error.degreesOfFreedom}</p>
-                      <p className="text-sm">평균제곱: {analysisResult.error.meanSquare.toFixed(2)}</p>
+                      <p className="text-sm">제곱합: {results.error.sumSquares.toFixed(2)}</p>
+                      <p className="text-sm">자유도: {results.error.degreesOfFreedom}</p>
+                      <p className="text-sm">평균제곱: {results.error.meanSquare.toFixed(2)}</p>
                     </div>
                     <div className="p-4 bg-blue-50 rounded-lg">
                       <h4 className="font-medium mb-2">전체 (Total)</h4>
-                      <p className="text-sm">제곱합: {analysisResult.total.sumSquares.toFixed(2)}</p>
-                      <p className="text-sm">자유도: {analysisResult.total.degreesOfFreedom}</p>
+                      <p className="text-sm">제곱합: {results.total.sumSquares.toFixed(2)}</p>
+                      <p className="text-sm">자유도: {results.total.degreesOfFreedom}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -754,7 +756,7 @@ export default function ThreeWayAnovaPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {analysisResult.descriptiveStats.map((stat, index) => (
+                        {results.descriptiveStats.map((stat, index) => (
                           <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="border border-gray-300 px-4 py-2 text-center">{stat.factorA}</td>
                             <td className="border border-gray-300 px-4 py-2 text-center">{stat.factorB}</td>
@@ -801,7 +803,7 @@ export default function ThreeWayAnovaPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {analysisResult.postHoc.map((test, index) => (
+                        {results.postHoc.map((test, index) => (
                           <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="border border-gray-300 px-4 py-2 font-medium">{test.comparison}</td>
                             <td className="border border-gray-300 px-4 py-2 text-center">{test.meanDiff.toFixed(2)}</td>
@@ -866,7 +868,7 @@ export default function ThreeWayAnovaPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {analysisResult.assumptions.normalityByGroup.map((test, index) => (
+                        {results.assumptions.normalityByGroup.map((test, index) => (
                           <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="border border-gray-300 px-4 py-2">{test.group}</td>
                             <td className="border border-gray-300 px-4 py-2 text-center">{test.shapiroW.toFixed(3)}</td>
@@ -902,15 +904,15 @@ export default function ThreeWayAnovaPage() {
                     <div className="grid md:grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm font-medium">Levene 통계량</p>
-                        <p className="text-lg">{analysisResult.assumptions.homogeneityOfVariance.leveneStatistic.toFixed(3)}</p>
+                        <p className="text-lg">{results.assumptions.homogeneityOfVariance.leveneStatistic.toFixed(3)}</p>
                       </div>
                       <div>
                         <p className="text-sm font-medium">p-value</p>
-                        <PValueBadge value={analysisResult.assumptions.homogeneityOfVariance.pValue} />
+                        <PValueBadge value={results.assumptions.homogeneityOfVariance.pValue} />
                       </div>
                       <div>
                         <p className="text-sm font-medium">가정 충족</p>
-                        {analysisResult.assumptions.homogeneityOfVariance.assumptionMet ? (
+                        {results.assumptions.homogeneityOfVariance.assumptionMet ? (
                           <CheckCircle className="w-6 h-6 text-green-500" />
                         ) : (
                           <AlertTriangle className="w-6 h-6 text-red-500" />
@@ -923,7 +925,7 @@ export default function ThreeWayAnovaPage() {
                     <Info className="h-4 w-4" />
                     <AlertTitle>등분산성 검정 해석</AlertTitle>
                     <AlertDescription>
-                      {analysisResult.assumptions.homogeneityOfVariance.assumptionMet
+                      {results.assumptions.homogeneityOfVariance.assumptionMet
                         ? "등분산성 가정이 충족되었습니다 (p > 0.05). 일반적인 ANOVA 결과를 신뢰할 수 있습니다."
                         : "등분산성 가정이 위반되었습니다 (p ≤ 0.05). Welch 검정이나 비모수 검정을 고려해야 합니다."}
                     </AlertDescription>
@@ -947,29 +949,29 @@ export default function ThreeWayAnovaPage() {
                     <div className="space-y-4">
                       <div className="p-4 bg-blue-50 rounded-lg">
                         <h4 className="font-medium text-blue-800 mb-2">결정계수</h4>
-                        <p className="text-2xl font-bold text-blue-900">{(analysisResult.modelFit.rSquared * 100).toFixed(1)}%</p>
-                        <p className="text-sm text-blue-700">R² = {analysisResult.modelFit.rSquared.toFixed(3)}</p>
-                        <p className="text-sm text-blue-700">수정된 R² = {analysisResult.modelFit.adjustedRSquared.toFixed(3)}</p>
+                        <p className="text-2xl font-bold text-blue-900">{(results.modelFit.rSquared * 100).toFixed(1)}%</p>
+                        <p className="text-sm text-blue-700">R² = {results.modelFit.rSquared.toFixed(3)}</p>
+                        <p className="text-sm text-blue-700">수정된 R² = {results.modelFit.adjustedRSquared.toFixed(3)}</p>
                       </div>
 
                       <div className="p-4 bg-green-50 rounded-lg">
                         <h4 className="font-medium text-green-800 mb-2">모델 유의성</h4>
-                        <p className="text-lg font-bold text-green-900">F = {analysisResult.modelFit.fStatistic.toFixed(2)}</p>
-                        <PValueBadge value={analysisResult.modelFit.modelPValue} />
+                        <p className="text-lg font-bold text-green-900">F = {results.modelFit.fStatistic.toFixed(2)}</p>
+                        <PValueBadge value={results.modelFit.modelPValue} />
                       </div>
                     </div>
 
                     <div className="space-y-4">
                       <div className="p-4 bg-gray-50 rounded-lg">
                         <h4 className="font-medium text-gray-800 mb-2">잔차 표준오차</h4>
-                        <p className="text-lg font-bold text-gray-900">{analysisResult.modelFit.residualStandardError.toFixed(2)}</p>
+                        <p className="text-lg font-bold text-gray-900">{results.modelFit.residualStandardError.toFixed(2)}</p>
                       </div>
 
                       <Alert>
                         <TrendingUp className="h-4 w-4" />
                         <AlertTitle>모델 적합도 해석</AlertTitle>
                         <AlertDescription>
-                          이 모델은 종속변수 변동의 {(analysisResult.modelFit.rSquared * 100).toFixed(1)}%를 설명합니다.
+                          이 모델은 종속변수 변동의 {(results.modelFit.rSquared * 100).toFixed(1)}%를 설명합니다.
                           모델이 통계적으로 유의합니다 (p &lt; 0.001).
                         </AlertDescription>
                       </Alert>
@@ -993,14 +995,14 @@ export default function ThreeWayAnovaPage() {
                   {/* 요약 */}
                   <div className="p-4 bg-blue-50 rounded-lg">
                     <h4 className="font-medium text-blue-800 mb-2">분석 요약</h4>
-                    <p className="text-blue-700">{analysisResult.interpretation.summary}</p>
+                    <p className="text-blue-700">{results.interpretation.summary}</p>
                   </div>
 
                   {/* 주효과 해석 */}
                   <div>
                     <h4 className="font-medium mb-3">주효과 해석</h4>
                     <div className="space-y-2">
-                      {analysisResult.interpretation.mainEffectsInterpretation.map((interpretation, index) => (
+                      {results.interpretation.mainEffectsInterpretation.map((interpretation, index) => (
                         <div key={index} className="p-3 bg-green-50 rounded border-l-4 border-green-400">
                           <p className="text-green-700 text-sm">{interpretation}</p>
                         </div>
@@ -1011,14 +1013,14 @@ export default function ThreeWayAnovaPage() {
                   {/* 상호작용 해석 */}
                   <div className="p-4 bg-yellow-50 rounded-lg">
                     <h4 className="font-medium text-yellow-800 mb-2">상호작용 해석</h4>
-                    <p className="text-yellow-700">{analysisResult.interpretation.interactionInterpretation}</p>
+                    <p className="text-yellow-700">{results.interpretation.interactionInterpretation}</p>
                   </div>
 
                   {/* 권장사항 */}
                   <div>
                     <h4 className="font-medium mb-3">권장사항</h4>
                     <ul className="space-y-2">
-                      {analysisResult.interpretation.recommendations.map((recommendation, index) => (
+                      {results.interpretation.recommendations.map((recommendation, index) => (
                         <li key={index} className="flex items-start gap-2">
                           <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                           <span className="text-sm">{recommendation}</span>
@@ -1041,7 +1043,7 @@ export default function ThreeWayAnovaPage() {
           </Tabs>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               다시 분석
             </Button>
             <Button>

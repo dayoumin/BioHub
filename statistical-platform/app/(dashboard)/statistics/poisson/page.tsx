@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { StatisticsPageLayout, StepCard } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { Button } from '@/components/ui/button'
@@ -127,13 +128,17 @@ interface PoissonRegressionResult {
 }
 
 export default function PoissonRegressionPage() {
-  const [currentStep, setCurrentStep] = useState<number>(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<PoissonResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
   const [selectedDependent, setSelectedDependent] = useState<string>('')
   const [selectedIndependent, setSelectedIndependent] = useState<string[]>([])
   const [selectedOffset, setSelectedOffset] = useState<string>('')
-  const [analysisResult, setAnalysisResult] = useState<PoissonRegressionResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [pyodideReady, setPyodideReady] = useState(false)
 
   useEffect(() => {
@@ -145,6 +150,7 @@ export default function PoissonRegressionPage() {
         if (isMounted) {
           setPyodideReady(true)
         }
+
       } catch (error) {
         console.error('Pyodide 초기화 실패:', error)
       }
@@ -158,9 +164,9 @@ export default function PoissonRegressionPage() {
   }, [])
 
   const availableVariables = useMemo(() => {
-    if (!uploadedData || uploadedData.length === 0) return []
+    if (!uploadedData || (uploadedData ?? []).length === 0) return []
 
-    const firstRow = uploadedData[0]
+    const firstRow = (uploadedData as unknown[] ?? [])[0]
     return Object.keys(firstRow).map(key => ({
       name: key,
       type: typeof firstRow[key] === 'number' ? 'numeric' : 'categorical'
@@ -178,8 +184,8 @@ export default function PoissonRegressionPage() {
   )
 
   const handleDataUpload = useCallback((data: DataRow[]) => {
-    setUploadedData(data)
-    setCurrentStep(1)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(1)
   }, [])
 
   const canProceedToAnalysis = useMemo(() => {
@@ -346,18 +352,16 @@ export default function PoissonRegressionPage() {
         ]
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(2)
+      actions.setResults(mockResult)
+      actions.setCurrentStep(2)
     } catch (error) {
       console.error('분석 중 오류:', error)
-    } finally {
-      setIsAnalyzing(false)
     }
-  }, [canProceedToAnalysis, uploadedData, pyodideReady])
+  }, [canProceedToAnalysis, (uploadedData as unknown[] ?? []), pyodideReady])
 
   const handleVariableSelection = useCallback(() => {
     if (canProceedToAnalysis) {
-      setCurrentStep(2)
+      actions.setCurrentStep(2)
     }
   }, [canProceedToAnalysis])
 
@@ -477,7 +481,7 @@ export default function PoissonRegressionPage() {
         </Alert>
 
         <div className="flex justify-end">
-          <Button onClick={() => setCurrentStep(1)} className="flex items-center space-x-2">
+          <Button onClick={() => actions.setCurrentStep(1)} className="flex items-center space-x-2">
             <span>다음: 데이터 업로드</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
@@ -600,7 +604,7 @@ export default function PoissonRegressionPage() {
         <div className="flex justify-between">
           <Button
             variant="outline"
-            onClick={() => setCurrentStep(0)}
+            onClick={() => actions.setCurrentStep(0)}
           >
             이전: 소개
           </Button>
@@ -626,7 +630,7 @@ export default function PoissonRegressionPage() {
   ])
 
   const renderAnalysisResults = useCallback(() => {
-    if (!analysisResult) {
+    if (!results) {
       return (
         <StepCard title="분석 실행">
           <div className="text-center py-8">
@@ -677,24 +681,24 @@ export default function PoissonRegressionPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">모델 유형:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_info.model_type}</span>
+                        <span className="text-sm font-medium">{results.model_info.model_type}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">분포:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_info.distribution}</span>
+                        <span className="text-sm font-medium">{results.model_info.distribution}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">연결함수:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_info.link_function}</span>
+                        <span className="text-sm font-medium">{results.model_info.link_function}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">관측치 수:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_info.n_observations}</span>
+                        <span className="text-sm font-medium">{results.model_info.n_observations}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">수렴:</span>
                         <span className="text-sm font-medium">
-                          {analysisResult.model_info.convergence ? '성공' : '실패'} ({analysisResult.model_info.iterations}회)
+                          {results.model_info.convergence ? '성공' : '실패'} ({results.model_info.iterations}회)
                         </span>
                       </div>
                     </CardContent>
@@ -707,23 +711,23 @@ export default function PoissonRegressionPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">AIC:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.aic.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.aic.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">BIC:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.bic.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.bic.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">편차:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.deviance.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.deviance.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">McFadden R²:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">산포 계수:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.dispersion_parameter.toFixed(3)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.dispersion_parameter.toFixed(3)}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -748,7 +752,7 @@ export default function PoissonRegressionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {analysisResult.coefficients.map((coef, index) => (
+                    {results.coefficients.map((coef, index) => (
                       <TableRow key={index}>
                         <TableCell className="font-medium">{coef.variable}</TableCell>
                         <TableCell>{coef.coefficient.toFixed(4)}</TableCell>
@@ -774,7 +778,7 @@ export default function PoissonRegressionPage() {
                 <h4 className="font-medium mb-3">발생률비(IRR) 시각화</h4>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analysisResult.coefficients.filter(c => c.variable !== 'intercept')} layout="vertical">
+                    <BarChart data={results.coefficients.filter(c => c.variable !== 'intercept')} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" domain={['dataMin - 0.1', 'dataMax + 0.1']} />
                       <YAxis dataKey="variable" type="category" width={80} />
@@ -797,30 +801,30 @@ export default function PoissonRegressionPage() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h5 className="font-medium">{analysisResult.assumptions.overdispersion.test_name}</h5>
+                          <h5 className="font-medium">{results.assumptions.overdispersion.test_name}</h5>
                           <p className="text-sm text-gray-600">
                             분산이 평균보다 과도하게 큰지 검정
                           </p>
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-semibold">
-                            {analysisResult.assumptions.overdispersion.dispersion_ratio.toFixed(3)}
+                            {results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}
                           </div>
-                          <PValueBadge pValue={analysisResult.assumptions.overdispersion.p_value} />
+                          <PValueBadge pValue={results.assumptions.overdispersion.p_value} />
                         </div>
                       </div>
 
                       <Alert>
-                        {analysisResult.assumptions.overdispersion.assumption_met ? (
+                        {results.assumptions.overdispersion.assumption_met ? (
                           <CheckCircle2 className="h-4 w-4" />
                         ) : (
                           <AlertTriangle className="h-4 w-4" />
                         )}
                         <AlertDescription>
-                          {analysisResult.assumptions.overdispersion.assumption_met ? (
+                          {results.assumptions.overdispersion.assumption_met ? (
                             <span className="text-green-700">
                               과산포가 없습니다. 포아송 모델이 적절합니다.
-                              (산포비 = {analysisResult.assumptions.overdispersion.dispersion_ratio.toFixed(3)})
+                              (산포비 = {results.assumptions.overdispersion.dispersion_ratio.toFixed(3)})
                             </span>
                           ) : (
                             <span className="text-amber-700">
@@ -844,15 +848,15 @@ export default function PoissonRegressionPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">통계량:</span>
-                        <span className="text-sm font-medium">{analysisResult.goodness_of_fit.pearson_gof.statistic.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{results.goodness_of_fit.pearson_gof.statistic.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">자유도:</span>
-                        <span className="text-sm font-medium">{analysisResult.goodness_of_fit.pearson_gof.df}</span>
+                        <span className="text-sm font-medium">{results.goodness_of_fit.pearson_gof.df}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">p-value:</span>
-                        <PValueBadge pValue={analysisResult.goodness_of_fit.pearson_gof.p_value} />
+                        <PValueBadge pValue={results.goodness_of_fit.pearson_gof.p_value} />
                       </div>
                     </CardContent>
                   </Card>
@@ -864,15 +868,15 @@ export default function PoissonRegressionPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">편차:</span>
-                        <span className="text-sm font-medium">{analysisResult.goodness_of_fit.deviance_gof.statistic.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{results.goodness_of_fit.deviance_gof.statistic.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">자유도:</span>
-                        <span className="text-sm font-medium">{analysisResult.goodness_of_fit.deviance_gof.df}</span>
+                        <span className="text-sm font-medium">{results.goodness_of_fit.deviance_gof.df}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">p-value:</span>
-                        <PValueBadge pValue={analysisResult.goodness_of_fit.deviance_gof.p_value} />
+                        <PValueBadge pValue={results.goodness_of_fit.deviance_gof.p_value} />
                       </div>
                     </CardContent>
                   </Card>
@@ -890,9 +894,9 @@ export default function PoissonRegressionPage() {
                           <p className="text-xs text-gray-600">로그(평균)과 예측변수의 선형관계</p>
                         </div>
                         <div className="text-right">
-                          <PValueBadge pValue={analysisResult.assumptions.linearity.p_value} />
+                          <PValueBadge pValue={results.assumptions.linearity.p_value} />
                           <p className="text-xs text-gray-600">
-                            {analysisResult.assumptions.linearity.assumption_met ? '선형성 만족' : '선형성 위반'}
+                            {results.assumptions.linearity.assumption_met ? '선형성 만족' : '선형성 위반'}
                           </p>
                         </div>
                       </div>
@@ -907,9 +911,9 @@ export default function PoissonRegressionPage() {
                           <p className="text-xs text-gray-600">Durbin-Watson 검정</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-sm font-medium">{analysisResult.assumptions.independence.durbin_watson.toFixed(2)}</span>
+                          <span className="text-sm font-medium">{results.assumptions.independence.durbin_watson.toFixed(2)}</span>
                           <p className="text-xs text-gray-600">
-                            {analysisResult.assumptions.independence.assumption_met ? '독립성 만족' : '자기상관 존재'}
+                            {results.assumptions.independence.assumption_met ? '독립성 만족' : '자기상관 존재'}
                           </p>
                         </div>
                       </div>
@@ -934,7 +938,7 @@ export default function PoissonRegressionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {analysisResult.predicted_values.slice(0, 10).map((pred, index) => (
+                    {results.predicted_values.slice(0, 10).map((pred, index) => (
                       <TableRow key={index}>
                         <TableCell>{pred.observation}</TableCell>
                         <TableCell>{pred.actual_count}</TableCell>
@@ -952,7 +956,7 @@ export default function PoissonRegressionPage() {
                 <h4 className="font-medium mb-3">실제값 vs 예측값</h4>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ScatterChart data={analysisResult.predicted_values.slice(0, 10)}>
+                    <ScatterChart data={results.predicted_values.slice(0, 10)}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="predicted_count" name="예측값" />
                       <YAxis dataKey="actual_count" name="실제값" />
@@ -980,7 +984,7 @@ export default function PoissonRegressionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {analysisResult.rate_ratios.map((ratio, index) => (
+                    {results.rate_ratios.map((ratio, index) => (
                       <TableRow key={index}>
                         <TableCell className="font-medium">{ratio.variable}</TableCell>
                         <TableCell>{ratio.rate_ratio.toFixed(3)}</TableCell>
@@ -1022,8 +1026,8 @@ export default function PoissonRegressionPage() {
                   <Alert>
                     <CheckCircle2 className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>모델 적합도:</strong> McFadden R² = {analysisResult.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}으로,
-                      모델이 데이터의 변동을 {(analysisResult.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}% 설명합니다.
+                      <strong>모델 적합도:</strong> McFadden R² = {results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}으로,
+                      모델이 데이터의 변동을 {(results.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}% 설명합니다.
                       포아송 회귀에서 0.1 이상이면 양호한 적합도로 판단됩니다.
                     </AlertDescription>
                   </Alert>
@@ -1031,8 +1035,8 @@ export default function PoissonRegressionPage() {
                   <Alert>
                     <Calculator className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>과산포 검정:</strong> 산포비 = {analysisResult.assumptions.overdispersion.dispersion_ratio.toFixed(3)}로,
-                      {analysisResult.assumptions.overdispersion.assumption_met ?
+                      <strong>과산포 검정:</strong> 산포비 = {results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}로,
+                      {results.assumptions.overdispersion.assumption_met ?
                         '포아송 분포 가정이 적절합니다.' :
                         '과산포가 존재하므로 준-포아송 모델이나 음이항 회귀를 고려해야 합니다.'
                       }
@@ -1042,10 +1046,10 @@ export default function PoissonRegressionPage() {
                   <Alert>
                     <BarChart3 className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>주요 결과:</strong> {analysisResult.rate_ratios.find(r => r.variable === 'treatment')?.rate_ratio &&
-                      `치료 효과는 발생률을 ${((1 - analysisResult.rate_ratios.find(r => r.variable === 'treatment')!.rate_ratio) * 100).toFixed(1)}% 감소시킵니다`}
-                      {analysisResult.rate_ratios.find(r => r.variable === 'age')?.rate_ratio &&
-                      `. 연령은 1세 증가당 발생률을 ${((analysisResult.rate_ratios.find(r => r.variable === 'age')!.rate_ratio - 1) * 100).toFixed(1)}% 증가시킵니다.`}
+                      <strong>주요 결과:</strong> {results.rate_ratios.find(r => r.variable === 'treatment')?.rate_ratio &&
+                      `치료 효과는 발생률을 ${((1 - results.rate_ratios.find(r => r.variable === 'treatment')!.rate_ratio) * 100).toFixed(1)}% 감소시킵니다`}
+                      {results.rate_ratios.find(r => r.variable === 'age')?.rate_ratio &&
+                      `. 연령은 1세 증가당 발생률을 ${((results.rate_ratios.find(r => r.variable === 'age')!.rate_ratio - 1) * 100).toFixed(1)}% 증가시킵니다.`}
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -1068,7 +1072,7 @@ export default function PoissonRegressionPage() {
         </StepCard>
       </div>
     )
-  }, [analysisResult, isAnalyzing, pyodideReady, runPoissonRegression])
+  }, [results, isAnalyzing, pyodideReady, runPoissonRegression])
 
   const steps = [
     { title: '소개', component: renderIntroductionStep },
@@ -1083,7 +1087,7 @@ export default function PoissonRegressionPage() {
       subtitle="Poisson Regression"
       currentStep={currentStep}
       totalSteps={steps.length}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
     >
       {steps[currentStep].component()}
     </StatisticsPageLayout>

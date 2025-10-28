@@ -30,6 +30,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -109,13 +110,12 @@ interface ANCOVAResult {
 }
 
 export default function ANCOVAPage() {
-  // State
-  const [currentStep, setCurrentStep] = useState<number>(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [_selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<ANCOVAResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
+  // Custom hook: common state management
+  const { state, actions } = useStatisticsPage<ANCOVAResult, VariableAssignment>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables: _selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -133,9 +133,9 @@ export default function ANCOVAPage() {
           setPyodide(pyodideStats)
         }
       } catch (err) {
-        if (isMounted && !abortController.signal.aborted) {
+        if (isMounted && !abortController.signal.aborted && actions.setError) {
           console.error('Pyodide 초기화 실패:', err)
-          setError('통계 엔진을 초기화할 수 없습니다.')
+          actions.setError('통계 엔진을 초기화할 수 없습니다.')
         }
       }
     }
@@ -146,7 +146,7 @@ export default function ANCOVAPage() {
       isMounted = false
       abortController.abort()
     }
-  }, [])
+  }, [actions])
 
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
@@ -195,25 +195,23 @@ export default function ANCOVAPage() {
 
   // Event handlers
   const handleDataUpload = useCallback((data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...row as Record<string, unknown>,
-      _id: index
-    })) as DataRow[]
-    setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
-  }, [])
+    if (actions.setUploadedData) {
+      actions.setUploadedData(data)
+    }
+    actions.setCurrentStep(2)
+  }, [actions])
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || !variables.independent || !variables.covariates) {
-      setError('분석을 실행할 수 없습니다. 종속변수, 요인, 공변량을 모두 선택해주세요.')
+      if (actions.setError) {
+        actions.setError('분석을 실행할 수 없습니다. 종속변수, 요인, 공변량을 모두 선택해주세요.')
+      }
       return
     }
 
     // AbortController로 비동기 작업 취소 지원
     const abortController = new AbortController()
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       if (abortController.signal.aborted) return
@@ -300,33 +298,29 @@ export default function ANCOVAPage() {
         }
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResult, 3)
     } catch (err) {
-      if (!abortController.signal.aborted) {
+      if (!abortController.signal.aborted && actions.setError) {
         console.error('ANCOVA 분석 실패:', err)
-        setError('ANCOVA 분석 중 오류가 발생했습니다.')
-      }
-    } finally {
-      if (!abortController.signal.aborted) {
-        setIsAnalyzing(false)
+        actions.setError('ANCOVA 분석 중 오류가 발생했습니다.')
       }
     }
 
     // 컴포넌트 언마운트 시 작업 취소를 위한 cleanup 함수 반환
     return () => {
       abortController.abort()
-      setIsAnalyzing(false)
     }
-  }, [uploadedData, pyodide])
+  }, [uploadedData, pyodide, actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    if (actions.setSelectedVariables) {
+      actions.setSelectedVariables(variables)
+    }
     if (variables.dependent && variables.independent && variables.covariates &&
         variables.dependent.length === 1 && variables.independent.length === 1 && variables.covariates.length >= 1) {
       runAnalysis(variables)
     }
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
@@ -351,7 +345,7 @@ export default function ANCOVAPage() {
       icon={<GitBranch className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -428,7 +422,7 @@ export default function ANCOVAPage() {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -461,7 +455,7 @@ export default function ANCOVAPage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -477,9 +471,9 @@ export default function ANCOVAPage() {
         >
           <VariableSelector
             methodId="ancova"
-            data={uploadedData}
+            data={Array.isArray(uploadedData) ? uploadedData : []}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -872,7 +866,7 @@ export default function ANCOVAPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -880,7 +874,7 @@ export default function ANCOVAPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.reset()}>
                 새로운 분석
               </Button>
             </div>

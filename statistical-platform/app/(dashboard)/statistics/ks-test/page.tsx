@@ -617,7 +617,7 @@ export default function KolmogorovSmirnovTestPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       onRun={() => selectedVariables && runAnalysis(selectedVariables)}
       onReset={() => {
         setCurrentStep(0)

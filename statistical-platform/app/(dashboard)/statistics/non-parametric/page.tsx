@@ -35,6 +35,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { TableColumn } from '@/components/statistics/common/StatisticsTable'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import type { AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
@@ -123,10 +124,12 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
 }
 
 export default function NonParametricTestPage() {
+  const { state, actions } = useStatisticsPage<StatisticalResult>({
+    withUploadedData: false,
+    withError: false
+  })
+  const { variableMapping, results: result, isAnalyzing } = state
   const [selectedTest, setSelectedTest] = useState<NonParametricTest>('mann-whitney')
-  const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [result, setResult] = useState<StatisticalResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [activeTab, setActiveTab] = useState('setup')
   const [alpha, setAlpha] = useState('0.05')
   const [alternativeHypothesis, setAlternativeHypothesis] = useState('two-sided')
@@ -137,7 +140,7 @@ export default function NonParametricTestPage() {
 
   // Mock 분석 실행
   const runAnalysis = async () => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // Mock 결과 생성
     setTimeout(() => {
@@ -166,14 +169,14 @@ export default function NonParametricTestPage() {
             description: '관측치가 서로 독립적이어야 합니다',
             pValue: null,
             passed: true,
-            details: '연구 설계상 독립성이 보장됨'
+            recommendation: '연구 설계상 독립성이 보장됨'
           },
           {
             name: '측정 수준',
             description: '최소한 순서형 변수여야 합니다',
             pValue: null,
             passed: true,
-            details: '연속형 변수로 조건 충족'
+            recommendation: '연속형 변수로 조건 충족'
           }
         ],
         additionalResults: {
@@ -201,9 +204,8 @@ export default function NonParametricTestPage() {
         variables: ['Variable1', 'GroupVar']
       }
 
-      setResult(mockResult)
+      actions.setResults(mockResult)
       setActiveTab('results')
-      setIsAnalyzing(false)
     }, 1500)
   }
 
@@ -321,7 +323,7 @@ export default function NonParametricTestPage() {
             {/* 변수 선택 */}
             <VariableSelector
               requirements={getVariableRequirements()}
-              onMappingChange={setVariableMapping}
+              onMappingChange={actions.updateVariableMapping}
               title="변수 선택"
               description={`${currentTest.name}에 필요한 변수를 선택하세요`}
             />

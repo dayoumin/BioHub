@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
@@ -70,11 +71,14 @@ interface PCAResult {
 }
 
 export default function PCAPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableSelection | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<PCAResult | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<PCAResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
 
   // PCA 단계 정의
   const steps: StatisticsStep[] = [
@@ -85,6 +89,7 @@ export default function PCAPage() {
       description: '주성분분석 개념과 활용법',
       status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
     },
+
     {
       id: 'upload',
       number: 2,
@@ -109,8 +114,8 @@ export default function PCAPage() {
   ]
 
   const handleDataUpload = useCallback((data: UploadedData) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(2)
   }, [])
 
   // 행렬 계산 유틸리티 함수들 (향후 확장 시 사용)
@@ -332,7 +337,7 @@ export default function PCAPage() {
     if (!uploadedData) return
 
     setIsAnalyzing(true)
-    setCurrentStep(3)
+    actions.setCurrentStep(3)
 
     try {
       setTimeout(() => {
@@ -347,7 +352,7 @@ export default function PCAPage() {
   }, [uploadedData, calculatePCA])
 
   const handleVariableSelection = useCallback((variables: VariableSelection) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     runAnalysis(variables)
   }, [runAnalysis])
 
@@ -431,7 +436,7 @@ export default function PCAPage() {
 
         <div className="text-center">
           <Button
-            onClick={() => setCurrentStep(1)}
+            onClick={() => actions.setCurrentStep(1)}
             className="w-full md:w-auto"
           >
             데이터 업로드하기
@@ -758,12 +763,12 @@ export default function PCAPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       onRun={() => selectedVariables && runAnalysis(selectedVariables)}
       onReset={() => {
-        setCurrentStep(0)
-        setUploadedData(null)
-        setSelectedVariables(null)
+        actions.setCurrentStep(0)
+        actions.setUploadedData(null)
+        actions.setSelectedVariables(null)
         setAnalysisResults(null)
       }}
       isRunning={isAnalyzing}

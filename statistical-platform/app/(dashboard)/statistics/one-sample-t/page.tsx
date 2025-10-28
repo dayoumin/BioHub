@@ -29,6 +29,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 interface OneSampleTResults {
   variable: string
@@ -55,10 +56,11 @@ interface OneSampleTResults {
 }
 
 export default function OneSampleTPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [results, setResults] = useState<OneSampleTResults | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const { state, actions } = useStatisticsPage<OneSampleTResults>({
+    withUploadedData: false,
+    withError: false
+  })
+  const { currentStep, variableMapping, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [testValue, setTestValue] = useState('0')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
@@ -99,7 +101,7 @@ export default function OneSampleTPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -127,9 +129,7 @@ export default function OneSampleTPage() {
         }
       }
 
-      setResults(mockResults)
-      setIsAnalyzing(false)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResults, 3)
       setActiveTab('summary')
     }, 1500)
   }
@@ -137,15 +137,13 @@ export default function OneSampleTPage() {
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
     if (step <= currentStep + 1) {
-      setCurrentStep(step)
+      actions.setCurrentStep(step)
     }
   }
 
   // 초기화
   const handleReset = () => {
-    setVariableMapping({})
-    setResults(null)
-    setCurrentStep(0)
+    actions.reset()
     setTestValue('0')
     setActiveTab('summary')
   }
@@ -365,9 +363,9 @@ export default function OneSampleTPage() {
                 title="수치형 변수 선택"
                 description="평균을 검정할 연속형 변수를 선택하세요"
                 onMappingChange={(mapping) => {
-                  setVariableMapping(mapping)
+                  actions.updateVariableMapping(mapping)
                   if (Object.keys(mapping).length > 0) {
-                    setCurrentStep(1)
+                    actions.setCurrentStep(1)
                   }
                 }}
               />
@@ -451,7 +449,7 @@ export default function OneSampleTPage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(2)}
                   disabled={Object.keys(variableMapping).length === 0 || !testValue}
                 >
                   다음 단계

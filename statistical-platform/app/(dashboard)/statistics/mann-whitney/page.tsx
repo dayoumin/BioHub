@@ -25,6 +25,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -32,12 +33,6 @@ import type { VariableAssignment } from '@/components/variable-selection/Variabl
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 
 // Data interfaces
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
-
 interface DataRow {
   [key: string]: string | number | null | undefined
 }
@@ -83,13 +78,12 @@ interface MannWhitneyResult {
 }
 
 export default function MannWhitneyPage() {
-  // State
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<MannWhitneyResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<MannWhitneyResult, VariableAssignment>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -102,11 +96,11 @@ export default function MannWhitneyPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
-  }, [])
+  }, [actions])
 
   // Steps configuration
   const steps: StatisticsStep[] = [
@@ -143,45 +137,50 @@ export default function MannWhitneyPage() {
   // Event handlers
   const handleDataUpload = useCallback((data: unknown[]) => {
     const processedData = data.map((row, index) => ({
-      ...row,
+      ...(row as Record<string, unknown>),
       _id: index
-    }))
-    setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
-  }, [])
+    })) as DataRow[]
+
+    // Create UploadedData structure for the hook
+    const uploadedDataObj = {
+      data: processedData,
+      fileName: 'uploaded_file',
+      columns: processedData.length > 0 ? Object.keys(processedData[0]) : []
+    }
+
+    actions.setUploadedData?.(uploadedDataObj)
+    actions.setCurrentStep(2)
+    actions.setError?.('')
+  }, [actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables?.(variables)
     if (variables.dependent && variables.independent && variables.dependent.length === 1 && variables.independent.length === 1) {
       runAnalysis(variables)
     }
-  }, [])
+  }, [actions, uploadedData, pyodide])
 
   const runAnalysis = async (variables: VariableAssignment) => {
-    if (!uploadedData || !pyodide || !variables.dependent || !variables.independent) {
-      setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+    if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.independent) {
+      actions.setError?.('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       // 실제 Pyodide 분석 실행
-      const result = await pyodide.mannWhitneyUTest(
-        uploadedData,
+      const result = await pyodide.mannWhitneyU(
+        uploadedData.data as DataRow[],
         variables.dependent[0],
         variables.independent[0]
-      )
+      ) as MannWhitneyResult
 
-      setAnalysisResult(result)
-      setCurrentStep(3)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Mann-Whitney U 검정 실패:', err)
-      setError('Mann-Whitney U 검정 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
+      actions.setError?.('Mann-Whitney U 검정 중 오류가 발생했습니다.')
+      actions.startAnalysis() // Re-set analyzing to false
     }
   }
 
@@ -193,7 +192,7 @@ export default function MannWhitneyPage() {
       icon={<Activity className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={{
         formula: "U = n₁ × n₂ + n₁(n₁+1)/2 - R₁",
         assumptions: [
@@ -268,7 +267,7 @@ export default function MannWhitneyPage() {
             </Alert>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -289,7 +288,7 @@ export default function MannWhitneyPage() {
           />
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -297,7 +296,7 @@ export default function MannWhitneyPage() {
       )}
 
       {/* Step 3: 변수 선택 */}
-      {currentStep === 2 && uploadedData && (
+      {currentStep === 2 && uploadedData && uploadedData.data && (
         <StepCard
           title="변수 선택"
           description="종속변수(연속형)와 그룹변수(범주형)를 선택하세요"
@@ -305,9 +304,9 @@ export default function MannWhitneyPage() {
         >
           <VariableSelector
             methodId="mann_whitney"
-            data={uploadedData}
+            data={uploadedData.data as DataRow[]}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
         </StepCard>
       )}
@@ -531,7 +530,7 @@ export default function MannWhitneyPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -539,7 +538,7 @@ export default function MannWhitneyPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.setCurrentStep(0)}>
                 새로운 분석
               </Button>
             </div>

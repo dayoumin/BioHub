@@ -26,6 +26,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -78,13 +79,12 @@ interface FriedmanResult {
 }
 
 export default function FriedmanPage() {
-  // State
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<FriedmanResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<FriedmanResult, VariableAssignment>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -97,7 +97,7 @@ export default function FriedmanPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
@@ -153,13 +153,12 @@ export default function FriedmanPage() {
       ...row as Record<string, unknown>,
       _id: index
     })) as DataRow[]
-    setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
+    actions.setUploadedData(processedData)
+    actions.setCurrentStep(2)
   }, [])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.dependent && variables.dependent.length >= 3) {
       runAnalysis(variables)
     }
@@ -167,12 +166,11 @@ export default function FriedmanPage() {
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || variables.dependent.length < 3) {
-      setError('분석을 실행할 수 없습니다. 최소 3개 이상의 조건 변수가 필요합니다.')
+      actions.setError('분석을 실행할 수 없습니다. 최소 3개 이상의 조건 변수가 필요합니다.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       // 실제 Pyodide 분석 실행
@@ -181,13 +179,10 @@ export default function FriedmanPage() {
         variables.dependent
       )
 
-      setAnalysisResult(result)
-      setCurrentStep(3)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Friedman 검정 실패:', err)
-      setError('Friedman 검정 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
+      actions.setError('Friedman 검정 중 오류가 발생했습니다.')
     }
   }
 
@@ -206,7 +201,7 @@ export default function FriedmanPage() {
       icon={<RotateCcw className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -272,7 +267,7 @@ export default function FriedmanPage() {
             </Alert>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -304,7 +299,7 @@ export default function FriedmanPage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -322,7 +317,7 @@ export default function FriedmanPage() {
             methodId="friedman"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -600,7 +595,7 @@ export default function FriedmanPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">

@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { StatisticsPageLayout, StepCard } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { Button } from '@/components/ui/button'
@@ -114,12 +115,16 @@ interface OrdinalRegressionResult {
 }
 
 export default function OrdinalRegressionPage() {
-  const [currentStep, setCurrentStep] = useState<number>(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<OrdinalRegressionResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
   const [selectedDependent, setSelectedDependent] = useState<string>('')
   const [selectedIndependent, setSelectedIndependent] = useState<string[]>([])
-  const [analysisResult, setAnalysisResult] = useState<OrdinalRegressionResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [pyodideReady, setPyodideReady] = useState(false)
 
   useEffect(() => {
@@ -131,6 +136,7 @@ export default function OrdinalRegressionPage() {
         if (isMounted) {
           setPyodideReady(true)
         }
+
       } catch (error) {
         console.error('Pyodide 초기화 실패:', error)
       }
@@ -144,9 +150,9 @@ export default function OrdinalRegressionPage() {
   }, [])
 
   const availableVariables = useMemo(() => {
-    if (!uploadedData || uploadedData.length === 0) return []
+    if (!uploadedData || (uploadedData ?? []).length === 0) return []
 
-    const firstRow = uploadedData[0]
+    const firstRow = (uploadedData as unknown[] ?? [])[0]
     return Object.keys(firstRow).map(key => ({
       name: key,
       type: typeof firstRow[key] === 'number' ? 'numeric' : 'categorical'
@@ -164,8 +170,8 @@ export default function OrdinalRegressionPage() {
   )
 
   const handleDataUpload = useCallback((data: DataRow[]) => {
-    setUploadedData(data)
-    setCurrentStep(1)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(1)
   }, [])
 
   const canProceedToAnalysis = useMemo(() => {
@@ -310,18 +316,16 @@ export default function OrdinalRegressionPage() {
         }
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(2)
+      actions.setResults(mockResult)
+      actions.setCurrentStep(2)
     } catch (error) {
       console.error('분석 중 오류:', error)
-    } finally {
-      setIsAnalyzing(false)
     }
-  }, [canProceedToAnalysis, uploadedData, pyodideReady])
+  }, [canProceedToAnalysis, (uploadedData as unknown[] ?? []), pyodideReady])
 
   const handleVariableSelection = useCallback(() => {
     if (canProceedToAnalysis) {
-      setCurrentStep(2)
+      actions.setCurrentStep(2)
     }
   }, [canProceedToAnalysis])
 
@@ -419,7 +423,7 @@ export default function OrdinalRegressionPage() {
         </Alert>
 
         <div className="flex justify-end">
-          <Button onClick={() => setCurrentStep(1)} className="flex items-center space-x-2">
+          <Button onClick={() => actions.setCurrentStep(1)} className="flex items-center space-x-2">
             <span>다음: 데이터 업로드</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
@@ -515,7 +519,7 @@ export default function OrdinalRegressionPage() {
         <div className="flex justify-between">
           <Button
             variant="outline"
-            onClick={() => setCurrentStep(0)}
+            onClick={() => actions.setCurrentStep(0)}
           >
             이전: 소개
           </Button>
@@ -540,7 +544,7 @@ export default function OrdinalRegressionPage() {
   ])
 
   const renderAnalysisResults = useCallback(() => {
-    if (!analysisResult) {
+    if (!results) {
       return (
         <StepCard title="분석 실행">
           <div className="text-center py-8">
@@ -591,24 +595,24 @@ export default function OrdinalRegressionPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">모델 유형:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_info.model_type}</span>
+                        <span className="text-sm font-medium">{results.model_info.model_type}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">연결 함수:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_info.link_function}</span>
+                        <span className="text-sm font-medium">{results.model_info.link_function}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">관측치 수:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_info.n_observations}</span>
+                        <span className="text-sm font-medium">{results.model_info.n_observations}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">예측변수 수:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_info.n_predictors}</span>
+                        <span className="text-sm font-medium">{results.model_info.n_predictors}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">수렴:</span>
                         <span className="text-sm font-medium">
-                          {analysisResult.model_info.convergence ? '성공' : '실패'} ({analysisResult.model_info.iterations}회)
+                          {results.model_info.convergence ? '성공' : '실패'} ({results.model_info.iterations}회)
                         </span>
                       </div>
                     </CardContent>
@@ -621,23 +625,23 @@ export default function OrdinalRegressionPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">AIC:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.aic.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.aic.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">BIC:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.bic.toFixed(2)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.bic.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">McFadden R²:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Nagelkerke R²:</span>
-                        <span className="text-sm font-medium">{analysisResult.model_fit.pseudo_r_squared_nagelkerke.toFixed(3)}</span>
+                        <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_nagelkerke.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">정확도:</span>
-                        <span className="text-sm font-medium">{(analysisResult.classification_metrics.accuracy * 100).toFixed(1)}%</span>
+                        <span className="text-sm font-medium">{(results.classification_metrics.accuracy * 100).toFixed(1)}%</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -662,7 +666,7 @@ export default function OrdinalRegressionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {analysisResult.coefficients.map((coef, index) => (
+                    {results.coefficients.map((coef, index) => (
                       <TableRow key={index}>
                         <TableCell className="font-medium">{coef.variable}</TableCell>
                         <TableCell>{coef.coefficient.toFixed(4)}</TableCell>
@@ -688,7 +692,7 @@ export default function OrdinalRegressionPage() {
                 <h4 className="font-medium mb-3">오즈비 시각화</h4>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analysisResult.coefficients} layout="vertical">
+                    <BarChart data={results.coefficients} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" domain={['dataMin - 0.1', 'dataMax + 0.1']} />
                       <YAxis dataKey="variable" type="category" width={80} />
@@ -718,7 +722,7 @@ export default function OrdinalRegressionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {analysisResult.thresholds.map((threshold, index) => (
+                    {results.thresholds.map((threshold, index) => (
                       <TableRow key={index}>
                         <TableCell className="font-medium">{threshold.threshold}</TableCell>
                         <TableCell>{threshold.coefficient.toFixed(4)}</TableCell>
@@ -753,27 +757,27 @@ export default function OrdinalRegressionPage() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h5 className="font-medium">{analysisResult.assumptions.proportional_odds.test_name}</h5>
+                          <h5 className="font-medium">{results.assumptions.proportional_odds.test_name}</h5>
                           <p className="text-sm text-gray-600">
                             독립변수의 효과가 모든 임계값에서 동일한지 검정
                           </p>
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-semibold">
-                            {analysisResult.assumptions.proportional_odds.test_statistic.toFixed(3)}
+                            {results.assumptions.proportional_odds.test_statistic.toFixed(3)}
                           </div>
-                          <PValueBadge pValue={analysisResult.assumptions.proportional_odds.p_value} />
+                          <PValueBadge pValue={results.assumptions.proportional_odds.p_value} />
                         </div>
                       </div>
 
                       <Alert>
-                        {analysisResult.assumptions.proportional_odds.assumption_met ? (
+                        {results.assumptions.proportional_odds.assumption_met ? (
                           <CheckCircle2 className="h-4 w-4" />
                         ) : (
                           <AlertTriangle className="h-4 w-4" />
                         )}
                         <AlertDescription>
-                          {analysisResult.assumptions.proportional_odds.assumption_met ? (
+                          {results.assumptions.proportional_odds.assumption_met ? (
                             <span className="text-green-700">
                               비례 오즈 가정이 충족됩니다. 표준 서열 회귀모델을 사용할 수 있습니다.
                             </span>
@@ -801,7 +805,7 @@ export default function OrdinalRegressionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {analysisResult.assumptions.multicollinearity.map((vif, index) => (
+                    {results.assumptions.multicollinearity.map((vif, index) => (
                       <TableRow key={index}>
                         <TableCell className="font-medium">{vif.variable}</TableCell>
                         <TableCell>{vif.vif.toFixed(3)}</TableCell>
@@ -834,7 +838,7 @@ export default function OrdinalRegressionPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {analysisResult.predicted_probabilities.slice(0, 10).map((pred, index) => (
+                    {results.predicted_probabilities.slice(0, 10).map((pred, index) => (
                       <TableRow key={index}>
                         <TableCell>{pred.observation}</TableCell>
                         <TableCell>{(pred.category_1_prob * 100).toFixed(1)}%</TableCell>
@@ -869,10 +873,10 @@ export default function OrdinalRegressionPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {analysisResult.classification_metrics.confusion_matrix.map((row, i) => (
+                        {results.classification_metrics.confusion_matrix.map((row, i) => (
                           <TableRow key={i}>
                             <TableCell className="font-medium">
-                              {analysisResult.classification_metrics.category_labels[i]}
+                              {results.classification_metrics.category_labels[i]}
                             </TableCell>
                             {row.map((cell, j) => (
                               <TableCell key={j} className={i === j ? "bg-blue-50 font-medium" : ""}>
@@ -890,23 +894,23 @@ export default function OrdinalRegressionPage() {
                     <div className="space-y-3">
                       <div className="flex justify-between">
                         <span>전체 정확도:</span>
-                        <span className="font-medium">{(analysisResult.classification_metrics.accuracy * 100).toFixed(1)}%</span>
+                        <span className="font-medium">{(results.classification_metrics.accuracy * 100).toFixed(1)}%</span>
                       </div>
-                      {analysisResult.classification_metrics.category_labels.map((label, i) => (
+                      {results.classification_metrics.category_labels.map((label, i) => (
                         <div key={i}>
                           <div className="text-sm font-medium text-gray-700">{label}</div>
                           <div className="ml-4 space-y-1">
                             <div className="flex justify-between text-sm">
                               <span>정밀도:</span>
-                              <span>{(analysisResult.classification_metrics.precision[i] * 100).toFixed(1)}%</span>
+                              <span>{(results.classification_metrics.precision[i] * 100).toFixed(1)}%</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>재현율:</span>
-                              <span>{(analysisResult.classification_metrics.recall[i] * 100).toFixed(1)}%</span>
+                              <span>{(results.classification_metrics.recall[i] * 100).toFixed(1)}%</span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>F1-점수:</span>
-                              <span>{(analysisResult.classification_metrics.f1_score[i] * 100).toFixed(1)}%</span>
+                              <span>{(results.classification_metrics.f1_score[i] * 100).toFixed(1)}%</span>
                             </div>
                           </div>
                         </div>
@@ -924,8 +928,8 @@ export default function OrdinalRegressionPage() {
                   <Alert>
                     <CheckCircle2 className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>모델 적합도:</strong> McFadden R² = {analysisResult.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}으로,
-                      모델이 데이터의 {(analysisResult.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}%를 설명합니다.
+                      <strong>모델 적합도:</strong> McFadden R² = {results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}으로,
+                      모델이 데이터의 {(results.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}%를 설명합니다.
                       일반적으로 0.2 이상이면 양호한 적합도로 판단됩니다.
                     </AlertDescription>
                   </Alert>
@@ -935,15 +939,15 @@ export default function OrdinalRegressionPage() {
                     <AlertDescription>
                       <strong>계수 해석:</strong> 각 독립변수의 오즈비가 1보다 크면 해당 변수가 증가할 때
                       더 높은 범주에 속할 가능성이 증가함을 의미합니다. 예를 들어,
-                      교육수준의 오즈비가 {analysisResult.coefficients.find(c => c.variable === 'education')?.odds_ratio.toFixed(2)}라면,
-                      교육수준이 한 단계 올라갈 때마다 더 높은 만족도를 가질 오즈가 {analysisResult.coefficients.find(c => c.variable === 'education')?.odds_ratio.toFixed(2)}배 증가합니다.
+                      교육수준의 오즈비가 {results.coefficients.find(c => c.variable === 'education')?.odds_ratio.toFixed(2)}라면,
+                      교육수준이 한 단계 올라갈 때마다 더 높은 만족도를 가질 오즈가 {results.coefficients.find(c => c.variable === 'education')?.odds_ratio.toFixed(2)}배 증가합니다.
                     </AlertDescription>
                   </Alert>
 
                   <Alert>
                     <BarChart3 className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>예측 성능:</strong> 모델의 전체 정확도는 {(analysisResult.classification_metrics.accuracy * 100).toFixed(1)}%입니다.
+                      <strong>예측 성능:</strong> 모델의 전체 정확도는 {(results.classification_metrics.accuracy * 100).toFixed(1)}%입니다.
                       이는 실제 범주를 올바르게 예측한 비율을 나타냅니다.
                       각 범주별로 정밀도와 재현율을 확인하여 특정 범주에서의 예측 성능을 파악할 수 있습니다.
                     </AlertDescription>
@@ -959,7 +963,7 @@ export default function OrdinalRegressionPage() {
                     <li>• <strong>자원 배분:</strong> 가장 효과적인 변수에 집중적으로 투자</li>
                     <li>• <strong>위험 관리:</strong> 낮은 만족도가 예측되는 집단에 대한 사전 대응</li>
                     <li>• <strong>성과 모니터링:</strong> 모델을 통한 지속적인 만족도 예측 및 평가</li>
-                    <li>• <strong>개선 방안:</strong> 비례 오즈 가정 {analysisResult.assumptions.proportional_odds.assumption_met ? '충족' : '위반'} 상황에 따른 모델 개선 필요성</li>
+                    <li>• <strong>개선 방안:</strong> 비례 오즈 가정 {results.assumptions.proportional_odds.assumption_met ? '충족' : '위반'} 상황에 따른 모델 개선 필요성</li>
                   </ul>
                 </div>
               </div>
@@ -968,7 +972,7 @@ export default function OrdinalRegressionPage() {
         </StepCard>
       </div>
     )
-  }, [analysisResult, isAnalyzing, pyodideReady, runOrdinalRegression])
+  }, [results, isAnalyzing, pyodideReady, runOrdinalRegression])
 
   const steps = [
     { title: '소개', component: renderIntroductionStep },
@@ -983,7 +987,7 @@ export default function OrdinalRegressionPage() {
       subtitle="Ordinal Regression"
       currentStep={currentStep}
       totalSteps={steps.length}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
     >
       {steps[currentStep].component()}
     </StatisticsPageLayout>

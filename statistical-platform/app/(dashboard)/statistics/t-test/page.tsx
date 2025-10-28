@@ -31,6 +31,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface UploadedData {
@@ -84,14 +85,15 @@ interface TTestResult {
 }
 
 export default function TTestPage() {
-  // State
+  // Custom hook: common state management
+  const { state, actions } = useStatisticsPage<TTestResult>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
+
+  // Page-specific state
   const [activeTab, setActiveTab] = useState<'one-sample' | 'two-sample' | 'paired'>('two-sample')
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<TTestResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [testValue, setTestValue] = useState<number>(0)
 
   // Pyodide instance
@@ -105,11 +107,11 @@ export default function TTestPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
-  }, [])
+  }, [actions])
 
   // 단계 정의
   const steps: StatisticsStep[] = [
@@ -167,23 +169,28 @@ export default function TTestPage() {
 
   // 데이터 업로드 완료
   const handleDataUpload = useCallback((uploadedData: UploadedData) => {
-    setUploadedData(uploadedData.data)
-    setCurrentStep(2)
-    setError(null)
-  }, [])
+    if (actions.setUploadedData) {
+      actions.setUploadedData(uploadedData)
+    }
+    actions.setCurrentStep(2)
+    if (actions.setError) {
+      actions.setError('')
+    }
+  }, [actions])
 
   // 변수 선택 완료
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    if (actions.setSelectedVariables) {
+      actions.setSelectedVariables(variables)
+    }
     runAnalysis(variables)
-  }, [uploadedData, activeTab, testValue])
+  }, [uploadedData, activeTab, testValue, actions])
 
   // 분석 실행
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) return
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       // 모의 결과 생성 (실제로는 Pyodide 사용)
@@ -209,12 +216,9 @@ export default function TTestPage() {
         }
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResult, 3)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
   }
 
@@ -325,15 +329,9 @@ export default function TTestPage() {
       methodInfo={methodInfo[activeTab]}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
-      onRun={() => selectedVariables && runAnalysis(selectedVariables)}
-      onReset={() => {
-        setCurrentStep(0)
-        setUploadedData(null)
-        setSelectedVariables(null)
-        setAnalysisResult(null)
-        setError(null)
-      }}
+      onStepChange={actions.setCurrentStep}
+      onRun={() => selectedVariables && runAnalysis(selectedVariables as VariableAssignment)}
+      onReset={actions.reset}
       isRunning={isAnalyzing}
       showProgress={true}
       showTips={true}
@@ -429,7 +427,7 @@ export default function TTestPage() {
 
             <div className="flex justify-end mt-6">
               <Button
-                onClick={() => setCurrentStep(1)}
+                onClick={() => actions.setCurrentStep(1)}
                 className="bg-gradient-to-r from-blue-500 to-purple-500"
               >
                 다음 단계
@@ -452,7 +450,7 @@ export default function TTestPage() {
           />
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -468,9 +466,9 @@ export default function TTestPage() {
         >
           <VariableSelector
             methodId={getMethodId()}
-            data={uploadedData}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
         </StepCard>
       )}
@@ -711,10 +709,7 @@ export default function TTestPage() {
           <div className="flex justify-between">
             <Button
               variant="outline"
-              onClick={() => {
-                setCurrentStep(0)
-                setAnalysisResult(null)
-              }}
+              onClick={actions.reset}
             >
               새 분석
             </Button>

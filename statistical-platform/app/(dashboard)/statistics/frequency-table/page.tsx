@@ -28,6 +28,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 interface FrequencyData {
   value: string
@@ -47,10 +48,11 @@ interface FrequencyResults {
 }
 
 export default function FrequencyTablePage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [results, setResults] = useState<FrequencyResults | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const { state, actions } = useStatisticsPage<FrequencyResults>({
+    withUploadedData: false,
+    withError: false
+  })
+  const { currentStep, variableMapping, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [showPercentages, setShowPercentages] = useState(true)
   const [showCumulative, setShowCumulative] = useState(true)
@@ -91,7 +93,7 @@ export default function FrequencyTablePage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -109,9 +111,7 @@ export default function FrequencyTablePage() {
         uniqueValues: 4
       }
 
-      setResults(mockResults)
-      setIsAnalyzing(false)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResults, 3)
       setActiveTab('summary')
     }, 1500)
   }
@@ -119,15 +119,13 @@ export default function FrequencyTablePage() {
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
     if (step <= currentStep + 1) {
-      setCurrentStep(step)
+      actions.setCurrentStep(step)
     }
   }
 
   // 초기화
   const handleReset = () => {
-    setVariableMapping({})
-    setResults(null)
-    setCurrentStep(0)
+    actions.reset()
     setActiveTab('summary')
   }
 
@@ -256,9 +254,9 @@ export default function FrequencyTablePage() {
                 title="범주형 변수 선택"
                 description="문자열이나 범주로 구성된 변수를 선택하세요"
                 onMappingChange={(mapping) => {
-                  setVariableMapping(mapping)
+                  actions.updateVariableMapping(mapping)
                   if (Object.keys(mapping).length > 0) {
-                    setCurrentStep(1)
+                    actions.setCurrentStep(1)
                   }
                 }}
               />
@@ -315,7 +313,7 @@ export default function FrequencyTablePage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(2)}
                   disabled={Object.keys(variableMapping).length === 0}
                 >
                   다음 단계

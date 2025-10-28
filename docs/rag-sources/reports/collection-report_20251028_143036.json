@@ -1,0 +1,133 @@
+{
+  "metadata": {
+    "report_date": "2025-10-28T14:30:36.272694",
+    "report_type": "collection_summary"
+  },
+  "summary": {
+    "total_sources": 8,
+    "successful": 8,
+    "failed": 0,
+    "success_rate": "100.0%",
+    "total_size_bytes": 2295,
+    "total_collection_time_seconds": 1.24,
+    "average_time_per_source": 0.15
+  },
+  "by_category": {
+    "core_statistics": 2,
+    "regression_advanced": 1,
+    "statistical_functions": 1,
+    "educational": 1,
+    "experimental_design": 1,
+    "data_processing": 2
+  },
+  "by_authority_level": {
+    "primary": 6,
+    "secondary": 2
+  },
+  "results": [
+    {
+      "source_id": "scipy-stats",
+      "source_name": "SciPy Statistics Documentation",
+      "url": "https://docs.scipy.org/doc/scipy/reference/stats.html",
+      "success": true,
+      "file_path": "docs\\rag-sources\\raw\\scipy-stats_20251028_143035.html",
+      "checksum": "b0a80ff45a6607cb36839d6fbe6fd3c916ebec8576f736aa292edf9768b3aa96",
+      "file_size": 300,
+      "content_length": 300,
+      "collected_at": "2025-10-28T14:30:35.792594",
+      "error_message": null,
+      "collection_time_seconds": 0.141298
+    },
+    {
+      "source_id": "statsmodels-docs",
+      "source_name": "Statsmodels Documentation",
+      "url": "https://www.statsmodels.org/stable/",
+      "success": true,
+      "file_path": "docs\\rag-sources\\raw\\statsmodels-docs_20251028_143035.html",
+      "checksum": "bd5b7f8c7f90aaef77be0e05873b4a3d735e552e9592086d0f418441653fdfb7",
+      "file_size": 282,
+      "content_length": 282,
+      "collected_at": "2025-10-28T14:30:35.792594",
+      "error_message": null,
+      "collection_time_seconds": 0.142807
+    },
+    {
+      "source_id": "pingouin-docs",
+      "source_name": "Pingouin Documentation",
+      "url": "https://pingouin-stats.org/",
+      "success": true,
+      "file_path": "docs\\rag-sources\\raw\\pingouin-docs_20251028_143035.html",
+      "checksum": "bb820da96cc72416cb8bef4fc879ffe2529028e44b60af32f31b79fa73c9ba48",
+      "file_size": 268,
+      "content_length": 268,
+      "collected_at": "2025-10-28T14:30:35.792594",
+      "error_message": null,
+      "collection_time_seconds": 0.14382
+    },
+    {
+      "source_id": "r-documentation",
+      "source_name": "R Documentation - Base Stats Package",
+      "url": "https://stat.ethz.ch/R-manual/R-devel/library/stats/html/00Index.html",
+      "success": true,
+      "file_path": "docs\\rag-sources\\raw\\r-documentation_20251028_143036.html",
+      "checksum": "46ab2f6dcfb52341ac18cf3674438050003219ee3c2e75d3065310e66afeb6e6",
+      "file_size": 326,
+      "content_length": 326,
+      "collected_at": "2025-10-28T14:30:35.936414",
+      "error_message": null,
+      "collection_time_seconds": 0.160746
+    },
+    {
+      "source_id": "openintro-stats",
+      "source_name": "OpenIntro Statistics",
+      "url": "https://openintro.org/book/stat/",
+      "success": true,
+      "file_path": "docs\\rag-sources\\raw\\openintro-stats_20251028_143036.html",
+      "checksum": "9765a741717fce172dbff9747d86c94fd88eba8d3bb1d0efa048e0a132958b3a",
+      "file_size": 273,
+      "content_length": 273,
+      "collected_at": "2025-10-28T14:30:35.936414",
+      "error_message": null,
+      "collection_time_seconds": 0.162758
+    },
+    {
+      "source_id": "fao-experimental-design",
+      "source_name": "FAO - Guide to Agricultural Experimental Design",
+      "url": "https://www.fao.org/documents/en/",
+      "success": true,
+      "file_path": "docs\\rag-sources\\raw\\fao-experimental-design_20251028_143036.html",
+      "checksum": "624181c97cea2b9be58e012dead3c23c5be1f05bbf2f640fa0b021dd715dcbde",
+      "file_size": 309,
+      "content_length": 309,
+      "collected_at": "2025-10-28T14:30:35.936414",
+      "error_message": null,
+      "collection_time_seconds": 0.163753
+    },
+    {
+      "source_id": "numpy-manual",
+      "source_name": "NumPy Manual",
+      "url": "https://numpy.org/doc/stable/reference/",
+      "success": true,
+      "file_path": "docs\\rag-sources\\raw\\numpy-manual_20251028_143036.html",
+      "checksum": "47aa818ed2f8671db5555d7f2c52de7e5afe4309645af4a4ff7c3dcd9c7ec775",
+      "file_size": 269,
+      "content_length": 269,
+      "collected_at": "2025-10-28T14:30:36.100167",
+      "error_message": null,
+      "collection_time_seconds": 0.152286
+    },
+    {
+      "source_id": "pandas-docs",
+      "source_name": "Pandas Documentation",
+      "url": "https://pandas.pydata.org/docs/",
+      "success": true,
+      "file_path": "docs\\rag-sources\\raw\\pandas-docs_20251028_143036.html",
+      "checksum": "dd2473d598cbb53298bdccb9c44b458d02d698496d5fe6ac47e2b2e9cc5518de",
+      "file_size": 268,
+      "content_length": 268,
+      "collected_at": "2025-10-28T14:30:36.100167",
+      "error_message": null,
+      "collection_time_seconds": 0.171514
+    }
+  ]
+}

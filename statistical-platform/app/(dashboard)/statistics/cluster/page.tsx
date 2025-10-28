@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle, XCircle, Users, Target, Zap, BarChart3, Activity } from 'lucide-react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // 군집분석 결과 인터페이스
 interface ClusterAnalysisResult {
@@ -42,25 +43,27 @@ interface ClusterAnalysisResult {
 }
 
 export default function ClusterAnalysisPage() {
-  const [uploadedData, setUploadedData] = useState<unknown[]>([])
-  const [selectedVariables, setSelectedVariables] = useState<string[]>([])
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<ClusterAnalysisResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
   const [clusterMethod, setClusterMethod] = useState<'kmeans' | 'hierarchical'>('kmeans')
   const [numClusters, setNumClusters] = useState<number>(3)
   const [autoOptimalK, setAutoOptimalK] = useState<boolean>(true)
   const [linkageMethod, setLinkageMethod] = useState<'ward' | 'complete' | 'average' | 'single'>('ward')
   const [distanceMetric, setDistanceMetric] = useState<'euclidean' | 'manhattan' | 'cosine'>('euclidean')
-  const [currentStep, setCurrentStep] = useState(1)
-  const [results, setResults] = useState<ClusterAnalysisResult | null>(null)
-  const [isCalculating, setIsCalculating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   // 데이터 업로드 핸들러
   const handleDataUpload = useCallback((data: unknown[]) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(2)
   }, [])
 
-  // 유클리드 거리 계산
+    // 유클리드 거리 계산
   const euclideanDistance = useCallback((point1: number[], point2: number[]): number => {
     return Math.sqrt(point1.reduce((sum, val, i) => sum + (val - point2[i]) ** 2, 0))
   }, [])
@@ -319,36 +322,32 @@ export default function ClusterAnalysisPage() {
 
   // 군집분석 실행
   const handleRunAnalysis = useCallback(async () => {
-    if (!uploadedData.length || !selectedVariables.length) {
-      setError('데이터와 변수를 선택해주세요.')
+    if (!(uploadedData ?? []).length || !(selectedVariables ?? []).length) {
+      actions.setError('데이터와 변수를 선택해주세요.')
       return
     }
 
-    setIsCalculating(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       let finalNumClusters = numClusters
 
       // 최적 군집 수 자동 결정
       if (autoOptimalK) {
-        const optimal = findOptimalClusters(uploadedData, selectedVariables)
+        const optimal = findOptimalClusters((uploadedData as unknown[] ?? []), selectedVariables)
         finalNumClusters = optimal.silhouette
       }
 
-      const result = calculateKMeans(uploadedData, selectedVariables, finalNumClusters)
+      const result = calculateKMeans((uploadedData as unknown[] ?? []), selectedVariables, finalNumClusters)
 
       if (autoOptimalK) {
-        const optimal = findOptimalClusters(uploadedData, selectedVariables)
+        const optimal = findOptimalClusters((uploadedData as unknown[] ?? []), selectedVariables)
         result.optimalK = { ...optimal, gap: optimal.elbow }
       }
 
-      setResults(result)
-      setCurrentStep(4)
+      actions.completeAnalysis(result, 4)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsCalculating(false)
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
   }, [uploadedData, selectedVariables, numClusters, autoOptimalK, findOptimalClusters, calculateKMeans])
 
@@ -362,9 +361,9 @@ export default function ClusterAnalysisPage() {
         </p>
       </div>
 
-      {uploadedData.length > 0 && (
+      {(uploadedData ?? []).length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {Object.keys(uploadedData[0] as Record<string, unknown>).map((column) => (
+          {Object.keys((uploadedData as unknown[] ?? [])[0] as Record<string, unknown>).map((column) => (
             <div key={column} className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -372,9 +371,9 @@ export default function ClusterAnalysisPage() {
                 checked={selectedVariables.includes(column)}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setSelectedVariables([...selectedVariables, column])
+                    actions.setSelectedVariables([...selectedVariables, column])
                   } else {
-                    setSelectedVariables(selectedVariables.filter(v => v !== column))
+                    actions.setSelectedVariables(selectedVariables.filter(v => v !== column))
                   }
                 }}
                 className="rounded border-gray-300"
@@ -471,18 +470,18 @@ export default function ClusterAnalysisPage() {
       )}
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={() => setCurrentStep(2)}>
+        <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
           이전
         </Button>
         <Button
           onClick={handleRunAnalysis}
-          disabled={selectedVariables.length < 2 || isCalculating}
+          disabled={(selectedVariables ?? []).length < 2 || isAnalyzing}
         >
-          {isCalculating ? '분석 중...' : '군집분석 실행'}
+          {isAnalyzing ? '분석 중...' : '군집분석 실행'}
         </Button>
       </div>
     </div>
-  ), [uploadedData, selectedVariables, clusterMethod, numClusters, autoOptimalK, linkageMethod, distanceMetric, error, isCalculating, handleRunAnalysis])
+  ), [uploadedData, selectedVariables, clusterMethod, numClusters, autoOptimalK, linkageMethod, distanceMetric, error, isAnalyzing, handleRunAnalysis])
 
   // 결과 해석 페이지
   const resultsStep = useMemo(() => {
@@ -500,7 +499,7 @@ export default function ClusterAnalysisPage() {
               {results.numClusters}개 군집
             </Badge>
             <Badge variant="outline">
-              {uploadedData.length}개 데이터 포인트
+              {(uploadedData ?? []).length}개 데이터 포인트
             </Badge>
           </div>
         </div>
@@ -586,7 +585,7 @@ export default function ClusterAnalysisPage() {
                           <td className="border border-gray-200 px-4 py-2">군집 {stat.cluster}</td>
                           <td className="border border-gray-200 px-4 py-2">{stat.size}</td>
                           <td className="border border-gray-200 px-4 py-2">
-                            {((stat.size / uploadedData.length) * 100).toFixed(1)}%
+                            {((stat.size / (uploadedData ?? []).length) * 100).toFixed(1)}%
                           </td>
                           <td className="border border-gray-200 px-4 py-2">
                             {stat.withinSS.toFixed(2)}
@@ -714,7 +713,7 @@ export default function ClusterAnalysisPage() {
                         <Users className="h-4 w-4 text-blue-600" />
                         <span>
                           군집 {stat.cluster}: {stat.size}개 데이터 포인트
-                          ({((stat.size / uploadedData.length) * 100).toFixed(1)}%)
+                          ({((stat.size / (uploadedData ?? []).length) * 100).toFixed(1)}%)
                         </span>
                       </div>
                     ))}
@@ -770,21 +769,21 @@ export default function ClusterAnalysisPage() {
         </Tabs>
 
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setCurrentStep(3)}>
+          <Button variant="outline" onClick={() => actions.setCurrentStep(3)}>
             이전
           </Button>
           <Button onClick={() => {
-            setCurrentStep(1)
-            setResults(null)
-            setSelectedVariables([])
-            setUploadedData([])
+            actions.setCurrentStep(1)
+            actions.setResults(null)
+            actions.setSelectedVariables([])
+            actions.setUploadedData([])
           }}>
             새 분석 시작
           </Button>
         </div>
       </div>
     )
-  }, [results, uploadedData.length, selectedVariables])
+  }, [results, (uploadedData ?? []).length, selectedVariables])
 
   return (
     <StatisticsPageLayout

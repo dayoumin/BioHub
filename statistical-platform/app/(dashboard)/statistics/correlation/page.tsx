@@ -29,6 +29,7 @@ import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface UploadedData {
@@ -101,12 +102,15 @@ interface AnalysisResults {
 }
 
 export default function CorrelationPage() {
-  const [currentStep, setCurrentStep] = useState(0)
+  // Custom hook: common state management
+  const { state, actions } = useStatisticsPage<AnalysisResults, VariableSelection>({
+    withUploadedData: true,
+    withError: false
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResults, isAnalyzing } = state
+
+  // Page-specific state
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
-  const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableSelection | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null)
 
   // 상관분석 단계 정의
   const steps: StatisticsStep[] = [
@@ -186,22 +190,26 @@ export default function CorrelationPage() {
 
   const handleMethodSelect = (type: 'pearson' | 'spearman' | 'kendall' | 'partial') => {
     setCorrelationType(type)
-    setCurrentStep(1)
+    actions.setCurrentStep(1)
   }
 
   const handleDataUpload = (data: UploadedData) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    if (actions.setUploadedData) {
+      actions.setUploadedData(data)
+    }
+    actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: VariableSelection) => {
-    setSelectedVariables(variables)
+    if (actions.setSelectedVariables) {
+      actions.setSelectedVariables(variables)
+    }
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
   const handleAnalysis = async (_variables: VariableSelection) => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
     setTimeout(() => {
@@ -302,9 +310,7 @@ export default function CorrelationPage() {
         } : null
       }
 
-      setAnalysisResults(mockResults)
-      setCurrentStep(3)
-      setIsAnalyzing(false)
+      actions.completeAnalysis(mockResults, 3)
     }, 2000)
   }
 
@@ -731,14 +737,11 @@ export default function CorrelationPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
-      onRun={() => handleAnalysis(selectedVariables)}
+      onStepChange={actions.setCurrentStep}
+      onRun={() => selectedVariables && handleAnalysis(selectedVariables)}
       onReset={() => {
-        setCurrentStep(0)
+        actions.reset()
         setCorrelationType('')
-        setUploadedData(null)
-        setSelectedVariables(null)
-        setAnalysisResults(null)
       }}
       isRunning={isAnalyzing}
       showProgress={true}

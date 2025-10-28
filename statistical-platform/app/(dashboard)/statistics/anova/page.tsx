@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -102,12 +103,15 @@ interface ANOVAResults {
 }
 
 export default function ANOVAPage() {
-  const [currentStep, setCurrentStep] = useState(0)
+  // Custom hook: common state management
+  const { state, actions } = useStatisticsPage<ANOVAResults>({
+    withUploadedData: true,
+    withError: false
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResults, isAnalyzing } = state
+
+  // Page-specific state
   const [anovaType, setAnovaType] = useState<'oneWay' | 'twoWay' | 'repeated' | ''>('')
-  const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<SelectedVariables | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<ANOVAResults | null>(null)
 
   // ANOVA 단계 정의
   const steps: StatisticsStep[] = [
@@ -174,22 +178,26 @@ export default function ANOVAPage() {
 
   const handleMethodSelect = (type: 'oneWay' | 'twoWay' | 'repeated') => {
     setAnovaType(type)
-    setCurrentStep(1)
+    actions.setCurrentStep(1)
   }
 
   const handleDataUpload = (data: UploadedData) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    if (actions.setUploadedData) {
+      actions.setUploadedData(data)
+    }
+    actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: SelectedVariables) => {
-    setSelectedVariables(variables)
+    if (actions.setSelectedVariables) {
+      actions.setSelectedVariables(variables)
+    }
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
   const handleAnalysis = async (_variables: SelectedVariables) => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
     setTimeout(() => {
@@ -240,9 +248,7 @@ export default function ANOVAPage() {
         ]
       }
 
-      setAnalysisResults(mockResults)
-      setCurrentStep(3)
-      setIsAnalyzing(false)
+      actions.completeAnalysis(mockResults, 3)
     }, 2000)
   }
 
@@ -383,7 +389,7 @@ export default function ANOVAPage() {
             }
             handleVariableSelection(selectedVars)
           }}
-          onBack={() => setCurrentStep(1)}
+          onBack={() => actions.setCurrentStep(1)}
         />
       </StepCard>
     )
@@ -611,18 +617,15 @@ export default function ANOVAPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       onRun={() => {
         if (selectedVariables) {
           handleAnalysis(selectedVariables)
         }
       }}
       onReset={() => {
-        setCurrentStep(0)
+        actions.reset()
         setAnovaType('')
-        setUploadedData(null)
-        setSelectedVariables(null)
-        setAnalysisResults(null)
       }}
       isRunning={isAnalyzing}
       showProgress={true}

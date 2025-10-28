@@ -24,6 +24,7 @@ import {
   XCircle
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
@@ -68,10 +69,16 @@ interface WelchTResults {
 }
 
 export default function WelchTPage() {
-  const [currentStep, setCurrentStep] = useState(0)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<WelchTTestResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
   const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [results, setResults] = useState<WelchTResults | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+
   const [activeTab, setActiveTab] = useState('summary')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
   const [alternative, setAlternative] = useState('two-sided')
@@ -153,9 +160,9 @@ export default function WelchTPage() {
         }
       }
 
-      setResults(mockResults)
+      actions.setResults(mockResults)
       setIsAnalyzing(false)
-      setCurrentStep(3)
+      actions.setCurrentStep(3)
       setActiveTab('summary')
     }, 1500)
   }
@@ -163,15 +170,14 @@ export default function WelchTPage() {
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
     if (step <= currentStep + 1) {
-      setCurrentStep(step)
+      actions.setCurrentStep(step)
     }
   }
 
   // 초기화
   const handleReset = () => {
     setVariableMapping({})
-    setResults(null)
-    setCurrentStep(0)
+    actions.completeAnalysis(null, 0)
     setActiveTab('summary')
   }
 
@@ -461,7 +467,7 @@ export default function WelchTPage() {
                 onMappingChange={(mapping) => {
                   setVariableMapping(mapping)
                   if (Object.keys(mapping).length >= 2) {
-                    setCurrentStep(1)
+                    actions.setCurrentStep(1)
                   }
                 }}
               />
@@ -524,7 +530,7 @@ export default function WelchTPage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(2)}
                   disabled={Object.keys(variableMapping).length < 2}
                 >
                   다음 단계

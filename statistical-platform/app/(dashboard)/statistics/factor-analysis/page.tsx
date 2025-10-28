@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle, XCircle, Target, BarChart3, Activity, Zap, TrendingUp } from 'lucide-react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // 요인분석 결과 인터페이스
 interface FactorAnalysisResult {
@@ -48,26 +49,28 @@ interface FactorAnalysisResult {
 }
 
 export default function FactorAnalysisPage() {
-  const [uploadedData, setUploadedData] = useState<unknown[]>([])
-  const [selectedVariables, setSelectedVariables] = useState<string[]>([])
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<FactorAnalysisResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
   const [analysisType, setAnalysisType] = useState<'exploratory' | 'confirmatory'>('exploratory')
   const [extractionMethod, setExtractionMethod] = useState<'principal' | 'maximum_likelihood' | 'principal_axis'>('principal')
   const [rotationMethod, setRotationMethod] = useState<'none' | 'varimax' | 'promax' | 'oblimin'>('varimax')
   const [numFactors, setNumFactors] = useState<number>(0)
   const [autoFactorSelection, setAutoFactorSelection] = useState<boolean>(true)
   const [minEigenvalue, setMinEigenvalue] = useState<number>(1.0)
-  const [currentStep, setCurrentStep] = useState(1)
-  const [results, setResults] = useState<FactorAnalysisResult | null>(null)
-  const [isCalculating, setIsCalculating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   // 데이터 업로드 핸들러
   const handleDataUpload = useCallback((data: unknown[]) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(2)
   }, [])
 
-  // 상관행렬 계산
+    // 상관행렬 계산
   const calculateCorrelationMatrix = useCallback((data: number[][]): number[][] => {
     const n = data.length
     const p = data[0].length
@@ -282,35 +285,31 @@ export default function FactorAnalysisPage() {
 
   // 요인분석 실행
   const handleRunAnalysis = useCallback(async () => {
-    if (!uploadedData.length || !selectedVariables.length) {
-      setError('데이터와 변수를 선택해주세요.')
+    if (!(uploadedData ?? []).length || !(selectedVariables ?? []).length) {
+      actions.setError('데이터와 변수를 선택해주세요.')
       return
     }
 
-    if (selectedVariables.length < 3) {
-      setError('요인분석을 위해서는 최소 3개 이상의 변수가 필요합니다.')
+    if ((selectedVariables ?? []).length < 3) {
+      actions.setError('요인분석을 위해서는 최소 3개 이상의 변수가 필요합니다.')
       return
     }
 
-    setIsCalculating(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       let result: FactorAnalysisResult
 
       if (analysisType === 'exploratory') {
-        result = calculateExploratory(uploadedData, selectedVariables)
+        result = calculateExploratory((uploadedData as unknown[] ?? []), selectedVariables)
       } else {
         // 확인적 요인분석 (CFA)는 추후 구현
         throw new Error('확인적 요인분석(CFA)은 추후 구현 예정입니다.')
       }
 
-      setResults(result)
-      setCurrentStep(4)
+      actions.completeAnalysis(result, 4)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsCalculating(false)
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
   }, [uploadedData, selectedVariables, analysisType, calculateExploratory])
 
@@ -324,9 +323,9 @@ export default function FactorAnalysisPage() {
         </p>
       </div>
 
-      {uploadedData.length > 0 && (
+      {(uploadedData ?? []).length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {Object.keys(uploadedData[0] as Record<string, unknown>).map((column) => (
+          {Object.keys((uploadedData as unknown[] ?? [])[0] as Record<string, unknown>).map((column) => (
             <div key={column} className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -334,9 +333,9 @@ export default function FactorAnalysisPage() {
                 checked={selectedVariables.includes(column)}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    setSelectedVariables([...selectedVariables, column])
+                    actions.setSelectedVariables([...selectedVariables, column])
                   } else {
-                    setSelectedVariables(selectedVariables.filter(v => v !== column))
+                    actions.setSelectedVariables(selectedVariables.filter(v => v !== column))
                   }
                 }}
                 className="rounded border-gray-300"
@@ -412,7 +411,7 @@ export default function FactorAnalysisPage() {
               id="numFactors"
               type="number"
               min="1"
-              max={Math.floor(selectedVariables.length / 2)}
+              max={Math.floor((selectedVariables ?? []).length / 2)}
               value={numFactors}
               onChange={(e) => setNumFactors(parseInt(e.target.value) || 1)}
               className="mt-2"
@@ -437,13 +436,13 @@ export default function FactorAnalysisPage() {
         )}
       </div>
 
-      {selectedVariables.length > 0 && uploadedData.length > 0 && (
+      {(selectedVariables ?? []).length > 0 && (uploadedData ?? []).length > 0 && (
         <div className="p-4 bg-blue-50 rounded-lg">
           <div className="text-sm space-y-1">
-            <p><strong>선택된 변수:</strong> {selectedVariables.length}개</p>
-            <p><strong>표본 크기:</strong> {uploadedData.length}개</p>
-            <p><strong>권장 최소 표본:</strong> {selectedVariables.length * 3}개</p>
-            <p><strong>표본 적절성:</strong> {uploadedData.length >= selectedVariables.length * 3 ? '✅ 적절' : '⚠️ 부족'}</p>
+            <p><strong>선택된 변수:</strong> {(selectedVariables ?? []).length}개</p>
+            <p><strong>표본 크기:</strong> {(uploadedData ?? []).length}개</p>
+            <p><strong>권장 최소 표본:</strong> {(selectedVariables ?? []).length * 3}개</p>
+            <p><strong>표본 적절성:</strong> {(uploadedData ?? []).length >= (selectedVariables ?? []).length * 3 ? '✅ 적절' : '⚠️ 부족'}</p>
           </div>
         </div>
       )}
@@ -456,18 +455,18 @@ export default function FactorAnalysisPage() {
       )}
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={() => setCurrentStep(2)}>
+        <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
           이전
         </Button>
         <Button
           onClick={handleRunAnalysis}
-          disabled={selectedVariables.length < 3 || isCalculating || analysisType === 'confirmatory'}
+          disabled={(selectedVariables ?? []).length < 3 || isAnalyzing || analysisType === 'confirmatory'}
         >
-          {isCalculating ? '분석 중...' : '요인분석 실행'}
+          {isAnalyzing ? '분석 중...' : '요인분석 실행'}
         </Button>
       </div>
     </div>
-  ), [uploadedData, selectedVariables, analysisType, extractionMethod, rotationMethod, autoFactorSelection, numFactors, minEigenvalue, error, isCalculating, handleRunAnalysis])
+  ), [uploadedData, selectedVariables, analysisType, extractionMethod, rotationMethod, autoFactorSelection, numFactors, minEigenvalue, error, isAnalyzing, handleRunAnalysis])
 
   // 결과 해석 페이지
   const resultsStep = useMemo(() => {
@@ -821,21 +820,21 @@ export default function FactorAnalysisPage() {
         </Tabs>
 
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setCurrentStep(3)}>
+          <Button variant="outline" onClick={() => actions.setCurrentStep(3)}>
             이전
           </Button>
           <Button onClick={() => {
-            setCurrentStep(1)
-            setResults(null)
-            setSelectedVariables([])
-            setUploadedData([])
+            actions.setCurrentStep(1)
+            actions.setResults(null)
+            actions.setSelectedVariables([])
+            actions.setUploadedData([])
           }}>
             새 분석 시작
           </Button>
         </div>
       </div>
     )
-  }, [results, uploadedData.length, selectedVariables])
+  }, [results, (uploadedData ?? []).length, selectedVariables])
 
   return (
     <StatisticsPageLayout

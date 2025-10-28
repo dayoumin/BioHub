@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
@@ -67,11 +68,14 @@ interface RunsTestResult {
 }
 
 export default function RunsTestPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableSelection | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<RunsTestResult | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<RunsTestResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
 
   // 런 검정 단계 정의
   const steps: StatisticsStep[] = [
@@ -82,6 +86,7 @@ export default function RunsTestPage() {
       description: '데이터 무작위성 검정 개념',
       status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
     },
+
     {
       id: 'upload',
       number: 2,
@@ -106,8 +111,8 @@ export default function RunsTestPage() {
   ]
 
   const handleDataUpload = useCallback((data: UploadedData) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(2)
   }, [])
 
   // 실제 런 검정 계산 로직 (간단 구현)
@@ -196,7 +201,7 @@ export default function RunsTestPage() {
     if (!uploadedData) return
 
     setIsAnalyzing(true)
-    setCurrentStep(3)
+    actions.setCurrentStep(3)
 
     try {
       // 실제 계산 사용 (시뮬레이션 지연 포함)
@@ -213,7 +218,7 @@ export default function RunsTestPage() {
   }, [uploadedData, calculateRunsTest])
 
   const handleVariableSelection = useCallback((variables: VariableSelection) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     // 자동으로 분석 실행
     runAnalysis(variables)
   }, [runAnalysis])
@@ -293,7 +298,7 @@ export default function RunsTestPage() {
 
         <div className="text-center">
           <Button
-            onClick={() => setCurrentStep(1)}
+            onClick={() => actions.setCurrentStep(1)}
             className="w-full md:w-auto"
           >
             데이터 업로드하기
@@ -525,12 +530,12 @@ export default function RunsTestPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       onRun={() => selectedVariables && runAnalysis(selectedVariables)}
       onReset={() => {
-        setCurrentStep(0)
-        setUploadedData(null)
-        setSelectedVariables(null)
+        actions.setCurrentStep(0)
+        actions.setUploadedData(null)
+        actions.setSelectedVariables(null)
         setAnalysisResults(null)
       }}
       isRunning={isAnalyzing}

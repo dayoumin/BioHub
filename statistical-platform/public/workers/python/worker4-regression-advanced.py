@@ -8,18 +8,14 @@ import json
 from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
+from helpers import clean_array, clean_xy_regression, clean_multiple_regression
 
 
 def linear_regression(x, y):
-    pairs = [(x_val, y_val) for x_val, y_val in zip(x, y) 
-             if x_val is not None and y_val is not None 
-             and not np.isnan(x_val) and not np.isnan(y_val)]
-    
-    if len(pairs) < 3:
+    x, y = clean_xy_regression(x, y)
+
+    if len(x) < 3:
         raise ValueError("Linear regression requires at least 3 valid pairs")
-    
-    x = np.array([p[0] for p in pairs])
-    y = np.array([p[1] for p in pairs])
     
     slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
     
@@ -29,33 +25,17 @@ def linear_regression(x, y):
         'rSquared': float(r_value ** 2),
         'pValue': float(p_value),
         'stdErr': float(std_err),
-        'nPairs': int(len(pairs))
+        'nPairs': int(len(x))
     }
 
 
 def multiple_regression(X, y):
     import statsmodels.api as sm
 
-    X_array = np.array(X)
-    y_array = np.array(y)
+    X_clean, y_clean = clean_multiple_regression(X, y)
 
-    if X_array.shape[0] != len(y_array):
-        raise ValueError(f"X and y must have same length: {X_array.shape[0]} != {len(y_array)}")
-
-    valid_rows = []
-    for i in range(len(y_array)):
-        y_val = y_array[i]
-        x_row = X_array[i]
-
-        if (y_val is not None and not np.isnan(y_val) and
-            all(x is not None and not np.isnan(x) for x in x_row)):
-            valid_rows.append(i)
-
-    if len(valid_rows) < 2:
-        raise ValueError(f"Multiple regression requires at least 2 valid observations, got {len(valid_rows)}")
-
-    X_clean = X_array[valid_rows]
-    y_clean = y_array[valid_rows]
+    if len(y_clean) < 2:
+        raise ValueError(f"Multiple regression requires at least 2 valid observations, got {len(y_clean)}")
 
     if X_clean.shape[0] < X_clean.shape[1] + 1:
         raise ValueError(f"Insufficient observations: need at least {X_clean.shape[1] + 1}, got {X_clean.shape[0]}")
@@ -72,7 +52,7 @@ def multiple_regression(X, y):
         'adjustedRSquared': float(model.rsquared_adj),
         'fStatistic': float(model.fvalue),
         'fPValue': float(model.f_pvalue),
-        'nObservations': int(len(valid_rows)),
+        'nObservations': int(len(y_clean)),
         'nPredictors': int(X_clean.shape[1])
     }
 
@@ -80,26 +60,10 @@ def multiple_regression(X, y):
 def logistic_regression(X, y):
     import statsmodels.api as sm
 
-    X_array = np.array(X)
-    y_array = np.array(y)
+    X_clean, y_clean = clean_multiple_regression(X, y)
 
-    if X_array.shape[0] != len(y_array):
-        raise ValueError(f"X and y must have same length: {X_array.shape[0]} != {len(y_array)}")
-
-    valid_rows = []
-    for i in range(len(y_array)):
-        y_val = y_array[i]
-        x_row = X_array[i]
-
-        if (y_val is not None and not np.isnan(y_val) and
-            all(x is not None and not np.isnan(x) for x in x_row)):
-            valid_rows.append(i)
-
-    if len(valid_rows) < 2:
-        raise ValueError(f"Logistic regression requires at least 2 valid observations, got {len(valid_rows)}")
-
-    X_clean = X_array[valid_rows]
-    y_clean = y_array[valid_rows]
+    if len(y_clean) < 2:
+        raise ValueError(f"Logistic regression requires at least 2 valid observations, got {len(y_clean)}")
 
     X_with_const = sm.add_constant(X_clean)
     model = sm.Logit(y_clean, X_with_const).fit(disp=0)
@@ -119,7 +83,7 @@ def logistic_regression(X, y):
         'aic': float(model.aic),
         'bic': float(model.bic),
         'pseudoRSquared': float(model.prsquared),
-        'nObservations': int(len(valid_rows)),
+        'nObservations': int(len(y_clean)),
         'nPredictors': int(X_clean.shape[1])
     }
 
@@ -155,15 +119,10 @@ def pca_analysis(data_matrix, n_components=2):
 # Priority 2 Methods - Regression (9 methods)
 
 def curve_estimation(x_values, y_values, model_type='linear'):
-    pairs = [(x_val, y_val) for x_val, y_val in zip(x_values, y_values)
-             if x_val is not None and y_val is not None
-             and not np.isnan(x_val) and not np.isnan(y_val)]
+    x, y = clean_xy_regression(x_values, y_values)
 
-    if len(pairs) < 3:
-        raise ValueError(f"Curve estimation requires at least 3 valid pairs, got {len(pairs)}")
-
-    x = np.array([p[0] for p in pairs])
-    y = np.array([p[1] for p in pairs])
+    if len(x) < 3:
+        raise ValueError(f"Curve estimation requires at least 3 valid pairs, got {len(x)}")
 
     if model_type == 'linear':
         coeffs = np.polyfit(x, y, 1)
@@ -216,22 +175,17 @@ def curve_estimation(x_values, y_values, model_type='linear'):
         'rSquared': float(r_squared),
         'predictions': [float(p) for p in predictions],
         'residuals': [float(r) for r in (y - predictions)],
-        'nPairs': int(len(pairs))
+        'nPairs': int(len(x))
     }
 
 
 def nonlinear_regression(x_values, y_values, model_type='exponential', initial_guess=None):
     from scipy.optimize import curve_fit
 
-    pairs = [(x_val, y_val) for x_val, y_val in zip(x_values, y_values)
-             if x_val is not None and y_val is not None
-             and not np.isnan(x_val) and not np.isnan(y_val)]
+    x, y = clean_xy_regression(x_values, y_values)
 
-    if len(pairs) < 3:
-        raise ValueError(f"Nonlinear regression requires at least 3 valid pairs, got {len(pairs)}")
-
-    x = np.array([p[0] for p in pairs])
-    y = np.array([p[1] for p in pairs])
+    if len(x) < 3:
+        raise ValueError(f"Nonlinear regression requires at least 3 valid pairs, got {len(x)}")
 
     if model_type == 'exponential':
         def model_func(x, a, b):
@@ -283,7 +237,7 @@ def nonlinear_regression(x_values, y_values, model_type='exponential', initial_g
         'rSquared': float(r_squared),
         'predictions': [float(p) for p in predictions],
         'residuals': [float(r) for r in residuals],
-        'nPairs': int(len(pairs))
+        'nPairs': int(len(x))
     }
 
 
@@ -926,7 +880,7 @@ def cox_regression(times, events, covariate_data, covariate_names):
 
 
 def durbin_watson_test(residuals):
-    clean_data = np.array([x for x in residuals if x is not None and not np.isnan(x)])
+    clean_data = clean_array(residuals)
 
     if len(clean_data) < 2:
         raise ValueError("Durbin-Watson test requires at least 2 observations")

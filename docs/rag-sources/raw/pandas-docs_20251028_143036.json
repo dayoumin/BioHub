@@ -1,0 +1,9 @@
+{
+  "source_id": "pandas-docs",
+  "source_name": "Pandas Documentation",
+  "url": "https://pandas.pydata.org/docs/",
+  "collected_at": "2025-10-28T14:30:36.100167",
+  "status": "collected",
+  "format": "html",
+  "notes": "Metadata only - actual content collection requires crawl4ai"
+}

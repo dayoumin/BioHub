@@ -27,6 +27,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 interface DescriptiveStats {
   variable: string
@@ -59,15 +60,21 @@ interface DescriptiveResults {
 }
 
 export default function DescriptiveStatsPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [results, setResults] = useState<DescriptiveResults | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  // Custom hook: 공통 상태 관리
+  const { state, actions } = useStatisticsPage<DescriptiveResults>({
+    withUploadedData: false,
+    withError: false
+  })
+
+  // 페이지 특정 상태 (activeTab, 옵션 등)
   const [activeTab, setActiveTab] = useState('summary')
   const [showAdvanced, setShowAdvanced] = useState(true)
   const [showConfidenceInterval, setShowConfidenceInterval] = useState(true)
   const [confidenceLevel, setConfidenceLevel] = useState('95')
   const { pyodideService: _pyodideService } = usePyodideService()
+
+  // 편의를 위한 destructuring
+  const { currentStep, variableMapping, results, isAnalyzing } = state
 
   // 단계 정의
   const steps: StatisticsStep[] = [
@@ -103,7 +110,7 @@ export default function DescriptiveStatsPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -158,9 +165,7 @@ export default function DescriptiveStatsPage() {
         analysisDate: new Date().toLocaleString('ko-KR')
       }
 
-      setResults(mockResults)
-      setIsAnalyzing(false)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResults, 3)
       setActiveTab('summary')
     }, 1500)
   }
@@ -168,15 +173,13 @@ export default function DescriptiveStatsPage() {
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
     if (step <= currentStep + 1) {
-      setCurrentStep(step)
+      actions.setCurrentStep(step)
     }
   }
 
   // 초기화
   const handleReset = () => {
-    setVariableMapping({})
-    setResults(null)
-    setCurrentStep(0)
+    actions.reset()
     setActiveTab('summary')
   }
 
@@ -365,9 +368,9 @@ export default function DescriptiveStatsPage() {
                 title="수치형 변수 선택"
                 description="숫자로 구성된 변수를 선택하세요 (여러 변수 선택 가능)"
                 onMappingChange={(mapping) => {
-                  setVariableMapping(mapping)
+                  actions.updateVariableMapping(mapping)
                   if (Object.keys(mapping).length > 0) {
-                    setCurrentStep(1)
+                    actions.setCurrentStep(1)
                   }
                 }}
               />
@@ -424,7 +427,7 @@ export default function DescriptiveStatsPage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(2)}
                   disabled={Object.keys(variableMapping).length === 0}
                 >
                   다음 단계

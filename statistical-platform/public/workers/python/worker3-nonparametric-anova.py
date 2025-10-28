@@ -7,12 +7,13 @@
 from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
+from helpers import clean_array, clean_paired_arrays, clean_groups as clean_groups_helper
 
 
 
 def mann_whitney_test(group1, group2):
-    group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
-    group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
+    group1 = clean_array(group1)
+    group2 = clean_array(group2)
     
     if len(group1) < 2 or len(group2) < 2:
         raise ValueError("Each group must have at least 2 observations")
@@ -26,32 +27,27 @@ def mann_whitney_test(group1, group2):
 
 
 def wilcoxon_test(values1, values2):
-    pairs = [(v1, v2) for v1, v2 in zip(values1, values2) 
-             if v1 is not None and v2 is not None 
-             and not np.isnan(v1) and not np.isnan(v2)]
-    
-    if len(pairs) < 2:
+    values1, values2 = clean_paired_arrays(values1, values2)
+
+    if len(values1) < 2:
         raise ValueError("Wilcoxon test requires at least 2 valid pairs")
     
-    values1 = np.array([p[0] for p in pairs])
-    values2 = np.array([p[1] for p in pairs])
-    
     statistic, p_value = stats.wilcoxon(values1, values2)
-    
+
     return {
         'statistic': float(statistic),
         'pValue': float(p_value),
-        'nPairs': int(len(pairs))
+        'nPairs': int(len(values1))
     }
 
 
 def kruskal_wallis_test(groups):
-    clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
-    
+    clean_groups = clean_groups_helper(groups)
+
     for i, group in enumerate(clean_groups):
         if len(group) == 0:
             raise ValueError(f"Group {i} has no valid observations")
-    
+
     statistic, p_value = stats.kruskal(*clean_groups)
     
     return {
@@ -62,12 +58,12 @@ def kruskal_wallis_test(groups):
 
 
 def friedman_test(groups):
-    clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
-    
+    clean_groups = clean_groups_helper(groups)
+
     lengths = [len(g) for g in clean_groups]
     if len(set(lengths)) > 1:
         raise ValueError(f"Friedman test requires equal group sizes, got: {lengths}")
-    
+
     statistic, p_value = stats.friedmanchisquare(*clean_groups)
     
     return {
@@ -78,12 +74,12 @@ def friedman_test(groups):
 
 
 def one_way_anova(groups):
-    clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
-    
+    clean_groups = clean_groups_helper(groups)
+
     for i, group in enumerate(clean_groups):
         if len(group) < 2:
             raise ValueError(f"Group {i} must have at least 2 observations")
-    
+
     f_statistic, p_value = stats.f_oneway(*clean_groups)
     
     return {
@@ -147,7 +143,7 @@ def two_way_anova(data_values, factor1_values, factor2_values):
 def tukey_hsd(groups):
     from scipy.stats import tukey_hsd as scipy_tukey
 
-    clean_groups = [np.array([x for x in group if x is not None and not np.isnan(x)]) for group in groups]
+    clean_groups = clean_groups_helper(groups)
 
     for i, group in enumerate(clean_groups):
         if len(group) == 0:
@@ -208,7 +204,7 @@ def sign_test(before, after):
 def runs_test(sequence):
     from statsmodels.sandbox.stats.runs import runstest_1samp
 
-    sequence = np.array([x for x in sequence if x is not None and not np.isnan(x)])
+    sequence = clean_array(sequence)
 
     if len(sequence) < 10:
         raise ValueError("Runs test requires at least 10 observations")
@@ -527,12 +523,11 @@ def dunn_test(groups, p_adjust='holm'):
     if len(groups) < 2:
         raise ValueError(f"Dunn test requires at least 2 groups, got {len(groups)}")
 
-    clean_groups = []
-    for i, group in enumerate(groups):
-        arr = np.array([x for x in group if x is not None and not np.isnan(x)])
-        if len(arr) == 0:
+    clean_groups = clean_groups_helper(groups)
+
+    for i, group in enumerate(clean_groups):
+        if len(group) == 0:
             raise ValueError(f"Group {i} has no valid observations")
-        clean_groups.append(arr)
 
     data_list = []
     group_labels = []
@@ -576,12 +571,11 @@ def games_howell_test(groups):
     if len(groups) < 2:
         raise ValueError(f"Games-Howell test requires at least 2 groups, got {len(groups)}")
 
-    clean_groups = []
-    for i, group in enumerate(groups):
-        arr = np.array([x for x in group if x is not None and not np.isnan(x)])
-        if len(arr) == 0:
+    clean_groups = clean_groups_helper(groups)
+
+    for i, group in enumerate(clean_groups):
+        if len(group) == 0:
             raise ValueError(f"Group {i} has no valid observations")
-        clean_groups.append(arr)
 
     data_list = []
     group_labels = []

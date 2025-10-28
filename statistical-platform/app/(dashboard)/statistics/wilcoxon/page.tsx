@@ -25,6 +25,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -79,13 +80,12 @@ interface WilcoxonResult {
 }
 
 export default function WilcoxonPage() {
-  // State
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<WilcoxonResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<WilcoxonResult, VariableAssignment>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -98,7 +98,7 @@ export default function WilcoxonPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
@@ -142,13 +142,12 @@ export default function WilcoxonPage() {
       ...row,
       _id: index
     }))
-    setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
+    actions.setUploadedData(processedData)
+    actions.setCurrentStep(2)
   }, [])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.dependent && variables.dependent.length === 2) {
       runAnalysis(variables)
     }
@@ -156,12 +155,11 @@ export default function WilcoxonPage() {
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || variables.dependent.length !== 2) {
-      setError('분석을 실행할 수 없습니다. 사전-사후 두 변수를 선택해주세요.')
+      actions.setError('분석을 실행할 수 없습니다. 사전-사후 두 변수를 선택해주세요.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       // 실제 Pyodide 분석 실행
@@ -171,13 +169,10 @@ export default function WilcoxonPage() {
         variables.dependent[1]
       )
 
-      setAnalysisResult(result)
-      setCurrentStep(3)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Wilcoxon 부호순위 검정 실패:', err)
-      setError('Wilcoxon 부호순위 검정 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
+      actions.setError('Wilcoxon 부호순위 검정 중 오류가 발생했습니다.')
     }
   }
 
@@ -189,7 +184,7 @@ export default function WilcoxonPage() {
       icon={<GitBranch className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={{
         formula: "W = Σ(Ri × sign(di))",
         assumptions: [
@@ -264,7 +259,7 @@ export default function WilcoxonPage() {
             </Alert>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -295,7 +290,7 @@ export default function WilcoxonPage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -313,7 +308,7 @@ export default function WilcoxonPage() {
             methodId="wilcoxon_signed_rank"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -571,7 +566,7 @@ export default function WilcoxonPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -579,7 +574,7 @@ export default function WilcoxonPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.setCurrentStep(0)}>
                 새로운 분석
               </Button>
             </div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { StatisticsPageLayout, StepCard } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { Button } from '@/components/ui/button'
@@ -105,13 +106,17 @@ interface SignTestResult {
 }
 
 export default function SignTestPage() {
-  const [currentStep, setCurrentStep] = useState<number>(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<SignTestResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
   const [selectedBefore, setSelectedBefore] = useState<string>('')
   const [selectedAfter, setSelectedAfter] = useState<string>('')
   const [testType, setTestType] = useState<'two-tailed' | 'greater' | 'less'>('two-tailed')
-  const [analysisResult, setAnalysisResult] = useState<SignTestResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [pyodideReady, setPyodideReady] = useState(false)
 
   useEffect(() => {
@@ -123,6 +128,7 @@ export default function SignTestPage() {
         if (isMounted) {
           setPyodideReady(true)
         }
+
       } catch (error) {
         console.error('Pyodide 초기화 실패:', error)
       }
@@ -136,9 +142,9 @@ export default function SignTestPage() {
   }, [])
 
   const availableVariables = useMemo(() => {
-    if (!uploadedData || uploadedData.length === 0) return []
+    if (!uploadedData || (uploadedData ?? []).length === 0) return []
 
-    const firstRow = uploadedData[0]
+    const firstRow = (uploadedData as unknown[] ?? [])[0]
     return Object.keys(firstRow).map(key => ({
       name: key,
       type: typeof firstRow[key] === 'number' ? 'numeric' : 'categorical'
@@ -151,8 +157,8 @@ export default function SignTestPage() {
   )
 
   const handleDataUpload = useCallback((data: DataRow[]) => {
-    setUploadedData(data)
-    setCurrentStep(1)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(1)
   }, [])
 
   const canProceedToAnalysis = useMemo(() => {
@@ -228,18 +234,16 @@ export default function SignTestPage() {
         }
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(3)
+      actions.setResults(mockResult)
+      actions.setCurrentStep(3)
     } catch (error) {
       console.error('분석 중 오류:', error)
-    } finally {
-      setIsAnalyzing(false)
     }
-  }, [canProceedToAnalysis, uploadedData, pyodideReady, testType])
+  }, [canProceedToAnalysis, (uploadedData as unknown[] ?? []), pyodideReady, testType])
 
   const handleVariableSelection = useCallback(() => {
     if (canProceedToAnalysis) {
-      setCurrentStep(2)
+      actions.setCurrentStep(2)
     }
   }, [canProceedToAnalysis])
 
@@ -361,7 +365,7 @@ export default function SignTestPage() {
         </Alert>
 
         <div className="flex justify-end">
-          <Button onClick={() => setCurrentStep(1)} className="flex items-center space-x-2">
+          <Button onClick={() => actions.setCurrentStep(1)} className="flex items-center space-x-2">
             <span>다음: 데이터 업로드</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
@@ -520,7 +524,7 @@ export default function SignTestPage() {
         <div className="flex justify-between">
           <Button
             variant="outline"
-            onClick={() => setCurrentStep(0)}
+            onClick={() => actions.setCurrentStep(0)}
           >
             이전: 소개
           </Button>
@@ -545,7 +549,7 @@ export default function SignTestPage() {
   ])
 
   const renderAnalysisResults = useCallback(() => {
-    if (!analysisResult) {
+    if (!results) {
       return (
         <StepCard title="분석 실행">
           <div className="text-center py-8">
@@ -573,9 +577,9 @@ export default function SignTestPage() {
     }
 
     const pieData = [
-      { name: '양의 차이', value: analysisResult.descriptive.positive_differences, color: '#10b981' },
-      { name: '음의 차이', value: analysisResult.descriptive.negative_differences, color: '#ef4444' },
-      { name: '차이 없음', value: analysisResult.descriptive.zero_differences, color: '#6b7280' }
+      { name: '양의 차이', value: results.descriptive.positive_differences, color: '#10b981' },
+      { name: '음의 차이', value: results.descriptive.negative_differences, color: '#ef4444' },
+      { name: '차이 없음', value: results.descriptive.zero_differences, color: '#6b7280' }
     ]
 
     return (
@@ -602,23 +606,23 @@ export default function SignTestPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">검정명:</span>
-                        <span className="text-sm font-medium">{analysisResult.test_info.test_name}</span>
+                        <span className="text-sm font-medium">{results.test_info.test_name}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">검정 유형:</span>
-                        <span className="text-sm font-medium">{analysisResult.test_info.test_type}</span>
+                        <span className="text-sm font-medium">{results.test_info.test_type}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">전체 쌍:</span>
-                        <span className="text-sm font-medium">{analysisResult.test_info.n_pairs}개</span>
+                        <span className="text-sm font-medium">{results.test_info.n_pairs}개</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">유효 쌍:</span>
-                        <span className="text-sm font-medium">{analysisResult.test_info.n_valid_pairs}개</span>
+                        <span className="text-sm font-medium">{results.test_info.n_valid_pairs}개</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">동점:</span>
-                        <span className="text-sm font-medium">{analysisResult.test_info.n_ties}개</span>
+                        <span className="text-sm font-medium">{results.test_info.n_ties}개</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -630,20 +634,20 @@ export default function SignTestPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">p-value:</span>
-                        <PValueBadge pValue={analysisResult.p_values.two_tailed} />
+                        <PValueBadge pValue={results.p_values.two_tailed} />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">효과크기 (r):</span>
-                        <span className="text-sm font-medium">{analysisResult.effect_size.matched_pairs_rank_biserial.toFixed(3)}</span>
+                        <span className="text-sm font-medium">{results.effect_size.matched_pairs_rank_biserial.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">중앙값 차이:</span>
-                        <span className="text-sm font-medium">{analysisResult.descriptive.median_difference.toFixed(3)}</span>
+                        <span className="text-sm font-medium">{results.descriptive.median_difference.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">95% CI:</span>
                         <span className="text-sm font-medium">
-                          [{analysisResult.confidence_interval.median_diff_ci_lower.toFixed(3)}, {analysisResult.confidence_interval.median_diff_ci_upper.toFixed(3)}]
+                          [{results.confidence_interval.median_diff_ci_lower.toFixed(3)}, {results.confidence_interval.median_diff_ci_upper.toFixed(3)}]
                         </span>
                       </div>
                     </CardContent>
@@ -654,15 +658,15 @@ export default function SignTestPage() {
               <div>
                 <h4 className="font-medium mb-3">결론</h4>
                 <Alert>
-                  {analysisResult.p_values.two_tailed < 0.05 ? (
+                  {results.p_values.two_tailed < 0.05 ? (
                     <CheckCircle2 className="h-4 w-4" />
                   ) : (
                     <Info className="h-4 w-4" />
                   )}
                   <AlertDescription>
-                    <strong>{analysisResult.summary.conclusion}</strong>
+                    <strong>{results.summary.conclusion}</strong>
                     <br />
-                    {analysisResult.summary.interpretation}
+                    {results.summary.interpretation}
                   </AlertDescription>
                 </Alert>
               </div>
@@ -709,30 +713,30 @@ export default function SignTestPage() {
                         <span className="text-sm">양의 차이:</span>
                         <span className="text-sm font-medium flex items-center">
                           <Plus className="w-3 h-3 text-green-600 mr-1" />
-                          {analysisResult.descriptive.positive_differences}개
+                          {results.descriptive.positive_differences}개
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">음의 차이:</span>
                         <span className="text-sm font-medium flex items-center">
                           <Minus className="w-3 h-3 text-red-600 mr-1" />
-                          {analysisResult.descriptive.negative_differences}개
+                          {results.descriptive.negative_differences}개
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">차이 없음:</span>
                         <span className="text-sm font-medium">
-                          {analysisResult.descriptive.zero_differences}개
+                          {results.descriptive.zero_differences}개
                         </span>
                       </div>
                       <Separator />
                       <div className="flex justify-between">
                         <span className="text-sm">중앙값 차이:</span>
-                        <span className="text-sm font-medium">{analysisResult.descriptive.median_difference.toFixed(3)}</span>
+                        <span className="text-sm font-medium">{results.descriptive.median_difference.toFixed(3)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">평균 차이:</span>
-                        <span className="text-sm font-medium">{analysisResult.descriptive.mean_difference.toFixed(3)}</span>
+                        <span className="text-sm font-medium">{results.descriptive.mean_difference.toFixed(3)}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -754,22 +758,22 @@ export default function SignTestPage() {
                   <TableBody>
                     <TableRow>
                       <TableCell>S+</TableCell>
-                      <TableCell>{analysisResult.test_statistics.s_positive}</TableCell>
+                      <TableCell>{results.test_statistics.s_positive}</TableCell>
                       <TableCell>양의 차이 개수</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>S-</TableCell>
-                      <TableCell>{analysisResult.test_statistics.s_negative}</TableCell>
+                      <TableCell>{results.test_statistics.s_negative}</TableCell>
                       <TableCell>음의 차이 개수</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>검정통계량</TableCell>
-                      <TableCell>{analysisResult.test_statistics.test_statistic}</TableCell>
+                      <TableCell>{results.test_statistics.test_statistic}</TableCell>
                       <TableCell>min(S+, S-)</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Z-점수</TableCell>
-                      <TableCell>{analysisResult.test_statistics.z_score.toFixed(3)}</TableCell>
+                      <TableCell>{results.test_statistics.z_score.toFixed(3)}</TableCell>
                       <TableCell>정규근사값</TableCell>
                     </TableRow>
                   </TableBody>
@@ -786,15 +790,15 @@ export default function SignTestPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">양측 검정:</span>
-                        <PValueBadge pValue={analysisResult.p_values.exact_p_value} />
+                        <PValueBadge pValue={results.p_values.exact_p_value} />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">우측 검정:</span>
-                        <PValueBadge pValue={analysisResult.p_values.one_tailed_greater} />
+                        <PValueBadge pValue={results.p_values.one_tailed_greater} />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">좌측 검정:</span>
-                        <PValueBadge pValue={analysisResult.p_values.one_tailed_less} />
+                        <PValueBadge pValue={results.p_values.one_tailed_less} />
                       </div>
                     </CardContent>
                   </Card>
@@ -806,12 +810,12 @@ export default function SignTestPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">정규근사:</span>
-                        <PValueBadge pValue={analysisResult.p_values.asymptotic_p_value} />
+                        <PValueBadge pValue={results.p_values.asymptotic_p_value} />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">연속성 보정:</span>
                         <span className="text-sm font-medium">
-                          {analysisResult.test_statistics.continuity_correction ? '적용됨' : '미적용'}
+                          {results.test_statistics.continuity_correction ? '적용됨' : '미적용'}
                         </span>
                       </div>
                     </CardContent>
@@ -833,10 +837,10 @@ export default function SignTestPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-semibold">
-                            {analysisResult.effect_size.matched_pairs_rank_biserial.toFixed(3)}
+                            {results.effect_size.matched_pairs_rank_biserial.toFixed(3)}
                           </div>
                           <Badge variant="outline" className="text-xs">
-                            {analysisResult.effect_size.interpretation}
+                            {results.effect_size.interpretation}
                           </Badge>
                         </div>
                       </div>
@@ -871,7 +875,7 @@ export default function SignTestPage() {
                       <div className="flex justify-between">
                         <span className="text-sm">중앙값 차이 95% CI:</span>
                         <span className="text-sm font-medium">
-                          [{analysisResult.confidence_interval.median_diff_ci_lower.toFixed(3)}, {analysisResult.confidence_interval.median_diff_ci_upper.toFixed(3)}]
+                          [{results.confidence_interval.median_diff_ci_lower.toFixed(3)}, {results.confidence_interval.median_diff_ci_upper.toFixed(3)}]
                         </span>
                       </div>
                       <p className="text-xs text-gray-600">
@@ -892,16 +896,16 @@ export default function SignTestPage() {
                       <div className="flex justify-between items-center">
                         <div>
                           <h5 className="font-medium">독립성</h5>
-                          <p className="text-sm text-gray-600">{analysisResult.assumptions.independence.note}</p>
+                          <p className="text-sm text-gray-600">{results.assumptions.independence.note}</p>
                         </div>
                         <div className="text-right">
-                          {analysisResult.assumptions.independence.assumption_met ? (
+                          {results.assumptions.independence.assumption_met ? (
                             <CheckCircle2 className="w-6 h-6 text-green-500" />
                           ) : (
                             <AlertTriangle className="w-6 h-6 text-amber-500" />
                           )}
                           <p className="text-xs text-gray-600">
-                            {analysisResult.assumptions.independence.assumption_met ? '만족' : '위반 가능성'}
+                            {results.assumptions.independence.assumption_met ? '만족' : '위반 가능성'}
                           </p>
                         </div>
                       </div>
@@ -913,16 +917,16 @@ export default function SignTestPage() {
                       <div className="flex justify-between items-center">
                         <div>
                           <h5 className="font-medium">대칭성 (선택적)</h5>
-                          <p className="text-sm text-gray-600">{analysisResult.assumptions.symmetry.note}</p>
+                          <p className="text-sm text-gray-600">{results.assumptions.symmetry.note}</p>
                         </div>
                         <div className="text-right">
-                          {analysisResult.assumptions.symmetry.assumption_met ? (
+                          {results.assumptions.symmetry.assumption_met ? (
                             <CheckCircle2 className="w-6 h-6 text-green-500" />
                           ) : (
                             <AlertTriangle className="w-6 h-6 text-amber-500" />
                           )}
                           <p className="text-xs text-gray-600">
-                            {analysisResult.assumptions.symmetry.assumption_met ? '만족' : '위반 가능성'}
+                            {results.assumptions.symmetry.assumption_met ? '만족' : '위반 가능성'}
                           </p>
                         </div>
                       </div>
@@ -947,25 +951,25 @@ export default function SignTestPage() {
                   <Alert>
                     <CheckCircle2 className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>통계적 유의성:</strong> {analysisResult.summary.conclusion}
+                      <strong>통계적 유의성:</strong> {results.summary.conclusion}
                       <br />
-                      {analysisResult.summary.interpretation}
+                      {results.summary.interpretation}
                     </AlertDescription>
                   </Alert>
 
                   <Alert>
                     <BarChart3 className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>실질적 의미:</strong> {analysisResult.summary.practical_significance}
+                      <strong>실질적 의미:</strong> {results.summary.practical_significance}
                       <br />
-                      효과크기 r = {analysisResult.effect_size.matched_pairs_rank_biserial.toFixed(3)}는 {analysisResult.effect_size.interpretation}에 해당합니다.
+                      효과크기 r = {results.effect_size.matched_pairs_rank_biserial.toFixed(3)}는 {results.effect_size.interpretation}에 해당합니다.
                     </AlertDescription>
                   </Alert>
 
                   <Alert>
                     <TrendingUp className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>권장사항:</strong> {analysisResult.summary.recommendation}
+                      <strong>권장사항:</strong> {results.summary.recommendation}
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -987,7 +991,7 @@ export default function SignTestPage() {
         </StepCard>
       </div>
     )
-  }, [analysisResult, isAnalyzing, pyodideReady, runSignTest])
+  }, [results, isAnalyzing, pyodideReady, runSignTest])
 
   const steps = [
     { title: '소개', component: renderIntroductionStep },
@@ -1002,7 +1006,7 @@ export default function SignTestPage() {
       subtitle="Sign Test"
       currentStep={currentStep}
       totalSteps={steps.length}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
     >
       {steps[currentStep].component()}
     </StatisticsPageLayout>

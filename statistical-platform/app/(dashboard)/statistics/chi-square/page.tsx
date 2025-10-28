@@ -39,6 +39,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 
 type ChiSquareTest = 'independence' | 'goodness-of-fit' | 'fishers-exact'
@@ -88,10 +89,12 @@ const testDescriptions: Record<ChiSquareTest, TestDescription> = {
 }
 
 export default function ChiSquareTestPage() {
+  const { state, actions } = useStatisticsPage<StatisticalResult>({
+    withUploadedData: false,
+    withError: false
+  })
+  const { variableMapping, results: result, isAnalyzing } = state
   const [selectedTest, setSelectedTest] = useState<ChiSquareTest>('independence')
-  const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [result, setResult] = useState<StatisticalResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [activeTab, setActiveTab] = useState('setup')
   const [alpha, setAlpha] = useState('0.05')
 
@@ -125,7 +128,7 @@ export default function ChiSquareTestPage() {
 
   // Mock 분석 실행
   const runAnalysis = async () => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     setTimeout(() => {
       const mockResult: StatisticalResult = {
@@ -148,14 +151,14 @@ export default function ChiSquareTestPage() {
             description: '모든 셀의 기대빈도가 5 이상이어야 함',
             pValue: null,
             passed: true,
-            details: '최소 기대빈도: 7.2'
+            recommendation: '최소 기대빈도: 7.2'
           },
           {
             name: '표본 독립성',
             description: '각 관측치는 독립적이어야 함',
             pValue: null,
             passed: true,
-            details: '연구 설계상 독립성 보장'
+            recommendation: '연구 설계상 독립성 보장'
           }
         ],
         additionalResults: {
@@ -183,9 +186,8 @@ export default function ChiSquareTestPage() {
         groups: tableRows * tableCols
       }
 
-      setResult(mockResult)
+      actions.setResults(mockResult)
       setActiveTab('results')
-      setIsAnalyzing(false)
     }, 1500)
   }
 
@@ -397,7 +399,7 @@ export default function ChiSquareTestPage() {
             {/* 또는 변수 선택 */}
             <VariableSelector
               requirements={getVariableRequirements()}
-              onMappingChange={setVariableMapping}
+              onMappingChange={actions.updateVariableMapping}
               title="또는 데이터에서 변수 선택"
               description="CSV 파일에서 범주형 변수를 선택하면 자동으로 분할표를 생성합니다"
             />

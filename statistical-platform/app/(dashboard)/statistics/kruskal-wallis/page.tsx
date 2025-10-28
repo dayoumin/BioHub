@@ -29,6 +29,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -78,13 +79,12 @@ interface KruskalWallisResult {
 }
 
 export default function KruskalWallisPage() {
-  // State
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<KruskalWallisResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // State (using hook)
+  const { state, actions } = useStatisticsPage<KruskalWallisResult, VariableAssignment>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -97,11 +97,11 @@ export default function KruskalWallisPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
-  }, [])
+  }, [actions])
 
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
@@ -153,27 +153,25 @@ export default function KruskalWallisPage() {
       ...row as Record<string, unknown>,
       _id: index
     })) as DataRow[]
-    setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
-  }, [])
+    actions.setUploadedData(processedData)
+    actions.setCurrentStep(2)
+  }, [actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent &&
         variables.dependent.length === 1 && variables.independent.length === 1) {
       runAnalysis(variables)
     }
-  }, [])
+  }, [actions])
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || !variables.independent) {
-      setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       // 실제 Pyodide 분석 실행
@@ -183,13 +181,10 @@ export default function KruskalWallisPage() {
         variables.independent[0]
       )
 
-      setAnalysisResult(result)
-      setCurrentStep(3)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Kruskal-Wallis 검정 실패:', err)
-      setError('Kruskal-Wallis 검정 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
+      actions.setError('Kruskal-Wallis 검정 중 오류가 발생했습니다.')
     }
   }
 
@@ -208,7 +203,7 @@ export default function KruskalWallisPage() {
       icon={<Users className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -274,7 +269,7 @@ export default function KruskalWallisPage() {
             </Alert>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -305,7 +300,7 @@ export default function KruskalWallisPage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -323,7 +318,7 @@ export default function KruskalWallisPage() {
             methodId="kruskal_wallis"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -602,7 +597,7 @@ export default function KruskalWallisPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -610,7 +605,7 @@ export default function KruskalWallisPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.reset()}>
                 새로운 분석
               </Button>
             </div>

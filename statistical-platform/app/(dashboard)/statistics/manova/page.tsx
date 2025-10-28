@@ -27,6 +27,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -138,12 +139,11 @@ interface ManovaResult {
 }
 
 export default function ManovaPage() {
-  const [currentStep, setCurrentStep] = useState<number>(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [_selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<ManovaResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
+  const { state, actions } = useStatisticsPage<ManovaResult, VariableAssignment>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables: _selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -163,7 +163,7 @@ export default function ManovaPage() {
       } catch (err) {
         if (isMounted && !abortController.signal.aborted) {
           console.error('Pyodide 초기화 실패:', err)
-          setError('통계 엔진을 초기화할 수 없습니다.')
+          actions.setError('통계 엔진을 초기화할 수 없습니다.')
         }
       }
     }
@@ -174,7 +174,7 @@ export default function ManovaPage() {
       isMounted = false
       abortController.abort()
     }
-  }, [])
+  }, [actions])
 
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
@@ -233,18 +233,17 @@ export default function ManovaPage() {
   }), [])
 
   const handleDataUpload = useCallback((data: DataRow[]) => {
-    setUploadedData(data)
-    setCurrentStep(2)
-  }, [])
+    actions.setUploadedData(data)
+    actions.setCurrentStep(2)
+  }, [actions])
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {
-      setError('데이터나 통계 엔진이 준비되지 않았습니다.')
+      actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
       return
     }
 
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       // Mock MANOVA 결과
@@ -359,23 +358,21 @@ export default function ManovaPage() {
         }
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResult, 3)
     } catch (err) {
       console.error('MANOVA 분석 실패:', err)
-      setError('MANOVA 분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
+      actions.setError('MANOVA 분석 중 오류가 발생했습니다.')
+      actions.stopAnalysis()
     }
-  }, [uploadedData, pyodide])
+  }, [uploadedData, pyodide, actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent &&
         variables.dependent.length >= 2 && variables.independent.length >= 1) {
       runAnalysis(variables)
     }
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
@@ -400,7 +397,7 @@ export default function ManovaPage() {
       icon={<Layers3 className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -480,7 +477,7 @@ export default function ManovaPage() {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -513,7 +510,7 @@ export default function ManovaPage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -531,7 +528,7 @@ export default function ManovaPage() {
             methodId="manova"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -1162,7 +1159,7 @@ export default function ManovaPage() {
           </Tabs>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               다시 분석
             </Button>
             <Button>

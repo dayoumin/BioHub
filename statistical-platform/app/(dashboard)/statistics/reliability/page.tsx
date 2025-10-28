@@ -204,7 +204,7 @@ export default function ReliabilityAnalysisPage() {
       icon={<Activity className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={{
         formula: "α = (k/(k-1)) × (1 - (Σσᵢ²/σₜ²))",
         assumptions: [

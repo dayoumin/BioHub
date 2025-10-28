@@ -8,10 +8,11 @@ from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
+from helpers import clean_array
 
 
 def descriptive_stats(data: List[Union[float, int, None]]) -> Dict[str, Union[float, int]]:
-    clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
+    clean_data = clean_array(data)
 
     if len(clean_data) == 0:
         raise ValueError("No valid data")
@@ -40,7 +41,7 @@ def descriptive_stats(data: List[Union[float, int, None]]) -> Dict[str, Union[fl
 
 
 def normality_test(data: List[Union[float, int, None]], alpha: float = 0.05) -> Dict[str, Union[float, bool]]:
-    clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
+    clean_data = clean_array(data)
 
     if len(clean_data) < 3:
         raise ValueError("Normality test requires at least 3 observations")
@@ -59,7 +60,7 @@ def outlier_detection(
     data: List[Union[float, int, None]],
     method: Literal['iqr', 'zscore'] = 'iqr'
 ) -> Dict[str, Union[List[int], int, str]]:
-    clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
+    clean_data = clean_array(data)
 
     if len(clean_data) < 4:
         raise ValueError("Outlier detection requires at least 4 observations")
@@ -207,7 +208,7 @@ def cronbach_alpha(items_matrix: List[List[Union[float, int]]]) -> Dict[str, Uni
 
 
 def kolmogorov_smirnov_test(data: List[Union[float, int, None]]) -> Dict[str, Union[float, bool]]:
-    clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
+    clean_data = clean_array(data)
 
     if len(clean_data) < 3:
         raise ValueError("K-S test requires at least 3 observations")

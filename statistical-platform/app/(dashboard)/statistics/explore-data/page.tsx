@@ -29,6 +29,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 interface ExploreResults {
   variable: string
@@ -98,10 +99,11 @@ interface ExploreResults {
 }
 
 export default function ExploreDataPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [results, setResults] = useState<ExploreResults[]>([])
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const { state, actions } = useStatisticsPage<ExploreResults[]>({
+    withUploadedData: false,
+    withError: false
+  })
+  const { currentStep, variableMapping, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedVariable, setSelectedVariable] = useState<string>('')
   const [showOutliers, setShowOutliers] = useState(true)
@@ -129,20 +131,20 @@ export default function ExploreDataPage() {
       number: 3,
       title: '탐색 실행',
       description: '탐색적 데이터 분석 수행',
-      status: results.length > 0 ? 'completed' : 'pending'
+      status: results && results.length > 0 ? 'completed' : 'pending'
     },
     {
       id: 'view-results',
       number: 4,
       title: '결과 탐색',
       description: '변수별 특성 및 시각화 확인',
-      status: results.length > 0 ? 'current' : 'pending'
+      status: results && results.length > 0 ? 'current' : 'pending'
     }
   ]
 
   // 분석 실행
   const handleAnalysis = async () => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -214,12 +216,10 @@ export default function ExploreDataPage() {
         }
       ]
 
-      setResults(mockResults)
+      actions.completeAnalysis(mockResults, 3)
       if (mockResults.length > 0) {
         setSelectedVariable(mockResults[0].variable)
       }
-      setIsAnalyzing(false)
-      setCurrentStep(3)
       setActiveTab('overview')
     }, 2000)
   }
@@ -227,22 +227,20 @@ export default function ExploreDataPage() {
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
     if (step <= currentStep + 1) {
-      setCurrentStep(step)
+      actions.setCurrentStep(step)
     }
   }
 
   // 초기화
   const handleReset = () => {
-    setVariableMapping({})
-    setResults([])
+    actions.reset()
     setSelectedVariable('')
-    setCurrentStep(0)
     setActiveTab('overview')
   }
 
   // 전체 개요 테이블 렌더링
   const renderOverviewTable = () => {
-    if (results.length === 0) return null
+    if (!results || results.length === 0) return null
 
     const data = results.map(result => ({
       variable: result.variable,
@@ -340,7 +338,7 @@ export default function ExploreDataPage() {
 
   // 요약 카드들
   const renderSummaryCards = () => {
-    if (results.length === 0) return null
+    if (!results || results.length === 0) return null
 
     const totalVariables = results.length
     const numericalVars = results.filter(r => r.variableType === 'numerical').length
@@ -402,7 +400,7 @@ export default function ExploreDataPage() {
 
   // 데이터 품질 평가
   const renderDataQualityAssessment = () => {
-    if (results.length === 0) return null
+    if (!results || results.length === 0) return null
 
     const issues = []
     const recommendations = []
@@ -508,9 +506,9 @@ export default function ExploreDataPage() {
                 title="변수 선택"
                 description="탐색할 모든 변수를 선택하세요"
                 onMappingChange={(mapping) => {
-                  setVariableMapping(mapping)
+                  actions.updateVariableMapping(mapping)
                   if (Object.keys(mapping).length > 0) {
-                    setCurrentStep(1)
+                    actions.setCurrentStep(1)
                   }
                 }}
               />
@@ -565,7 +563,7 @@ export default function ExploreDataPage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(2)}
                   disabled={Object.keys(variableMapping).length === 0}
                 >
                   다음 단계
@@ -603,7 +601,7 @@ export default function ExploreDataPage() {
         )}
 
         {/* 4단계: 결과 확인 */}
-        {results.length > 0 && currentStep === 3 && (
+        {results && results.length > 0 && currentStep === 3 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">전체 개요</TabsTrigger>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import type { PyodideInterface } from '@/types/pyodide'
@@ -108,16 +109,24 @@ interface TwoWayAnovaResults {
 }
 
 export default function TwoWayAnovaPage() {
-  const [currentStep, setCurrentStep] = useState(1)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<TwoWayAnovaResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
   const [data, setData] = useState<any[]>([])
   const [columns, setColumns] = useState<string[]>([])
-  const [selectedVariables, setSelectedVariables] = useState<SelectedVariables>({
-    dependent: [],
-    factor: []
+  const [selectedVariablesManual, setSelectedVariablesManual] = useState<{
+    dependent: string
+    factor_variable: string[]
+  }>({
+
+    dependent: "",
+    factor_variable: []
   })
-  const [results, setResults] = useState<TwoWayAnovaResults | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const steps = [
     {
@@ -151,20 +160,19 @@ export default function TwoWayAnovaPage() {
   ]
 
   const handleDataUpload = (uploadedData: unknown[], uploadedColumns: string[]) => {
-    setData(uploadedData)
+    setData((uploadedData as unknown[] ?? []))
     setColumns(uploadedColumns)
-    setCurrentStep(3)
+    actions.setCurrentStep(3)
   }
 
   const handleVariablesSelected = (variables: unknown) => {
-    setSelectedVariables(variables)
-    setCurrentStep(4)
+    actions.setSelectedVariables(variables)
+    actions.setCurrentStep(4)
     runTwoWayAnovaAnalysis(variables)
   }
 
   const runTwoWayAnovaAnalysis = async (variables: SelectedVariables) => {
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       // Load Pyodide with required packages
@@ -371,11 +379,9 @@ json.dumps(results)
       const result = pyodide.runPython(pythonCode)
       const analysisResults: TwoWayAnovaResults = JSON.parse(result)
 
-      setResults(analysisResults)
+      actions.setResults(analysisResults)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
   }
 
@@ -463,7 +469,7 @@ json.dumps(results)
       </Alert>
 
       <div className="flex justify-center">
-        <Button onClick={() => setCurrentStep(2)} size="lg">
+        <Button onClick={() => actions.setCurrentStep(2)} size="lg">
           데이터 업로드하기
         </Button>
       </div>
@@ -888,14 +894,14 @@ json.dumps(results)
     >
       {currentStep === 1 && renderMethodIntroduction()}
       {currentStep === 2 && (
-        <DataUploadStep onDataUploaded={handleDataUpload} onBack={() => setCurrentStep(1)} />
+        <DataUploadStep onDataUploaded={handleDataUpload} onBack={() => actions.setCurrentStep(1)} />
       )}
       {currentStep === 3 && (
         <VariableSelector
           methodId="two-way-anova"
           data={data}
           onVariablesSelected={handleVariablesSelected}
-          onBack={() => setCurrentStep(2)}
+          onBack={() => actions.setCurrentStep(2)}
         />
       )}
       {currentStep === 4 && renderResults()}

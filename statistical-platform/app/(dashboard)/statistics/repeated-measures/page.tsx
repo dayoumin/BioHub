@@ -322,7 +322,7 @@ export default function RepeatedMeasuresANOVAPage() {
       icon={<Repeat className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}

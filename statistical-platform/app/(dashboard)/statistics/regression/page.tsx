@@ -38,14 +38,18 @@ import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar } from 'recharts'
 import { cn } from '@/lib/utils'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 export default function RegressionPage() {
-  const [currentStep, setCurrentStep] = useState(0)
+  // Custom hook: common state management
+  const { state, actions } = useStatisticsPage<unknown, Record<string, unknown>>({
+    withUploadedData: true,
+    withError: false
+  })
+  const { currentStep, uploadedData, selectedVariables, results: analysisResults, isAnalyzing } = state
+
+  // Page-specific state
   const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
-  const [uploadedData, setUploadedData] = useState<unknown>(null)
-  const [selectedVariables, setSelectedVariables] = useState<unknown>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<unknown>(null)
 
   // 회귀분석 단계 정의
   const steps: StatisticsStep[] = [
@@ -112,22 +116,26 @@ export default function RegressionPage() {
 
   const handleMethodSelect = (type: 'simple' | 'multiple' | 'logistic') => {
     setRegressionType(type)
-    setCurrentStep(1)
+    actions.setCurrentStep(1)
   }
 
   const handleDataUpload = (data: unknown) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    if (actions.setUploadedData) {
+      actions.setUploadedData(data)
+    }
+    actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: unknown) => {
-    setSelectedVariables(variables)
+    if (actions.setSelectedVariables) {
+      actions.setSelectedVariables(variables)
+    }
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
   const handleAnalysis = async (variables: unknown) => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
     setTimeout(() => {
@@ -196,9 +204,7 @@ export default function RegressionPage() {
         }))
       }
 
-      setAnalysisResults(mockResults)
-      setCurrentStep(3)
-      setIsAnalyzing(false)
+      actions.completeAnalysis(mockResults, 3)
     }, 2000)
   }
 
@@ -690,14 +696,11 @@ export default function RegressionPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       onRun={() => handleAnalysis(selectedVariables)}
       onReset={() => {
-        setCurrentStep(0)
+        actions.reset()
         setRegressionType('')
-        setUploadedData(null)
-        setSelectedVariables(null)
-        setAnalysisResults(null)
       }}
       isRunning={isAnalyzing}
       showProgress={true}

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
@@ -57,11 +58,14 @@ interface McNemarTestResult {
 }
 
 export default function McNemarTestPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableSelection | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysisResults, setAnalysisResults] = useState<McNemarTestResult | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<McNemarResult, string[]>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Page-specific state
 
   // McNemar 검정 단계 정의
   const steps: StatisticsStep[] = [
@@ -72,6 +76,7 @@ export default function McNemarTestPage() {
       description: '대응 이진 자료 분석 개념',
       status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
     },
+
     {
       id: 'upload',
       number: 2,
@@ -96,8 +101,8 @@ export default function McNemarTestPage() {
   ]
 
   const handleDataUpload = useCallback((data: UploadedData) => {
-    setUploadedData(data)
-    setCurrentStep(2)
+    actions.setUploadedData(data)
+    actions.setCurrentStep(2)
   }, [])
 
   // 표준정규분포 CDF
@@ -230,7 +235,7 @@ export default function McNemarTestPage() {
     if (!uploadedData || variables.variables.length < 2) return
 
     setIsAnalyzing(true)
-    setCurrentStep(3)
+    actions.setCurrentStep(3)
 
     try {
       setTimeout(() => {
@@ -249,7 +254,7 @@ export default function McNemarTestPage() {
   }, [uploadedData, calculateMcNemarTest])
 
   const handleVariableSelection = useCallback((variables: VariableSelection) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     runAnalysis(variables)
   }, [runAnalysis])
 
@@ -360,7 +365,7 @@ export default function McNemarTestPage() {
 
         <div className="text-center">
           <Button
-            onClick={() => setCurrentStep(1)}
+            onClick={() => actions.setCurrentStep(1)}
             className="w-full md:w-auto"
           >
             데이터 업로드하기
@@ -681,12 +686,12 @@ export default function McNemarTestPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       onRun={() => selectedVariables && runAnalysis(selectedVariables)}
       onReset={() => {
-        setCurrentStep(0)
-        setUploadedData(null)
-        setSelectedVariables(null)
+        actions.setCurrentStep(0)
+        actions.setUploadedData(null)
+        actions.setSelectedVariables(null)
         setAnalysisResults(null)
       }}
       isRunning={isAnalyzing}

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -267,7 +268,7 @@ export default function ChiSquareGoodnessPage() {
       icon={<PieChart className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}

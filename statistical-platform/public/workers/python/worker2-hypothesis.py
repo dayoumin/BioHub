@@ -9,6 +9,7 @@ import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
 import math
+from helpers import clean_array, clean_paired_arrays, clean_groups
 
 
 def _safe_float(value: Optional[float]) -> Optional[float]:
@@ -24,8 +25,8 @@ def t_test_two_sample(
     group2: List[Union[float, int, None]],
     equal_var: bool = True
 ) -> Dict[str, Union[float, int, None]]:
-    group1 = np.array([x for x in group1 if x is not None and not np.isnan(x)])
-    group2 = np.array([x for x in group2 if x is not None and not np.isnan(x)])
+    group1 = clean_array(group1)
+    group2 = clean_array(group2)
 
     if len(group1) < 2 or len(group2) < 2:
         raise ValueError("Each group must have at least 2 observations")
@@ -54,15 +55,10 @@ def t_test_paired(
     values1: List[Union[float, int, None]],
     values2: List[Union[float, int, None]]
 ) -> Dict[str, Union[float, int, None]]:
-    pairs = [(v1, v2) for v1, v2 in zip(values1, values2) 
-             if v1 is not None and v2 is not None 
-             and not np.isnan(v1) and not np.isnan(v2)]
+    values1, values2 = clean_paired_arrays(values1, values2)
 
-    if len(pairs) < 2:
+    if len(values1) < 2:
         raise ValueError("Paired test requires at least 2 valid pairs")
-
-    values1 = np.array([p[0] for p in pairs])
-    values2 = np.array([p[1] for p in pairs])
 
     statistic, p_value = stats.ttest_rel(values1, values2)
     mean_diff = np.mean(values1 - values2)
@@ -71,7 +67,7 @@ def t_test_paired(
         'statistic': _safe_float(statistic),
         'pValue': _safe_float(p_value),
         'meanDiff': _safe_float(mean_diff),
-        'nPairs': int(len(pairs))
+        'nPairs': int(len(values1))
     }
 
 
@@ -79,7 +75,7 @@ def t_test_one_sample(
     data: List[Union[float, int, None]],
     popmean: float = 0
 ) -> Dict[str, Union[float, None]]:
-    clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
+    clean_data = clean_array(data)
 
     if len(clean_data) < 2:
         raise ValueError("One-sample t-test requires at least 2 observations")
@@ -98,7 +94,7 @@ def z_test(
     popmean: float,
     popstd: float
 ) -> Dict[str, Union[float, None]]:
-    clean_data = np.array([x for x in data if x is not None and not np.isnan(x)])
+    clean_data = clean_array(data)
 
     if len(clean_data) < 30:
         raise ValueError("Z-test typically requires at least 30 observations")
@@ -161,11 +157,7 @@ def correlation_test(
     y: List[Union[float, int, None]],
     method: Literal['pearson', 'spearman', 'kendall'] = 'pearson'
 ) -> Dict[str, Union[float, str, None]]:
-    x = np.array([val for val in x if val is not None and not np.isnan(val)])
-    y = np.array([val for val in y if val is not None and not np.isnan(val)])
-
-    if len(x) != len(y):
-        raise ValueError("x and y must have the same length")
+    x, y = clean_paired_arrays(x, y)
 
     if len(x) < 3:
         raise ValueError("Correlation requires at least 3 paired observations")
@@ -269,16 +261,12 @@ def partial_correlation(
 def levene_test(
     groups: List[List[Union[float, int, None]]]
 ) -> Dict[str, Union[float, bool, None]]:
-    clean_groups = []
-    for group in groups:
-        clean_group = [x for x in group if x is not None and not np.isnan(x)]
-        if len(clean_group) > 0:
-            clean_groups.append(clean_group)
+    cleaned_groups = clean_groups(groups)
 
-    if len(clean_groups) < 2:
+    if len(cleaned_groups) < 2:
         raise ValueError("Levene test requires at least 2 groups")
 
-    statistic, p_value = stats.levene(*clean_groups)
+    statistic, p_value = stats.levene(*cleaned_groups)
 
     return {
         'statistic': float(statistic),
@@ -290,16 +278,12 @@ def levene_test(
 def bartlett_test(
     groups: List[List[Union[float, int, None]]]
 ) -> Dict[str, Union[float, bool, None]]:
-    clean_groups = []
-    for group in groups:
-        clean_group = [x for x in group if x is not None and not np.isnan(x)]
-        if len(clean_group) > 0:
-            clean_groups.append(clean_group)
+    cleaned_groups = clean_groups(groups)
 
-    if len(clean_groups) < 2:
+    if len(cleaned_groups) < 2:
         raise ValueError("Bartlett test requires at least 2 groups")
 
-    statistic, p_value = stats.bartlett(*clean_groups)
+    statistic, p_value = stats.bartlett(*cleaned_groups)
 
     return {
         'statistic': float(statistic),

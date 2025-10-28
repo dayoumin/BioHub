@@ -28,6 +28,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 interface CrossTabCell {
   rowCategory: string
@@ -72,10 +73,11 @@ interface CrossTabResults {
 }
 
 export default function CrossTabulationPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
-  const [results, setResults] = useState<CrossTabResults | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const { state, actions } = useStatisticsPage<CrossTabResults>({
+    withUploadedData: false,
+    withError: false
+  })
+  const { currentStep, variableMapping, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
 
   // 분석 옵션
@@ -121,7 +123,7 @@ export default function CrossTabulationPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    setIsAnalyzing(true)
+    actions.startAnalysis()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
@@ -216,9 +218,7 @@ export default function CrossTabulationPage() {
         }
       }
 
-      setResults(mockResults)
-      setIsAnalyzing(false)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResults, 3)
       setActiveTab('summary')
     }, 1500)
   }
@@ -226,15 +226,13 @@ export default function CrossTabulationPage() {
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
     if (step <= currentStep + 1) {
-      setCurrentStep(step)
+      actions.setCurrentStep(step)
     }
   }
 
   // 초기화
   const handleReset = () => {
-    setVariableMapping({})
-    setResults(null)
-    setCurrentStep(0)
+    actions.reset()
     setActiveTab('summary')
   }
 
@@ -246,8 +244,8 @@ export default function CrossTabulationPage() {
     const rowCategories = [...new Set(results.data.map(d => d.rowCategory))]
     const colCategories = [...new Set(results.data.map(d => d.colCategory))]
 
-    const tableData = rowCategories.map(rowCat => {
-      const rowData: unknown = { category: rowCat }
+    const tableData: Record<string, string | number>[] = rowCategories.map(rowCat => {
+      const rowData: Record<string, string | number> = { category: rowCat }
 
       colCategories.forEach(colCat => {
         const cell = results.data.find(d => d.rowCategory === rowCat && d.colCategory === colCat)
@@ -271,7 +269,7 @@ export default function CrossTabulationPage() {
     })
 
     // 열 합계 행 추가
-    const colTotalRow: unknown = { category: '합계' }
+    const colTotalRow: Record<string, string | number> = { category: '합계' }
     colCategories.forEach(colCat => {
       const colTotal = results.colTotals.find(c => c.category === colCat)
       colTotalRow[colCat] = `${colTotal?.count} (${colTotal?.percent.toFixed(1)}%)`
@@ -485,10 +483,10 @@ export default function CrossTabulationPage() {
               <VariableSelector
                 title="범주형 변수 선택"
                 description="행 변수와 열 변수로 사용할 범주형 변수 2개를 선택하세요"
-                onMappingChange={(mapping) => {
-                  setVariableMapping(mapping)
+                onMappingChange={(mapping: Record<string, unknown>) => {
+                  actions.updateVariableMapping(mapping)
                   if (Object.keys(mapping).length >= 2) {
-                    setCurrentStep(1)
+                    actions.setCurrentStep(1)
                   }
                 }}
               />
@@ -577,7 +575,7 @@ export default function CrossTabulationPage() {
 
               <div className="flex justify-end">
                 <Button
-                  onClick={() => setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(2)}
                   disabled={Object.keys(variableMapping).length < 2}
                 >
                   다음 단계
