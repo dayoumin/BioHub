@@ -14,9 +14,13 @@
 - Generic 타입 `TVariables` 추가
 - 테스트: 23/23 통과 (100%)
 
-### ⚠️ 남은 작업
-- **프로덕션 코드 TypeScript 에러**: ~30개
-- **Pattern A 나머지 페이지**: 12개 (total 27개 중 15개 완료)
+### ⚠️ 남은 작업 (2025-10-28 업데이트)
+- **프로덕션 코드 TypeScript 에러**: **397개** (실제 확인 결과)
+  - 간단한 에러: ~100개 (Haiku Agent로 처리 가능)
+  - 복잡한 에러: ~297개 (구조적 리팩토링 필요)
+- **수정 완료**: 3개 (400 → 397개)
+  - chi-square-goodness (수동)
+  - dose-response, mann-kendall, response-surface (Agent 병렬 처리)
 
 ---
 
@@ -288,6 +292,44 @@ npx tsc --noEmit --skipLibCheck 2>&1 | grep "app/" | grep -v "__tests__" | wc -l
 ### 컴포넌트
 - [DataUploadStep.tsx](../statistical-platform/components/smart-flow/steps/DataUploadStep.tsx)
 - [VariableSelector.tsx](../statistical-platform/components/variable-selection/VariableSelector.tsx)
+
+---
+
+## 🤖 Agent 병렬 처리 방법 (권장)
+
+**간단한 에러는 Haiku Agent로 빠르게 처리 가능**
+
+### Agent 사용 예시
+
+```typescript
+// 한 메시지에 여러 Task tool 호출 = 병렬 실행
+<Task subagent_type="general-purpose" model="haiku">
+  파일 A 수정: DataUploadStep props 수정
+</Task>
+<Task subagent_type="general-purpose" model="haiku">
+  파일 B 수정: DataUploadStep props 수정
+</Task>
+<Task subagent_type="general-purpose" model="haiku">
+  파일 C 수정: DataUploadStep props 수정
+</Task>
+```
+
+### Agent 성과 (2025-10-28)
+
+**작업**: 3개 페이지 동시 수정
+- dose-response, mann-kendall, response-surface
+- 패턴: chi-square-independence와 동일 (DataUploadStep props)
+- 시간: ~5분 (수동 대비 2-4배 빠름)
+- 에러 감소: 3개
+
+**장점**:
+- ⚡ 병렬 실행으로 빠름
+- 💰 Haiku 사용으로 비용 절감 (Sonnet의 1/10)
+- 🎯 각 Agent가 독립적으로 작업
+
+**주의**:
+- 복잡한 구조 변경은 Sonnet 필요
+- 명확한 패턴이 있을 때만 효과적
 
 ---
 
