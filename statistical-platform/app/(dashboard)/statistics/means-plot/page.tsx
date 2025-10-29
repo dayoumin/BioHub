@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
@@ -87,41 +88,43 @@ export default function MeansPlotPage() {
     }
   ] as const
 
-  const handleDataUpload = (uploadedData: unknown[], uploadedColumns: string[]) => {
+  const handleDataUpload = useCallback((uploadedData: unknown[], uploadedColumns: string[]) => {
     actions.setUploadedData({
       data: uploadedData as Record<string, unknown>[],
       fileName: 'uploaded-file.csv',
       columns: uploadedColumns
     })
-    actions.setCurrentStep(3)
-  }
+    // Step 변경은 DataUploadStep의 onNext에서 처리 (중복 방지)
+  }, [actions])
 
-  const handleVariablesSelected = (variables: unknown) => {
+  const handleVariablesSelected = useCallback((variables: unknown) => {
     if (!variables || typeof variables !== 'object') return
 
     actions.setSelectedVariables(variables as SelectedVariables)
     actions.setCurrentStep(4)
     runMeansPlotAnalysis(variables as SelectedVariables)
-  }
+  }, [actions, runMeansPlotAnalysis])
 
-  const runMeansPlotAnalysis = async (variables: SelectedVariables) => {
+  const runMeansPlotAnalysis = useCallback(async (variables: SelectedVariables) => {
     if (!uploadedData) return
 
     actions.startAnalysis()
 
-    try {
-      // Load Pyodide with required packages
-      const pyodide: PyodideInterface = await loadPyodideWithPackages([
-        'numpy',
-        'pandas',
-        'scipy'
-      ])
+    // setTimeout으로 UI 업데이트 먼저 반영 (Phase 1 패턴 일관성)
+    setTimeout(async () => {
+      try {
+        // Load Pyodide with required packages
+        const pyodide: PyodideInterface = await loadPyodideWithPackages([
+          'numpy',
+          'pandas',
+          'scipy'
+        ])
 
-      pyodide.globals.set('data', uploadedData.data)
-      pyodide.globals.set('dependent_var', variables.dependent[0])
-      pyodide.globals.set('factor_var', variables.factor[0])
+        pyodide.globals.set('data', uploadedData.data)
+        pyodide.globals.set('dependent_var', variables.dependent[0])
+        pyodide.globals.set('factor_var', variables.factor[0])
 
-      const pythonCode = `
+        const pythonCode = `
 import pandas as pd
 import numpy as np
 from scipy import stats
@@ -197,14 +200,15 @@ results = {
 json.dumps(results)
 `
 
-      const result = pyodide.runPython(pythonCode)
-      const analysisResults: MeansPlotResults = JSON.parse(result)
+        const result = pyodide.runPython(pythonCode)
+        const analysisResults: MeansPlotResults = JSON.parse(result)
 
-      actions.completeAnalysis(analysisResults, 4)
-    } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-    }
-  }
+        actions.completeAnalysis(analysisResults, 4)
+      } catch (err) {
+        actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      }
+    }, 100)
+  }, [uploadedData, actions])
 
   const renderMethodIntroduction = () => (
     <div className="space-y-6">
