@@ -10,6 +10,8 @@
 - 2025-10-29: 버전 1.2 - **치명적 오류 수정**: actions 안정성 (useMemo 적용)
 - 2025-10-29: 버전 1.3 - **기술적 정확성 개선**: 메모리 누수 주장 제거, setTimeout 선택 사항 명시
 - 2025-10-29: 버전 1.4 - **필수 표준 추가**: 접근성 (a11y), 데이터 검증, 에러 바운더리
+- 2025-10-29: 버전 1.4.1 - setTimeout 문서 일관성 수정 (선택 vs 필수 통일)
+- 2025-10-29: 버전 1.4.2 - **setTimeout 진짜 선택사항화**: 테스트 주석 처리, Pattern A/B 명확 구분
 
 ---
 
@@ -46,7 +48,7 @@ export default function StatisticsPage() {
 
 ## 2. 비동기 분석 함수 패턴 (필수)
 
-### 표준 패턴
+### 표준 패턴 A: await만 사용 (권장 - 간결함)
 
 ```typescript
 import { useCallback } from 'react'
@@ -57,13 +59,48 @@ const runAnalysis = useCallback(async (params: AnalysisParams) => {
   // 1. Early return (null 체크)
   if (!uploadedData) return
 
+  // 2. 분석 시작 (isAnalyzing = true, UI 업데이트)
+  actions.startAnalysis()
+
+  // 3. 비동기 분석 실행
+  try {
+    // 4. Pyodide 로딩 (함수 내부에서 직접 로드)
+    const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'pandas', 'scipy'])
+
+    // 5. 분석 실행
+    pyodide.globals.set('data', uploadedData.data)
+    const result = pyodide.runPython(pythonCode)
+
+    // 6. 결과 저장 및 다음 스텝 이동
+    actions.completeAnalysis(result.toJs(), nextStepNumber)
+  } catch (err) {
+    // 7. 에러 처리
+    actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+  }
+}, [uploadedData, actions])  // 8. 의존성 배열
+```
+
+**✅ 장점**:
+- React 18 automatic batching이 자동으로 UI 업데이트 처리
+- 코드가 간결하고 이해하기 쉬움
+- setTimeout 불필요 (기술적으로 중복)
+
+---
+
+### 표준 패턴 B: setTimeout 사용 (선택 - Phase 1 일관성)
+
+```typescript
+const runAnalysis = useCallback(async (params: AnalysisParams) => {
+  // 1. Early return (null 체크)
+  if (!uploadedData) return
+
   // 2. 분석 시작 (isAnalyzing = true)
   actions.startAnalysis()
 
-  // 3. setTimeout으로 UI 업데이트 먼저 반영
+  // 3. setTimeout으로 UI 업데이트 명시적 우선 처리
   setTimeout(async () => {  // ← async 필요 시에만 (Pyodide 로드 시)
     try {
-      // 4. Pyodide 로딩 (함수 내부에서 직접 로드 - 권장)
+      // 4. Pyodide 로딩 (함수 내부에서 직접 로드)
       const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'pandas', 'scipy'])
 
       // 5. 분석 실행
@@ -76,9 +113,14 @@ const runAnalysis = useCallback(async (params: AnalysisParams) => {
       // 7. 에러 처리
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
-  }, 100)  // 100ms delay (Phase 1 패턴 일관성)
+  }, 100)  // 100ms delay
 }, [uploadedData, actions])  // 8. 의존성 배열
 ```
+
+**🎯 사용 이유**:
+- Phase 1 패턴 일관성 (ks-test, power-analysis, means-plot 등)
+- UI 업데이트 의도를 코드에 명시적으로 표현
+- 팀 코딩 컨벤션 통일
 
 ### Pyodide 초기화 방법 (중요!)
 
@@ -495,11 +537,13 @@ describe('Method Name Page - Coding Standards Compliance Test', () => {
     expect(fileContent).toMatch(/actions\.(setCurrentStep|startAnalysis|completeAnalysis)/)
   })
 
-  it('(optional) should use setTimeout pattern (100ms) for consistency', () => {
-    // 선택 사항: Phase 1 패턴 일관성 유지 시에만 검증
-    // setTimeout 없이 await만 사용하는 경우 이 테스트 제거 가능
+  // ⚠️ 선택 사항: setTimeout 패턴 검증 (Phase 1 일관성 유지 시에만 추가)
+  // setTimeout 없이 await만 사용하는 경우 아래 테스트 전체를 제거하세요
+  /*
+  it('should use setTimeout pattern (100ms) for Phase 1 consistency', () => {
     expect(fileContent).toMatch(/setTimeout\(.*100\)/)
   })
+  */
 
   it('should not use any type', () => {
     expect(fileContent).not.toMatch(/:\s*any/)
@@ -870,7 +914,7 @@ export default function StatisticsPage() {
 ---
 
 **Updated**: 2025-10-29
-**Version**: 1.4
+**Version**: 1.4.2
 **Status**: Active (모든 신규 통계 페이지 작성 시 필수 준수)
 
 **Version History**:
@@ -879,6 +923,8 @@ export default function StatisticsPage() {
 - **v1.2** (2025-10-29): **치명적 오류 수정**: actions 안정성 (useMemo 적용)
 - **v1.3** (2025-10-29): **기술적 정확성 개선**: 메모리 누수 주장 제거, setTimeout 선택 사항 명시
 - **v1.4** (2025-10-29): **필수 표준 추가**: 접근성 (a11y), 데이터 검증, 에러 바운더리
+- **v1.4.1** (2025-10-29): setTimeout 문서 일관성 수정 (선택 vs 필수 통일)
+- **v1.4.2** (2025-10-29): **setTimeout 진짜 선택사항화**: 테스트 주석 처리, Pattern A/B 명확 구분
 
 **Breaking Changes**:
 - **v1.2**: use-statistics-page.ts Hook 수정 - actions를 useMemo로 안정화
@@ -887,3 +933,8 @@ export default function StatisticsPage() {
 - 접근성 표준 (§14): aria 속성, 키보드 네비게이션, 스크린 리더 지원
 - 데이터 검증 표준 (§15): CSV 검증, 통계 가정 확인, 에러 메시지 템플릿
 - 에러 바운더리 표준 (§16): Pyodide 로드 실패 처리, 에러 복구 전략
+
+**Improvements (v1.4.2)**:
+- **Section 2**: Pattern A (await only) vs Pattern B (setTimeout) 명확 구분
+- **Section 13**: 테스트 템플릿 주석 처리로 진짜 선택사항화 (setTimeout 없어도 테스트 통과)
+- **일관성 완벽 확보**: 4곳 모두 setTimeout을 선택사항으로 명확히 표기
