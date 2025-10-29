@@ -1,8 +1,10 @@
-# Pattern A Coding Standards
+# Statistics Page Coding Standards
 
 **목적**: 45개 통계 분석 페이지의 코드 일관성 유지 및 유지보수성 향상
 
 **적용 범위**: `app/(dashboard)/statistics/*/page.tsx`
+
+**히스토리**: Pattern B (직접 useState) → Pattern A (useStatisticsPage hook) 전환 완료 (2025-10-29)
 
 ---
 
@@ -43,6 +45,8 @@ export default function StatisticsPage() {
 
 ```typescript
 import { useCallback } from 'react'
+import type { PyodideInterface } from '@/types/pyodide'
+import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 
 const runAnalysis = useCallback(async (params: AnalysisParams) => {
   // 1. Early return (null 체크)
@@ -52,22 +56,76 @@ const runAnalysis = useCallback(async (params: AnalysisParams) => {
   actions.startAnalysis()
 
   // 3. setTimeout으로 UI 업데이트 먼저 반영
-  setTimeout(async () => {
+  setTimeout(async () => {  // ← async 필요 시에만 (Pyodide 로드 시)
     try {
-      // 4. Pyodide 로딩 및 계산
-      const pyodide = await loadPyodideWithPackages([...])
+      // 4. Pyodide 로딩 (함수 내부에서 직접 로드 - 권장)
+      const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'pandas', 'scipy'])
 
       // 5. 분석 실행
-      const results = ...
+      pyodide.globals.set('data', uploadedData.data)
+      const result = pyodide.runPython(pythonCode)
 
       // 6. 결과 저장 및 다음 스텝 이동
-      actions.completeAnalysis(results, nextStepNumber)
+      actions.completeAnalysis(result.toJs(), nextStepNumber)
     } catch (err) {
       // 7. 에러 처리
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
   }, 100)  // 100ms delay (Phase 1 패턴 일관성)
 }, [uploadedData, actions])  // 8. 의존성 배열
+```
+
+### Pyodide 초기화 방법 (중요!)
+
+**✅ 권장 (Phase 1-2 패턴)**: 함수 내부에서 직접 로드
+```typescript
+// ❌ useState로 pyodide 관리 불필요
+// const [pyodide, setPyodide] = useState(null)
+
+const runAnalysis = useCallback(async (params) => {
+  // ...
+  const pyodide = await loadPyodideWithPackages([...])  // ← 함수 내부에서 로드
+  // ...
+}, [uploadedData, actions])
+```
+
+**⚠️ 레거시 패턴** (16개 기존 페이지에서 사용, 변경 권장):
+```typescript
+// 이 패턴은 피하세요 (불필요한 state + useEffect)
+const [pyodide, setPyodide] = useState(null)
+
+useEffect(() => {
+  let isMounted = true
+  // Pyodide 초기화 로직...
+  return () => { isMounted = false }
+}, [])
+```
+
+**이유**:
+- Pyodide는 분석할 때만 로드하면 충분 (초기 로딩 불필요)
+- useState + useEffect는 불필요한 복잡도 증가
+- 메모리 누수 위험 감소 (함수 스코프로 관리)
+
+### setTimeout 사용법 (두 가지 케이스)
+
+**케이스 1: Pyodide 로드 필요 시** (async 함수):
+```typescript
+setTimeout(async () => {  // ← async 키워드 추가
+  const pyodide = await loadPyodideWithPackages([...])
+  // ...
+}, 100)
+```
+
+**케이스 2: Pyodide 불필요 시** (동기 함수):
+```typescript
+setTimeout(() => {  // ← async 키워드 없음
+  try {
+    const result = calculateStatistics(uploadedData.data, variables)
+    actions.completeAnalysis(result, 3)
+  } catch (err) {
+    actions.setError(err instanceof Error ? err.message : '오류')
+  }
+}, 100)
 ```
 
 ### setTimeout이 필요한 이유
@@ -264,7 +322,43 @@ const { error } = state  // ← error state destructuring
 
 ---
 
-## 9. Import 순서 (권장)
+## 9. Helper 함수 및 타입 정의 위치 (권장)
+
+### Helper 함수 위치
+
+```typescript
+'use client'
+
+// Imports...
+
+// ✅ 권장: 컴포넌트 외부에 Helper 함수 정의
+function interpretCramersV(value: number): string {
+  if (value < 0.1) return '매우 약함 (Very weak)'
+  if (value < 0.3) return '약함 (Weak)'
+  if (value < 0.5) return '중간 (Moderate)'
+  return '강함 (Strong)'
+}
+
+// 인터페이스 정의 (컴포넌트 외부)
+interface ChiSquareResult {
+  statistic: number
+  pValue: number
+  // ...
+}
+
+export default function StatisticsPage() {
+  // 컴포넌트 내부...
+}
+```
+
+**이유**:
+- Helper 함수는 순수 함수 (pure function)로 컴포넌트 외부 정의
+- 재렌더링 시 함수 재생성 방지
+- 타입 정의도 컴포넌트 외부 (모듈 스코프)
+
+---
+
+## 10. Import 순서 (권장)
 
 ```typescript
 'use client'
@@ -280,7 +374,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 // 3. Hooks
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
-// 4. Services
+// 4. Services & Types (type keyword 사용)
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 
@@ -293,27 +387,32 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle2, AlertCircle } from 'lucide-react'
 ```
 
+**참고**: 타입만 import할 때는 `import type` keyword 사용
+
 ---
 
-## 10. 체크리스트
+## 11. 체크리스트
 
 Pattern A 전환 시 확인 사항:
 
 - [ ] `useStatisticsPage` hook import 및 사용
-- [ ] `useState` 모두 제거
+- [ ] `useState` 모두 제거 (pyodide state 포함)
 - [ ] `useCallback` 모든 이벤트 핸들러에 적용
 - [ ] `setTimeout` 패턴 적용 (100ms)
+- [ ] Pyodide 함수 내부 로드 (useState + useEffect 패턴 제거)
 - [ ] DataUploadStep props 중복 제거
 - [ ] VariableSelector `onBack` 사용
 - [ ] Steps 배열 `id`를 string으로 변경
 - [ ] `any` 타입 모두 제거
+- [ ] Helper 함수 컴포넌트 외부 정의
+- [ ] `import type` keyword 사용 (타입 import)
 - [ ] `withError: true` 설정 (에러 처리 필요 시)
 - [ ] TypeScript 컴파일 에러 0개
 - [ ] 테스트 작성 및 통과
 
 ---
 
-## 11. 참고 예제
+## 12. 참고 예제
 
 완벽한 Pattern A 구현 예제:
 
@@ -323,7 +422,7 @@ Pattern A 전환 시 확인 사항:
 
 ---
 
-## 12. 테스트 템플릿
+## 13. 테스트 템플릿
 
 ```typescript
 // __tests__/pages/method-name.test.tsx
