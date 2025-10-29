@@ -2,9 +2,11 @@
 
 **목적**: 45개 통계 분석 페이지의 코드 일관성 유지 및 유지보수성 향상
 
-**적용 범위**: `app/(dashboard)/statistics/*/page.tsx`
+**적용 범위**: `app/(dashboard)/statistics/*/page.tsx` (45개 통계 분석 페이지)
 
-**히스토리**: Pattern B (직접 useState) → Pattern A (useStatisticsPage hook) 전환 완료 (2025-10-29)
+**히스토리**:
+- 2025-10-29: 문서 최초 작성 (Pattern B → useStatisticsPage hook 전환 완료)
+- 2025-10-29: 버전 1.1 - 미래 지향적 표준으로 업데이트 (전환 용어 제거)
 
 ---
 
@@ -391,34 +393,51 @@ import { CheckCircle2, AlertCircle } from 'lucide-react'
 
 ---
 
-## 11. 체크리스트
+## 11. 구현 체크리스트
 
-Pattern A 전환 시 확인 사항:
+새 통계 페이지 작성 또는 리팩토링 시 확인 사항:
 
-- [ ] `useStatisticsPage` hook import 및 사용
-- [ ] `useState` 모두 제거 (pyodide state 포함)
+### 필수 사항
+- [ ] `useStatisticsPage` hook 사용 (useState 직접 사용 금지)
 - [ ] `useCallback` 모든 이벤트 핸들러에 적용
-- [ ] `setTimeout` 패턴 적용 (100ms)
-- [ ] Pyodide 함수 내부 로드 (useState + useEffect 패턴 제거)
-- [ ] DataUploadStep props 중복 제거
-- [ ] VariableSelector `onBack` 사용
-- [ ] Steps 배열 `id`를 string으로 변경
-- [ ] `any` 타입 모두 제거
-- [ ] Helper 함수 컴포넌트 외부 정의
-- [ ] `import type` keyword 사용 (타입 import)
-- [ ] `withError: true` 설정 (에러 처리 필요 시)
+- [ ] `setTimeout(100ms)` 패턴 적용 (일관성)
+- [ ] Pyodide 로드 방식: 함수 내부 직접 로드 (useState + useEffect 금지)
+- [ ] `any` 타입 사용 금지 (unknown + 타입 가드 사용)
 - [ ] TypeScript 컴파일 에러 0개
 - [ ] 테스트 작성 및 통과
+
+### 컴포넌트 구조
+- [ ] DataUploadStep: onUploadComplete + onNext 분리 (중복 방지)
+- [ ] VariableSelector: `onBack` 속성 사용 (onPrevious 아님)
+- [ ] Steps 배열: `id`는 string 타입
+- [ ] Helper 함수: 컴포넌트 외부 정의 (pure function)
+- [ ] 인터페이스: 컴포넌트 외부 정의 (모듈 스코프)
+
+### Import 및 타입
+- [ ] `import type` keyword 사용 (타입만 import 시)
+- [ ] Import 순서 준수 (React → Components → Hooks → Services → UI → Icons)
+
+### Hook 옵션
+- [ ] `withUploadedData: true` (데이터 업로드 필요 시)
+- [ ] `withError: true` (에러 처리 필요 시)
 
 ---
 
 ## 12. 참고 예제
 
-완벽한 Pattern A 구현 예제:
+이 코딩 표준을 완벽하게 준수하는 예제 페이지:
 
 1. **ks-test**: `app/(dashboard)/statistics/ks-test/page.tsx`
+   - 동기 분석 (Pyodide 불필요)
+   - setTimeout 동기 함수 사용
+
 2. **power-analysis**: `app/(dashboard)/statistics/power-analysis/page.tsx`
+   - 비동기 분석 (Pyodide 로드)
+   - Multiple tabs 구현
+
 3. **means-plot**: `app/(dashboard)/statistics/means-plot/page.tsx`
+   - 비동기 분석 (Pyodide 로드)
+   - setTimeout async 함수 사용
 
 ---
 
@@ -430,26 +449,43 @@ import { describe, it, expect } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
 
-describe('Method Name Page - Pattern A Conversion Test', () => {
+describe('Method Name Page - Coding Standards Compliance Test', () => {
   const filePath = path.join(__dirname, '../../app/(dashboard)/statistics/method-name/page.tsx')
   const fileContent = fs.readFileSync(filePath, 'utf-8')
 
-  it('should use useStatisticsPage hook (Pattern A)', () => {
+  it('should use useStatisticsPage hook', () => {
     expect(fileContent).toContain("import { useStatisticsPage } from '@/hooks/use-statistics-page'")
     expect(fileContent).toMatch(/const \{ state, actions \} = useStatisticsPage/)
   })
 
-  it('should use actions.setCurrentStep instead of setCurrentStep', () => {
+  it('should not use useState for page state management', () => {
     expect(fileContent).not.toMatch(/const \[currentStep, setCurrentStep\] = useState/)
-    expect(fileContent).toMatch(/actions\.setCurrentStep\(/)
+    expect(fileContent).not.toMatch(/const \[isAnalyzing, setIsAnalyzing\] = useState/)
   })
 
-  // ... 추가 테스트
+  it('should use actions methods', () => {
+    expect(fileContent).toMatch(/actions\.(setCurrentStep|startAnalysis|completeAnalysis)/)
+  })
+
+  it('should use setTimeout pattern (100ms)', () => {
+    expect(fileContent).toMatch(/setTimeout\(.*100\)/)
+  })
+
+  it('should not use any type', () => {
+    expect(fileContent).not.toMatch(/:\s*any/)
+    expect(fileContent).not.toMatch(/as any/)
+  })
+
+  it('should use import type keyword for types', () => {
+    if (fileContent.includes('PyodideInterface')) {
+      expect(fileContent).toMatch(/import type.*PyodideInterface/)
+    }
+  })
 })
 ```
 
 ---
 
 **Updated**: 2025-10-29
-**Version**: 1.0
-**Status**: Active
+**Version**: 1.1
+**Status**: Active (모든 신규 통계 페이지 작성 시 필수 준수)
