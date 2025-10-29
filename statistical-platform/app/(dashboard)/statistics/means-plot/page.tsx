@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,63 +49,65 @@ interface MeansPlotResults {
 }
 
 export default function MeansPlotPage() {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [data, setData] = useState<any[]>([])
-  const [columns, setColumns] = useState<string[]>([])
-  const [selectedVariables, setSelectedVariables] = useState<SelectedVariables>({
-    dependent: [],
-    factor: []
+  // Hook for state management (Pattern A)
+  const { state, actions } = useStatisticsPage<MeansPlotResults, SelectedVariables>({
+    withUploadedData: true,
+    withError: true
   })
-  const [results, setResults] = useState<MeansPlotResults | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
 
   const steps = [
     {
-      id: 1,
+      id: 'intro',
       number: 1,
       title: '평균 도표 분석',
       description: '집단별 평균값과 오차막대를 시각화하여 집단 간 차이를 탐색합니다.',
       status: currentStep === 1 ? 'current' : currentStep > 1 ? 'complete' : 'upcoming'
     },
     {
-      id: 2,
+      id: 'upload',
       number: 2,
       title: '데이터 업로드',
       description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
       status: currentStep === 2 ? 'current' : currentStep > 2 ? 'complete' : 'upcoming'
     },
     {
-      id: 3,
+      id: 'variables',
       number: 3,
       title: '변수 선택',
       description: '종속변수와 요인변수를 선택합니다.',
       status: currentStep === 3 ? 'current' : currentStep > 3 ? 'complete' : 'upcoming'
     },
     {
-      id: 4,
+      id: 'results',
       number: 4,
       title: '분석 결과',
       description: '평균 도표와 기술통계량을 확인합니다.',
       status: currentStep === 4 ? 'current' : currentStep > 4 ? 'complete' : 'upcoming'
     }
-  ]
+  ] as const
 
   const handleDataUpload = (uploadedData: unknown[], uploadedColumns: string[]) => {
-    setData(uploadedData)
-    setColumns(uploadedColumns)
-    setCurrentStep(3)
+    actions.setUploadedData({
+      data: uploadedData as Record<string, unknown>[],
+      fileName: 'uploaded-file.csv',
+      columns: uploadedColumns
+    })
+    actions.setCurrentStep(3)
   }
 
   const handleVariablesSelected = (variables: unknown) => {
-    actions.setSelectedVariables(variables)
-    setCurrentStep(4)
-    runMeansPlotAnalysis(variables)
+    if (!variables || typeof variables !== 'object') return
+
+    actions.setSelectedVariables(variables as SelectedVariables)
+    actions.setCurrentStep(4)
+    runMeansPlotAnalysis(variables as SelectedVariables)
   }
 
   const runMeansPlotAnalysis = async (variables: SelectedVariables) => {
+    if (!uploadedData) return
+
     actions.startAnalysis()
-    actions.setError(null)
 
     try {
       // Load Pyodide with required packages
@@ -115,7 +117,7 @@ export default function MeansPlotPage() {
         'scipy'
       ])
 
-      pyodide.globals.set('data', data)
+      pyodide.globals.set('data', uploadedData.data)
       pyodide.globals.set('dependent_var', variables.dependent[0])
       pyodide.globals.set('factor_var', variables.factor[0])
 
@@ -196,13 +198,11 @@ json.dumps(results)
 `
 
       const result = pyodide.runPython(pythonCode)
-      const results: MeansPlotResults = JSON.parse(result)
+      const analysisResults: MeansPlotResults = JSON.parse(result)
 
-      setResults(results)
+      actions.completeAnalysis(analysisResults, 4)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
     }
   }
 
@@ -283,7 +283,7 @@ json.dumps(results)
       </Alert>
 
       <div className="flex justify-center">
-        <Button onClick={() => setCurrentStep(2)} size="lg">
+        <Button onClick={() => actions.setCurrentStep(2)} size="lg">
           데이터 업로드하기
         </Button>
       </div>
@@ -444,14 +444,17 @@ json.dumps(results)
     >
       {currentStep === 1 && renderMethodIntroduction()}
       {currentStep === 2 && (
-        <DataUploadStep onDataUploaded={handleDataUpload} onBack={() => setCurrentStep(1)} />
+        <DataUploadStep
+          onUploadComplete={(_file, data) => handleDataUpload(data, Object.keys(data[0] || {}))}
+          onNext={() => actions.setCurrentStep(3)}
+        />
       )}
-      {currentStep === 3 && (
+      {currentStep === 3 && uploadedData && (
         <VariableSelector
           methodId="means-plot"
-          data={data}
+          data={uploadedData.data}
           onVariablesSelected={handleVariablesSelected}
-          onBack={() => setCurrentStep(2)}
+          onBack={() => actions.setCurrentStep(2)}
         />
       )}
       {currentStep === 4 && renderResults()}
