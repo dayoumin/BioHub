@@ -15,6 +15,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 interface DoseResponseResult {
   model: string
@@ -95,17 +96,17 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
 
   const handleAnalysis = useCallback(async (variableMapping: VariableMapping) => {
     if (!variableMapping.predictor || variableMapping.predictor.length === 0) {
-      actions.setError('용량(농도) 변수를 선택해주세요.')
+      setError('용량(농도) 변수를 선택해주세요.')
       return
     }
 
     if (!variableMapping.target || variableMapping.target.length === 0) {
-      actions.setError('반응 변수를 선택해주세요.')
+      setError('반응 변수를 선택해주세요.')
       return
     }
 
     setIsLoading(true)
-    actions.setError(null)
+    setError(null)
 
     try {
       const doseData = variableMapping.predictor[0].data
@@ -287,7 +288,7 @@ except Exception as e:
       const analysisResult = await pyodideService.runPython(pythonCode)
       setResult(analysisResult)
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
     }
@@ -591,10 +592,14 @@ except Exception as e:
 }
 
 export default function DoseResponsePage() {
+  // Hook for state management
+  const { state, actions } = useStatisticsPage<DoseResponseResult, never>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, error } = state
+
   const [selectedModel, setSelectedModel] = useState('logistic4')
-  const [currentStep, setCurrentStep] = useState(1)
-  const [uploadedData, setUploadedData] = useState<Record<string, unknown>[]>([])
-  const [error, setError] = useState<string | null>(null)
 
   // Event handlers
   const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
@@ -603,9 +608,9 @@ export default function DoseResponsePage() {
       _id: index
     }))
     actions.setUploadedData(processedData)
-    setCurrentStep(2)
+    actions.setCurrentStep(2)
     actions.setError(null)
-  }, [])
+  }, [actions])
 
   return (
     <StatisticsPageLayout

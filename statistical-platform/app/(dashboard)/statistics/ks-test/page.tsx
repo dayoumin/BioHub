@@ -24,6 +24,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // 데이터 인터페이스
 interface UploadedData {
@@ -61,11 +62,12 @@ interface KSTestResult {
 }
 
 export default function KolmogorovSmirnovTestPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<UploadedData | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<VariableSelection | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [results, setresults] = useState<KSTestResult | null>(null)
+  // Hook for state management
+  const { state, actions } = useStatisticsPage<KSTestResult, VariableSelection>({
+    withUploadedData: true,
+    withError: false
+  })
+  const { currentStep, uploadedData, selectedVariables, isAnalyzing, results } = state
 
   // K-S 검정 단계 정의
   const steps: StatisticsStep[] = [
@@ -100,9 +102,9 @@ export default function KolmogorovSmirnovTestPage() {
   ]
 
   const handleDataUpload = useCallback((data: UploadedData) => {
-    setUploadedData(data)
-    setCurrentStep(2)
-  }, [])
+    actions.setUploadedData(data)
+    actions.setCurrentStep(2)
+  }, [actions])
 
   // 표준정규분포 CDF 근사
   const normalCDF = useCallback((z: number): number => {
@@ -251,26 +253,24 @@ export default function KolmogorovSmirnovTestPage() {
   const runAnalysis = useCallback(async (variables: VariableSelection) => {
     if (!uploadedData) return
 
-    setIsAnalyzing(true)()
-    setCurrentStep(3)
+    actions.startAnalysis()
 
     try {
       setTimeout(() => {
         const variable2 = variables.variables.length > 1 ? variables.variables[1] : undefined
         const result = calculateKSTest(uploadedData.data, variables.variables[0], variable2)
-        setresults(result)
-        setIsAnalyzing(false)
+        actions.completeAnalysis(result, 3)
       }, 1500)
     } catch (error) {
       console.error('K-S 검정 분석 중 오류:', error)
-      setIsAnalyzing(false)
+      actions.startAnalysis() // Stop analyzing on error
     }
-  }, [uploadedData, calculateKSTest])
+  }, [uploadedData, calculateKSTest, actions])
 
   const handleVariableSelection = useCallback((variables: VariableSelection) => {
-    setSelectedVariables(variables)
+    actions.setSelectedVariables(variables)
     runAnalysis(variables)
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const renderMethodIntroduction = () => (
     <StepCard
@@ -347,7 +347,7 @@ export default function KolmogorovSmirnovTestPage() {
 
         <div className="text-center">
           <Button
-            onClick={() => setCurrentStep(1)}
+            onClick={() => actions.setCurrentStep(1)}
             className="w-full md:w-auto"
           >
             데이터 업로드하기
@@ -617,14 +617,9 @@ export default function KolmogorovSmirnovTestPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       onRun={() => selectedVariables && runAnalysis(selectedVariables)}
-      onReset={() => {
-        setCurrentStep(0)
-        setUploadedData(null)
-        setSelectedVariables(null)
-        setresults(null)
-      }}
+      onReset={actions.reset}
       isRunning={isAnalyzing}
       showProgress={true}
       showTips={true}

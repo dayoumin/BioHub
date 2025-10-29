@@ -26,6 +26,7 @@ import {
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 interface PowerAnalysisResult {
   testType: string
@@ -51,9 +52,13 @@ interface PowerAnalysisResult {
 }
 
 export default function PowerAnalysisPage() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [results, setResults] = useState<PowerAnalysisResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  // Hook for state management
+  const { state, actions } = useStatisticsPage<PowerAnalysisResult, never>({
+    withUploadedData: false,
+    withError: false
+  })
+  const { currentStep, results, isAnalyzing } = state
+
   const [activeTab, setActiveTab] = useState('summary')
 
   // 분석 설정
@@ -185,9 +190,7 @@ export default function PowerAnalysisPage() {
         }
       }
 
-      setResults(mockResults)
-      setIsAnalyzing(false)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResults, 3)
       setActiveTab('summary')
     }, 1500)
   }
@@ -195,14 +198,13 @@ export default function PowerAnalysisPage() {
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
     if (step <= currentStep + 1) {
-      setCurrentStep(step)
+      actions.setCurrentStep(step)
     }
   }
 
   // 초기화
   const handleReset = () => {
-    setResults(null)
-    setCurrentStep(0)
+    actions.reset()
     setActiveTab('summary')
   }
 
@@ -463,7 +465,7 @@ export default function PowerAnalysisPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={() => setCurrentStep(1)}>
+                <Button onClick={() => actions.setCurrentStep(1)}>
                   다음 단계
                 </Button>
               </div>
@@ -575,7 +577,7 @@ export default function PowerAnalysisPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={() => setCurrentStep(2)}>
+                <Button onClick={() => actions.setCurrentStep(2)}>
                   다음 단계
                 </Button>
               </div>

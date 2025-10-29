@@ -26,52 +26,70 @@
 
 ## ✅ 방금 완료
 
-### 대량 TypeScript 에러 수정: 42개 페이지 actions.* 패턴 분석 및 전략 수립 ✅
-**완료일**: 2025-10-28 23:30
+### Pattern B → Pattern A 전환: Phase 1 완료 ✅
+**완료일**: 2025-10-29 01:30
 **브랜치**: `master`
 
-**🎯 42개 페이지의 actions.* 참조 문제를 체계적으로 분석 및 분류**
+**🎯 Phase 1 (3개 페이지) useStatisticsPage 훅 전환 완료**
 
-**상황 분석**:
-- **총 42개 페이지**에서 `actions.*` 호출 발견
-- **Group A (32개)**: useStatisticsPage 훅 사용 → **정상 작동** ✅
-- **Group B (10개)**: useState 직접 사용하면서 actions.* 호출 → **수정 필요**
+**Phase 1 완료 - 간단 (3개)**:
+1. ✅ **power-analysis** - 완료 (3/3 tests passed)
+   - useState 3개 제거: `currentStep`, `results`, `isAnalyzing`
+   - `actions.completeAnalysis()` 사용
+   - 테스트 코드: `__tests__/pages/power-analysis.test.tsx`
 
-**Group B 10개 페이지 (Priority order)**:
+2. ✅ **dose-response** - 완료 (4/4 tests passed)
+   - useState 3개 제거: `currentStep`, `uploadedData`, `error`
+   - 서브 컴포넌트 자체 state 유지
+   - `handleDataUploadComplete` actions 통합
+   - 테스트 코드: `__tests__/pages/dose-response.test.tsx`
 
-**Phase 1 - 가장 간단 (4개, 패턴 동일)**:
-1. ✅ chi-square-goodness (완전히 분석됨)
-2. ✅ chi-square-independence (완전히 분석됨)
-3. ✅ mixed-model (완전히 분석됨)
-4. ✅ reliability (완전히 분석됨)
+3. ✅ **ks-test** - 완료 (4/4 tests passed)
+   - useState 5개 제거: `currentStep`, `uploadedData`, `selectedVariables`, `isAnalyzing`, `results`
+   - `actions.completeAnalysis(result, 3)` 사용
+   - 테스트 코드: `__tests__/pages/ks-test.test.tsx`
 
-**Phase 2 - 중간 (3개, 혼합 패턴)**:
-5. ✅ means-plot (분석됨)
-6. ✅ partial-correlation (분석됨)
-7. ✅ power-analysis (분석됨)
+**Phase 2 - 중간 (2개, 다음 작업)**:
+4. ⏳ **partial-correlation** - 대기 중
+5. ⏳ **means-plot** - 대기 중
 
-**Phase 3 - 복잡 (3개, 서브컴포넌트)**:
-8. ✅ dose-response (분석됨)
-9. ✅ mann-kendall (분석됨)
-10. ✅ response-surface (분석됨)
+**Phase 3 - 복잡 (2개, 추후 작업)**:
+6. ⏳ **mann-kendall** - 대기 중
+7. ⏳ **response-surface** - 대기 중
+
+**성과 요약**:
+- ✅ **테스트 통과**: 11/11 (100%)
+- ✅ **TypeScript 에러**: 0개 (Phase 1 페이지)
+- ✅ **useState 제거**: 11개 → 1개 (power-analysis의 activeTab만 유지)
+- ✅ **소요 시간**: 17분 (예상 15분)
+- ✅ **방법론**: 코드 리뷰 → 테스트 코드 → 수정 → 검증
+
+**Pattern A (정상 - 수정 불필요) 36개**:
+- chi-square-goodness, chi-square-independence, mixed-model, reliability ✅
+- chi-square, wilcoxon, welch-t, two-way-anova, three-way-anova ✅
+- t-test, stepwise, sign-test, runs-test, regression ✅
+- proportion-test, poisson, pca, ordinal-regression, one-sample-t ✅
+- normality-test, non-parametric, mcnemar, manova, mann-whitney ✅
+- kruskal-wallis, friedman, frequency-table, factor-analysis ✅
+- explore-data, discriminant, descriptive, cross-tabulation ✅
+- correlation, cluster, anova, ancova ✅
 
 **해결 전략**:
-- **Phase 1-3 모두**: `useStatisticsPage` 훅 추가
-- **각 페이지마다 3단계**: Import 추가 → useState 6줄 삭제 → 훅 선언 3줄 추가
-- **예상 시간**: 각 페이지 5분, 총 50분
+- **7개 페이지만**: `useStatisticsPage` 훅 추가
+- **각 페이지마다 3단계**: Import 추가 → useState 제거 → 훅 선언 추가
+- **예상 시간**: 총 35분 (Phase 1: 15분, Phase 2: 10분, Phase 3: 10분)
 
-**내일 진행 계획**:
+**진행 계획**:
 ```
-Day 1 (오늘): 분석 + 전략 수립 ✅
-Day 2 (내일): Phase 1 (4개 페이지) 수정 → 빌드 테스트
-Day 3: Phase 2 (3개 페이지) 수정
-Day 4: Phase 3 (3개 페이지) 수정 → 최종 빌드 검증
+Day 1 (2025-10-29 오늘): Phase 1 (3개) + 빌드 테스트
+Day 2 (2025-10-30): Phase 2 (2개)
+Day 3 (2025-10-31): Phase 3 (2개) + 최종 검증
 ```
 
 **Git Status**:
 - ✅ 자동 수정된 파일: 24개 (onStepChange={setCurrentStep} → actions.setCurrentStep)
-- ✅ 부분 수정된 파일: 2개 (repeated-measures, ks-test)
-- ⏳ 대기 중: 10개 Group B 페이지 (내일 시작)
+- ✅ 부분 수정된 파일: 2개 (repeated-measures - 정상, ks-test - Phase 1 대상)
+- ⏳ 대기 중: 7개 Pattern B 페이지 (Agent 검증 완료)
 
 ---
 
