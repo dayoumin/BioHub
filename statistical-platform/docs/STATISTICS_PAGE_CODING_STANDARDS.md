@@ -7,6 +7,7 @@
 **히스토리**:
 - 2025-10-29: 문서 최초 작성 (Pattern B → useStatisticsPage hook 전환 완료)
 - 2025-10-29: 버전 1.1 - 미래 지향적 표준으로 업데이트 (전환 용어 제거)
+- 2025-10-29: 버전 1.2 - **치명적 오류 수정**: actions 안정성 (useMemo 적용)
 
 ---
 
@@ -209,34 +210,47 @@ const handleVariablesSelected = useCallback((variables: unknown) => {
 
 ---
 
-## 5. useCallback 사용 (권장)
+## 5. useCallback 사용 및 의존성 배열 (필수)
 
 ### 모든 이벤트 핸들러에 useCallback 적용
 
 ```typescript
-// ✅ 권장
+// ✅ 권장: actions는 useMemo로 안정화되어 의존성 배열에 안전하게 사용 가능
 const handleDataUpload = useCallback((data, columns) => {
-  // ...
+  actions.setUploadedData({
+    data: data as Record<string, unknown>[],
+    fileName: 'uploaded-file.csv',
+    columns
+  })
 }, [actions])
 
 const handleVariablesSelected = useCallback((variables) => {
-  // ...
+  actions.setSelectedVariables(variables)
+  actions.setCurrentStep(4)
+  runAnalysis(variables)
 }, [actions, runAnalysis])
 
 const runAnalysis = useCallback(async (params) => {
-  // ...
+  if (!uploadedData) return
+  actions.startAnalysis()
+
+  // Pyodide 분석...
+  actions.completeAnalysis(results, 4)
 }, [uploadedData, actions])
 ```
 
 ### 의존성 배열 규칙
 
-| 함수 | 의존성 배열 |
-|-----|-----------|
-| `handleDataUpload` | `[actions]` |
-| `handleVariablesSelected` | `[actions, runAnalysis]` |
-| `runAnalysis` | `[uploadedData, actions]` |
+| 함수 | 의존성 배열 | 비고 |
+|-----|-----------|------|
+| `handleDataUpload` | `[actions]` | actions는 안정적 (useMemo) |
+| `handleVariablesSelected` | `[actions, runAnalysis]` | 둘 다 안정적 |
+| `runAnalysis` | `[uploadedData, actions]` | uploadedData는 state |
 
-**참고**: `actions`는 useStatisticsPage에서 `useCallback`으로 메모이제이션되어 있으므로 안정적입니다.
+**✅ v1.2 업데이트 (2025-10-29)**:
+- `actions` 객체는 useStatisticsPage 내부에서 **useMemo로 메모이제이션**되어 있습니다
+- 의존성 배열에 안전하게 사용 가능 (무한 루프 없음)
+- 이전 버전(v1.0-1.1)에서는 actions가 매 렌더 새로 생성되어 문제가 있었으나 **수정 완료**
 
 ---
 
@@ -487,5 +501,9 @@ describe('Method Name Page - Coding Standards Compliance Test', () => {
 ---
 
 **Updated**: 2025-10-29
-**Version**: 1.1
+**Version**: 1.2
 **Status**: Active (모든 신규 통계 페이지 작성 시 필수 준수)
+
+**Breaking Change (v1.2)**:
+- use-statistics-page.ts Hook 수정: actions를 useMemo로 안정화
+- 기존 코드 호환: Phase 1-2 페이지 동작 변경 없음 (개선만)

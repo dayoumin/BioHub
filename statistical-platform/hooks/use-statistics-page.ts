@@ -29,7 +29,7 @@
  * ```
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 
 // ============================================================================
 // Types
@@ -216,9 +216,9 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
    * 분석 시작 (isAnalyzing = true, error 초기화)
    */
   const startAnalysis = useCallback(() => {
-    actions.startAnalysis()
+    setIsAnalyzing(true)
     if (withError) {
-      actions.setError(null)
+      setError(null)
     }
   }, [withError])
 
@@ -226,7 +226,7 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
    * 에러 설정 (isAnalyzing = false)
    */
   const handleSetError = useCallback((errorMessage: string) => {
-    actions.setError(errorMessage)
+    setError(errorMessage)
     setIsAnalyzing(false)
   }, [])
 
@@ -252,10 +252,14 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
     setVariableMapping({})
     setResults(null)
     setIsAnalyzing(false)
-    actions.setUploadedData(null)
-    actions.setSelectedVariables(null)
-    actions.setError(null)
-  }, [initialStep])
+    if (withUploadedData) {
+      setUploadedData(null)
+      setSelectedVariables(null)
+    }
+    if (withError) {
+      setError(null)
+    }
+  }, [initialStep, withUploadedData, withError])
 
   // ============================================================================
   // Return
@@ -273,7 +277,8 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
     ...(withError && { error })
   }
 
-  const actions: StatisticsPageActions<TResult, TVariables> = {
+  // actions 객체를 useMemo로 안정화하여 의존성 배열에서 안전하게 사용 가능
+  const actions: StatisticsPageActions<TResult, TVariables> = useMemo(() => ({
     setCurrentStep,
     nextStep,
     prevStep,
@@ -287,7 +292,19 @@ export function useStatisticsPage<TResult = unknown, TVariables = Record<string,
       setSelectedVariables
     }),
     reset
-  }
+  }), [
+    // setCurrentStep은 setState이므로 안정적 (의존성 불필요)
+    nextStep,
+    prevStep,
+    updateVariableMapping,
+    startAnalysis,
+    completeAnalysis,
+    handleSetError,
+    reset,
+    withUploadedData,
+    setUploadedData,
+    setSelectedVariables
+  ])
 
   return { state, actions }
 }
