@@ -426,11 +426,13 @@ import { CheckCircle2, AlertCircle } from 'lucide-react'
 ### 필수 사항
 - [ ] `useStatisticsPage` hook 사용 (useState 직접 사용 금지)
 - [ ] `useCallback` 모든 이벤트 핸들러에 적용
-- [ ] `setTimeout(100ms)` 패턴 적용 (일관성)
 - [ ] Pyodide 로드 방식: 함수 내부 직접 로드 (useState + useEffect 금지)
 - [ ] `any` 타입 사용 금지 (unknown + 타입 가드 사용)
 - [ ] TypeScript 컴파일 에러 0개
 - [ ] 테스트 작성 및 통과
+
+### 선택 사항 (일관성 권장)
+- [ ] `setTimeout(100ms)` 패턴 적용 (Phase 1 페이지와 일관성 유지)
 
 ### 컴포넌트 구조
 - [ ] DataUploadStep: onUploadComplete + onNext 분리 (중복 방지)
@@ -493,7 +495,9 @@ describe('Method Name Page - Coding Standards Compliance Test', () => {
     expect(fileContent).toMatch(/actions\.(setCurrentStep|startAnalysis|completeAnalysis)/)
   })
 
-  it('should use setTimeout pattern (100ms)', () => {
+  it('(optional) should use setTimeout pattern (100ms) for consistency', () => {
+    // 선택 사항: Phase 1 패턴 일관성 유지 시에만 검증
+    // setTimeout 없이 await만 사용하는 경우 이 테스트 제거 가능
     expect(fileContent).toMatch(/setTimeout\(.*100\)/)
   })
 
@@ -818,14 +822,16 @@ export default function StatisticsPage() {
 
 새 통계 페이지 작성 또는 리팩토링 시 확인 사항:
 
-### 필수 사항 (v1.3까지)
+### 필수 사항
 - [ ] `useStatisticsPage` hook 사용 (useState 직접 사용 금지)
 - [ ] `useCallback` 모든 이벤트 핸들러에 적용
-- [ ] `setTimeout(100ms)` 패턴 적용 (일관성)
 - [ ] Pyodide 로드 방식: 함수 내부 직접 로드 (useState + useEffect 금지)
 - [ ] `any` 타입 사용 금지 (unknown + 타입 가드 사용)
 - [ ] TypeScript 컴파일 에러 0개
 - [ ] 테스트 작성 및 통과
+
+### 선택 사항 (일관성 권장)
+- [ ] `setTimeout(100ms)` 패턴 적용 (Phase 1 페이지와 일관성 유지)
 
 ### 접근성 (v1.4 추가)
 - [ ] 데이터 테이블에 `role="table"`, `aria-label` 추가
