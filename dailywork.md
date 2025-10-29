@@ -4,6 +4,209 @@
 
 ---
 
+## 2025-10-29 (화)
+
+### ✅ Pattern A 전환: means-plot 완료 + 코딩 표준 문서 작성 (1시간)
+
+**배경**
+- Pattern B → Pattern A 전환 작업 진행 중
+- Phase 1 (3개 페이지) 완료 후 Phase 2 시작
+- means-plot이 부분 변환 상태 (actions.* 호출 있으나 useStatisticsPage 미import)
+
+---
+
+#### 1. means-plot Pattern A 전환 (30분)
+
+**초기 분석**:
+- 🔴 문제: useStatisticsPage import 없음
+- 🟡 문제: actions.* 메서드 호출 있으나 정의 없음 (ReferenceError 발생)
+- ✅ 장점: steps 배열 id는 string (수정 불필요)
+
+**수정 작업**:
+1. ✅ useStatisticsPage hook 추가
+   ```typescript
+   const { state, actions } = useStatisticsPage<MeansPlotResults, SelectedVariables>({
+     withUploadedData: true,
+     withError: true
+   })
+   ```
+
+2. ✅ useState 7개 제거
+   - `currentStep`, `uploadedData`, `selectedVariables`
+   - `isAnalyzing`, `results`, `error`
+   - 기타 로컬 state
+
+3. ✅ useCallback 3개 적용
+   - `handleDataUpload` - [actions]
+   - `handleVariablesSelected` - [actions, runMeansPlotAnalysis]
+   - `runMeansPlotAnalysis` - [uploadedData, actions]
+
+4. ✅ setTimeout(100ms) 패턴 적용
+   ```typescript
+   setTimeout(async () => {
+     try {
+       // Pyodide 분석
+       actions.completeAnalysis(results, 4)
+     } catch (err) {
+       actions.setError(...)
+     }
+   }, 100)
+   ```
+
+5. ✅ DataUploadStep props 중복 제거
+   - handleDataUpload에서 step 변경 제거
+   - onNext에서만 step 변경 처리
+
+**테스트 작성**:
+- 파일: `__tests__/pages/means-plot.test.tsx`
+- 테스트: 6개 (Pattern A 준수 검증)
+- 결과: ✅ **6/6 통과** (100%)
+
+**Git Commit**:
+- Commit: `fix: Convert means-plot to Pattern A (useStatisticsPage hook)`
+- Files: 2개 수정 (page.tsx, test.tsx)
+
+---
+
+#### 2. 코드 리뷰 및 표준 정립 (30분)
+
+**코드 리뷰 결과** (3개 이슈):
+
+**Issue 1: setTimeout + try-catch 패턴 누락** 🟡 MEDIUM
+- **초기 판단**: CRITICAL (잘못됨)
+- **사용자 피드백**: "CRITICAL이라고 하고 왜 선택이라고 했지?"
+- **재분석 결과**:
+  - ❌ 기술적 필수사항 아님 (async/await가 Event Loop 양보)
+  - ✅ 일관성 유지 목적 (Phase 1 패턴 통일)
+  - 결론: MEDIUM (선택적) → 사용자 승인 후 Option A 적용
+
+**Issue 2: DataUploadStep props 중복** 🔴 HIGH
+- handleDataUpload + onNext 둘 다 step 변경
+- Single Responsibility 위반
+- 수정: handleDataUpload에서 step 변경 제거
+
+**Issue 3: useCallback 누락** 🟡 MEDIUM
+- 이벤트 핸들러에 useCallback 미적용
+- 불필요한 리렌더링 가능성
+- 수정: 3개 핸들러 모두 useCallback 적용
+
+**수정 완료**:
+- Commit: `fix: Apply code review fixes to means-plot`
+- 테스트: ✅ **6/6 통과** (수정 후에도 정상)
+
+---
+
+#### 3. Pattern A 코딩 표준 문서 작성 (30분)
+
+**작성 이유**:
+- 45개 통계 페이지의 일관성 유지 필요
+- Phase 1-3 작업 시 참고할 표준 문서 없음
+- AI가 향후 작업 시 자동으로 표준 발견 가능하도록
+
+**문서 구조** (12 sections, 356 lines):
+1. useStatisticsPage Hook 사용 (필수)
+2. 비동기 분석 함수 패턴 (setTimeout + useCallback)
+3. DataUploadStep 사용법 (중복 방지)
+4. VariableSelector 사용법 (onBack 주의)
+5. useCallback 사용 (의존성 배열 규칙)
+6. Steps 배열 정의 (id: string)
+7. 타입 안전성 (any 금지, 타입 가드)
+8. 에러 처리 (withError 옵션)
+9. Import 순서 (권장)
+10. 체크리스트 (11개 항목)
+11. 참고 예제 (ks-test, power-analysis, means-plot)
+12. 테스트 템플릿
+
+**핵심 패턴**:
+```typescript
+// 1. Hook 사용
+const { state, actions } = useStatisticsPage<ResultType, VariableType>({
+  withUploadedData: true,
+  withError: true
+})
+
+// 2. 비동기 분석 (setTimeout 100ms)
+const runAnalysis = useCallback(async (params) => {
+  if (!uploadedData) return
+  actions.startAnalysis()
+
+  setTimeout(async () => {
+    try {
+      // Pyodide 분석
+      actions.completeAnalysis(results, stepNumber)
+    } catch (err) {
+      actions.setError(err instanceof Error ? err.message : '오류')
+    }
+  }, 100)
+}, [uploadedData, actions])
+
+// 3. DataUploadStep (step 변경 분리)
+<DataUploadStep
+  onUploadComplete={handleDataUpload}  // Step 변경 없음
+  onNext={() => actions.setCurrentStep(2)}  // Step 변경
+/>
+```
+
+**CLAUDE.md 업데이트**:
+- Section 3 추가: Pattern A 통계 페이지 작성 규칙
+- 참조 링크: [PATTERN_A_CODING_STANDARDS.md](statistical-platform/docs/PATTERN_A_CODING_STANDARDS.md)
+- 7-item 체크리스트 + 코드 템플릿
+- 문서 구조에 ⭐ 표시 (필수 읽기)
+
+**AI 발견 가능성**:
+- ✅ CLAUDE.md에 명시적 참조 (Section 3)
+- ✅ 문서 구조에 하이라이트 (⭐)
+- ✅ "새 페이지 작성 시 필독" 라벨
+- ✅ 체크리스트 + 템플릿 (빠른 참조)
+
+**Git Commits**:
+- Commit 1: `docs: Add Pattern A coding standards (PATTERN_A_CODING_STANDARDS.md)`
+- Commit 2: `docs: Update CLAUDE.md with Pattern A rules reference`
+
+---
+
+### 📊 Phase 2 성과 요약
+
+**완료 페이지**: means-plot (4/7 완료, 57%)
+- Phase 1: power-analysis, dose-response, ks-test (3개) ✅
+- Phase 2: means-plot (1개) ✅
+- 남은 작업: partial-correlation (1개, Phase 2), mann-kendall, response-surface (2개, Phase 3)
+
+**코드 개선**:
+- useState 제거: 18개 (Phase 1-2 합계)
+- useCallback 적용: 14개 (Phase 1-2 합계)
+- 테스트 통과: **17/17** (100%)
+- TypeScript 에러: **0개**
+
+**문서화**:
+- 코딩 표준 문서: 356 lines (12 sections)
+- 참고 예제: 3개 (ks-test, power-analysis, means-plot)
+- 테스트 템플릿: 1개 (6가지 기본 테스트)
+
+**학습 내용**:
+1. **AI 코드 리뷰의 중요성**:
+   - 초기 판단 오류 (setTimeout을 CRITICAL로 분류)
+   - 사용자 피드백으로 재분석 → 정확한 분류 (MEDIUM)
+   - 일관성 vs 기술적 필수성 구분 학습
+
+2. **setTimeout 패턴의 목적**:
+   - Event Loop 양보: async/await가 이미 수행
+   - **일관성 유지**: Phase 1 패턴과 통일 (주 목적)
+   - UI 반응성: `actions.startAnalysis()` 즉시 반영
+   - 권장: 100ms (Phase 1의 1500ms보다 빠름)
+
+3. **문서화의 필요성**:
+   - 45개 페이지 작업 시 표준 없으면 불일치 발생
+   - AI가 자동으로 발견 가능하도록 CLAUDE.md 참조 추가
+   - 체크리스트 + 템플릿으로 빠른 적용 가능
+
+**다음 작업**:
+- ⏳ partial-correlation (Phase 2 마지막)
+- ⏳ mann-kendall, response-surface (Phase 3)
+- 🔜 Phase 1 일관성 업데이트 (setTimeout 100ms 적용, 선택적)
+
+---
+
 ## 2025-10-28 (월)
 
 ### ✅ TypeScript 에러 수정: Agent 병렬 처리로 4개 페이지 수정 (2시간)
