@@ -140,25 +140,21 @@ export default function RegressionPage() {
   }
 
   const handleDataUpload = (data: unknown) => {
-    if (setUploadedData) {
-      actions.setUploadedData(data as UploadedData | null)
-    }
+    actions.setUploadedData(data as UploadedData | null)
     actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: unknown) => {
-    if (setSelectedVariables) {
-      actions.setSelectedVariables(variables as Record<string, unknown> | null)
-    }
+    actions.setSelectedVariables(variables as Record<string, unknown> | null)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
   const handleAnalysis = async (variables: unknown) => {
-    actions.startAnalysis()()
+    try {
+      actions.startAnalysis()
 
-    // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
-    setTimeout(() => {
+      // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
       const mockResults = regressionType === 'logistic' ? {
         // 로지스틱 회귀 결과
         coefficients: [
@@ -224,8 +220,10 @@ export default function RegressionPage() {
         }))
       }
 
-      actions.setResults(mockResults)
-    }, 2000)
+      actions.completeAnalysis(mockResults, 3)
+    } catch (err) {
+      console.error('Analysis error:', err)
+    }
   }
 
   const renderMethodSelection = () => (

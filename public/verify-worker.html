@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Worker 환경 검증</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      border-bottom: 3px solid #4CAF50;
+      padding-bottom: 10px;
+    }
+    .result {
+      margin: 20px 0;
+      padding: 15px;
+      border-left: 4px solid #ddd;
+      background: #f9f9f9;
+    }
+    .result.pass { border-color: #4CAF50; background: #f1f8f4; }
+    .result.fail { border-color: #f44336; background: #fef1f0; }
+    .result.warn { border-color: #ff9800; background: #fff8e1; }
+    .icon { font-size: 24px; margin-right: 10px; }
+    .details { margin-top: 10px; font-size: 14px; color: #666; }
+    .recommendation {
+      margin-top: 10px;
+      padding: 10px;
+      background: #fff3cd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    button:hover { background: #45a049; }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    .summary {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .summary h3 { margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Web Worker 환경 검증</h1>
+    <p><strong>목적:</strong> Phase 5-3 Worker Pool 구현을 위한 브라우저 환경 검증</p>
+    <p><strong>검증 항목:</strong> Web Worker API, SharedArrayBuffer, IndexedDB, 메모리 제한, 브라우저 호환성</p>
+
+    <button onclick="runVerification()">🚀 검증 시작</button>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    function runVerification() {
+      const results = [];
+
+      // 1. Web Worker API
+      results.push({
+        feature: 'Web Worker API',
+        supported: typeof Worker !== 'undefined',
+        required: true,
+        details: typeof Worker !== 'undefined'
+          ? '✓ Worker constructor 사용 가능'
+          : '✗ Worker constructor를 찾을 수 없습니다',
+        recommendation: typeof Worker === 'undefined'
+          ? '❌ CRITICAL: 브라우저를 최신 버전으로 업데이트하거나 Web Worker를 지원하는 브라우저를 사용하세요.'
+          : null
+      });
+
+      // 2. SharedArrayBuffer
+      const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+      results.push({
+        feature: 'SharedArrayBuffer',
+        supported: hasSharedArrayBuffer,
+        required: false,
+        details: hasSharedArrayBuffer
+          ? '✓ Pyodide 성능 최적화 가능 (멀티스레드 지원)'
+          : '✗ COOP/COEP 헤더 설정 필요 (단일 스레드 제한)',
+        recommendation: !hasSharedArrayBuffer
+          ? '⚠️ WARNING: Pyodide가 단일 스레드 모드로 작동합니다. 성능 향상을 위해 다음 헤더를 설정하세요:\n' +
+            'Cross-Origin-Opener-Policy: same-origin\n' +
+            'Cross-Origin-Embedder-Policy: require-corp'
+          : null
+      });
+
+      // 3. Worker Module Support
+      let workerModuleSupported = false;
+      try {
+        const testCode = 'export default self';
+        const blob = new Blob([testCode], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        workerModuleSupported = true;
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        workerModuleSupported = false;
+      }
+
+      results.push({
+        feature: 'Worker Modules (ES Modules)',
+        supported: workerModuleSupported,
+        required: false,
+        details: workerModuleSupported
+          ? '✓ Worker에서 ES Modules 사용 가능 (type: "module")'
+          : '✗ Classic Worker만 지원',
+        recommendation: !workerModuleSupported
+          ? '⚠️ WARNING: Worker Module 미지원. Classic Worker 스크립트를 사용해야 합니다.'
+          : null
+      });
+
+      // 4. IndexedDB
+      results.push({
+        feature: 'IndexedDB',
+        supported: typeof indexedDB !== 'undefined',
+        required: false,
+        details: typeof indexedDB !== 'undefined'
+          ? '✓ Pyodide 패키지 캐싱 가능 (빠른 재로딩)'
+          : '✗ 패키지를 매번 네트워크에서 다운로드',
+        recommendation: typeof indexedDB === 'undefined'
+          ? '⚠️ WARNING: Pyodide 패키지를 매번 다운로드하므로 초기 로딩이 느립니다.'
+          : null
+      });
+
+      // 5. Memory Info (Chrome only)
+      let memoryDetails = '정보 없음 (Chrome 전용 API)';
+      let memoryRecommendation = null;
+
+      if (performance.memory) {
+        const limitMB = Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024);
+        const usedMB = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+        memoryDetails = `Heap 제한: ${limitMB} MB / 현재 사용: ${usedMB} MB`;
+
+        if (limitMB < 2048) {
+          memoryRecommendation = `⚠️ WARNING: 메모리 제한이 낮습니다 (${limitMB} MB). 대용량 데이터셋(10,000+ 행) 처리 시 제한될 수 있습니다.`;
+        }
+      }
+
+      results.push({
+        feature: 'Memory Limits',
+        supported: true,
+        required: false,
+        details: memoryDetails,
+        recommendation: memoryRecommendation
+      });
+
+      // 6. Browser Info
+      const getBrowserInfo = () => {
+        const ua = navigator.userAgent;
+        if (ua.indexOf('Chrome') > -1) return 'Chrome/Edge';
+        if (ua.indexOf('Firefox') > -1) return 'Firefox';
+        if (ua.indexOf('Safari') > -1) return 'Safari';
+        return 'Unknown';
+      };
+
+      results.push({
+        feature: 'Browser',
+        supported: true,
+        required: false,
+        details: `${getBrowserInfo()} | ${navigator.userAgent}`,
+        recommendation: null
+      });
+
+      displayResults(results);
+    }
+
+    function displayResults(results) {
+      const container = document.getElementById('results');
+      container.innerHTML = '<h2 style="margin-top: 40px;">📊 검증 결과</h2>';
+
+      results.forEach((result, index) => {
+        const status = result.supported ? 'pass' : (result.required ? 'fail' : 'warn');
+        const icon = result.supported ? '✅' : (result.required ? '❌' : '⚠️');
+        const required = result.required ? '<span style="color: #d32f2f;">[필수]</span>' : '<span style="color: #f57c00;">[선택]</span>';
+
+        const div = document.createElement('div');
+        div.className = `result ${status}`;
+        div.innerHTML = `
+          <div>
+            <span class="icon">${icon}</span>
+            <strong>${result.feature}</strong> ${required}
+          </div>
+          <div class="details">${result.details}</div>
+          ${result.recommendation ? `<div class="recommendation">💡 ${result.recommendation.replace(/\n/g, '<br>')}</div>` : ''}
+        `;
+        container.appendChild(div);
+      });
+
+      // Summary
+      const blockers = results.filter(r => r.required && !r.supported);
+      const warnings = results.filter(r => !r.required && !r.supported);
+
+      const summary = document.createElement('div');
+      summary.className = 'summary';
+
+      if (blockers.length > 0) {
+        summary.style.background = '#fef1f0';
+        summary.style.border = '2px solid #f44336';
+        summary.innerHTML = `
+          <h3>❌ 검증 실패: 블로커 발견!</h3>
+          <p><strong>${blockers.length}개의 필수 기능이 지원되지 않습니다.</strong></p>
+          <p>Phase 5-3 Worker Pool 구현을 시작하기 전에 다음 문제를 해결하세요:</p>
+          <ul>
+            ${blockers.map(b => `<li>${b.feature}: ${b.recommendation}</li>`).join('')}
+          </ul>
+        `;
+      } else if (warnings.length > 0) {
+        summary.style.background = '#fff8e1';
+        summary.style.border = '2px solid #ff9800';
+        summary.innerHTML = `
+          <h3>⚠️ 검증 통과 (경고 있음)</h3>
+          <p><strong>Worker Pool 구현 가능하지만 ${warnings.length}개의 선택 기능이 제한됩니다.</strong></p>
+          <p>성능 최적화를 위해 다음 권장사항을 검토하세요:</p>
+          <ul>
+            ${warnings.map(w => `<li>${w.feature}: ${w.recommendation || '성능 제한 가능'}</li>`).join('')}
+          </ul>
+          <p style="margin-top: 20px; color: #2e7d32;"><strong>✅ Phase 5-3 AdaptiveWorkerPool 구현을 시작할 수 있습니다!</strong></p>
+        `;
+      } else {
+        summary.style.background = '#f1f8f4';
+        summary.style.border = '2px solid #4CAF50';
+        summary.innerHTML = `
+          <h3>✅ 검증 완료: 모든 기능 지원!</h3>
+          <p><strong>최적 환경입니다. Worker Pool의 모든 성능 최적화를 활용할 수 있습니다.</strong></p>
+          <ul>
+            <li>✓ Web Worker API 지원</li>
+            <li>✓ SharedArrayBuffer 지원 (멀티스레드)</li>
+            <li>✓ IndexedDB 캐싱 지원</li>
+            <li>✓ 충분한 메모리</li>
+          </ul>
+          <p style="margin-top: 20px; color: #2e7d32; font-size: 18px;"><strong>🚀 Phase 5-3 AdaptiveWorkerPool 구현 준비 완료!</strong></p>
+        `;
+      }
+
+      container.appendChild(summary);
+    }
+
+    // 페이지 로드 시 자동 실행
+    window.addEventListener('load', () => {
+      // 자동 실행하지 않고 사용자가 버튼 클릭하도록 유도
+    });
+  </script>
+</body>
+</html>

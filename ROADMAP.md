@@ -199,7 +199,7 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
 
 ## ⏳ 예정된 Phase
 
-### Phase 5-3: Worker Pool 통합 (예정)
+### Phase 5-3: Worker Pool 통합 (🔜 준비 완료, 시작 대기 중)
 
 **목표**: 2+2 Adaptive Worker Pool 구축
 
@@ -220,6 +220,18 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
 - Worker 2: Hypothesis (8개)
 - Worker 3: Nonparametric + ANOVA (18개)
 - Worker 4: Regression + Advanced (24개)
+
+**✅ 사전 준비 완료 (2025-10-29)**:
+- ✅ Worker 환경 검증 시스템 ([WORKER_ENVIRONMENT_VERIFICATION.md](docs/WORKER_ENVIRONMENT_VERIFICATION.md))
+- ✅ 성능 회귀 테스트 시스템 ([PERFORMANCE_REGRESSION_TESTING.md](docs/PERFORMANCE_REGRESSION_TESTING.md))
+- ✅ CI/CD 자동화 (GitHub Actions)
+- ✅ Phase 5-3 준비 가이드 ([phase5-3-readiness-guide.md](docs/planning/phase5-3-readiness-guide.md))
+- ✅ Phase 5-3 체크리스트 ([phase5-3-checklist.md](docs/planning/phase5-3-checklist.md))
+
+**시작 조건**:
+- 현재 리팩토링 작업 완료
+- Git working directory clean
+- 성능 baseline 측정 완료
 
 ---
 
@@ -280,6 +292,37 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
   - `any` 타입 완전 제거 → `unknown` + 타입 가드
   - Non-null assertion (`!`) 제거 → 타입 가드로 대체
   - 모든 함수 명시적 타입 지정 검증
+- ⏳ **setTimeout 패턴 점진적 마이그레이션** (2025-10-29 계획 수립 | 선택적 작업)
+  - **현황**: 45개 페이지 중 27개(60%)가 Phase 1 레거시 패턴(setTimeout) 사용 중
+  - **목표**: 표준 패턴(await)으로 점진적 전환 (강제 아님)
+  - **전략**: 다른 작업(버그 수정, UI 개편, 기능 추가)과 병행
+  - **작업 완료**:
+    1. ✅ 코딩 표준 문서 업데이트 (2025-10-29)
+    2. ✅ CLAUDE.md에 레거시 참고 섹션 추가 (2025-10-29)
+    3. ✅ 27개 레거시 페이지 목록 작성 및 우선순위 분류 (2025-10-29)
+  - **점진적 마이그레이션 우선순위** (총 27개, 예상 13.25시간):
+    - 🔴 **High (5개, 3시간)**: 기본 통계, 자주 사용
+      - descriptive, anova, correlation, regression, chi-square
+    - 🟡 **Medium (10개, 4.75시간)**: 일반 검정
+      - ks-test, power-analysis, means-plot, repeated-measures, welch-t
+      - one-sample-t, proportion-test, normality-test, frequency-table, cross-tabulation
+    - 🟢 **Low (12개, 5.5시간)**: 고급/특수 통계
+      - sign-test, runs-test, poisson, pca, ordinal-regression, non-parametric
+      - mcnemar, explore-data, discriminant, ancova, wilcoxon (test), mann-whitney (test)
+  - **전환 원칙**:
+    - ✅ **새 페이지**: 반드시 표준 패턴(await) 사용
+    - ✅ **기존 페이지**: 수정 작업 시에만 전환 (버그 수정, UI 개편, 기능 추가 등)
+    - ❌ **독립 리팩토링 프로젝트로 진행 금지**: 강제 전환 불필요 (레거시 패턴도 정상 작동)
+  - **자동화 방안** (선택적):
+    - ESLint 규칙: 새 파일에서 `setTimeout + loadPyodide` 조합 금지 (레거시 디렉터리 제외)
+    - CI/CD: 새 페이지 패턴 검증
+  - **예상 효과**:
+    - 코드 일관성 향상 (신규 코드는 표준 패턴 준수)
+    - UI 반응성 개선 (100ms/1500ms 지연 제거)
+    - 개발자 혼란 감소 (명확한 표준 + 레거시 참고)
+  - **상세 문서**:
+    - [CLAUDE.md](CLAUDE.md) Section 3 "레거시 패턴 참고"
+    - [STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md)
 - ✅ 코드 정리
   - 사용하지 않는 import 제거
   - Dead code 제거 (주석 처리된 코드, 미사용 함수)

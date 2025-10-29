@@ -1,20 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push)",
-      "Bash(npm test:*)",
-      "Bash(npx tsc:*)",
-      "Bash(git push:*)",
-      "Bash(tasklist:*)",
-      "Bash(findstr:*)",
-      "Bash(npm run build:*)",
-      "Bash(find:*)",
-      "Read(//d/**)",
-      "Bash(wc:*)",
-      "Bash(git checkout:*)",
-      "Bash(rm:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(for file in ks-test power-analysis means-plot one-sample-t normality-test)",
+      "Bash(do echo \"--- $file ---\")",
+      "Bash(for file in descriptive anova correlation regression chi-square)",
+      "Bash(do echo \"--- $page ---\")",
+      "Bash(for file in descriptive anova correlation regression chi-square one-sample-t normality-test)",
+      "Bash(npm run test:performance:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []

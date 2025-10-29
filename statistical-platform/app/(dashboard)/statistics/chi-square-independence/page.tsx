@@ -86,7 +86,7 @@ interface ChiSquareIndependenceResult {
 
 export default function ChiSquareIndependencePage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<ChiSquareIndependenceResult, VariableAssignment>{
+  const { state, actions } = useStatisticsPage<ChiSquareIndependenceResult, VariableAssignment>({
     withUploadedData: true,
     withError: true
   })

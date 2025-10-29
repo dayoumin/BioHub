@@ -101,10 +101,10 @@ export default function OneSampleTPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    actions.startAnalysis()()
+    try {
+      actions.startAnalysis()
 
-    // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-    setTimeout(() => {
+      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
       const mockResults: OneSampleTResults = {
         variable: '점수',
         sampleSize: 30,
@@ -129,9 +129,12 @@ export default function OneSampleTPage() {
         }
       }
 
-      actions.setResults(mockResults)
+      actions.completeAnalysis(mockResults, 3)
       setActiveTab('summary')
-    }, 1500)
+    } catch (error) {
+      console.error('분석 중 오류:', error)
+      actions.setError('분석 중 오류가 발생했습니다.')
+    }
   }
 
   // 단계 변경 처리

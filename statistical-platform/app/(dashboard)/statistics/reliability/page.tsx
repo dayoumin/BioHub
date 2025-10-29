@@ -78,7 +78,7 @@ interface ReliabilityResult {
 
 export default function ReliabilityAnalysisPage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<ReliabilityResult, VariableAssignment>{
+  const { state, actions } = useStatisticsPage<ReliabilityResult, VariableAssignment>({
     withUploadedData: true,
     withError: true
   })

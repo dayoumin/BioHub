@@ -113,7 +113,7 @@ interface MixedModelResult {
 
 export default function MixedModelPage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<MixedModelResult, VariableAssignment>{
+  const { state, actions } = useStatisticsPage<MixedModelResult, VariableAssignment>({
     withUploadedData: true,
     withError: true
   })

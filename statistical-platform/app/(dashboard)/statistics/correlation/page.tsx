@@ -209,10 +209,10 @@ export default function CorrelationPage() {
   }
 
   const handleAnalysis = async (_variables: VariableSelection) => {
-    actions.startAnalysis()()
+    try {
+      actions.startAnalysis()
 
-    // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
-    setTimeout(() => {
+      // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
       // 상관 행렬 생성
       const variables = ['Variable1', 'Variable2', 'Variable3', 'Variable4']
       const correlationMatrix = [
@@ -310,8 +310,10 @@ export default function CorrelationPage() {
         } : null
       }
 
-      actions.setResults(mockResults)
-    }, 2000)
+      actions.completeAnalysis(mockResults, 3)
+    } catch (err) {
+      console.error('Analysis error:', err)
+    }
   }
 
   const renderMethodSelection = () => (

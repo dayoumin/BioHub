@@ -128,9 +128,9 @@ export default function ChiSquareTestPage() {
 
   // Mock 분석 실행
   const runAnalysis = async () => {
-    actions.startAnalysis()()
+    try {
+      actions.startAnalysis()
 
-    setTimeout(() => {
       const mockResult: StatisticalResult = {
         testName: currentTest.name,
         testType: '카이제곱 검정',
@@ -186,9 +186,11 @@ export default function ChiSquareTestPage() {
         groups: tableRows * tableCols
       }
 
-      setResults(mockResult)
+      actions.completeAnalysis(mockResult, 3)
       setActiveTab('results')
-    }, 1500)
+    } catch (err) {
+      console.error('Analysis error:', err)
+    }
   }
 
   // 변수 요구사항 생성

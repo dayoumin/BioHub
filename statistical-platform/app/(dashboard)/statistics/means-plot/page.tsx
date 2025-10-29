@@ -108,11 +108,10 @@ export default function MeansPlotPage() {
   const runMeansPlotAnalysis = useCallback(async (variables: SelectedVariables) => {
     if (!uploadedData) return
 
-    actions.startAnalysis()
+    try {
+      actions.startAnalysis()
 
-    // setTimeout으로 UI 업데이트 먼저 반영 (Phase 1 패턴 일관성)
-    setTimeout(async () => {
-      try {
+      // Pyodide로 분석 실행 (React 18 Automatic Batching 활용)
         // Load Pyodide with required packages
         const pyodide: PyodideInterface = await loadPyodideWithPackages([
           'numpy',
@@ -206,8 +205,7 @@ json.dumps(results)
         actions.completeAnalysis(analysisResults, 4)
       } catch (err) {
         actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-      }
-    }, 100)
+    }
   }, [uploadedData, actions])
 
   const renderMethodIntroduction = () => (

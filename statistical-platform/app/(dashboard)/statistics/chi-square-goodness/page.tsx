@@ -68,7 +68,7 @@ interface ChiSquareGoodnessResult {
 
 export default function ChiSquareGoodnessPage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<ChiSquareGoodnessResult, VariableAssignment>{
+  const { state, actions } = useStatisticsPage<ChiSquareGoodnessResult, VariableAssignment>({
     withUploadedData: true,
     withError: true
   })

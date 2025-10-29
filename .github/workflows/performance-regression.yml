@@ -1,0 +1,52 @@
+name: Performance Regression Tests
+
+on:
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'statistical-platform/lib/services/pyodide/**'
+      - 'statistical-platform/public/workers/**'
+      - 'statistical-platform/__tests__/performance/**'
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'statistical-platform/lib/services/pyodide/**'
+      - 'statistical-platform/public/workers/**'
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  performance-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'statistical-platform/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ./statistical-platform
+        run: npm ci
+
+      - name: Run performance regression tests
+        working-directory: ./statistical-platform
+        run: npm test -- __tests__/performance/pyodide-regression.test.ts --verbose
+        env:
+          NODE_ENV: test
+
+      - name: Check performance thresholds
+        if: success()
+        run: echo "✅ Performance regression tests passed!"
+
+      - name: Performance degradation detected
+        if: failure()
+        run: |
+          echo "❌ Performance regression detected!"
+          echo "Please review the test output above."
+          exit 1

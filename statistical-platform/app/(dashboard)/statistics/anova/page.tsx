@@ -197,10 +197,10 @@ export default function ANOVAPage() {
   }
 
   const handleAnalysis = async (_variables: SelectedVariables) => {
-    actions.startAnalysis()()
+    try {
+      actions.startAnalysis()
 
-    // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
-    setTimeout(() => {
+      // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
       const mockResults: ANOVAResults = {
         fStatistic: 15.234,
         pValue: 0.00012,
@@ -248,8 +248,10 @@ export default function ANOVAPage() {
         ]
       }
 
-      actions.setResults(mockResults)
-    }, 2000)
+      actions.completeAnalysis(mockResults, 3)
+    } catch (err) {
+      console.error('Analysis error:', err)
+    }
   }
 
   const renderMethodSelection = () => (

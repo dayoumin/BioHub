@@ -95,23 +95,19 @@ def logistic_regression(X, y):
 
 ⚠️ **상세 규칙**: [STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md) ← **새 페이지 작성 시 필독!**
 
-**필수 체크리스트**:
-- [ ] `useStatisticsPage` hook 사용 (useState 금지)
-- [ ] `useCallback` 모든 이벤트 핸들러에 적용
-- [ ] `setTimeout(() => {}, 100)` 패턴 적용 (Phase 1 일관성)
-- [ ] DataUploadStep props 중복 제거 (onNext만 사용)
-- [ ] `any` 타입 절대 금지 (unknown + 타입 가드)
-- [ ] TypeScript 컴파일 에러 0개
-- [ ] 테스트 작성 (6개 기본 테스트)
+**핵심 원칙**:
+- ✅ `useStatisticsPage` hook 사용 (useState 금지)
+- ✅ `useCallback` 모든 이벤트 핸들러에 적용
+- ✅ **await 패턴 사용** (setTimeout 사용 금지)
+- ✅ Pyodide 함수 내부 직접 로드
+- ✅ `any` 타입 절대 금지 (unknown + 타입 가드)
+- ✅ TypeScript 컴파일 에러 0개
 
-**참고 예제** (완벽한 Pattern A 구현):
-- [ks-test](statistical-platform/app/(dashboard)/statistics/ks-test/page.tsx)
-- [power-analysis](statistical-platform/app/(dashboard)/statistics/power-analysis/page.tsx)
-- [means-plot](statistical-platform/app/(dashboard)/statistics/means-plot/page.tsx)
-
-**기본 템플릿**:
+**표준 템플릿**:
 ```typescript
 import { useCallback } from 'react'
+import type { PyodideInterface } from '@/types/pyodide'
+import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 export default function MethodPage() {
@@ -121,21 +117,86 @@ export default function MethodPage() {
   })
   const { currentStep, uploadedData, isAnalyzing, results, error } = state
 
-  const runAnalysis = useCallback(async (params) => {
+  const runAnalysis = useCallback(async (params: AnalysisParams) => {
     if (!uploadedData) return
+
     actions.startAnalysis()
 
-    setTimeout(async () => {
-      try {
-        // Pyodide 분석
-        actions.completeAnalysis(results, stepNumber)
-      } catch (err) {
-        actions.setError(err instanceof Error ? err.message : '분석 중 오류')
-      }
-    }, 100)
+    try {
+      // Pyodide 로딩 (함수 내부에서 직접 로드)
+      const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'scipy'])
+
+      // 분석 실행
+      pyodide.globals.set('data', uploadedData.data)
+      const result = pyodide.runPython(pythonCode)
+
+      actions.completeAnalysis(result.toJs(), stepNumber)
+    } catch (err) {
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류')
+    }
   }, [uploadedData, actions])
 }
 ```
+
+**중요**: React 18 automatic batching이 UI 업데이트를 자동 처리하므로 setTimeout 불필요
+
+---
+
+#### 🔄 레거시 패턴 참고 (Phase 1 코드)
+
+**현재 상태**: 45개 통계 페이지 중 27개(60%)가 Phase 1 레거시 패턴(setTimeout) 사용 중
+
+**Phase 1 레거시 패턴 (허용되나 권장하지 않음)**:
+```typescript
+const runAnalysis = useCallback(async (params: AnalysisParams) => {
+  if (!uploadedData) return
+  actions.startAnalysis()
+
+  // ⚠️ 레거시 패턴: setTimeout 사용
+  setTimeout(async () => {
+    try {
+      const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'scipy'])
+      pyodide.globals.set('data', uploadedData.data)
+      const result = pyodide.runPython(pythonCode)
+      actions.completeAnalysis(result.toJs(), stepNumber)
+    } catch (err) {
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류')
+    }
+  }, 100)  // 짧은 지연 (100ms) 또는 1500ms
+}, [uploadedData, actions])
+```
+
+**레거시 페이지 목록** (17개):
+- repeated-measures, welch-t, sign-test, runs-test
+- proportion-test, poisson, pca, ordinal-regression
+- non-parametric, mcnemar, frequency-table, explore-data
+- discriminant, cross-tabulation, ancova
+- wilcoxon (test), mann-whitney (test)
+
+**✅ 전환 완료** (10개):
+- **High Priority** (5개 - 2025-10-29): descriptive, anova, correlation, regression, chi-square
+- **Medium Priority** (5개 - 2025-10-29): ks-test, power-analysis, means-plot, one-sample-t, normality-test
+
+**점진적 마이그레이션 정책**:
+- ✅ **새 페이지**: 반드시 표준 템플릿(await 패턴) 사용
+- ✅ **기존 페이지 수정 시**: setTimeout → await 패턴으로 전환 권장
+  - 버그 수정 작업 시
+  - UI 개편 작업 시
+  - 기능 추가 작업 시
+- ❌ **강제 전환 불필요**: 레거시 패턴도 정상 작동 중
+- ⚠️ **ESLint 검사**: 새 파일에서 setTimeout + loadPyodide 조합 금지 (레거시 디렉터리 제외)
+
+**전환 체크리스트** (기존 페이지 수정 시):
+- [ ] setTimeout 블록 제거
+- [ ] try-catch를 함수 최상위로 이동
+- [ ] 지연 시간(100ms/1500ms) 제거
+- [ ] TypeScript 컴파일 확인 (`npx tsc --noEmit`)
+- [ ] 테스트 실행 확인
+- [ ] 문서 업데이트 (레거시 목록에서 제거)
+
+**상세 계획**: [ROADMAP.md](ROADMAP.md) Phase 9-1 참조
+
+---
 
 ### 4. 컴파일 체크 필수 (생성 후 즉시)
 
@@ -461,15 +522,32 @@ Python 코드 실행 (브라우저 메모리)
 ```
 docs/
 ├── planning/                        # 현재 진행 중인 계획
-│   └── pyodide-refactoring-plan.md # 리팩토링 종합 계획
-├── architecture/                    # 아키텍처 문서
+│   ├── pyodide-refactoring-plan.md # 리팩토링 종합 계획
+│   ├── option-b-*.md                # Option B 관련 계획 (5개)
+│   ├── phase5-2-worker-pool-plan.md
+│   └── phase6-7-implementation-plan.md
+├── architecture/                    # 아키텍처 문서 (8개)
 │   ├── system-overview.md
 │   ├── worker-service-architecture.md
 │   ├── TECHNICAL_ARCHITECTURE.md
-│   └── TECHNICAL_SPEC.md
-└── guides/                          # 가이드 문서
-    ├── PYODIDE_BROWSER_PYTHON_GUIDE.md
-    └── PYODIDE_ENVIRONMENT.md
+│   ├── TECHNICAL_SPEC.md
+│   ├── PROJECT_INITIAL_VISION.md
+│   ├── SINGLE_PAGE_ANALYSIS_FLOW.md
+│   ├── STATISTICAL_ANALYSIS_SPECIFICATIONS.md
+│   └── UI_UX_DESIGN_GUIDELINES.md
+├── guides/                          # 가이드 문서 (3개)
+│   ├── PYODIDE_BROWSER_PYTHON_GUIDE.md
+│   ├── PYODIDE_ENVIRONMENT.md
+│   └── TESTING-GUIDE.md
+├── legal/                           # 법적 문서 (2개)
+│   ├── COPYRIGHT.md
+│   └── OPENSOURCE_LICENSES.md
+├── CODE_REVIEW_RESPONSE.md          # 코드 리뷰 응답
+├── PATTERN_A_CONVERSION_HANDOVER.md # Pattern A 전환 인수인계
+├── PERFORMANCE_REGRESSION_TESTING.md # 성능 회귀 테스트 가이드
+├── TYPESCRIPT_ERRORS_HANDOVER.md    # TypeScript 에러 핸드오버
+├── WORKER_ENVIRONMENT_VERIFICATION.md # Worker 환경 검증 가이드
+└── implementation-status.md         # 구현 상태 추적
 ```
 
 ### statistical-platform/docs/ (구현 상세)
@@ -491,9 +569,11 @@ statistical-platform/docs/
 ```
 archive/
 ├── 2025-10/                        # 2025년 10월 완료 문서
-│   ├── CODE_REVIEW_FINAL_2025-10-13.md
-│   ├── LIBRARY_MIGRATION_COMPLETE_2025-10-13.md
-│   └── ... (30개 이상)
+│   ├── CODE_REVIEW_FINAL_2025-10-17.md
+│   ├── CODE_REVIEW_PHASE6_2025-10-17.md
+│   └── ... (기타 완료 문서)
+├── dailywork/                      # 주차별 작업 기록
+│   └── 2025-10-W3.md              # 10월 13-19일 작업
 └── phases/                         # Phase 완료 보고서
     ├── phase2-complete.md
     ├── phase3-complete.md

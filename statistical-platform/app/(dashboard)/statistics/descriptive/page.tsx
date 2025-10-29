@@ -110,10 +110,10 @@ export default function DescriptiveStatsPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
-    actions.startAnalysis()()
+    try {
+      actions.startAnalysis()
 
-    // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-    setTimeout(() => {
+      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
       const mockResults: DescriptiveResults = {
         variables: [
           {
@@ -165,9 +165,11 @@ export default function DescriptiveStatsPage() {
         analysisDate: new Date().toLocaleString('ko-KR')
       }
 
-      actions.setResults(mockResults)
+      actions.completeAnalysis(mockResults, 3)
       setActiveTab('summary')
-    }, 1500)
+    } catch (err) {
+      console.error('Analysis error:', err)
+    }
   }
 
   // 단계 변경 처리

@@ -106,11 +106,10 @@ export default function PowerAnalysisPage() {
 
   // 분석 실행
   const handleAnalysis = useCallback(() => {
-    actions.startAnalysis()
+    try {
+      actions.startAnalysis()
 
-    // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-    setTimeout(() => {
-      try {
+      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
         const alphaValue = parseFloat(alpha)
         const powerValue = parseFloat(power)
         const effectValue = parseFloat(effectSize)
@@ -196,8 +195,7 @@ export default function PowerAnalysisPage() {
       } catch (error) {
         console.error('검정력 분석 중 오류:', error)
         actions.setError('분석 중 오류가 발생했습니다.')
-      }
-    }, 1500)
+    }
   }, [alpha, power, effectSize, sampleSize, analysisType, testType, sides, actions])
 
   // 단계 변경 처리
