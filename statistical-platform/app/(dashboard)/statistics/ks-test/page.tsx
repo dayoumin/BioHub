@@ -65,9 +65,9 @@ export default function KolmogorovSmirnovTestPage() {
   // Hook for state management
   const { state, actions } = useStatisticsPage<KSTestResult, VariableSelection>({
     withUploadedData: true,
-    withError: false
+    withError: true
   })
-  const { currentStep, uploadedData, selectedVariables, isAnalyzing, results } = state
+  const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
 
   // K-S 검정 단계 정의
   const steps: StatisticsStep[] = [
@@ -255,16 +255,16 @@ export default function KolmogorovSmirnovTestPage() {
 
     actions.startAnalysis()
 
-    try {
-      setTimeout(() => {
+    setTimeout(() => {
+      try {
         const variable2 = variables.variables.length > 1 ? variables.variables[1] : undefined
         const result = calculateKSTest(uploadedData.data, variables.variables[0], variable2)
         actions.completeAnalysis(result, 3)
-      }, 1500)
-    } catch (error) {
-      console.error('K-S 검정 분석 중 오류:', error)
-      actions.startAnalysis() // Stop analyzing on error
-    }
+      } catch (error) {
+        console.error('K-S 검정 분석 중 오류:', error)
+        actions.setError('분석 중 오류가 발생했습니다.')
+      }
+    }, 1500)
   }, [uploadedData, calculateKSTest, actions])
 
   const handleVariableSelection = useCallback((variables: VariableSelection) => {

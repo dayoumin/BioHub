@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -55,9 +55,9 @@ export default function PowerAnalysisPage() {
   // Hook for state management
   const { state, actions } = useStatisticsPage<PowerAnalysisResult, never>({
     withUploadedData: false,
-    withError: false
+    withError: true
   })
-  const { currentStep, results, isAnalyzing } = state
+  const { currentStep, results, isAnalyzing, error } = state
 
   const [activeTab, setActiveTab] = useState('summary')
 
@@ -105,95 +105,100 @@ export default function PowerAnalysisPage() {
   ]
 
   // 분석 실행
-  const handleAnalysis = async () => {
+  const handleAnalysis = useCallback(() => {
     actions.startAnalysis()
 
     // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
     setTimeout(() => {
-      const alphaValue = parseFloat(alpha)
-      const powerValue = parseFloat(power)
-      const effectValue = parseFloat(effectSize)
-      const sampleValue = parseInt(sampleSize)
+      try {
+        const alphaValue = parseFloat(alpha)
+        const powerValue = parseFloat(power)
+        const effectValue = parseFloat(effectSize)
+        const sampleValue = parseInt(sampleSize)
 
-      let mockResults: PowerAnalysisResult
+        let mockResults: PowerAnalysisResult
 
-      if (analysisType === 'a-priori') {
-        // 사전 검정력 분석 (표본크기 계산)
-        mockResults = {
-          testType,
-          analysisType,
-          inputParameters: {
-            alpha: alphaValue,
-            power: powerValue,
-            effectSize: effectValue
-          },
-          results: {
-            sampleSize: Math.ceil(16 / (effectValue * effectValue) *
-              (sides === 'two-sided' ? 1.96 + 0.84 : 1.64 + 0.84) ** 2)
-          },
-          interpretation: `원하는 검정력 ${(powerValue * 100).toFixed(0)}%를 달성하려면 각 그룹당 최소 ${Math.ceil(16 / (effectValue * effectValue) * (sides === 'two-sided' ? 1.96 + 0.84 : 1.64 + 0.84) ** 2)}개의 표본이 필요합니다`,
-          recommendations: [
-            '계산된 표본크기보다 10-20% 더 많이 수집하여 탈락을 대비하세요',
-            '파일럿 연구로 효과크기를 더 정확히 추정해보세요',
-            '연구 비용과 시간을 고려하여 실현 가능성을 검토하세요'
-          ],
-          powerCurve: Array.from({ length: 20 }, (_, i) => ({
-            sampleSize: 10 + i * 5,
-            power: Math.min(0.99, 1 - Math.exp(-0.05 * (10 + i * 5) * effectValue * effectValue))
-          }))
+        if (analysisType === 'a-priori') {
+          // 사전 검정력 분석 (표본크기 계산)
+          mockResults = {
+            testType,
+            analysisType,
+            inputParameters: {
+              alpha: alphaValue,
+              power: powerValue,
+              effectSize: effectValue
+            },
+            results: {
+              sampleSize: Math.ceil(16 / (effectValue * effectValue) *
+                (sides === 'two-sided' ? 1.96 + 0.84 : 1.64 + 0.84) ** 2)
+            },
+            interpretation: `원하는 검정력 ${(powerValue * 100).toFixed(0)}%를 달성하려면 각 그룹당 최소 ${Math.ceil(16 / (effectValue * effectValue) * (sides === 'two-sided' ? 1.96 + 0.84 : 1.64 + 0.84) ** 2)}개의 표본이 필요합니다`,
+            recommendations: [
+              '계산된 표본크기보다 10-20% 더 많이 수집하여 탈락을 대비하세요',
+              '파일럿 연구로 효과크기를 더 정확히 추정해보세요',
+              '연구 비용과 시간을 고려하여 실현 가능성을 검토하세요'
+            ],
+            powerCurve: Array.from({ length: 20 }, (_, i) => ({
+              sampleSize: 10 + i * 5,
+              power: Math.min(0.99, 1 - Math.exp(-0.05 * (10 + i * 5) * effectValue * effectValue))
+            }))
+          }
+        } else if (analysisType === 'post-hoc') {
+          // 사후 검정력 분석 (검정력 계산)
+          const calculatedPower = Math.min(0.99, 1 - Math.exp(-0.05 * sampleValue * effectValue * effectValue))
+          mockResults = {
+            testType,
+            analysisType,
+            inputParameters: {
+              alpha: alphaValue,
+              effectSize: effectValue,
+              sampleSize: sampleValue
+            },
+            results: {
+              power: calculatedPower
+            },
+            interpretation: `현재 설정에서 실제 검정력은 ${(calculatedPower * 100).toFixed(1)}%입니다`,
+            recommendations: calculatedPower < 0.8 ? [
+              '검정력이 권장 수준(80%) 미만입니다',
+              '표본크기를 늘리거나 더 큰 효과크기를 가진 연구를 고려하세요',
+              'Type II 오류 위험이 높습니다'
+            ] : [
+              '충분한 검정력을 확보했습니다',
+              '통계적으로 유의한 결과를 얻을 가능성이 높습니다'
+            ]
+          }
+        } else {
+          // 절충 분석 (검정력과 표본크기의 균형점 찾기)
+          const balancedSample = 25
+          const balancedPower = 0.75
+          mockResults = {
+            testType,
+            analysisType,
+            inputParameters: {
+              alpha: alphaValue,
+              effectSize: effectValue
+            },
+            results: {
+              sampleSize: balancedSample,
+              power: balancedPower
+            },
+            interpretation: `검정력과 표본크기의 균형점: 각 그룹당 ${balancedSample}개 표본으로 ${(balancedPower * 100).toFixed(0)}% 검정력 달성`,
+            recommendations: [
+              '실용적인 절충안입니다',
+              '연구 제약사항을 고려한 현실적 선택',
+              '결과 해석 시 검정력 한계를 명시하세요'
+            ]
+          }
         }
-      } else if (analysisType === 'post-hoc') {
-        // 사후 검정력 분석 (검정력 계산)
-        const calculatedPower = Math.min(0.99, 1 - Math.exp(-0.05 * sampleValue * effectValue * effectValue))
-        mockResults = {
-          testType,
-          analysisType,
-          inputParameters: {
-            alpha: alphaValue,
-            effectSize: effectValue,
-            sampleSize: sampleValue
-          },
-          results: {
-            power: calculatedPower
-          },
-          interpretation: `현재 설정에서 실제 검정력은 ${(calculatedPower * 100).toFixed(1)}%입니다`,
-          recommendations: calculatedPower < 0.8 ? [
-            '검정력이 권장 수준(80%) 미만입니다',
-            '표본크기를 늘리거나 더 큰 효과크기를 가진 연구를 고려하세요',
-            'Type II 오류 위험이 높습니다'
-          ] : [
-            '충분한 검정력을 확보했습니다',
-            '통계적으로 유의한 결과를 얻을 가능성이 높습니다'
-          ]
-        }
-      } else {
-        // 절충 분석 (검정력과 표본크기의 균형점 찾기)
-        const balancedSample = 25
-        const balancedPower = 0.75
-        mockResults = {
-          testType,
-          analysisType,
-          inputParameters: {
-            alpha: alphaValue,
-            effectSize: effectValue
-          },
-          results: {
-            sampleSize: balancedSample,
-            power: balancedPower
-          },
-          interpretation: `검정력과 표본크기의 균형점: 각 그룹당 ${balancedSample}개 표본으로 ${(balancedPower * 100).toFixed(0)}% 검정력 달성`,
-          recommendations: [
-            '실용적인 절충안입니다',
-            '연구 제약사항을 고려한 현실적 선택',
-            '결과 해석 시 검정력 한계를 명시하세요'
-          ]
-        }
+
+        actions.completeAnalysis(mockResults, 3)
+        setActiveTab('summary')
+      } catch (error) {
+        console.error('검정력 분석 중 오류:', error)
+        actions.setError('분석 중 오류가 발생했습니다.')
       }
-
-      actions.completeAnalysis(mockResults, 3)
-      setActiveTab('summary')
     }, 1500)
-  }
+  }, [alpha, power, effectSize, sampleSize, analysisType, testType, sides, actions])
 
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
