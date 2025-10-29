@@ -456,7 +456,16 @@ export default function PowerAnalysisPage() {
 
               <div>
                 <Label>분석 유형</Label>
-                <Select value={analysisType} onValueChange={(value: unknown) => setAnalysisType(value)}>
+                <Select
+                  value={analysisType}
+                  onValueChange={(value) => {
+                    // 타입 가드: 허용된 값만 설정
+                    if (value === 'a-priori' || value === 'post-hoc' ||
+                        value === 'compromise' || value === 'criterion') {
+                      setAnalysisType(value)
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
