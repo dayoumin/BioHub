@@ -9,6 +9,7 @@
 - 2025-10-29: 버전 1.1 - 미래 지향적 표준으로 업데이트 (전환 용어 제거)
 - 2025-10-29: 버전 1.2 - **치명적 오류 수정**: actions 안정성 (useMemo 적용)
 - 2025-10-29: 버전 1.3 - **기술적 정확성 개선**: 메모리 누수 주장 제거, setTimeout 선택 사항 명시
+- 2025-10-29: 버전 1.4 - **필수 표준 추가**: 접근성 (a11y), 데이터 검증, 에러 바운더리
 
 ---
 
@@ -511,15 +512,372 @@ describe('Method Name Page - Coding Standards Compliance Test', () => {
 
 ---
 
+## 14. 접근성 (Accessibility) 표준
+
+### 필수 aria 속성
+
+#### 데이터 테이블
+```typescript
+// ✅ 권장: 통계 결과 테이블에 aria 속성 추가
+<table role="table" aria-label="통계 분석 결과">
+  <thead>
+    <tr>
+      <th scope="col">변수명</th>
+      <th scope="col">평균</th>
+      <th scope="col">표준편차</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">{variableName}</th>
+      <td>{mean.toFixed(2)}</td>
+      <td>{std.toFixed(2)}</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+#### 로딩 상태
+```typescript
+// ✅ 권장: 분석 중 aria-live로 상태 전달
+{isAnalyzing && (
+  <div role="status" aria-live="polite" aria-busy="true">
+    <Loader2 className="animate-spin" />
+    <span className="sr-only">분석 진행 중입니다...</span>
+  </div>
+)}
+```
+
+#### 에러 메시지
+```typescript
+// ✅ 권장: 에러 메시지에 role="alert"
+{error && (
+  <Alert variant="destructive" role="alert" aria-live="assertive">
+    <AlertCircle className="h-4 w-4" aria-hidden="true" />
+    <AlertDescription>{error}</AlertDescription>
+  </Alert>
+)}
+```
+
+### 키보드 네비게이션
+
+```typescript
+// ✅ 권장: 버튼은 자동으로 키보드 접근 가능 (tabIndex 불필요)
+<Button onClick={handleAnalysis}>
+  분석 시작
+</Button>
+
+// ⚠️ 커스텀 클릭 요소는 키보드 지원 필수
+<div
+  role="button"
+  tabIndex={0}
+  onClick={handleClick}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      handleClick()
+    }
+  }}
+>
+  클릭 가능 영역
+</div>
+```
+
+### 스크린 리더 지원
+
+```typescript
+// ✅ 권장: 장식용 아이콘은 aria-hidden
+<CheckCircle className="h-4 w-4" aria-hidden="true" />
+
+// ✅ 권장: 의미 있는 아이콘은 aria-label
+<button aria-label="다운로드 CSV">
+  <Download className="h-4 w-4" />
+</button>
+
+// ✅ 권장: 시각적으로 숨겨진 텍스트 (스크린 리더용)
+<span className="sr-only">현재 단계: {currentStep}번</span>
+```
+
+---
+
+## 15. 데이터 검증 (Data Validation) 표준
+
+### CSV 파일 검증
+
+```typescript
+// ✅ 권장: DataUploadStep은 자동으로 검증 수행
+// - 파일 크기 제한 (기본: 10MB)
+// - CSV 형식 확인
+// - 빈 파일 체크
+
+const handleDataUpload = useCallback((uploadedData: unknown[], uploadedColumns: string[]) => {
+  // 추가 검증 (optional)
+  if (uploadedData.length === 0) {
+    actions.setError('데이터가 비어있습니다.')
+    return
+  }
+
+  if (uploadedColumns.length < 2) {
+    actions.setError('최소 2개 이상의 열이 필요합니다.')
+    return
+  }
+
+  actions.setUploadedData({
+    data: uploadedData as Record<string, unknown>[],
+    fileName: 'uploaded-file.csv',
+    columns: uploadedColumns
+  })
+}, [actions])
+```
+
+### 통계 가정 검증
+
+```typescript
+// ✅ 권장: 분석 전 통계 가정 확인
+const runAnalysis = useCallback(async (params: AnalysisParams) => {
+  if (!uploadedData) return
+
+  // 1. 샘플 크기 검증
+  if (uploadedData.data.length < 3) {
+    actions.setError('최소 3개 이상의 관측치가 필요합니다.')
+    return
+  }
+
+  // 2. 변수 타입 검증
+  const variable = uploadedData.data.map(row => row[params.variableName])
+  const numericValues = variable.filter(v => typeof v === 'number' && !isNaN(v))
+
+  if (numericValues.length === 0) {
+    actions.setError('숫자형 변수가 필요합니다.')
+    return
+  }
+
+  // 3. 결측치 경고 (optional)
+  const missingCount = variable.length - numericValues.length
+  if (missingCount > 0) {
+    console.warn(`${missingCount}개의 결측치가 제거되었습니다.`)
+  }
+
+  actions.startAnalysis()
+  // ... 분석 진행
+}, [uploadedData, actions])
+```
+
+### 에러 메시지 표준
+
+```typescript
+// ✅ 권장: 명확하고 실행 가능한 에러 메시지
+const ERROR_MESSAGES = {
+  NO_DATA: '데이터를 먼저 업로드해주세요.',
+  INSUFFICIENT_SAMPLE: (required: number, actual: number) =>
+    `최소 ${required}개의 관측치가 필요합니다. (현재: ${actual}개)`,
+  INVALID_VARIABLE: (varName: string) =>
+    `변수 "${varName}"가 유효하지 않습니다. 숫자형 변수를 선택해주세요.`,
+  PYODIDE_LOAD_FAILED: 'Python 통계 엔진 로드 실패. 페이지를 새로고침해주세요.',
+  ANALYSIS_FAILED: (reason: string) =>
+    `분석 중 오류가 발생했습니다: ${reason}`
+} as const
+
+// 사용 예시
+try {
+  // ...
+} catch (err) {
+  if (err instanceof Error) {
+    actions.setError(ERROR_MESSAGES.ANALYSIS_FAILED(err.message))
+  } else {
+    actions.setError('알 수 없는 오류가 발생했습니다.')
+  }
+}
+```
+
+---
+
+## 16. 에러 바운더리 (Error Boundary) 표준
+
+### Pyodide 로드 실패 처리
+
+```typescript
+// ✅ 권장: Pyodide 로드 시 명확한 에러 처리
+const runAnalysis = useCallback(async (params: AnalysisParams) => {
+  if (!uploadedData) return
+
+  actions.startAnalysis()
+
+  setTimeout(async () => {
+    try {
+      // Pyodide 로드 (타임아웃 처리는 pyodide-loader에서 자동 수행)
+      const pyodide: PyodideInterface = await loadPyodideWithPackages([
+        'numpy', 'pandas', 'scipy'
+      ])
+
+      // 분석 실행
+      pyodide.globals.set('data', uploadedData.data)
+      const result = pyodide.runPython(pythonCode)
+
+      actions.completeAnalysis(result.toJs(), 4)
+    } catch (err) {
+      // Pyodide 로드 실패 vs 분석 실패 구분
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to load Pyodide') ||
+            err.message.includes('timeout')) {
+          actions.setError(
+            'Python 통계 엔진 로드 실패. 인터넷 연결을 확인하고 페이지를 새로고침해주세요.'
+          )
+        } else {
+          actions.setError(`분석 중 오류: ${err.message}`)
+        }
+      } else {
+        actions.setError('알 수 없는 오류가 발생했습니다.')
+      }
+    }
+  }, 100)
+}, [uploadedData, actions])
+```
+
+### 페이지 수준 에러 처리
+
+```typescript
+// ✅ 권장: 최상위 에러 핸들링 (페이지 크래시 방지)
+export default function StatisticsPage() {
+  const { state, actions } = useStatisticsPage<ResultType, VariableType>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { error } = state
+
+  // 치명적 에러 발생 시 전체 UI 대체
+  if (error?.includes('치명적')) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>오류 발생</AlertTitle>
+          <AlertDescription>
+            {error}
+            <Button
+              variant="outline"
+              className="mt-4 w-full"
+              onClick={() => window.location.reload()}
+            >
+              페이지 새로고침
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  // 일반 에러는 StepCard 내부에서 표시
+  return (
+    <StatisticsPageLayout>
+      {/* ... 일반 UI */}
+    </StatisticsPageLayout>
+  )
+}
+```
+
+### 에러 복구 전략
+
+```typescript
+// ✅ 권장: 사용자가 에러에서 복구할 수 있도록 지원
+{error && (
+  <Alert variant="destructive" role="alert">
+    <AlertCircle className="h-4 w-4" aria-hidden="true" />
+    <AlertTitle>분석 오류</AlertTitle>
+    <AlertDescription>
+      <p>{error}</p>
+      <div className="flex gap-2 mt-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            actions.setError(null)
+            actions.setCurrentStep(2) // 데이터 업로드 단계로 복귀
+          }}
+        >
+          데이터 다시 업로드
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            actions.setError(null)
+            actions.setCurrentStep(3) // 변수 선택 단계로 복귀
+          }}
+        >
+          변수 다시 선택
+        </Button>
+      </div>
+    </AlertDescription>
+  </Alert>
+)}
+```
+
+---
+
+## 17. 구현 체크리스트 (업데이트)
+
+새 통계 페이지 작성 또는 리팩토링 시 확인 사항:
+
+### 필수 사항 (v1.3까지)
+- [ ] `useStatisticsPage` hook 사용 (useState 직접 사용 금지)
+- [ ] `useCallback` 모든 이벤트 핸들러에 적용
+- [ ] `setTimeout(100ms)` 패턴 적용 (일관성)
+- [ ] Pyodide 로드 방식: 함수 내부 직접 로드 (useState + useEffect 금지)
+- [ ] `any` 타입 사용 금지 (unknown + 타입 가드 사용)
+- [ ] TypeScript 컴파일 에러 0개
+- [ ] 테스트 작성 및 통과
+
+### 접근성 (v1.4 추가)
+- [ ] 데이터 테이블에 `role="table"`, `aria-label` 추가
+- [ ] 로딩 상태에 `role="status"`, `aria-live="polite"` 추가
+- [ ] 에러 메시지에 `role="alert"`, `aria-live="assertive"` 추가
+- [ ] 장식용 아이콘에 `aria-hidden="true"` 추가
+- [ ] 의미 있는 버튼에 `aria-label` 추가 (아이콘만 있는 경우)
+
+### 데이터 검증 (v1.4 추가)
+- [ ] 샘플 크기 최소 요구사항 확인 (통계 메서드별 상이)
+- [ ] 변수 타입 검증 (숫자형/범주형 확인)
+- [ ] 결측치 처리 (경고 또는 제거)
+- [ ] 명확한 에러 메시지 제공 (실행 가능한 지침 포함)
+
+### 에러 처리 (v1.4 추가)
+- [ ] Pyodide 로드 실패 vs 분석 실패 구분
+- [ ] 에러 복구 옵션 제공 (이전 단계로 복귀 버튼)
+- [ ] 치명적 에러 시 페이지 수준 대체 UI 표시
+- [ ] 사용자 친화적 에러 메시지 (기술 용어 최소화)
+
+### 컴포넌트 구조
+- [ ] DataUploadStep: onUploadComplete + onNext 분리 (중복 방지)
+- [ ] VariableSelector: `onBack` 속성 사용 (onPrevious 아님)
+- [ ] Steps 배열: `id`는 string 타입
+- [ ] Helper 함수: 컴포넌트 외부 정의 (pure function)
+- [ ] 인터페이스: 컴포넌트 외부 정의 (모듈 스코프)
+
+### Import 및 타입
+- [ ] `import type` keyword 사용 (타입만 import 시)
+- [ ] Import 순서 준수 (React → Components → Hooks → Services → UI → Icons)
+
+### Hook 옵션
+- [ ] `withUploadedData: true` (데이터 업로드 필요 시)
+- [ ] `withError: true` (에러 처리 필요 시)
+
+---
+
 **Updated**: 2025-10-29
-**Version**: 1.3
+**Version**: 1.4
 **Status**: Active (모든 신규 통계 페이지 작성 시 필수 준수)
 
-**Breaking Change (v1.2)**:
-- use-statistics-page.ts Hook 수정: actions를 useMemo로 안정화
-- 기존 코드 호환: Phase 1-2 페이지 동작 변경 없음 (개선만)
+**Version History**:
+- **v1.0** (2025-10-29): 문서 최초 작성 (Pattern B → useStatisticsPage hook 전환 완료)
+- **v1.1** (2025-10-29): 미래 지향적 표준으로 업데이트 (전환 용어 제거)
+- **v1.2** (2025-10-29): **치명적 오류 수정**: actions 안정성 (useMemo 적용)
+- **v1.3** (2025-10-29): **기술적 정확성 개선**: 메모리 누수 주장 제거, setTimeout 선택 사항 명시
+- **v1.4** (2025-10-29): **필수 표준 추가**: 접근성 (a11y), 데이터 검증, 에러 바운더리
 
-**Technical Accuracy Update (v1.3)**:
-- 메모리 누수 주장 제거: pyodide-loader는 싱글톤 캐시 제공
-- setTimeout 선택 사항 명시: React 18/Next 15에서는 기술적으로 불필요
-- Pyodide 초기화 장점 재정의: "로딩 시점 제어" + "코드 가독성"
+**Breaking Changes**:
+- **v1.2**: use-statistics-page.ts Hook 수정 - actions를 useMemo로 안정화
+
+**New Features (v1.4)**:
+- 접근성 표준 (§14): aria 속성, 키보드 네비게이션, 스크린 리더 지원
+- 데이터 검증 표준 (§15): CSV 검증, 통계 가정 확인, 에러 메시지 템플릿
+- 에러 바운더리 표준 (§16): Pyodide 로드 실패 처리, 에러 복구 전략
