@@ -31,13 +31,72 @@ def wilcoxon_test(values1, values2):
 
     if len(values1) < 2:
         raise ValueError("Wilcoxon test requires at least 2 valid pairs")
-    
-    statistic, p_value = stats.wilcoxon(values1, values2)
+
+    # Convert to numpy arrays
+    arr1 = np.array(values1)
+    arr2 = np.array(values2)
+    diffs = arr1 - arr2
+
+    # Wilcoxon signed-rank test
+    statistic, p_value = stats.wilcoxon(arr1, arr2)
+
+    # Count positive, negative, and tied differences
+    positive = int(np.sum(diffs > 0))
+    negative = int(np.sum(diffs < 0))
+    ties = int(np.sum(diffs == 0))
+
+    # Calculate descriptive statistics
+    def calc_descriptives(data):
+        return {
+            'median': float(np.median(data)),
+            'mean': float(np.mean(data)),
+            'iqr': float(np.percentile(data, 75) - np.percentile(data, 25)),
+            'min': float(np.min(data)),
+            'max': float(np.max(data)),
+            'q1': float(np.percentile(data, 25)),
+            'q3': float(np.percentile(data, 75))
+        }
+
+    # Calculate effect size (rank-biserial correlation)
+    n = len(values1)
+    effect_size = 1 - (2 * statistic) / (n * (n + 1))
+
+    # Effect size interpretation
+    abs_r = abs(effect_size)
+    if abs_r < 0.3:
+        interpretation = "작은 효과크기"
+    elif abs_r < 0.5:
+        interpretation = "중간 효과크기"
+    else:
+        interpretation = "큰 효과크기"
+
+    # Z-score approximation for large samples
+    z_score = 0.0
+    if n > 10:
+        mu = n * (n + 1) / 4
+        sigma = np.sqrt(n * (n + 1) * (2 * n + 1) / 24)
+        z_score = float((statistic - mu) / sigma)
 
     return {
         'statistic': float(statistic),
         'pValue': float(p_value),
-        'nPairs': int(len(values1))
+        'nobs': int(n),
+        'zScore': z_score,
+        'medianDiff': float(np.median(diffs)),
+        'effectSize': {
+            'value': float(effect_size),
+            'interpretation': interpretation
+        },
+        'descriptives': {
+            'before': calc_descriptives(arr1),
+            'after': calc_descriptives(arr2),
+            'differences': {
+                **calc_descriptives(diffs),
+                'positive': positive,
+                'negative': negative,
+                'ties': ties
+            }
+        }
     }
 
 

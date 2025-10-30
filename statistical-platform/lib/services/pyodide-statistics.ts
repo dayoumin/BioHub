@@ -734,6 +734,103 @@ export class PyodideStatisticsService {
   }
 
   /**
+   * Wilcoxon 부호순위 검정 (Wilcoxon Signed-Rank Test) - Worker 3
+   * 대응표본의 중위수 차이를 비모수적으로 검정
+   */
+  async wilcoxonSignedRankTest(values1: number[], values2: number[]): Promise<{
+    statistic: number
+    pValue: number
+    nobs: number
+    zScore: number
+    medianDiff: number
+    effectSize: {
+      value: number
+      interpretation: string
+    }
+    descriptives: {
+      before: {
+        median: number
+        mean: number
+        iqr: number
+        min: number
+        max: number
+        q1: number
+        q3: number
+      }
+      after: {
+        median: number
+        mean: number
+        iqr: number
+        min: number
+        max: number
+        q1: number
+        q3: number
+      }
+      differences: {
+        median: number
+        mean: number
+        iqr: number
+        min: number
+        max: number
+        q1: number
+        q3: number
+        positive: number
+        negative: number
+        ties: number
+      }
+    }
+  }> {
+    return this.core.callWorkerMethod<{
+      statistic: number
+      pValue: number
+      nobs: number
+      zScore: number
+      medianDiff: number
+      effectSize: {
+        value: number
+        interpretation: string
+      }
+      descriptives: {
+        before: {
+          median: number
+          mean: number
+          iqr: number
+          min: number
+          max: number
+          q1: number
+          q3: number
+        }
+        after: {
+          median: number
+          mean: number
+          iqr: number
+          min: number
+          max: number
+          q1: number
+          q3: number
+        }
+        differences: {
+          median: number
+          mean: number
+          iqr: number
+          min: number
+          max: number
+          q1: number
+          q3: number
+          positive: number
+          negative: number
+          ties: number
+        }
+      }
+    }>(
+      3,
+      'wilcoxon_test',
+      { values1, values2 },
+      { errorMessage: 'Wilcoxon Signed-Rank Test 실행 실패' }
+    )
+  }
+
+  /**
    * 일표본 t-검정 (One-Sample t-Test) - Worker 2
    */
   async tTestOneSample(data: number[], popmean: number = 0): Promise<{

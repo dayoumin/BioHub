@@ -67,13 +67,19 @@ interface WilcoxonResult {
       q3: number
     }
     differences: {
+      median: number
+      mean: number
+      iqr: number
+      min: number
+      max: number
+      q1: number
+      q3: number
       positive: number
       negative: number
       ties: number
-      median: number
     }
   }
-  interpretation: {
+  interpretation?: {
     summary: string
     comparison: string
     recommendations: string[]
@@ -157,7 +163,7 @@ export default function WilcoxonPage() {
   }, [actions])
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
-    if (!uploadedData || !pyodide || !variables.dependent || variables.dependent.length !== 2) {
+    if (!uploadedData || !variables.dependent || variables.dependent.length !== 2) {
       actions.setError('분석을 실행할 수 없습니다. 사전-사후 두 변수를 선택해주세요.')
       return
     }
@@ -165,22 +171,39 @@ export default function WilcoxonPage() {
     actions.startAnalysis()
 
     try {
-      // TODO: Implement Wilcoxon Signed-Rank Test
-      // const result = await pyodide.wilcoxonSignedRankTest(...)
+      // Extract data for the two paired variables
+      const var1Name = variables.dependent[0]
+      const var2Name = variables.dependent[1]
 
-      // Temporary mock result
-      const mockResult = {
-        statistic: 0,
-        pValue: 0.05,
-        effectSize: 0.5
+      const values1: number[] = []
+      const values2: number[] = []
+
+      for (const row of uploadedData.data) {
+        const val1 = row[var1Name]
+        const val2 = row[var2Name]
+
+        // Only include pairs where both values are valid numbers
+        if (typeof val1 === 'number' && typeof val2 === 'number' &&
+            !isNaN(val1) && !isNaN(val2)) {
+          values1.push(val1)
+          values2.push(val2)
+        }
       }
 
-      actions.completeAnalysis(mockResult, 3)
+      if (values1.length < 2) {
+        actions.setError('유효한 대응표본 데이터가 부족합니다 (최소 2쌍 필요).')
+        return
+      }
+
+      // Call the real Wilcoxon Signed-Rank Test
+      const result = await pyodideStats.wilcoxonSignedRankTest(values1, values2)
+
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Wilcoxon 부호순위 검정 실패:', err)
-      actions.setError('Wilcoxon 부호순위 검정 중 오류가 발생했습니다.')
+      actions.setError(err instanceof Error ? err.message : 'Wilcoxon 부호순위 검정 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, pyodide, actions])
+  }, [uploadedData, actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
     if (!actions.setSelectedVariables) {
@@ -294,7 +317,6 @@ export default function WilcoxonPage() {
         >
           <DataUploadStep
             onUploadComplete={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
           />
 
           <Alert className="mt-4">
@@ -537,33 +559,37 @@ export default function WilcoxonPage() {
                   <CardDescription>Wilcoxon 부호순위 검정 결과 해석 및 권장사항</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>분석 결과 요약</AlertTitle>
-                    <AlertDescription>
-                      {analysisResult.interpretation.summary}
-                    </AlertDescription>
-                  </Alert>
+                  {analysisResult.interpretation && (
+                    <>
+                      <Alert>
+                        <CheckCircle className="h-4 w-4" />
+                        <AlertTitle>분석 결과 요약</AlertTitle>
+                        <AlertDescription>
+                          {analysisResult.interpretation.summary}
+                        </AlertDescription>
+                      </Alert>
 
-                  <Alert>
-                    <TrendingUp className="h-4 w-4" />
-                    <AlertTitle>변화 분석</AlertTitle>
-                    <AlertDescription>
-                      {analysisResult.interpretation.comparison}
-                    </AlertDescription>
-                  </Alert>
+                      <Alert>
+                        <TrendingUp className="h-4 w-4" />
+                        <AlertTitle>변화 분석</AlertTitle>
+                        <AlertDescription>
+                          {analysisResult.interpretation.comparison}
+                        </AlertDescription>
+                      </Alert>
 
-                  <div className="space-y-3">
-                    <h4 className="font-medium">권장사항</h4>
-                    <ul className="space-y-2">
-                      {analysisResult.interpretation.recommendations.map((rec, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground">{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                      <div className="space-y-3">
+                        <h4 className="font-medium">권장사항</h4>
+                        <ul className="space-y-2">
+                          {analysisResult.interpretation.recommendations.map((rec, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-muted-foreground">{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

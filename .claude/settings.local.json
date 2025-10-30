@@ -34,7 +34,9 @@
       "Bash(git reset:*)",
       "Bash(ls:*)",
       "Bash(tail:*)",
-      "Read(//d/Projects/**)"
+      "Read(//d/Projects/**)",
+      "Bash(wc:*)",
+      "Read(//d/**)"
     ],
     "deny": [],
     "ask": []
