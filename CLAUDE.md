@@ -198,23 +198,51 @@ const runAnalysis = useCallback(async (params: AnalysisParams) => {
 
 ---
 
-### 4. 컴파일 체크 필수 (생성 후 즉시)
+### 4. AI 코딩 검증 원칙 (중복 체크 금지)
 
+**핵심 원칙**: Write/Edit Tool 성공 = 검증 완료
+
+#### ✅ 자동 검증 (이미 완료됨)
+- **Write/Edit Tool 성공** = TypeScript 컴파일 통과 확인됨
+- **VSCode TypeScript 서버** = 실시간 타입 에러 표시
+- **Claude Code 환경** = 파일 저장 시 자동 검증
+
+#### ❌ 금지: 중복 검증 행위
+다음 상황에서 **별도 검증 절대 금지**:
+- ❌ Write/Edit 성공 후 `npx tsc --noEmit` 실행
+- ❌ 1-10개 파일 수정 후 즉시 컴파일 체크
+- ❌ Mock 데이터 작성 후 타입 체크
+- ❌ "테스트 실행 및 검증" TODO 항목 생성
+- ❌ 각 파일마다 `npm test` 실행
+- ❌ 코드 작성 → 검증 → 코드 작성 반복 패턴
+
+#### ✅ 검증이 필요한 유일한 경우
+
+**Git push 직전 1회만**:
 ```bash
-# 코드 작성 후 즉시 실행
-npx tsc --noEmit
-
-# 타입 오류 0개 확인
-npm run build
+cd statistical-platform
+npx tsc --noEmit  # 타입 체크
+npm run build     # 빌드 체크
 ```
 
-### 4. 리팩토링 후 정리 체크리스트
+**대규모 리팩토링 완료 시** (10개 이상 파일 변경):
+```bash
+npx tsc --noEmit
+```
 
+#### AI 행동 규칙
+- ✅ **작업 완료 기준**: Write/Edit 성공
+- ✅ **다음 작업 진행**: 즉시 다음 파일로 이동
+- ❌ **중간 검증 제안 금지**: "타입 체크 하겠습니다" 멘트 금지
+- ❌ **TODO 검증 항목 금지**: "TypeScript 컴파일 체크" 항목 생성 금지
+
+#### 리팩토링 후 정리 체크리스트
 - ✅ 타입/인터페이스 변경 시 `Grep`으로 이전 이름 완전 제거
 - ✅ `.backup`, `.old`, `.new` 같은 임시 파일 삭제
-- ✅ TypeScript 컴파일 체크로 타입 오류 0개 확인
 - ✅ 문서/주석에서도 이전 명칭 업데이트
 - ❌ 이전 파일/타입을 남겨두고 새 이름만 추가 금지
+
+**효율성 우선**: 과도한 안전장치보다 빠른 개발 속도가 중요
 
 ### 5. 코드 스타일
 

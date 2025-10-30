@@ -70,7 +70,7 @@ interface WelchTResults {
 
 export default function WelchTPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<WelchTTestResult, string[]>({
+  const { state, actions } = useStatisticsPage<WelchTResults, string[]>({
     withUploadedData: true,
     withError: true
   })
@@ -120,8 +120,10 @@ export default function WelchTPage() {
   const handleAnalysis = async () => {
     actions.startAnalysis()
 
-    // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-    setTimeout(() => {
+    try {
+      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
       const mockResults: WelchTResults = {
         group1: {
           name: '그룹 A',
@@ -160,11 +162,11 @@ export default function WelchTPage() {
         }
       }
 
-      setResults(mockResults)
-      setIsAnalyzing(false)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(mockResults, 3)
       setActiveTab('summary')
-    }, 1500)
+    } catch (err) {
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
+    }
   }
 
   // 단계 변경 처리
