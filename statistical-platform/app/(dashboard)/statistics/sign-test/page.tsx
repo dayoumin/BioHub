@@ -107,7 +107,7 @@ interface SignTestResult {
 
 export default function SignTestPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<SignTestResult, string[]>({
+  const { state, actions } = useStatisticsPage<SignTestResult>({
     withUploadedData: true,
     withError: true
   })
@@ -142,12 +142,14 @@ export default function SignTestPage() {
   }, [])
 
   const availableVariables = useMemo(() => {
-    if (!uploadedData || (uploadedData ?? []).length === 0) return []
+    if (!uploadedData || uploadedData.data.length === 0) return []
 
-    const firstRow = (uploadedData as unknown[] ?? [])[0]
+    const firstRow = uploadedData.data[0]
+    if (!firstRow || typeof firstRow !== 'object') return []
+
     return Object.keys(firstRow).map(key => ({
       name: key,
-      type: typeof firstRow[key] === 'number' ? 'numeric' : 'categorical'
+      type: typeof (firstRow as Record<string, unknown>)[key] === 'number' ? 'numeric' : 'categorical'
     }))
   }, [uploadedData])
 
@@ -156,10 +158,29 @@ export default function SignTestPage() {
     [availableVariables]
   )
 
-  const handleDataUpload = useCallback((data: DataRow[]) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[sign-test] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
+
+    if (!actions.setCurrentStep) {
+      console.error('[sign-test] setCurrentStep not available')
+      return
+    }
+
     actions.setCurrentStep(1)
-  }, [])
+  }, [actions])
 
   const canProceedToAnalysis = useMemo(() => {
     return selectedBefore && selectedAfter && selectedBefore !== selectedAfter
@@ -232,18 +253,34 @@ export default function SignTestPage() {
         }
       }
 
+      if (!actions.completeAnalysis) {
+        console.error('[sign-test] completeAnalysis not available')
+        return
+      }
+
       actions.completeAnalysis(mockResult, 3)
     } catch (error) {
       console.error('분석 중 오류:', error)
+
+      if (!actions.setError) {
+        console.error('[sign-test] setError not available')
+        return
+      }
+
       actions.setError('분석 중 오류가 발생했습니다.')
     }
-  }, [canProceedToAnalysis, (uploadedData as unknown[] ?? []), pyodideReady, testType])
+  }, [canProceedToAnalysis, uploadedData, pyodideReady, testType, actions])
 
   const handleVariableSelection = useCallback(() => {
     if (canProceedToAnalysis) {
+      if (!actions.setCurrentStep) {
+        console.error('[sign-test] setCurrentStep not available')
+        return
+      }
+
       actions.setCurrentStep(2)
     }
-  }, [canProceedToAnalysis])
+  }, [canProceedToAnalysis, actions])
 
   const renderIntroductionStep = useCallback(() => (
     <StepCard title="부호 검정 소개">
@@ -363,7 +400,13 @@ export default function SignTestPage() {
         </Alert>
 
         <div className="flex justify-end">
-          <Button onClick={() => actions.setCurrentStep(1)} className="flex items-center space-x-2">
+          <Button onClick={() => {
+            if (!actions.setCurrentStep) {
+              console.error('[sign-test] setCurrentStep not available')
+              return
+            }
+            actions.setCurrentStep(1)
+          }} className="flex items-center space-x-2">
             <span>다음: 데이터 업로드</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
@@ -375,9 +418,14 @@ export default function SignTestPage() {
   const renderDataUploadStep = useCallback(() => (
     <StepCard title="데이터 업로드">
       <DataUploadStep
-        onDataUploaded={handleDataUpload}
-        acceptedFileTypes={['.csv', '.xlsx', '.txt']}
-        maxFileSize={10 * 1024 * 1024}
+        onUploadComplete={handleDataUpload}
+        onPrevious={() => {
+          if (!actions.setCurrentStep) {
+            console.error('[sign-test] setCurrentStep not available')
+            return
+          }
+          actions.setCurrentStep(0)
+        }}
       />
 
       <div className="mt-6">
@@ -426,87 +474,56 @@ export default function SignTestPage() {
     </StepCard>
   ), [handleDataUpload])
 
+  const handleVariablesSelected = useCallback((mapping: unknown) => {
+    // 1. Type guard
+    if (!mapping || typeof mapping !== 'object') {
+      console.error('[sign-test] Invalid mapping')
+      return
+    }
+
+    // 2. Extract variables array
+    let variables: string[] = []
+
+    if ('variables' in mapping) {
+      const vars = (mapping as { variables: unknown }).variables
+      if (Array.isArray(vars)) {
+        variables = vars.filter((v): v is string => typeof v === 'string')
+      }
+    }
+
+    // 3. Expect 2 variables: before and after
+    if (variables.length < 2) {
+      console.error('[sign-test] Need 2 variables (before, after)')
+      return
+    }
+
+    // 4. Update state
+    setSelectedBefore(variables[0])
+    setSelectedAfter(variables[1])
+
+    // 5. Move to next step
+    if (!actions.setCurrentStep) {
+      console.error('[sign-test] setCurrentStep not available')
+      return
+    }
+    actions.setCurrentStep(2)
+  }, [actions])
+
   const renderVariableSelectionStep = useCallback(() => (
     <StepCard title="변수 선택">
       <div className="space-y-6">
         <div>
-          <h4 className="font-medium mb-3">사전 측정값 (Before, 필수)</h4>
-          <VariableSelector
-            variables={numericVariables}
-            selectedVariables={selectedBefore ? [selectedBefore] : []}
-            onVariableSelect={(vars) => setSelectedBefore(vars[0] || '')}
-            maxSelection={1}
-            placeholder="사전 측정값 변수를 선택하세요"
-          />
+          <h4 className="font-medium mb-3">변수 선택 (2개 필요: Before, After)</h4>
+          {uploadedData && (
+            <VariableSelector
+              methodId="sign-test"
+              data={uploadedData.data}
+              onVariablesSelected={handleVariablesSelected}
+            />
+          )}
           <p className="text-xs text-gray-500 mt-2">
-            개입이나 처치 이전의 측정값
+            첫 번째: 사전 측정값 (개입 이전), 두 번째: 사후 측정값 (개입 이후)
           </p>
-        </div>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-medium mb-3">사후 측정값 (After, 필수)</h4>
-          <VariableSelector
-            variables={numericVariables.filter(v => v !== selectedBefore)}
-            selectedVariables={selectedAfter ? [selectedAfter] : []}
-            onVariableSelect={(vars) => setSelectedAfter(vars[0] || '')}
-            maxSelection={1}
-            placeholder="사후 측정값 변수를 선택하세요"
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            개입이나 처치 이후의 측정값
-          </p>
-        </div>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-medium mb-3">검정 유형</h4>
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                id="two-tailed"
-                name="testType"
-                value="two-tailed"
-                checked={testType === 'two-tailed'}
-                onChange={(e) => setTestType(e.target.value as 'two-tailed')}
-                className="text-blue-600"
-              />
-              <label htmlFor="two-tailed" className="text-sm">
-                양측 검정: 중앙값에 차이가 있는지 (≠ 0)
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                id="greater"
-                name="testType"
-                value="greater"
-                checked={testType === 'greater'}
-                onChange={(e) => setTestType(e.target.value as 'greater')}
-                className="text-blue-600"
-              />
-              <label htmlFor="greater" className="text-sm">
-                우측 검정: 사후 값이 더 큰지 (&gt; 0)
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                id="less"
-                name="testType"
-                value="less"
-                checked={testType === 'less'}
-                onChange={(e) => setTestType(e.target.value as 'less')}
-                className="text-blue-600"
-              />
-              <label htmlFor="less" className="text-sm">
-                좌측 검정: 사후 값이 더 작은지 (&lt; 0)
-              </label>
-            </div>
-          </div>
         </div>
 
         <div className="bg-yellow-50 p-4 rounded-lg">
@@ -519,32 +536,23 @@ export default function SignTestPage() {
           </ul>
         </div>
 
-        <div className="flex justify-between">
+        <div className="flex justify-start">
           <Button
             variant="outline"
-            onClick={() => actions.setCurrentStep(0)}
+            onClick={() => {
+              if (!actions.setCurrentStep) {
+                console.error('[sign-test] setCurrentStep not available')
+                return
+              }
+              actions.setCurrentStep(0)
+            }}
           >
             이전: 소개
-          </Button>
-          <Button
-            onClick={handleVariableSelection}
-            disabled={!canProceedToAnalysis}
-            className="flex items-center space-x-2"
-          >
-            <span>분석 실행</span>
-            <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
     </StepCard>
-  ), [
-    numericVariables,
-    selectedBefore,
-    selectedAfter,
-    testType,
-    canProceedToAnalysis,
-    handleVariableSelection
-  ])
+  ), [uploadedData, handleVariablesSelected, actions])
 
   const renderresults = useCallback(() => {
     if (!results) {
@@ -632,7 +640,7 @@ export default function SignTestPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">p-value:</span>
-                        <PValueBadge pValue={results.p_values.two_tailed} />
+                        <PValueBadge value={results.p_values.two_tailed} />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">효과크기 (r):</span>
@@ -788,15 +796,15 @@ export default function SignTestPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">양측 검정:</span>
-                        <PValueBadge pValue={results.p_values.exact_p_value} />
+                        <PValueBadge value={results.p_values.exact_p_value} />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">우측 검정:</span>
-                        <PValueBadge pValue={results.p_values.one_tailed_greater} />
+                        <PValueBadge value={results.p_values.one_tailed_greater} />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">좌측 검정:</span>
-                        <PValueBadge pValue={results.p_values.one_tailed_less} />
+                        <PValueBadge value={results.p_values.one_tailed_less} />
                       </div>
                     </CardContent>
                   </Card>
@@ -808,7 +816,7 @@ export default function SignTestPage() {
                     <CardContent className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">정규근사:</span>
-                        <PValueBadge pValue={results.p_values.asymptotic_p_value} />
+                        <PValueBadge value={results.p_values.asymptotic_p_value} />
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">연속성 보정:</span>
@@ -992,19 +1000,16 @@ export default function SignTestPage() {
   }, [results, isAnalyzing, pyodideReady, runSignTest])
 
   const steps = [
-    { title: '소개', component: renderIntroductionStep },
-    { title: '데이터 업로드', component: renderDataUploadStep },
-    { title: '변수 선택', component: renderVariableSelectionStep },
-    { title: '분석 결과', component: renderresults }
+    { id: 'upload', title: '소개', component: renderIntroductionStep },
+    { id: 'variables', title: '데이터 업로드', component: renderDataUploadStep },
+    { id: 'analysis', title: '변수 선택', component: renderVariableSelectionStep },
+    { id: 'results', title: '분석 결과', component: renderresults }
   ]
 
   return (
     <StatisticsPageLayout
       title="부호 검정"
       subtitle="Sign Test"
-      currentStep={currentStep}
-      totalSteps={steps.length}
-      onStepChange={actions.setCurrentStep}
     >
       {steps[currentStep].component()}
     </StatisticsPageLayout>

@@ -72,11 +72,10 @@ export default function WelchTPage() {
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<WelchTResults, VariableMapping>({
     withUploadedData: true,
-    withError: true,
-    withSelectedVariables: true
+    withError: true
   })
-  const { currentStep, uploadedData, results, isAnalyzing, error } = state
-  const variableMapping = state.selectedVariables || {}
+  const { currentStep, uploadedData, results, isAnalyzing, error, selectedVariables } = state
+  const variableMapping = selectedVariables || {}
 
   const [activeTab, setActiveTab] = useState('summary')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
@@ -182,6 +181,11 @@ export default function WelchTPage() {
   // 변수 선택 핸들러
   const handleVariablesSelected = useCallback((mapping: unknown) => {
     if (!mapping || typeof mapping !== 'object') return
+
+    if (!actions.setSelectedVariables) {
+      console.error('[WelchT] setSelectedVariables not available')
+      return
+    }
 
     actions.setSelectedVariables(mapping as VariableMapping)
     if (Object.keys(mapping as Record<string, unknown>).length >= 2) {
@@ -470,9 +474,10 @@ export default function WelchTPage() {
             </CardHeader>
             <CardContent>
               <VariableSelector
-                title="독립표본 t-검정 변수 선택"
-                description="그룹 변수(범주형)와 검정 변수(수치형)를 선택하세요"
-                onMappingChange={handleVariablesSelected}
+                methodId="welch-t"
+                data={uploadedData?.data || []}
+                onVariablesSelected={handleVariablesSelected}
+                onBack={() => actions.setCurrentStep(0)}
               />
             </CardContent>
           </Card>

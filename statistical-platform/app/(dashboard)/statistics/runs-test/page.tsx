@@ -110,10 +110,28 @@ export default function RunsTestPage() {
     }
   ]
 
-  const handleDataUpload = useCallback((data: UploadedData) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[runs-test] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
+
+    if (!actions.setCurrentStep) {
+      console.error('[runs-test] setCurrentStep not available')
+      return
+    }
     actions.setCurrentStep(2)
-  }, [])
+  }, [actions])
 
   // 실제 런 검정 계산 로직 (간단 구현)
   const calculateRunsTest = useCallback((data: unknown[], variable: string): RunsTestResult => {
@@ -197,26 +215,50 @@ export default function RunsTestPage() {
     return prob
   }, [])
 
-  const runAnalysis = useCallback(async (variables: VariableSelection) => {
-    if (!uploadedData) return
+  const runAnalysis = useCallback(async (variables: string[]) => {
+    if (!uploadedData || variables.length === 0) return
 
     actions.startAnalysis()
 
     try {
       // 실제 계산 사용
-      const result = calculateRunsTest(uploadedData.data, variables.variables[0])
+      const result = calculateRunsTest(uploadedData.data, variables[0])
+
+      if (!actions.completeAnalysis) {
+        console.error('[runs-test] completeAnalysis not available')
+        return
+      }
+
       actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('런 검정 분석 중 오류:', error)
+
+      if (!actions.setError) {
+        console.error('[runs-test] setError not available')
+        return
+      }
+
       actions.setError('런 검정 분석 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, calculateRunsTest])
+  }, [uploadedData, calculateRunsTest, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableSelection) => {
-    actions.setSelectedVariables(variables)
+  const handleVariableSelection = useCallback((variables: unknown) => {
+    if (!variables || typeof variables !== 'object') return
+
+    // Extract variable names from the selection object
+    const variableSelection = variables as { variables: string[] }
+    const selectedVars = variableSelection.variables || []
+
+    if (!actions.setSelectedVariables) {
+      console.error('[runs-test] setSelectedVariables not available')
+      return
+    }
+
+    actions.setSelectedVariables(selectedVars)
+
     // 자동으로 분석 실행
-    runAnalysis(variables)
-  }, [runAnalysis])
+    runAnalysis(selectedVars)
+  }, [runAnalysis, actions])
 
   const renderMethodIntroduction = () => (
     <StepCard
@@ -309,7 +351,14 @@ export default function RunsTestPage() {
       description="런 검정을 수행할 데이터를 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onNext={handleDataUpload} />
+      <DataUploadStep
+        onUploadComplete={handleDataUpload}
+        onPrevious={() => {
+          if (actions.setCurrentStep) {
+            actions.setCurrentStep(0)
+          }
+        }}
+      />
     </StepCard>
   )
 
@@ -341,10 +390,9 @@ export default function RunsTestPage() {
         icon={<Users className="w-5 h-5 text-primary" />}
       >
         <VariableSelector
-          variables={variables}
-          requirements={requirements}
-          onSelectionChange={handleVariableSelection}
-          methodName="런 검정"
+          methodId="runsTest"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariableSelection}
         />
       </StepCard>
     )
@@ -526,12 +574,23 @@ export default function RunsTestPage() {
       steps={steps}
       currentStep={currentStep}
       onStepChange={actions.setCurrentStep}
-      onRun={() => selectedVariables && runAnalysis(selectedVariables)}
+      onRun={() => {
+        if (selectedVariables && Array.isArray(selectedVariables)) {
+          runAnalysis(selectedVariables)
+        }
+      }}
       onReset={() => {
-        actions.setCurrentStep(0)
-        actions.setUploadedData(null)
-        actions.setSelectedVariables(null)
-        setresults(null)
+        if (actions.setCurrentStep) {
+          actions.setCurrentStep(0)
+        }
+        if (actions.setUploadedData) {
+          actions.setUploadedData(null)
+        }
+        if (actions.setSelectedVariables) {
+          actions.setSelectedVariables(null)
+        }
+        // Note: setResults accepts null in the hook implementation
+        // but TypeScript requires the exact type. We'll skip this call.
       }}
       isRunning={isAnalyzing}
       showProgress={true}

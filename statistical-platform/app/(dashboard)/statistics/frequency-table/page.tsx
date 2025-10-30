@@ -50,10 +50,9 @@ interface FrequencyResults {
 export default function FrequencyTablePage() {
   const { state, actions } = useStatisticsPage<FrequencyResults, VariableMapping>({
     withUploadedData: false,
-    withError: false,
-    withSelectedVariables: true
+    withError: false
   })
-  const { currentStep, variableMapping, results, isAnalyzing } = state
+  const { currentStep, variableMapping, results, isAnalyzing, selectedVariables } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [showPercentages, setShowPercentages] = useState(true)
   const [showCumulative, setShowCumulative] = useState(true)
@@ -95,6 +94,11 @@ export default function FrequencyTablePage() {
   // 변수 선택 핸들러 (표준 패턴)
   const handleVariablesSelected = useCallback((mapping: unknown) => {
     if (!mapping || typeof mapping !== 'object') return
+
+    if (!actions.setSelectedVariables) {
+      console.error('[FrequencyTable] setSelectedVariables not available')
+      return
+    }
 
     actions.setSelectedVariables(mapping as VariableMapping)
     if (Object.keys(mapping as VariableMapping).length > 0) {
@@ -264,9 +268,10 @@ export default function FrequencyTablePage() {
             </CardHeader>
             <CardContent>
               <VariableSelector
-                title="범주형 변수 선택"
-                description="문자열이나 범주로 구성된 변수를 선택하세요"
-                onMappingChange={handleVariablesSelected}
+                methodId="frequency-table"
+                data={[]}
+                onVariablesSelected={handleVariablesSelected}
+                onBack={() => actions.setCurrentStep(0)}
               />
             </CardContent>
           </Card>

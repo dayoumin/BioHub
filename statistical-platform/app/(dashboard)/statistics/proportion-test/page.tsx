@@ -51,11 +51,10 @@ interface ProportionTestResults {
 export default function ProportionTestPage() {
   const { state, actions } = useStatisticsPage<ProportionTestResults, VariableMapping>({
     withUploadedData: false,
-    withError: false,
-    withSelectedVariables: true
+    withError: false
   })
-  const { currentStep, results, isAnalyzing } = state
-  const variableMapping = state.selectedVariables || {}
+  const { currentStep, results, isAnalyzing, selectedVariables } = state
+  const variableMapping = selectedVariables || {}
   const [activeTab, setActiveTab] = useState('summary')
   const [testProportion, setTestProportion] = useState('0.5')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
@@ -148,6 +147,11 @@ export default function ProportionTestPage() {
   // 변수 선택 핸들러
   const handleVariablesSelected = useCallback((mapping: unknown) => {
     if (!mapping || typeof mapping !== 'object') return
+
+    if (!actions.setSelectedVariables) {
+      console.error('[ProportionTest] setSelectedVariables not available')
+      return
+    }
 
     actions.setSelectedVariables(mapping as VariableMapping)
     if (Object.keys(mapping as Record<string, unknown>).length > 0) {
@@ -403,9 +407,10 @@ export default function ProportionTestPage() {
             </CardHeader>
             <CardContent>
               <VariableSelector
-                title="이분 변수 선택"
-                description="두 개의 범주(성공/실패)로 구성된 변수를 선택하세요"
-                onMappingChange={handleVariablesSelected}
+                methodId="proportion-test"
+                data={[]}
+                onVariablesSelected={handleVariablesSelected}
+                onBack={() => actions.setCurrentStep(0)}
               />
             </CardContent>
           </Card>

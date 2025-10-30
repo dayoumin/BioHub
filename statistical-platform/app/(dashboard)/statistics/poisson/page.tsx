@@ -129,7 +129,7 @@ interface PoissonRegressionResult {
 
 export default function PoissonRegressionPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<PoissonResult, string[]>({
+  const { state, actions } = useStatisticsPage<PoissonRegressionResult>({
     withUploadedData: true,
     withError: true
   })
@@ -164,12 +164,14 @@ export default function PoissonRegressionPage() {
   }, [])
 
   const availableVariables = useMemo(() => {
-    if (!uploadedData || (uploadedData ?? []).length === 0) return []
+    if (!uploadedData || uploadedData.data.length === 0) return []
 
-    const firstRow = (uploadedData as unknown[] ?? [])[0]
+    const firstRow = uploadedData.data[0]
+    if (!firstRow || typeof firstRow !== 'object') return []
+
     return Object.keys(firstRow).map(key => ({
       name: key,
-      type: typeof firstRow[key] === 'number' ? 'numeric' : 'categorical'
+      type: typeof (firstRow as Record<string, unknown>)[key] === 'number' ? 'numeric' : 'categorical'
     }))
   }, [uploadedData])
 
@@ -183,10 +185,29 @@ export default function PoissonRegressionPage() {
     [availableVariables]
   )
 
-  const handleDataUpload = useCallback((data: DataRow[]) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[poisson] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
+
+    if (!actions.setCurrentStep) {
+      console.error('[poisson] setCurrentStep not available')
+      return
+    }
+
     actions.setCurrentStep(1)
-  }, [])
+  }, [actions])
 
   const canProceedToAnalysis = useMemo(() => {
     return selectedDependent && selectedIndependent.length > 0
@@ -350,18 +371,34 @@ export default function PoissonRegressionPage() {
         ]
       }
 
+      if (!actions.completeAnalysis) {
+        console.error('[poisson] completeAnalysis not available')
+        return
+      }
+
       actions.completeAnalysis(mockResult, 2)
     } catch (error) {
       console.error('분석 중 오류:', error)
+
+      if (!actions.setError) {
+        console.error('[poisson] setError not available')
+        return
+      }
+
       actions.setError('분석 중 오류가 발생했습니다.')
     }
-  }, [canProceedToAnalysis, (uploadedData as unknown[] ?? []), pyodideReady])
+  }, [canProceedToAnalysis, uploadedData, pyodideReady, actions])
 
   const handleVariableSelection = useCallback(() => {
     if (canProceedToAnalysis) {
+      if (!actions.setCurrentStep) {
+        console.error('[poisson] setCurrentStep not available')
+        return
+      }
+
       actions.setCurrentStep(2)
     }
-  }, [canProceedToAnalysis])
+  }, [canProceedToAnalysis, actions])
 
   const renderIntroductionStep = useCallback(() => (
     <StepCard title="포아송 회귀분석 소개">
@@ -479,7 +516,13 @@ export default function PoissonRegressionPage() {
         </Alert>
 
         <div className="flex justify-end">
-          <Button onClick={() => actions.setCurrentStep(1)} className="flex items-center space-x-2">
+          <Button onClick={() => {
+            if (!actions.setCurrentStep) {
+              console.error('[poisson] setCurrentStep not available')
+              return
+            }
+            actions.setCurrentStep(1)
+          }} className="flex items-center space-x-2">
             <span>다음: 데이터 업로드</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
@@ -491,9 +534,14 @@ export default function PoissonRegressionPage() {
   const renderDataUploadStep = useCallback(() => (
     <StepCard title="데이터 업로드">
       <DataUploadStep
-        onDataUploaded={handleDataUpload}
-        acceptedFileTypes={['.csv', '.xlsx', '.txt']}
-        maxFileSize={10 * 1024 * 1024}
+        onUploadComplete={handleDataUpload}
+        onPrevious={() => {
+          if (!actions.setCurrentStep) {
+            console.error('[poisson] setCurrentStep not available')
+            return
+          }
+          actions.setCurrentStep(0)
+        }}
       />
 
       <div className="mt-6">
@@ -541,51 +589,65 @@ export default function PoissonRegressionPage() {
     </StepCard>
   ), [handleDataUpload])
 
+  const handleVariablesSelected = useCallback((mapping: unknown) => {
+    // 1. Type guard
+    if (!mapping || typeof mapping !== 'object') {
+      console.error('[poisson] Invalid mapping')
+      return
+    }
+
+    // 2. Extract dependent and independent variables
+    let dependent = ''
+    let independent: string[] = []
+
+    if ('dependent' in mapping) {
+      const dep = (mapping as { dependent: unknown }).dependent
+      if (typeof dep === 'string') {
+        dependent = dep
+      }
+    }
+
+    if ('independent' in mapping) {
+      const indep = (mapping as { independent: unknown }).independent
+      if (Array.isArray(indep)) {
+        independent = indep.filter((v): v is string => typeof v === 'string')
+      }
+    }
+
+    // 3. Validate
+    if (!dependent || independent.length === 0) {
+      console.error('[poisson] Need dependent and at least 1 independent variable')
+      return
+    }
+
+    // 4. Update state
+    setSelectedDependent(dependent)
+    setSelectedIndependent(independent)
+
+    // 5. Move to next step
+    if (!actions.setCurrentStep) {
+      console.error('[poisson] setCurrentStep not available')
+      return
+    }
+    actions.setCurrentStep(2)
+  }, [actions])
+
   const renderVariableSelectionStep = useCallback(() => (
     <StepCard title="변수 선택">
       <div className="space-y-6">
         <div>
-          <h4 className="font-medium mb-3">종속변수 (카운트, 필수)</h4>
-          <VariableSelector
-            variables={numericVariables}
-            selectedVariables={selectedDependent ? [selectedDependent] : []}
-            onVariableSelect={(vars) => setSelectedDependent(vars[0] || '')}
-            maxSelection={1}
-            placeholder="카운트 데이터 변수를 선택하세요"
-          />
+          <h4 className="font-medium mb-3">변수 선택 (종속변수 1개 + 독립변수 1개 이상)</h4>
+          {uploadedData && (
+            <VariableSelector
+              methodId="poisson"
+              data={uploadedData.data}
+              onVariablesSelected={handleVariablesSelected}
+            />
+          )}
           <p className="text-xs text-gray-500 mt-2">
-            비음의 정수 데이터 (0, 1, 2, 3, ...) - 예: 발생건수, 방문횟수
-          </p>
-        </div>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-medium mb-3">독립변수 (1개 이상 필수)</h4>
-          <VariableSelector
-            variables={numericVariables.concat(categoricalVariables).filter(v => v !== selectedDependent && v !== selectedOffset)}
-            selectedVariables={selectedIndependent}
-            onVariableSelect={setSelectedIndependent}
-            placeholder="예측에 사용할 변수들을 선택하세요"
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            연속형 또는 범주형 독립변수들 (예: 나이, 성별, 소득, 지역)
-          </p>
-        </div>
-
-        <Separator />
-
-        <div>
-          <h4 className="font-medium mb-3">오프셋 변수 (선택사항)</h4>
-          <VariableSelector
-            variables={numericVariables.filter(v => v !== selectedDependent && !selectedIndependent.includes(v))}
-            selectedVariables={selectedOffset ? [selectedOffset] : []}
-            onVariableSelect={(vars) => setSelectedOffset(vars[0] || '')}
-            maxSelection={1}
-            placeholder="발생률 계산을 위한 오프셋 변수 선택"
-          />
-          <p className="text-xs text-gray-500 mt-2">
-            노출량, 관찰기간, 인구수 등 (예: person_years, population_size)
+            종속변수: 카운트 데이터 (0, 1, 2, 3, ...) - 예: 발생건수, 방문횟수
+            <br />
+            독립변수: 연속형 또는 범주형 (예: 나이, 성별, 소득, 지역)
           </p>
         </div>
 
@@ -594,38 +656,27 @@ export default function PoissonRegressionPage() {
           <ul className="text-sm text-yellow-700 space-y-1">
             <li>• <strong>종속변수</strong>: 반드시 카운트 데이터 (0 이상의 정수)</li>
             <li>• <strong>독립변수</strong>: 연속형, 이진형, 다항 범주형 모두 가능</li>
-            <li>• <strong>오프셋</strong>: 발생률 모델링 시 필요 (log(오프셋)이 모델에 포함)</li>
             <li>• <strong>표본크기</strong>: 독립변수당 최소 10-15개 사건 권장</li>
           </ul>
         </div>
 
-        <div className="flex justify-between">
+        <div className="flex justify-start">
           <Button
             variant="outline"
-            onClick={() => actions.setCurrentStep(0)}
+            onClick={() => {
+              if (!actions.setCurrentStep) {
+                console.error('[poisson] setCurrentStep not available')
+                return
+              }
+              actions.setCurrentStep(0)
+            }}
           >
             이전: 소개
-          </Button>
-          <Button
-            onClick={handleVariableSelection}
-            disabled={!canProceedToAnalysis}
-            className="flex items-center space-x-2"
-          >
-            <span>분석 실행</span>
-            <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
     </StepCard>
-  ), [
-    numericVariables,
-    categoricalVariables,
-    selectedDependent,
-    selectedIndependent,
-    selectedOffset,
-    canProceedToAnalysis,
-    handleVariableSelection
-  ])
+  ), [uploadedData, handleVariablesSelected, actions])
 
   const renderresults = useCallback(() => {
     if (!results) {
@@ -757,7 +808,7 @@ export default function PoissonRegressionPage() {
                         <TableCell>{coef.std_error.toFixed(4)}</TableCell>
                         <TableCell>{coef.z_value.toFixed(3)}</TableCell>
                         <TableCell>
-                          <PValueBadge pValue={coef.p_value} />
+                          <PValueBadge value={coef.p_value} />
                         </TableCell>
                         <TableCell>
                           [{coef.ci_lower.toFixed(3)}, {coef.ci_upper.toFixed(3)}]
@@ -808,7 +859,7 @@ export default function PoissonRegressionPage() {
                           <div className="text-lg font-semibold">
                             {results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}
                           </div>
-                          <PValueBadge pValue={results.assumptions.overdispersion.p_value} />
+                          <PValueBadge value={results.assumptions.overdispersion.p_value} />
                         </div>
                       </div>
 
@@ -854,7 +905,7 @@ export default function PoissonRegressionPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">p-value:</span>
-                        <PValueBadge pValue={results.goodness_of_fit.pearson_gof.p_value} />
+                        <PValueBadge value={results.goodness_of_fit.pearson_gof.p_value} />
                       </div>
                     </CardContent>
                   </Card>
@@ -874,7 +925,7 @@ export default function PoissonRegressionPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">p-value:</span>
-                        <PValueBadge pValue={results.goodness_of_fit.deviance_gof.p_value} />
+                        <PValueBadge value={results.goodness_of_fit.deviance_gof.p_value} />
                       </div>
                     </CardContent>
                   </Card>
@@ -892,7 +943,7 @@ export default function PoissonRegressionPage() {
                           <p className="text-xs text-gray-600">로그(평균)과 예측변수의 선형관계</p>
                         </div>
                         <div className="text-right">
-                          <PValueBadge pValue={results.assumptions.linearity.p_value} />
+                          <PValueBadge value={results.assumptions.linearity.p_value} />
                           <p className="text-xs text-gray-600">
                             {results.assumptions.linearity.assumption_met ? '선형성 만족' : '선형성 위반'}
                           </p>
@@ -1073,19 +1124,16 @@ export default function PoissonRegressionPage() {
   }, [results, isAnalyzing, pyodideReady, runPoissonRegression])
 
   const steps = [
-    { title: '소개', component: renderIntroductionStep },
-    { title: '데이터 업로드', component: renderDataUploadStep },
-    { title: '변수 선택', component: renderVariableSelectionStep },
-    { title: '분석 결과', component: renderresults }
+    { id: 'upload', title: '소개', component: renderIntroductionStep },
+    { id: 'variables', title: '데이터 업로드', component: renderDataUploadStep },
+    { id: 'analysis', title: '변수 선택', component: renderVariableSelectionStep },
+    { id: 'results', title: '분석 결과', component: renderresults }
   ]
 
   return (
     <StatisticsPageLayout
       title="포아송 회귀분석"
       subtitle="Poisson Regression"
-      currentStep={currentStep}
-      totalSteps={steps.length}
-      onStepChange={actions.setCurrentStep}
     >
       {steps[currentStep].component()}
     </StatisticsPageLayout>

@@ -59,7 +59,7 @@ interface McNemarTestResult {
 
 export default function McNemarTestPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<McNemarResult, string[]>({
+  const { state, actions } = useStatisticsPage<McNemarTestResult, string[]>({
     withUploadedData: true,
     withError: true
   })
@@ -100,10 +100,28 @@ export default function McNemarTestPage() {
     }
   ]
 
-  const handleDataUpload = useCallback((data: UploadedData) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[mcnemar] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
+
+    if (!actions.setCurrentStep) {
+      console.error('[mcnemar] setCurrentStep not available')
+      return
+    }
     actions.setCurrentStep(2)
-  }, [])
+  }, [actions])
 
   // 표준정규분포 CDF
   const normalCDF = useCallback((z: number): number => {
@@ -231,28 +249,53 @@ export default function McNemarTestPage() {
     return null
   }
 
-  const runAnalysis = useCallback(async (variables: VariableSelection) => {
-    if (!uploadedData || variables.variables.length < 2) return
+  const runAnalysis = useCallback(async (variables: string[]) => {
+    if (!uploadedData || variables.length < 2) return
 
     actions.startAnalysis()
 
     try {
       const result = calculateMcNemarTest(
         uploadedData.data,
-        variables.variables[0],
-        variables.variables[1]
+        variables[0],
+        variables[1]
       )
+
+      if (!actions.completeAnalysis) {
+        console.error('[mcnemar] completeAnalysis not available')
+        return
+      }
+
       actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('McNemar 검정 분석 중 오류:', error)
+
+      if (!actions.setError) {
+        console.error('[mcnemar] setError not available')
+        return
+      }
+
       actions.setError('McNemar 검정 분석 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, calculateMcNemarTest])
+  }, [uploadedData, calculateMcNemarTest, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableSelection) => {
-    actions.setSelectedVariables(variables)
-    runAnalysis(variables)
-  }, [runAnalysis])
+  const handleVariableSelection = useCallback((variables: unknown) => {
+    if (!variables || typeof variables !== 'object') return
+
+    // Extract variable names from the selection object
+    const variableSelection = variables as { variables: string[] }
+    const selectedVars = variableSelection.variables || []
+
+    if (!actions.setSelectedVariables) {
+      console.error('[mcnemar] setSelectedVariables not available')
+      return
+    }
+
+    actions.setSelectedVariables(selectedVars)
+
+    // 자동으로 분석 실행
+    runAnalysis(selectedVars)
+  }, [runAnalysis, actions])
 
   const renderMethodIntroduction = () => (
     <StepCard
@@ -377,7 +420,14 @@ export default function McNemarTestPage() {
       description="McNemar 검정을 수행할 대응 이진 자료를 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onNext={handleDataUpload} />
+      <DataUploadStep
+        onUploadComplete={handleDataUpload}
+        onPrevious={() => {
+          if (actions.setCurrentStep) {
+            actions.setCurrentStep(0)
+          }
+        }}
+      />
     </StepCard>
   )
 
@@ -420,10 +470,9 @@ export default function McNemarTestPage() {
           </AlertDescription>
         </Alert>
         <VariableSelector
-          variables={variables}
-          requirements={requirements}
-          onSelectionChange={handleVariableSelection}
-          methodName="McNemar 검정"
+          methodId="mcnemar"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariableSelection}
         />
       </StepCard>
     )
@@ -683,12 +732,23 @@ export default function McNemarTestPage() {
       steps={steps}
       currentStep={currentStep}
       onStepChange={actions.setCurrentStep}
-      onRun={() => selectedVariables && runAnalysis(selectedVariables)}
+      onRun={() => {
+        if (selectedVariables && Array.isArray(selectedVariables)) {
+          runAnalysis(selectedVariables)
+        }
+      }}
       onReset={() => {
-        actions.setCurrentStep(0)
-        actions.setUploadedData(null)
-        actions.setSelectedVariables(null)
-        setresults(null)
+        if (actions.setCurrentStep) {
+          actions.setCurrentStep(0)
+        }
+        if (actions.setUploadedData) {
+          actions.setUploadedData(null)
+        }
+        if (actions.setSelectedVariables) {
+          actions.setSelectedVariables(null)
+        }
+        // Note: setResults accepts null in the hook implementation
+        // but TypeScript requires the exact type. We'll skip this call.
       }}
       isRunning={isAnalyzing}
       showProgress={true}

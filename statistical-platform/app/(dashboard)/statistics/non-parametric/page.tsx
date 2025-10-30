@@ -126,8 +126,7 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
 export default function NonParametricTestPage() {
   const { state, actions } = useStatisticsPage<StatisticalResult, VariableMapping>({
     withUploadedData: false,
-    withError: false,
-    withSelectedVariables: true
+    withError: false
   })
   const { variableMapping, results: result, isAnalyzing } = state
   const [selectedTest, setSelectedTest] = useState<NonParametricTest>('mann-whitney')
@@ -142,6 +141,11 @@ export default function NonParametricTestPage() {
   // 변수 선택 핸들러 (표준 패턴)
   const handleVariablesSelected = useCallback((variables: unknown) => {
     if (!variables || typeof variables !== 'object') return
+
+    if (!actions.setSelectedVariables) {
+      console.error('[non-parametric] setSelectedVariables not available')
+      return
+    }
 
     actions.setSelectedVariables(variables as VariableMapping)
     setActiveTab('analysis')
@@ -333,10 +337,9 @@ export default function NonParametricTestPage() {
           <TabsContent value="setup" className="space-y-6">
             {/* 변수 선택 */}
             <VariableSelector
-              requirements={getVariableRequirements()}
-              onMappingChange={handleVariablesSelected}
-              title="변수 선택"
-              description={`${currentTest.name}에 필요한 변수를 선택하세요`}
+              methodId="non-parametric"
+              data={[]}
+              onVariablesSelected={handleVariablesSelected}
             />
 
             {/* 분석 옵션 */}
