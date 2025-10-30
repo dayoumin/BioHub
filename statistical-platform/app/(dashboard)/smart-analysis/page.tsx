@@ -42,13 +42,6 @@ export default function SmartAnalysisPage() {
 
   const { addAnalysisResult } = useAppStore()
 
-  // Mock actions object since this page doesn't use useStatisticsPage
-  const actions = {
-    startAnalysis: () => {
-      // Mock implementation - page handles analysis state internally
-    }
-  }
-
   // 해시 기반 라우팅 처리
   useEffect(() => {
     const hash = window.location.hash.substring(1) // # 제거
@@ -382,7 +375,7 @@ export default function SmartAnalysisPage() {
               </p>
               <Button onClick={() => {
                 setCurrentStep('analysis')
-                actions.startAnalysis()
+                setIsAnalyzing(true)
                 // 3초 후 자동으로 결과 단계로 이동하고 분석 결과 저장
                 setTimeout(() => {
                   // 분석 결과를 store에 저장

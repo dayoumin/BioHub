@@ -304,12 +304,16 @@ export default function ChiSquareIndependencePage() {
   }, [uploadedData, pyodide])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
+    if (!actions.setSelectedVariables) {
+      console.error('[chi-square-independence] setSelectedVariables not available')
+      return
+    }
     actions.setSelectedVariables(variables)
     if (variables.independent && variables.dependent &&
         variables.independent.length === 1 && variables.dependent.length === 1) {
       runAnalysis(variables)
     }
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const getCramersVInterpretation = (v: number) => {
     if (v >= 0.5) return { level: '강한 연관성', color: 'text-red-600', bg: 'bg-red-50' }
@@ -450,7 +454,7 @@ export default function ChiSquareIndependencePage() {
         >
           <VariableSelector
             methodId="chi_square_independence"
-            data={uploadedData}
+            data={uploadedData?.data || []}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />

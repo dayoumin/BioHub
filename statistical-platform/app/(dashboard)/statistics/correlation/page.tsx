@@ -233,8 +233,8 @@ export default function CorrelationPage() {
             r: correlationMatrix[i][j],
             pValue: pValueMatrix[i][j],
             significant: pValueMatrix[i][j] < 0.05,
-            strength: Math.abs(correlationMatrix[i][j]) > 0.7 ? 'strong' :
-                     Math.abs(correlationMatrix[i][j]) > 0.4 ? 'moderate' : 'weak'
+            strength: (Math.abs(correlationMatrix[i][j]) > 0.7 ? 'strong' :
+                     Math.abs(correlationMatrix[i][j]) > 0.4 ? 'moderate' : 'weak') as 'strong' | 'moderate' | 'weak'
           }))
         ).flat(),
 
@@ -393,7 +393,7 @@ export default function CorrelationPage() {
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="font-medium text-sm">
-              {correlationTypeInfo[correlationType].title} 선택됨
+              {correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo].title} 선택됨
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -410,7 +410,17 @@ export default function CorrelationPage() {
       description="상관분석할 데이터 파일을 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onNext={handleDataUpload} />
+      <DataUploadStep 
+        onNext={() => {}}
+        onUploadComplete={(file, data) => {
+          const uploadedData: UploadedData = {
+            data: data,
+            fileName: file.name,
+            columns: Object.keys(data[0] || {})
+          }
+          handleDataUpload(uploadedData)
+        }}
+      />
     </StepCard>
   )
 
@@ -444,11 +454,16 @@ export default function CorrelationPage() {
         icon={<Users className="w-5 h-5 text-primary" />}
       >
         <VariableSelector
-          variables={variables}
-          requirements={requirements}
-          onSelectionChange={handleVariableSelection}
-          methodName={correlationTypeInfo[correlationType].title}
+          methodId="correlation"
+          data={uploadedData.data}
+          onVariablesSelected={(variables) => {
+            handleVariableSelection({
+              variables: Array.isArray(variables.independent) ? variables.independent as string[] : [variables.independent as string],
+              controlVariables: variables.controlVariables ? (Array.isArray(variables.controlVariables) ? variables.controlVariables as string[] : [variables.controlVariables as string]) : undefined
+            })
+          }}
         />
+
       </StepCard>
     )
   }
@@ -481,7 +496,7 @@ export default function CorrelationPage() {
     return (
       <StepCard
         title="상관분석 결과"
-        description={`${correlationTypeInfo[correlationType].title} 분석이 완료되었습니다`}
+        description={`${correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo].title} 분석이 완료되었습니다`}
         icon={<Binary className="w-5 h-5 text-primary" />}
       >
         <div className="space-y-6">
@@ -492,7 +507,7 @@ export default function CorrelationPage() {
             <AlertDescription>
               <div className="mt-2 space-y-2">
                 <p className="text-sm">
-                  <strong>{correlationTypeInfo[correlationType].title}</strong> 방법으로
+                  <strong>{correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo].title}</strong> 방법으로
                   <strong> {sampleSize}개</strong>의 관측치를 분석했습니다.
                 </p>
                 <p className="text-sm">

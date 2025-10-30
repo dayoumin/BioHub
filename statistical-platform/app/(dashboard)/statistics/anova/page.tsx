@@ -182,12 +182,20 @@ export default function ANOVAPage() {
   }
 
   const handleDataUpload = (data: UploadedData) => {
-    actions.setUploadedData?.(data)
+    if (!actions.setUploadedData) {
+      console.error('[anova] setUploadedData not available - check hook configuration')
+      return
+    }
+    actions.setUploadedData(data)
     actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: SelectedVariables) => {
-    actions.setSelectedVariables?.(variables)
+    if (!actions.setSelectedVariables) {
+      console.error('[anova] setSelectedVariables not available - check hook configuration')
+      return
+    }
+    actions.setSelectedVariables(variables)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
