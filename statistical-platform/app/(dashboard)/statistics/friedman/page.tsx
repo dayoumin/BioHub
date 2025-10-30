@@ -97,11 +97,11 @@ export default function FriedmanPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        actions.setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError?.('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
-  }, [])
+  }, [actions])
 
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
@@ -153,38 +153,74 @@ export default function FriedmanPage() {
       ...row as Record<string, unknown>,
       _id: index
     })) as DataRow[]
-    actions.setUploadedData(processedData)
-    actions.setCurrentStep(2)
-  }, [])
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables(variables)
-    if (variables.dependent && variables.dependent.length >= 3) {
-      runAnalysis(variables)
+    // Create UploadedData structure
+    const columns = processedData.length > 0 ? Object.keys(processedData[0]) : []
+    const uploadedData = {
+      data: processedData,
+      fileName: 'uploaded.csv',
+      columns
     }
-  }, [])
 
-  const runAnalysis = async (variables: VariableAssignment) => {
-    if (!uploadedData || !pyodide || !variables.dependent || variables.dependent.length < 3) {
-      actions.setError('분석을 실행할 수 없습니다. 최소 3개 이상의 조건 변수가 필요합니다.')
+    actions.setUploadedData?.(uploadedData)
+    actions.setCurrentStep(2)
+  }, [actions])
+
+  const runAnalysis = useCallback(async (variables: VariableAssignment) => {
+    if (!uploadedData || !pyodide || !variables.dependent) {
+      actions.setError?.('분석을 실행할 수 없습니다.')
       return
     }
 
-    actions.startAnalysis()()
+    // Handle both string and string[] types for dependent
+    const dependentVars = Array.isArray(variables.dependent)
+      ? variables.dependent
+      : [variables.dependent]
+
+    if (dependentVars.length < 3) {
+      actions.setError?.('최소 3개 이상의 조건 변수가 필요합니다.')
+      return
+    }
+
+    actions.startAnalysis?.()
 
     try {
-      // 실제 Pyodide 분석 실행
-      const result = await pyodide.friedmanTest(
-        uploadedData,
-        variables.dependent
-      )
+      // Extract data columns for Friedman test
+      const conditionData = dependentVars.map((varName: string) => {
+        return uploadedData.data.map(row => {
+          const value = row[varName]
+          if (typeof value === 'number') return value
+          if (typeof value === 'string') {
+            const num = parseFloat(value)
+            return isNaN(num) ? 0 : num
+          }
+          return 0
+        })
+      })
 
-      actions.completeAnalysis(result, 3)
+      // Call the correct method name: friedman (not friedmanTest)
+      const result = await pyodide.friedman(conditionData)
+
+      // The result type may not match exactly, so use unknown first
+      actions.completeAnalysis?.(result as unknown as FriedmanResult, 3)
     } catch (err) {
       console.error('Friedman 검정 실패:', err)
-      actions.setError('Friedman 검정 중 오류가 발생했습니다.')
+      actions.setError?.('Friedman 검정 중 오류가 발생했습니다.')
     }
-  }
+  }, [uploadedData, pyodide, actions])
+
+  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
+    actions.setSelectedVariables?.(variables)
+
+    // Handle both string and string[] types
+    const dependentCount = Array.isArray(variables.dependent)
+      ? variables.dependent.length
+      : variables.dependent ? 1 : 0
+
+    if (dependentCount >= 3) {
+      runAnalysis(variables)
+    }
+  }, [actions, runAnalysis])
 
   const getKendallWInterpretation = (w: number) => {
     if (w >= 0.7) return { level: '강한 일치도', color: 'text-red-600', bg: 'bg-red-50' }
@@ -283,8 +319,9 @@ export default function FriedmanPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onUploadComplete={(file, data) => {
+              handleDataUpload(data)
+            }}
           />
 
           <Alert className="mt-4">
@@ -315,7 +352,7 @@ export default function FriedmanPage() {
         >
           <VariableSelector
             methodId="friedman"
-            data={uploadedData}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />
@@ -603,7 +640,7 @@ export default function FriedmanPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.setCurrentStep(0)}>
                 새로운 분석
               </Button>
             </div>

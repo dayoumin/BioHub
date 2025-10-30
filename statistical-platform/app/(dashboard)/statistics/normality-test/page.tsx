@@ -16,7 +16,7 @@ import {
   XCircle
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
@@ -53,10 +53,10 @@ interface NormalityResults {
 
 export default function NormalityTestPage() {
   const { state, actions } = useStatisticsPage<NormalityResults>({
-    withUploadedData: false,
+    withUploadedData: true,
     withError: false
   })
-  const { currentStep, variableMapping, results, isAnalyzing } = state
+  const { currentStep, uploadedData, variableMapping, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [showAllTests, setShowAllTests] = useState(true)
   const { pyodideService: _pyodideService } = usePyodideService()
@@ -449,16 +449,18 @@ export default function NormalityTestPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VariableSelector
-                title="수치형 변수 선택"
-                description="연속형 데이터를 가진 변수를 선택하세요"
-                onMappingChange={(mapping) => {
-                  actions.setSelectedVariables(mapping)
-                  if (Object.keys(mapping).length > 0) {
-                    actions.setCurrentStep(1)
-                  }
-                }}
-              />
+              {uploadedData && (
+                <VariableSelector
+                  methodId="normality-test"
+                  data={uploadedData.data}
+                  onVariablesSelected={(variables: VariableAssignment) => {
+                    actions.setSelectedVariables?.(variables)
+                    if (Object.keys(variables).length > 0) {
+                      actions.setCurrentStep(1)
+                    }
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         )}

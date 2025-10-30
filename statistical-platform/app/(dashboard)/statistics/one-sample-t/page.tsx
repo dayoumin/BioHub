@@ -25,8 +25,8 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -57,10 +57,10 @@ interface OneSampleTResults {
 
 export default function OneSampleTPage() {
   const { state, actions } = useStatisticsPage<OneSampleTResults>({
-    withUploadedData: false,
+    withUploadedData: true,
     withError: false
   })
-  const { currentStep, variableMapping, results, isAnalyzing } = state
+  const { currentStep, uploadedData, variableMapping, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [testValue, setTestValue] = useState('0')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
@@ -70,11 +70,18 @@ export default function OneSampleTPage() {
   // 단계 정의
   const steps: StatisticsStep[] = [
     {
+      id: 'upload-data',
+      number: 0,
+      title: '데이터 업로드',
+      description: '분석할 데이터 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
       id: 'select-variable',
       number: 1,
       title: '변수 선택',
       description: '검정할 수치형 변수 선택',
-      status: Object.keys(variableMapping).length > 0 ? 'completed' : 'current'
+      status: Object.keys(variableMapping).length > 0 ? 'completed' : uploadedData ? 'current' : 'pending'
     },
     {
       id: 'set-hypothesis',
@@ -129,7 +136,7 @@ export default function OneSampleTPage() {
         }
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.completeAnalysis(mockResults, 4)
       setActiveTab('summary')
     } catch (error) {
       console.error('분석 중 오류:', error)
@@ -362,16 +369,25 @@ export default function OneSampleTPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VariableSelector
-                title="수치형 변수 선택"
-                description="평균을 검정할 연속형 변수를 선택하세요"
-                onMappingChange={(mapping) => {
-                  actions.setSelectedVariables(mapping)
-                  if (Object.keys(mapping).length > 0) {
-                    actions.setCurrentStep(1)
-                  }
-                }}
-              />
+              {uploadedData && (
+                <VariableSelector
+                  methodId="one-sample-t"
+                  data={uploadedData.data}
+                  onVariablesSelected={(variables: VariableAssignment) => {
+                    actions.setSelectedVariables?.(variables)
+                    if (Object.keys(variables).length > 0) {
+                      actions.setCurrentStep?.(1)
+                    }
+                  }}
+                />
+              )}
+              {!uploadedData && (
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    데이터를 먼저 업로드해주세요.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -452,7 +468,7 @@ export default function OneSampleTPage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => actions.setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(3)}
                   disabled={Object.keys(variableMapping).length === 0 || !testValue}
                 >
                   다음 단계
@@ -463,7 +479,7 @@ export default function OneSampleTPage() {
         )}
 
         {/* 3단계: 분석 실행 */}
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -490,7 +506,7 @@ export default function OneSampleTPage() {
         )}
 
         {/* 4단계: 결과 확인 */}
-        {results && currentStep === 3 && (
+        {results && currentStep === 4 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="summary">요약</TabsTrigger>

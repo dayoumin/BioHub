@@ -40,6 +40,7 @@ interface SelectedVariables {
   dependent: string
   independent: string[]
   covariates?: string[]
+  [key: string]: string | string[] | undefined
 }
 
 interface GroupResult {
@@ -104,7 +105,7 @@ interface ANOVAResults {
 
 export default function ANOVAPage() {
   // Custom hook: common state management
-  const { state, actions } = useStatisticsPage<ANOVAResults>({
+  const { state, actions } = useStatisticsPage<ANOVAResults, SelectedVariables>({
     withUploadedData: true,
     withError: false
   })

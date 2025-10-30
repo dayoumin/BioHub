@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -57,39 +57,39 @@ export default function MeansPlotPage() {
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
 
-  const steps = [
+  const steps: StatisticsStep[] = [
     {
       id: 'intro',
       number: 1,
       title: '평균 도표 분석',
       description: '집단별 평균값과 오차막대를 시각화하여 집단 간 차이를 탐색합니다.',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'complete' : 'upcoming'
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
     },
     {
       id: 'upload',
       number: 2,
       title: '데이터 업로드',
       description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'complete' : 'upcoming'
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
     },
     {
       id: 'variables',
       number: 3,
       title: '변수 선택',
       description: '종속변수와 요인변수를 선택합니다.',
-      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'complete' : 'upcoming'
+      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'pending'
     },
     {
       id: 'results',
       number: 4,
       title: '분석 결과',
       description: '평균 도표와 기술통계량을 확인합니다.',
-      status: currentStep === 4 ? 'current' : currentStep > 4 ? 'complete' : 'upcoming'
+      status: currentStep === 4 ? 'current' : currentStep > 4 ? 'completed' : 'pending'
     }
-  ] as const
+  ]
 
   const handleDataUpload = useCallback((uploadedData: unknown[], uploadedColumns: string[]) => {
-    actions.setUploadedData({
+    actions.setUploadedData?.({
       data: uploadedData as Record<string, unknown>[],
       fileName: 'uploaded-file.csv',
       columns: uploadedColumns
@@ -203,8 +203,8 @@ json.dumps(results)
   const handleVariablesSelected = useCallback((variables: unknown) => {
     if (!variables || typeof variables !== 'object') return
 
-    actions.setSelectedVariables(variables as SelectedVariables)
-    actions.setCurrentStep(4)
+    actions.setSelectedVariables?.(variables as SelectedVariables)
+    actions.setCurrentStep?.(4)
     runMeansPlotAnalysis(variables as SelectedVariables)
   }, [actions, runMeansPlotAnalysis])
 
@@ -345,8 +345,8 @@ json.dumps(results)
                       <XAxis dataKey="group" />
                       <YAxis />
                       <Tooltip
-                        formatter={(value: unknown, name: string) => [
-                          typeof value === 'number' ? value.toFixed(3) : value,
+                        formatter={(value: unknown, name: string): [string, string] => [
+                          typeof value === 'number' ? value.toFixed(3) : String(value),
                           name === 'mean' ? '평균' : name === 'error' ? '표준오차' : name
                         ]}
                         labelFormatter={(label) => `집단: ${label}`}

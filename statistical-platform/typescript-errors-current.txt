@@ -1,0 +1,33 @@
+__tests__/core/pyodide-core.test.ts(26,12): error TS7017: Element implicitly has an 'any' type because type 'typeof globalThis' has no index signature.
+__tests__/core/pyodide-core.test.ts(26,54): error TS2345: Argument of type 'any' is not assignable to parameter of type 'never'.
+app/(dashboard)/statistics/anova/page.tsx(198,34): error TS2345: Argument of type 'SelectedVariables' is not assignable to parameter of type 'Record<string, unknown>'.
+  Index signature for type 'string' is missing in type 'SelectedVariables'.
+app/(dashboard)/statistics/anova/page.tsx(629,26): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'SelectedVariables'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'SelectedVariables': dependent, independent
+app/(dashboard)/statistics/friedman/page.tsx(156,5): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+app/(dashboard)/statistics/friedman/page.tsx(156,29): error TS2345: Argument of type 'DataRow[]' is not assignable to parameter of type 'UploadedData'.
+  Type 'DataRow[]' is missing the following properties from type 'UploadedData': data, fileName, columns
+app/(dashboard)/statistics/friedman/page.tsx(161,5): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+app/(dashboard)/statistics/friedman/page.tsx(173,5): error TS2349: This expression is not callable.
+  Type 'void' has no call signatures.
+app/(dashboard)/statistics/friedman/page.tsx(177,36): error TS2551: Property 'friedmanTest' does not exist on type 'PyodideStatisticsService'. Did you mean 'friedman'?
+app/(dashboard)/statistics/friedman/page.tsx(286,13): error TS2322: Type '(data: unknown[]) => void' is not assignable to type '() => void'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+app/(dashboard)/statistics/friedman/page.tsx(318,13): error TS2740: Type 'UploadedData' is missing the following properties from type 'Record<string, any>[]': length, pop, push, concat, and 35 more.
+app/(dashboard)/statistics/friedman/page.tsx(606,38): error TS2552: Cannot find name 'setCurrentStep'. Did you mean 'currentStep'?
+app/(dashboard)/statistics/kruskal-wallis/page.tsx(156,5): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+app/(dashboard)/statistics/kruskal-wallis/page.tsx(156,29): error TS2345: Argument of type 'DataRow[]' is not assignable to parameter of type 'UploadedData'.
+  Type 'DataRow[]' is missing the following properties from type 'UploadedData': data, fileName, columns
+app/(dashboard)/statistics/kruskal-wallis/page.tsx(161,5): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+app/(dashboard)/statistics/kruskal-wallis/page.tsx(174,5): error TS2349: This expression is not callable.
+  Type 'void' has no call signatures.
+app/(dashboard)/statistics/kruskal-wallis/page.tsx(178,36): error TS2551: Property 'kruskalWallisTest' does not exist on type 'PyodideStatisticsService'. Did you mean 'kruskalWallis'?
+app/(dashboard)/statistics/kruskal-wallis/page.tsx(288,13): error TS2322: Type '(data: unknown[]) => void' is not assignable to type '() => void'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+app/(dashboard)/statistics/kruskal-wallis/page.tsx(319,13): error TS2740: Type 'UploadedData' is missing the following properties from type 'Record<string, any>[]': length, pop, push, concat, and 35 more.
+app/(dashboard)/statistics/ks-test/page.tsx(105,5): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+app/(dashboard)/statistics/ks-test/page.tsx(269,5): error TS2722: Cannot invoke an object which is possibly 'undefined'.
+app/(dashboard)/statistics/ks-test/page.tsx(364,23): error TS2322: Type '(data: UploadedData) => void' is not assignable to type '() => void'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+app/(dashboard)/statistics/ks-test/page.tsx(405,11): error TS2322: Type '{ variables: { name: string; type: VariableType; stats: { missing: number; unique: number; min: number; max: number; }; }[]; requirements: VariableRequirement; onSelectionChange: (variables: VariableSelection) => void; methodName: string; }' is not assignable to type 'IntrinsicAttributes & VariableSelectorProps'.
+  Property 'variables' does not exist on type '

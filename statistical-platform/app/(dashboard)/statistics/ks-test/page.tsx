@@ -22,9 +22,9 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
-import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { PyodideInterface } from '@/types/pyodide'
+import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 
 // 데이터 인터페이스
 interface UploadedData {
@@ -102,139 +102,165 @@ export default function KolmogorovSmirnovTestPage() {
   ]
 
   const handleDataUpload = useCallback((data: UploadedData) => {
-    actions.setUploadedData(data)
-    actions.setCurrentStep(2)
+    actions.setUploadedData?.(data)
+    actions.setCurrentStep?.(2)
   }, [actions])
 
-  // 표준정규분포 CDF 근사
-  const normalCDF = useCallback((z: number): number => {
-    const t = 1.0 / (1.0 + 0.2316419 * Math.abs(z))
-    const d = 0.3989423 * Math.exp(-z * z / 2)
-    let prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
-    if (z > 0) prob = 1 - prob
-    return prob
-  }, [])
-
-  // 일표본 K-S 검정 (정규분포 가정)
-  const calculateOneSampleKS = useCallback((values: number[], variable: string): KSTestResult => {
+  // 일표본 K-S 검정 (정규분포 가정) - scipy 사용
+  const calculateOneSampleKS = useCallback(async (
+    values: number[],
+    variable: string,
+    pyodide: PyodideInterface
+  ): Promise<KSTestResult> => {
     const n = values.length
-    const sortedValues = [...values].sort((a, b) => a - b)
 
-    // 표본 통계량
-    const mean = values.reduce((sum, val) => sum + val, 0) / n
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (n - 1)
-    const std = Math.sqrt(variance)
+    // Python에 데이터 전달
+    pyodide.globals.set('js_values', values)
 
-    // 경험적 분포함수와 이론적 정규분포의 최대 차이 계산
-    let maxDifference = 0
+    // scipy를 사용한 K-S 검정
+    const result = await pyodide.runPythonAsync(`
+from scipy import stats
+import numpy as np
 
-    for (let i = 0; i < n; i++) {
-      const empiricalCDF = (i + 1) / n
-      const standardizedValue = (sortedValues[i] - mean) / std
-      const theoreticalCDF = normalCDF(standardizedValue)
+values = np.array(js_values)
+n = len(values)
+mean = float(np.mean(values))
+std = float(np.std(values, ddof=1))
 
-      const difference = Math.abs(empiricalCDF - theoreticalCDF)
-      maxDifference = Math.max(maxDifference, difference)
-    }
+# K-S 검정 (정규분포 가정)
+statistic, pvalue = stats.kstest(values, 'norm', args=(mean, std))
 
-    // 임계값 계산 (근사식) - α = 0.05에서의 임계값
-    const criticalValue = 1.36 / Math.sqrt(n)
+# 임계값 계산 (α = 0.05)
+critical_value = 1.36 / np.sqrt(n)
 
-    // p-value 근사 계산 (Kolmogorov 분포)
-    const ksStatistic = maxDifference
-    const lambda = ksStatistic * Math.sqrt(n)
-    let pValue = 2 * Math.exp(-2 * lambda * lambda)
+{
+  'testType': 'one-sample',
+  'variable1': '${variable}',
+  'statisticKS': float(statistic),
+  'pValue': float(pvalue),
+  'criticalValue': float(critical_value),
+  'significant': bool(statistic > critical_value),
+  'interpretation': 'データが正規分布に従わない' if statistic > critical_value else 'データが正規分布に従う',
+  'sampleSizes': {
+    'n1': int(n)
+  },
+  'distributionInfo': {
+    'expectedDistribution': '정규분포',
+    'observedMean': float(mean),
+    'observedStd': float(std),
+    'expectedMean': float(mean),
+    'expectedStd': float(std)
+  }
+}
+    `)
 
-    // p-value 보정 (더 정확한 근사)
-    if (pValue > 1) pValue = 1
-    if (pValue < 0) pValue = 0
-
-    const significant = ksStatistic > criticalValue
+    const jsResult = result.toJs({ dict_converter: Object.fromEntries })
 
     return {
-      testType: 'one-sample',
-      variable1: variable,
-      statisticKS: ksStatistic,
-      pValue,
-      criticalValue,
-      significant,
-      interpretation: significant
+      testType: jsResult.testType as 'one-sample',
+      variable1: jsResult.variable1 as string,
+      statisticKS: jsResult.statisticKS as number,
+      pValue: jsResult.pValue as number,
+      criticalValue: jsResult.criticalValue as number,
+      significant: jsResult.significant as boolean,
+      interpretation: jsResult.significant
         ? '데이터가 정규분포를 따르지 않는 것으로 보임'
         : '데이터가 정규분포를 따르는 것으로 보임',
-      sampleSizes: { n1: n },
+      sampleSizes: {
+        n1: jsResult.sampleSizes.n1 as number
+      },
       distributionInfo: {
-        expectedDistribution: '정규분포',
-        observedMean: mean,
-        observedStd: std,
-        expectedMean: mean,
-        expectedStd: std
+        expectedDistribution: jsResult.distributionInfo.expectedDistribution as string,
+        observedMean: jsResult.distributionInfo.observedMean as number,
+        observedStd: jsResult.distributionInfo.observedStd as number,
+        expectedMean: jsResult.distributionInfo.expectedMean as number,
+        expectedStd: jsResult.distributionInfo.expectedStd as number
       }
     }
-  }, [normalCDF])
+  }, [])
 
-  // 이표본 K-S 검정
-  const calculateTwoSampleKS = useCallback((values1: number[], values2: number[], variable1: string, variable2: string): KSTestResult => {
+  // 이표본 K-S 검정 - scipy 사용
+  const calculateTwoSampleKS = useCallback(async (
+    values1: number[],
+    values2: number[],
+    variable1: string,
+    variable2: string,
+    pyodide: PyodideInterface
+  ): Promise<KSTestResult> => {
     const n1 = values1.length
     const n2 = values2.length
 
-    // 모든 값을 합쳐서 정렬
-    const allValues = [...values1, ...values2].sort((a, b) => a - b)
-    const uniqueValues = [...new Set(allValues)]
+    // Python에 데이터 전달
+    pyodide.globals.set('js_values1', values1)
+    pyodide.globals.set('js_values2', values2)
 
-    let maxDifference = 0
+    // scipy를 사용한 이표본 K-S 검정
+    const result = await pyodide.runPythonAsync(`
+from scipy import stats
+import numpy as np
 
-    // 각 유니크한 값에서 경험적 분포함수 차이 계산
-    for (const value of uniqueValues) {
-      const cdf1 = values1.filter(v => v <= value).length / n1
-      const cdf2 = values2.filter(v => v <= value).length / n2
+values1 = np.array(js_values1)
+values2 = np.array(js_values2)
+n1 = len(values1)
+n2 = len(values2)
 
-      const difference = Math.abs(cdf1 - cdf2)
-      maxDifference = Math.max(maxDifference, difference)
-    }
+# 이표본 K-S 검정
+statistic, pvalue = stats.ks_2samp(values1, values2)
 
-    const ksStatistic = maxDifference
+# 임계값 계산 (α = 0.05)
+critical_value = 1.36 * np.sqrt((n1 + n2) / (n1 * n2))
 
-    // 이표본 K-S 검정의 임계값 (α = 0.05)
-    const criticalValue = 1.36 * Math.sqrt((n1 + n2) / (n1 * n2))
+# 효과크기 (Cohen's d)
+mean1 = float(np.mean(values1))
+mean2 = float(np.mean(values2))
+pooled_std = float(np.sqrt(((n1 - 1) * np.var(values1, ddof=1) + (n2 - 1) * np.var(values2, ddof=1)) / (n1 + n2 - 2)))
+effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
 
-    // p-value 근사 계산
-    const effectiveN = (n1 * n2) / (n1 + n2)
-    const lambda = ksStatistic * Math.sqrt(effectiveN)
-    let pValue = 2 * Math.exp(-2 * lambda * lambda)
+{
+  'testType': 'two-sample',
+  'variable1': '${variable1}',
+  'variable2': '${variable2}',
+  'statisticKS': float(statistic),
+  'pValue': float(pvalue),
+  'criticalValue': float(critical_value),
+  'significant': bool(statistic > critical_value),
+  'interpretation': '두 집단의 분포가 유의하게 다름' if statistic > critical_value else '두 집단의 분포가 유의하게 다르지 않음',
+  'effectSize': float(effect_size),
+  'sampleSizes': {
+    'n1': int(n1),
+    'n2': int(n2)
+  }
+}
+    `)
 
-    if (pValue > 1) pValue = 1
-    if (pValue < 0) pValue = 0
-
-    const significant = ksStatistic > criticalValue
-
-    // 효과크기 (Cohen's d 유사)
-    const mean1 = values1.reduce((sum, val) => sum + val, 0) / n1
-    const mean2 = values2.reduce((sum, val) => sum + val, 0) / n2
-    const pooledStd = Math.sqrt((
-      values1.reduce((sum, val) => sum + Math.pow(val - mean1, 2), 0) +
-      values2.reduce((sum, val) => sum + Math.pow(val - mean2, 2), 0)
-    ) / (n1 + n2 - 2))
-
-    const effectSize = Math.abs(mean1 - mean2) / pooledStd
+    const jsResult = result.toJs({ dict_converter: Object.fromEntries })
 
     return {
-      testType: 'two-sample',
-      variable1,
-      variable2,
-      statisticKS: ksStatistic,
-      pValue,
-      criticalValue,
-      significant,
-      interpretation: significant
+      testType: jsResult.testType as 'two-sample',
+      variable1: jsResult.variable1 as string,
+      variable2: jsResult.variable2 as string,
+      statisticKS: jsResult.statisticKS as number,
+      pValue: jsResult.pValue as number,
+      criticalValue: jsResult.criticalValue as number,
+      significant: jsResult.significant as boolean,
+      interpretation: jsResult.significant
         ? '두 집단의 분포가 유의하게 다름'
         : '두 집단의 분포가 유의하게 다르지 않음',
-      effectSize,
-      sampleSizes: { n1, n2 }
+      effectSize: jsResult.effectSize as number,
+      sampleSizes: {
+        n1: jsResult.sampleSizes.n1 as number,
+        n2: jsResult.sampleSizes.n2 as number
+      }
     }
   }, [])
 
-  // 실제 K-S 검정 계산 로직
-  const calculateKSTest = useCallback((data: unknown[], variable1: string, variable2?: string): KSTestResult => {
+  // 실제 K-S 검정 계산 로직 - Pyodide 사용
+  const calculateKSTest = useCallback(async (
+    data: unknown[],
+    variable1: string,
+    variable2: string | undefined,
+    pyodide: PyodideInterface
+  ): Promise<KSTestResult> => {
     const values1 = data.map(row => (row as Record<string, unknown>)[variable1])
       .filter(val => val != null && typeof val === 'number') as number[]
 
@@ -243,10 +269,10 @@ export default function KolmogorovSmirnovTestPage() {
       const values2 = data.map(row => (row as Record<string, unknown>)[variable2])
         .filter(val => val != null && typeof val === 'number') as number[]
 
-      return calculateTwoSampleKS(values1, values2, variable1, variable2)
+      return await calculateTwoSampleKS(values1, values2, variable1, variable2, pyodide)
     } else {
       // 일표본 K-S 검정 (정규분포와 비교)
-      return calculateOneSampleKS(values1, variable1)
+      return await calculateOneSampleKS(values1, variable1, pyodide)
     }
   }, [calculateOneSampleKS, calculateTwoSampleKS])
 
@@ -256,17 +282,22 @@ export default function KolmogorovSmirnovTestPage() {
     try {
       actions.startAnalysis()
 
+      // Pyodide 로딩 (scipy 패키지 포함)
+      const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'scipy'])
+
       const variable2 = variables.variables.length > 1 ? variables.variables[1] : undefined
-      const result = calculateKSTest(uploadedData.data, variables.variables[0], variable2)
+      const result = await calculateKSTest(uploadedData.data, variables.variables[0], variable2, pyodide)
+
       actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('K-S 검정 분석 중 오류:', error)
-      actions.setError('분석 중 오류가 발생했습니다.')
+      const errorMessage = error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.'
+      actions.setError(errorMessage)
     }
   }, [uploadedData, calculateKSTest, actions])
 
   const handleVariableSelection = useCallback((variables: VariableSelection) => {
-    actions.setSelectedVariables(variables)
+    actions.setSelectedVariables?.(variables)
     runAnalysis(variables)
   }, [runAnalysis, actions])
 
@@ -361,29 +392,21 @@ export default function KolmogorovSmirnovTestPage() {
       description="K-S 검정을 수행할 데이터를 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onNext={handleDataUpload} />
+      <DataUploadStep
+        onUploadComplete={(file, data) => {
+          const columns = Object.keys(data[0] || {})
+          handleDataUpload({
+            data,
+            fileName: file.name,
+            columns
+          })
+        }}
+      />
     </StepCard>
   )
 
   const renderVariableSelection = () => {
     if (!uploadedData) return null
-
-    const requirements = getVariableRequirements('kolmogorovSmirnov')
-
-    const columns = Object.keys(uploadedData.data[0] || {})
-    const variables = columns.map(col => ({
-      name: col,
-      type: detectVariableType(
-        uploadedData.data.map(row => row[col]),
-        col
-      ),
-      stats: {
-        missing: uploadedData.data.filter(row => !row[col]).length,
-        unique: [...new Set(uploadedData.data.map(row => row[col]))].length,
-        min: Math.min(...uploadedData.data.map(row => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map(row => Number(row[col]) || 0))
-      }
-    }))
 
     return (
       <StepCard
@@ -402,10 +425,13 @@ export default function KolmogorovSmirnovTestPage() {
           </AlertDescription>
         </Alert>
         <VariableSelector
-          variables={variables}
-          requirements={requirements}
-          onSelectionChange={handleVariableSelection}
-          methodName="Kolmogorov-Smirnov 검정"
+          methodId="kolmogorovSmirnov"
+          data={uploadedData.data}
+          onVariablesSelected={(variables) => {
+            // Convert VariableAssignment to VariableSelection
+            const variableArray = Object.values(variables).flat().filter(v => typeof v === 'string') as string[]
+            handleVariableSelection({ variables: variableArray })
+          }}
         />
       </StepCard>
     )
