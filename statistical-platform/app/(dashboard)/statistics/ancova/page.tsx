@@ -30,7 +30,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -195,7 +195,19 @@ export default function ANCOVAPage() {
 
   // Event handlers
   const handleDataUpload = useCallback((data: unknown[]) => {
-    actions.setUploadedData(data as never[])
+    if (!actions.setUploadedData) {
+      console.error('[ancova] setUploadedData not available')
+      return
+    }
+
+    // Convert unknown[] to UploadedData structure
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: 'uploaded_data.csv',
+      columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : []
+    }
+
+    actions.setUploadedData(uploadedData)
     actions.setCurrentStep(2)
   }, [actions])
 
@@ -307,6 +319,11 @@ export default function ANCOVAPage() {
   }, [uploadedData, pyodide, actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
+    if (!actions.setSelectedVariables) {
+      console.error('[ancova] setSelectedVariables not available')
+      return
+    }
+
     actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent && variables.covariates &&
         variables.dependent.length === 1 && variables.independent.length === 1 && variables.covariates.length >= 1) {

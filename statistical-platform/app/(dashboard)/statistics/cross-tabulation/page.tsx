@@ -24,11 +24,11 @@ import {
   Percent
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
 interface CrossTabCell {
   rowCategory: string
@@ -72,13 +72,17 @@ interface CrossTabResults {
   }
 }
 
+interface SelectedVariables {
+  dependent: string
+  independent: string
+}
+
 export default function CrossTabulationPage() {
-  const { state, actions } = useStatisticsPage<CrossTabResults, VariableMapping>({
-    withUploadedData: false,
-    withError: false
+  const { state, actions } = useStatisticsPage<CrossTabResults, SelectedVariables>({
+    withUploadedData: true,
+    withError: true
   })
-  const { currentStep, results, isAnalyzing } = state
-  const variableMapping = state.selectedVariables || {}
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
   const [activeTab, setActiveTab] = useState('summary')
 
   // 분석 옵션
@@ -93,37 +97,42 @@ export default function CrossTabulationPage() {
   // 단계 정의
   const steps: StatisticsStep[] = [
     {
-      id: 'select-variables',
+      id: 'upload',
       number: 1,
+      title: '데이터 업로드',
+      description: 'CSV 파일 업로드',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+    {
+      id: 'select-variables',
+      number: 2,
       title: '변수 선택',
       description: '두 범주형 변수 선택',
-      status: Object.keys(variableMapping).length >= 2 ? 'completed' : 'current'
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
     },
     {
       id: 'configure-options',
-      number: 2,
+      number: 3,
       title: '분석 옵션',
       description: '교차표 형식 및 검정 설정',
-      status: Object.keys(variableMapping).length >= 2 ? 'current' : 'pending'
-    },
-    {
-      id: 'run-analysis',
-      number: 3,
-      title: '분석 실행',
-      description: '교차표 생성 및 독립성 검정',
-      status: results ? 'completed' : 'pending'
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
     },
     {
       id: 'view-results',
       number: 4,
       title: '결과 확인',
       description: '교차표 및 통계 검정 결과',
-      status: results ? 'current' : 'pending'
+      status: currentStep === 3 ? 'current' : 'pending'
     }
   ]
 
   // 분석 실행
-  const handleAnalysis = async () => {
+  const handleAnalysis = useCallback(async () => {
+    if (!uploadedData || !selectedVariables) {
+      console.error('[cross-tabulation] Missing data or variables')
+      return
+    }
+
     actions.startAnalysis()
 
     try {
@@ -224,7 +233,7 @@ export default function CrossTabulationPage() {
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }
+  }, [uploadedData, selectedVariables, actions])
 
   // 단계 변경 처리
   const handleStepChange = (step: number) => {
@@ -240,13 +249,19 @@ export default function CrossTabulationPage() {
   }
 
   // 변수 선택 핸들러
-  const handleVariablesSelected = useCallback((mapping: unknown) => {
-    if (!mapping || typeof mapping !== 'object') return
-
-    actions.setSelectedVariables(mapping as VariableMapping)
-    if (Object.keys(mapping as Record<string, unknown>).length >= 2) {
-      actions.setCurrentStep(1)
+  const handleVariablesSelected = useCallback((variables: unknown) => {
+    if (!variables || typeof variables !== 'object') {
+      console.error('[cross-tabulation] Invalid variables format')
+      return
     }
+
+    if (!actions.setSelectedVariables) {
+      console.error('[cross-tabulation] setSelectedVariables not available')
+      return
+    }
+
+    actions.setSelectedVariables(variables as SelectedVariables)
+    actions.setCurrentStep(2)
   }, [actions])
 
   // 교차표 렌더링
@@ -480,30 +495,42 @@ export default function CrossTabulationPage() {
       }}
     >
       <div className="space-y-6">
+        {/* 0단계: 데이터 업로드 */}
+        {currentStep === 0 && uploadedData === null && (
+          <DataUploadStep
+            onUploadComplete={(file: File, data: unknown[]) => {
+              if (!actions.setUploadedData) {
+                console.error('[cross-tabulation] setUploadedData not available')
+                return
+              }
+              const dataRecords = data as Record<string, unknown>[]
+              const uploadedData: UploadedData = {
+                fileName: file.name,
+                data: dataRecords,
+                columns: dataRecords.length > 0 ? Object.keys(dataRecords[0]) : []
+              }
+              actions.setUploadedData(uploadedData)
+              actions.setCurrentStep(1)
+            }}
+            onNext={() => actions.setCurrentStep(1)}
+            canGoNext={false}
+            currentStep={1}
+            totalSteps={4}
+          />
+        )}
+
         {/* 1단계: 변수 선택 */}
-        {currentStep === 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GitBranch className="w-5 h-5" />
-                변수 선택
-              </CardTitle>
-              <CardDescription>
-                교차표를 작성할 두 개의 범주형 변수를 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VariableSelector
-                title="범주형 변수 선택"
-                description="행 변수와 열 변수로 사용할 범주형 변수 2개를 선택하세요"
-                onMappingChange={handleVariablesSelected}
-              />
-            </CardContent>
-          </Card>
+        {currentStep === 1 && uploadedData && (
+          <VariableSelector
+            methodId="cross-tabulation"
+            data={uploadedData.data}
+            onVariablesSelected={handleVariablesSelected}
+            onBack={() => actions.setCurrentStep(0)}
+          />
         )}
 
         {/* 2단계: 분석 옵션 설정 */}
-        {currentStep === 1 && (
+        {currentStep === 2 && selectedVariables && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -581,47 +608,26 @@ export default function CrossTabulationPage() {
                 </ul>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-between">
                 <Button
-                  onClick={() => actions.setCurrentStep(2)}
-                  disabled={Object.keys(variableMapping).length < 2}
+                  variant="outline"
+                  onClick={() => actions.setCurrentStep(1)}
                 >
-                  다음 단계
+                  이전
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 3단계: 분석 실행 */}
-        {currentStep === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="w-5 h-5" />
-                분석 실행
-              </CardTitle>
-              <CardDescription>
-                교차표 작성 및 독립성 검정을 실행합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
                 <Button
-                  size="lg"
                   onClick={handleAnalysis}
                   disabled={isAnalyzing}
-                  className="px-8"
                 >
-                  {isAnalyzing ? '분석 중...' : '교차표 분석 실행'}
+                  {isAnalyzing ? '분석 중...' : '분석 실행'}
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* 4단계: 결과 확인 */}
-        {results && currentStep === 3 && (
+        {/* 3단계: 결과 확인 */}
+        {currentStep === 3 && results && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="summary">요약</TabsTrigger>

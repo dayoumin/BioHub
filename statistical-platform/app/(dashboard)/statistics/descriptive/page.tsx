@@ -23,11 +23,16 @@ import {
   Target
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import { VariableMapping } from '@/components/variable-selection/types'
+import type { VariableMapping, UploadedData } from '@/hooks/use-statistics-page'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+
+interface VariableAssignment {
+  [role: string]: string | string[]
+}
 
 interface DescriptiveStats {
   variable: string
@@ -62,7 +67,7 @@ interface DescriptiveResults {
 export default function DescriptiveStatsPage() {
   // Custom hook: 공통 상태 관리
   const { state, actions } = useStatisticsPage<DescriptiveResults>({
-    withUploadedData: false,
+    withUploadedData: true,
     withError: false
   })
 
@@ -74,34 +79,41 @@ export default function DescriptiveStatsPage() {
   const { pyodideService: _pyodideService } = usePyodideService()
 
   // 편의를 위한 destructuring
-  const { currentStep, variableMapping, results, isAnalyzing } = state
+  const { currentStep, variableMapping, uploadedData, results, isAnalyzing } = state
 
   // 단계 정의
   const steps: StatisticsStep[] = [
     {
-      id: 'select-variables',
+      id: 'upload-data',
       number: 1,
+      title: '데이터 업로드',
+      description: 'CSV 또는 Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
+      id: 'select-variables',
+      number: 2,
       title: '변수 선택',
       description: '분석할 수치형 변수 선택',
-      status: Object.keys(variableMapping).length > 0 ? 'completed' : 'current'
+      status: Object.keys(variableMapping).length > 0 ? 'completed' : uploadedData ? 'current' : 'pending'
     },
     {
       id: 'configure-options',
-      number: 2,
+      number: 3,
       title: '옵션 설정',
       description: '통계량 및 신뢰구간 설정',
       status: Object.keys(variableMapping).length > 0 ? 'current' : 'pending'
     },
     {
       id: 'run-analysis',
-      number: 3,
+      number: 4,
       title: '분석 실행',
       description: '기술통계 계산',
       status: results ? 'completed' : 'pending'
     },
     {
       id: 'view-results',
-      number: 4,
+      number: 5,
       title: '결과 확인',
       description: '기술통계 결과 및 해석',
       status: results ? 'current' : 'pending'
@@ -165,7 +177,7 @@ export default function DescriptiveStatsPage() {
         analysisDate: new Date().toLocaleString('ko-KR')
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.completeAnalysis(mockResults, 4)
       setActiveTab('summary')
     } catch (err) {
       console.error('Analysis error:', err)
@@ -183,6 +195,19 @@ export default function DescriptiveStatsPage() {
   const handleReset = () => {
     actions.reset()
     setActiveTab('summary')
+  }
+
+  // 변수 선택 핸들러
+  const handleVariableSelection = (variables: VariableAssignment) => {
+    if (!actions.setSelectedVariables) {
+      console.error('[descriptive] setSelectedVariables not available')
+      return
+    }
+    const mapping: VariableMapping = {
+      variables: Array.isArray(variables.variables) ? variables.variables as string[] : [variables.variables as string]
+    }
+    actions.setSelectedVariables(mapping)
+    actions.setCurrentStep(2)
   }
 
   // 기술통계 테이블 렌더링
@@ -353,8 +378,46 @@ export default function DescriptiveStatsPage() {
       }}
     >
       <div className="space-y-6">
-        {/* 1단계: 변수 선택 */}
+        {/* 1단계: 데이터 업로드 */}
         {currentStep === 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                데이터 업로드
+              </CardTitle>
+              <CardDescription>
+                분석할 데이터를 CSV 또는 Excel 형식으로 업로드하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataUploadStep
+                onUploadComplete={(file: File, data: unknown[]) => {
+                  if (!actions.setUploadedData) {
+                    console.error('[descriptive] setUploadedData not available')
+                    return
+                  }
+                  const dataArray = data as Record<string, unknown>[]
+                  const columns = dataArray.length > 0 ? Object.keys(dataArray[0]) : []
+                  const uploadedData: UploadedData = {
+                    fileName: file.name,
+                    data: dataArray,
+                    columns
+                  }
+                  actions.setUploadedData(uploadedData)
+                  actions.setCurrentStep(1)
+                }}
+                onNext={() => actions.setCurrentStep(1)}
+                canGoNext={false}
+                currentStep={1}
+                totalSteps={5}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 2단계: 변수 선택 */}
+        {currentStep === 1 && uploadedData && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -367,21 +430,17 @@ export default function DescriptiveStatsPage() {
             </CardHeader>
             <CardContent>
               <VariableSelector
-                title="수치형 변수 선택"
-                description="숫자로 구성된 변수를 선택하세요 (여러 변수 선택 가능)"
-                onMappingChange={(mapping) => {
-                  actions.setSelectedVariables(mapping)
-                  if (Object.keys(mapping).length > 0) {
-                    actions.setCurrentStep(1)
-                  }
-                }}
+                methodId="descriptive"
+                data={uploadedData.data}
+                onVariablesSelected={handleVariableSelection}
+                onBack={() => actions.setCurrentStep(0)}
               />
             </CardContent>
           </Card>
         )}
 
-        {/* 2단계: 옵션 설정 */}
-        {currentStep === 1 && (
+        {/* 3단계: 옵션 설정 */}
+        {currentStep === 2 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -429,7 +488,7 @@ export default function DescriptiveStatsPage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => actions.setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(3)}
                   disabled={Object.keys(variableMapping).length === 0}
                 >
                   다음 단계
@@ -439,8 +498,8 @@ export default function DescriptiveStatsPage() {
           </Card>
         )}
 
-        {/* 3단계: 분석 실행 */}
-        {currentStep === 2 && (
+        {/* 4단계: 분석 실행 */}
+        {currentStep === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -466,8 +525,8 @@ export default function DescriptiveStatsPage() {
           </Card>
         )}
 
-        {/* 4단계: 결과 확인 */}
-        {results && currentStep === 3 && (
+        {/* 5단계: 결과 확인 */}
+        {results && currentStep === 4 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="summary">요약</TabsTrigger>
