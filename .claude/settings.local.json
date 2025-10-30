@@ -27,7 +27,14 @@
       "Bash(md5sum:*)",
       "Bash(certutil:*)",
       "Bash(findstr:*)",
-      "Bash(npx eslint \"app/(dashboard)/statistics/friedman/page.tsx\")"
+      "Bash(npx eslint \"app/(dashboard)/statistics/friedman/page.tsx\")",
+      "Bash(git checkout:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(git reset:*)",
+      "Bash(ls:*)",
+      "Bash(tail:*)",
+      "Read(//d/Projects/**)"
     ],
     "deny": [],
     "ask": []

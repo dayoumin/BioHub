@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -13,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp } from 'lucide-react'
+import type { StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 
 interface SelectedVariables {
   dependent: string[]
@@ -50,64 +53,48 @@ interface PartialCorrelationResults {
 }
 
 export default function PartialCorrelationPage() {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [data, setData] = useState<any[]>([])
-  const [columns, setColumns] = useState<string[]>([])
-  const [selectedVariables, setSelectedVariables] = useState<SelectedVariables>({
-    dependent: [],
-    factor: [],
-    covariate: []
+  const { state, actions } = useStatisticsPage<PartialCorrelationResults, SelectedVariables>({
+    withUploadedData: true,
+    withError: true,
+    initialStep: 0
   })
-  const [results, setResults] = useState<PartialCorrelationResults | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
 
-  const steps = [
+  const steps: StatisticsStep[] = [
     {
-      id: 1,
+      id: 'method',
       number: 1,
       title: '편상관분석',
       description: '제3변수의 영향을 통제한 후 두 변수 간의 순수한 상관관계를 분석합니다.',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'complete' : 'upcoming'
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
     },
     {
-      id: 2,
+      id: 'upload',
       number: 2,
       title: '데이터 업로드',
       description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'complete' : 'upcoming'
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
     },
     {
-      id: 3,
+      id: 'variables',
       number: 3,
       title: '변수 선택',
       description: '분석할 변수들과 통제할 변수들을 선택합니다.',
-      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'complete' : 'upcoming'
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
     },
     {
-      id: 4,
+      id: 'results',
       number: 4,
       title: '분석 결과',
       description: '편상관계수와 통계적 유의성을 확인합니다.',
-      status: currentStep === 4 ? 'current' : currentStep > 4 ? 'complete' : 'upcoming'
+      status: currentStep === 3 ? 'current' : 'pending'
     }
   ]
 
-  const handleDataUpload = (uploadedData: unknown[], uploadedColumns: string[]) => {
-    setData(uploadedData)
-    setColumns(uploadedColumns)
-    setCurrentStep(3)
-  }
+  const runPartialCorrelationAnalysis = useCallback(async (variables: SelectedVariables) => {
+    if (!uploadedData) return
 
-  const handleVariablesSelected = (variables: unknown) => {
-    actions.setSelectedVariables(variables)
-    setCurrentStep(4)
-    runPartialCorrelationAnalysis(variables)
-  }
-
-  const runPartialCorrelationAnalysis = async (variables: SelectedVariables) => {
     actions.startAnalysis()
-    actions.setError(null)
 
     try {
       // Load Pyodide with required packages
@@ -117,7 +104,7 @@ export default function PartialCorrelationPage() {
         'scipy'
       ])
 
-      pyodide.globals.set('data', data)
+      pyodide.globals.set('data', uploadedData.data)
       pyodide.globals.set('analysis_vars', variables.dependent)
       pyodide.globals.set('control_vars', variables.covariate || [])
 
@@ -228,15 +215,37 @@ json.dumps(results)
 `
 
       const result = pyodide.runPython(pythonCode)
-      const results: PartialCorrelationResults = JSON.parse(result)
+      const parsedResults: PartialCorrelationResults = JSON.parse(result)
 
-      setResults(results)
+      actions.completeAnalysis(parsedResults, 3)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsAnalyzing(false)
     }
-  }
+  }, [uploadedData, actions])
+
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+    if (actions.setUploadedData) {
+      actions.setUploadedData(uploadedData)
+    }
+    actions.setCurrentStep(1)
+  }, [actions])
+
+  const handleVariablesSelected = useCallback((variables: unknown) => {
+    if (typeof variables === 'object' && variables !== null) {
+      if (actions.setSelectedVariables) {
+        actions.setSelectedVariables(variables as SelectedVariables)
+      }
+      actions.setCurrentStep(3)
+      runPartialCorrelationAnalysis(variables as SelectedVariables)
+    }
+  }, [actions, runPartialCorrelationAnalysis])
 
   const getCorrelationStrength = (corr: number) => {
     const abs = Math.abs(corr)
@@ -246,7 +255,19 @@ json.dumps(results)
     return { level: '매우 약함', color: 'text-gray-600', bgColor: 'bg-gray-50' }
   }
 
-  const renderMethodIntroduction = () => (
+  const handleIntroductionNext = useCallback(() => {
+    actions.setCurrentStep(1)
+  }, [actions])
+
+  const handleDataUploadBack = useCallback(() => {
+    actions.setCurrentStep(0)
+  }, [actions])
+
+  const handleVariablesBack = useCallback(() => {
+    actions.setCurrentStep(1)
+  }, [actions])
+
+  const renderMethodIntroduction = useCallback(() => (
     <div className="space-y-6">
       <div className="text-center">
         <Activity className="mx-auto h-12 w-12 text-blue-600 mb-4" />
@@ -324,14 +345,14 @@ json.dumps(results)
       </Alert>
 
       <div className="flex justify-center">
-        <Button onClick={() => setCurrentStep(2)} size="lg">
+        <Button onClick={handleIntroductionNext} size="lg">
           데이터 업로드하기
         </Button>
       </div>
     </div>
-  )
+  ), [handleIntroductionNext])
 
-  const renderResults = () => {
+  const renderResults = useCallback(() => {
     if (isAnalyzing) {
       return (
         <div className="flex items-center justify-center py-8">
@@ -404,12 +425,12 @@ json.dumps(results)
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">통제변수 수</span>
-                      <span className="font-semibold">{selectedVariables.covariate?.length || 0}개</span>
+                      <span className="font-semibold">{selectedVariables?.covariate?.length || 0}개</span>
                     </div>
                   </div>
                 </div>
 
-                {selectedVariables.covariate && selectedVariables.covariate.length > 0 && (
+                {selectedVariables && selectedVariables.covariate && selectedVariables.covariate.length > 0 && (
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                     <h4 className="font-semibold text-blue-800 mb-2">통제변수</h4>
                     <div className="flex flex-wrap gap-1">
@@ -608,7 +629,7 @@ json.dumps(results)
         </Tabs>
       </div>
     )
-  }
+  }, [isAnalyzing, error, results, selectedVariables])
 
   return (
     <StatisticsPageLayout
@@ -617,19 +638,24 @@ json.dumps(results)
       title="편상관분석"
       description="제3변수의 영향을 통제한 순수한 상관관계 분석"
     >
-      {currentStep === 1 && renderMethodIntroduction()}
-      {currentStep === 2 && (
-        <DataUploadStep onDataUploaded={handleDataUpload} onBack={() => setCurrentStep(1)} />
-      )}
-      {currentStep === 3 && (
-        <VariableSelector
-          methodId="partial-correlation"
-          data={data}
-          onVariablesSelected={handleVariablesSelected}
-          onBack={() => setCurrentStep(2)}
+      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 1 && (
+        <DataUploadStep
+          onUploadComplete={handleDataUpload}
+          onPrevious={handleDataUploadBack}
+          currentStep={1}
+          totalSteps={4}
         />
       )}
-      {currentStep === 4 && renderResults()}
+      {currentStep === 2 && uploadedData && (
+        <VariableSelector
+          methodId="partial-correlation"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariablesSelected}
+          onBack={handleVariablesBack}
+        />
+      )}
+      {currentStep === 3 && renderResults()}
     </StatisticsPageLayout>
   )
 }
