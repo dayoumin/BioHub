@@ -368,12 +368,12 @@ export default function ClusterAnalysisPage() {
               <input
                 type="checkbox"
                 id={column}
-                checked={selectedVariables.includes(column)}
+                checked={(selectedVariables ?? []).includes(column)}
                 onChange={(e) => {
                   if (e.target.checked) {
-                    actions.setSelectedVariables([...selectedVariables, column])
+                    actions.setSelectedVariables([...(selectedVariables ?? []), column])
                   } else {
-                    actions.setSelectedVariables(selectedVariables.filter(v => v !== column))
+                    actions.setSelectedVariables((selectedVariables ?? []).filter(v => v !== column))
                   }
                 }}
                 className="rounded border-gray-300"

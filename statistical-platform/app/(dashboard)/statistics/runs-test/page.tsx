@@ -201,19 +201,14 @@ export default function RunsTestPage() {
     if (!uploadedData) return
 
     actions.startAnalysis()
-    actions.setCurrentStep(3)
 
     try {
-      // 실제 계산 사용 (시뮬레이션 지연 포함)
-      setTimeout(() => {
-        const result = calculateRunsTest(uploadedData.data, variables.variables[0])
-        setresults(result)
-        setIsAnalyzing(false)
-      }, 1500)
+      // 실제 계산 사용
+      const result = calculateRunsTest(uploadedData.data, variables.variables[0])
+      actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('런 검정 분석 중 오류:', error)
-      setIsAnalyzing(false)
-      // TODO: 에러 상태 UI 표시
+      actions.setError('런 검정 분석 중 오류가 발생했습니다.')
     }
   }, [uploadedData, calculateRunsTest])
 

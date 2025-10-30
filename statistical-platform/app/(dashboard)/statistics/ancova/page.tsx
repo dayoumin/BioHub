@@ -133,7 +133,7 @@ export default function ANCOVAPage() {
           setPyodide(pyodideStats)
         }
       } catch (err) {
-        if (isMounted && !abortController.signal.aborted && setError) {
+        if (isMounted && !abortController.signal.aborted) {
           console.error('Pyodide 초기화 실패:', err)
           actions.setError('통계 엔진을 초기화할 수 없습니다.')
         }
@@ -195,17 +195,13 @@ export default function ANCOVAPage() {
 
   // Event handlers
   const handleDataUpload = useCallback((data: unknown[]) => {
-    if (setUploadedData) {
-      actions.setUploadedData(data as never[])
-    }
+    actions.setUploadedData(data as never[])
     actions.setCurrentStep(2)
   }, [actions])
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || !variables.independent || !variables.covariates) {
-      if (setError) {
-        actions.setError('분석을 실행할 수 없습니다. 종속변수, 요인, 공변량을 모두 선택해주세요.')
-      }
+      actions.setError('분석을 실행할 수 없습니다. 종속변수, 요인, 공변량을 모두 선택해주세요.')
       return
     }
 
@@ -217,8 +213,6 @@ export default function ANCOVAPage() {
       if (abortController.signal.aborted) return
 
       // Mock 데이터로 시연 (실제로는 Pyodide 통계 엔진 사용)
-      await new Promise(resolve => setTimeout(resolve, 2500))
-
       if (abortController.signal.aborted) return
 
       const mockResult: ANCOVAResult = {
@@ -300,7 +294,7 @@ export default function ANCOVAPage() {
 
       actions.completeAnalysis(mockResult, 3)
     } catch (err) {
-      if (!abortController.signal.aborted && setError) {
+      if (!abortController.signal.aborted) {
         console.error('ANCOVA 분석 실패:', err)
         actions.setError('ANCOVA 분석 중 오류가 발생했습니다.')
       }
@@ -313,9 +307,7 @@ export default function ANCOVAPage() {
   }, [uploadedData, pyodide, actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (setSelectedVariables) {
-      actions.setSelectedVariables(variables)
-    }
+    actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent && variables.covariates &&
         variables.dependent.length === 1 && variables.independent.length === 1 && variables.covariates.length >= 1) {
       runAnalysis(variables)

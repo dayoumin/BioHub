@@ -12,7 +12,14 @@
       "Bash(git push:*)",
       "Bash(done)",
       "Bash(for:*)",
-      "Bash(do echo \"=== $file ===\")"
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(git commit:*)",
+      "Bash(git diff:*)",
+      "Bash(npm test:*)",
+      "Bash(npx jest:*)",
+      "Bash(awk:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

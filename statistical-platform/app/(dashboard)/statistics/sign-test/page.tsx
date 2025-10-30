@@ -172,8 +172,6 @@ export default function SignTestPage() {
 
     try {
       // Mock implementation - will be replaced with actual Pyodide + SciPy call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
       const mockResult: SignTestResult = {
         test_info: {
           test_name: 'Sign Test',
@@ -234,10 +232,10 @@ export default function SignTestPage() {
         }
       }
 
-      setResults(mockResult)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(mockResult, 3)
     } catch (error) {
       console.error('분석 중 오류:', error)
+      actions.setError('분석 중 오류가 발생했습니다.')
     }
   }, [canProceedToAnalysis, (uploadedData as unknown[] ?? []), pyodideReady, testType])
 

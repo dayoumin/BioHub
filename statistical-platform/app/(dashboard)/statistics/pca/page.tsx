@@ -337,17 +337,13 @@ export default function PCAPage() {
     if (!uploadedData) return
 
     actions.startAnalysis()
-    actions.setCurrentStep(3)
 
     try {
-      setTimeout(() => {
-        const result = calculatePCA(uploadedData.data, variables.variables)
-        setresults(result)
-        setIsAnalyzing(false)
-      }, 2000)
+      const result = calculatePCA(uploadedData.data, variables.variables)
+      actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('PCA 분석 중 오류:', error)
-      setIsAnalyzing(false)
+      actions.setError('PCA 분석 중 오류가 발생했습니다.')
     }
   }, [uploadedData, calculatePCA])
 

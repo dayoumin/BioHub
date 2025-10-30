@@ -235,21 +235,17 @@ export default function McNemarTestPage() {
     if (!uploadedData || variables.variables.length < 2) return
 
     actions.startAnalysis()
-    actions.setCurrentStep(3)
 
     try {
-      setTimeout(() => {
-        const result = calculateMcNemarTest(
-          uploadedData.data,
-          variables.variables[0],
-          variables.variables[1]
-        )
-        setresults(result)
-        setIsAnalyzing(false)
-      }, 1500)
+      const result = calculateMcNemarTest(
+        uploadedData.data,
+        variables.variables[0],
+        variables.variables[1]
+      )
+      actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('McNemar 검정 분석 중 오류:', error)
-      setIsAnalyzing(false)
+      actions.setError('McNemar 검정 분석 중 오류가 발생했습니다.')
     }
   }, [uploadedData, calculateMcNemarTest])
 

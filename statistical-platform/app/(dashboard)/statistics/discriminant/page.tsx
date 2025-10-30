@@ -349,8 +349,6 @@ export default function DiscriminantPage() {
     actions.startAnalysis()
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
       const result = calculateDiscriminantAnalysis(
         uploadedData.data,
         variables.dependentVariable,

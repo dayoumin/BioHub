@@ -71,9 +71,10 @@ interface StepwiseResults {
 
 export default function StepwiseRegressionPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<StepwiseResult, string[]>({
+  const { state, actions } = useStatisticsPage<StepwiseResults, string[]>({
     withUploadedData: true,
-    withError: true
+    withError: true,
+    initialStep: 1
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 

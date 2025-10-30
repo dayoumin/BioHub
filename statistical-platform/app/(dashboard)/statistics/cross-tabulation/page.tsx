@@ -127,8 +127,6 @@ export default function CrossTabulationPage() {
 
     try {
       // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
       const mockResults: CrossTabResults = {
         rowVariable: '성별',
         colVariable: '선호도',

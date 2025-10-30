@@ -185,8 +185,6 @@ export default function OrdinalRegressionPage() {
 
     try {
       // Mock implementation - will be replaced with actual Pyodide + statsmodels call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
       const mockResult: OrdinalRegressionResult = {
         model_info: {
           model_type: 'Proportional Odds Model',
@@ -316,10 +314,10 @@ export default function OrdinalRegressionPage() {
         }
       }
 
-      setResults(mockResult)
-      actions.setCurrentStep(2)
+      actions.completeAnalysis(mockResult, 2)
     } catch (error) {
       console.error('분석 중 오류:', error)
+      actions.setError('분석 중 오류가 발생했습니다.')
     }
   }, [canProceedToAnalysis, (uploadedData as unknown[] ?? []), pyodideReady])
 

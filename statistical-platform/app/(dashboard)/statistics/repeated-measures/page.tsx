@@ -212,8 +212,6 @@ export default function RepeatedMeasuresANOVAPage() {
       if (abortController.signal.aborted) return
 
       // Mock 데이터로 시연 (실제로는 Pyodide 통계 엔진 사용)
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
       if (abortController.signal.aborted) return
 
       const mockResult: RepeatedMeasuresResult = {

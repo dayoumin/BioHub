@@ -99,8 +99,6 @@ export default function ProportionTestPage() {
 
     try {
       // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
       const successCount = 67
       const totalCount = 120
       const observedProp = successCount / totalCount

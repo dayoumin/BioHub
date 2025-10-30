@@ -169,20 +169,14 @@ export default function TTestPage() {
 
   // 데이터 업로드 완료
   const handleDataUpload = useCallback((uploadedData: UploadedData) => {
-    if (setUploadedData) {
-      actions.setUploadedData(uploadedData)
-    }
+    actions.setUploadedData(uploadedData)
     actions.setCurrentStep(2)
-    if (setError) {
-      actions.setError('')
-    }
+    actions.setError('')
   }, [actions])
 
   // 변수 선택 완료
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (setSelectedVariables) {
-      actions.setSelectedVariables(variables)
-    }
+    actions.setSelectedVariables(variables)
     runAnalysis(variables)
   }, [uploadedData, activeTab, testValue, actions])
 
