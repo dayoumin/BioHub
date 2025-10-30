@@ -148,13 +148,17 @@ export default function MannWhitneyPage() {
       columns: processedData.length > 0 ? Object.keys(processedData[0]) : []
     }
 
-    setUploadedData?.(uploadedDataObj)
+    if (actions.setUploadedData) {
+      actions.setUploadedData(uploadedDataObj)
+    }
     actions.setCurrentStep(2)
-    setError?.('')
+    actions.setError('')
   }, [actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables?.(variables)
+    if (actions.setSelectedVariables) {
+      actions.setSelectedVariables(variables)
+    }
     if (variables.dependent && variables.independent && variables.dependent.length === 1 && variables.independent.length === 1) {
       runAnalysis(variables)
     }
@@ -162,7 +166,7 @@ export default function MannWhitneyPage() {
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.independent) {
-      setError?.('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
 

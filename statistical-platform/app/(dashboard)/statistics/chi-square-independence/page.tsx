@@ -169,14 +169,17 @@ export default function ChiSquareIndependencePage() {
 
   // Event handlers
   const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...row as Record<string, unknown>,
-      _id: index
-    })) as DataRow[]
-    setUploadedData(processedData)
+    const processedData = data.map((row) => ({
+      ...row as Record<string, unknown>
+    })) as Record<string, unknown>[]
+    const columns = processedData.length > 0 ? Object.keys(processedData[0]) : []
+    actions.setUploadedData?.({
+      data: processedData,
+      fileName: file.name,
+      columns
+    })
     actions.setCurrentStep(2)
-    actions.setError(null)
-  }, [])
+  }, [actions])
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.independent || !variables.dependent) {
@@ -185,7 +188,6 @@ export default function ChiSquareIndependencePage() {
     }
 
     actions.startAnalysis()
-    actions.setError(null)
 
     try {
       // Convert DataRow[] to contingency table (number[][])

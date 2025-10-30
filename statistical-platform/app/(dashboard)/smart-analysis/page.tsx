@@ -39,8 +39,15 @@ export default function SmartAnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [_selectedAnalysisType, setSelectedAnalysisType] = useState<string | null>(null)
   const [analysisResultId, setAnalysisResultId] = useState<string | null>(null)
-  
+
   const { addAnalysisResult } = useAppStore()
+
+  // Mock actions object since this page doesn't use useStatisticsPage
+  const actions = {
+    startAnalysis: () => {
+      // Mock implementation - page handles analysis state internally
+    }
+  }
 
   // 해시 기반 라우팅 처리
   useEffect(() => {

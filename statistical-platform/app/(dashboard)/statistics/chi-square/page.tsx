@@ -90,9 +90,8 @@ const testDescriptions: Record<ChiSquareTest, TestDescription> = {
 
 export default function ChiSquareTestPage() {
   const { state, actions } = useStatisticsPage<StatisticalResult, VariableMapping>({
-    withUploadedData: false,
-    withError: false,
-    withSelectedVariables: true
+    withUploadedData: true,
+    withError: true
   })
   const { variableMapping, results: result, isAnalyzing } = state
   const [selectedTest, setSelectedTest] = useState<ChiSquareTest>('independence')
@@ -112,8 +111,10 @@ export default function ChiSquareTestPage() {
   const handleVariablesSelected = useCallback((variables: unknown) => {
     if (!variables || typeof variables !== 'object') return
 
-    actions.setSelectedVariables(variables as VariableMapping)
-    setActiveTab('analysis')
+    if (actions.setSelectedVariables) {
+      actions.setSelectedVariables(variables as VariableMapping)
+      setActiveTab('analysis')
+    }
   }, [actions])
 
   // 분할표 크기 변경
@@ -407,13 +408,6 @@ export default function ChiSquareTestPage() {
               </Card>
             )}
 
-            {/* 또는 변수 선택 */}
-            <VariableSelector
-              requirements={getVariableRequirements()}
-              onMappingChange={handleVariablesSelected}
-              title="또는 데이터에서 변수 선택"
-              description="CSV 파일에서 범주형 변수를 선택하면 자동으로 분할표를 생성합니다"
-            />
 
             {/* 분석 옵션 */}
             <Card>

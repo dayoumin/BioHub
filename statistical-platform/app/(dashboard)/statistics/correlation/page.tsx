@@ -194,16 +194,12 @@ export default function CorrelationPage() {
   }
 
   const handleDataUpload = (data: UploadedData) => {
-    if (setUploadedData) {
-      actions.setUploadedData(data)
-    }
+    actions.setUploadedData?.(data)
     actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: VariableSelection) => {
-    if (setSelectedVariables) {
-      actions.setSelectedVariables(variables)
-    }
+    actions.setSelectedVariables?.(variables)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }

@@ -107,8 +107,7 @@ export default function RepeatedMeasuresANOVAPage() {
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<RepeatedMeasuresResult, VariableAssignment>({
     withUploadedData: true,
-    withError: true,
-    withSelectedVariables: true
+    withError: true
   })
   const { currentStep, uploadedData, selectedVariables: _selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
@@ -130,7 +129,7 @@ export default function RepeatedMeasuresANOVAPage() {
       } catch (err) {
         if (isMounted && !abortController.signal.aborted) {
           console.error('Pyodide 초기화 실패:', err)
-          setError('통계 엔진을 초기화할 수 없습니다.')
+          actions.setError('통계 엔진을 초기화할 수 없습니다.')
         }
       }
     }

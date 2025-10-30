@@ -182,16 +182,12 @@ export default function ANOVAPage() {
   }
 
   const handleDataUpload = (data: UploadedData) => {
-    if (setUploadedData) {
-      actions.setUploadedData(data)
-    }
+    actions.setUploadedData?.(data)
     actions.setCurrentStep(2)
   }
 
   const handleVariableSelection = (variables: SelectedVariables) => {
-    if (setSelectedVariables) {
-      actions.setSelectedVariables(variables)
-    }
+    actions.setSelectedVariables?.(variables)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }

@@ -146,17 +146,17 @@ export default function ReliabilityAnalysisPage() {
       ...row,
       _id: index
     }))
-    setUploadedData(processedData)
+    actions.setUploadedData(processedData)
     actions.setCurrentStep(2)
     actions.setError(null)
-  }, [])
+  }, [actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
     actions.setSelectedVariables(variables)
     if (variables.variables && variables.variables.length >= 2) {
       runAnalysis(variables)
     }
-  }, [])
+  }, [actions])
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.variables || variables.variables.length < 2) {

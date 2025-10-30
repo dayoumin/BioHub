@@ -68,11 +68,19 @@ interface ChiSquareGoodnessResult {
 
 export default function ChiSquareGoodnessPage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<ChiSquareGoodnessResult, VariableAssignment>({
+  const { state: hookState, actions: baseActions } = useStatisticsPage<ChiSquareGoodnessResult, VariableAssignment>({
     withUploadedData: true,
     withError: true
   })
-  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
+  const actions = baseActions as typeof baseActions & {
+    setUploadedData: (data: unknown) => void
+    setSelectedVariables: (vars: unknown) => void
+  }
+  const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = hookState as typeof hookState & {
+    uploadedData: unknown
+    selectedVariables: unknown
+    error: unknown
+  }
   const [expectedProportions, setExpectedProportions] = useState<Record<string, number>>({})
   const [useUniformDistribution, setUseUniformDistribution] = useState(true)
 
@@ -150,14 +158,22 @@ export default function ChiSquareGoodnessPage() {
 
   // Event handlers
   const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...row as Record<string, unknown>,
-      _id: index
-    })) as DataRow[]
-    setUploadedData(processedData)
+    const processedData = data.map((row) => ({
+      ...row as Record<string, unknown>
+    })) as Record<string, unknown>[]
+
+    // Get column names from first row
+    const columns = processedData.length > 0
+      ? Object.keys(processedData[0])
+      : []
+
+    actions.setUploadedData({
+      data: processedData,
+      fileName: file.name,
+      columns
+    })
     actions.setCurrentStep(2)
-    actions.setError(null)
-  }, [])
+  }, [actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
     actions.setSelectedVariables(variables)
@@ -166,21 +182,21 @@ export default function ChiSquareGoodnessPage() {
     if (variables.dependent && variables.dependent.length === 1 && uploadedData) {
       const categoryVariable = variables.dependent[0]
       const uniqueCategories = [...new Set(
-        uploadedData
-          .map(row => row[categoryVariable])
-          .filter(val => val !== null && val !== undefined)
-          .map(val => String(val))
+        uploadedData.data
+          .map((row: Record<string, unknown>) => row[categoryVariable])
+          .filter((val: unknown) => val !== null && val !== undefined)
+          .map((val: unknown) => String(val))
       )]
 
       // 균등분포로 초기 설정
       const initialProportions: Record<string, number> = {}
       const uniformProportion = 1 / uniqueCategories.length
-      uniqueCategories.forEach(category => {
+      uniqueCategories.forEach((category: string) => {
         initialProportions[category] = uniformProportion
       })
       setExpectedProportions(initialProportions)
     }
-  }, [uploadedData])
+  }, [uploadedData, actions])
 
   const runAnalysis = async () => {
     if (!uploadedData || !pyodide || !selectedVariables?.dependent) {
@@ -192,14 +208,13 @@ export default function ChiSquareGoodnessPage() {
     const abortController = new AbortController()
 
     actions.startAnalysis()
-    actions.setError(null)
 
     try {
       // 선택된 변수에서 값 추출
-      const variableData = uploadedData
-        .map(row => row[selectedVariables.dependent[0]])
-        .filter(val => val !== null && val !== undefined)
-        .map(val => Number(val))
+      const variableData = uploadedData.data
+        .map((row: Record<string, unknown>) => row[selectedVariables.dependent[0]])
+        .filter((val: unknown) => val !== null && val !== undefined)
+        .map((val: unknown) => Number(val))
 
       // 실제 Pyodide 분석 실행
       const result = await Promise.race([
@@ -385,7 +400,7 @@ export default function ChiSquareGoodnessPage() {
         >
           <VariableSelector
             methodId="chi_square_goodness"
-            data={uploadedData}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />

@@ -75,8 +75,7 @@ interface CrossTabResults {
 export default function CrossTabulationPage() {
   const { state, actions } = useStatisticsPage<CrossTabResults, VariableMapping>({
     withUploadedData: false,
-    withError: false,
-    withSelectedVariables: true
+    withError: false
   })
   const { currentStep, results, isAnalyzing } = state
   const variableMapping = state.selectedVariables || {}

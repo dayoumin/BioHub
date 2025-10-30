@@ -32,6 +32,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -207,10 +208,17 @@ export default function MixedModelPage() {
     ]
   }), [])
 
-  const handleDataUpload = useCallback((data: DataRow[]) => {
-    setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : []
+    }
+    if (actions.setUploadedData) {
+      actions.setUploadedData(uploadedData)
+    }
     actions.setCurrentStep(2)
-  }, [])
+  }, [actions])
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {
@@ -219,7 +227,9 @@ export default function MixedModelPage() {
     }
 
     actions.startAnalysis()
-    actions.setError(null)
+    if (actions.setError) {
+      actions.setError('')
+    }
 
     try {
       // Mock Mixed Model 결과
@@ -346,12 +356,14 @@ export default function MixedModelPage() {
   }, [uploadedData, pyodide])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables(variables)
+    if (actions.setSelectedVariables) {
+      actions.setSelectedVariables(variables)
+    }
     if (variables.dependent && variables.independent &&
         variables.dependent.length === 1 && variables.independent.length >= 1) {
       runAnalysis(variables)
     }
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const getSignificanceColor = (pValue: number) => {
     if (pValue < 0.001) return 'text-red-600 bg-red-50'
@@ -472,8 +484,8 @@ export default function MixedModelPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onNext={() => {}}
+            onUploadComplete={handleDataUpload}
           />
 
           <Alert className="mt-4">
@@ -527,7 +539,7 @@ export default function MixedModelPage() {
         >
           <VariableSelector
             methodId="mixed-model"
-            data={uploadedData}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />
