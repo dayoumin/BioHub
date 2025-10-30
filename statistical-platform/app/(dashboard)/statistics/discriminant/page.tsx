@@ -22,18 +22,11 @@ import {
 
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
-import { detectVariableType } from '@/lib/services/variable-type-detector'
 
 // 데이터 인터페이스
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
-
 interface VariableSelection {
   dependentVariable: string
   independentVariables: string[]
@@ -86,7 +79,7 @@ interface DiscriminantResult {
 
 export default function DiscriminantPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<DiscriminantResult, string[]>({
+  const { state, actions } = useStatisticsPage<DiscriminantResult, VariableSelection>({
     withUploadedData: true,
     withError: true
   })
@@ -127,10 +120,23 @@ export default function DiscriminantPage() {
     }
   ]
 
-  const handleDataUpload = useCallback((data: UploadedData) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[discriminant] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
     actions.setCurrentStep(2)
-  }, [])
+  }, [actions])
 
   // 행렬 계산 유틸리티 함수들
   const calculateMean = useCallback((data: number[]): number => {
@@ -363,9 +369,15 @@ export default function DiscriminantPage() {
 
   const handleVariableSelection = useCallback((variables: unknown) => {
     const typedVariables = variables as VariableSelection
+
+    if (!actions.setSelectedVariables) {
+      console.error('[discriminant] setSelectedVariables not available')
+      return
+    }
+
     actions.setSelectedVariables(typedVariables)
     runAnalysis(typedVariables)
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const renderMethodIntroduction = () => (
     <StepCard
@@ -464,29 +476,12 @@ export default function DiscriminantPage() {
       description="판별분석을 수행할 그룹화된 데이터를 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onNext={handleDataUpload} />
+      <DataUploadStep onUploadComplete={handleDataUpload} />
     </StepCard>
   )
 
   const renderVariableSelection = () => {
     if (!uploadedData) return null
-
-    const requirements = getVariableRequirements('discriminant')
-
-    const columns = Object.keys(uploadedData.data[0] || {})
-    const variables = columns.map(col => ({
-      name: col,
-      type: detectVariableType(
-        uploadedData.data.map(row => row[col]),
-        col
-      ),
-      stats: {
-        missing: uploadedData.data.filter(row => !row[col]).length,
-        unique: [...new Set(uploadedData.data.map(row => row[col]))].length,
-        min: Math.min(...uploadedData.data.map(row => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map(row => Number(row[col]) || 0))
-      }
-    }))
 
     return (
       <StepCard
@@ -506,10 +501,9 @@ export default function DiscriminantPage() {
           </AlertDescription>
         </Alert>
         <VariableSelector
-          variables={variables}
-          requirements={requirements}
-          onSelectionChange={handleVariableSelection}
-          methodName="판별분석"
+          methodId="discriminant"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariableSelection}
         />
       </StepCard>
     )

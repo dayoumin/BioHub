@@ -12,10 +12,10 @@ import { Input } from '@/components/ui/input'
 import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info } from 'lucide-react'
 import { StatisticsPageLayout, StepCard } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { VariableMapping } from '@/components/variable-selection/types'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
+import type { PyodideInterface } from '@/types/pyodide'
+import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 
 interface DoseResponseResult {
   model: string
@@ -45,6 +45,7 @@ interface DoseResponseResult {
 
 interface DoseResponseAnalysisProps {
   selectedModel: string
+  uploadedData: UploadedData | null
 }
 
 const DOSE_RESPONSE_MODELS = {
@@ -85,22 +86,28 @@ const DOSE_RESPONSE_MODELS = {
   }
 }
 
-const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedModel }) => {
+const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedModel, uploadedData }) => {
   const [result, setResult] = useState<DoseResponseResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [constraintsEnabled, setConstraintsEnabled] = useState(false)
   const [bottomConstraint, setBottomConstraint] = useState('')
   const [topConstraint, setTopConstraint] = useState('')
-  const pyodideService = usePyodideService()
+  const [doseColumn, setDoseColumn] = useState('')
+  const [responseColumn, setResponseColumn] = useState('')
 
-  const handleAnalysis = useCallback(async (variableMapping: VariableMapping) => {
-    if (!variableMapping.predictor || variableMapping.predictor.length === 0) {
+  const handleAnalysis = useCallback(async () => {
+    if (!uploadedData) {
+      setError('데이터를 먼저 업로드해주세요.')
+      return
+    }
+
+    if (!doseColumn) {
       setError('용량(농도) 변수를 선택해주세요.')
       return
     }
 
-    if (!variableMapping.target || variableMapping.target.length === 0) {
+    if (!responseColumn) {
       setError('반응 변수를 선택해주세요.')
       return
     }
@@ -109,8 +116,9 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
     setError(null)
 
     try {
-      const doseData = variableMapping.predictor[0].data
-      const responseData = variableMapping.target[0].data
+      // Extract column data
+      const doseData = uploadedData.data.map(row => row[doseColumn])
+      const responseData = uploadedData.data.map(row => row[responseColumn])
 
       const pythonCode = `
 import numpy as np
@@ -285,14 +293,20 @@ except Exception as e:
 }
 `
 
-      const analysisResult = await pyodideService.runPython(pythonCode)
+      // Load Pyodide with required packages
+      const pyodide: PyodideInterface = await loadPyodideWithPackages(['scipy', 'numpy'])
+
+      // Run analysis
+      const resultProxy = pyodide.runPython(pythonCode)
+      const analysisResult = resultProxy.toJs({ dict_converter: Object.fromEntries }) as DoseResponseResult
+
       setResult(analysisResult)
     } catch (err) {
       setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
     }
-  }, [selectedModel, constraintsEnabled, bottomConstraint, topConstraint, pyodideService])
+  }, [uploadedData, doseColumn, responseColumn, selectedModel, constraintsEnabled, bottomConstraint, topConstraint])
 
   const getModelQuality = (rSquared: number) => {
     if (rSquared >= 0.95) return { label: '매우 우수', color: 'bg-green-50 text-green-700 border-green-200' }
@@ -303,25 +317,59 @@ except Exception as e:
 
   return (
     <div className="space-y-6">
-      <VariableSelector
-        data={null}
-        onVariableSelect={handleAnalysis}
-        isLoading={isLoading}
-        requirements={{
-          predictor: {
-            min: 1,
-            max: 1,
-            label: '용량/농도 변수',
-            description: '독립변수: 용량, 농도, 시간 등'
-          },
-          target: {
-            min: 1,
-            max: 1,
-            label: '반응 변수',
-            description: '종속변수: 생물학적 반응, 억제율, 활성도 등'
-          }
-        }}
-      />
+      {/* Variable Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle>변수 선택</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="dose-column">용량/농도 변수</Label>
+            <select
+              id="dose-column"
+              value={doseColumn}
+              onChange={(e) => setDoseColumn(e.target.value)}
+              className="w-full mt-1 p-2 border rounded-md"
+              disabled={!uploadedData}
+            >
+              <option value="">선택하세요</option>
+              {uploadedData?.columns.map(col => (
+                <option key={col} value={col}>{col}</option>
+              ))}
+            </select>
+            <p className="text-sm text-muted-foreground mt-1">
+              독립변수: 용량, 농도, 시간 등
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="response-column">반응 변수</Label>
+            <select
+              id="response-column"
+              value={responseColumn}
+              onChange={(e) => setResponseColumn(e.target.value)}
+              className="w-full mt-1 p-2 border rounded-md"
+              disabled={!uploadedData}
+            >
+              <option value="">선택하세요</option>
+              {uploadedData?.columns.map(col => (
+                <option key={col} value={col}>{col}</option>
+              ))}
+            </select>
+            <p className="text-sm text-muted-foreground mt-1">
+              종속변수: 생물학적 반응, 억제율, 활성도 등
+            </p>
+          </div>
+
+          <Button
+            onClick={handleAnalysis}
+            disabled={isLoading || !doseColumn || !responseColumn}
+            className="w-full"
+          >
+            {isLoading ? '분석 중...' : '분석 실행'}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* 모델 제약조건 설정 */}
       <Card>
@@ -603,46 +651,77 @@ export default function DoseResponsePage() {
 
   // Event handlers
   const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...row as Record<string, unknown>,
-      _id: index
-    }))
-    actions.setUploadedData(processedData)
+    // Type guard and data validation
+    if (!Array.isArray(data) || data.length === 0) {
+      if (actions.setError) {
+        actions.setError('업로드된 데이터가 비어있습니다.')
+      }
+      return
+    }
+
+    // Extract columns from first row
+    const firstRow = data[0]
+    const columns = firstRow && typeof firstRow === 'object' && firstRow !== null
+      ? Object.keys(firstRow as Record<string, unknown>)
+      : []
+
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[dose-response] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
     actions.setCurrentStep(2)
-    actions.setError(null)
+    if (actions.setError) {
+      actions.setError('')
+    }
   }, [actions])
 
   return (
     <StatisticsPageLayout
       title="용량-반응 분석"
       description="용량과 생물학적 반응 간의 관계를 수학적 모델로 분석하여 EC50, IC50 등 핵심 매개변수를 추정합니다"
-      steps={[
-        {
-          title: "방법론 이해",
-          description: "용량-반응 분석은 약물, 독소, 또는 기타 화학물질의 용량과 생물학적 반응 간의 관계를 정량적으로 분석하는 방법입니다.",
-          content: (
+    >
+      {currentStep === 0 && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>방법론 이해</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-6">
+                용량-반응 분석은 약물, 독소, 또는 기타 화학물질의 용량과 생물학적 반응 간의 관계를 정량적으로 분석하는 방법입니다.
+              </p>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <StepCard
                   icon={<TrendingUp className="w-5 h-5" />}
                   title="언제 사용하나요?"
-                  items={[
-                    "약물의 효력 및 독성 평가",
-                    "EC50, IC50, ED50 값 결정",
-                    "용량-반응 곡선 모델링",
-                    "생물학적 활성 비교 연구"
-                  ]}
-                />
+                >
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• 약물의 효력 및 독성 평가</li>
+                    <li>• EC50, IC50, ED50 값 결정</li>
+                    <li>• 용량-반응 곡선 모델링</li>
+                    <li>• 생물학적 활성 비교 연구</li>
+                  </ul>
+                </StepCard>
                 <StepCard
                   icon={<Activity className="w-5 h-5" />}
                   title="주요 특징"
-                  items={[
-                    "S자형(시그모이드) 곡선 분석",
-                    "다양한 수학적 모델 지원",
-                    "신뢰구간 및 통계 검정",
-                    "매개변수 제약조건 설정 가능"
-                  ]}
-                />
+                >
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• S자형(시그모이드) 곡선 분석</li>
+                    <li>• 다양한 수학적 모델 지원</li>
+                    <li>• 신뢰구간 및 통계 검정</li>
+                    <li>• 매개변수 제약조건 설정 가능</li>
+                  </ul>
+                </StepCard>
               </div>
 
               <Card>
@@ -689,25 +768,65 @@ export default function DoseResponsePage() {
                 </CardContent>
               </Card>
             </div>
-          )
-        },
-        {
-          title: "데이터 업로드",
-          description: "용량(농도) 데이터와 해당하는 생물학적 반응 데이터를 업로드하세요.",
-          content: <DataUploadStep
-            onUploadComplete={handleDataUploadComplete}
-            onNext={() => setCurrentStep(2)}
-          />
-        },
-        {
-          title: "변수 선택 및 분석",
-          description: "용량 변수와 반응 변수를 선택하고 선택한 모델로 분석을 실행합니다.",
-          content: <DoseResponseAnalysis selectedModel={selectedModel} />
-        },
-        {
-          title: "결과 해석",
-          description: "용량-반응 분석 결과를 해석하고 EC50, IC50 등 핵심 매개변수의 의미를 이해합니다.",
-          content: (
+            </CardContent>
+          </Card>
+          <div className="flex justify-end">
+            <Button onClick={() => actions.setCurrentStep(1)}>
+              다음 단계
+              <CheckCircle className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {currentStep === 1 && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>데이터 업로드</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                용량(농도) 데이터와 해당하는 생물학적 반응 데이터를 업로드하세요.
+              </p>
+              <DataUploadStep
+                onUploadComplete={handleDataUploadComplete}
+                onNext={() => actions.setCurrentStep(2)}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {currentStep === 2 && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>변수 선택 및 분석</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                용량 변수와 반응 변수를 선택하고 선택한 모델로 분석을 실행합니다.
+              </p>
+              <DoseResponseAnalysis
+                selectedModel={selectedModel}
+                uploadedData={uploadedData || null}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {currentStep === 3 && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>결과 해석</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">
+                용량-반응 분석 결과를 해석하고 EC50, IC50 등 핵심 매개변수의 의미를 이해합니다.
+              </p>
             <div className="space-y-4">
               <Alert>
                 <Info className="h-4 w-4" />
@@ -750,9 +869,10 @@ export default function DoseResponsePage() {
                 </Card>
               </div>
             </div>
-          )
-        }
-      ]}
-    />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </StatisticsPageLayout>
   )
 }

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle, XCircle, Users, Target, Zap, BarChart3, Activity } from 'lucide-react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
 // 군집분석 결과 인터페이스
 interface ClusterAnalysisResult {
@@ -58,10 +58,23 @@ export default function ClusterAnalysisPage() {
   const [distanceMetric, setDistanceMetric] = useState<'euclidean' | 'manhattan' | 'cosine'>('euclidean')
 
   // 데이터 업로드 핸들러
-  const handleDataUpload = useCallback((data: unknown[]) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[cluster] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
     actions.setCurrentStep(2)
-  }, [])
+  }, [actions])
 
     // 유클리드 거리 계산
   const euclideanDistance = useCallback((point1: number[], point2: number[]): number => {
@@ -322,7 +335,7 @@ export default function ClusterAnalysisPage() {
 
   // 군집분석 실행
   const handleRunAnalysis = useCallback(async () => {
-    if (!(uploadedData ?? []).length || !(selectedVariables ?? []).length) {
+    if (!uploadedData?.data.length || !(selectedVariables ?? []).length) {
       actions.setError('데이터와 변수를 선택해주세요.')
       return
     }
@@ -332,16 +345,21 @@ export default function ClusterAnalysisPage() {
     try {
       let finalNumClusters = numClusters
 
+      if (!selectedVariables) {
+        actions.setError('변수를 선택해주세요.')
+        return
+      }
+
       // 최적 군집 수 자동 결정
       if (autoOptimalK) {
-        const optimal = findOptimalClusters((uploadedData as unknown[] ?? []), selectedVariables)
+        const optimal = findOptimalClusters(uploadedData.data, selectedVariables)
         finalNumClusters = optimal.silhouette
       }
 
-      const result = calculateKMeans((uploadedData as unknown[] ?? []), selectedVariables, finalNumClusters)
+      const result = calculateKMeans(uploadedData.data, selectedVariables, finalNumClusters)
 
       if (autoOptimalK) {
-        const optimal = findOptimalClusters((uploadedData as unknown[] ?? []), selectedVariables)
+        const optimal = findOptimalClusters(uploadedData.data, selectedVariables)
         result.optimalK = { ...optimal, gap: optimal.elbow }
       }
 
@@ -349,7 +367,7 @@ export default function ClusterAnalysisPage() {
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, selectedVariables, numClusters, autoOptimalK, findOptimalClusters, calculateKMeans])
+  }, [uploadedData, selectedVariables, numClusters, autoOptimalK, findOptimalClusters, calculateKMeans, actions])
 
   // 변수 선택 페이지
   const variableSelectionStep = useMemo(() => (
@@ -361,15 +379,19 @@ export default function ClusterAnalysisPage() {
         </p>
       </div>
 
-      {(uploadedData ?? []).length > 0 && (
+      {uploadedData?.data.length && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {Object.keys((uploadedData as unknown[] ?? [])[0] as Record<string, unknown>).map((column) => (
+          {uploadedData.columns.map((column) => (
             <div key={column} className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id={column}
                 checked={(selectedVariables ?? []).includes(column)}
                 onChange={(e) => {
+                  if (!actions.setSelectedVariables) {
+                    console.error('[cluster] setSelectedVariables not available')
+                    return
+                  }
                   if (e.target.checked) {
                     actions.setSelectedVariables([...(selectedVariables ?? []), column])
                   } else {
@@ -499,7 +521,7 @@ export default function ClusterAnalysisPage() {
               {results.numClusters}개 군집
             </Badge>
             <Badge variant="outline">
-              {(uploadedData ?? []).length}개 데이터 포인트
+              {uploadedData?.data.length ?? 0}개 데이터 포인트
             </Badge>
           </div>
         </div>
@@ -585,7 +607,7 @@ export default function ClusterAnalysisPage() {
                           <td className="border border-gray-200 px-4 py-2">군집 {stat.cluster}</td>
                           <td className="border border-gray-200 px-4 py-2">{stat.size}</td>
                           <td className="border border-gray-200 px-4 py-2">
-                            {((stat.size / (uploadedData ?? []).length) * 100).toFixed(1)}%
+                            {((stat.size / (uploadedData?.data.length ?? 1)) * 100).toFixed(1)}%
                           </td>
                           <td className="border border-gray-200 px-4 py-2">
                             {stat.withinSS.toFixed(2)}
@@ -713,7 +735,7 @@ export default function ClusterAnalysisPage() {
                         <Users className="h-4 w-4 text-blue-600" />
                         <span>
                           군집 {stat.cluster}: {stat.size}개 데이터 포인트
-                          ({((stat.size / (uploadedData ?? []).length) * 100).toFixed(1)}%)
+                          ({((stat.size / (uploadedData?.data.length ?? 1)) * 100).toFixed(1)}%)
                         </span>
                       </div>
                     ))}
@@ -725,7 +747,7 @@ export default function ClusterAnalysisPage() {
                   <div className="text-sm space-y-1">
                     <p>• <strong>방법:</strong> K-means 군집분석</p>
                     <p>• <strong>군집 수:</strong> {results.numClusters}개</p>
-                    <p>• <strong>변수:</strong> {selectedVariables.join(', ')}</p>
+                    <p>• <strong>변수:</strong> {selectedVariables?.join(', ') ?? 'N/A'}</p>
                     {results.optimalK && (
                       <p>• <strong>최적화:</strong> 엘보우 방법과 실루엣 분석을 통한 최적 군집 수 결정</p>
                     )}
@@ -769,21 +791,22 @@ export default function ClusterAnalysisPage() {
         </Tabs>
 
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => actions.setCurrentStep(3)}>
+          <Button variant="outline" onClick={() => {
+            if (actions.setCurrentStep) {
+              actions.setCurrentStep(3)
+            }
+          }}>
             이전
           </Button>
           <Button onClick={() => {
-            actions.setCurrentStep(1)
-            setResults(null)
-            actions.setSelectedVariables([])
-            actions.setUploadedData([])
+            window.location.reload()
           }}>
             새 분석 시작
           </Button>
         </div>
       </div>
     )
-  }, [results, (uploadedData ?? []).length, selectedVariables])
+  }, [results, uploadedData?.data.length, selectedVariables, actions])
 
   return (
     <StatisticsPageLayout
@@ -794,26 +817,13 @@ export default function ClusterAnalysisPage() {
       variableSelectionStep={variableSelectionStep}
       resultsStep={resultsStep}
       methodInfo={{
-        overview: "군집분석은 데이터의 유사한 개체들을 자동으로 그룹화하는 비지도 학습 방법입니다.",
-        useCases: [
-          "고객 세분화 및 타겟 마케팅",
-          "유전자 발현 패턴 분석",
-          "시장 세분화 연구",
-          "사회과학 연구에서 집단 분류",
-          "이미지 세그멘테이션"
-        ],
         assumptions: [
           "연속형 변수 (수치형 데이터)",
           "변수 간 스케일 차이 고려 필요",
           "이상치에 민감할 수 있음",
           "군집 수 사전 지정 필요 (K-means)"
         ],
-        methods: [
-          "K-means: 구형 군집에 적합, 빠른 속도",
-          "계층적 군집분석: 덴드로그램 제공, 군집 수 유연",
-          "실루엣 분석: 군집 품질 평가",
-          "엘보우 방법: 최적 군집 수 결정"
-        ]
+        usage: "K-means: 구형 군집에 적합, 빠른 속도. 계층적 군집분석: 덴드로그램 제공, 군집 수 유연. 실루엣 분석: 군집 품질 평가."
       }}
     />
   )
