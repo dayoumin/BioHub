@@ -140,10 +140,12 @@ export default function NonParametricTestPage() {
 
   // Mock 분석 실행
   const runAnalysis = async () => {
-    actions.startAnalysis()()
+    actions.startAnalysis()
 
-    // Mock 결과 생성
-    setTimeout(() => {
+    try {
+      // Mock 결과 생성
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
       const mockResult: StatisticalResult = {
         testName: currentTest.name,
         testType: '비모수 검정',
@@ -204,9 +206,11 @@ export default function NonParametricTestPage() {
         variables: ['Variable1', 'GroupVar']
       }
 
-      setResults(mockResult)
+      actions.completeAnalysis(mockResult, 3)
       setActiveTab('results')
-    }, 1500)
+    } catch (err) {
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
+    }
   }
 
   // 변수 요구사항 생성

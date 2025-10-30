@@ -45,7 +45,7 @@ const runAnalysis = useCallback(async (params: AnalysisParams) => {
   // 1. Early return
   if (!uploadedData) return
 
-  // 2. 분석 시작
+  // 2. 분석 시작 (isAnalyzing = true로 설정)
   actions.startAnalysis()
 
   // 3. 비동기 분석 실행
@@ -57,7 +57,7 @@ const runAnalysis = useCallback(async (params: AnalysisParams) => {
     pyodide.globals.set('data', uploadedData.data)
     const result = pyodide.runPython(pythonCode)
 
-    // 결과 저장
+    // ✅ 결과 저장 및 상태 완전 리셋
     actions.completeAnalysis(result.toJs(), nextStepNumber)
   } catch (err) {
     actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
@@ -65,7 +65,9 @@ const runAnalysis = useCallback(async (params: AnalysisParams) => {
 }, [uploadedData, actions])
 ```
 
-**중요**: React 18 automatic batching이 UI 업데이트를 자동 처리하므로 setTimeout 불필요
+**중요**:
+- React 18 automatic batching이 UI 업데이트를 자동 처리하므로 setTimeout 불필요
+- ⚠️ **Critical**: `actions.setResults()` 대신 `actions.completeAnalysis()` 필수 사용 (아래 섹션 참조)
 
 ### Pyodide 초기화
 
@@ -199,7 +201,93 @@ const handleVariablesSelected = (variables: unknown) => {
 
 ---
 
-## 8. 에러 처리 (필수)
+## 8. 상태 전환 패턴 (Critical)
+
+### ⚠️ isAnalyzing 버그 주의
+
+**발견일**: 2025-10-29
+**심각도**: Critical - 버튼 영구 비활성화
+
+#### 잘못된 패턴 (버그)
+
+```typescript
+// ❌ 절대 금지: setResults() 사용
+const runAnalysis = useCallback(async (params) => {
+  actions.startAnalysis()  // isAnalyzing = true
+
+  try {
+    const results = calculateResults()
+
+    // ❌ BUG: isAnalyzing이 true로 고정됨!
+    actions.setResults(results)
+
+    // 결과: 버튼이 "분석 중..." 상태로 잠김
+    // 사용자가 재분석을 실행할 수 없음
+  } catch (err) {
+    actions.setError('분석 중 오류')
+  }
+}, [actions])
+```
+
+#### 올바른 패턴
+
+```typescript
+// ✅ 필수: completeAnalysis() 사용
+const runAnalysis = useCallback(async (params) => {
+  actions.startAnalysis()  // isAnalyzing = true
+
+  try {
+    const results = calculateResults()
+
+    // ✅ 완전한 상태 전환 (결과 + isAnalyzing 리셋 + 단계 이동)
+    actions.completeAnalysis(results, 3)
+
+    // 결과: 버튼이 정상적으로 재활성화됨
+  } catch (err) {
+    actions.setError('분석 중 오류')
+    // 에러 발생 시 isAnalyzing은 여전히 true이므로
+    // setError가 자동으로 처리하거나, 수동으로 리셋 필요
+  }
+}, [actions])
+```
+
+#### 상태 전환 비교
+
+| 메서드 | 결과 설정 | isAnalyzing 리셋 | 단계 이동 | 용도 |
+|--------|----------|-----------------|----------|------|
+| `setResults()` | ✅ | ❌ | ❌ | ⚠️ 사용 금지 |
+| `completeAnalysis()` | ✅ | ✅ | ✅ | ✅ 분석 완료 시 사용 |
+
+#### 상태 머신 다이어그램
+
+```
+정상 플로우:
+idle → analyzing → completed → idle
+       ↑          ↓            ↑
+  startAnalysis() completeAnalysis()
+
+버그 플로우:
+idle → analyzing → [STUCK] ← setResults()로 인한 버그
+       ↑
+  startAnalysis()
+```
+
+#### 영향받은 파일 (2025-10-29 수정 완료)
+
+- [descriptive/page.tsx:168](../../app/(dashboard)/statistics/descriptive/page.tsx#L168)
+- [anova/page.tsx:251](../../app/(dashboard)/statistics/anova/page.tsx#L251)
+- [correlation/page.tsx:313](../../app/(dashboard)/statistics/correlation/page.tsx#L313)
+- [regression/page.tsx:223](../../app/(dashboard)/statistics/regression/page.tsx#L223)
+- [one-sample-t/page.tsx:132](../../app/(dashboard)/statistics/one-sample-t/page.tsx#L132)
+- [normality-test/page.tsx:157](../../app/(dashboard)/statistics/normality-test/page.tsx#L157)
+
+#### 상세 가이드
+
+[TROUBLESHOOTING_ISANALYZING_BUG.md](./TROUBLESHOOTING_ISANALYZING_BUG.md) 참조
+
+---
+
+## 9. 에러 처리 (필수)
 
 ```typescript
 try {
@@ -403,6 +491,13 @@ const ERROR_MESSAGES = {
 - [ ] `any` 타입 사용 금지
 - [ ] TypeScript 컴파일 에러 0개
 - [ ] 테스트 작성 및 통과
+
+### 🚨 Critical: 상태 전환
+- [ ] **`actions.completeAnalysis()` 사용** (`setResults()` 금지)
+- [ ] `actions.startAnalysis()` 단일 호출 (이중 호출 금지)
+- [ ] try-catch 에러 처리 추가
+- [ ] 에러 시 `actions.setError()` 호출
+- [ ] 브라우저 재분석 테스트 (버튼 재활성화 확인)
 
 ### 컴포넌트
 - [ ] DataUploadStep: onUploadComplete + onNext 분리

@@ -211,7 +211,7 @@ export default function ANCOVAPage() {
 
     // AbortController로 비동기 작업 취소 지원
     const abortController = new AbortController()
-    actions.startAnalysis()()
+    actions.startAnalysis()
 
     try {
       if (abortController.signal.aborted) return
@@ -298,7 +298,7 @@ export default function ANCOVAPage() {
         }
       }
 
-      actions.setResults(mockResult)
+      actions.completeAnalysis(mockResult, 3)
     } catch (err) {
       if (!abortController.signal.aborted && setError) {
         console.error('ANCOVA 분석 실패:', err)

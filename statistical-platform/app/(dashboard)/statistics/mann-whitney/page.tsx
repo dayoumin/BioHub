@@ -166,7 +166,7 @@ export default function MannWhitneyPage() {
       return
     }
 
-    actions.startAnalysis()()
+    actions.startAnalysis()
 
     try {
       // 실제 Pyodide 분석 실행
@@ -176,11 +176,10 @@ export default function MannWhitneyPage() {
         variables.independent[0]
       ) as MannWhitneyResult
 
-      actions.setResults(result)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Mann-Whitney U 검정 실패:', err)
-      setError?.('Mann-Whitney U 검정 중 오류가 발생했습니다.')
-      actions.startAnalysis()() // Re-set analyzing to false
+      actions.setError('Mann-Whitney U 검정 중 오류가 발생했습니다.')
     }
   }
 

@@ -346,18 +346,17 @@ export default function DiscriminantPage() {
   const runAnalysis = useCallback(async (variables: VariableSelection) => {
     if (!uploadedData) return
 
-    actions.startAnalysis()()
-    actions.setCurrentStep(3)
+    actions.startAnalysis()
 
     try {
-      setTimeout(() => {
-        const result = calculateDiscriminantAnalysis(
-          uploadedData.data,
-          variables.dependentVariable,
-          variables.independentVariables
-        )
-        actions.setResults(result)
-      }, 2000)
+      await new Promise(resolve => setTimeout(resolve, 2000))
+
+      const result = calculateDiscriminantAnalysis(
+        uploadedData.data,
+        variables.dependentVariable,
+        variables.independentVariables
+      )
+      actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('판별분석 중 오류:', error)
       actions.setError('판별분석 중 오류가 발생했습니다.')

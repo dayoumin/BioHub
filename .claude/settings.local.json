@@ -8,7 +8,11 @@
       "Bash(for file in descriptive anova correlation regression chi-square one-sample-t normality-test)",
       "Bash(npm run test:performance:*)",
       "Bash(tee:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(done)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")"
     ],
     "deny": [],
     "ask": []

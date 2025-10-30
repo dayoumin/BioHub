@@ -1195,18 +1195,6 @@ ModuleNotFoundError: No module named 'worker3_nonparametric_anova'
 
 ---
 
-## 2025-10-24 (목)
-
-*(작업 없음)*
-
----
-
-## 2025-10-23 (수)
-
-*(작업 없음)*
-
----
-
 ## 참고 링크
 
 **핵심 문서**
