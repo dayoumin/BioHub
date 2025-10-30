@@ -205,30 +205,28 @@ export default function KruskalWallisPage() {
       // Pyodide Worker 호출
       const basicResult = await pyodide.kruskalWallisTestWorker(groupArrays)
 
-      // 기술통계량 계산
+      // 기술통계량 계산 - Use numpy for accurate percentiles
       const descriptives: Record<string, GroupDescriptives> = {}
-      groupNames.forEach((name, idx) => {
+
+      for (let idx = 0; idx < groupNames.length; idx++) {
+        const name = groupNames[idx]
         const arr = groupArrays[idx]
-        const sorted = [...arr].sort((a, b) => a - b)
-        const n = arr.length
-        const sum = arr.reduce((a, b) => a + b, 0)
-        const mean = sum / n
-        const q1 = sorted[Math.floor(n * 0.25)]
-        const median = sorted[Math.floor(n * 0.5)]
-        const q3 = sorted[Math.floor(n * 0.75)]
+
+        // Calculate descriptive statistics with numpy through pyodideStats
+        const stats = await pyodide.calculateDescriptiveStats(arr)
 
         descriptives[name] = {
-          median,
-          mean,
-          iqr: q3 - q1,
-          min: sorted[0],
-          max: sorted[n - 1],
-          q1,
-          q3,
-          n,
+          median: stats.median,
+          mean: stats.mean,
+          iqr: stats.q3 - stats.q1,
+          min: stats.min,
+          max: stats.max,
+          q1: stats.q1,
+          q3: stats.q3,
+          n: arr.length,
           meanRank: 0 // Will be calculated properly in full implementation
         }
-      })
+      }
 
       // 효과크기 계산 (eta-squared approximation)
       const totalN = groupArrays.reduce((sum, g) => sum + g.length, 0)
