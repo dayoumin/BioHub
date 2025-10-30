@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -48,9 +48,10 @@ interface FrequencyResults {
 }
 
 export default function FrequencyTablePage() {
-  const { state, actions } = useStatisticsPage<FrequencyResults>({
+  const { state, actions } = useStatisticsPage<FrequencyResults, VariableMapping>({
     withUploadedData: false,
-    withError: false
+    withError: false,
+    withSelectedVariables: true
   })
   const { currentStep, variableMapping, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
@@ -90,6 +91,16 @@ export default function FrequencyTablePage() {
       status: results ? 'current' : 'pending'
     }
   ]
+
+  // 변수 선택 핸들러 (표준 패턴)
+  const handleVariablesSelected = useCallback((mapping: unknown) => {
+    if (!mapping || typeof mapping !== 'object') return
+
+    actions.setSelectedVariables(mapping as VariableMapping)
+    if (Object.keys(mapping as VariableMapping).length > 0) {
+      actions.setCurrentStep(1)
+    }
+  }, [actions])
 
   // 분석 실행
   const handleAnalysis = async () => {
@@ -255,12 +266,7 @@ export default function FrequencyTablePage() {
               <VariableSelector
                 title="범주형 변수 선택"
                 description="문자열이나 범주로 구성된 변수를 선택하세요"
-                onMappingChange={(mapping) => {
-                  actions.setSelectedVariables(mapping)
-                  if (Object.keys(mapping).length > 0) {
-                    actions.setCurrentStep(1)
-                  }
-                }}
+                onMappingChange={handleVariablesSelected}
               />
             </CardContent>
           </Card>

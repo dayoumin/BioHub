@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -49,11 +49,13 @@ interface ProportionTestResults {
 }
 
 export default function ProportionTestPage() {
-  const { state, actions } = useStatisticsPage<ProportionTestResults>({
+  const { state, actions } = useStatisticsPage<ProportionTestResults, VariableMapping>({
     withUploadedData: false,
-    withError: false
+    withError: false,
+    withSelectedVariables: true
   })
-  const { currentStep, variableMapping, results, isAnalyzing } = state
+  const { currentStep, results, isAnalyzing } = state
+  const variableMapping = state.selectedVariables || {}
   const [activeTab, setActiveTab] = useState('summary')
   const [testProportion, setTestProportion] = useState('0.5')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
@@ -142,6 +144,16 @@ export default function ProportionTestPage() {
     setTestProportion('0.5')
     setActiveTab('summary')
   }
+
+  // 변수 선택 핸들러
+  const handleVariablesSelected = useCallback((mapping: unknown) => {
+    if (!mapping || typeof mapping !== 'object') return
+
+    actions.setSelectedVariables(mapping as VariableMapping)
+    if (Object.keys(mapping as Record<string, unknown>).length > 0) {
+      actions.setCurrentStep(1)
+    }
+  }, [actions])
 
   // 검정 결과 테이블 렌더링
   const renderTestResultsTable = () => {
@@ -393,12 +405,7 @@ export default function ProportionTestPage() {
               <VariableSelector
                 title="이분 변수 선택"
                 description="두 개의 범주(성공/실패)로 구성된 변수를 선택하세요"
-                onMappingChange={(mapping) => {
-                  actions.setSelectedVariables(mapping)
-                  if (Object.keys(mapping).length > 0) {
-                    actions.setCurrentStep(1)
-                  }
-                }}
+                onMappingChange={handleVariablesSelected}
               />
             </CardContent>
           </Card>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -70,14 +70,13 @@ interface WelchTResults {
 
 export default function WelchTPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<WelchTResults, string[]>({
+  const { state, actions } = useStatisticsPage<WelchTResults, VariableMapping>({
     withUploadedData: true,
-    withError: true
+    withError: true,
+    withSelectedVariables: true
   })
-  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
-
-  // Page-specific state
-  const [variableMapping, setVariableMapping] = useState<VariableMapping>({})
+  const { currentStep, uploadedData, results, isAnalyzing, error } = state
+  const variableMapping = state.selectedVariables || {}
 
   const [activeTab, setActiveTab] = useState('summary')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
@@ -176,10 +175,19 @@ export default function WelchTPage() {
 
   // 초기화
   const handleReset = () => {
-    setVariableMapping({})
-    actions.completeAnalysis(null, 0)
+    actions.reset()
     setActiveTab('summary')
   }
+
+  // 변수 선택 핸들러
+  const handleVariablesSelected = useCallback((mapping: unknown) => {
+    if (!mapping || typeof mapping !== 'object') return
+
+    actions.setSelectedVariables(mapping as VariableMapping)
+    if (Object.keys(mapping as Record<string, unknown>).length >= 2) {
+      actions.setCurrentStep(1)
+    }
+  }, [actions])
 
   // 검정 결과 테이블 렌더링
   const renderTestResultsTable = () => {
@@ -464,12 +472,7 @@ export default function WelchTPage() {
               <VariableSelector
                 title="독립표본 t-검정 변수 선택"
                 description="그룹 변수(범주형)와 검정 변수(수치형)를 선택하세요"
-                onMappingChange={(mapping) => {
-                  setVariableMapping(mapping)
-                  if (Object.keys(mapping).length >= 2) {
-                    actions.setCurrentStep(1)
-                  }
-                }}
+                onMappingChange={handleVariablesSelected}
               />
             </CardContent>
           </Card>

@@ -30,6 +30,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -103,13 +104,13 @@ interface RepeatedMeasuresResult {
 }
 
 export default function RepeatedMeasuresANOVAPage() {
-  // State
-  const [currentStep, setCurrentStep] = useState(0)
-  const [uploadedData, setUploadedData] = useState<DataRow[] | null>(null)
-  const [_selectedVariables, setSelectedVariables] = useState<VariableAssignment | null>(null)
-  const [analysisResult, setAnalysisResult] = useState<RepeatedMeasuresResult | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Use statistics page hook
+  const { state, actions } = useStatisticsPage<RepeatedMeasuresResult, VariableAssignment>({
+    withUploadedData: true,
+    withError: true,
+    withSelectedVariables: true
+  })
+  const { currentStep, uploadedData, selectedVariables: _selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   // Pyodide instance
   const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
@@ -192,21 +193,19 @@ export default function RepeatedMeasuresANOVAPage() {
       ...row as Record<string, unknown>,
       _id: index
     })) as DataRow[]
-    setUploadedData(processedData)
-    setCurrentStep(2)
-    setError(null)
-  }, [])
+    actions.setUploadedData(processedData)
+    actions.setCurrentStep(2)
+  }, [actions])
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || variables.dependent.length < 2) {
-      setError('분석을 실행할 수 없습니다. 최소 2개 이상의 반복측정 변수가 필요합니다.')
+      actions.setError('분석을 실행할 수 없습니다. 최소 2개 이상의 반복측정 변수가 필요합니다.')
       return
     }
 
     // AbortController로 비동기 작업 취소 지원
     const abortController = new AbortController()
-    setIsAnalyzing(true)
-    setError(null)
+    actions.startAnalysis()
 
     try {
       if (abortController.signal.aborted) return
@@ -270,32 +269,29 @@ export default function RepeatedMeasuresANOVAPage() {
         }
       }
 
-      setAnalysisResult(mockResult)
-      setCurrentStep(3)
+      actions.completeAnalysis(mockResult, 3)
     } catch (err) {
       if (!abortController.signal.aborted) {
         console.error('반복측정 ANOVA 실패:', err)
-        setError('반복측정 ANOVA 중 오류가 발생했습니다.')
-      }
-    } finally {
-      if (!abortController.signal.aborted) {
-        setIsAnalyzing(false)
+        actions.setError(err instanceof Error ? err.message : '반복측정 ANOVA 중 오류가 발생했습니다.')
       }
     }
 
     // 컴포넌트 언마운트 시 작업 취소를 위한 cleanup 함수 반환
     return () => {
       abortController.abort()
-      setIsAnalyzing(false)
     }
-  }, [uploadedData, pyodide])
+  }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    setSelectedVariables(variables)
-    if (variables.dependent && variables.dependent.length >= 2) {
-      runAnalysis(variables)
+  const handleVariableSelection = useCallback((variables: unknown) => {
+    if (!variables || typeof variables !== 'object') return
+
+    const variablesAssignment = variables as VariableAssignment
+    actions.setSelectedVariables(variablesAssignment)
+    if (variablesAssignment.dependent && variablesAssignment.dependent.length >= 2) {
+      runAnalysis(variablesAssignment)
     }
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
@@ -320,7 +316,7 @@ export default function RepeatedMeasuresANOVAPage() {
       icon={<Repeat className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={setCurrentStep}
+      onStepChange={actions.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -395,7 +391,7 @@ export default function RepeatedMeasuresANOVAPage() {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={() => setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -427,7 +423,7 @@ export default function RepeatedMeasuresANOVAPage() {
           </Alert>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -445,7 +441,7 @@ export default function RepeatedMeasuresANOVAPage() {
             methodId="repeated_measures_anova"
             data={uploadedData}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -802,7 +798,7 @@ export default function RepeatedMeasuresANOVAPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -810,7 +806,7 @@ export default function RepeatedMeasuresANOVAPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => setCurrentStep(0)}>
+              <Button onClick={() => actions.setCurrentStep(0)}>
                 새로운 분석
               </Button>
             </div>

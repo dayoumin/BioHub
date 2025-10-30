@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -73,11 +73,13 @@ interface CrossTabResults {
 }
 
 export default function CrossTabulationPage() {
-  const { state, actions } = useStatisticsPage<CrossTabResults>({
+  const { state, actions } = useStatisticsPage<CrossTabResults, VariableMapping>({
     withUploadedData: false,
-    withError: false
+    withError: false,
+    withSelectedVariables: true
   })
-  const { currentStep, variableMapping, results, isAnalyzing } = state
+  const { currentStep, results, isAnalyzing } = state
+  const variableMapping = state.selectedVariables || {}
   const [activeTab, setActiveTab] = useState('summary')
 
   // 분석 옵션
@@ -237,6 +239,16 @@ export default function CrossTabulationPage() {
     actions.reset()
     setActiveTab('summary')
   }
+
+  // 변수 선택 핸들러
+  const handleVariablesSelected = useCallback((mapping: unknown) => {
+    if (!mapping || typeof mapping !== 'object') return
+
+    actions.setSelectedVariables(mapping as VariableMapping)
+    if (Object.keys(mapping as Record<string, unknown>).length >= 2) {
+      actions.setCurrentStep(1)
+    }
+  }, [actions])
 
   // 교차표 렌더링
   const renderCrossTable = () => {
@@ -485,12 +497,7 @@ export default function CrossTabulationPage() {
               <VariableSelector
                 title="범주형 변수 선택"
                 description="행 변수와 열 변수로 사용할 범주형 변수 2개를 선택하세요"
-                onMappingChange={(mapping: Record<string, unknown>) => {
-                  actions.setSelectedVariables(mapping)
-                  if (Object.keys(mapping).length >= 2) {
-                    actions.setCurrentStep(1)
-                  }
-                }}
+                onMappingChange={handleVariablesSelected}
               />
             </CardContent>
           </Card>

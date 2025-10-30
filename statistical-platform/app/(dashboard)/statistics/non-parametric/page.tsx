@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -124,9 +124,10 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
 }
 
 export default function NonParametricTestPage() {
-  const { state, actions } = useStatisticsPage<StatisticalResult>({
+  const { state, actions } = useStatisticsPage<StatisticalResult, VariableMapping>({
     withUploadedData: false,
-    withError: false
+    withError: false,
+    withSelectedVariables: true
   })
   const { variableMapping, results: result, isAnalyzing } = state
   const [selectedTest, setSelectedTest] = useState<NonParametricTest>('mann-whitney')
@@ -137,6 +138,14 @@ export default function NonParametricTestPage() {
   const { pyodideService, isLoading: isPyodideLoading, error: pyodideError } = usePyodideService()
 
   const currentTest = testDescriptions[selectedTest]
+
+  // 변수 선택 핸들러 (표준 패턴)
+  const handleVariablesSelected = useCallback((variables: unknown) => {
+    if (!variables || typeof variables !== 'object') return
+
+    actions.setSelectedVariables(variables as VariableMapping)
+    setActiveTab('analysis')
+  }, [actions])
 
   // Mock 분석 실행
   const runAnalysis = async () => {
@@ -325,7 +334,7 @@ export default function NonParametricTestPage() {
             {/* 변수 선택 */}
             <VariableSelector
               requirements={getVariableRequirements()}
-              onMappingChange={setSelectedVariables}
+              onMappingChange={handleVariablesSelected}
               title="변수 선택"
               description={`${currentTest.name}에 필요한 변수를 선택하세요`}
             />

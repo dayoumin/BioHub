@@ -97,14 +97,6 @@ export default function MeansPlotPage() {
     // Step 변경은 DataUploadStep의 onNext에서 처리 (중복 방지)
   }, [actions])
 
-  const handleVariablesSelected = useCallback((variables: unknown) => {
-    if (!variables || typeof variables !== 'object') return
-
-    actions.setSelectedVariables(variables as SelectedVariables)
-    actions.setCurrentStep(4)
-    runMeansPlotAnalysis(variables as SelectedVariables)
-  }, [actions, runMeansPlotAnalysis])
-
   const runMeansPlotAnalysis = useCallback(async (variables: SelectedVariables) => {
     if (!uploadedData) return
 
@@ -207,6 +199,14 @@ json.dumps(results)
         actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
   }, [uploadedData, actions])
+
+  const handleVariablesSelected = useCallback((variables: unknown) => {
+    if (!variables || typeof variables !== 'object') return
+
+    actions.setSelectedVariables(variables as SelectedVariables)
+    actions.setCurrentStep(4)
+    runMeansPlotAnalysis(variables as SelectedVariables)
+  }, [actions, runMeansPlotAnalysis])
 
   const renderMethodIntroduction = () => (
     <div className="space-y-6">
