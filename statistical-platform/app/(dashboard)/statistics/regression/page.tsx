@@ -60,13 +60,20 @@ type LogisticRegressionResults = {
   rocCurve: Array<{ fpr: number; tpr: number }>
 }
 
+type RegressionResults = LinearRegressionResults | LogisticRegressionResults
+
+type RegressionVariables = {
+  dependent: string
+  independent: string[]
+}
+
 export default function RegressionPage() {
   // Custom hook: common state management
-  const { state, actions } = useStatisticsPage<unknown, Record<string, unknown>>({
+  const { state, actions } = useStatisticsPage<RegressionResults, RegressionVariables>({
     withUploadedData: true,
-    withError: false
+    withError: true
   })
-  const { currentStep, uploadedData, selectedVariables, results: results, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results, error, isAnalyzing } = state
 
   // Page-specific state
   const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
@@ -134,23 +141,41 @@ export default function RegressionPage() {
     }
   }
 
+  // Helper function: Extract value from unknown row object
+  const extractRowValue = (row: unknown, col: string): unknown => {
+    if (typeof row === 'object' && row !== null && col in row) {
+      return (row as Record<string, unknown>)[col]
+    }
+    return undefined
+  }
+
   const handleMethodSelect = (type: 'simple' | 'multiple' | 'logistic') => {
     setRegressionType(type)
     actions.setCurrentStep?.(1)
   }
 
-  const handleDataUpload = (data: unknown) => {
-    actions.setUploadedData?.(data as UploadedData | null)
+  const handleDataUpload = (file: File, data: Record<string, unknown>[]) => {
+    const uploadedDataObj: UploadedData = {
+      data,
+      fileName: file.name,
+      columns: Object.keys(data[0] || {})
+    }
+    actions.setUploadedData?.(uploadedDataObj)
     actions.setCurrentStep?.(2)
   }
 
   const handleVariableSelection = (variables: unknown) => {
-    actions.setSelectedVariables?.(variables as Record<string, unknown> | null)
+    actions.setSelectedVariables?.(variables as RegressionVariables | null)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
   const handleAnalysis = async (variables: unknown) => {
+    if (!uploadedData) {
+      actions.setError?.('데이터를 먼저 업로드해주세요.')
+      return
+    }
+
     try {
       actions.startAnalysis?.()
 
@@ -222,7 +247,9 @@ export default function RegressionPage() {
 
       actions.completeAnalysis?.(mockResults, 3)
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       console.error('Analysis error:', err)
+      actions.setError?.(errorMessage)
     }
   }
 
@@ -317,7 +344,10 @@ export default function RegressionPage() {
       description="회귀분석할 데이터 파일을 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onUploadComplete={() => {}} onNext={() => {}} />
+      <DataUploadStep
+        onUploadComplete={handleDataUpload}
+        onNext={() => {}}
+      />
     </StepCard>
   )
 
@@ -330,39 +360,19 @@ export default function RegressionPage() {
       'logisticRegression'
     )
 
-    // 변수 타입 자동 감지
+    // 변수 타입 자동 감지 (Helper 함수 사용)
     const columns = Object.keys(uploadedData.data[0] || {})
     const variables = columns.map(col => ({
       name: col,
       type: detectVariableType(
-        uploadedData.data.map((row: unknown) => {
-          if (typeof row === 'object' && row !== null && col in row) {
-            return (row as Record<string, unknown>)[col]
-          }
-          return undefined
-        }),
+        uploadedData.data.map((row: unknown) => extractRowValue(row, col)),
         col
       ),
       stats: {
         missing: 0,
-        unique: [...new Set(uploadedData.data.map((row: unknown) => {
-          if (typeof row === 'object' && row !== null && col in row) {
-            return (row as Record<string, unknown>)[col]
-          }
-          return undefined
-        }))].length,
-        min: Math.min(...uploadedData.data.map((row: unknown) => {
-          if (typeof row === 'object' && row !== null && col in row) {
-            return Number((row as Record<string, unknown>)[col]) || 0
-          }
-          return 0
-        })),
-        max: Math.max(...uploadedData.data.map((row: unknown) => {
-          if (typeof row === 'object' && row !== null && col in row) {
-            return Number((row as Record<string, unknown>)[col]) || 0
-          }
-          return 0
-        }))
+        unique: [...new Set(uploadedData.data.map((row: unknown) => extractRowValue(row, col)))].length,
+        min: Math.min(...uploadedData.data.map((row: unknown) => Number(extractRowValue(row, col)) || 0)),
+        max: Math.max(...uploadedData.data.map((row: unknown) => Number(extractRowValue(row, col)) || 0))
       }
     }))
 
