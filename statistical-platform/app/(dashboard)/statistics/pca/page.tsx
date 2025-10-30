@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage, type UploadedData as HookUploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
@@ -32,6 +32,10 @@ interface UploadedData {
   data: Record<string, unknown>[]
   fileName: string
   columns: string[]
+}
+
+interface VariableAssignment {
+  [role: string]: string | string[]
 }
 
 interface VariableSelection {
@@ -72,7 +76,7 @@ interface PCAResult {
 
 export default function PCAPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<PCAResult, string[]>({
+  const { state, actions } = useStatisticsPage<PCAResult, VariableSelection>({
     withUploadedData: true,
     withError: true
   })
@@ -113,10 +117,29 @@ export default function PCAPage() {
     }
   ]
 
-  const handleDataUpload = useCallback((data: UploadedData) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: HookUploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[pca] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
+
+    if (!actions.setCurrentStep) {
+      console.error('[pca] setCurrentStep not available')
+      return
+    }
+
     actions.setCurrentStep(2)
-  }, [])
+  }, [actions])
 
   // 행렬 계산 유틸리티 함수들 (향후 확장 시 사용)
   const transpose = useCallback((matrix: number[][]): number[][] => {
@@ -336,21 +359,48 @@ export default function PCAPage() {
   const runAnalysis = useCallback(async (variables: VariableSelection) => {
     if (!uploadedData) return
 
+    if (!actions.startAnalysis) {
+      console.error('[pca] startAnalysis not available')
+      return
+    }
+
     actions.startAnalysis()
 
     try {
       const result = calculatePCA(uploadedData.data, variables.variables)
+
+      if (!actions.completeAnalysis) {
+        console.error('[pca] completeAnalysis not available')
+        return
+      }
+
       actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('PCA 분석 중 오류:', error)
+
+      if (!actions.setError) {
+        console.error('[pca] setError not available')
+        return
+      }
+
       actions.setError('PCA 분석 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, calculatePCA])
+  }, [uploadedData, calculatePCA, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableSelection) => {
+  const handleVariableSelection = useCallback((assignment: VariableAssignment) => {
+    if (!actions.setSelectedVariables) {
+      console.error('[pca] setSelectedVariables not available')
+      return
+    }
+
+    // Convert VariableAssignment to VariableSelection
+    const variables: VariableSelection = {
+      variables: assignment.variables as string[]
+    }
+
     actions.setSelectedVariables(variables)
     runAnalysis(variables)
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const renderMethodIntroduction = () => (
     <StepCard
@@ -448,7 +498,13 @@ export default function PCAPage() {
       description="PCA를 수행할 다변량 데이터를 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep onNext={handleDataUpload} />
+      <DataUploadStep
+        onUploadComplete={handleDataUpload}
+        onNext={() => {}}
+        canGoNext={false}
+        currentStep={1}
+        totalSteps={4}
+      />
     </StepCard>
   )
 
@@ -490,10 +546,9 @@ export default function PCAPage() {
           </AlertDescription>
         </Alert>
         <VariableSelector
-          variables={variables}
-          requirements={requirements}
-          onSelectionChange={handleVariableSelection}
-          methodName="주성분분석"
+          methodId="pca"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariableSelection}
         />
       </StepCard>
     )
@@ -762,10 +817,16 @@ export default function PCAPage() {
       onStepChange={actions.setCurrentStep}
       onRun={() => selectedVariables && runAnalysis(selectedVariables)}
       onReset={() => {
-        actions.setCurrentStep(0)
-        actions.setUploadedData(null)
-        actions.setSelectedVariables(null)
-        setresults(null)
+        if (actions.setCurrentStep) {
+          actions.setCurrentStep(0)
+        }
+        if (actions.setUploadedData) {
+          actions.setUploadedData(null)
+        }
+        if (actions.setSelectedVariables) {
+          actions.setSelectedVariables(null)
+        }
+        window.location.reload()
       }}
       isRunning={isAnalyzing}
       showProgress={true}

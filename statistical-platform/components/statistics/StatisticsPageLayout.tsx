@@ -71,7 +71,12 @@ interface StatisticsPageLayoutProps {
   onStepChange?: (step: number) => void
 
   // 콘텐츠
-  children: ReactNode
+  children?: ReactNode
+
+  // 다단계 분석 지원 (cluster, factor-analysis 등)
+  onDataUpload?: (file: File, data: unknown[]) => void
+  variableSelectionStep?: ReactNode
+  resultsStep?: ReactNode
 
   // 액션
   onRun?: () => void
@@ -103,6 +108,9 @@ export function StatisticsPageLayout({
   currentStep = 0,
   onStepChange,
   children,
+  onDataUpload,
+  variableSelectionStep,
+  resultsStep,
   onRun,
   onReset,
   onExport,
@@ -446,7 +454,19 @@ export function StatisticsPageLayout({
             transition={{ duration: 0.3 }}
             className={showQuickTip ? "mt-16" : "mt-6"}
           >
-            {children}
+            {/* Multi-step workflow support (cluster, factor-analysis) */}
+            {(onDataUpload || variableSelectionStep || resultsStep) ? (
+              <>
+                {currentStep === 1 && onDataUpload && (
+                  <div>Data Upload Step</div>
+                )}
+                {currentStep === 2 && variableSelectionStep}
+                {currentStep === 3 && variableSelectionStep}
+                {currentStep === 4 && resultsStep}
+              </>
+            ) : (
+              children
+            )}
           </motion.div>
         </AnimatePresence>
 

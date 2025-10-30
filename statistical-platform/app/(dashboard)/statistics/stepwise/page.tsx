@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import type { PyodideInterface } from '@/types/pyodide'
@@ -71,7 +71,7 @@ interface StepwiseResults {
 
 export default function StepwiseRegressionPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<StepwiseResults, string[]>({
+  const { state, actions } = useStatisticsPage<StepwiseResults, SelectedVariables>({
     withUploadedData: true,
     withError: true,
     initialStep: 1
@@ -94,32 +94,32 @@ export default function StepwiseRegressionPage() {
 
   const steps = [
     {
-      id: 1,
+      id: 'intro',
       number: 1,
       title: '단계적 회귀분석',
       description: '통계적 기준에 따라 예측변수를 자동으로 선택하는 회귀분석을 수행합니다.',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'complete' : 'upcoming'
+      status: (currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending') as 'pending' | 'current' | 'completed' | 'error'
     },
     {
-      id: 2,
+      id: 'upload',
       number: 2,
       title: '데이터 업로드',
       description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'complete' : 'upcoming'
+      status: (currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending') as 'pending' | 'current' | 'completed' | 'error'
     },
     {
-      id: 3,
+      id: 'variables',
       number: 3,
       title: '변수 선택',
       description: '종속변수와 예측변수 후보들을 선택합니다.',
-      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'complete' : 'upcoming'
+      status: (currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'pending') as 'pending' | 'current' | 'completed' | 'error'
     },
     {
-      id: 4,
+      id: 'results',
       number: 4,
       title: '분석 결과',
       description: '단계적 선택 과정과 최종 회귀모델을 확인합니다.',
-      status: currentStep === 4 ? 'current' : currentStep > 4 ? 'complete' : 'upcoming'
+      status: (currentStep === 4 ? 'current' : currentStep > 4 ? 'completed' : 'pending') as 'pending' | 'current' | 'completed' | 'error'
     }
   ]
 
@@ -130,9 +130,16 @@ export default function StepwiseRegressionPage() {
   }
 
   const handleVariablesSelected = (variables: unknown) => {
-    actions.setSelectedVariables(variables)
-    actions.setCurrentStep(4)
-    runStepwiseAnalysis(variables)
+    if (!actions.setSelectedVariables) {
+      console.error('[stepwise] setSelectedVariables not available')
+      return
+    }
+
+    if (typeof variables === 'object' && variables !== null) {
+      actions.setSelectedVariables(variables as SelectedVariables)
+      actions.setCurrentStep(4)
+      runStepwiseAnalysis(variables as SelectedVariables)
+    }
   }
 
   const runStepwiseAnalysis = async (variables: SelectedVariables) => {
@@ -921,7 +928,31 @@ json.dumps(results)
     >
       {currentStep === 1 && renderMethodIntroduction()}
       {currentStep === 2 && (
-        <DataUploadStep onDataUploaded={handleDataUpload} onBack={() => actions.setCurrentStep(1)} />
+        <DataUploadStep
+          onUploadComplete={(file: File, data: unknown[]) => {
+            const uploadedData: UploadedData = {
+              data: data as Record<string, unknown>[],
+              fileName: file.name,
+              columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+                ? Object.keys(data[0] as Record<string, unknown>)
+                : []
+            }
+
+            if (!actions.setUploadedData) {
+              console.error('[stepwise] setUploadedData not available')
+              return
+            }
+
+            actions.setUploadedData(uploadedData)
+
+            // Also update legacy state
+            setData(data as unknown[])
+            setColumns(uploadedData.columns)
+
+            actions.setCurrentStep(3)
+          }}
+          onPrevious={() => actions.setCurrentStep(1)}
+        />
       )}
       {currentStep === 3 && (
         <VariableSelector

@@ -27,7 +27,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -232,8 +232,21 @@ export default function ManovaPage() {
     ]
   }), [])
 
-  const handleDataUpload = useCallback((data: DataRow[]) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[manova] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
     actions.setCurrentStep(2)
   }, [actions])
 
@@ -366,6 +379,11 @@ export default function ManovaPage() {
   }, [uploadedData, pyodide, actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
+    if (!actions.setSelectedVariables) {
+      console.error('[manova] setSelectedVariables not available')
+      return
+    }
+
     actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent &&
         variables.dependent.length >= 2 && variables.independent.length >= 1) {
@@ -492,8 +510,7 @@ export default function ManovaPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onUploadComplete={handleDataUpload}
           />
 
           <Alert className="mt-4">
@@ -525,7 +542,7 @@ export default function ManovaPage() {
         >
           <VariableSelector
             methodId="manova"
-            data={uploadedData}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle, XCircle, Target, BarChart3, Activity, Zap, TrendingUp } from 'lucide-react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
 // 요인분석 결과 인터페이스
 interface FactorAnalysisResult {
@@ -65,10 +65,23 @@ export default function FactorAnalysisPage() {
   const [minEigenvalue, setMinEigenvalue] = useState<number>(1.0)
 
   // 데이터 업로드 핸들러
-  const handleDataUpload = useCallback((data: unknown[]) => {
-    actions.setUploadedData(data)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[factor-analysis] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
     actions.setCurrentStep(2)
-  }, [])
+  }, [actions])
 
     // 상관행렬 계산
   const calculateCorrelationMatrix = useCallback((data: number[][]): number[][] => {
@@ -246,7 +259,7 @@ export default function FactorAnalysisPage() {
     const varianceExplained = {
       total: eigenvalues.slice(0, finalNumFactors).map(val => Math.max(val, 0)),
       percentage: eigenvalues.slice(0, finalNumFactors).map(val => (Math.max(val, 0) / p) * 100),
-      cumulative: []
+      cumulative: [] as number[]
     }
 
     let cumulativeSum = 0
@@ -285,7 +298,7 @@ export default function FactorAnalysisPage() {
 
   // 요인분석 실행
   const handleRunAnalysis = useCallback(async () => {
-    if (!(uploadedData ?? []).length || !(selectedVariables ?? []).length) {
+    if (!uploadedData?.data.length || !(selectedVariables ?? []).length) {
       actions.setError('데이터와 변수를 선택해주세요.')
       return
     }
@@ -295,13 +308,13 @@ export default function FactorAnalysisPage() {
       return
     }
 
-    actions.startAnalysis()()
+    actions.startAnalysis()
 
     try {
       let result: FactorAnalysisResult
 
       if (analysisType === 'exploratory') {
-        result = calculateExploratory((uploadedData as unknown[] ?? []), selectedVariables)
+        result = calculateExploratory(uploadedData.data, selectedVariables ?? [])
       } else {
         // 확인적 요인분석 (CFA)는 추후 구현
         throw new Error('확인적 요인분석(CFA)은 추후 구현 예정입니다.')
@@ -311,7 +324,7 @@ export default function FactorAnalysisPage() {
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, selectedVariables, analysisType, calculateExploratory])
+  }, [uploadedData, selectedVariables, analysisType, calculateExploratory, actions])
 
   // 변수 선택 페이지
   const variableSelectionStep = useMemo(() => (
@@ -323,19 +336,23 @@ export default function FactorAnalysisPage() {
         </p>
       </div>
 
-      {(uploadedData ?? []).length > 0 && (
+      {uploadedData && uploadedData.data.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {Object.keys((uploadedData as unknown[] ?? [])[0] as Record<string, unknown>).map((column) => (
+          {uploadedData.columns.map((column) => (
             <div key={column} className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id={column}
-                checked={selectedVariables.includes(column)}
+                checked={(selectedVariables ?? []).includes(column)}
                 onChange={(e) => {
+                  if (!actions.setSelectedVariables) {
+                    console.error('[factor-analysis] setSelectedVariables not available')
+                    return
+                  }
                   if (e.target.checked) {
-                    actions.setSelectedVariables([...selectedVariables, column])
+                    actions.setSelectedVariables([...(selectedVariables ?? []), column])
                   } else {
-                    actions.setSelectedVariables(selectedVariables.filter(v => v !== column))
+                    actions.setSelectedVariables((selectedVariables ?? []).filter(v => v !== column))
                   }
                 }}
                 className="rounded border-gray-300"
@@ -436,13 +453,13 @@ export default function FactorAnalysisPage() {
         )}
       </div>
 
-      {(selectedVariables ?? []).length > 0 && (uploadedData ?? []).length > 0 && (
+      {(selectedVariables ?? []).length > 0 && uploadedData && uploadedData.data.length > 0 && (
         <div className="p-4 bg-blue-50 rounded-lg">
           <div className="text-sm space-y-1">
             <p><strong>선택된 변수:</strong> {(selectedVariables ?? []).length}개</p>
-            <p><strong>표본 크기:</strong> {(uploadedData ?? []).length}개</p>
+            <p><strong>표본 크기:</strong> {uploadedData.data.length}개</p>
             <p><strong>권장 최소 표본:</strong> {(selectedVariables ?? []).length * 3}개</p>
-            <p><strong>표본 적절성:</strong> {(uploadedData ?? []).length >= (selectedVariables ?? []).length * 3 ? '✅ 적절' : '⚠️ 부족'}</p>
+            <p><strong>표본 적절성:</strong> {uploadedData.data.length >= (selectedVariables ?? []).length * 3 ? '✅ 적절' : '⚠️ 부족'}</p>
           </div>
         </div>
       )}
@@ -824,17 +841,21 @@ export default function FactorAnalysisPage() {
             이전
           </Button>
           <Button onClick={() => {
+            if (!actions.setCurrentStep || !actions.setSelectedVariables || !actions.setUploadedData) {
+              console.error('[factor-analysis] Required actions not available')
+              window.location.reload()
+              return
+            }
             actions.setCurrentStep(1)
-            setResults(null)
             actions.setSelectedVariables([])
-            actions.setUploadedData([])
+            actions.setUploadedData(null)
           }}>
             새 분석 시작
           </Button>
         </div>
       </div>
     )
-  }, [results, (uploadedData ?? []).length, selectedVariables])
+  }, [results, uploadedData, selectedVariables, actions])
 
   return (
     <StatisticsPageLayout
@@ -845,26 +866,13 @@ export default function FactorAnalysisPage() {
       variableSelectionStep={variableSelectionStep}
       resultsStep={resultsStep}
       methodInfo={{
-        overview: "요인분석은 다수의 관찰된 변수들 간의 상관관계를 분석하여 이들을 설명하는 소수의 잠재 요인을 찾는 다변량 통계기법입니다.",
-        useCases: [
-          "설문조사 데이터의 차원 축소",
-          "심리학 연구에서 잠재 구조 발견",
-          "마케팅에서 소비자 세분화",
-          "금융에서 위험 요인 분석",
-          "교육 평가에서 능력 구조 분석"
-        ],
         assumptions: [
           "변수들 간의 선형 관계",
           "연속형 변수 (정규분포 권장)",
           "충분한 표본 크기 (변수 수의 3-5배)",
           "변수들 간의 상관관계 존재"
         ],
-        methods: [
-          "탐색적 요인분석 (EFA): 요인 구조 탐색",
-          "확인적 요인분석 (CFA): 요인 구조 검증",
-          "주성분분석 vs 최대우도법",
-          "직교회전 vs 사각회전"
-        ]
+        usage: "요인분석은 다수의 관찰된 변수들 간의 상관관계를 분석하여 이들을 설명하는 소수의 잠재 요인을 찾는 다변량 통계기법입니다. 설문조사 데이터의 차원 축소, 심리학 연구에서 잠재 구조 발견, 마케팅 세분화 등에 활용됩니다."
       }}
     />
   )
