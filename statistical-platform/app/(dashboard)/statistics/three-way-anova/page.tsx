@@ -242,7 +242,7 @@ export default function ThreeWayAnovaPage() {
       return
     }
 
-    actions.startAnalysis()()
+    actions.startAnalysis()
 
     try {
       // Mock 삼원분산분석 결과
@@ -342,8 +342,7 @@ export default function ThreeWayAnovaPage() {
         }
       }
 
-      setResults(mockResult)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(mockResult, 3)
     } catch (err) {
       console.error('삼원분산분석 실패:', err)
       actions.setError('삼원분산분석 중 오류가 발생했습니다.')

@@ -159,7 +159,7 @@ export default function WilcoxonPage() {
       return
     }
 
-    actions.startAnalysis()()
+    actions.startAnalysis()
 
     try {
       // 실제 Pyodide 분석 실행
@@ -169,7 +169,7 @@ export default function WilcoxonPage() {
         variables.dependent[1]
       )
 
-      actions.setResults(result)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Wilcoxon 부호순위 검정 실패:', err)
       actions.setError('Wilcoxon 부호순위 검정 중 오류가 발생했습니다.')
