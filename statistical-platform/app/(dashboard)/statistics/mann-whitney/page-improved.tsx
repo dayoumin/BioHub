@@ -170,8 +170,7 @@ export default function MannWhitneyPage() {
         variables.independent[0]
       )
 
-      actions.setResults(result)
-      setCurrentStep(3)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Mann-Whitney U 검정 실패:', err)
       actions.setError(MANN_WHITNEY_TEXTS.errors.analysisFailed)

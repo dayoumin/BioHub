@@ -336,8 +336,7 @@ export default function MixedModelPage() {
         }
       }
 
-      actions.setResults(mockResult)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(mockResult, 3)
     } catch (err) {
       console.error('Mixed Model 분석 실패:', err)
       actions.setError('선형 혼합 모형 분석 중 오류가 발생했습니다.')

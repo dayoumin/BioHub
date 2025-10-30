@@ -19,7 +19,15 @@
       "Bash(npx jest:*)",
       "Bash(awk:*)",
       "Bash(npx tsc:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run build:*)",
+      "Bash(cut:*)",
+      "Bash(git log:*)",
+      "Bash(lsof:*)",
+      "Bash(md5sum:*)",
+      "Bash(certutil:*)",
+      "Bash(findstr:*)",
+      "Bash(npx eslint \"app/(dashboard)/statistics/friedman/page.tsx\")"
     ],
     "deny": [],
     "ask": []

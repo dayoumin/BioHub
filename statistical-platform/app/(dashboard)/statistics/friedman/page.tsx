@@ -179,7 +179,7 @@ export default function FriedmanPage() {
         variables.dependent
       )
 
-      actions.setResults(result)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Friedman 검정 실패:', err)
       actions.setError('Friedman 검정 중 오류가 발생했습니다.')

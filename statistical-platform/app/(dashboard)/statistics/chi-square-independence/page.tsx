@@ -291,8 +291,7 @@ export default function ChiSquareIndependencePage() {
         }
       }
 
-      actions.setResults(transformedResult)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(transformedResult, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
       console.error('카이제곱 독립성 검정 실패:', errorMessage)

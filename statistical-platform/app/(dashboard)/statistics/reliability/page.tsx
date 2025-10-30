@@ -178,8 +178,7 @@ export default function ReliabilityAnalysisPage() {
         }
       )
 
-      actions.setResults(result)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('신뢰도 분석 실패:', err)
       actions.setError('신뢰도 분석 중 오류가 발생했습니다.')

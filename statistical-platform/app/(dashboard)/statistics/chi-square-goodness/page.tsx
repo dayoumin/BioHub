@@ -215,8 +215,7 @@ export default function ChiSquareGoodnessPage() {
       ])
 
       if (!abortController.signal.aborted) {
-        actions.setResults(result as ChiSquareGoodnessResult)
-        actions.setCurrentStep(3)
+        actions.completeAnalysis(result as ChiSquareGoodnessResult, 3)
       }
     } catch (err) {
       if (!abortController.signal.aborted) {

@@ -181,7 +181,7 @@ export default function KruskalWallisPage() {
         variables.independent[0]
       )
 
-      actions.setResults(result)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Kruskal-Wallis 검정 실패:', err)
       actions.setError('Kruskal-Wallis 검정 중 오류가 발생했습니다.')
