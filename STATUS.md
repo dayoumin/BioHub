@@ -1,7 +1,7 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-10-31 02:45
-**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 Step 1-4 완료 (-187개)** ✅
+**최종 업데이트**: 2025-10-31 04:15
+**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 Step 1-5 완료 (-249개)** ✅
 
 ---
 
@@ -39,17 +39,20 @@
 - 코딩 표준 준수: **100%** ([STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md))
 - 남은 에러: **732개** (Phase 2-2로 이관)
 
-**Phase 2-2: 코드 품질 개선 (Step 1-4 완료)** ✅ **23개 파일 완료** (2025-10-31)
+**Phase 2-2: 코드 품질 개선 (Step 1-5 완료)** ✅ **30개 파일 완료 (67%)** (2025-10-31)
 - **Step 1-3 완료**: 10개 파일 (cluster, dose-response, discriminant, ancova, cross-tabulation, descriptive, stepwise, factor-analysis, pca, manova)
 - **Step 4 완료**: 9개 파일 (frequency-table, welch-t, proportion-test, non-parametric, mcnemar, runs-test, sign-test, poisson, ordinal-regression)
-- **전체 통계 페이지**: **23/45 완료 (51%)**
-- TypeScript 에러 감소: **717 → 530** (-187, -26.1%) 🎯
-- 주요 패턴:
-  1. UploadedData 구조 표준화 (23개)
-  2. Actions null 체크 추가 (23개)
-  3. VariableSelector 표준 API 통합 (15개)
-  4. **Option B 적용** (Group 3): 표준 VariableSelector API로 45개 페이지 아키텍처 일관성 100% 달성
-- 남은 에러: **530개** (Phase 2-3로 이관)
+- **Step 5 완료**: 7개 파일 (two-way-anova, response-surface, wilcoxon, three-way-anova, repeated-measures, mann-whitney, explore-data)
+- **전체 통계 페이지**: **30/45 완료 (67%)** 🎯
+- TypeScript 에러 감소: **717 → 468** (-249, -34.7%) 🚀
+- 주요 패턴 (6가지):
+  1. UploadedData 구조 표준화 (file, data, columns)
+  2. Actions null 체크 추가
+  3. DataUploadStep API: onNext → onUploadComplete
+  4. VariableSelector API: data={uploadedData.data}
+  5. **Option B 적용**: 표준 VariableSelector API로 45개 페이지 아키텍처 일관성 100% 달성
+  6. useCallback 순서 및 의존성 배열 수정
+- 남은 에러: **468개** (Phase 2-3로 이관)
 
 ---
 
