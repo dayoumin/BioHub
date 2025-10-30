@@ -4,58 +4,57 @@
 **예상 완료**: 2025-10-30 (2.5시간)
 **목표**: 통계 페이지 11개 TypeScript 에러 제거 (91개 → 0개)
 
-## 현재 상태
-- **총 에러**: 466개
-- **통계 페이지 에러**: 91개 (11개 파일)
-- **완료된 페이지**: 34/45 (75%)
-- **목표**: 45/45 (100%)
+## 현재 상태 (2025-10-31 업데이트)
+- **총 에러**: 409개 (466 → 409, -57)
+- **통계 페이지 에러**: ~10개 (regression만 남음)
+- **완료된 페이지**: 34/45 (76%)
+- **목표**: 35/45 (regression 완료)
 
 ## 작업 목록
 
-### Group 1: Quick Wins (6개, 19 errors) - 예상 30분
-- [ ] anova (2 errors) - SelectedVariables 타입 이슈
-- [ ] t-test (3 errors) - 표준 패턴
-- [ ] one-sample-t (3 errors) - 표준 패턴
-- [ ] normality-test (3 errors) - 표준 패턴
-- [ ] means-plot (4 errors) - 표준 패턴
-- [ ] ks-test (4 errors) - 표준 패턴
+### Group 1: Quick Wins (6개, 19 errors) ✅ 완료 (2025-10-31)
+- [x] anova (2 errors) - Generic types, index signature
+- [x] t-test (3 errors) - Optional chaining, DataUploadStep
+- [x] one-sample-t (3 errors) - VariableSelector (Mock 데이터 제거)
+- [x] normality-test (3 errors) - VariableSelector props
+- [x] means-plot (4 errors) - StatisticsStep interface
+- [x] ks-test (4 errors) - scipy.stats (JavaScript normalCDF 제거)
 
-**주요 패턴**:
-- `actions.setResults()` → `actions.completeAnalysis()`
-- Optional chaining 추가
-- 타입 가드 추가
+**완료 시각**: 2025-10-31
+**실제 소요 시간**: 45분 (초기 수정 30분 + 개선 15분)
+**커밋**: `3442ab9` (ks-test), 기타 포함
 
-### Group 2: Medium (2개, 15 errors) - 예상 30분
-- [ ] friedman (8 errors)
-  - Line 177: `friedmanTest` → `friedman` (메서드명)
-  - Line 606: `setCurrentStep` → `actions.nextStep()`
-  - Line 156, 161: `actions` undefined 체크
-  - Line 286, 318: 타입 불일치 수정
-- [ ] kruskal-wallis (7 errors)
-  - Line 178: `kruskalWallisTest` → `kruskalWallis`
-  - 나머지 friedman과 동일 패턴
+### Group 2: Medium (2개, 15 errors) ✅ 완료 (2025-10-31)
+- [x] friedman (8 errors) - Double assertion 제거, NumPy percentiles
+- [x] kruskal-wallis (7 errors) - NumPy percentiles
 
-**주요 패턴**:
-- PyodideStatistics 메서드명 확인
-- `useStatisticsPage` hook 패턴 적용
+**완료 시각**: 2025-10-31
+**실제 소요 시간**: 40분 (초기 수정 25분 + 개선 15분)
+**커밋**: `112ea71` (percentile accuracy)
 
-### Group 3: Complex (2개, 23 errors) - 예상 45분
-- [ ] mann-kendall (13 errors) - 시계열 분석 타입 복잡
-- [ ] reliability (10 errors) - 신뢰도 분석 타입 복잡
+### Group 3: Complex (2개, 23 errors) ✅ 완료 (2025-10-31)
+- [x] mann-kendall (13 errors) - pymannkendall → scipy + formulas
+- [x] reliability (10 errors) - Optional chaining 일관성
 
-**주요 패턴**:
-- 복잡한 결과 타입 정의
-- Worker 메서드 확인 필요
+**완료 시각**: 2025-10-31
+**실제 소요 시간**: 60분 (초기 수정 30분 + 개선 30분)
+**커밋**: `7b8faf6` (mann-kendall), `7bc0a5c` (guide)
 
-### Group 4: Critical (1개, 34 errors) - 예상 60분
-- [ ] regression (34 errors)
-  - 가장 복잡한 페이지
-  - 다중 회귀 타입 정의
-  - 잔차 분석, 진단 플롯 타입
+### Group 4: Critical (1개, ~10 errors) - 예상 30분
+- [ ] regression (~10 errors, 예상보다 적음)
+  - Line 143, 148: Optional chaining (actions 호출)
+  - Line 338-345: Unknown 타입 (row 객체)
+  - Line 356: VariableSelector props 타입 불일치
+  - Line 359: Index signature 타입
+  - Line 391: residualStdError 속성 누락
+  - Line 418: Unknown 타입 (coef)
 
-**주요 패턴**:
-- `RegressionResult` 인터페이스 정의
-- 복잡한 중첩 타입 구조
+**주요 패턴** (실제 확인됨):
+- Optional chaining: `actions.method?.()`
+- Unknown 타입 가드: `typeof row === 'object'`
+- VariableSelector props: methodId, data, onVariablesSelected
+- Index signature: regressionType에 union type 추가
+- Result 타입: residualStdError 필드 추가
 
 ## 작업 전략
 

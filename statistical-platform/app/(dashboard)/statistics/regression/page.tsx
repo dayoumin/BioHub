@@ -136,23 +136,23 @@ export default function RegressionPage() {
 
   const handleMethodSelect = (type: 'simple' | 'multiple' | 'logistic') => {
     setRegressionType(type)
-    actions.setCurrentStep(1)
+    actions.setCurrentStep?.(1)
   }
 
   const handleDataUpload = (data: unknown) => {
-    actions.setUploadedData(data as UploadedData | null)
-    actions.setCurrentStep(2)
+    actions.setUploadedData?.(data as UploadedData | null)
+    actions.setCurrentStep?.(2)
   }
 
   const handleVariableSelection = (variables: unknown) => {
-    actions.setSelectedVariables(variables as Record<string, unknown> | null)
+    actions.setSelectedVariables?.(variables as Record<string, unknown> | null)
     // 자동으로 분석 실행
     handleAnalysis(variables)
   }
 
   const handleAnalysis = async (variables: unknown) => {
     try {
-      actions.startAnalysis()
+      actions.startAnalysis?.()
 
       // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
       const mockResults = regressionType === 'logistic' ? {
@@ -220,7 +220,7 @@ export default function RegressionPage() {
         }))
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.completeAnalysis?.(mockResults, 3)
     } catch (err) {
       console.error('Analysis error:', err)
     }
@@ -300,7 +300,7 @@ export default function RegressionPage() {
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="font-medium text-sm">
-              {regressionTypeInfo[regressionType].title} 선택됨
+              {regressionType && regressionTypeInfo[regressionType as 'simple' | 'multiple' | 'logistic']?.title} 선택됨
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -335,14 +335,34 @@ export default function RegressionPage() {
     const variables = columns.map(col => ({
       name: col,
       type: detectVariableType(
-        uploadedData.data.map((row: unknown) => row[col]),
+        uploadedData.data.map((row: unknown) => {
+          if (typeof row === 'object' && row !== null && col in row) {
+            return (row as Record<string, unknown>)[col]
+          }
+          return undefined
+        }),
         col
       ),
       stats: {
         missing: 0,
-        unique: [...new Set(uploadedData.data.map((row: unknown) => row[col]))].length,
-        min: Math.min(...uploadedData.data.map((row: unknown) => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map((row: unknown) => Number(row[col]) || 0))
+        unique: [...new Set(uploadedData.data.map((row: unknown) => {
+          if (typeof row === 'object' && row !== null && col in row) {
+            return (row as Record<string, unknown>)[col]
+          }
+          return undefined
+        }))].length,
+        min: Math.min(...uploadedData.data.map((row: unknown) => {
+          if (typeof row === 'object' && row !== null && col in row) {
+            return Number((row as Record<string, unknown>)[col]) || 0
+          }
+          return 0
+        })),
+        max: Math.max(...uploadedData.data.map((row: unknown) => {
+          if (typeof row === 'object' && row !== null && col in row) {
+            return Number((row as Record<string, unknown>)[col]) || 0
+          }
+          return 0
+        }))
       }
     }))
 
@@ -353,10 +373,11 @@ export default function RegressionPage() {
         icon={<Users className="w-5 h-5 text-primary" />}
       >
         <VariableSelector
-          variables={variables}
-          requirements={requirements}
-          onSelectionChange={handleVariableSelection}
-          methodName={regressionTypeInfo[regressionType].title}
+          methodId={regressionType === 'simple' ? 'simpleLinearRegression' :
+                    regressionType === 'multiple' ? 'multipleLinearRegression' :
+                    'logisticRegression'}
+          data={uploadedData.data}
+          onVariablesSelected={handleVariableSelection}
         />
       </StepCard>
     )
@@ -365,7 +386,8 @@ export default function RegressionPage() {
   const renderLinearResults = () => {
     if (!results) return null
 
-    const { coefficients, rSquared, adjustedRSquared, fStatistic, fPValue, scatterData, residualPlot, vif } = results as LinearRegressionResults
+    const linearResults = results as LinearRegressionResults
+    const { coefficients, rSquared, adjustedRSquared, fStatistic, fPValue, residualStdError, scatterData, residualPlot, vif } = linearResults
 
     return (
       <div className="space-y-6">
@@ -388,7 +410,7 @@ export default function RegressionPage() {
                 <p className="text-xs text-muted-foreground">모델 전체 유의성 검정</p>
               </div>
               <div>
-                <p className="text-sm font-medium">잔차 표준오차 = {results.residualStdError.toFixed(2)}</p>
+                <p className="text-sm font-medium">잔차 표준오차 = {residualStdError.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">예측 오차의 표준편차</p>
               </div>
             </div>
@@ -414,22 +436,26 @@ export default function RegressionPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {coefficients.map((coef: unknown) => (
-                    <tr key={coef.name} className="border-b">
-                      <td className="py-2 font-medium">{coef.name}</td>
-                      <td className="text-right">{coef.estimate.toFixed(3)}</td>
-                      <td className="text-right">{coef.stdError.toFixed(3)}</td>
-                      <td className="text-right">{coef.tValue.toFixed(3)}</td>
-                      <td className="text-right">
-                        <Badge variant={coef.pValue < 0.05 ? "default" : "secondary"}>
-                          {coef.pValue < 0.001 ? '< 0.001' : coef.pValue.toFixed(4)}
-                        </Badge>
-                      </td>
-                      <td className="text-right text-xs">
-                        [{coef.ci[0].toFixed(2)}, {coef.ci[1].toFixed(2)}]
-                      </td>
-                    </tr>
-                  ))}
+                  {coefficients.map((coef: unknown) => {
+                    if (typeof coef !== 'object' || coef === null) return null
+                    const c = coef as { name: string; estimate: number; stdError: number; tValue: number; pValue: number; ci: number[] }
+                    return (
+                      <tr key={c.name} className="border-b">
+                        <td className="py-2 font-medium">{c.name}</td>
+                        <td className="text-right">{c.estimate.toFixed(3)}</td>
+                        <td className="text-right">{c.stdError.toFixed(3)}</td>
+                        <td className="text-right">{c.tValue.toFixed(3)}</td>
+                        <td className="text-right">
+                          <Badge variant={c.pValue < 0.05 ? "default" : "secondary"}>
+                            {c.pValue < 0.001 ? '< 0.001' : c.pValue.toFixed(4)}
+                          </Badge>
+                        </td>
+                        <td className="text-right text-xs">
+                          [{c.ci[0].toFixed(2)}, {c.ci[1].toFixed(2)}]
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -465,14 +491,18 @@ export default function RegressionPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {vif.map((item: unknown) => (
-                  <div key={item.variable} className="flex justify-between items-center p-2 bg-muted/50 rounded">
-                    <span className="text-sm">{item.variable}</span>
-                    <Badge variant={item.vif > 10 ? "destructive" : item.vif > 5 ? "secondary" : "default"}>
-                      VIF = {item.vif.toFixed(2)}
-                    </Badge>
-                  </div>
-                ))}
+                {vif.map((item: unknown) => {
+                  if (typeof item !== 'object' || item === null) return null
+                  const v = item as { variable: string; vif: number }
+                  return (
+                    <div key={v.variable} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                      <span className="text-sm">{v.variable}</span>
+                      <Badge variant={v.vif > 10 ? "destructive" : v.vif > 5 ? "secondary" : "default"}>
+                        VIF = {v.vif.toFixed(2)}
+                      </Badge>
+                    </div>
+                  )
+                })}
                 <p className="text-xs text-muted-foreground mt-2">
                   VIF {'<'} 5: 문제없음, 5-10: 주의필요, {'>'} 10: 심각한 다중공선성
                 </p>
@@ -563,20 +593,24 @@ export default function RegressionPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {coefficients.map((coef: unknown) => (
-                    <tr key={coef.name} className="border-b">
-                      <td className="py-2 font-medium">{coef.name}</td>
-                      <td className="text-right">{coef.estimate.toFixed(3)}</td>
-                      <td className="text-right">{coef.stdError.toFixed(3)}</td>
-                      <td className="text-right">{coef.zValue.toFixed(3)}</td>
-                      <td className="text-right">
-                        <Badge variant={coef.pValue < 0.05 ? "default" : "secondary"}>
-                          {coef.pValue < 0.001 ? '< 0.001' : coef.pValue.toFixed(4)}
-                        </Badge>
-                      </td>
-                      <td className="text-right">{coef.oddsRatio.toFixed(3)}</td>
-                    </tr>
-                  ))}
+                  {coefficients.map((coef: unknown) => {
+                    if (typeof coef !== 'object' || coef === null) return null
+                    const c = coef as { name: string; estimate: number; stdError: number; zValue: number; pValue: number; oddsRatio: number }
+                    return (
+                      <tr key={c.name} className="border-b">
+                        <td className="py-2 font-medium">{c.name}</td>
+                        <td className="text-right">{c.estimate.toFixed(3)}</td>
+                        <td className="text-right">{c.stdError.toFixed(3)}</td>
+                        <td className="text-right">{c.zValue.toFixed(3)}</td>
+                        <td className="text-right">
+                          <Badge variant={c.pValue < 0.05 ? "default" : "secondary"}>
+                            {c.pValue < 0.001 ? '< 0.001' : c.pValue.toFixed(4)}
+                          </Badge>
+                        </td>
+                        <td className="text-right">{c.oddsRatio.toFixed(3)}</td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -669,10 +703,13 @@ export default function RegressionPage() {
   const renderResults = () => {
     if (!results) return null
 
+    const currentTypeInfo = regressionType ? regressionTypeInfo[regressionType as 'simple' | 'multiple' | 'logistic'] : null
+    if (!currentTypeInfo) return null
+
     return (
       <StepCard
         title="회귀분석 결과"
-        description={`${regressionTypeInfo[regressionType].title} 분석이 완료되었습니다`}
+        description={`${currentTypeInfo.title} 분석이 완료되었습니다`}
         icon={<TrendingUp className="w-5 h-5 text-primary" />}
       >
         {regressionType === 'logistic' ? renderLogisticResults() : renderLinearResults()}

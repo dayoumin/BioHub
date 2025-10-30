@@ -39,3 +39,19 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# RAG System (Large files)
+rag-system/vector-db/chroma/*.sqlite3
+rag-system/vector-db/chroma/*.parquet
+rag-system/embeddings/all-MiniLM-L6-v2/
+rag-system/data/*.pdf
+rag-system/data/*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.venv

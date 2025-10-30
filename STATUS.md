@@ -1,7 +1,7 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-10-31 04:15
-**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 Step 1-5 완료 (-249개)** ✅
+**최종 업데이트**: 2025-10-31 09:30
+**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 Step 1-5 완료 + Groups 1-3 완료** ✅
 
 ---
 
@@ -39,24 +39,206 @@
 - 코딩 표준 준수: **100%** ([STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md))
 - 남은 에러: **732개** (Phase 2-2로 이관)
 
-**Phase 2-2: 코드 품질 개선 (Step 1-5 완료)** ✅ **30개 파일 완료 (67%)** (2025-10-31)
+**Phase 2-2: 코드 품질 개선 (Step 1-5 완료 + Groups 1-3 완료)** ✅ **34개 파일 완료 (76%)** (2025-10-31)
 - **Step 1-3 완료**: 10개 파일 (cluster, dose-response, discriminant, ancova, cross-tabulation, descriptive, stepwise, factor-analysis, pca, manova)
 - **Step 4 완료**: 9개 파일 (frequency-table, welch-t, proportion-test, non-parametric, mcnemar, runs-test, sign-test, poisson, ordinal-regression)
 - **Step 5 완료**: 7개 파일 (two-way-anova, response-surface, wilcoxon, three-way-anova, repeated-measures, mann-whitney, explore-data)
-- **전체 통계 페이지**: **30/45 완료 (67%)** 🎯
-- TypeScript 에러 감소: **717 → 468** (-249, -34.7%) 🚀
-- 주요 패턴 (6가지):
+- **Groups 1-3 완료**: 10개 파일 (anova, t-test, one-sample-t, normality-test, means-plot, ks-test, friedman, kruskal-wallis, mann-kendall, reliability)
+  - **Group 1 (Quick Wins)**: 6개 + 2개 개선 (anova, t-test, one-sample-t, normality-test, means-plot, ks-test)
+  - **Group 2 (Medium)**: 2개 + 2개 개선 (friedman, kruskal-wallis)
+  - **Group 3 (Complex)**: 2개 + 2개 개선 (mann-kendall, reliability)
+  - **코드 품질**: 평균 4.97/5 ⭐⭐⭐⭐⭐
+  - **문서화**: 1,065 lines (Mann-Kendall 구현 가이드, 통계 테스트 구현 결정 트리)
+- **전체 통계 페이지**: **34/45 완료 (76%)** 🎯
+- TypeScript 에러 감소: **717 → 409** (-308, -42.9%) 🚀
+- 주요 패턴 (9가지):
   1. UploadedData 구조 표준화 (file, data, columns)
   2. Actions null 체크 추가
   3. DataUploadStep API: onNext → onUploadComplete
   4. VariableSelector API: data={uploadedData.data}
   5. **Option B 적용**: 표준 VariableSelector API로 45개 페이지 아키텍처 일관성 100% 달성
   6. useCallback 순서 및 의존성 배열 수정
-- 남은 에러: **468개** (Phase 2-3로 이관)
+  7. **Generic types**: `useStatisticsPage<TResult, TVariables>` 명시적 지정
+  8. **NumPy percentiles**: `np.percentile()` 정확도 향상 (수동 계산 제거)
+  9. **scipy statistics**: 검증된 라이브러리 우선 (JavaScript 직접 구현 제거)
+- 남은 에러: **409개** (Group 4: regression 34개 + 기타)
+- **최종 커밋**: `7bc0a5c` - docs: Add comprehensive guide for implementing statistical tests
 
 ---
 
-## ✅ 오늘 완료 작업 (2025-10-30)
+## ✅ 오늘 완료 작업 (2025-10-31)
+
+### Phase 2-2 Groups 1-3 코드 품질 개선 (10개 페이지)
+**우선순위**: 🟢 **High** (TypeScript 에러 -57개, 코드 품질 향상)
+
+**작업 개요**:
+- ✅ **Group 1 (Quick Wins)**: 6개 페이지 + 2개 개선
+- ✅ **Group 2 (Medium)**: 2개 페이지 + 2개 개선
+- ✅ **Group 3 (Complex)**: 2개 페이지 + 2개 개선
+- ✅ TypeScript 에러: 466 → 409 (-57, -12.2%)
+- ✅ 코드 품질: 평균 4.97/5
+- ✅ 문서화: 1,065 lines (구현 가이드)
+
+#### Group 1: Quick Wins (19 errors → 0)
+
+**초기 수정 (6개)**:
+1. **anova** (2 errors) - [page.tsx:43,108](statistical-platform/app/(dashboard)/statistics/anova/page.tsx)
+   - Generic types: `useStatisticsPage<ANOVAResults, SelectedVariables>`
+   - Index signature: `[key: string]: string | string[] | undefined`
+
+2. **t-test** (3 errors) - [page.tsx:172-174,441-451](statistical-platform/app/(dashboard)/statistics/t-test/page.tsx)
+   - Optional chaining: `actions.setUploadedData?.()`
+   - DataUploadStep: `onUploadComplete={(file, data) => {...}}`
+
+3. **one-sample-t** (3 errors) - [page.tsx:29,58,371-391](statistical-platform/app/(dashboard)/statistics/one-sample-t/page.tsx)
+   - 초기: VariableSelector props 수정
+   - 개선: **Mock 데이터 제거 (Critical)** → VariableSelector 완전 적용
+
+4. **normality-test** (3 errors) - [page.tsx](statistical-platform/app/(dashboard)/statistics/normality-test/page.tsx)
+   - VariableSelector: `methodId="normality-test"`
+   - Optional chaining 추가
+
+5. **means-plot** (4 errors) - [page.tsx:4,60](statistical-platform/app/(dashboard)/statistics/means-plot/page.tsx)
+   - 초기: VariableSelector 표준 props
+   - 개선: Inline type → `StatisticsStep[]` 인터페이스
+
+6. **ks-test** (4 errors) - [page.tsx:108-180](statistical-platform/app/(dashboard)/statistics/ks-test/page.tsx)
+   - 초기: VariableSelector, optional chaining
+   - 개선: **JavaScript normalCDF 제거 (Critical)** → `scipy.stats.kstest()` 사용
+
+**코드 품질 개선 패턴**:
+```typescript
+// ❌ CLAUDE.md 위반 - JavaScript 통계 구현
+const normalCDF = useCallback((z: number): number => {
+  const t = 1.0 / (1.0 + 0.2316419 * Math.abs(z))
+  const d = 0.3989423 * Math.exp(-z * z / 2)
+  // ... Abramowitz-Stegun approximation
+}, [])
+
+// ✅ 검증된 라이브러리 사용
+const result = await pyodide.runPythonAsync(`
+from scipy import stats
+import numpy as np
+statistic, pvalue = stats.kstest(values, 'norm', args=(mean, std))
+`)
+```
+
+#### Group 2: Medium Complexity (15 errors → 0)
+
+**초기 수정 (2개)**:
+1. **friedman** (8 errors) - [page.tsx:202](statistical-platform/app/(dashboard)/statistics/friedman/page.tsx)
+   - Method name: `friedmanTestWorker()`
+   - Optional chaining 추가
+   - 개선: Double assertion 제거 → 명시적 객체 생성
+
+2. **kruskal-wallis** (7 errors) - [page.tsx:208-229](statistical-platform/app/(dashboard)/statistics/kruskal-wallis/page.tsx)
+   - Method name: `kruskalWallisWorker()`
+   - Optional chaining 추가
+   - 개선: NumPy percentiles → `calculateDescriptiveStats()`
+
+**코드 품질 개선 패턴**:
+```typescript
+// ❌ Double type assertion (타입 불일치 은폐)
+const result = basicResult as unknown as FriedmanResult
+
+// ✅ 명시적 객체 생성 (컴파일 타임 검증)
+const fullResult: FriedmanResult = {
+  statistic: basicResult.statistic,
+  pValue: basicResult.pValue,
+  degreesOfFreedom: nConditions - 1,
+  effectSize: { kendallW, interpretation },
+  descriptives,
+  rankSums,
+  interpretation: { summary, conditions, recommendations }
+}
+```
+
+```typescript
+// ❌ 수동 percentile 계산 (정확도 낮음)
+const sorted = [...arr].sort((a, b) => a - b)
+const q1 = sorted[Math.floor(n * 0.25)]
+const q3 = sorted[Math.floor(n * 0.75)]
+
+// ✅ NumPy percentiles (interpolation 포함)
+const stats = await pyodide.calculateDescriptiveStats(arr)
+const q1 = stats.q1  // np.percentile(..., 25)
+const q3 = stats.q3  // np.percentile(..., 75)
+```
+
+#### Group 3: Complex Analysis (23 errors → 0)
+
+**초기 수정 (2개)**:
+1. **mann-kendall** (13 errors) - [page.tsx:91-160](statistical-platform/app/(dashboard)/statistics/mann-kendall/page.tsx)
+   - Hook migration: `useStatisticsPage`
+   - 개선: **pymannkendall 제거 (Critical)** → scipy + simple formulas
+
+2. **reliability** (10 errors) - [page.tsx:145-231](statistical-platform/app/(dashboard)/statistics/reliability/page.tsx)
+   - Method name: `cronbachAlpha()`
+   - 개선: 중복 actions 체크 제거 (3곳, 9줄) → consistent optional chaining
+
+**코드 품질 개선 패턴 (mann-kendall)**:
+```python
+# ❌ 외부 라이브러리 (Pyodide에 없을 수 있음)
+import pymannkendall as mk
+result = mk.original_test(data)
+
+# ✅ scipy + 단순 수학 공식 (CLAUDE.md 허용)
+import numpy as np
+from scipy import stats
+
+# S statistic (단순 카운팅 - 허용)
+S = 0
+for i in range(n-1):
+    for j in range(i+1, n):
+        S += np.sign(data[j] - data[i])
+
+# Variance (수학 공식 - 허용)
+var_s = n * (n - 1) * (2 * n + 5) / 18
+
+# Z-score (표준화 - 허용)
+z = (S - 1) / np.sqrt(var_s) if S > 0 else ...
+
+# Kendall's tau (검증된 라이브러리)
+tau, _ = stats.kendalltau(range(n), data)
+
+# P-value (검증된 라이브러리)
+p = 2 * (1 - stats.norm.cdf(abs(z)))
+
+# Sen's slope (numpy median - 허용)
+slopes = [(data[j] - data[i]) / (j - i)
+          for i in range(n-1) for j in range(i+1, n) if j != i]
+sen_slope = np.median(slopes)
+```
+
+**문서화 (1,065 lines)**:
+1. **MANN_KENDALL_IMPLEMENTATION_SUMMARY.md** (590 lines)
+   - Mann-Kendall test 수학적 공식 및 참고 문헌
+   - CLAUDE.md 준수 근거 (왜 직접 구현이 허용되는가)
+   - scipy + NumPy 라이브러리 사용 명시
+
+2. **docs/IMPLEMENTING_STATISTICAL_TESTS_GUIDE.md** (475 lines)
+   - 통계 테스트 구현 결정 트리
+   - 허용/금지 패턴 예시
+   - 라이브러리 우선 원칙
+
+**코드 리뷰 점수**:
+| 페이지 | 초기 점수 | 개선 후 | 주요 개선 |
+|--------|----------|---------|----------|
+| anova | 5.0/5 | 5.0/5 | - |
+| t-test | 5.0/5 | 5.0/5 | - |
+| one-sample-t | 2.7/5 | 5.0/5 | Mock 데이터 제거 |
+| normality-test | 5.0/5 | 5.0/5 | - |
+| means-plot | 4.8/5 | 5.0/5 | 타입 인터페이스 |
+| ks-test | 3.3/5 | 5.0/5 | JavaScript → scipy |
+| friedman | 4.6/5 | 5.0/5 | Double assertion 제거 |
+| kruskal-wallis | 4.5/5 | 5.0/5 | NumPy percentiles |
+| mann-kendall | 4.2/5 | 5.0/5 | pymannkendall 제거 |
+| reliability | 4.8/5 | 5.0/5 | Optional chaining |
+| **평균** | **4.39/5** | **4.97/5** | **+0.58** |
+
+---
+
+## ✅ 이전 완료 작업 (2025-10-30)
 
 ### 1. isAnalyzing Critical 버그 수정 (7개 파일)
 **우선순위**: 🔴 **Critical** (사용자 경험 치명적 버그)
@@ -200,10 +382,12 @@ Working Tree: Clean
 
 ## 📝 다음 작업 제안
 
-1. **Phase 7 계획** - Tauri Desktop App or 추가 메서드
-2. **E2E 테스트** - Playwright 실제 브라우저 검증
-3. **Performance Benchmark** - Phase 5 vs Phase 6 비교
-4. **Documentation** - API 문서, 사용자 가이드
+1. **Phase 2-2 완료** - 남은 11개 통계 페이지 코드 품질 개선
+2. **Phase 7 계획** - Tauri Desktop App or 추가 메서드
+3. **Phase 8 RAG 시스템** - 통계 라이브러리 문서 기반 컨텍스트 설명 (신규 추가)
+4. **E2E 테스트** - Playwright 실제 브라우저 검증
+5. **Performance Benchmark** - Phase 5 vs Phase 6 비교
+6. **Documentation** - API 문서, 사용자 가이드
 
 ---
 

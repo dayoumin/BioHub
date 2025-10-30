@@ -268,18 +268,104 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
 
 ---
 
-### Phase 8: AI 모델 통합 (선택, 향후)
+### Phase 8: AI 모델 통합 + RAG 시스템 (선택, 향후)
 
-**목표**: Ollama 기반 로컬 AI 모델 통합
+**목표**: Ollama 기반 로컬 AI 모델 + 통계 문서 RAG 통합
 
+#### 8-1. AI 모델 통합 (기존)
 **기능**:
 - 분석 방법 자동 추천
 - 자동 데이터 품질 검사
 - 지능적 결과 해석
 - 동적 워크플로 생성
 
+#### 8-2. RAG (Retrieval-Augmented Generation) 시스템 (신규)
+**목표**: 통계 라이브러리 문서 기반 컨텍스트 설명 제공
+
+**문서 소스**:
+1. **공식 라이브러리 문서**:
+   - SciPy documentation (https://docs.scipy.org/doc/scipy/reference/stats.html)
+   - statsmodels documentation (https://www.statsmodels.org/stable/index.html)
+   - pingouin documentation (https://pingouin-stats.org/api.html)
+   - scikit-learn documentation (https://scikit-learn.org/stable/modules/classes.html)
+
+2. **프로젝트 내부 문서**:
+   - 60개 통계 메서드 메타데이터 (method-metadata.ts)
+   - 통계 가정 및 요구사항
+   - 일반적인 통계 오류 및 해결 방법
+   - 결과 해석 가이드 (implementation-summary.md)
+   - Python Worker 구현 코드 주석
+
+**RAG 활용 사례**:
+1. **메서드 추천**:
+   ```
+   사용자: "두 그룹의 평균 차이를 비교하고 싶어요"
+   RAG: SciPy t-test 문서 검색 → 가정 확인 (정규성, 등분산성)
+        → t-test 또는 Mann-Whitney U 추천
+   ```
+
+2. **결과 해석**:
+   ```
+   사용자: "p-value가 0.03인데 무슨 의미인가요?"
+   RAG: statsmodels 통계 검정 문서 검색
+        → "귀무가설을 기각할 수 있습니다 (α=0.05 기준)"
+        → 효과 크기(effect size) 함께 제공
+   ```
+
+3. **가정 검증 가이드**:
+   ```
+   사용자: "ANOVA를 사용하기 전에 뭘 확인해야 하나요?"
+   RAG: SciPy ANOVA 문서 + 프로젝트 가이드 검색
+        → "1. 정규성 검정 (Shapiro-Wilk)"
+        → "2. 등분산성 검정 (Levene's test)"
+        → "3. 독립성 가정"
+   ```
+
+4. **에러 해결**:
+   ```
+   사용자: "샘플 크기 부족 오류가 발생했어요"
+   RAG: 프로젝트 트러블슈팅 문서 검색
+        → 최소 샘플 크기 요구사항 설명
+        → 대안 비모수 검정 추천
+   ```
+
+**기술 스택**:
+- **Vector DB**: Chroma / FAISS (로컬 실행)
+- **Embedding Model**: sentence-transformers (all-MiniLM-L6-v2)
+- **LLM**: Ollama (Llama 3 / Mistral)
+- **Chunking Strategy**:
+  - 라이브러리 문서: 함수별 분할 (300-500 tokens)
+  - 프로젝트 문서: 섹션별 분할 (200-400 tokens)
+
+**구현 계획**:
+1. **Step 1**: 문서 수집 및 전처리 (1주)
+   - SciPy/statsmodels 공식 문서 크롤링
+   - 프로젝트 내부 문서 마크다운 파싱
+   - 메타데이터 추출 (메서드명, 파라미터, 예제)
+
+2. **Step 2**: Vector DB 구축 (1주)
+   - 문서 청킹 (함수/섹션별)
+   - Embedding 생성 (sentence-transformers)
+   - Chroma/FAISS 인덱싱
+
+3. **Step 3**: RAG 파이프라인 구현 (2주)
+   - 질의 → Vector 검색 → Top-K 문서 추출
+   - LLM 프롬프트 구성 (검색된 문서 + 사용자 질문)
+   - 응답 생성 및 포맷팅
+
+4. **Step 4**: UI 통합 (1주)
+   - 채팅 인터페이스 추가 (결과 페이지 우측)
+   - 실시간 질문-답변 시스템
+   - 관련 문서 링크 제공
+
+**데이터 프라이버시**:
+- ✅ 모든 처리 로컬 실행 (Ollama + Chroma)
+- ✅ 사용자 데이터는 RAG에 저장 안 됨
+- ✅ 질문-답변만 처리 (분석 데이터 분리)
+
 **문서**:
-- [AI_MODEL_INTEGRATION_PLAN.md](AI_MODEL_INTEGRATION_PLAN.md)
+- [AI_MODEL_INTEGRATION_PLAN.md](AI_MODEL_INTEGRATION_PLAN.md) (기존)
+- 📝 RAG_SYSTEM_DESIGN.md (작성 예정)
 
 ---
 
