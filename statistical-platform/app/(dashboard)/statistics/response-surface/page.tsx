@@ -10,11 +10,12 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
-import { StatisticsPageLayout, StepCard } from '@/components/statistics/StatisticsPageLayout'
+import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { VariableMapping } from '@/components/variable-selection/types'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { PyodideInterface } from '@/types/pyodide'
+import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 
 interface ResponseSurfaceResult {
   model_type: string
@@ -56,10 +57,27 @@ interface ResponseSurfaceResult {
   }
 }
 
+interface SelectedVariables {
+  dependent: string[]
+  factor: string[]
+}
+
+interface UploadedData {
+  data: Record<string, unknown>[]
+  fileName: string
+  columns: string[]
+}
+
 interface ResponseSurfaceAnalysisProps {
   selectedModel: string
   includeInteraction: boolean
   includeQuadratic: boolean
+  uploadedData: UploadedData | null | undefined
+  actions: {
+    setError: ((error: string) => void) | null
+    startAnalysis: (() => void) | null
+    completeAnalysis: ((results: ResponseSurfaceResult, step: number) => void) | null
+  }
 }
 
 const RESPONSE_SURFACE_MODELS = {
@@ -92,30 +110,49 @@ const RESPONSE_SURFACE_MODELS = {
 const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
   selectedModel,
   includeInteraction,
-  includeQuadratic
+  includeQuadratic,
+  uploadedData,
+  actions
 }) => {
   const [result, setResult] = useState<ResponseSurfaceResult | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const pyodideService = usePyodideService()
 
-  const handleAnalysis = useCallback(async (variableMapping: VariableMapping) => {
-    if (!variableMapping.predictor || variableMapping.predictor.length < 2) {
-      actions.setError('반응표면 분석에는 최소 2개의 예측변수가 필요합니다.')
+  const handleAnalysis = useCallback(async (variables: VariableAssignment) => {
+    const typedVariables: SelectedVariables = {
+      dependent: Array.isArray(variables.dependent) ? variables.dependent : [variables.dependent as string],
+      factor: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string]
+    }
+    if (!uploadedData) {
+      if (actions.setError) {
+        actions.setError('업로드된 데이터가 없습니다.')
+      }
       return
     }
 
-    if (!variableMapping.target || variableMapping.target.length === 0) {
-      actions.setError('반응변수를 선택해주세요.')
+    if (!typedVariables.factor || typedVariables.factor.length < 2) {
+      if (actions.setError) {
+        actions.setError('반응표면 분석에는 최소 2개의 예측변수가 필요합니다.')
+      }
       return
     }
 
-    setIsLoading(true)
-    actions.setError(null)
+    if (!typedVariables.dependent || typedVariables.dependent.length === 0) {
+      if (actions.setError) {
+        actions.setError('반응변수를 선택해주세요.')
+      }
+      return
+    }
+
+    if (actions.startAnalysis) {
+      actions.startAnalysis()
+    }
 
     try {
-      const predictorData = variableMapping.predictor.map(v => v.data)
-      const responseData = variableMapping.target[0].data
+      const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'pandas', 'scipy'])
+
+      const predictorData = typedVariables.factor.map(factorName => {
+        return uploadedData.data.map(row => row[factorName])
+      })
+      const responseData = uploadedData.data.map(row => row[typedVariables.dependent[0]])
 
       const pythonCode = `
 import numpy as np
@@ -305,14 +342,25 @@ anova_table = {
 }
 `
 
-      const analysisResult = await pyodideService.runPython(pythonCode)
+      pyodide.globals.set('predictor_data', predictorData)
+      pyodide.globals.set('response_data', responseData)
+      pyodide.globals.set('selectedModel', selectedModel)
+      pyodide.globals.set('includeInteraction', includeInteraction)
+      pyodide.globals.set('includeQuadratic', includeQuadratic)
+
+      const resultStr = pyodide.runPython(pythonCode)
+      const analysisResult: ResponseSurfaceResult = JSON.parse(resultStr)
       setResult(analysisResult)
+
+      if (actions.completeAnalysis) {
+        actions.completeAnalysis(analysisResult, 3)
+      }
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
-    } finally {
-      setIsLoading(false)
+      if (actions.setError) {
+        actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      }
     }
-  }, [selectedModel, includeInteraction, includeQuadratic, pyodideService])
+  }, [selectedModel, includeInteraction, includeQuadratic, uploadedData, actions])
 
   const getNatureLabel = (nature: string) => {
     switch (nature) {
@@ -325,32 +373,12 @@ anova_table = {
 
   return (
     <div className="space-y-6">
-      <VariableSelector
-        data={null}
-        onVariableSelect={handleAnalysis}
-        isLoading={isLoading}
-        requirements={{
-          predictor: {
-            min: 2,
-            max: 10,
-            label: '예측변수 (요인)',
-            description: '독립변수들: 온도, 압력, 농도, 시간 등 (최소 2개)'
-          },
-          target: {
-            min: 1,
-            max: 1,
-            label: '반응변수',
-            description: '종속변수: 수율, 품질, 효율 등'
-          }
-        }}
-      />
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>분석 오류</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+      {uploadedData && (
+        <VariableSelector
+          methodId="response-surface"
+          data={uploadedData.data}
+          onVariablesSelected={handleAnalysis}
+        />
       )}
 
       {result && (
@@ -588,193 +616,202 @@ anova_table = {
 }
 
 export default function ResponseSurfacePage() {
+  const { state, actions } = useStatisticsPage<ResponseSurfaceResult, SelectedVariables>({
+    withUploadedData: true,
+    withError: true
+  })
+  const { currentStep, uploadedData, error } = state
+
   const [selectedModel, setSelectedModel] = useState('second_order')
   const [includeInteraction, setIncludeInteraction] = useState(true)
   const [includeQuadratic, setIncludeQuadratic] = useState(true)
-  const [currentStep, setCurrentStep] = useState(1)
-  const [uploadedData, setUploadedData] = useState<unknown[] | null>(null)
 
   const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    actions.setUploadedData(data)
-    setCurrentStep(2)
-  }, [])
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
 
-  return (
-    <StatisticsPageLayout
-      title="반응표면 분석"
-      description="다변수 최적화를 통해 여러 요인이 반응에 미치는 영향을 분석하고 최적 조건을 찾습니다"
-      steps={[
-        {
-          title: "방법론 이해",
-          description: "반응표면 분석은 여러 독립변수가 종속변수에 미치는 영향을 다항식으로 모델링하여 최적화를 수행하는 통계 기법입니다.",
-          content: (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <StepCard
-                  icon={<Target className="w-5 h-5" />}
-                  title="언제 사용하나요?"
-                  items={[
-                    "다변수 공정 최적화",
-                    "실험계획법 (DOE) 결과 분석",
-                    "제품 품질 개선",
-                    "최적 조건 탐색"
-                  ]}
-                />
-                <StepCard
-                  icon={<Activity className="w-5 h-5" />}
-                  title="주요 특징"
-                  items={[
-                    "다항 회귀 모델링",
-                    "임계점 및 최적점 분석",
-                    "교호작용 효과 평가",
-                    "3D 반응표면 시각화"
-                  ]}
-                />
-              </div>
+    if (!actions.setUploadedData) {
+      console.error('[response-surface] setUploadedData not available')
+      return
+    }
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>모델 선택</CardTitle>
+    actions.setUploadedData(uploadedData)
+    actions.setCurrentStep(2)
+  }, [actions])
+
+  const steps = [
+    {
+      id: 'step-1',
+      number: 1,
+      title: "방법론 이해",
+      description: "반응표면 분석은 여러 독립변수가 종속변수에 미치는 영향을 다항식으로 모델링하여 최적화를 수행하는 통계 기법입니다.",
+      status: (currentStep === 1 ? 'current' : (currentStep > 1 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
+    },
+    {
+      id: 'step-2',
+      number: 2,
+      title: "데이터 업로드",
+      description: "여러 요인(독립변수)과 해당하는 반응값(종속변수) 데이터를 업로드하세요.",
+      status: (currentStep === 2 ? 'current' : (currentStep > 2 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
+    },
+    {
+      id: 'step-3',
+      number: 3,
+      title: "변수 선택 및 분석",
+      description: "예측변수(요인)들과 반응변수를 선택하고 선택한 모델로 분석을 실행합니다.",
+      status: (currentStep === 3 ? 'current' : (currentStep > 3 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
+    }
+  ]
+
+  const renderMethodIntroduction = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Target className="mr-2 h-5 w-5" />
+              언제 사용하나요?
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li>• 다변수 공정 최적화</li>
+              <li>• 실험계획법 (DOE) 결과 분석</li>
+              <li>• 제품 품질 개선</li>
+              <li>• 최적 조건 탐색</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Activity className="mr-2 h-5 w-5" />
+              주요 특징
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li>• 다항 회귀 모델링</li>
+              <li>• 임계점 및 최적점 분석</li>
+              <li>• 교호작용 효과 평가</li>
+              <li>• 3D 반응표면 시각화</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>모델 선택</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-medium">반응표면 모델</Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                실험 단계와 데이터 특성에 따라 적절한 모델을 선택하세요.
+              </p>
+            </div>
+            <RadioGroup
+              value={selectedModel}
+              onValueChange={setSelectedModel}
+              className="space-y-3"
+            >
+              {Object.entries(RESPONSE_SURFACE_MODELS).map(([key, model]) => (
+                <div key={key} className="flex items-start space-x-3 p-3 border rounded-lg">
+                  <RadioGroupItem value={key} id={key} className="mt-1" />
+                  <div className="space-y-1">
+                    <Label htmlFor={key} className="font-medium cursor-pointer">
+                      {model.name}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {model.description}
+                    </p>
+                    <p className="text-xs font-mono bg-muted/50 p-1 rounded">
+                      {model.equation}
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      적용: {model.applications}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </RadioGroup>
+
+            {selectedModel === 'custom' && (
+              <Card className="bg-muted/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">사용자 정의 옵션</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <Label className="text-base font-medium">반응표면 모델</Label>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        실험 단계와 데이터 특성에 따라 적절한 모델을 선택하세요.
-                      </p>
-                    </div>
-                    <RadioGroup
-                      value={selectedModel}
-                      onValueChange={setSelectedModel}
-                      className="space-y-3"
-                    >
-                      {Object.entries(RESPONSE_SURFACE_MODELS).map(([key, model]) => (
-                        <div key={key} className="flex items-start space-x-3 p-3 border rounded-lg">
-                          <RadioGroupItem value={key} id={key} className="mt-1" />
-                          <div className="space-y-1">
-                            <Label htmlFor={key} className="font-medium cursor-pointer">
-                              {model.name}
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              {model.description}
-                            </p>
-                            <p className="text-xs font-mono bg-muted/50 p-1 rounded">
-                              {model.equation}
-                            </p>
-                            <p className="text-xs text-blue-600">
-                              적용: {model.applications}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </RadioGroup>
-
-                    {selectedModel === 'custom' && (
-                      <Card className="bg-muted/20">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">사용자 정의 옵션</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="interaction"
-                              checked={includeInteraction}
-                              onCheckedChange={setIncludeInteraction}
-                            />
-                            <Label htmlFor="interaction" className="text-sm">
-                              교호작용 항 포함 (Xi × Xj)
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox
-                              id="quadratic"
-                              checked={includeQuadratic}
-                              onCheckedChange={setIncludeQuadratic}
-                            />
-                            <Label htmlFor="quadratic" className="text-sm">
-                              2차 항 포함 (Xi²)
-                            </Label>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
+                <CardContent className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="interaction"
+                      checked={includeInteraction}
+                      onCheckedChange={(checked) => setIncludeInteraction(checked === true)}
+                    />
+                    <Label htmlFor="interaction" className="text-sm">
+                      교호작용 항 포함 (Xi × Xj)
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="quadratic"
+                      checked={includeQuadratic}
+                      onCheckedChange={(checked) => setIncludeQuadratic(checked === true)}
+                    />
+                    <Label htmlFor="quadratic" className="text-sm">
+                      2차 항 포함 (Xi²)
+                    </Label>
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          )
-        },
-        {
-          title: "데이터 업로드",
-          description: "여러 요인(독립변수)과 해당하는 반응값(종속변수) 데이터를 업로드하세요.",
-          content: (
-            <DataUploadStep
-              onUploadComplete={handleDataUploadComplete}
-              onNext={() => setCurrentStep(3)}
-            />
-          )
-        },
-        {
-          title: "변수 선택 및 분석",
-          description: "예측변수(요인)들과 반응변수를 선택하고 선택한 모델로 분석을 실행합니다.",
-          content: (
-            <ResponseSurfaceAnalysis
-              selectedModel={selectedModel}
-              includeInteraction={includeInteraction}
-              includeQuadratic={includeQuadratic}
-            />
-          )
-        },
-        {
-          title: "결과 해석",
-          description: "반응표면 분석 결과를 해석하고 최적 조건을 파악합니다.",
-          content: (
-            <div className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>결과 해석 가이드</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <div>• <strong>R²</strong>: 모델의 설명력 (0.8 이상 권장)</div>
-                  <div>• <strong>F-검정</strong>: 모델의 전체적 유의성</div>
-                  <div>• <strong>계수</strong>: 각 요인의 효과 크기</div>
-                  <div>• <strong>임계점</strong>: 최대/최소/안장점 위치</div>
-                </AlertDescription>
-              </Alert>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">임계점 해석</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm">
-                    <ul className="space-y-1">
-                      <li>• <strong>최대점</strong>: 반응을 최대화하는 조건</li>
-                      <li>• <strong>최소점</strong>: 반응을 최소화하는 조건</li>
-                      <li>• <strong>안장점</strong>: 능선 분석 필요</li>
-                      <li>• 실험 영역 내 위치 여부 확인 필요</li>
-                    </ul>
-                  </CardContent>
-                </Card>
+      <div className="flex justify-center">
+        <Button onClick={() => actions.setCurrentStep(2)} size="lg">
+          데이터 업로드하기
+        </Button>
+      </div>
+    </div>
+  )
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">활용 분야</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm">
-                    <ul className="space-y-1">
-                      <li>• 화학 공정 최적화</li>
-                      <li>• 제품 배합 최적화</li>
-                      <li>• 생산 조건 개선</li>
-                      <li>• 품질 특성 최적화</li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )
-        }
-      ]}
-    />
+  return (
+    <StatisticsPageLayout
+      steps={steps}
+      currentStep={currentStep}
+      title="반응표면 분석"
+      description="다변수 최적화를 통해 여러 요인이 반응에 미치는 영향을 분석하고 최적 조건을 찾습니다"
+    >
+      {currentStep === 1 && renderMethodIntroduction()}
+      {currentStep === 2 && (
+        <DataUploadStep
+          onUploadComplete={handleDataUploadComplete}
+          onPrevious={() => actions.setCurrentStep(1)}
+        />
+      )}
+      {currentStep === 3 && (
+        <ResponseSurfaceAnalysis
+          selectedModel={selectedModel}
+          includeInteraction={includeInteraction}
+          includeQuadratic={includeQuadratic}
+          uploadedData={uploadedData}
+          actions={{
+            setError: actions.setError || null,
+            startAnalysis: actions.startAnalysis || null,
+            completeAnalysis: actions.completeAnalysis || null
+          }}
+        />
+      )}
+    </StatisticsPageLayout>
   )
 }

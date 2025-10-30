@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -108,70 +108,90 @@ interface TwoWayAnovaResults {
   }
 }
 
+interface UploadedData {
+  data: Record<string, unknown>[]
+  fileName: string
+  columns: string[]
+}
+
 export default function TwoWayAnovaPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<TwoWayAnovaResult, string[]>({
+  const { state, actions } = useStatisticsPage<TwoWayAnovaResults, SelectedVariables>({
     withUploadedData: true,
     withError: true
   })
-  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
-
-  // Page-specific state
-  const [data, setData] = useState<any[]>([])
-  const [columns, setColumns] = useState<string[]>([])
-  const [selectedVariablesManual, setSelectedVariablesManual] = useState<{
-    dependent: string
-    factor_variable: string[]
-  }>({
-
-    dependent: "",
-    factor_variable: []
-  })
+  const { currentStep, uploadedData, results, isAnalyzing, error } = state
 
   const steps = [
     {
-      id: 1,
+      id: 'step-1',
       number: 1,
       title: '이원분산분석',
       description: '두 개의 독립변수가 종속변수에 미치는 주효과와 상호작용효과를 분석합니다.',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'complete' : 'upcoming'
+      status: (currentStep === 1 ? 'current' : (currentStep > 1 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
     },
     {
-      id: 2,
+      id: 'step-2',
       number: 2,
       title: '데이터 업로드',
       description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'complete' : 'upcoming'
+      status: (currentStep === 2 ? 'current' : (currentStep > 2 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
     },
     {
-      id: 3,
+      id: 'step-3',
       number: 3,
       title: '변수 선택',
       description: '종속변수와 두 개의 독립변수(요인)를 선택합니다.',
-      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'complete' : 'upcoming'
+      status: (currentStep === 3 ? 'current' : (currentStep > 3 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
     },
     {
-      id: 4,
+      id: 'step-4',
       number: 4,
       title: '분석 결과',
       description: '주효과, 상호작용효과 및 분산분석표를 확인합니다.',
-      status: currentStep === 4 ? 'current' : currentStep > 4 ? 'complete' : 'upcoming'
+      status: (currentStep === 4 ? 'current' : (currentStep > 4 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
     }
   ]
 
-  const handleDataUpload = (uploadedData: unknown[], uploadedColumns: string[]) => {
-    setData((uploadedData as unknown[] ?? []))
-    setColumns(uploadedColumns)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[two-way-anova] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
     actions.setCurrentStep(3)
-  }
+  }, [actions])
 
-  const handleVariablesSelected = (variables: unknown) => {
-    actions.setSelectedVariables(variables)
+  const handleVariablesSelected = useCallback((variables: VariableAssignment) => {
+    const typedVariables: SelectedVariables = {
+      dependent: Array.isArray(variables.dependent) ? variables.dependent : [variables.dependent as string],
+      factor: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string],
+      covariate: variables.covariate ? (Array.isArray(variables.covariate) ? variables.covariate : [variables.covariate as string]) : undefined
+    }
+
+    if (!actions.setSelectedVariables) {
+      console.error('[two-way-anova] setSelectedVariables not available')
+      return
+    }
+    actions.setSelectedVariables(typedVariables)
     actions.setCurrentStep(4)
-    runTwoWayAnovaAnalysis(variables)
-  }
+    runTwoWayAnovaAnalysis(typedVariables)
+  }, [actions])
 
-  const runTwoWayAnovaAnalysis = async (variables: SelectedVariables) => {
+  const runTwoWayAnovaAnalysis = useCallback(async (variables: SelectedVariables) => {
+    if (!uploadedData) {
+      console.error('[two-way-anova] No uploaded data')
+      return
+    }
     actions.startAnalysis()
 
     try {
@@ -183,7 +203,7 @@ export default function TwoWayAnovaPage() {
         'statsmodels'
       ])
 
-      pyodide.globals.set('data', data)
+      pyodide.globals.set('data', uploadedData.data)
       pyodide.globals.set('dependent_var', variables.dependent[0])
       pyodide.globals.set('factor_a', variables.factor[0])
       pyodide.globals.set('factor_b', variables.factor[1] || variables.factor[0])
@@ -379,11 +399,19 @@ json.dumps(results)
       const result = pyodide.runPython(pythonCode)
       const results: TwoWayAnovaResults = JSON.parse(result)
 
+      if (!actions.completeAnalysis) {
+        console.error('[two-way-anova] completeAnalysis not available')
+        return
+      }
       actions.completeAnalysis(results, 4)
     } catch (err) {
+      if (!actions.setError) {
+        console.error('[two-way-anova] setError not available')
+        return
+      }
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
-  }
+  }, [uploadedData, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
@@ -647,17 +675,21 @@ json.dumps(results)
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(results.descriptives).map(([condition, stats], index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-4 py-2 font-medium">{condition.replace('_', ' × ')}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{stats.n}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{stats.mean.toFixed(3)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{stats.std.toFixed(3)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{stats.se.toFixed(3)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{stats.ci_lower.toFixed(3)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{stats.ci_upper.toFixed(3)}</td>
-                        </tr>
-                      ))}
+                      {Object.entries(results.descriptives).map(([condition, stats], index) => {
+                        if (!stats || typeof stats !== 'object') return null
+                        const typedStats = stats as { n: number; mean: number; std: number; se: number; ci_lower: number; ci_upper: number }
+                        return (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="border border-gray-300 px-4 py-2 font-medium">{condition.replace('_', ' × ')}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.n}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.mean.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.std.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.se.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.ci_lower.toFixed(3)}</td>
+                            <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.ci_upper.toFixed(3)}</td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -686,14 +718,18 @@ json.dumps(results)
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.entries(results.marginal_means.factor_a).map(([level, stats], index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-medium">{level}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{stats.n}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{stats.mean.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{stats.se.toFixed(3)}</td>
-                          </tr>
-                        ))}
+                        {Object.entries(results.marginal_means.factor_a).map(([level, stats], index) => {
+                          if (!stats || typeof stats !== 'object') return null
+                          const typedStats = stats as { n: number; mean: number; se: number }
+                          return (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="border border-gray-300 px-4 py-2 font-medium">{level}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.n}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.mean.toFixed(3)}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.se.toFixed(3)}</td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -719,14 +755,18 @@ json.dumps(results)
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.entries(results.marginal_means.factor_b).map(([level, stats], index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-medium">{level}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{stats.n}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{stats.mean.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{stats.se.toFixed(3)}</td>
-                          </tr>
-                        ))}
+                        {Object.entries(results.marginal_means.factor_b).map(([level, stats], index) => {
+                          if (!stats || typeof stats !== 'object') return null
+                          const typedStats = stats as { n: number; mean: number; se: number }
+                          return (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="border border-gray-300 px-4 py-2 font-medium">{level}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.n}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.mean.toFixed(3)}</td>
+                              <td className="border border-gray-300 px-4 py-2 text-right">{typedStats.se.toFixed(3)}</td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -817,7 +857,7 @@ json.dumps(results)
                 <div>
                   <h4 className="font-semibold mb-2">주효과</h4>
                   <ul className="space-y-2">
-                    {results.interpretation.main_effects.map((effect, index) => (
+                    {results.interpretation.main_effects.map((effect: string, index: number) => (
                       <li key={index} className="flex items-start">
                         <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                         <span className="text-gray-700">{effect}</span>
@@ -841,7 +881,7 @@ json.dumps(results)
                 <div>
                   <h4 className="font-semibold mb-2">권장사항</h4>
                   <ul className="space-y-2">
-                    {results.interpretation.recommendations.map((rec, index) => (
+                    {results.interpretation.recommendations.map((rec: string, index: number) => (
                       <li key={index} className="flex items-start">
                         <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                         <span className="text-gray-700">{rec}</span>
@@ -894,14 +934,16 @@ json.dumps(results)
     >
       {currentStep === 1 && renderMethodIntroduction()}
       {currentStep === 2 && (
-        <DataUploadStep onDataUploaded={handleDataUpload} onBack={() => actions.setCurrentStep(1)} />
+        <DataUploadStep
+          onUploadComplete={handleDataUpload}
+          onPrevious={() => actions.setCurrentStep(1)}
+        />
       )}
-      {currentStep === 3 && (
+      {currentStep === 3 && uploadedData && (
         <VariableSelector
           methodId="two-way-anova"
-          data={data}
+          data={uploadedData.data}
           onVariablesSelected={handleVariablesSelected}
-          onBack={() => actions.setCurrentStep(2)}
         />
       )}
       {currentStep === 4 && renderResults()}

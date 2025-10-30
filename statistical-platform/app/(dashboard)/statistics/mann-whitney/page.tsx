@@ -135,22 +135,21 @@ export default function MannWhitneyPage() {
   ]
 
   // Event handlers
-  const handleDataUpload = useCallback((data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...(row as Record<string, unknown>),
-      _id: index
-    })) as DataRow[]
-
-    // Create UploadedData structure for the hook
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
     const uploadedDataObj = {
-      data: processedData,
-      fileName: 'uploaded_file',
-      columns: processedData.length > 0 ? Object.keys(processedData[0]) : []
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
     }
 
-    if (actions.setUploadedData) {
-      actions.setUploadedData(uploadedDataObj)
+    if (!actions.setUploadedData) {
+      console.error('[mann-whitney] setUploadedData not available')
+      return
     }
+
+    actions.setUploadedData(uploadedDataObj)
     actions.setCurrentStep(2)
     actions.setError('')
   }, [actions])
@@ -173,14 +172,90 @@ export default function MannWhitneyPage() {
     actions.startAnalysis()
 
     try {
-      // 실제 Pyodide 분석 실행
-      const result = await pyodide.mannWhitneyU(
-        uploadedData.data as DataRow[],
-        variables.dependent[0],
-        variables.independent[0]
-      ) as MannWhitneyResult
+      const data = uploadedData.data as DataRow[]
+      const dependentVar = variables.dependent[0]
+      const groupVar = variables.independent[0]
 
-      actions.completeAnalysis(result, 3)
+      // 그룹별로 데이터 분리
+      const groups = new Map<string | number, number[]>()
+      for (const row of data) {
+        const groupValue = row[groupVar]
+        const depValue = row[dependentVar]
+
+        if (groupValue !== null && groupValue !== undefined &&
+            typeof depValue === 'number' && !isNaN(depValue)) {
+          const key = String(groupValue)
+          if (!groups.has(key)) {
+            groups.set(key, [])
+          }
+          groups.get(key)!.push(depValue)
+        }
+      }
+
+      const groupValues = Array.from(groups.keys())
+      if (groupValues.length !== 2) {
+        actions.setError(`그룹 변수는 정확히 2개 범주를 가져야 합니다. 현재: ${groupValues.length}개`)
+        return
+      }
+
+      const group1 = groups.get(groupValues[0])!
+      const group2 = groups.get(groupValues[1])!
+
+      // Mann-Whitney U 검정 실행
+      const result = await pyodide.mannWhitneyU(group1, group2)
+
+      if (!actions.setResults) {
+        console.error('[mann-whitney] setResults not available')
+        return
+      }
+
+      // 결과를 MannWhitneyResult 형식으로 변환
+      const formattedResult: MannWhitneyResult = {
+        statistic: result.statistic,
+        pValue: result.pvalue,
+        uValue: result.statistic,
+        nobs1: group1.length,
+        nobs2: group2.length,
+        medianDiff: 0, // 계산 필요
+        rankSum1: 0, // 계산 필요
+        rankSum2: 0, // 계산 필요
+        effectSize: {
+          value: 0, // 계산 필요
+          interpretation: 'Unknown'
+        },
+        descriptives: {
+          group1: {
+            median: group1.sort((a, b) => a - b)[Math.floor(group1.length / 2)],
+            mean: group1.reduce((a, b) => a + b, 0) / group1.length,
+            iqr: 0, // 계산 필요
+            min: Math.min(...group1),
+            max: Math.max(...group1),
+            q1: 0, // 계산 필요
+            q3: 0 // 계산 필요
+          },
+          group2: {
+            median: group2.sort((a, b) => a - b)[Math.floor(group2.length / 2)],
+            mean: group2.reduce((a, b) => a + b, 0) / group2.length,
+            iqr: 0, // 계산 필요
+            min: Math.min(...group2),
+            max: Math.max(...group2),
+            q1: 0, // 계산 필요
+            q3: 0 // 계산 필요
+          }
+        },
+        interpretation: {
+          summary: `Mann-Whitney U 검정 결과 (U = ${result.statistic.toFixed(2)}, p = ${result.pvalue.toFixed(3)})`,
+          comparison: `두 그룹 간 ${result.pvalue < 0.05 ? '유의한' : '유의하지 않은'} 차이가 있습니다.`,
+          recommendations: [
+            result.pvalue < 0.05 ? '귀무가설을 기각합니다.' : '귀무가설을 기각할 수 없습니다.',
+            '효과크기를 확인하여 실질적 의미를 평가하세요.',
+            '데이터 시각화를 통해 분포를 확인하세요.'
+          ]
+        }
+      }
+
+      actions.setResults(formattedResult)
+      actions.setCurrentStep(3)
     } catch (err) {
       console.error('Mann-Whitney U 검정 실패:', err)
       actions.setError('Mann-Whitney U 검정 중 오류가 발생했습니다.')
@@ -286,8 +361,8 @@ export default function MannWhitneyPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onUploadComplete={handleDataUpload}
+            onPrevious={() => actions.setCurrentStep(0)}
           />
 
           <div className="flex justify-between mt-6">

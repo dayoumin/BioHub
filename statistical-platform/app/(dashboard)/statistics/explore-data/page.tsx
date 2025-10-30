@@ -25,6 +25,7 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
@@ -100,50 +101,84 @@ interface ExploreResults {
 
 export default function ExploreDataPage() {
   const { state, actions } = useStatisticsPage<ExploreResults[]>({
-    withUploadedData: false,
-    withError: false
+    withUploadedData: true,
+    withError: true
   })
-  const { currentStep, variableMapping, results, isAnalyzing } = state
+  const { currentStep, uploadedData, results, isAnalyzing, error } = state
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedVariable, setSelectedVariable] = useState<string>('')
   const [showOutliers, setShowOutliers] = useState(true)
   const [includeNormality, setIncludeNormality] = useState(true)
   const { pyodideService: _pyodideService } = usePyodideService()
 
+  // 데이터 업로드 핸들러
+  const handleDataUpload = (file: File, data: unknown[]) => {
+    const uploadedDataObj = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[explore-data] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedDataObj)
+    actions.setCurrentStep(1)
+  }
+
+  // 변수 선택 핸들러
+  const handleVariablesSelected = (variables: VariableMapping) => {
+    if (!actions.setSelectedVariables) {
+      console.error('[explore-data] setSelectedVariables not available')
+      return
+    }
+    actions.setSelectedVariables(variables)
+    actions.setCurrentStep(2)
+  }
+
   // 단계 정의
   const steps: StatisticsStep[] = [
     {
-      id: 'select-variables',
+      id: 'upload-data',
       number: 1,
+      title: '데이터 업로드',
+      description: '분석할 데이터 파일 업로드',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+    {
+      id: 'select-variables',
+      number: 2,
       title: '변수 선택',
       description: '탐색할 변수들 선택',
-      status: Object.keys(variableMapping).length > 0 ? 'completed' : 'current'
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
     },
     {
       id: 'configure-options',
-      number: 2,
+      number: 3,
       title: '탐색 옵션',
       description: '이상치 탐지 및 정규성 검정 설정',
-      status: Object.keys(variableMapping).length > 0 ? 'current' : 'pending'
-    },
-    {
-      id: 'run-analysis',
-      number: 3,
-      title: '탐색 실행',
-      description: '탐색적 데이터 분석 수행',
-      status: results && results.length > 0 ? 'completed' : 'pending'
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
     },
     {
       id: 'view-results',
       number: 4,
       title: '결과 탐색',
       description: '변수별 특성 및 시각화 확인',
-      status: results && results.length > 0 ? 'current' : 'pending'
+      status: currentStep === 3 ? 'current' : 'pending'
     }
   ]
 
   // 분석 실행
   const handleAnalysis = async () => {
+    if (!uploadedData || uploadedData.data.length === 0) {
+      actions.setError('분석할 데이터가 없습니다.')
+      return
+    }
+
     actions.startAnalysis()
 
     try {
@@ -216,7 +251,13 @@ export default function ExploreDataPage() {
         }
       ]
 
-      actions.completeAnalysis(mockResults, 3)
+      if (!actions.setResults) {
+        console.error('[explore-data] setResults not available')
+        return
+      }
+
+      actions.setResults(mockResults)
+      actions.setCurrentStep(3)
       if (mockResults.length > 0) {
         setSelectedVariable(mockResults[0].variable)
       }
@@ -491,8 +532,29 @@ export default function ExploreDataPage() {
       }}
     >
       <div className="space-y-6">
-        {/* 1단계: 변수 선택 */}
+        {/* 1단계: 데이터 업로드 */}
         {currentStep === 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Microscope className="w-5 h-5" />
+                데이터 업로드
+              </CardTitle>
+              <CardDescription>
+                데이터 탐색을 수행할 파일을 업로드하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataUploadStep
+                onUploadComplete={handleDataUpload}
+                onPrevious={() => actions.setCurrentStep(0)}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 2단계: 변수 선택 */}
+        {currentStep === 1 && uploadedData && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -505,21 +567,16 @@ export default function ExploreDataPage() {
             </CardHeader>
             <CardContent>
               <VariableSelector
-                title="변수 선택"
-                description="탐색할 모든 변수를 선택하세요"
-                onMappingChange={(mapping) => {
-                  actions.setSelectedVariables(mapping)
-                  if (Object.keys(mapping).length > 0) {
-                    actions.setCurrentStep(1)
-                  }
-                }}
+                methodId="explore_data"
+                data={uploadedData.data}
+                onVariablesSelected={handleVariablesSelected}
               />
             </CardContent>
           </Card>
         )}
 
-        {/* 2단계: 탐색 옵션 설정 */}
-        {currentStep === 1 && (
+        {/* 3단계: 탐색 옵션 설정 */}
+        {currentStep === 2 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -564,43 +621,14 @@ export default function ExploreDataPage() {
               </div>
 
               <div className="flex justify-end mt-6">
-                <Button
-                  onClick={() => actions.setCurrentStep(2)}
-                  disabled={Object.keys(variableMapping).length === 0}
-                >
-                  다음 단계
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 3단계: 분석 실행 */}
-        {currentStep === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="w-5 h-5" />
-                데이터 탐색 실행
-              </CardTitle>
-              <CardDescription>
-                선택된 변수들에 대해 탐색적 데이터 분석을 실행합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Button
-                  size="lg"
-                  onClick={handleAnalysis}
-                  disabled={isAnalyzing}
-                  className="px-8"
-                >
+                <Button onClick={handleAnalysis} disabled={isAnalyzing}>
                   {isAnalyzing ? '분석 중...' : '데이터 탐색 실행'}
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
+
 
         {/* 4단계: 결과 확인 */}
         {results && results.length > 0 && currentStep === 3 && (
@@ -684,6 +712,18 @@ export default function ExploreDataPage() {
               </Card>
             </TabsContent>
           </Tabs>
+        )}
+
+        {/* 오류 표시 */}
+        {error && (
+          <Card className="border-destructive">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                <p className="font-medium">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </StatisticsPageLayout>

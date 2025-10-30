@@ -32,6 +32,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -135,7 +136,7 @@ interface ThreeWayAnovaResult {
 
 export default function ThreeWayAnovaPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<ThreeWayAnovaResult, string[]>({
+  const { state, actions } = useStatisticsPage<ThreeWayAnovaResult, VariableAssignment>({
     withUploadedData: true,
     withError: true
   })
@@ -231,10 +232,23 @@ export default function ThreeWayAnovaPage() {
     ]
   }), [])
 
-  const handleDataUpload = useCallback((data: DataRow[]) => {
-    actions.setUploadedData(data)
-    actions.setCurrentStep(2)
-  }, [])
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[three-way-anova] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
+    actions.setCurrentStep(3)
+  }, [actions])
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {
@@ -350,12 +364,16 @@ export default function ThreeWayAnovaPage() {
   }, [uploadedData, pyodide])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
+    if (!actions.setSelectedVariables) {
+      console.error('[three-way-anova] setSelectedVariables not available')
+      return
+    }
     actions.setSelectedVariables(variables)
     if (variables.dependent && variables.independent &&
         variables.dependent.length === 1 && variables.independent.length === 3) {
       runAnalysis(variables)
     }
-  }, [runAnalysis])
+  }, [runAnalysis, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
@@ -476,8 +494,8 @@ export default function ThreeWayAnovaPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onUploadComplete={handleDataUpload}
+            onPrevious={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -510,7 +528,7 @@ export default function ThreeWayAnovaPage() {
         >
           <VariableSelector
             methodId="three-way-anova"
-            data={uploadedData}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />

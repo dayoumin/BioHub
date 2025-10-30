@@ -31,6 +31,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // Data interfaces
 interface DataRow {
@@ -187,13 +188,22 @@ export default function RepeatedMeasuresANOVAPage() {
   }), [])
 
   // Event handlers
-  const handleDataUpload = useCallback((data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...row as Record<string, unknown>,
-      _id: index
-    })) as DataRow[]
-    actions.setUploadedData(processedData)
-    actions.setCurrentStep(2)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[repeated-measures] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
+    actions.setCurrentStep(3)
   }, [actions])
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
@@ -286,6 +296,10 @@ export default function RepeatedMeasuresANOVAPage() {
     if (!variables || typeof variables !== 'object') return
 
     const variablesAssignment = variables as VariableAssignment
+    if (!actions.setSelectedVariables) {
+      console.error('[repeated-measures] setSelectedVariables not available')
+      return
+    }
     actions.setSelectedVariables(variablesAssignment)
     if (variablesAssignment.dependent && variablesAssignment.dependent.length >= 2) {
       runAnalysis(variablesAssignment)
@@ -406,8 +420,8 @@ export default function RepeatedMeasuresANOVAPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onUploadComplete={handleDataUpload}
+            onPrevious={() => actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -438,7 +452,7 @@ export default function RepeatedMeasuresANOVAPage() {
         >
           <VariableSelector
             methodId="repeated_measures_anova"
-            data={uploadedData}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />
