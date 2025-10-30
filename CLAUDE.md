@@ -583,6 +583,8 @@ docs/
 statistical-platform/docs/
 ├── AI-CODING-RULES.md                      # any → unknown 예제 10개
 ├── STATISTICS_PAGE_CODING_STANDARDS.md     # ⭐ 통계 페이지 코딩 표준 (필독!)
+├── TROUBLESHOOTING_ISANALYZING_BUG.md      # 🚨 isAnalyzing 버그 트러블슈팅 (신규)
+├── phase1-settimeout-removal-complete.md   # Phase 1 완료 보고서 (신규)
 ├── phase5-architecture.md                  # Phase 5 구조 설명
 ├── phase5-implementation-plan.md           # Day 1-10 계획
 └── implementation-summary.md               # 메서드 구현 현황
@@ -590,8 +592,13 @@ statistical-platform/docs/
 
 **⭐ 새 통계 페이지 작성 시**:
 1. **[STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md)** 반드시 읽기
-2. Phase 1 예제 (ks-test, power-analysis, means-plot) 참고
-3. 체크리스트로 검증 후 테스트 작성
+2. **🚨 [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md)** - Critical 버그 예방 (2025-10-30 추가)
+3. Phase 1 예제 (ks-test, power-analysis, means-plot) 참고
+4. 체크리스트로 검증 후 테스트 작성
+
+**⚠️ Critical 주의사항**:
+- `actions.setResults()` 사용 금지 → `actions.completeAnalysis()` 필수
+- 상태 전환 패턴: [STATISTICS_PAGE_CODING_STANDARDS.md 섹션 8](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md#8-상태-전환-패턴-critical)
 
 ### archive/ (완료된 문서)
 ```
