@@ -292,37 +292,52 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
   - `any` 타입 완전 제거 → `unknown` + 타입 가드
   - Non-null assertion (`!`) 제거 → 타입 가드로 대체
   - 모든 함수 명시적 타입 지정 검증
-- ⏳ **setTimeout 패턴 점진적 마이그레이션** (2025-10-29 계획 수립 | 선택적 작업)
-  - **현황**: 45개 페이지 중 27개(60%)가 Phase 1 레거시 패턴(setTimeout) 사용 중
-  - **목표**: 표준 패턴(await)으로 점진적 전환 (강제 아님)
-  - **전략**: 다른 작업(버그 수정, UI 개편, 기능 추가)과 병행
+- ✅ **setTimeout 패턴 제거 (Phase 1)** (2025-10-30 완료)
+  - **현황**: 45개 페이지 중 27개(60%) → **0개 (100% 완료)** ✅
+  - **목표**: 표준 패턴(await)으로 전환 → **달성 완료**
   - **작업 완료**:
     1. ✅ 코딩 표준 문서 업데이트 (2025-10-29)
     2. ✅ CLAUDE.md에 레거시 참고 섹션 추가 (2025-10-29)
     3. ✅ 27개 레거시 페이지 목록 작성 및 우선순위 분류 (2025-10-29)
-  - **점진적 마이그레이션 우선순위** (총 27개, 예상 13.25시간):
-    - 🔴 **High (5개, 3시간)**: 기본 통계, 자주 사용
-      - descriptive, anova, correlation, regression, chi-square
-    - 🟡 **Medium (10개, 4.75시간)**: 일반 검정
-      - ks-test, power-analysis, means-plot, repeated-measures, welch-t
-      - one-sample-t, proportion-test, normality-test, frequency-table, cross-tabulation
-    - 🟢 **Low (12개, 5.5시간)**: 고급/특수 통계
-      - sign-test, runs-test, poisson, pca, ordinal-regression, non-parametric
-      - mcnemar, explore-data, discriminant, ancova, wilcoxon (test), mann-whitney (test)
-  - **전환 원칙**:
-    - ✅ **새 페이지**: 반드시 표준 패턴(await) 사용
-    - ✅ **기존 페이지**: 수정 작업 시에만 전환 (버그 수정, UI 개편, 기능 추가 등)
-    - ❌ **독립 리팩토링 프로젝트로 진행 금지**: 강제 전환 불필요 (레거시 패턴도 정상 작동)
-  - **자동화 방안** (선택적):
-    - ESLint 규칙: 새 파일에서 `setTimeout + loadPyodide` 조합 금지 (레거시 디렉터리 제외)
-    - CI/CD: 새 페이지 패턴 검증
-  - **예상 효과**:
-    - 코드 일관성 향상 (신규 코드는 표준 패턴 준수)
-    - UI 반응성 개선 (100ms/1500ms 지연 제거)
-    - 개발자 혼란 감소 (명확한 표준 + 레거시 참고)
-  - **상세 문서**:
-    - [CLAUDE.md](CLAUDE.md) Section 3 "레거시 패턴 참고"
-    - [STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md)
+    4. ✅ **27/27 페이지 setTimeout 제거 완료** (2025-10-30)
+    5. ✅ **isAnalyzing Critical 버그 10개 파일 수정** (2025-10-30)
+    6. ✅ Phase 1 완료 보고서 작성
+    7. ✅ isAnalyzing 트러블슈팅 가이드 작성
+  - **우선순위별 완료 현황**:
+    - ✅ High (5개): descriptive, anova, correlation, regression, chi-square
+    - ✅ Medium (5개): ks-test, power-analysis, means-plot, one-sample-t, normality-test
+    - ✅ Low (17개): repeated-measures, welch-t, sign-test, runs-test, poisson, pca, ordinal-regression, non-parametric, mcnemar, explore-data, discriminant, ancova, proportion-test, frequency-table, cross-tabulation, wilcoxon, mann-whitney
+  - **Critical 버그 수정** (10개 파일):
+    - sign-test, poisson, ordinal-regression (이전 발견 3개)
+    - chi-square-goodness, chi-square-independence, friedman, kruskal-wallis, mann-whitney, mixed-model, reliability (추가 발견 7개)
+    - **패턴**: `actions.setResults() + setCurrentStep()` → `actions.completeAnalysis(result, step)`
+    - **증상**: 분석 버튼 영구 비활성화 (isAnalyzing=true 고정), 재분석 불가능
+    - **해결**: 사용자가 페이지 새로고침 없이 재분석 가능
+  - **성능 개선**:
+    - ✅ UI 반응성 개선 (1500ms 지연 제거 → 즉시 실행)
+    - ✅ 코드 일관성 100% (모든 페이지 표준 패턴 사용)
+    - ✅ React 18 automatic batching 활용 (setTimeout 불필요)
+  - **문서화**:
+    - [phase1-settimeout-removal-complete.md](statistical-platform/docs/phase1-settimeout-removal-complete.md)
+    - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md)
+    - [STATISTICS_PAGE_CODING_STANDARDS.md Section 8](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md)
+  - **Git Commits**:
+    - `527638f` - feat(medium): Medium Priority 5개 setTimeout 제거
+    - `869aba9` - feat(low): Low Priority 일부 setTimeout 제거
+    - `45dd836` - fix(critical): Fix isAnalyzing bug in 7 statistics pages
+- ✅ **AI-First Test Strategy** (2025-10-30 완료)
+  - **Philosophy**: "Tests as Regeneration Recipes, Not Maintained Code"
+  - **작업 완료**:
+    - ✅ 14개 Stale 테스트 삭제 (2,378 lines, TypeScript 에러 869 → 777)
+    - ✅ 5개 Core 테스트 보존 (아키텍처 검증, 성능 테스트)
+    - ✅ 2개 AI 템플릿 생성 (테스트 재생성 가이드)
+  - **효율성**:
+    - 테스트 수정: 4-6시간 → 템플릿 재생성: 30분 (90% 단축)
+    - AI 컨텍스트: 10,000 → 2,500 tokens (75% 감소)
+  - **문서화**:
+    - [__tests__/_templates/README.md](statistical-platform/__tests__/_templates/README.md)
+    - [__tests__/_templates/statistics-page-test.md](statistical-platform/__tests__/_templates/statistics-page-test.md)
+  - **Git Commit**: `8be447b` - refactor(tests): Implement AI-first test strategy (Option C)
 - ✅ 코드 정리
   - 사용하지 않는 import 제거
   - Dead code 제거 (주석 처리된 코드, 미사용 함수)
