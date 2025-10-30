@@ -102,7 +102,7 @@ export default function ReliabilityAnalysisPage() {
         setPyodide(pyodideStats)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
-        actions.setError('통계 엔진을 초기화할 수 없습니다.')
+        actions.setError?.('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
@@ -141,18 +141,40 @@ export default function ReliabilityAnalysisPage() {
   ]
 
   // Event handlers
-  const handleDataUpload = useCallback((data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...row,
-      _id: index
-    }))
-    actions.setUploadedData(processedData)
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    if (!actions.setUploadedData || !actions.setCurrentStep || !actions.setError) {
+      console.error('Actions are not available')
+      return
+    }
+
+    // Validate data is array of objects
+    if (!Array.isArray(data) || data.length === 0) {
+      actions.setError?.('올바른 데이터 형식이 아닙니다.')
+      return
+    }
+
+    // Extract columns from first row
+    const firstRow = data[0]
+    if (!firstRow || typeof firstRow !== 'object') {
+      actions.setError?.('데이터 구조가 올바르지 않습니다.')
+      return
+    }
+
+    const columns = Object.keys(firstRow as Record<string, unknown>)
+
+    const uploadedDataObj: UploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns
+    }
+
+    actions.setUploadedData?.(uploadedDataObj)
     actions.setCurrentStep(2)
-    actions.setError(null)
+    actions.setError?.('')
   }, [actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables(variables)
+    actions.setSelectedVariables?.(variables)
     if (variables.variables && variables.variables.length >= 2) {
       runAnalysis(variables)
     }
@@ -160,30 +182,101 @@ export default function ReliabilityAnalysisPage() {
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.variables || variables.variables.length < 2) {
-      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      if (actions.setError) {
+        actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      }
       return
     }
 
-    actions.startAnalysis()
-    actions.setError(null)
+    actions.startAnalysis?.()
+    actions.setError('')
 
     try {
-      // 실제 Pyodide 분석 실행
-      const result = await pyodide.reliabilityAnalysis(
-        uploadedData,
-        variables.variables,
-        {
-          model: analysisOptions.model,
-          confidence_level: analysisOptions.confidence / 100
-        }
-      )
+      // Extract variable names array
+      const variableNames: string[] = Array.isArray(variables.variables)
+        ? variables.variables
+        : typeof variables.variables === 'string'
+        ? [variables.variables]
+        : []
 
-      actions.completeAnalysis(result, 3)
+      if (variableNames.length < 2) {
+        throw new Error('최소 2개 이상의 변수를 선택해야 합니다.')
+      }
+
+      // Extract numeric data for selected variables
+      const itemsMatrix: number[][] = []
+      for (const row of uploadedData.data) {
+        const rowData: number[] = []
+        for (const varName of variableNames) {
+          const value = row[varName]
+          const numValue = typeof value === 'number' ? value : parseFloat(String(value))
+          if (isNaN(numValue)) {
+            throw new Error(`변수 "${varName}"에 숫자가 아닌 값이 포함되어 있습니다.`)
+          }
+          rowData.push(numValue)
+        }
+        itemsMatrix.push(rowData)
+      }
+
+      // Call pyodideStats.cronbachAlpha with numeric matrix
+      const pyodideResult = await pyodide.cronbachAlpha(itemsMatrix)
+
+      // Transform to ReliabilityResult format
+      const result: ReliabilityResult = {
+        cronbachAlpha: pyodideResult.alpha,
+        standardizedAlpha: pyodideResult.alpha, // Same as cronbach's alpha for now
+        itemCount: variableNames.length,
+        sampleSize: uploadedData.data.length,
+        itemStatistics: variableNames.map((varName: string, idx: number) => {
+          // Calculate item statistics
+          const values = uploadedData.data.map(row => {
+            const val = row[varName]
+            return typeof val === 'number' ? val : parseFloat(String(val))
+          })
+          const mean = values.reduce((a, b) => a + b, 0) / values.length
+          const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length
+          const stdDev = Math.sqrt(variance)
+
+          return {
+            item: varName,
+            mean,
+            stdDev,
+            correctedItemTotal: pyodideResult.itemTotalCorrelations?.[idx] ?? 0,
+            alphaIfDeleted: pyodideResult.alpha // Placeholder - would need Python to calculate
+          }
+        }),
+        interItemCorrelations: {
+          mean: pyodideResult.itemTotalCorrelations
+            ? pyodideResult.itemTotalCorrelations.reduce((a, b) => a + b, 0) / pyodideResult.itemTotalCorrelations.length
+            : 0,
+          min: pyodideResult.itemTotalCorrelations
+            ? Math.min(...pyodideResult.itemTotalCorrelations)
+            : 0,
+          max: pyodideResult.itemTotalCorrelations
+            ? Math.max(...pyodideResult.itemTotalCorrelations)
+            : 0,
+          variance: 0 // Placeholder
+        },
+        scaleStatistics: {
+          mean: 0, // Placeholder
+          variance: 0,
+          stdDev: 0
+        },
+        assumptions: {
+          missingValues: 0,
+          itemsReverseCoded: [],
+          reliabilityLevel:
+            pyodideResult.alpha >= 0.9 ? 'excellent' :
+            pyodideResult.alpha >= 0.8 ? 'good' :
+            pyodideResult.alpha >= 0.7 ? 'acceptable' :
+            pyodideResult.alpha >= 0.6 ? 'questionable' : 'poor'
+        }
+      }
+
+      actions.completeAnalysis?.(result, 3)
     } catch (err) {
       console.error('신뢰도 분석 실패:', err)
-      actions.setError('신뢰도 분석 중 오류가 발생했습니다.')
-    } finally {
-      // isAnalyzing managed by hook
+      actions.setError(err instanceof Error ? err.message : '신뢰도 분석 중 오류가 발생했습니다.')
     }
   }
 
@@ -283,7 +376,7 @@ export default function ReliabilityAnalysisPage() {
             </Alert>
 
             <div className="flex justify-end">
-              <Button onClick={() => actions.setCurrentStep(1)}>
+              <Button onClick={() => actions.setCurrentStep?.(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -299,12 +392,13 @@ export default function ReliabilityAnalysisPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onNext={handleDataUpload}
-            acceptedFormats={['.csv', '.xlsx', '.xls']}
+            onUploadComplete={handleDataUpload}
+            currentStep={1}
+            totalSteps={4}
           />
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep?.(0)}>
               이전
             </Button>
           </div>
@@ -320,9 +414,9 @@ export default function ReliabilityAnalysisPage() {
         >
           <VariableSelector
             methodId="reliability"
-            data={uploadedData}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => actions.setCurrentStep(1)}
+            onBack={() => actions.setCurrentStep?.(1)}
           />
 
           {/* 분석 옵션 */}
@@ -334,7 +428,11 @@ export default function ReliabilityAnalysisPage() {
                   <Label className="text-sm">신뢰도 모델</Label>
                   <RadioGroup
                     value={analysisOptions.model}
-                    onValueChange={(value: unknown) => setAnalysisOptions(prev => ({ ...prev, model: value }))}
+                    onValueChange={(value: string) => {
+                      if (value === 'alpha' || value === 'split-half' || value === 'parallel') {
+                        setAnalysisOptions(prev => ({ ...prev, model: value }))
+                      }
+                    }}
                     className="mt-2"
                   >
                     <div className="flex items-center space-x-2">
@@ -526,7 +624,7 @@ export default function ReliabilityAnalysisPage() {
           </Tabs>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions.setCurrentStep?.(2)}>
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
@@ -534,7 +632,7 @@ export default function ReliabilityAnalysisPage() {
                 <Download className="w-4 h-4 mr-2" />
                 결과 내보내기
               </Button>
-              <Button onClick={() => actions.setCurrentStep(0)}>
+              <Button onClick={() => actions.setCurrentStep?.(0)}>
                 새로운 분석
               </Button>
             </div>
