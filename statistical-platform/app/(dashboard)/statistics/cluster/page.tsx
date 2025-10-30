@@ -327,7 +327,7 @@ export default function ClusterAnalysisPage() {
       return
     }
 
-    actions.startAnalysis()()
+    actions.startAnalysis()
 
     try {
       let finalNumClusters = numClusters
