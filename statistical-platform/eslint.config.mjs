@@ -49,6 +49,16 @@ const eslintConfig = [
 
       // React에서 React import 필수 아님 (React 17+)
       "react/react-in-jsx-scope": "off",
+
+      // 🚨 Critical: actions.setResults() 사용 금지 (isAnalyzing 버그 예방)
+      // 참고: statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md
+      "no-restricted-syntax": [
+        "error",
+        {
+          "selector": "CallExpression[callee.object.name='actions'][callee.property.name='setResults']",
+          "message": "❌ Use actions.completeAnalysis() instead of actions.setResults() to properly reset isAnalyzing flag. See: docs/TROUBLESHOOTING_ISANALYZING_BUG.md"
+        }
+      ],
     }
   }
 ];
