@@ -64,7 +64,7 @@ export default function StatisticsLayout({
                   open={openCategories.includes(category.id)}
                   onOpenChange={() => toggleCategory(category.id)}
                 >
-                  <CollapsibleTrigger className="w-full">
+                  <CollapsibleTrigger asChild>
                     <Button
                       variant="ghost"
                       className="w-full justify-between hover:bg-muted/50"
