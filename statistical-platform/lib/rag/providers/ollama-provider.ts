@@ -141,6 +141,121 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     this.isInitialized = false
   }
 
+  /**
+   * 문서 추가 (TODO: Week 2에서 sql.js 연동)
+   */
+  async addDocument(document: {
+    doc_id?: string
+    title: string
+    content: string
+    library: string
+    category?: string | null
+    summary?: string | null
+  }): Promise<string> {
+    if (!this.isInitialized) {
+      throw new Error('OllamaProvider가 초기화되지 않았습니다')
+    }
+
+    // 문서 ID 생성 (제공되지 않은 경우)
+    const docId = document.doc_id || `${document.library}_${Date.now()}`
+
+    // TODO: Week 2에서 sql.js로 DB에 삽입
+    // 현재는 메모리에만 추가
+    const newDoc: DBDocument = {
+      doc_id: docId,
+      title: document.title,
+      content: document.content,
+      library: document.library,
+      category: document.category || null,
+      summary: document.summary || null
+    }
+
+    this.documents.push(newDoc)
+    console.log(`[OllamaProvider] 문서 추가됨: ${docId}`)
+
+    return docId
+  }
+
+  /**
+   * 문서 수정 (TODO: Week 2에서 sql.js 연동)
+   */
+  async updateDocument(
+    docId: string,
+    updates: Partial<Pick<DBDocument, 'title' | 'content' | 'category' | 'summary'>>
+  ): Promise<boolean> {
+    if (!this.isInitialized) {
+      throw new Error('OllamaProvider가 초기화되지 않았습니다')
+    }
+
+    // TODO: Week 2에서 sql.js로 DB 업데이트
+    // 현재는 메모리에서만 수정
+    const docIndex = this.documents.findIndex((doc) => doc.doc_id === docId)
+
+    if (docIndex === -1) {
+      console.warn(`[OllamaProvider] 문서를 찾을 수 없음: ${docId}`)
+      return false
+    }
+
+    // 필드 업데이트
+    if (updates.title !== undefined) {
+      this.documents[docIndex].title = updates.title
+    }
+    if (updates.content !== undefined) {
+      this.documents[docIndex].content = updates.content
+    }
+    if (updates.category !== undefined) {
+      this.documents[docIndex].category = updates.category
+    }
+    if (updates.summary !== undefined) {
+      this.documents[docIndex].summary = updates.summary
+    }
+
+    console.log(`[OllamaProvider] 문서 수정됨: ${docId}`)
+    return true
+  }
+
+  /**
+   * 문서 삭제 (TODO: Week 2에서 sql.js 연동)
+   */
+  async deleteDocument(docId: string): Promise<boolean> {
+    if (!this.isInitialized) {
+      throw new Error('OllamaProvider가 초기화되지 않았습니다')
+    }
+
+    // TODO: Week 2에서 sql.js로 DB에서 삭제
+    // 현재는 메모리에서만 삭제
+    const docIndex = this.documents.findIndex((doc) => doc.doc_id === docId)
+
+    if (docIndex === -1) {
+      console.warn(`[OllamaProvider] 문서를 찾을 수 없음: ${docId}`)
+      return false
+    }
+
+    this.documents.splice(docIndex, 1)
+    console.log(`[OllamaProvider] 문서 삭제됨: ${docId}`)
+
+    return true
+  }
+
+  /**
+   * 문서 조회
+   */
+  async getDocument(docId: string): Promise<DBDocument | null> {
+    if (!this.isInitialized) {
+      throw new Error('OllamaProvider가 초기화되지 않았습니다')
+    }
+
+    const doc = this.documents.find((d) => d.doc_id === docId)
+    return doc || null
+  }
+
+  /**
+   * 전체 문서 수 조회
+   */
+  getDocumentCount(): number {
+    return this.documents.length
+  }
+
   async query(context: RAGContext): Promise<RAGResponse> {
     if (!this.isInitialized) {
       throw new Error('OllamaProvider가 초기화되지 않았습니다')
