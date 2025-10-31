@@ -20,7 +20,7 @@ const USER_TRACKS: UserTrack[] = [
     id: 'design',
     title: '실험 설계',
     icon: FlaskConical,
-    journey: '/experimental-design',
+    journey: '/experimental-design-coming-soon',
     color: 'bg-gradient-design',
     comingSoon: true
   },
@@ -57,29 +57,38 @@ export default function HomePage() {
           <div className="grid gap-8 md:grid-cols-2">
             {USER_TRACKS.map((track) => {
               const Icon = track.icon
-              return (
-                <Link key={track.id} href={track.journey}>
-                  <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50 cursor-pointer h-full">
-                    <div
-                      className="absolute inset-0 bg-gradient-to-br opacity-5 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"
-                      style={{ background: `linear-gradient(135deg, var(--primary), var(--primary-foreground))` }}
-                    />
+              const isDisabled = track.comingSoon
 
-                    <div className="relative p-8 flex flex-col items-center justify-center space-y-4 min-h-[200px]">
-                      <div className={`p-4 rounded-xl ${track.color} text-white`}>
-                        <Icon className="w-12 h-12" />
+              return (
+                <div key={track.id}>
+                  {isDisabled ? (
+                    <Card className="relative overflow-hidden border-2 cursor-not-allowed opacity-60 h-full">
+                      <div className="absolute inset-0 bg-gradient-to-br opacity-5 pointer-events-none" />
+                      <div className="relative p-8 flex flex-col items-center justify-center space-y-4 min-h-[200px]">
+                        <div className={`p-4 rounded-xl ${track.color} text-white opacity-50`}>
+                          <Icon className="w-12 h-12" />
+                        </div>
+                        <h3 className="text-2xl font-semibold text-muted-foreground">{track.title}</h3>
+                        <p className="text-sm text-muted-foreground">준비 중</p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-2xl font-semibold">{track.title}</h3>
-                        {track.comingSoon && (
-                          <Badge variant="secondary" className="text-xs">
-                            준비중
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
+                    </Card>
+                  ) : (
+                    <Link href={track.journey}>
+                      <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50 cursor-pointer h-full">
+                        <div
+                          className="absolute inset-0 bg-gradient-to-br opacity-5 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"
+                          style={{ background: `linear-gradient(135deg, var(--primary), var(--primary-foreground))` }}
+                        />
+                        <div className="relative p-8 flex flex-col items-center justify-center space-y-4 min-h-[200px]">
+                          <div className={`p-4 rounded-xl ${track.color} text-white`}>
+                            <Icon className="w-12 h-12" />
+                          </div>
+                          <h3 className="text-2xl font-semibold">{track.title}</h3>
+                        </div>
+                      </Card>
+                    </Link>
+                  )}
+                </div>
               )
             })}
           </div>
