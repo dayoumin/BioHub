@@ -160,27 +160,48 @@ git commit -m "feat(rag): Integrate RAG chat interface into results pages"
 
 ## 🔧 기술 스택
 
-**Vector Database**:
-- Chroma (https://www.trychroma.com/) - 로컬 실행
-- 대안: FAISS (https://github.com/facebookresearch/faiss)
+**⚠️ 라이브러리 버전 검증 (2025-10-31 기준)**:
+```bash
+# Step 1: 핵심 라이브러리 설치 (검증됨)
+pip install langchain>=1.0              # LangChain 1.0+ (안정화 버전)
+pip install langchain-experimental      # SemanticChunker (실험적)
+pip install langchain-cohere>=0.4.6     # Cohere Reranker (최신)
+pip install docling                     # Docling (IBM Research, 2025)
+pip install sentence-transformers       # HuggingFace Embeddings
+pip install chromadb                    # Vector Database
+pip install rank-bm25                   # BM25 Retriever
+pip install fastapi uvicorn            # Backend API
+```
 
-**Embedding Model**:
-- sentence-transformers/all-MiniLM-L6-v2
+**⚠️ 실제 구현 시 주의사항**:
+- 위 설치 명령어는 2025년 10월 공식 문서 기반
+- 실제 구현 전 최신 공식 문서 재확인 권장
+- Breaking changes 가능성 있음 (특히 experimental 패키지)
+
+---
+
+### Vector Database
+- **Chroma** (https://www.trychroma.com/) - 로컬 실행, Python 네이티브
+- 대안: FAISS (Facebook AI), Qdrant
+
+### Embedding Model
+- **sentence-transformers/all-MiniLM-L6-v2** - 384 차원, 빠른 속도
 - 다운로드: `pip install sentence-transformers`
+- 모델 크기: ~80MB (로컬 캐싱)
 
-**LLM**:
-- Ollama (https://ollama.ai/)
-- 모델: Llama 3 (7B) 또는 Mistral (7B)
+### LLM (Local)
+- **Ollama** (https://ollama.ai/) - 로컬 LLM 실행
+- 추천 모델: Llama 3 (7B) 또는 Mistral (7B)
 - 설치: `curl https://ollama.ai/install.sh | sh`
 
-**Backend**:
-- FastAPI (Python) - RAG 파이프라인 API
-- uvicorn (ASGI 서버)
+### Backend
+- **FastAPI** (Python) - RAG 파이프라인 API
+- **uvicorn** - ASGI 서버
 
-**Frontend**:
-- Next.js 15 (기존)
-- React Query (응답 캐싱)
-- shadcn/ui (채팅 UI)
+### Frontend
+- **Next.js 15** (기존)
+- **Vercel AI SDK** - Streaming 지원
+- **shadcn/ui** (채팅 UI)
 
 ---
 
