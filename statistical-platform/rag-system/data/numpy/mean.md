@@ -17,41 +17,24 @@ crawled_date: 2025-10-31
 
 ---
 
-[Skip to main content](https://numpy.org/doc/stable/reference/generated/numpy.mean.html#main-content)
-Back to top `Ctrl`+`K`
 [ ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo.svg) ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo_dark.svg) ](https://numpy.org/doc/stable/index.html)
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * More 
     * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.mean.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.mean.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.mean.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.mean.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.mean.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.mean.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.mean.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.mean.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.mean.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.mean.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.mean.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.mean.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.mean.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.mean.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.mean.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.mean.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.mean.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.mean.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.mean.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.mean.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.mean.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.mean.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.mean.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.mean.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.mean.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.mean.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.mean.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.mean.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.mean.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.mean.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.mean.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.mean.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.mean.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.mean.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.mean.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.mean.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.mean.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.mean.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-Section Navigation
   * [NumPy’s module structure](https://numpy.org/doc/stable/reference/module_structure.html)
 
 
@@ -86,30 +69,7 @@ Section Navigation
     * [Set routines](https://numpy.org/doc/stable/reference/routines.set.html)
     * [Sorting, searching, and counting](https://numpy.org/doc/stable/reference/routines.sort.html)
     * [Statistics](https://numpy.org/doc/stable/reference/routines.statistics.html)
-      * [numpy.ptp](https://numpy.org/doc/stable/reference/generated/numpy.ptp.html)
-      * [numpy.percentile](https://numpy.org/doc/stable/reference/generated/numpy.percentile.html)
-      * [numpy.nanpercentile](https://numpy.org/doc/stable/reference/generated/numpy.nanpercentile.html)
-      * [numpy.quantile](https://numpy.org/doc/stable/reference/generated/numpy.quantile.html)
-      * [numpy.nanquantile](https://numpy.org/doc/stable/reference/generated/numpy.nanquantile.html)
-      * [numpy.median](https://numpy.org/doc/stable/reference/generated/numpy.median.html)
-      * [numpy.average](https://numpy.org/doc/stable/reference/generated/numpy.average.html)
-      * [numpy.mean](https://numpy.org/doc/stable/reference/generated/numpy.mean.html)
-      * [numpy.std](https://numpy.org/doc/stable/reference/generated/numpy.std.html)
-      * [numpy.var](https://numpy.org/doc/stable/reference/generated/numpy.var.html)
-      * [numpy.nanmedian](https://numpy.org/doc/stable/reference/generated/numpy.nanmedian.html)
-      * [numpy.nanmean](https://numpy.org/doc/stable/reference/generated/numpy.nanmean.html)
-      * [numpy.nanstd](https://numpy.org/doc/stable/reference/generated/numpy.nanstd.html)
-      * [numpy.nanvar](https://numpy.org/doc/stable/reference/generated/numpy.nanvar.html)
-      * [numpy.corrcoef](https://numpy.org/doc/stable/reference/generated/numpy.corrcoef.html)
-      * [numpy.correlate](https://numpy.org/doc/stable/reference/generated/numpy.correlate.html)
-      * [numpy.cov](https://numpy.org/doc/stable/reference/generated/numpy.cov.html)
-      * [numpy.histogram](https://numpy.org/doc/stable/reference/generated/numpy.histogram.html)
-      * [numpy.histogram2d](https://numpy.org/doc/stable/reference/generated/numpy.histogram2d.html)
-      * [numpy.histogramdd](https://numpy.org/doc/stable/reference/generated/numpy.histogramdd.html)
-      * [numpy.bincount](https://numpy.org/doc/stable/reference/generated/numpy.bincount.html)
-      * [numpy.histogram_bin_edges](https://numpy.org/doc/stable/reference/generated/numpy.histogram_bin_edges.html)
-      * [numpy.digitize](https://numpy.org/doc/stable/reference/generated/numpy.digitize.html)
-    * [Test support](https://numpy.org/doc/stable/reference/routines.testing.html)
+                                                                                                * [Test support](https://numpy.org/doc/stable/reference/routines.testing.html)
     * [Window functions](https://numpy.org/doc/stable/reference/routines.window.html)
 
 
@@ -130,12 +90,10 @@ Section Navigation
   * [NumPy and SWIG](https://numpy.org/doc/stable/reference/swig.html)
 
 
-  * [ ](https://numpy.org/doc/stable/index.html)
   * [NumPy reference](https://numpy.org/doc/stable/reference/index.html)
   * [Routines and objects by topic](https://numpy.org/doc/stable/reference/routines.html)
   * [Statistics](https://numpy.org/doc/stable/reference/routines.statistics.html)
   * numpy.mean
-
 
 # numpy.mean[#](https://numpy.org/doc/stable/reference/generated/numpy.mean.html#numpy-mean "Link to this heading") 
 
@@ -251,4 +209,4 @@ On this page
 
 Created using [Sphinx](https://www.sphinx-doc.org/) 7.2.6.   
 
-Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1. 
+Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1.

@@ -17,41 +17,24 @@ crawled_date: 2025-10-31
 
 ---
 
-[Skip to main content](https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html#main-content)
-Back to top `Ctrl`+`K`
 [ ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo.svg) ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo_dark.svg) ](https://numpy.org/doc/stable/index.html)
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * More 
     * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.concatenate.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.concatenate.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.concatenate.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.concatenate.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.concatenate.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.concatenate.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.concatenate.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.concatenate.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.concatenate.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.concatenate.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.concatenate.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.concatenate.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.concatenate.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.concatenate.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.concatenate.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.concatenate.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.concatenate.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.concatenate.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.concatenate.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.concatenate.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.concatenate.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.concatenate.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.concatenate.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.concatenate.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.concatenate.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.concatenate.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.concatenate.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.concatenate.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.concatenate.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.concatenate.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.concatenate.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.concatenate.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.concatenate.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.concatenate.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.concatenate.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.concatenate.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-Section Navigation
   * [NumPy’s module structure](https://numpy.org/doc/stable/reference/module_structure.html)
 
 
@@ -65,65 +48,7 @@ Section Navigation
     * [Constants](https://numpy.org/doc/stable/reference/constants.html)
     * [Array creation routines](https://numpy.org/doc/stable/reference/routines.array-creation.html)
     * [Array manipulation routines](https://numpy.org/doc/stable/reference/routines.array-manipulation.html)
-      * [numpy.copyto](https://numpy.org/doc/stable/reference/generated/numpy.copyto.html)
-      * [numpy.ndim](https://numpy.org/doc/stable/reference/generated/numpy.ndim.html)
-      * [numpy.shape](https://numpy.org/doc/stable/reference/generated/numpy.shape.html)
-      * [numpy.size](https://numpy.org/doc/stable/reference/generated/numpy.size.html)
-      * [numpy.reshape](https://numpy.org/doc/stable/reference/generated/numpy.reshape.html)
-      * [numpy.ravel](https://numpy.org/doc/stable/reference/generated/numpy.ravel.html)
-      * [numpy.ndarray.flat](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.flat.html)
-      * [numpy.ndarray.flatten](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.flatten.html)
-      * [numpy.moveaxis](https://numpy.org/doc/stable/reference/generated/numpy.moveaxis.html)
-      * [numpy.rollaxis](https://numpy.org/doc/stable/reference/generated/numpy.rollaxis.html)
-      * [numpy.swapaxes](https://numpy.org/doc/stable/reference/generated/numpy.swapaxes.html)
-      * [numpy.ndarray.T](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.T.html)
-      * [numpy.transpose](https://numpy.org/doc/stable/reference/generated/numpy.transpose.html)
-      * [numpy.permute_dims](https://numpy.org/doc/stable/reference/generated/numpy.permute_dims.html)
-      * [numpy.matrix_transpose](https://numpy.org/doc/stable/reference/generated/numpy.matrix_transpose.html)
-      * [numpy.atleast_1d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_1d.html)
-      * [numpy.atleast_2d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_2d.html)
-      * [numpy.atleast_3d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_3d.html)
-      * [numpy.broadcast](https://numpy.org/doc/stable/reference/generated/numpy.broadcast.html)
-      * [numpy.broadcast_to](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_to.html)
-      * [numpy.broadcast_arrays](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_arrays.html)
-      * [numpy.expand_dims](https://numpy.org/doc/stable/reference/generated/numpy.expand_dims.html)
-      * [numpy.squeeze](https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html)
-      * [numpy.asarray](https://numpy.org/doc/stable/reference/generated/numpy.asarray.html)
-      * [numpy.asanyarray](https://numpy.org/doc/stable/reference/generated/numpy.asanyarray.html)
-      * [numpy.asmatrix](https://numpy.org/doc/stable/reference/generated/numpy.asmatrix.html)
-      * [numpy.asfortranarray](https://numpy.org/doc/stable/reference/generated/numpy.asfortranarray.html)
-      * [numpy.ascontiguousarray](https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html)
-      * [numpy.asarray_chkfinite](https://numpy.org/doc/stable/reference/generated/numpy.asarray_chkfinite.html)
-      * [numpy.require](https://numpy.org/doc/stable/reference/generated/numpy.require.html)
-      * [numpy.concatenate](https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html)
-      * [numpy.concat](https://numpy.org/doc/stable/reference/generated/numpy.concat.html)
-      * [numpy.stack](https://numpy.org/doc/stable/reference/generated/numpy.stack.html)
-      * [numpy.block](https://numpy.org/doc/stable/reference/generated/numpy.block.html)
-      * [numpy.vstack](https://numpy.org/doc/stable/reference/generated/numpy.vstack.html)
-      * [numpy.hstack](https://numpy.org/doc/stable/reference/generated/numpy.hstack.html)
-      * [numpy.dstack](https://numpy.org/doc/stable/reference/generated/numpy.dstack.html)
-      * [numpy.column_stack](https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html)
-      * [numpy.split](https://numpy.org/doc/stable/reference/generated/numpy.split.html)
-      * [numpy.array_split](https://numpy.org/doc/stable/reference/generated/numpy.array_split.html)
-      * [numpy.dsplit](https://numpy.org/doc/stable/reference/generated/numpy.dsplit.html)
-      * [numpy.hsplit](https://numpy.org/doc/stable/reference/generated/numpy.hsplit.html)
-      * [numpy.vsplit](https://numpy.org/doc/stable/reference/generated/numpy.vsplit.html)
-      * [numpy.unstack](https://numpy.org/doc/stable/reference/generated/numpy.unstack.html)
-      * [numpy.tile](https://numpy.org/doc/stable/reference/generated/numpy.tile.html)
-      * [numpy.repeat](https://numpy.org/doc/stable/reference/generated/numpy.repeat.html)
-      * [numpy.delete](https://numpy.org/doc/stable/reference/generated/numpy.delete.html)
-      * [numpy.insert](https://numpy.org/doc/stable/reference/generated/numpy.insert.html)
-      * [numpy.append](https://numpy.org/doc/stable/reference/generated/numpy.append.html)
-      * [numpy.resize](https://numpy.org/doc/stable/reference/generated/numpy.resize.html)
-      * [numpy.trim_zeros](https://numpy.org/doc/stable/reference/generated/numpy.trim_zeros.html)
-      * [numpy.unique](https://numpy.org/doc/stable/reference/generated/numpy.unique.html)
-      * [numpy.pad](https://numpy.org/doc/stable/reference/generated/numpy.pad.html)
-      * [numpy.flip](https://numpy.org/doc/stable/reference/generated/numpy.flip.html)
-      * [numpy.fliplr](https://numpy.org/doc/stable/reference/generated/numpy.fliplr.html)
-      * [numpy.flipud](https://numpy.org/doc/stable/reference/generated/numpy.flipud.html)
-      * [numpy.roll](https://numpy.org/doc/stable/reference/generated/numpy.roll.html)
-      * [numpy.rot90](https://numpy.org/doc/stable/reference/generated/numpy.rot90.html)
-    * [Bit-wise operations](https://numpy.org/doc/stable/reference/routines.bitwise.html)
+                                                                                                                                                                                                                                            * [Bit-wise operations](https://numpy.org/doc/stable/reference/routines.bitwise.html)
     * [String functionality](https://numpy.org/doc/stable/reference/routines.strings.html)
     * [Datetime support functions](https://numpy.org/doc/stable/reference/routines.datetime.html)
     * [Data type routines](https://numpy.org/doc/stable/reference/routines.dtype.html)
@@ -165,12 +90,10 @@ Section Navigation
   * [NumPy and SWIG](https://numpy.org/doc/stable/reference/swig.html)
 
 
-  * [ ](https://numpy.org/doc/stable/index.html)
   * [NumPy reference](https://numpy.org/doc/stable/reference/index.html)
   * [Routines and objects by topic](https://numpy.org/doc/stable/reference/routines.html)
   * [Array manipulation routines](https://numpy.org/doc/stable/reference/routines.array-manipulation.html)
   * numpy.concatenate
-
 
 # numpy.concatenate[#](https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html#numpy-concatenate "Link to this heading") 
 
@@ -310,4 +233,4 @@ On this page
 
 Created using [Sphinx](https://www.sphinx-doc.org/) 7.2.6.   
 
-Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1. 
+Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1.

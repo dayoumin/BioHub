@@ -9,6 +9,8 @@ copyright: (c) 2001-2024, SciPy Developers
 crawled_date: 2025-10-31
 ---
 
+
+
 # scipy.stats.binom_test
 
 **Description**: 이항검정

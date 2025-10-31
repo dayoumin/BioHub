@@ -58,16 +58,60 @@ export const PYODIDE = {
  * Pyodide CDN URL을 동적으로 생성합니다
  * 환경 변수(OVERRIDE_VERSION)가 있으면 우선 사용
  *
+ * 듀얼 모드 지원:
+ * - 온라인 모드 (기본): CDN에서 Pyodide 로드
+ * - 오프라인 모드: 로컬 경로(/pyodide/)에서 Pyodide 로드
+ *   → 환경 변수: NEXT_PUBLIC_PYODIDE_USE_LOCAL=true
+ *
  * @returns 현재 사용 중인 Pyodide CDN URL 객체
+ *
+ * @example
+ * 온라인 배포:
+ * ```bash
+ * # .env.local 없이 빌드
+ * npm run build
+ * # → out/ (~5 MB, CDN 사용)
+ * ```
+ *
+ * 오프라인 배포:
+ * ```bash
+ * # .env.local 생성
+ * echo "NEXT_PUBLIC_PYODIDE_USE_LOCAL=true" > .env.local
+ * # Pyodide 복사
+ * cp -r pyodide/* public/pyodide/
+ * # 빌드
+ * npm run build
+ * # → out/ (~250 MB, Pyodide 포함)
+ * ```
  */
 export function getPyodideCDNUrls() {
+  // 오프라인 모드 체크 (환경 변수)
+  const useLocal = typeof process !== 'undefined'
+    && process.env?.NEXT_PUBLIC_PYODIDE_USE_LOCAL === 'true'
+
+  if (useLocal) {
+    // 오프라인 모드: 로컬 경로 사용
+    const localPath = (typeof process !== 'undefined'
+      && process.env?.NEXT_PUBLIC_PYODIDE_LOCAL_PATH)
+      || '/pyodide/'
+
+    return {
+      version: 'local',
+      indexURL: localPath,
+      scriptURL: `${localPath}pyodide.js`,
+      isLocal: true
+    } as const
+  }
+
+  // 온라인 모드: CDN 사용 (기본)
   const version = PYODIDE.OVERRIDE_VERSION || PYODIDE.VERSION
   const baseUrl = `https://cdn.jsdelivr.net/pyodide/${version}/full`
 
   return {
     version,
     indexURL: `${baseUrl}/`,
-    scriptURL: `${baseUrl}/pyodide.js`
+    scriptURL: `${baseUrl}/pyodide.js`,
+    isLocal: false
   } as const
 }
 

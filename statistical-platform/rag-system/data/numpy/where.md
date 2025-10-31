@@ -17,41 +17,24 @@ crawled_date: 2025-10-31
 
 ---
 
-[Skip to main content](https://numpy.org/doc/stable/reference/generated/numpy.where.html#main-content)
-Back to top `Ctrl`+`K`
 [ ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo.svg) ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo_dark.svg) ](https://numpy.org/doc/stable/index.html)
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * More 
     * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.where.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.where.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.where.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.where.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.where.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.where.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.where.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.where.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.where.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.where.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.where.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.where.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.where.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.where.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.where.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.where.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.where.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.where.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.where.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.where.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.where.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.where.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.where.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.where.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.where.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.where.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.where.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.where.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.where.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.where.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.where.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.where.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.where.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.where.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.where.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.where.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.where.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.where.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-Section Navigation
   * [NumPy’s module structure](https://numpy.org/doc/stable/reference/module_structure.html)
 
 
@@ -85,25 +68,7 @@ Section Navigation
     * [Random sampling](https://numpy.org/doc/stable/reference/random/index.html)
     * [Set routines](https://numpy.org/doc/stable/reference/routines.set.html)
     * [Sorting, searching, and counting](https://numpy.org/doc/stable/reference/routines.sort.html)
-      * [numpy.sort](https://numpy.org/doc/stable/reference/generated/numpy.sort.html)
-      * [numpy.lexsort](https://numpy.org/doc/stable/reference/generated/numpy.lexsort.html)
-      * [numpy.argsort](https://numpy.org/doc/stable/reference/generated/numpy.argsort.html)
-      * [numpy.ndarray.sort](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.sort.html)
-      * [numpy.sort_complex](https://numpy.org/doc/stable/reference/generated/numpy.sort_complex.html)
-      * [numpy.partition](https://numpy.org/doc/stable/reference/generated/numpy.partition.html)
-      * [numpy.argpartition](https://numpy.org/doc/stable/reference/generated/numpy.argpartition.html)
-      * [numpy.argmax](https://numpy.org/doc/stable/reference/generated/numpy.argmax.html)
-      * [numpy.nanargmax](https://numpy.org/doc/stable/reference/generated/numpy.nanargmax.html)
-      * [numpy.argmin](https://numpy.org/doc/stable/reference/generated/numpy.argmin.html)
-      * [numpy.nanargmin](https://numpy.org/doc/stable/reference/generated/numpy.nanargmin.html)
-      * [numpy.argwhere](https://numpy.org/doc/stable/reference/generated/numpy.argwhere.html)
-      * [numpy.nonzero](https://numpy.org/doc/stable/reference/generated/numpy.nonzero.html)
-      * [numpy.flatnonzero](https://numpy.org/doc/stable/reference/generated/numpy.flatnonzero.html)
-      * [numpy.where](https://numpy.org/doc/stable/reference/generated/numpy.where.html)
-      * [numpy.searchsorted](https://numpy.org/doc/stable/reference/generated/numpy.searchsorted.html)
-      * [numpy.extract](https://numpy.org/doc/stable/reference/generated/numpy.extract.html)
-      * [numpy.count_nonzero](https://numpy.org/doc/stable/reference/generated/numpy.count_nonzero.html)
-    * [Statistics](https://numpy.org/doc/stable/reference/routines.statistics.html)
+                                                                            * [Statistics](https://numpy.org/doc/stable/reference/routines.statistics.html)
     * [Test support](https://numpy.org/doc/stable/reference/routines.testing.html)
     * [Window functions](https://numpy.org/doc/stable/reference/routines.window.html)
 
@@ -125,12 +90,10 @@ Section Navigation
   * [NumPy and SWIG](https://numpy.org/doc/stable/reference/swig.html)
 
 
-  * [ ](https://numpy.org/doc/stable/index.html)
   * [NumPy reference](https://numpy.org/doc/stable/reference/index.html)
   * [Routines and objects by topic](https://numpy.org/doc/stable/reference/routines.html)
   * [Indexing routines](https://numpy.org/doc/stable/reference/routines.indexing.html)
   * numpy.where
-
 
 # numpy.where[#](https://numpy.org/doc/stable/reference/generated/numpy.where.html#numpy-where "Link to this heading") 
 
@@ -226,4 +189,4 @@ On this page
 
 Created using [Sphinx](https://www.sphinx-doc.org/) 7.2.6.   
 
-Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1. 
+Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1.

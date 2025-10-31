@@ -17,41 +17,24 @@ crawled_date: 2025-10-31
 
 ---
 
-[Skip to main content](https://numpy.org/doc/stable/reference/generated/numpy.array.html#main-content)
-Back to top `Ctrl`+`K`
 [ ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo.svg) ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo_dark.svg) ](https://numpy.org/doc/stable/index.html)
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * More 
     * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.array.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.array.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.array.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.array.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.array.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.array.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.array.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.array.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.array.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.array.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.array.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.array.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.array.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.array.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.array.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.array.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.array.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.array.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.array.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.array.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.array.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.array.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.array.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.array.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.array.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.array.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.array.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.array.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.array.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.array.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.array.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.array.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.array.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.array.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.array.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.array.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.array.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.array.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-Section Navigation
   * [NumPy’s module structure](https://numpy.org/doc/stable/reference/module_structure.html)
 
 
@@ -64,52 +47,7 @@ Section Navigation
   * [Routines and objects by topic](https://numpy.org/doc/stable/reference/routines.html)
     * [Constants](https://numpy.org/doc/stable/reference/constants.html)
     * [Array creation routines](https://numpy.org/doc/stable/reference/routines.array-creation.html)
-      * [numpy.empty](https://numpy.org/doc/stable/reference/generated/numpy.empty.html)
-      * [numpy.empty_like](https://numpy.org/doc/stable/reference/generated/numpy.empty_like.html)
-      * [numpy.eye](https://numpy.org/doc/stable/reference/generated/numpy.eye.html)
-      * [numpy.identity](https://numpy.org/doc/stable/reference/generated/numpy.identity.html)
-      * [numpy.ones](https://numpy.org/doc/stable/reference/generated/numpy.ones.html)
-      * [numpy.ones_like](https://numpy.org/doc/stable/reference/generated/numpy.ones_like.html)
-      * [numpy.zeros](https://numpy.org/doc/stable/reference/generated/numpy.zeros.html)
-      * [numpy.zeros_like](https://numpy.org/doc/stable/reference/generated/numpy.zeros_like.html)
-      * [numpy.full](https://numpy.org/doc/stable/reference/generated/numpy.full.html)
-      * [numpy.full_like](https://numpy.org/doc/stable/reference/generated/numpy.full_like.html)
-      * [numpy.array](https://numpy.org/doc/stable/reference/generated/numpy.array.html)
-      * [numpy.asarray](https://numpy.org/doc/stable/reference/generated/numpy.asarray.html)
-      * [numpy.asanyarray](https://numpy.org/doc/stable/reference/generated/numpy.asanyarray.html)
-      * [numpy.ascontiguousarray](https://numpy.org/doc/stable/reference/generated/numpy.ascontiguousarray.html)
-      * [numpy.asmatrix](https://numpy.org/doc/stable/reference/generated/numpy.asmatrix.html)
-      * [numpy.astype](https://numpy.org/doc/stable/reference/generated/numpy.astype.html)
-      * [numpy.copy](https://numpy.org/doc/stable/reference/generated/numpy.copy.html)
-      * [numpy.frombuffer](https://numpy.org/doc/stable/reference/generated/numpy.frombuffer.html)
-      * [numpy.from_dlpack](https://numpy.org/doc/stable/reference/generated/numpy.from_dlpack.html)
-      * [numpy.fromfile](https://numpy.org/doc/stable/reference/generated/numpy.fromfile.html)
-      * [numpy.fromfunction](https://numpy.org/doc/stable/reference/generated/numpy.fromfunction.html)
-      * [numpy.fromiter](https://numpy.org/doc/stable/reference/generated/numpy.fromiter.html)
-      * [numpy.fromstring](https://numpy.org/doc/stable/reference/generated/numpy.fromstring.html)
-      * [numpy.loadtxt](https://numpy.org/doc/stable/reference/generated/numpy.loadtxt.html)
-      * [numpy.rec.array](https://numpy.org/doc/stable/reference/generated/numpy.rec.array.html)
-      * [numpy.rec.fromarrays](https://numpy.org/doc/stable/reference/generated/numpy.rec.fromarrays.html)
-      * [numpy.rec.fromrecords](https://numpy.org/doc/stable/reference/generated/numpy.rec.fromrecords.html)
-      * [numpy.rec.fromstring](https://numpy.org/doc/stable/reference/generated/numpy.rec.fromstring.html)
-      * [numpy.rec.fromfile](https://numpy.org/doc/stable/reference/generated/numpy.rec.fromfile.html)
-      * [numpy.char.array](https://numpy.org/doc/stable/reference/generated/numpy.char.array.html)
-      * [numpy.char.asarray](https://numpy.org/doc/stable/reference/generated/numpy.char.asarray.html)
-      * [numpy.arange](https://numpy.org/doc/stable/reference/generated/numpy.arange.html)
-      * [numpy.linspace](https://numpy.org/doc/stable/reference/generated/numpy.linspace.html)
-      * [numpy.logspace](https://numpy.org/doc/stable/reference/generated/numpy.logspace.html)
-      * [numpy.geomspace](https://numpy.org/doc/stable/reference/generated/numpy.geomspace.html)
-      * [numpy.meshgrid](https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html)
-      * [numpy.mgrid](https://numpy.org/doc/stable/reference/generated/numpy.mgrid.html)
-      * [numpy.ogrid](https://numpy.org/doc/stable/reference/generated/numpy.ogrid.html)
-      * [numpy.diag](https://numpy.org/doc/stable/reference/generated/numpy.diag.html)
-      * [numpy.diagflat](https://numpy.org/doc/stable/reference/generated/numpy.diagflat.html)
-      * [numpy.tri](https://numpy.org/doc/stable/reference/generated/numpy.tri.html)
-      * [numpy.tril](https://numpy.org/doc/stable/reference/generated/numpy.tril.html)
-      * [numpy.triu](https://numpy.org/doc/stable/reference/generated/numpy.triu.html)
-      * [numpy.vander](https://numpy.org/doc/stable/reference/generated/numpy.vander.html)
-      * [numpy.bmat](https://numpy.org/doc/stable/reference/generated/numpy.bmat.html)
-    * [Array manipulation routines](https://numpy.org/doc/stable/reference/routines.array-manipulation.html)
+                                                                                                                                                                                        * [Array manipulation routines](https://numpy.org/doc/stable/reference/routines.array-manipulation.html)
     * [Bit-wise operations](https://numpy.org/doc/stable/reference/routines.bitwise.html)
     * [String functionality](https://numpy.org/doc/stable/reference/routines.strings.html)
     * [Datetime support functions](https://numpy.org/doc/stable/reference/routines.datetime.html)
@@ -152,12 +90,10 @@ Section Navigation
   * [NumPy and SWIG](https://numpy.org/doc/stable/reference/swig.html)
 
 
-  * [ ](https://numpy.org/doc/stable/index.html)
   * [NumPy reference](https://numpy.org/doc/stable/reference/index.html)
   * [Routines and objects by topic](https://numpy.org/doc/stable/reference/routines.html)
   * [Array creation routines](https://numpy.org/doc/stable/reference/routines.array-creation.html)
   * numpy.array
-
 
 # numpy.array[#](https://numpy.org/doc/stable/reference/generated/numpy.array.html#numpy-array "Link to this heading") 
 
@@ -320,4 +256,4 @@ On this page
 
 Created using [Sphinx](https://www.sphinx-doc.org/) 7.2.6.   
 
-Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1. 
+Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1.

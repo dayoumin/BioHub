@@ -23,14 +23,13 @@ statsmodels 0.14.4
 Stable
   * [Stable](https://www.statsmodels.org/stable/)
   * [Development](https://www.statsmodels.org/devel/)
-  * [0.13](https://www.statsmodels.org/v0.13.5/)
-  * [0.12](https://www.statsmodels.org/v0.12.2/)
-  * [0.11](https://www.statsmodels.org/v0.11.1/)
-  * [0.10](https://www.statsmodels.org/v0.10.2/)
-  * [0.9](https://www.statsmodels.org/0.9.0/)
-  * [0.8](https://www.statsmodels.org/0.8.0/)
-  * [0.6](https://www.statsmodels.org/0.6.1/)
-
+  * 
+  * 
+  * 
+  * 
+  * 
+  * 
+  *
 
 statsmodels.tsa.stattools.adfuller 
 Type to start searching
@@ -143,14 +142,12 @@ Constant and trend order to include in regression.
   * “n” : no constant, no trend.
 
 
-
 **autolag**{“AIC”, “BIC”, “t-stat”, [`None`](https://docs.python.org/3/library/constants.html#None "\(in Python v3.12\)")} 
     
 Method to use when automatically determining the lag length among the values 0, 1, …, maxlag.
   * If “AIC” (default) or “BIC”, then the number of lags is chosen to minimize the corresponding information criterion.
   * “t-stat” based choice of maxlag. Starts with maxlag and drops a lag until the t-statistic on the last lag length is significant using a 5%-sized test.
   * If None, then the number of included lags is set to maxlag.
-
 
 
 **store**[ bool](https://docs.python.org/3/library/stdtypes.html#bltin-boolean-values "\(in Python v3.12\)") 

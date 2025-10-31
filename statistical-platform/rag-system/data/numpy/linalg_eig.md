@@ -17,41 +17,24 @@ crawled_date: 2025-10-31
 
 ---
 
-[Skip to main content](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html#main-content)
-Back to top `Ctrl`+`K`
 [ ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo.svg) ![NumPy v2.3 Manual - Home](https://numpy.org/doc/stable/_static/numpylogo_dark.svg) ](https://numpy.org/doc/stable/index.html)
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * More 
     * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.linalg.eig.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.linalg.eig.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.linalg.eig.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.linalg.eig.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.linalg.eig.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.linalg.eig.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.linalg.eig.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.linalg.eig.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.linalg.eig.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.linalg.eig.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.linalg.eig.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.linalg.eig.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.linalg.eig.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.linalg.eig.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.linalg.eig.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.linalg.eig.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.linalg.eig.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.linalg.eig.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-  * [ User Guide ](https://numpy.org/doc/stable/user/index.html)
-  * [ API reference ](https://numpy.org/doc/stable/reference/index.html)
-  * [ Building from source ](https://numpy.org/doc/stable/building/index.html)
-  * [ Development ](https://numpy.org/doc/stable/dev/index.html)
-  * [ Release notes ](https://numpy.org/doc/stable/release.html)
   * [ Learn ](https://numpy.org/numpy-tutorials/)
   * [ NEPs ](https://numpy.org/neps)
 
 
-Light Dark System Settings
 2.3 (stable)
 [dev](https://numpy.org/devdocs/reference/generated/numpy.linalg.eig.html)[2.3 (stable)](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html)[2.2](https://numpy.org/doc/2.2/reference/generated/numpy.linalg.eig.html)[2.1](https://numpy.org/doc/2.1/reference/generated/numpy.linalg.eig.html)[2.0](https://numpy.org/doc/2.0/reference/generated/numpy.linalg.eig.html)[1.26](https://numpy.org/doc/1.26/reference/generated/numpy.linalg.eig.html)[1.25](https://numpy.org/doc/1.25/reference/generated/numpy.linalg.eig.html)[1.24](https://numpy.org/doc/1.24/reference/generated/numpy.linalg.eig.html)[1.23](https://numpy.org/doc/1.23/reference/generated/numpy.linalg.eig.html)[1.22](https://numpy.org/doc/1.22/reference/generated/numpy.linalg.eig.html)[1.21](https://numpy.org/doc/1.21/reference/generated/numpy.linalg.eig.html)[1.20](https://numpy.org/doc/1.20/reference/generated/numpy.linalg.eig.html)[1.19](https://numpy.org/doc/1.19/reference/generated/numpy.linalg.eig.html)[1.18](https://numpy.org/doc/1.18/reference/generated/numpy.linalg.eig.html)[1.17](https://numpy.org/doc/1.17/reference/generated/numpy.linalg.eig.html)[1.16](https://numpy.org/doc/1.16/reference/generated/numpy.linalg.eig.html)[1.15](https://numpy.org/doc/1.15/reference/generated/numpy.linalg.eig.html)[1.14](https://numpy.org/doc/1.14/reference/generated/numpy.linalg.eig.html)[1.13](https://numpy.org/doc/1.13/reference/generated/numpy.linalg.eig.html)
-  * [ GitHub](https://github.com/numpy/numpy)
 
 
-Section Navigation
   * [NumPy’s module structure](https://numpy.org/doc/stable/reference/module_structure.html)
 
 
@@ -77,53 +60,7 @@ Section Navigation
     * [Input and output](https://numpy.org/doc/stable/reference/routines.io.html)
     * [Indexing routines](https://numpy.org/doc/stable/reference/routines.indexing.html)
     * [Linear algebra](https://numpy.org/doc/stable/reference/routines.linalg.html)
-      * [numpy.dot](https://numpy.org/doc/stable/reference/generated/numpy.dot.html)
-      * [numpy.linalg.multi_dot](https://numpy.org/doc/stable/reference/generated/numpy.linalg.multi_dot.html)
-      * [numpy.vdot](https://numpy.org/doc/stable/reference/generated/numpy.vdot.html)
-      * [numpy.vecdot](https://numpy.org/doc/stable/reference/generated/numpy.vecdot.html)
-      * [numpy.linalg.vecdot](https://numpy.org/doc/stable/reference/generated/numpy.linalg.vecdot.html)
-      * [numpy.inner](https://numpy.org/doc/stable/reference/generated/numpy.inner.html)
-      * [numpy.outer](https://numpy.org/doc/stable/reference/generated/numpy.outer.html)
-      * [numpy.linalg.outer](https://numpy.org/doc/stable/reference/generated/numpy.linalg.outer.html)
-      * [numpy.matmul](https://numpy.org/doc/stable/reference/generated/numpy.matmul.html)
-      * [numpy.linalg.matmul](https://numpy.org/doc/stable/reference/generated/numpy.linalg.matmul.html)
-      * [numpy.matvec](https://numpy.org/doc/stable/reference/generated/numpy.matvec.html)
-      * [numpy.vecmat](https://numpy.org/doc/stable/reference/generated/numpy.vecmat.html)
-      * [numpy.tensordot](https://numpy.org/doc/stable/reference/generated/numpy.tensordot.html)
-      * [numpy.linalg.tensordot](https://numpy.org/doc/stable/reference/generated/numpy.linalg.tensordot.html)
-      * [numpy.einsum](https://numpy.org/doc/stable/reference/generated/numpy.einsum.html)
-      * [numpy.einsum_path](https://numpy.org/doc/stable/reference/generated/numpy.einsum_path.html)
-      * [numpy.linalg.matrix_power](https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_power.html)
-      * [numpy.kron](https://numpy.org/doc/stable/reference/generated/numpy.kron.html)
-      * [numpy.linalg.cross](https://numpy.org/doc/stable/reference/generated/numpy.linalg.cross.html)
-      * [numpy.linalg.cholesky](https://numpy.org/doc/stable/reference/generated/numpy.linalg.cholesky.html)
-      * [numpy.linalg.qr](https://numpy.org/doc/stable/reference/generated/numpy.linalg.qr.html)
-      * [numpy.linalg.svd](https://numpy.org/doc/stable/reference/generated/numpy.linalg.svd.html)
-      * [numpy.linalg.svdvals](https://numpy.org/doc/stable/reference/generated/numpy.linalg.svdvals.html)
-      * [numpy.linalg.eig](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html)
-      * [numpy.linalg.eigh](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eigh.html)
-      * [numpy.linalg.eigvals](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eigvals.html)
-      * [numpy.linalg.eigvalsh](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eigvalsh.html)
-      * [numpy.linalg.norm](https://numpy.org/doc/stable/reference/generated/numpy.linalg.norm.html)
-      * [numpy.linalg.matrix_norm](https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_norm.html)
-      * [numpy.linalg.vector_norm](https://numpy.org/doc/stable/reference/generated/numpy.linalg.vector_norm.html)
-      * [numpy.linalg.cond](https://numpy.org/doc/stable/reference/generated/numpy.linalg.cond.html)
-      * [numpy.linalg.det](https://numpy.org/doc/stable/reference/generated/numpy.linalg.det.html)
-      * [numpy.linalg.matrix_rank](https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_rank.html)
-      * [numpy.linalg.slogdet](https://numpy.org/doc/stable/reference/generated/numpy.linalg.slogdet.html)
-      * [numpy.trace](https://numpy.org/doc/stable/reference/generated/numpy.trace.html)
-      * [numpy.linalg.trace](https://numpy.org/doc/stable/reference/generated/numpy.linalg.trace.html)
-      * [numpy.linalg.solve](https://numpy.org/doc/stable/reference/generated/numpy.linalg.solve.html)
-      * [numpy.linalg.tensorsolve](https://numpy.org/doc/stable/reference/generated/numpy.linalg.tensorsolve.html)
-      * [numpy.linalg.lstsq](https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html)
-      * [numpy.linalg.inv](https://numpy.org/doc/stable/reference/generated/numpy.linalg.inv.html)
-      * [numpy.linalg.pinv](https://numpy.org/doc/stable/reference/generated/numpy.linalg.pinv.html)
-      * [numpy.linalg.tensorinv](https://numpy.org/doc/stable/reference/generated/numpy.linalg.tensorinv.html)
-      * [numpy.diagonal](https://numpy.org/doc/stable/reference/generated/numpy.diagonal.html)
-      * [numpy.linalg.diagonal](https://numpy.org/doc/stable/reference/generated/numpy.linalg.diagonal.html)
-      * [numpy.linalg.matrix_transpose](https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_transpose.html)
-      * [numpy.linalg.LinAlgError](https://numpy.org/doc/stable/reference/generated/numpy.linalg.LinAlgError.html)
-    * [Logic functions](https://numpy.org/doc/stable/reference/routines.logic.html)
+                                                                                                                                                                                            * [Logic functions](https://numpy.org/doc/stable/reference/routines.logic.html)
     * [Masked array operations](https://numpy.org/doc/stable/reference/routines.ma.html)
     * [Mathematical functions](https://numpy.org/doc/stable/reference/routines.math.html)
     * [Miscellaneous routines](https://numpy.org/doc/stable/reference/routines.other.html)
@@ -153,12 +90,10 @@ Section Navigation
   * [NumPy and SWIG](https://numpy.org/doc/stable/reference/swig.html)
 
 
-  * [ ](https://numpy.org/doc/stable/index.html)
   * [NumPy reference](https://numpy.org/doc/stable/reference/index.html)
   * [NumPy’s module structure](https://numpy.org/doc/stable/reference/module_structure.html)
   * [Linear algebra](https://numpy.org/doc/stable/reference/routines.linalg.html)
   * numpy.linalg.eig
-
 
 # numpy.linalg.eig[#](https://numpy.org/doc/stable/reference/generated/numpy.linalg.eig.html#numpy-linalg-eig "Link to this heading") 
 
@@ -289,4 +224,4 @@ On this page
 
 Created using [Sphinx](https://www.sphinx-doc.org/) 7.2.6.   
 
-Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1. 
+Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1.

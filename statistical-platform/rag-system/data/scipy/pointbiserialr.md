@@ -17,67 +17,18 @@ crawled_date: 2025-10-31
 
 ---
 
-[Skip to main content](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pointbiserialr.html#main-content)
-Back to top `Ctrl`+`K`
-[ ![](https://docs.scipy.org/doc/scipy/_static/logo.svg) ![](https://docs.scipy.org/doc/scipy/_static/logo.svg) SciPy ](https://docs.scipy.org/doc/scipy/index.html)
-  * [ Installing ](https://scipy.org/install/)
-  * [ User Guide ](https://docs.scipy.org/doc/scipy/tutorial/index.html)
-  * [ API reference ](https://docs.scipy.org/doc/scipy/reference/index.html)
-  * [ Building from source ](https://docs.scipy.org/doc/scipy/building/index.html)
-  * [ Development ](https://docs.scipy.org/doc/scipy/dev/index.html)
-  * [ Release notes ](https://docs.scipy.org/doc/scipy/release.html)
+
+Choose version 
 
 
 Choose version 
-Light Dark System Settings
-  * [ GitHub](https://github.com/scipy/scipy)
-  * [ Scientific Python Forum](https://discuss.scientific-python.org/c/contributor/scipy/)
 
 
-  * [ Installing ](https://scipy.org/install/)
-  * [ User Guide ](https://docs.scipy.org/doc/scipy/tutorial/index.html)
-  * [ API reference ](https://docs.scipy.org/doc/scipy/reference/index.html)
-  * [ Building from source ](https://docs.scipy.org/doc/scipy/building/index.html)
-  * [ Development ](https://docs.scipy.org/doc/scipy/dev/index.html)
-  * [ Release notes ](https://docs.scipy.org/doc/scipy/release.html)
-
-
-Choose version 
-Light Dark System Settings
-  * [ GitHub](https://github.com/scipy/scipy)
-  * [ Scientific Python Forum](https://discuss.scientific-python.org/c/contributor/scipy/)
-
-
-Search `Ctrl`+`K`
-Section Navigation
-  * [scipy](https://docs.scipy.org/doc/scipy/reference/main_namespace.html)
-  * [scipy.cluster](https://docs.scipy.org/doc/scipy/reference/cluster.html)
-  * [scipy.constants](https://docs.scipy.org/doc/scipy/reference/constants.html)
-  * [scipy.datasets](https://docs.scipy.org/doc/scipy/reference/datasets.html)
-  * [scipy.differentiate](https://docs.scipy.org/doc/scipy/reference/differentiate.html)
-  * [scipy.fft](https://docs.scipy.org/doc/scipy/reference/fft.html)
-  * [scipy.fftpack](https://docs.scipy.org/doc/scipy/reference/fftpack.html)
-  * [scipy.integrate](https://docs.scipy.org/doc/scipy/reference/integrate.html)
-  * [scipy.interpolate](https://docs.scipy.org/doc/scipy/reference/interpolate.html)
-  * [scipy.io](https://docs.scipy.org/doc/scipy/reference/io.html)
-  * [scipy.linalg](https://docs.scipy.org/doc/scipy/reference/linalg.html)
-  * [scipy.ndimage](https://docs.scipy.org/doc/scipy/reference/ndimage.html)
-  * [scipy.odr](https://docs.scipy.org/doc/scipy/reference/odr.html)
-  * [scipy.optimize](https://docs.scipy.org/doc/scipy/reference/optimize.html)
-  * [scipy.signal](https://docs.scipy.org/doc/scipy/reference/signal.html)
-  * [scipy.sparse](https://docs.scipy.org/doc/scipy/reference/sparse.html)
-  * [scipy.spatial](https://docs.scipy.org/doc/scipy/reference/spatial.html)
-  * [scipy.special](https://docs.scipy.org/doc/scipy/reference/special.html)
-  * [scipy.stats](https://docs.scipy.org/doc/scipy/reference/stats.html)
-
-
-  * [ ](https://docs.scipy.org/doc/scipy/index.html)
-  * [SciPy API](https://docs.scipy.org/doc/scipy/reference/index.html)
-  * [Statistical functions (`scipy.stats`)](https://docs.scipy.org/doc/scipy/reference/stats.html)
   * pointbiserialr
 
 
 scipy.stats.
+
 # pointbiserialr[#](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pointbiserialr.html#pointbiserialr "Link to this heading") 
 
 scipy.stats.pointbiserialr(_x_ , _y_ , _*_ , _axis =0_, _nan_policy ='propagate'_, _keepdims =False_)[[source]](https://github.com/scipy/scipy/blob/v1.16.2/scipy/stats/_stats_py.py#L5443-L5538)[#](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pointbiserialr.html#scipy.stats.pointbiserialr "Link to this definition") 
@@ -107,7 +58,6 @@ Defines how to handle input NaNs.
   * `propagate`: if a NaN is present in the axis slice (e.g. row) along which the statistic is computed, the corresponding entry of the output will be NaN.
   * `omit`: NaNs will be omitted when performing the calculation. If insufficient data remains in the axis slice along which the statistic is computed, the corresponding entry of the output will be NaN.
   * `raise`: if a NaN is present, a `ValueError` will be raised.
-
 
 
 **keepdims** bool, default: False 
@@ -170,4 +120,4 @@ On this page
 
 Created using [Sphinx](https://www.sphinx-doc.org/) 8.1.3.   
 
-Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1. 
+Built with the [PyData Sphinx Theme](https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html) 0.16.1.

@@ -1,0 +1,88 @@
+/**
+ * RAG Provider Base Interface
+ *
+ * 통계 분석 도우미를 위한 RAG 제공자 추상화
+ * Claude API, 로컬 RAG 등 다양한 구현체를 지원
+ */
+
+export interface RAGContext {
+  /** 사용자 쿼리 */
+  query: string
+  /** 통계 메서드 (예: 'tTest', 'linearRegression') */
+  method?: string
+  /** 현재 분석 데이터 (선택) */
+  analysisData?: unknown
+  /** 대화 히스토리 (선택) */
+  conversationHistory?: Array<{
+    role: 'user' | 'assistant'
+    content: string
+  }>
+}
+
+export interface RAGResponse {
+  /** 생성된 응답 */
+  answer: string
+  /** 참조된 문서 (선택) */
+  sources?: Array<{
+    title: string
+    content: string
+    score: number
+  }>
+  /** 사용된 모델 정보 */
+  model: {
+    provider: string
+    embedding?: string
+    inference?: string
+  }
+  /** 응답 메타데이터 */
+  metadata?: {
+    tokensUsed?: number
+    responseTime?: number
+  }
+}
+
+export interface RAGProviderConfig {
+  /** 제공자 이름 */
+  name: string
+  /** API 키 (필요 시) */
+  apiKey?: string
+  /** 커스텀 설정 */
+  options?: Record<string, unknown>
+}
+
+/**
+ * RAG Provider 추상 클래스
+ *
+ * 모든 RAG 제공자는 이 인터페이스를 구현해야 함
+ */
+export abstract class BaseRAGProvider {
+  protected config: RAGProviderConfig
+
+  constructor(config: RAGProviderConfig) {
+    this.config = config
+  }
+
+  /**
+   * 쿼리에 대한 응답 생성
+   */
+  abstract query(context: RAGContext): Promise<RAGResponse>
+
+  /**
+   * Provider 초기화 (선택)
+   */
+  async initialize(): Promise<void> {
+    // 기본 구현: 아무것도 하지 않음
+  }
+
+  /**
+   * Provider 정리 (선택)
+   */
+  async cleanup(): Promise<void> {
+    // 기본 구현: 아무것도 하지 않음
+  }
+
+  /**
+   * Provider 상태 확인
+   */
+  abstract isReady(): Promise<boolean>
+}

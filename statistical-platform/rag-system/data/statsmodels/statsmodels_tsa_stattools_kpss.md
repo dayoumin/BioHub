@@ -23,14 +23,13 @@ statsmodels 0.14.4
 Stable
   * [Stable](https://www.statsmodels.org/stable/)
   * [Development](https://www.statsmodels.org/devel/)
-  * [0.13](https://www.statsmodels.org/v0.13.5/)
-  * [0.12](https://www.statsmodels.org/v0.12.2/)
-  * [0.11](https://www.statsmodels.org/v0.11.1/)
-  * [0.10](https://www.statsmodels.org/v0.10.2/)
-  * [0.9](https://www.statsmodels.org/0.9.0/)
-  * [0.8](https://www.statsmodels.org/0.8.0/)
-  * [0.6](https://www.statsmodels.org/0.6.1/)
-
+  * 
+  * 
+  * 
+  * 
+  * 
+  * 
+  *
 
 statsmodels.tsa.stattools.kpss 
 Type to start searching
@@ -135,7 +134,6 @@ The data series to test.
 The null hypothesis for the KPSS test.
   * “c” : The data is stationary around a constant (default).
   * “ct” : The data is stationary around a trend.
-
 
 
 **nlags**{[`str`](https://docs.python.org/3/library/stdtypes.html#str "\(in Python v3.12\)"), [`int`](https://docs.python.org/3/library/functions.html#int "\(in Python v3.12\)")}, `optional` 

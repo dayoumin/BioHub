@@ -44,7 +44,9 @@
       "Bash(taskkill /F /PID 27604)",
       "Bash(echo:*)",
       "Bash(taskkill:*)",
-      "Bash(C:/Users/User/AppData/Local/Programs/Python/Python313/python.exe scripts/extract_worker_docs.py)"
+      "Bash(C:/Users/User/AppData/Local/Programs/Python/Python313/python.exe scripts/extract_worker_docs.py)",
+      "Bash(C:/Users/User/AppData/Local/Programs/Python/Python313/python.exe:*)",
+      "Bash(ollama list:*)"
     ],
     "deny": [],
     "ask": []

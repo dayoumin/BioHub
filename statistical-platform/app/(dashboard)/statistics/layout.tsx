@@ -1,9 +1,16 @@
+'use client'
+
 import React from 'react'
+import { PyodideProvider } from '@/components/providers/PyodideProvider'
 
 export default function StatisticsLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return <>{children}</>
+  return (
+    <PyodideProvider>
+      {children}
+    </PyodideProvider>
+  )
 }

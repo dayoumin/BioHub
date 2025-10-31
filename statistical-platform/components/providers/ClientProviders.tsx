@@ -2,7 +2,6 @@
 
 import { ReactNode } from 'react'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
-import { PyodideProvider } from './PyodideProvider'
 
 interface ClientProvidersProps {
   children: ReactNode
@@ -16,9 +15,7 @@ export function ClientProviders({ children }: ClientProvidersProps) {
       enableSystem
       disableTransitionOnChange
     >
-      <PyodideProvider>
-        {children}
-      </PyodideProvider>
+      {children}
     </NextThemesProvider>
   )
 }

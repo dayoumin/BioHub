@@ -9,6 +9,8 @@ copyright: (c) 2018-2024, Raphael Vallat
 crawled_date: 2025-10-31
 ---
 
+
+
 # pingouin.compute_effsize
 
 **Description**: 효과 크기 계산 (Cohen's d, Hedges' g 등)

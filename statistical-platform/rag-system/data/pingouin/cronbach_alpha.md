@@ -9,6 +9,8 @@ copyright: (c) 2018-2024, Raphael Vallat
 crawled_date: 2025-10-31
 ---
 
+
+
 # pingouin.cronbach_alpha
 
 **Description**: 크론바흐 알파 (신뢰도)
