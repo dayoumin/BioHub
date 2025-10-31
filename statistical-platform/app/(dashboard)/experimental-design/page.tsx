@@ -85,6 +85,27 @@ const DESIGN_STEPS: StepConfig[] = [
   }
 ]
 
+// 목적별 설계 ID 매핑 (컴포넌트 외부 - 불변)
+const PURPOSE_TO_DESIGN_MAP: Record<string, string> = {
+  'categorical': 'chi-square-design',
+  'causal': 'quasi-experimental',
+  'case-study': 'single-case-design',
+  'time-analysis': 'time-series-design',
+  'survival': 'survival-analysis',
+  'dose-response': 'dose-response',
+  'optimization': 'response-surface'
+} as const
+
+// 집단 구조별 설계 ID 매핑 (컴포넌트 외부 - 불변)
+const GROUPS_TO_DESIGN_MAP: Record<string, string> = {
+  '2x2': 'factorial-2x2',
+  'mixed': 'mixed-design'
+} as const
+
+// 그룹 수 상수
+const MIN_GROUPS_FOR_MEASUREMENT = 2
+const MIN_GROUPS_FOR_MULTIPLE_COMPARISON = 3
+
 export default function ExperimentalDesignPage() {
   const [currentStep, setCurrentStep] = useState<SelectionStep>('purpose')
   const [stepData, setStepData] = useState<StepData>({})
@@ -92,21 +113,6 @@ export default function ExperimentalDesignPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const analysisPath = recommendedDesign?.analysisPath ?? null
-
-  // 연구 세부정보 업데이트 헬퍼 함수
-  // PDF 생성 상수
-  const PDF_CONFIG = {
-    MARGIN: 20,
-    LINE_HEIGHT: 10,
-    SECTION_SPACING: 15,
-    TEXT_WIDTH: 170,
-    LIST_INDENT: 165,
-    MAIN_TITLE_SIZE: 20,
-    SECTION_TITLE_SIZE: 16,
-    SUBSECTION_TITLE_SIZE: 12,
-    BODY_TEXT_SIZE: 10,
-    FOOTER_TEXT_SIZE: 8
-  } as const
 
   // 연구 세부정보 업데이트 헬퍼 함수
   const updateResearchDetails = useCallback((field: keyof ResearchDetails, value: string) => {
@@ -158,7 +164,110 @@ export default function ExperimentalDesignPage() {
     return steps
   }, [stepData, recommendedDesign])
 
-  // 단계별 진행 (handleNext와 동일한 로직 사용)
+  // 설계 추천 로직 (외부 엔진 사용)
+  const getRecommendedDesign = (data: StepData): ExperimentDesign => {
+    // 데이터 검증
+    if (!DesignRecommendationEngine.validate(data)) {
+      throw new Error('필수 데이터가 누락되었습니다')
+    }
+
+    // 추천 엔진 사용
+    const design = DesignRecommendationEngine.recommend(data)
+
+    if (!design) {
+      throw new Error('추천 가능한 실험설계가 없습니다')
+    }
+
+    return design
+  }
+
+  // 공통 단계 전환 로직
+  const processStepTransition = useCallback(async (
+    step: SelectionStep,
+    data: StepData
+  ): Promise<{ nextStep: SelectionStep; design?: ExperimentDesign }> => {
+    // Purpose 단계
+    if (step === 'purpose' && data.purpose) {
+      if (data.purpose === 'compare') {
+        return { nextStep: 'groups' }
+      }
+      if (data.purpose === 'relationship') {
+        return { nextStep: 'relationship-type' }
+      }
+      // 매핑된 설계 ID 조회
+      const designId = PURPOSE_TO_DESIGN_MAP[data.purpose]
+      if (designId) {
+        const design = getDesignById(designId)
+        if (design) {
+          return { nextStep: 'recommendation', design }
+        }
+      }
+      throw new Error(`${data.purpose}에 해당하는 실험설계를 찾을 수 없습니다`)
+    }
+
+    // Groups 단계
+    if (step === 'groups' && data.groups !== undefined) {
+      if (data.groups === MIN_GROUPS_FOR_MEASUREMENT) {
+        return { nextStep: 'measurement' }
+      }
+      // 매핑된 설계 ID 조회
+      const designId = GROUPS_TO_DESIGN_MAP[String(data.groups)]
+      if (designId) {
+        const design = getDesignById(designId)
+        if (design) {
+          return { nextStep: 'recommendation', design }
+        }
+      }
+      // 3개 이상 그룹
+      if (typeof data.groups === 'number' && data.groups >= MIN_GROUPS_FOR_MULTIPLE_COMPARISON) {
+        const design = getRecommendedDesign(data)
+        return { nextStep: 'recommendation', design }
+      }
+      throw new Error('집단 구조에 맞는 실험설계를 찾을 수 없습니다')
+    }
+
+    // Measurement 단계
+    if (step === 'measurement' && data.repeated !== undefined) {
+      if (data.repeated === 'nonparametric') {
+        const design = getDesignById('nonparametric-design')
+        if (design) {
+          return { nextStep: 'recommendation', design }
+        }
+      }
+      if (data.repeated === 'time-series') {
+        const design = getDesignById('repeated-measures-anova')
+        if (design) {
+          return { nextStep: 'recommendation', design }
+        }
+      }
+      // 일반 측정 → 연구 정보 수집
+      return { nextStep: 'research-details' }
+    }
+
+    // Relationship Type 단계
+    if (step === 'relationship-type' && data.relationshipType) {
+      if (data.relationshipType === 'correlation') {
+        const design = getDesignById('correlation-study')
+        if (design) {
+          return { nextStep: 'recommendation', design }
+        }
+      }
+      if (data.relationshipType === 'regression') {
+        return { nextStep: 'research-details' }
+      }
+      throw new Error('관계 분석 유형에 맞는 실험설계를 찾을 수 없습니다')
+    }
+
+    // Research Details 단계
+    if (step === 'research-details' && data.researchDetails?.title && data.researchDetails?.hypothesis) {
+      const design = getRecommendedDesign(data)
+      return { nextStep: 'recommendation', design }
+    }
+
+    throw new Error('단계 전환 중 오류가 발생했습니다')
+  }, [])
+
+  // 단계별 진행 (공통 로직 사용)
   const handleStepComplete = useCallback(async (step: SelectionStep, data: Partial<StepData>) => {
     const newData = { ...stepData, ...data }
     setStepData(newData)
@@ -166,163 +275,17 @@ export default function ExperimentalDesignPage() {
     setError(null)
 
     try {
-      // 다음 단계로 이동 (handleNext와 동일한 로직)
-      if (step === 'purpose') {
-        if (newData.purpose === 'compare') {
-          setCurrentStep('groups')
-        } else if (newData.purpose === 'relationship') {
-          setCurrentStep('relationship-type')
-        } else if (newData.purpose === 'categorical') {
-          const design = getDesignById('chi-square-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('카이제곱 설계를 추천할 수 없습니다')
-          }
-        } else if (newData.purpose === 'causal') {
-          const design = getDesignById('quasi-experimental')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('준실험설계를 추천할 수 없습니다')
-          }
-        } else if (newData.purpose === 'case-study') {
-          const design = getDesignById('single-case-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('단일사례 설계를 추천할 수 없습니다')
-          }
-        } else if (newData.purpose === 'time-analysis') {
-          const design = getDesignById('time-series-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('시계열 설계를 추천할 수 없습니다')
-          }
-        } else if (newData.purpose === 'survival') {
-          const design = getDesignById('survival-analysis')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('생존분석 설계를 추천할 수 없습니다')
-          }
-        } else if (newData.purpose === 'dose-response') {
-          const design = getDesignById('dose-response')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('용량-반응 설계를 추천할 수 없습니다')
-          }
-        } else if (newData.purpose === 'optimization') {
-          const design = getDesignById('response-surface')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('반응표면 설계를 추천할 수 없습니다')
-          }
-        }
-      } else if (step === 'groups') {
-        if (newData.groups === 2) {
-          setCurrentStep('measurement')
-        } else if (newData.groups === '2x2') {
-          const design = getDesignById('factorial-2x2')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('2×2 요인설계를 추천할 수 없습니다')
-          }
-        } else if (newData.groups === 'mixed') {
-          const design = getDesignById('mixed-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('혼합설계를 추천할 수 없습니다')
-          }
-        } else if (typeof newData.groups === 'number' && newData.groups > 2) {
-          const design = getRecommendedDesign(newData)
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('다중 그룹 분석 설계를 추천할 수 없습니다')
-          }
-        }
-      } else if (step === 'measurement') {
-        if (newData.repeated === 'nonparametric') {
-          const design = getDesignById('nonparametric-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('비모수 설계를 추천할 수 없습니다')
-          }
-        } else if (newData.repeated === 'time-series') {
-          const design = getDesignById('repeated-measures-anova')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('반복측정 분산분석 설계를 추천할 수 없습니다')
-          }
-        } else {
-          // 일반적인 측정 방식 완료 후 연구 정보 수집 단계로
-          setCurrentStep('research-details')
-        }
-      } else if (step === 'relationship-type') {
-        if (newData.relationshipType === 'correlation') {
-          const design = getDesignById('correlation-study')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('상관 분석 설계를 추천할 수 없습니다')
-          }
-        } else if (newData.relationshipType === 'regression') {
-          // 관계 분석 유형 완료 후 연구 정보 수집 단계로
-          setCurrentStep('research-details')
-        }
-      } else if (step === 'research-details') {
-        // 연구 정보 수집 완료 후 최종 추천
-        const design = getRecommendedDesign(newData)
-        if (design) {
-          setRecommendedDesign(design)
-          setCurrentStep('recommendation')
-        } else {
-          throw new Error('실험설계를 추천할 수 없습니다')
-        }
+      const result = await processStepTransition(step, newData)
+      setCurrentStep(result.nextStep)
+      if (result.design) {
+        setRecommendedDesign(result.design)
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다')
     } finally {
       setIsLoading(false)
     }
-  }, [stepData])
-
-  // 설계 추천 로직 (외부 엔진 사용)
-  const getRecommendedDesign = (data: StepData): ExperimentDesign | null => {
-    try {
-      // 데이터 검증
-      if (!DesignRecommendationEngine.validate(data)) {
-        throw new Error('필수 데이터가 누락되었습니다')
-      }
-
-      // 추천 엔진 사용
-      return DesignRecommendationEngine.recommend(data)
-    } catch (error) {
-      console.error('실험설계 추천 오류:', error)
-      return null
-    }
-  }
+  }, [stepData, processStepTransition])
 
   // 단계 클릭 핸들러
   const handleStepClick = (stepId: number) => {
@@ -365,138 +328,10 @@ export default function ExperimentalDesignPage() {
     setError(null)
 
     try {
-      if (currentStep === 'purpose' && stepData.purpose) {
-        if (stepData.purpose === 'compare') {
-          setCurrentStep('groups')
-        } else if (stepData.purpose === 'relationship') {
-          setCurrentStep('relationship-type')
-        } else if (stepData.purpose === 'categorical') {
-          const design = getDesignById('chi-square-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('카이제곱 설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.purpose === 'causal') {
-          const design = getDesignById('quasi-experimental')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('준실험설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.purpose === 'case-study') {
-          const design = getDesignById('single-case-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('단일사례 설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.purpose === 'time-analysis') {
-          const design = getDesignById('time-series-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('시계열 설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.purpose === 'survival') {
-          const design = getDesignById('survival-analysis')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('생존분석 설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.purpose === 'dose-response') {
-          const design = getDesignById('dose-response')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('용량-반응 설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.purpose === 'optimization') {
-          const design = getDesignById('response-surface')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('반응표면 설계를 추천할 수 없습니다')
-          }
-        }
-      } else if (currentStep === 'groups' && (typeof stepData.groups === 'number' || stepData.groups === '2x2' || stepData.groups === 'mixed')) {
-        if (stepData.groups === 2) {
-          setCurrentStep('measurement')
-        } else if (stepData.groups === '2x2') {
-          const design = getDesignById('factorial-2x2')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('2×2 요인설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.groups === 'mixed') {
-          const design = getDesignById('mixed-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('혼합설계를 추천할 수 없습니다')
-          }
-        } else if (typeof stepData.groups === 'number' && stepData.groups > 2) {
-          const design = getRecommendedDesign(stepData)
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('다중 그룹 분석 설계를 추천할 수 없습니다')
-          }
-        }
-      } else if (currentStep === 'measurement' && stepData.repeated !== undefined) {
-        if (stepData.repeated === 'nonparametric') {
-          const design = getDesignById('nonparametric-design')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('비모수 설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.repeated === 'time-series') {
-          const design = getDesignById('repeated-measures-anova')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('반복측정 분산분석 설계를 추천할 수 없습니다')
-          }
-        } else {
-          // 일반적인 측정 방식 완료 후 연구 정보 수집 단계로
-          setCurrentStep('research-details')
-        }
-      } else if (currentStep === 'relationship-type' && stepData.relationshipType) {
-        if (stepData.relationshipType === 'correlation') {
-          const design = getDesignById('correlation-study')
-          if (design) {
-            setRecommendedDesign(design)
-            setCurrentStep('recommendation')
-          } else {
-            throw new Error('상관 분석 설계를 추천할 수 없습니다')
-          }
-        } else if (stepData.relationshipType === 'regression') {
-          // 관계 분석 유형 완료 후 연구 정보 수집 단계로
-          setCurrentStep('research-details')
-        }
-      } else if (currentStep === 'research-details' && stepData.researchDetails?.title && stepData.researchDetails?.hypothesis) {
-        const design = getRecommendedDesign(stepData)
-        if (design) {
-          setRecommendedDesign(design)
-          setCurrentStep('recommendation')
-        } else {
-          throw new Error('실험설계를 추천할 수 없습니다')
-        }
+      const result = await processStepTransition(currentStep, stepData)
+      setCurrentStep(result.nextStep)
+      if (result.design) {
+        setRecommendedDesign(result.design)
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다')
@@ -505,380 +340,6 @@ export default function ExperimentalDesignPage() {
     }
   }
 
-  const handleDownloadPlan = useCallback(() => {
-    if (!recommendedDesign) {
-      alert('추천된 실험설계가 없습니다.')
-      return
-    }
-
-    // 동적으로 jsPDF import
-    import('jspdf').then(({ default: jsPDF }) => {
-      const doc = new jsPDF()
-
-      // 한글 폰트 설정을 위한 기본 준비
-      // 기본 폰트로 시작하되, 한글 지원을 위해 UTF-8 인코딩 사용
-
-      // PDF 생성 변수
-      const { MARGIN, LINE_HEIGHT, SECTION_SPACING, TEXT_WIDTH, MAIN_TITLE_SIZE, SECTION_TITLE_SIZE, SUBSECTION_TITLE_SIZE, BODY_TEXT_SIZE } = PDF_CONFIG
-      let currentY = 30
-
-      // 한글 텍스트를 위한 헬퍼 함수
-      const addKoreanText = (text: string, x: number, y: number, maxWidth?: number) => {
-        try {
-          if (maxWidth) {
-            const lines = doc.splitTextToSize(text, maxWidth)
-            doc.text(lines, x, y)
-            return Array.isArray(lines) ? lines.length * LINE_HEIGHT : LINE_HEIGHT
-          } else {
-            doc.text(text, x, y)
-            return LINE_HEIGHT
-          }
-        } catch (error) {
-          // 한글 처리 실패시 영문으로 대체
-          const englishText = text.replace(/[가-힣]/g, '?')
-          doc.text(englishText, x, y)
-          return LINE_HEIGHT
-        }
-      }
-
-      // === PDF 표지 ===
-      // 메인 제목
-      doc.setFontSize(18)
-      doc.setFont('helvetica', 'bold')
-      const mainTitle = stepData.researchDetails?.title || '실험설계 연구계획서'
-      currentY += addKoreanText(mainTitle, MARGIN, currentY, TEXT_WIDTH)
-      currentY += 15
-
-      // 부제목
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'normal')
-      currentY += addKoreanText(`실험설계: ${recommendedDesign.name}`, MARGIN, currentY)
-      currentY += 25
-
-      // 연구 정보 박스
-      doc.setFontSize(10)
-      const today = new Date().toLocaleDateString('ko-KR')
-      currentY += addKoreanText(`작성일: ${today}`, MARGIN, currentY)
-      currentY += addKoreanText(`복잡도: ${recommendedDesign.complexity === 'easy' ? '쉬움' : recommendedDesign.complexity === 'medium' ? '보통' : '어려움'}`, MARGIN, currentY)
-      currentY += addKoreanText(`예상 기간: ${recommendedDesign.duration}`, MARGIN, currentY)
-      currentY += addKoreanText(`권장 표본크기: ${recommendedDesign.sampleSize}`, MARGIN, currentY)
-      currentY += 20
-
-      // === 1. 연구 개요 ===
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('1. 연구 개요', MARGIN, currentY)
-      currentY += 10
-
-      // 1.1 연구 배경 및 목적
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('1.1 연구 배경 및 목적', MARGIN, currentY)
-      currentY += 5
-
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      const contextText = stepData.researchDetails?.researchContext ||
-        `본 연구는 ${recommendedDesign.name}을 활용하여 ${recommendedDesign.description} 연구를 수행하고자 한다. 이를 통해 과학적이고 체계적인 분석을 통한 신뢰할 수 있는 결과를 도출하는 것을 목적으로 한다.`
-      currentY += addKoreanText(contextText, MARGIN, currentY, TEXT_WIDTH)
-      currentY += 10
-
-      // 1.2 연구 가설
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('1.2 연구 가설', MARGIN, currentY)
-      currentY += 5
-
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      const hypothesisText = stepData.researchDetails?.hypothesis ||
-        '본 연구를 통해 설정한 실험 조건과 측정 변수들 간에 통계적으로 유의미한 관계가 존재할 것이다.'
-      currentY += addKoreanText(hypothesisText, MARGIN, currentY, TEXT_WIDTH)
-      currentY += 10
-
-      // 1.3 연구 변수
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('1.3 연구 변수', MARGIN, currentY)
-      currentY += 5
-
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      if (stepData.researchDetails?.independentVariable) {
-        currentY += addKoreanText(`독립변수: ${stepData.researchDetails.independentVariable}`, MARGIN + 10, currentY)
-      }
-      if (stepData.researchDetails?.dependentVariable) {
-        currentY += addKoreanText(`종속변수: ${stepData.researchDetails.dependentVariable}`, MARGIN + 10, currentY)
-      }
-      currentY += 15
-
-      // === 2. 실험 설계 ===
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('2. 실험 설계', MARGIN, currentY)
-      currentY += 10
-
-      // 2.1 설계 개요
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('2.1 설계 개요', MARGIN, currentY)
-      currentY += 5
-
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      currentY += addKoreanText(`선택된 실험설계: ${recommendedDesign.name}`, MARGIN, currentY)
-      currentY += addKoreanText(`설계 설명: ${recommendedDesign.description}`, MARGIN, currentY, TEXT_WIDTH)
-      currentY += addKoreanText(`복잡도 수준: ${recommendedDesign.complexity === 'easy' ? '초급' : recommendedDesign.complexity === 'medium' ? '중급' : '고급'}`, MARGIN, currentY)
-      currentY += 15
-
-      // 2.2 통계 분석 방법
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('2.2 통계 분석 방법', MARGIN, currentY)
-      currentY += 5
-
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      currentY += addKoreanText('적용 가능한 통계 방법:', MARGIN, currentY)
-      recommendedDesign.statisticalTests.forEach((test, index) => {
-        currentY += addKoreanText(`${index + 1}. ${test}`, MARGIN + 15, currentY)
-      })
-      currentY += 15
-
-      // 2.3 가정 및 제약 조건
-      doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('2.3 가정 및 제약 조건', MARGIN, currentY)
-      currentY += 5
-
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      currentY += addKoreanText('통계 분석을 위한 기본 가정:', MARGIN, currentY)
-      recommendedDesign.assumptions.forEach((assumption, index) => {
-        currentY += addKoreanText(`${index + 1}. ${assumption}`, MARGIN + 15, currentY)
-      })
-      currentY += 15
-
-      // 페이지 넘김 체크 (필요시)
-      if (currentY > 250) {
-        doc.addPage()
-        currentY = 30
-      }
-
-      // === 3. 데이터 요구사항 및 수집 계획 ===
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('3. 데이터 요구사항 및 수집 계획', MARGIN, currentY)
-      currentY += 10
-
-      if (recommendedDesign.dataRequirements) {
-        // 3.1 변수 및 측정 계획
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        currentY += addKoreanText('3.1 변수 및 측정 계획', MARGIN, currentY)
-        currentY += 5
-
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'normal')
-        currentY += addKoreanText('변수 유형 및 측정 방법:', MARGIN, currentY)
-        recommendedDesign.dataRequirements.variableTypes.forEach((type, index) => {
-          currentY += addKoreanText(`${index + 1}. ${type}`, MARGIN + 15, currentY, TEXT_WIDTH - 15)
-        })
-        currentY += 10
-
-        // 3.2 데이터 전처리 및 품질 관리
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        currentY += addKoreanText('3.2 데이터 전처리 및 품질 관리', MARGIN, currentY)
-        currentY += 5
-
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'normal')
-        currentY += addKoreanText('필수 전처리 과정:', MARGIN, currentY)
-        recommendedDesign.dataRequirements.preprocessing.forEach((prep, index) => {
-          currentY += addKoreanText(`${index + 1}. ${prep}`, MARGIN + 15, currentY, TEXT_WIDTH - 15)
-        })
-        currentY += 5
-
-        currentY += addKoreanText('결측치 처리 방안:', MARGIN, currentY)
-        recommendedDesign.dataRequirements.missingDataHandling.forEach((handling, index) => {
-          currentY += addKoreanText(`${index + 1}. ${handling}`, MARGIN + 15, currentY, TEXT_WIDTH - 15)
-        })
-        currentY += 10
-
-        // 3.3 표본크기 설계
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        currentY += addKoreanText('3.3 표본크기 설계', MARGIN, currentY)
-        currentY += 5
-
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'normal')
-        currentY += addKoreanText(`권장 최소 표본크기: ${recommendedDesign.dataRequirements.minSampleSize}`, MARGIN, currentY, TEXT_WIDTH)
-        if (stepData.researchDetails?.plannedSampleSize) {
-          currentY += addKoreanText(`계획된 표본크기: ${stepData.researchDetails.plannedSampleSize}`, MARGIN, currentY)
-        }
-        if (stepData.researchDetails?.studyPeriod) {
-          currentY += addKoreanText(`연구 기간: ${stepData.researchDetails.studyPeriod}`, MARGIN, currentY)
-        }
-        currentY += 15
-      }
-
-      // 페이지 넘김 체크
-      if (currentY > 220) {
-        doc.addPage()
-        currentY = 30
-      }
-
-      // === 4. 분석 절차 및 방법론 ===
-      if (recommendedDesign.analysisSteps) {
-        doc.setFontSize(16)
-        doc.setFont('helvetica', 'bold')
-        currentY += addKoreanText('4. 분석 절차 및 방법론', MARGIN, currentY)
-        currentY += 10
-
-        // 4.1 분석 단계
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        currentY += addKoreanText('4.1 분석 단계', MARGIN, currentY)
-        currentY += 5
-
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'normal')
-        recommendedDesign.analysisSteps.sequence.forEach((step, index) => {
-          currentY += addKoreanText(`${index + 1}. ${step}`, MARGIN, currentY, TEXT_WIDTH)
-        })
-        currentY += 10
-
-        // 4.2 진단 및 검증
-        if (recommendedDesign.analysisSteps.diagnostics) {
-          doc.setFontSize(12)
-          doc.setFont('helvetica', 'bold')
-          currentY += addKoreanText('4.2 모델 진단 및 검증', MARGIN, currentY)
-          currentY += 5
-
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'normal')
-          recommendedDesign.analysisSteps.diagnostics.forEach((diagnostic, index) => {
-            currentY += addKoreanText(`${index + 1}. ${diagnostic}`, MARGIN + 10, currentY, TEXT_WIDTH - 10)
-          })
-          currentY += 10
-        }
-
-        // 4.3 사후 검정
-        if (recommendedDesign.analysisSteps.postHocTests) {
-          doc.setFontSize(12)
-          doc.setFont('helvetica', 'bold')
-          currentY += addKoreanText('4.3 사후 검정 및 추가 분석', MARGIN, currentY)
-          currentY += 5
-
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'normal')
-          recommendedDesign.analysisSteps.postHocTests.forEach((test, index) => {
-            currentY += addKoreanText(`${index + 1}. ${test}`, MARGIN + 10, currentY, TEXT_WIDTH - 10)
-          })
-          currentY += 15
-        }
-      }
-
-      // === 5. 결과 보고 계획 ===
-      if (recommendedDesign.reportingFormat) {
-        doc.setFontSize(16)
-        doc.setFont('helvetica', 'bold')
-        currentY += addKoreanText('5. 결과 보고 계획', MARGIN, currentY)
-        currentY += 10
-
-        // 5.1 통계표
-        if (recommendedDesign.reportingFormat.tables) {
-          doc.setFontSize(12)
-          doc.setFont('helvetica', 'bold')
-          currentY += addKoreanText('5.1 제시할 통계표', MARGIN, currentY)
-          currentY += 5
-
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'normal')
-          recommendedDesign.reportingFormat.tables.forEach((table, index) => {
-            currentY += addKoreanText(`${index + 1}. ${table}`, MARGIN + 10, currentY, TEXT_WIDTH - 10)
-          })
-          currentY += 10
-        }
-
-        // 5.2 시각화 자료
-        if (recommendedDesign.reportingFormat.charts) {
-          doc.setFontSize(12)
-          doc.setFont('helvetica', 'bold')
-          currentY += addKoreanText('5.2 시각화 자료', MARGIN, currentY)
-          currentY += 5
-
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'normal')
-          recommendedDesign.reportingFormat.charts.forEach((chart, index) => {
-            currentY += addKoreanText(`${index + 1}. ${chart}`, MARGIN + 10, currentY, TEXT_WIDTH - 10)
-          })
-          currentY += 10
-        }
-
-        // 5.3 핵심 지표
-        if (recommendedDesign.reportingFormat.keyMetrics) {
-          doc.setFontSize(12)
-          doc.setFont('helvetica', 'bold')
-          currentY += addKoreanText('5.3 핵심 통계 지표', MARGIN, currentY)
-          currentY += 5
-
-          doc.setFontSize(10)
-          doc.setFont('helvetica', 'normal')
-          const metricsText = recommendedDesign.reportingFormat.keyMetrics.join(', ')
-          currentY += addKoreanText(`주요 지표: ${metricsText}`, MARGIN + 10, currentY, TEXT_WIDTH - 10)
-          currentY += 15
-        }
-      }
-
-      // === 6. 연구의 한계 및 고려사항 ===
-      doc.setFontSize(16)
-      doc.setFont('helvetica', 'bold')
-      currentY += addKoreanText('6. 연구의 한계 및 고려사항', MARGIN, currentY)
-      currentY += 10
-
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      const limitations = [
-        `본 연구는 ${recommendedDesign.name}을 기반으로 하며, 해당 방법론의 기본 가정들을 충족해야 합니다.`,
-        '표본 크기가 권장 수준보다 작을 경우 통계적 검정력이 저하될 수 있습니다.',
-        '결과의 일반화 가능성은 연구 대상과 환경적 조건을 고려하여 신중히 해석해야 합니다.',
-        '연구 윤리 및 안전 규정을 준수하여 진행해야 합니다.'
-      ]
-
-      limitations.forEach((limitation, index) => {
-        currentY += addKoreanText(`${index + 1}. ${limitation}`, MARGIN, currentY, TEXT_WIDTH)
-        currentY += 5
-      })
-      currentY += 10
-
-      // === 페이지 하단 정보 ===
-      const pageHeight = 297 // A4 높이
-      doc.setFontSize(8)
-      doc.setFont('helvetica', 'normal')
-      addKoreanText(`생성일: ${today}`, MARGIN, pageHeight - 20)
-      addKoreanText('통계 분석 플랫폼 - 실험설계 도구', MARGIN, pageHeight - 10)
-
-      // 생성 날짜
-      const footerY = (doc as any).internal.pageSize.height - 20
-      doc.setFontSize(PDF_CONFIG.FOOTER_TEXT_SIZE)
-      doc.text(`생성일: ${new Date().toLocaleDateString('ko-KR')}`, 20, footerY)
-      doc.text('통계 분석 플랫폼에서 생성됨', 120, footerY)
-
-      // PDF 다운로드
-      const titleForFilename = stepData.researchDetails?.title?.replace(/[^\w\s가-힣]/gi, '').replace(/\s+/g, '_').substring(0, 20) || '실험설계연구계획서'
-      const dateString = new Date().toISOString().split('T')[0]
-      const filename = `${titleForFilename}_${recommendedDesign.name.replace(/[^\w\s가-힣]/gi, '').replace(/\s+/g, '_')}_${dateString}.pdf`
-
-      console.log('PDF 생성 완료:', filename)
-      doc.save(filename)
-    }).catch((error) => {
-      console.error('PDF 생성 중 오류:', error)
-      alert('PDF 생성 중 오류가 발생했습니다.')
-    })
-  }, [recommendedDesign])
 
   // 새로 시작
   const handleRestart = () => {
@@ -890,9 +351,10 @@ export default function ExperimentalDesignPage() {
   }
 
   return (
-    <div className="min-h-screen bg-experimental-gradient dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="container mx-auto px-4 py-8">
-        {/* 헤더 */}
+    <div className="min-h-screen bg-background">
+      {/* 메인 콘텐츠 */}
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* 헤더 섹션 */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-4 mb-4">
             <Link href="/">
@@ -902,13 +364,8 @@ export default function ExperimentalDesignPage() {
               </Button>
             </Link>
           </div>
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <FlaskConical className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold text-experimental-gradient">
-              실험설계 도우미
-            </h1>
-          </div>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">실험설계 도우미</h2>
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             연구 목적에 맞는 최적의 실험설계를 찾고, 표본크기부터 통계분석까지 완벽한 연구계획을 수립하세요
           </p>
         </div>
@@ -1292,7 +749,7 @@ export default function ExperimentalDesignPage() {
                   연구 세부정보를 입력하세요
                 </CardTitle>
                 <CardDescription>
-                  개인화된 연구계획서를 위해 연구의 구체적인 내용을 입력해주세요. 모든 항목이 필수는 아니지만, 더 자세할수록 맞춤형 계획서를 받을 수 있습니다.
+                  개인화된 연구계획서를 위해 연구의 구체적인 내용을 입력해주세요. 모든 항목이 필수는 아니지만, 더 자��할수록 맞춤형 계획서를 받을 수 있습니다.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1391,14 +848,14 @@ export default function ExperimentalDesignPage() {
           {currentStep === 'recommendation' && recommendedDesign && (
             <div className="space-y-6">
               {/* 추천 설계 */}
-              <Card className="border-2 border-experimental-success">
+              <Card className="border-2 border-primary">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
-                      <CheckCircle2 className="w-6 h-6 text-experimental-success" />
+                      <CheckCircle2 className="w-6 h-6 text-primary" />
                       당신에게 맞는 실험 방법
                     </CardTitle>
-                    <Badge className="bg-experimental-success-light text-experimental-success">
+                    <Badge variant="secondary">
                       {recommendedDesign.complexity === 'easy' ? '쉬움' :
                        recommendedDesign.complexity === 'medium' ? '보통' : '어려움'}
                     </Badge>
@@ -1474,22 +931,15 @@ export default function ExperimentalDesignPage() {
                     <Info className="h-4 w-4" />
                     <AlertTitle>다음에 할 일</AlertTitle>
                     <AlertDescription>
-                      1. 연구계획서를 다운로드해서 실험 준비를 하세요<br/>
+                      1. 추천된 실험설계를 참고하여 연구 계획을 세우세요<br/>
                       2. 실험이 끝나면 데이터를 모아서 &ldquo;{recommendedDesign.statisticalTests[0]}&rdquo; 분석을 해보세요<br/>
                       3. 분석 결과가 믿을 만한지 확인하고 의미를 해석해보세요
                     </AlertDescription>
                   </Alert>
 
                   <div className="flex flex-wrap gap-3">
-                    <Button
-                      className="btn-experimental text-white border-0"
-                      onClick={handleDownloadPlan}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      연구계획서 다운로드
-                    </Button>
                     {analysisPath ? (
-                      <Button variant="outline" asChild>
+                      <Button asChild>
                         <Link href={analysisPath}>
                           <Calculator className="w-4 h-4 mr-2" />
                           분석 준비 가이드 보기
@@ -1497,7 +947,6 @@ export default function ExperimentalDesignPage() {
                       </Button>
                     ) : (
                       <Button
-                        variant="outline"
                         disabled
                         title="해당 통계 분석 페이지는 아직 준비 중입니다."
                       >
@@ -1558,11 +1007,11 @@ export default function ExperimentalDesignPage() {
                 <Button
                   onClick={handleNext}
                   disabled={!canGoNext() || isLoading}
-                  className="flex items-center gap-2 btn-experimental text-white border-0"
+                  className="flex items-center gap-2"
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       추천하는 중...
                     </>
                   ) : (
@@ -1601,7 +1050,7 @@ export default function ExperimentalDesignPage() {
             </Card>
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }
