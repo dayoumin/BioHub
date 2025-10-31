@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import Link from 'next/link'
 import {
   Brain,
   Target,
@@ -14,7 +15,8 @@ import {
   Lightbulb,
   MessageSquare,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Home
 } from "lucide-react"
 // import { StatisticalGuidanceComponent } from "@/components/analysis/statistical-guidance"
 // import { StatisticalGuideSystem, FileNamingSystem } from "@/lib/statistical-guide"
@@ -114,16 +116,33 @@ export default function HelpPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-3">
-          <HelpCircle className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">도움말 센터</h1>
+    <div className="min-h-screen bg-background">
+      {/* Sticky Navigation */}
+      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="ghost" size="sm">
+                <Home className="w-4 h-4 mr-2" />
+                홈
+              </Button>
+            </Link>
+            <span className="text-sm text-muted-foreground">|</span>
+            <h1 className="text-lg font-bold">도움말</h1>
+          </div>
         </div>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          통계 분석 플랫폼 사용법과 자주 묻는 질문들을 확인하세요.
-        </p>
-      </div>
+      </nav>
+
+      <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <HelpCircle className="h-8 w-8 text-primary" />
+            <h2 className="text-3xl font-bold">도움말 센터</h2>
+          </div>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            통계 분석 플랫폼 사용법과 자주 묻는 질문들을 확인하세요.
+          </p>
+        </div>
 
       <Tabs defaultValue="getting-started" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
@@ -535,6 +554,7 @@ export default function HelpPage() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 }
