@@ -485,7 +485,7 @@ export default function RegressionPage() {
                   <XAxis dataKey="x" label={{ value: '독립변수', position: 'insideBottom', offset: -5 }} />
                   <YAxis label={{ value: '종속변수', angle: -90, position: 'insideLeft' }} />
                   <Tooltip />
-                  <Scatter name="실제값" fill="#3b82f6" />
+                  <Scatter name="실제값" dataKey="y" fill="#3b82f6" />
                   <Line type="monotone" dataKey="predicted" name="회귀선" stroke="#ef4444" strokeWidth={2} dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -539,7 +539,7 @@ export default function RegressionPage() {
                     <XAxis dataKey="fitted" label={{ value: '적합값', position: 'insideBottom', offset: -5 }} />
                     <YAxis label={{ value: '잔차', angle: -90, position: 'insideLeft' }} />
                     <Tooltip />
-                    <Scatter name="잔차" fill="#3b82f6" />
+                    <Scatter name="잔차" dataKey="residual" fill="#3b82f6" />
                   </ScatterChart>
                 </ResponsiveContainer>
               </TabsContent>
@@ -771,6 +771,13 @@ export default function RegressionPage() {
       showProgress={true}
       showTips={true}
     >
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>분석 오류</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       {currentStep === 0 && renderMethodSelection()}
       {currentStep === 1 && renderDataUpload()}
       {currentStep === 2 && renderVariableSelection()}

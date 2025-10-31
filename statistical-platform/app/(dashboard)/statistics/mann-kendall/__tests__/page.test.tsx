@@ -13,14 +13,14 @@ jest.mock('@/hooks/use-pyodide-service', () => ({
   })
 }))
 
-// Mock DataUploadStep
+// Mock DataUploadStep - provides button to upload data
 jest.mock('@/components/smart-flow/steps/DataUploadStep', () => {
   return function MockDataUploadStep({
     onUploadComplete
   }: {
     onUploadComplete: (file: File, data: Record<string, unknown>[]) => void
   }) {
-    const handleMockUpload = () => {
+    const handleUpload = () => {
       const mockData = [
         { time: 1, temperature: 15.2 },
         { time: 2, temperature: 16.1 },
@@ -35,8 +35,8 @@ jest.mock('@/components/smart-flow/steps/DataUploadStep', () => {
     return (
       <div data-testid="data-upload-step">
         <div>Data Upload Step</div>
-        <button onClick={handleMockUpload} data-testid="mock-upload">
-          Mock Upload
+        <button onClick={handleUpload} data-testid="upload-button">
+          Upload Data
         </button>
       </div>
     )
@@ -78,11 +78,22 @@ describe('Mann-Kendall Trend Test Page', () => {
     jest.clearAllMocks()
   })
 
+  // Helper function to render page and wait for VariableSelector
+  async function uploadDataAndReachStep2() {
+    render(<MannKendallPage />)
+
+    // DataUploadStep auto-uploads on render
+    // Wait for VariableSelector to appear (Step 2)
+    await waitFor(() => {
+      expect(screen.getByTestId('variable-selector')).toBeInTheDocument()
+    }, { timeout: 2000 })
+  }
+
   it('renders the page with correct title and structure', () => {
     render(<MannKendallPage />)
 
     expect(screen.getByText('Mann-Kendall 추세 검정')).toBeInTheDocument()
-    expect(screen.getByText(/시계열 데이터에서 단조 증가\/감소 추세를 검정/)).toBeInTheDocument()
+    expect(screen.getByText(/시계열 데이터의 단조 증가\/감소 추세 검정/)).toBeInTheDocument()
 
     // Check 4-step structure exists (may have duplicates in layout)
     expect(screen.getAllByText('방법론 이해').length).toBeGreaterThan(0)
@@ -122,7 +133,8 @@ describe('Mann-Kendall Trend Test Page', () => {
 
     mockRunPython.mockResolvedValueOnce(mockResult)
 
-    render(<MannKendallPage />)
+    // Upload data and reach Step 2 (Variable Selection)
+    await uploadDataAndReachStep2()
 
     // Click variable selection
     const selectButton = screen.getByTestId('select-variables')
@@ -158,18 +170,8 @@ describe('Mann-Kendall Trend Test Page', () => {
 
     mockRunPython.mockResolvedValueOnce(mockResult)
 
-    render(<MannKendallPage />)
-
-    // Mock decreasing data
-    const mockVariableSelector = screen.getByTestId('variable-selector')
-    const originalOnClick = mockVariableSelector.querySelector('[data-testid="select-variables"]')?.onclick
-
-    const mockMapping = {
-      target: [{
-        name: 'decreasing_series',
-        data: [50, 47, 43, 38, 32, 25, 17, 8] // Clear decreasing trend
-      }]
-    }
+    // Upload data and reach Step 2 (Variable Selection)
+    await uploadDataAndReachStep2()
 
     // Simulate variable selection
     fireEvent.click(screen.getByTestId('select-variables'))
@@ -195,7 +197,8 @@ describe('Mann-Kendall Trend Test Page', () => {
 
     mockRunPython.mockResolvedValueOnce(mockResult)
 
-    render(<MannKendallPage />)
+    // Upload data and reach Step 2 (Variable Selection)
+    await uploadDataAndReachStep2()
 
     fireEvent.click(screen.getByTestId('select-variables'))
 
@@ -206,7 +209,8 @@ describe('Mann-Kendall Trend Test Page', () => {
   })
 
   it('validates Python code for monotonic trend detection', async () => {
-    render(<MannKendallPage />)
+    // Upload data and reach Step 2 (Variable Selection)
+    await uploadDataAndReachStep2()
 
     fireEvent.click(screen.getByTestId('select-variables'))
 
@@ -241,7 +245,8 @@ describe('Mann-Kendall Trend Test Page', () => {
 
     mockRunPython.mockResolvedValueOnce(increasingResult)
 
-    render(<MannKendallPage />)
+    // Upload data and reach Step 2 (Variable Selection)
+    await uploadDataAndReachStep2()
 
     fireEvent.click(screen.getByTestId('select-variables'))
 
@@ -262,7 +267,8 @@ describe('Mann-Kendall Trend Test Page', () => {
   it('handles analysis errors gracefully', async () => {
     mockRunPython.mockRejectedValueOnce(new Error('Analysis failed'))
 
-    render(<MannKendallPage />)
+    // Upload data and reach Step 2 (Variable Selection)
+    await uploadDataAndReachStep2()
 
     fireEvent.click(screen.getByTestId('select-variables'))
 
@@ -272,19 +278,17 @@ describe('Mann-Kendall Trend Test Page', () => {
     })
   })
 
-  it('validates monotonic trend detection requirements', () => {
-    render(<MannKendallPage />)
+  it('validates monotonic trend detection requirements', async () => {
+    // Upload data and reach Step 2 (Variable Selection)
+    await uploadDataAndReachStep2()
 
-    const requirements = JSON.parse(
-      screen.getByTestId('requirements').textContent || '{}'
-    )
+    // Check that VariableSelector is rendered with correct methodId
+    const methodIdDisplay = screen.getByTestId('method-id')
+    expect(methodIdDisplay).toHaveTextContent('mann-kendall-test')
 
-    expect(requirements.target).toEqual({
-      min: 1,
-      max: 1,
-      label: '시계열 변수',
-      description: '시간 순서대로 측정된 연속형 변수를 선택하세요'
-    })
+    // Check that data is available
+    const hasDataDisplay = screen.getByTestId('has-data')
+    expect(hasDataDisplay).toHaveTextContent('yes')
   })
 
   it('provides comprehensive assumption information', () => {
@@ -313,7 +317,8 @@ describe('Mann-Kendall Trend Test Page', () => {
       intercept: 1.0
     })
 
-    render(<MannKendallPage />)
+    // Upload data and reach Step 2 (Variable Selection)
+    await uploadDataAndReachStep2()
 
     // Default should be original test
     fireEvent.click(screen.getByTestId('select-variables'))

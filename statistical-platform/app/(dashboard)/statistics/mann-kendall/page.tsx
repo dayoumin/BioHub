@@ -56,7 +56,14 @@ const MannKendallTest: React.FC<MannKendallTestProps> = ({
   const [result, setResult] = React.useState<MannKendallResult | null>(null)
 
   const handleAnalysis = useCallback(async (variableMapping: VariableMapping) => {
-    if (!variableMapping.target || variableMapping.target.length === 0) {
+    // variable-requirements.ts에서 role='dependent'로 정의되어 있음
+    const dependentVars = Array.isArray(variableMapping.dependent)
+      ? variableMapping.dependent
+      : variableMapping.dependent
+        ? [variableMapping.dependent]
+        : []
+
+    if (!dependentVars || dependentVars.length === 0) {
       const errorMsg = '시계열 변수를 선택해주세요.'
       setError(errorMsg)
       onError(errorMsg)
@@ -75,7 +82,7 @@ const MannKendallTest: React.FC<MannKendallTestProps> = ({
     onAnalysisStart()
 
     try {
-      const targetVariable = variableMapping.target[0]
+      const targetVariable = dependentVars[0]
       const timeData = uploadedData.data.map(row => {
         const value = row[targetVariable]
         return typeof value === 'number' ? value : null
