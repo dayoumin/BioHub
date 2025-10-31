@@ -23,32 +23,48 @@ export default function StatisticsMainPage() {
   const [activeSection, setActiveSection] = useState<string>('')
   const [showScrollTop, setShowScrollTop] = useState(false)
 
-  // 스크롤 위치 감지
+  // Intersection Observer를 사용한 섹션 감지 (성능 개선)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id)
+          }
+        })
+      },
+      {
+        threshold: 0.3, // 섹션의 30%가 보이면 활성화
+        rootMargin: '-80px 0px -50% 0px' // Sticky nav 높이만큼 offset
+      }
+    )
+
+    // 모든 섹션 관찰 시작
+    STATISTICS_MENU.forEach((category) => {
+      const element = document.getElementById(category.id)
+      if (element) {
+        observer.observe(element)
+      }
+    })
+
+    return () => observer.disconnect()
+  }, [])
+
+  // Scroll-to-top 버튼 표시 감지 (별도 이벤트)
   useEffect(() => {
     const handleScroll = () => {
-      // Scroll-to-top 버튼 표시
       setShowScrollTop(window.scrollY > 300)
-
-      // 현재 보이는 섹션 감지 (Intersection Observer로 개선 가능)
-      const sections = STATISTICS_MENU.map(cat => cat.id)
-      for (const sectionId of sections) {
-        const element = document.getElementById(sectionId)
-        if (element) {
-          const rect = element.getBoundingClientRect()
-          if (rect.top <= 150 && rect.bottom >= 150) {
-            setActiveSection(sectionId)
-            break
-          }
-        }
-      }
     }
 
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // 섹션으로 스크롤
+  // 섹션으로 스크롤 + URL Hash 업데이트
   const scrollToSection = (sectionId: string) => {
+    // URL Hash 업데이트 (북마크/공유 가능)
+    window.history.pushState(null, '', `#${sectionId}`)
+
     const element = document.getElementById(sectionId)
     if (element) {
       const offset = 80 // Sticky nav 높이
@@ -63,6 +79,30 @@ export default function StatisticsMainPage() {
       })
     }
   }
+
+  // 초기 로드 시 URL Hash 읽기
+  useEffect(() => {
+    if (window.location.hash) {
+      const sectionId = window.location.hash.slice(1) // "#descriptive" → "descriptive"
+      // 약간의 딜레이 후 스크롤 (페이지 로드 완료 대기)
+      setTimeout(() => {
+        const element = document.getElementById(sectionId)
+        if (element) {
+          const offset = 80
+          const bodyRect = document.body.getBoundingClientRect().top
+          const elementRect = element.getBoundingClientRect().top
+          const elementPosition = elementRect - bodyRect
+          const offsetPosition = elementPosition - offset
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          })
+        }
+      }, 100)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 상단으로 스크롤
   const scrollToTop = () => {
