@@ -1,16 +1,16 @@
 /**
- * Ollama RAG Provider
+ * Ollama RAG Provider (SQLite 연동)
  *
  * Ollama를 사용하는 완전 로컬 RAG 제공자
  * - 임베딩: nomic-embed-text (137M, 빠르고 정확)
- * - 추론: llama3.2 (3B) 또는 qwen2.5 (7B, 한국어 우수)
- * - Vector DB: ChromaDB (브라우저 IndexedDB)
+ * - 추론: qwen2.5 (3B-7B, 한국어 우수)
+ * - Vector DB: SQLite (sql.js로 브라우저에서 실행)
  *
  * 설치:
  * 1. Ollama 설치: https://ollama.com/download
  * 2. 모델 다운로드:
  *    ollama pull nomic-embed-text
- *    ollama pull llama3.2
+ *    ollama pull qwen2.5:3b
  */
 
 import { BaseRAGProvider, RAGContext, RAGResponse, RAGProviderConfig } from './base-provider'
@@ -20,9 +20,9 @@ export interface OllamaProviderConfig extends RAGProviderConfig {
   ollamaEndpoint?: string
   /** 임베딩 모델 (기본: nomic-embed-text) */
   embeddingModel?: string
-  /** 추론 모델 (기본: llama3.2) */
+  /** 추론 모델 (기본: qwen2.5:3b) */
   inferenceModel?: string
-  /** Vector DB 경로 (ChromaDB) */
+  /** SQLite DB 경로 (기본: /rag-data/rag.db) */
   vectorDbPath?: string
   /** Top-K 검색 결과 수 (기본: 5) */
   topK?: number
@@ -40,14 +40,21 @@ interface GenerateResponse {
 }
 
 interface SearchResult {
-  id: string
+  doc_id: string
+  title: string
+  content: string
+  library: string
+  category: string | null
   score: number
-  metadata: {
-    title: string
-    source: string
-    library: string
-  }
-  document: string
+}
+
+interface DBDocument {
+  doc_id: string
+  title: string
+  content: string
+  library: string
+  category: string | null
+  summary: string | null
 }
 
 export class OllamaRAGProvider extends BaseRAGProvider {
@@ -58,16 +65,17 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   private topK: number
   private isInitialized = false
 
-  // Vector DB (나중에 ChromaDB 연동)
-  private vectorDb: unknown = null
+  // SQLite DB (sql.js 사용)
+  private db: unknown = null  // SQL.Database 타입
+  private documents: DBDocument[] = []
 
   constructor(config: OllamaProviderConfig) {
     super(config)
 
     this.ollamaEndpoint = config.ollamaEndpoint || 'http://localhost:11434'
     this.embeddingModel = config.embeddingModel || 'nomic-embed-text'
-    this.inferenceModel = config.inferenceModel || 'llama3.2'
-    this.vectorDbPath = config.vectorDbPath || './rag-system/data/vector_db'
+    this.inferenceModel = config.inferenceModel || 'qwen2.5:3b'
+    this.vectorDbPath = config.vectorDbPath || '/rag-data/rag.db'
     this.topK = config.topK || 5
   }
 
@@ -81,13 +89,11 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         throw new Error('Ollama 서버에 연결할 수 없습니다')
       }
 
-      const data = await response.json()
+      const data = (await response.json()) as { models: Array<{ name: string }> }
       const models = data.models || []
 
       // 2. 임베딩 모델 확인
-      const hasEmbeddingModel = models.some((m: { name: string }) =>
-        m.name.includes(this.embeddingModel)
-      )
+      const hasEmbeddingModel = models.some((m) => m.name.includes(this.embeddingModel))
       if (!hasEmbeddingModel) {
         throw new Error(
           `임베딩 모델 '${this.embeddingModel}'이 설치되지 않았습니다.\n` +
@@ -96,9 +102,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       }
 
       // 3. 추론 모델 확인
-      const hasInferenceModel = models.some((m: { name: string }) =>
-        m.name.includes(this.inferenceModel)
-      )
+      const hasInferenceModel = models.some((m) => m.name.includes(this.inferenceModel))
       if (!hasInferenceModel) {
         throw new Error(
           `추론 모델 '${this.inferenceModel}'이 설치되지 않았습니다.\n` +
@@ -110,8 +114,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       console.log(`  - 임베딩: ${this.embeddingModel}`)
       console.log(`  - 추론: ${this.inferenceModel}`)
 
-      // 4. Vector DB 초기화 (TODO: ChromaDB 연동)
-      // this.vectorDb = await this.initializeVectorDB()
+      // 4. SQLite DB 로드 (sql.js 사용)
+      await this.loadSQLiteDB()
 
       this.isInitialized = true
       console.log('[OllamaProvider] 초기화 완료!')
@@ -126,7 +130,14 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   }
 
   async cleanup(): Promise<void> {
-    // Vector DB 연결 정리 (TODO)
+    // SQLite DB 연결 정리
+    if (this.db) {
+      // sql.js의 close() 메서드 호출 (타입 단언)
+      const sqlDb = this.db as { close: () => void }
+      sqlDb.close()
+      this.db = null
+    }
+    this.documents = []
     this.isInitialized = false
   }
 
@@ -138,13 +149,22 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     const startTime = Date.now()
 
     try {
-      // 1. 쿼리 임베딩 생성
-      console.log('[OllamaProvider] 쿼리 임베딩 생성 중...')
-      const queryEmbedding = await this.generateEmbedding(context.query)
+      // 1. 키워드 검색 (FTS5 사용)
+      console.log('[OllamaProvider] 키워드 검색 중...')
+      const keywordResults = this.searchByKeyword(context.query)
 
-      // 2. Vector DB 검색 (Top-K)
-      console.log(`[OllamaProvider] Vector DB 검색 중 (Top-${this.topK})...`)
-      const searchResults = await this.searchVectorDB(queryEmbedding)
+      // 2. 검색 결과가 없으면 모든 문서에서 검색 (DBDocument → SearchResult 변환)
+      const searchResults: SearchResult[] =
+        keywordResults.length > 0
+          ? keywordResults
+          : this.documents.slice(0, this.topK).map((doc) => ({
+              doc_id: doc.doc_id,
+              title: doc.title,
+              content: doc.content,
+              library: doc.library,
+              category: doc.category,
+              score: 0.5 // 기본 스코어
+            }))
 
       // 3. 관련 문서 컨텍스트 생성
       const contextText = this.buildContext(searchResults, context)
@@ -158,8 +178,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       return {
         answer,
         sources: searchResults.map((result) => ({
-          title: result.metadata.title,
-          content: result.document.slice(0, 200) + '...',
+          title: result.title,
+          content: result.content.slice(0, 200) + '...',
           score: result.score
         })),
         model: {
@@ -179,7 +199,92 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   }
 
   /**
-   * 임베딩 생성
+   * SQLite DB 로드 (sql.js 사용)
+   */
+  private async loadSQLiteDB(): Promise<void> {
+    console.log(`[OllamaProvider] SQLite DB 로드 중: ${this.vectorDbPath}`)
+
+    try {
+      // TODO: Week 2에서 sql.js 연동
+      // 현재는 더미 데이터 사용
+      console.log('[OllamaProvider] ⚠️ sql.js 미연동 - 더미 데이터 사용')
+
+      // 더미 문서 (실제로는 DB에서 로드)
+      this.documents = [
+        {
+          doc_id: 'scipy_ttest_ind',
+          title: 'scipy.stats.ttest_ind',
+          content:
+            'Calculate the T-test for the means of two independent samples of scores. This test assumes that the populations have identical variances.',
+          library: 'scipy',
+          category: 'hypothesis',
+          summary: 'Two independent samples t-test'
+        },
+        {
+          doc_id: 'scipy_mannwhitneyu',
+          title: 'scipy.stats.mannwhitneyu',
+          content:
+            'Compute the Mann-Whitney U statistic. The Mann-Whitney U test is a nonparametric test of the null hypothesis that the distribution underlying sample x is the same as the distribution underlying sample y.',
+          library: 'scipy',
+          category: 'hypothesis',
+          summary: 'Mann-Whitney U test (nonparametric)'
+        },
+        {
+          doc_id: 'numpy_mean',
+          title: 'numpy.mean',
+          content:
+            'Compute the arithmetic mean along the specified axis. Returns the average of the array elements.',
+          library: 'numpy',
+          category: 'descriptive',
+          summary: 'Arithmetic mean'
+        }
+      ]
+
+      console.log(`[OllamaProvider] ✓ ${this.documents.length}개 문서 로드됨`)
+    } catch (error) {
+      throw new Error(
+        `SQLite DB 로드 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      )
+    }
+  }
+
+  /**
+   * 키워드 검색 (FTS5 사용)
+   */
+  private searchByKeyword(query: string): SearchResult[] {
+    // TODO: Week 2에서 FTS5 검색 구현
+    // 현재는 간단한 문자열 매칭 사용
+    console.log(`[OllamaProvider] 키워드 검색: "${query}"`)
+
+    const queryLower = query.toLowerCase()
+    const results: SearchResult[] = []
+
+    for (const doc of this.documents) {
+      const titleMatch = doc.title.toLowerCase().includes(queryLower)
+      const contentMatch = doc.content.toLowerCase().includes(queryLower)
+
+      if (titleMatch || contentMatch) {
+        // 간단한 BM25 스코어 (제목 매칭에 더 높은 가중치)
+        const score = titleMatch ? 0.9 : 0.7
+
+        results.push({
+          doc_id: doc.doc_id,
+          title: doc.title,
+          content: doc.content,
+          library: doc.library,
+          category: doc.category,
+          score
+        })
+      }
+    }
+
+    // 스코어 순 정렬 후 Top-K
+    results.sort((a, b) => b.score - a.score)
+    return results.slice(0, this.topK)
+  }
+
+  /**
+   * 임베딩 생성 (Vector 검색용, Week 2에서 구현)
    */
   private async generateEmbedding(text: string): Promise<number[]> {
     const response = await fetch(`${this.ollamaEndpoint}/api/embeddings`, {
@@ -195,41 +300,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       throw new Error(`임베딩 생성 실패: ${response.statusText}`)
     }
 
-    const data: EmbeddingResponse = await response.json()
+    const data = (await response.json()) as EmbeddingResponse
     return data.embedding
-  }
-
-  /**
-   * Vector DB 검색 (임시 구현 - Week 2에서 ChromaDB 연동)
-   */
-  private async searchVectorDB(queryEmbedding: number[]): Promise<SearchResult[]> {
-    // TODO: Week 2에서 ChromaDB 연동
-    // 현재는 더미 데이터 반환
-
-    console.log('[OllamaProvider] ⚠️ Vector DB 미연동 - 더미 데이터 반환')
-
-    return [
-      {
-        id: 'scipy_ttest_ind',
-        score: 0.92,
-        metadata: {
-          title: 'scipy.stats.ttest_ind',
-          source: 'https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html',
-          library: 'scipy'
-        },
-        document: 'Calculate the T-test for the means of two independent samples...'
-      },
-      {
-        id: 'worker2_t_test',
-        score: 0.87,
-        metadata: {
-          title: 'worker2.t_test',
-          source: 'project/worker2-hypothesis_functions.md',
-          library: 'project'
-        },
-        document: 'def t_test(sample1: List[float], sample2: List[float]) -> Dict...'
-      }
-    ]
   }
 
   /**
@@ -239,8 +311,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     let contextText = '다음은 관련 문서입니다:\n\n'
 
     searchResults.forEach((result, index) => {
-      contextText += `[문서 ${index + 1}] ${result.metadata.title}\n`
-      contextText += `${result.document}\n\n`
+      contextText += `[문서 ${index + 1}] ${result.title}\n`
+      contextText += `${result.content}\n\n`
     })
 
     if (context.method) {
@@ -280,7 +352,7 @@ ${contextText}
         options: {
           temperature: 0.7,
           top_p: 0.9,
-          max_tokens: 1000
+          num_predict: 1000
         }
       })
     })
@@ -289,16 +361,7 @@ ${contextText}
       throw new Error(`응답 생성 실패: ${response.statusText}`)
     }
 
-    const data: GenerateResponse = await response.json()
+    const data = (await response.json()) as GenerateResponse
     return data.response.trim()
-  }
-
-  /**
-   * Vector DB 초기화 (TODO: Week 2에서 구현)
-   */
-  private async initializeVectorDB(): Promise<unknown> {
-    // TODO: ChromaDB 연동
-    console.log('[OllamaProvider] Vector DB 초기화 (미구현)')
-    return null
   }
 }

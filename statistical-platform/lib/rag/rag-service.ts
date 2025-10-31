@@ -1,16 +1,14 @@
 /**
- * RAG Service (통합 레이어)
+ * RAG Service (Ollama 전용)
  *
  * 통계 페이지에서 사용하는 단일 인터페이스
- * 환경 변수로 Provider 선택 가능
+ * 내부망 환경을 위한 완전 로컬 RAG 시스템
  */
 
 import { BaseRAGProvider, RAGContext, RAGResponse } from './providers/base-provider'
-import { ClaudeRAGProvider } from './providers/claude-provider'
-import { LocalRAGProvider } from './providers/local-rag-provider'
 import { OllamaRAGProvider } from './providers/ollama-provider'
 
-export type RAGProviderType = 'claude' | 'local' | 'ollama'
+export type RAGProviderType = 'ollama'
 
 export class RAGService {
   private static instance: RAGService | null = null
@@ -18,8 +16,8 @@ export class RAGService {
   private providerType: RAGProviderType
 
   private constructor() {
-    // 환경 변수로 Provider 선택 (기본: claude)
-    this.providerType = (process.env.NEXT_PUBLIC_RAG_PROVIDER as RAGProviderType) || 'claude'
+    // Ollama Provider 고정 (내부망 전용)
+    this.providerType = 'ollama'
   }
 
   /**
@@ -40,41 +38,20 @@ export class RAGService {
       return // 이미 초기화됨
     }
 
-    console.log(`[RAGService] ${this.providerType} Provider 초기화 중...`)
+    console.log('[RAGService] Ollama Provider 초기화 중...')
 
-    switch (this.providerType) {
-      case 'claude':
-        this.provider = new ClaudeRAGProvider({
-          name: 'Claude',
-          apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || ''
-        })
-        break
-
-      case 'ollama':
-        this.provider = new OllamaRAGProvider({
-          name: 'Ollama (Local)',
-          ollamaEndpoint: process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434',
-          embeddingModel: process.env.NEXT_PUBLIC_OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text',
-          inferenceModel: process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL || 'qwen3:4b-q4_K_M',
-          vectorDbPath: process.env.NEXT_PUBLIC_VECTOR_DB_PATH,
-          topK: parseInt(process.env.NEXT_PUBLIC_TOP_K || '5')
-        })
-        break
-
-      case 'local':
-        this.provider = new LocalRAGProvider({
-          name: 'Local RAG',
-          embeddingModelPath: process.env.NEXT_PUBLIC_EMBEDDING_MODEL_PATH,
-          vectorDbPath: process.env.NEXT_PUBLIC_VECTOR_DB_PATH
-        })
-        break
-
-      default:
-        throw new Error(`지원하지 않는 Provider: ${this.providerType}`)
-    }
+    // Ollama Provider 생성
+    this.provider = new OllamaRAGProvider({
+      name: 'Ollama (Local)',
+      ollamaEndpoint: process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434',
+      embeddingModel: process.env.NEXT_PUBLIC_OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text',
+      inferenceModel: process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL || 'qwen2.5:3b',
+      vectorDbPath: process.env.NEXT_PUBLIC_VECTOR_DB_PATH || '/rag-data/rag.db',
+      topK: parseInt(process.env.NEXT_PUBLIC_TOP_K || '5')
+    })
 
     await this.provider.initialize()
-    console.log(`[RAGService] ${this.providerType} Provider 초기화 완료`)
+    console.log('[RAGService] Ollama Provider 초기화 완료')
   }
 
   /**
@@ -111,21 +88,29 @@ export class RAGService {
   }
 
   /**
-   * Provider 변경 (런타임에 교체)
+   * DB 재구축 (문서 추가/수정 후 호출)
    */
-  async switchProvider(newProvider: RAGProviderType): Promise<void> {
-    console.log(`[RAGService] Provider 변경: ${this.providerType} → ${newProvider}`)
+  async rebuildDatabase(): Promise<void> {
+    console.log('[RAGService] 데이터베이스 재구축 중...')
 
-    // 기존 Provider 정리
     if (this.provider) {
       await this.provider.cleanup()
+      this.provider = null
     }
 
-    this.providerType = newProvider
-    this.provider = null
-
-    // 새 Provider 초기화
     await this.initialize()
+    console.log('[RAGService] 데이터베이스 재구축 완료')
+  }
+
+  /**
+   * 서비스 종료 (리소스 정리)
+   */
+  async shutdown(): Promise<void> {
+    if (this.provider) {
+      await this.provider.cleanup()
+      this.provider = null
+    }
+    RAGService.instance = null
   }
 }
 
@@ -136,4 +121,12 @@ export async function queryRAG(context: RAGContext): Promise<RAGResponse> {
   const ragService = RAGService.getInstance()
   await ragService.initialize()
   return ragService.query(context)
+}
+
+/**
+ * 편의 함수: DB 재구축
+ */
+export async function rebuildRAGDatabase(): Promise<void> {
+  const ragService = RAGService.getInstance()
+  await ragService.rebuildDatabase()
 }

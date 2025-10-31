@@ -1,12 +1,12 @@
 'use client'
 
 /**
- * RAG 시스템 테스트 페이지
+ * RAG 시스템 테스트 페이지 (Ollama 전용)
  *
  * 목적:
- * 1. Claude vs 로컬 RAG 성능 비교
- * 2. 검색 정확도 테스트
- * 3. 응답 품질 평가
+ * 1. Ollama 로컬 RAG 검색 정확도 테스트
+ * 2. 응답 품질 평가
+ * 3. DB 관리 (재구축)
  *
  * 이 페이지는 개발/테스트 전용이며, 프로덕션 빌드에서는 제외됩니다.
  */
@@ -16,17 +16,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react'
-import { queryRAG, RAGService } from '@/lib/rag/rag-service'
-import type { RAGProviderType } from '@/lib/rag/rag-service'
+import { Loader2, XCircle, RefreshCw, Database } from 'lucide-react'
+import { queryRAG, rebuildRAGDatabase } from '@/lib/rag/rag-service'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 
 interface TestResult {
   query: string
-  provider: RAGProviderType
   response: RAGResponse
   timestamp: number
 }
@@ -34,8 +31,8 @@ interface TestResult {
 export default function RAGTestPage() {
   const [query, setQuery] = useState('')
   const [selectedMethod, setSelectedMethod] = useState<string>('')
-  const [selectedProvider, setSelectedProvider] = useState<RAGProviderType>('claude')
   const [isLoading, setIsLoading] = useState(false)
+  const [isRebuilding, setIsRebuilding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<TestResult[]>([])
 
@@ -50,14 +47,6 @@ export default function RAGTestPage() {
     setError(null)
 
     try {
-      // Provider 전환 (필요 시)
-      const ragService = RAGService.getInstance()
-      const currentProvider = ragService.getProviderType()
-
-      if (currentProvider !== selectedProvider) {
-        await ragService.switchProvider(selectedProvider)
-      }
-
       // 쿼리 실행
       const response = await queryRAG({
         query: query.trim(),
@@ -68,7 +57,6 @@ export default function RAGTestPage() {
       setResults((prev) => [
         {
           query: query.trim(),
-          provider: selectedProvider,
           response,
           timestamp: Date.now()
         },
@@ -81,72 +69,63 @@ export default function RAGTestPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [query, selectedMethod, selectedProvider])
+  }, [query, selectedMethod])
 
-  // A/B 테스트 (두 Provider 동시 실행)
-  const handleABTest = useCallback(async () => {
-    if (!query.trim()) {
-      setError('질문을 입력하세요')
-      return
-    }
-
-    setIsLoading(true)
+  // DB 재구축
+  const handleRebuildDatabase = useCallback(async () => {
+    setIsRebuilding(true)
     setError(null)
 
     try {
-      const ragService = RAGService.getInstance()
-
-      // Claude 테스트
-      await ragService.switchProvider('claude')
-      const claudeResponse = await queryRAG({
-        query: query.trim(),
-        method: selectedMethod || undefined
-      })
-
-      // 로컬 RAG 테스트
-      await ragService.switchProvider('local')
-      const localResponse = await queryRAG({
-        query: query.trim(),
-        method: selectedMethod || undefined
-      })
-
-      // 결과 저장 (최신이 위)
-      setResults((prev) => [
-        {
-          query: query.trim(),
-          provider: 'local',
-          response: localResponse,
-          timestamp: Date.now()
-        },
-        {
-          query: query.trim(),
-          provider: 'claude',
-          response: claudeResponse,
-          timestamp: Date.now() - 1 // Claude를 먼저 표시
-        },
-        ...prev
-      ])
-
-      setQuery('')
+      await rebuildRAGDatabase()
+      alert('데이터베이스 재구축 완료!')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류')
+      setError(err instanceof Error ? err.message : '재구축 실패')
     } finally {
-      setIsLoading(false)
+      setIsRebuilding(false)
     }
-  }, [query, selectedMethod])
+  }, [])
 
   return (
     <div className="container mx-auto p-8 max-w-6xl">
       {/* 헤더 */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">RAG 시스템 테스트</h1>
+        <h1 className="text-3xl font-bold mb-2">RAG 시스템 테스트 (Ollama 전용)</h1>
         <p className="text-muted-foreground">
-          Claude API와 로컬 RAG 시스템의 성능을 비교하고 테스트합니다.
+          Ollama 로컬 RAG 시스템의 검색 정확도와 응답 품질을 테스트합니다.
         </p>
         <Badge variant="outline" className="mt-2">
           개발/테스트 전용 페이지
         </Badge>
       </div>
+
+      {/* DB 관리 */}
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>데이터베이스 관리</CardTitle>
+          <CardDescription>문서 추가/수정 후 DB 재구축</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={handleRebuildDatabase}
+            disabled={isRebuilding}
+            variant="outline"
+            className="gap-2"
+          >
+            {isRebuilding ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                재구축 중...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4" />
+                DB 재구축
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* 테스트 입력 */}
       <Card className="mb-8">
@@ -182,25 +161,6 @@ export default function RAGTestPage() {
             />
           </div>
 
-          {/* Provider 선택 */}
-          <div className="space-y-2">
-            <Label>Provider 선택</Label>
-            <RadioGroup
-              value={selectedProvider}
-              onValueChange={(value) => setSelectedProvider(value as RAGProviderType)}
-              disabled={isLoading}
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="claude" id="provider-claude" />
-                <Label htmlFor="provider-claude">Claude API (현재)</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="local" id="provider-local" />
-                <Label htmlFor="provider-local">로컬 RAG (Week 2 이후)</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
           {/* 에러 메시지 */}
           {error && (
             <div className="flex items-center gap-2 text-destructive">
@@ -210,26 +170,19 @@ export default function RAGTestPage() {
           )}
 
           {/* 버튼 */}
-          <div className="flex gap-2">
-            <Button onClick={handleQuery} disabled={isLoading || !query.trim()}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  처리 중...
-                </>
-              ) : (
-                '쿼리 실행'
-              )}
-            </Button>
-
-            <Button
-              onClick={handleABTest}
-              disabled={isLoading || !query.trim()}
-              variant="outline"
-            >
-              A/B 테스트 (두 Provider 동시)
-            </Button>
-          </div>
+          <Button onClick={handleQuery} disabled={isLoading || !query.trim()}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                처리 중...
+              </>
+            ) : (
+              <>
+                <Database className="mr-2 h-4 w-4" />
+                쿼리 실행
+              </>
+            )}
+          </Button>
         </CardContent>
       </Card>
 
@@ -253,9 +206,7 @@ export default function RAGTestPage() {
                     <div className="space-y-1">
                       <p className="font-medium">{result.query}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Badge variant={result.provider === 'claude' ? 'default' : 'secondary'}>
-                          {result.provider === 'claude' ? 'Claude API' : '로컬 RAG'}
-                        </Badge>
+                        <Badge variant="default">Ollama (Local)</Badge>
                         <span>•</span>
                         <span>{new Date(result.timestamp).toLocaleString('ko-KR')}</span>
                       </div>
@@ -283,7 +234,9 @@ export default function RAGTestPage() {
                             <div key={idx} className="border rounded p-3 space-y-1">
                               <div className="flex items-center justify-between">
                                 <p className="font-medium text-sm">{source.title}</p>
-                                <Badge variant="outline">Score: {source.score.toFixed(3)}</Badge>
+                                {source.score && (
+                                  <Badge variant="outline">Score: {source.score.toFixed(3)}</Badge>
+                                )}
                               </div>
                               <p className="text-sm text-muted-foreground line-clamp-3">
                                 {source.content}
@@ -312,12 +265,6 @@ export default function RAGTestPage() {
                           <div>
                             <p className="text-muted-foreground">Inference Model</p>
                             <p className="font-medium">{result.response.model.inference}</p>
-                          </div>
-                        )}
-                        {result.response.metadata?.tokensUsed && (
-                          <div>
-                            <p className="text-muted-foreground">Tokens Used</p>
-                            <p className="font-medium">{result.response.metadata.tokensUsed}</p>
                           </div>
                         )}
                         {result.response.metadata?.responseTime && (
