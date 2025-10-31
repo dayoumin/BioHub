@@ -75,3 +75,15 @@ Desktop.ini
 *.temp
 # Local settings (personal configurations)
 *.local.json
+
+# Temporary files
+*.tmp
+*.temp
+nul
+
+# Local settings (personal configurations)
+*.local.json
+
+# RAG System generated data
+statistical-platform/rag-system/data/
+statistical-platform/rag-system/test_output.txt
