@@ -34,7 +34,6 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar, ComposedChart } from 'recharts'
 import { cn } from '@/lib/utils'
@@ -353,12 +352,6 @@ export default function RegressionPage() {
 
   const renderVariableSelection = () => {
     if (!uploadedData) return null
-
-    const requirements = getVariableRequirements(
-      regressionType === 'simple' ? 'simpleLinearRegression' :
-      regressionType === 'multiple' ? 'multipleLinearRegression' :
-      'logisticRegression'
-    )
 
     // 변수 타입 자동 감지 (Helper 함수 사용)
     const columns = Object.keys(uploadedData.data[0] || {})
