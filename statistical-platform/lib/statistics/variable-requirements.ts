@@ -1077,6 +1077,26 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
     ],
     notes: ['2x2 교차표 분석', '불일치 셀만 사용']
   },
+  {
+    id: 'mann-kendall-test',
+    name: 'Mann-Kendall 추세 검정',
+    category: 'nonparametric',
+    description: '시계열 데이터의 단조 추세 검정',
+    minSampleSize: 4,
+    assumptions: ['시간 순서 데이터', '독립 관측값'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '시계열 변수',
+        types: ['continuous', 'ordinal'],
+        required: true,
+        multiple: false,
+        description: '추세를 검정할 시계열 데이터',
+        example: '월별 수온, 연도별 강수량'
+      }
+    ],
+    notes: ['정규분포 가정 불필요', 'Sen\'s slope로 추세 크기 추정', '계절성 보정 가능']
+  },
 
   // ========================================
   // 7. 카이제곱 검정 (Chi-square) - 3개

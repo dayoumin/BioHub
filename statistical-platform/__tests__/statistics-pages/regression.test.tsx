@@ -262,26 +262,26 @@ describe('Regression Page - Type Safety Tests', () => {
       const onVariablesSelected = jest.fn()
 
       const props = {
-        methodId: 'simpleLinearRegression',
+        methodId: 'simple-regression',
         data: mockData,
         onVariablesSelected
       }
 
-      expect(props.methodId).toBe('simpleLinearRegression')
+      expect(props.methodId).toBe('simple-regression')
       expect(props.data).toHaveLength(2)
       expect(typeof props.onVariablesSelected).toBe('function')
     })
 
     it('should map regressionType to methodId correctly', () => {
       const typeToMethodId = {
-        simple: 'simpleLinearRegression',
-        multiple: 'multipleLinearRegression',
-        logistic: 'logisticRegression'
+        simple: 'simple-regression',
+        multiple: 'multiple-regression',
+        logistic: 'logistic-regression'
       }
 
-      expect(typeToMethodId.simple).toBe('simpleLinearRegression')
-      expect(typeToMethodId.multiple).toBe('multipleLinearRegression')
-      expect(typeToMethodId.logistic).toBe('logisticRegression')
+      expect(typeToMethodId.simple).toBe('simple-regression')
+      expect(typeToMethodId.multiple).toBe('multiple-regression')
+      expect(typeToMethodId.logistic).toBe('logistic-regression')
     })
   })
 

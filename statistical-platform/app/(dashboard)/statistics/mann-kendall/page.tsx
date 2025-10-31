@@ -216,15 +216,22 @@ else:
         </AlertDescription>
       </Alert>
 
-      {/* TODO: Implement proper variable selection UI */}
       <Card>
         <CardHeader>
           <CardTitle>시계열 변수 선택</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            변수 선택 UI가 구현 예정입니다. 현재는 DataUploadStep에서 업로드된 데이터의 첫 번째 열이 자동으로 사용됩니다.
-          </p>
+          {uploadedData ? (
+            <VariableSelector
+              methodId="mann-kendall-test"
+              data={uploadedData.data}
+              onVariablesSelected={handleAnalysis}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              데이터를 먼저 업로드해주세요.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -629,50 +636,137 @@ export default function MannKendallPage() {
     />
   ), [selectedTest, uploadedData, actions])
 
-  const renderResults = useCallback(() => (
-            <div className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>결과 해석 가이드</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <div>• <strong>추세 결과</strong>: increasing(증가), decreasing(감소), no trend(추세없음)</div>
-                  <div>• <strong>p-value</strong>: 0.05 미만이면 통계적으로 유의한 추세</div>
-                  <div>• <strong>Sen&apos;s slope</strong>: 단위 시간당 변화량 (기울기)</div>
-                  <div>• <strong>Kendall&apos;s Tau</strong>: 추세의 강도 (-1 ~ 1)</div>
-                </AlertDescription>
-              </Alert>
+  const renderResults = useCallback(() => {
+    if (!results) {
+      return (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>결과 없음</AlertTitle>
+          <AlertDescription>
+            분석 결과가 없습니다. 변수를 선택하고 분석을 실행해주세요.
+          </AlertDescription>
+        </Alert>
+      )
+    }
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Sen&apos;s Slope 해석</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm">
-                    <ul className="space-y-1">
-                      <li>• 양수: 증가 추세의 크기</li>
-                      <li>• 음수: 감소 추세의 크기</li>
-                      <li>• 0에 가까움: 추세가 거의 없음</li>
-                      <li>• 단위: (종속변수 단위)/(시간 단위)</li>
-                    </ul>
-                  </CardContent>
-                </Card>
+    const getTrendIcon = (trend: string) => {
+      switch (trend) {
+        case 'increasing': return <TrendingUp className="w-4 h-4 text-green-600" />
+        case 'decreasing': return <TrendingDown className="w-4 h-4 text-red-600" />
+        case 'no trend': return <Minus className="w-4 h-4 text-gray-600" />
+        default: return <Minus className="w-4 h-4 text-gray-600" />
+      }
+    }
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">활용 분야</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm">
-                    <ul className="space-y-1">
-                      <li>• 기후변화 모니터링</li>
-                      <li>• 수질/대기질 추세 분석</li>
-                      <li>• 경제 지표 장기 분석</li>
-                      <li>• 의료 데이터 추세 감지</li>
-                    </ul>
-                  </CardContent>
-                </Card>
+    const getTrendLabel = (trend: string) => {
+      switch (trend) {
+        case 'increasing': return '증가 추세'
+        case 'decreasing': return '감소 추세'
+        case 'no trend': return '추세 없음'
+        default: return '알 수 없음'
+      }
+    }
+
+    const getTrendColor = (trend: string) => {
+      switch (trend) {
+        case 'increasing': return 'bg-green-50 text-green-700 border-green-200'
+        case 'decreasing': return 'bg-red-50 text-red-700 border-red-200'
+        case 'no trend': return 'bg-gray-50 text-gray-700 border-gray-200'
+        default: return 'bg-gray-50 text-gray-700 border-gray-200'
+      }
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* 주요 결과 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">추세 결과</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2">
+                {getTrendIcon(results.trend)}
+                <div>
+                  <div className="text-lg font-semibold">{getTrendLabel(results.trend)}</div>
+                  <Badge className={getTrendColor(results.trend)}>
+                    {results.h ? '유의함' : '유의하지 않음'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">p-value</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {results.p < 0.001 ? '< 0.001' : results.p.toFixed(4)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {results.p < 0.05 ? '통계적으로 유의함' : '통계적으로 유의하지 않음'}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Sen&apos;s Slope</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {results.slope.toFixed(6)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                단위 시간당 변화량
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 상세 통계량 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">상세 통계량</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <div className="text-sm text-muted-foreground">Z-통계량</div>
+                <div className="text-lg font-semibold">{results.z.toFixed(4)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Kendall&apos;s Tau</div>
+                <div className="text-lg font-semibold">{results.tau.toFixed(4)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">S 통계량</div>
+                <div className="text-lg font-semibold">{results.s}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">분산</div>
+                <div className="text-lg font-semibold">{results.var_s.toFixed(2)}</div>
               </div>
             </div>
-  ), [])
+          </CardContent>
+        </Card>
+
+        {/* 해석 가이드 */}
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>결과 해석 가이드</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <div>• <strong>추세 결과</strong>: {getTrendLabel(results.trend)}</div>
+            <div>• <strong>p-value</strong>: {results.p.toFixed(4)} ({results.p < 0.05 ? '유의함' : '유의하지 않음'})</div>
+            <div>• <strong>Sen&apos;s slope</strong>: {results.slope.toFixed(6)} (단위 시간당 변화량)</div>
+            <div>• <strong>Kendall&apos;s Tau</strong>: {results.tau.toFixed(4)} (추세 강도: -1 ~ 1)</div>
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }, [results])
 
   return (
     <StatisticsPageLayout

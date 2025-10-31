@@ -15,28 +15,50 @@ jest.mock('@/hooks/use-pyodide-service', () => ({
 
 // Mock DataUploadStep
 jest.mock('@/components/smart-flow/steps/DataUploadStep', () => {
-  return function MockDataUploadStep() {
-    return <div data-testid="data-upload-step">Data Upload Step</div>
+  return function MockDataUploadStep({
+    onUploadComplete
+  }: {
+    onUploadComplete: (file: File, data: Record<string, unknown>[]) => void
+  }) {
+    const handleMockUpload = () => {
+      const mockData = [
+        { time: 1, temperature: 15.2 },
+        { time: 2, temperature: 16.1 },
+        { time: 3, temperature: 17.5 },
+        { time: 4, temperature: 18.9 },
+        { time: 5, temperature: 19.8 }
+      ]
+      const mockFile = new File([''], 'test.csv')
+      onUploadComplete(mockFile, mockData)
+    }
+
+    return (
+      <div data-testid="data-upload-step">
+        <div>Data Upload Step</div>
+        <button onClick={handleMockUpload} data-testid="mock-upload">
+          Mock Upload
+        </button>
+      </div>
+    )
   }
 })
 
 // Mock VariableSelector
-jest.mock('@/components/variable-selection/VariableSelector', () => {
-  return function MockVariableSelector({
-    onVariableSelect,
-    requirements
+jest.mock('@/components/variable-selection/VariableSelector', () => ({
+  VariableSelector: function MockVariableSelector({
+    onVariablesSelected,
+    methodId,
+    data
   }: {
-    onVariableSelect: (mapping: unknown) => void
-    requirements: unknown
+    onVariablesSelected: (mapping: unknown) => void
+    methodId: string
+    data: unknown
   }) {
     const handleSelect = () => {
       const mockMapping = {
-        target: [{
-          name: 'time_series',
-          data: [1, 2, 4, 7, 11, 16, 22, 29, 37, 46] // Clear increasing trend
-        }]
+        target: ['temperature'] // Single variable name
       }
-      onVariableSelect(mockMapping)
+      onVariablesSelected(mockMapping)
     }
 
     return (
@@ -44,13 +66,12 @@ jest.mock('@/components/variable-selection/VariableSelector', () => {
         <button onClick={handleSelect} data-testid="select-variables">
           Select Variables
         </button>
-        <div data-testid="requirements">
-          {JSON.stringify(requirements)}
-        </div>
+        <div data-testid="method-id">{methodId}</div>
+        <div data-testid="has-data">{data ? 'yes' : 'no'}</div>
       </div>
     )
   }
-})
+}))
 
 describe('Mann-Kendall Trend Test Page', () => {
   beforeEach(() => {

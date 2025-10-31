@@ -36,7 +36,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
-import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar } from 'recharts'
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar, ComposedChart } from 'recharts'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -383,9 +383,9 @@ export default function RegressionPage() {
         icon={<Users className="w-5 h-5 text-primary" />}
       >
         <VariableSelector
-          methodId={regressionType === 'simple' ? 'simpleLinearRegression' :
-                    regressionType === 'multiple' ? 'multipleLinearRegression' :
-                    'logisticRegression'}
+          methodId={regressionType === 'simple' ? 'simple-regression' :
+                    regressionType === 'multiple' ? 'multiple-regression' :
+                    'logistic-regression'}
           data={uploadedData.data}
           onVariablesSelected={handleVariableSelection}
         />
@@ -480,14 +480,14 @@ export default function RegressionPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <ScatterChart>
+                <ComposedChart data={scatterData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="x" label={{ value: '독립변수', position: 'insideBottom', offset: -5 }} />
                   <YAxis label={{ value: '종속변수', angle: -90, position: 'insideLeft' }} />
                   <Tooltip />
-                  <Scatter name="실제값" data={scatterData} fill="#3b82f6" />
-                  <Line type="monotone" dataKey="predicted" stroke="#ef4444" strokeWidth={2} dot={false} />
-                </ScatterChart>
+                  <Scatter name="실제값" fill="#3b82f6" />
+                  <Line type="monotone" dataKey="predicted" name="회귀선" stroke="#ef4444" strokeWidth={2} dot={false} />
+                </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
