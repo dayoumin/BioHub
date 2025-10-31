@@ -1,6 +1,7 @@
 'use client'
 
 import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { BarChart3, FlaskConical } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
@@ -11,6 +12,7 @@ interface UserTrack {
   icon: React.ComponentType<{ className?: string }>
   journey: string
   color: string
+  comingSoon?: boolean
 }
 
 const USER_TRACKS: UserTrack[] = [
@@ -19,7 +21,8 @@ const USER_TRACKS: UserTrack[] = [
     title: '실험 설계',
     icon: FlaskConical,
     journey: '/experimental-design',
-    color: 'bg-gradient-design'
+    color: 'bg-gradient-design',
+    comingSoon: true
   },
   {
     id: 'analysis',
@@ -66,7 +69,14 @@ export default function HomePage() {
                       <div className={`p-4 rounded-xl ${track.color} text-white`}>
                         <Icon className="w-12 h-12" />
                       </div>
-                      <h3 className="text-2xl font-semibold">{track.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-2xl font-semibold">{track.title}</h3>
+                        {track.comingSoon && (
+                          <Badge variant="secondary" className="text-xs">
+                            준비중
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 </Link>

@@ -21,6 +21,7 @@ import {
   TrendingUp,
   BarChart3,
   ArrowLeft,
+  Construction,
 } from 'lucide-react'
 import Link from 'next/link'
 import { ProgressStepper } from '@/components/smart-flow/ProgressStepper'
@@ -351,8 +352,46 @@ export default function ExperimentalDesignPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* 메인 콘텐츠 */}
+    <div className="min-h-screen bg-background relative">
+      {/* 준비중 오버레이 */}
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+        <Card className="max-w-md mx-4 border-2">
+          <CardHeader className="text-center pb-4">
+            <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center">
+              <Construction className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+            </div>
+            <CardTitle className="text-2xl">실험설계 도우미 준비 중</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-center">
+            <p className="text-muted-foreground">
+              현재 이 기능은 관련 문서 검증 및 품질 개선 작업을 진행하고 있습니다.
+            </p>
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>검증 작업 진행 중</AlertTitle>
+              <AlertDescription className="text-left space-y-2">
+                <p>각 실험설계 방법론에 대해:</p>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  <li>관련 학술 문헌 확인</li>
+                  <li>권장 표본 크기 검증</li>
+                  <li>가정 조건 정확성 확인</li>
+                  <li>통계 방법 매핑 검토</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+            <div className="pt-4">
+              <Link href="/">
+                <Button variant="outline" className="w-full">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  홈으로 돌아가기
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 메인 콘텐츠 (블러 처리됨) */}
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* 헤더 섹션 */}
         <div className="text-center mb-8">
