@@ -1,0 +1,27 @@
+NumPy Crawling Log - 2025-10-31
+============================================================
+
+[SUCCESS] median: 12,067 chars
+[SUCCESS] std: 18,745 chars
+[SUCCESS] var: 18,318 chars
+[SUCCESS] min: 24,061 chars
+[SUCCESS] max: 24,081 chars
+[FAILED] sum: can only concatenate str (not "NoneType") to str
+[FAILED] array: can only concatenate str (not "NoneType") to str
+[FAILED] concatenate: can only concatenate str (not "NoneType") to str
+[FAILED] reshape: can only concatenate str (not "NoneType") to str
+[FAILED] transpose: can only concatenate str (not "NoneType") to str
+[FAILED] where: can only concatenate str (not "NoneType") to str
+[FAILED] isnan: can only concatenate str (not "NoneType") to str
+[FAILED] linalg.eig: can only concatenate str (not "NoneType") to str
+[FAILED] linalg.svd: can only concatenate str (not "NoneType") to str
+[FAILED] linalg.inv: can only concatenate str (not "NoneType") to str
+[FAILED] sqrt: can only concatenate str (not "NoneType") to str
+[FAILED] log: can only concatenate str (not "NoneType") to str
+[FAILED] exp: can only concatenate str (not "NoneType") to str
+
+============================================================
+Total: 18
+Success: 5
+Failed: 13
+Total characters: 97,272

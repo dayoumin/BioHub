@@ -1,0 +1,11 @@
+pingouin Crawling Log - 2025-10-31
+============================================================
+
+[SUCCESS] compute_effsize: 1,125 chars
+[SUCCESS] cronbach_alpha: 1,016 chars
+
+============================================================
+Total: 2
+Success: 2
+Failed: 0
+Total characters: 2,141

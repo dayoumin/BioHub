@@ -1,0 +1,37 @@
+statsmodels Crawling Log - 2025-10-31
+============================================================
+
+[SUCCESS] statsmodels.regression.linear_model.OLS: 25,354 chars
+[SUCCESS] statsmodels.discrete.discrete_model.Logit: 32,675 chars
+[SUCCESS] statsmodels.discrete.discrete_model.MNLogit: 31,744 chars
+[SUCCESS] statsmodels.discrete.discrete_model.Probit: 32,306 chars
+[SUCCESS] statsmodels.genmod.generalized_linear_model.GLM: 37,249 chars
+[SUCCESS] statsmodels.tools.tools.add_constant: 9,646 chars
+[SUCCESS] statsmodels.formula.api.ols: 10,155 chars
+[SUCCESS] statsmodels.stats.anova.anova_lm: 9,860 chars
+[SUCCESS] statsmodels.stats.anova.AnovaRM: 11,957 chars
+[SUCCESS] statsmodels.multivariate.manova.MANOVA: 14,095 chars
+[SUCCESS] statsmodels.sandbox.stats.runs.runstest_1samp: 13,096 chars
+[SUCCESS] statsmodels.stats.contingency_tables.mcnemar: 10,458 chars
+[SUCCESS] statsmodels.stats.contingency_tables.cochrans_q: 9,958 chars
+[SUCCESS] statsmodels.stats.stattools.durbin_watson: 14,579 chars
+[SUCCESS] statsmodels.stats.weightstats.ztest: 14,031 chars
+[SUCCESS] statsmodels.tsa.arima.model.ARIMA: 58,264 chars
+[SUCCESS] statsmodels.tsa.seasonal.seasonal_decompose: 14,682 chars
+[SUCCESS] statsmodels.tsa.statespace.sarimax.SARIMAX: 70,596 chars
+[SUCCESS] statsmodels.tsa.stattools.adfuller: 16,059 chars
+[SUCCESS] statsmodels.tsa.stattools.acf: 18,272 chars
+[SUCCESS] statsmodels.tsa.stattools.pacf: 15,737 chars
+[SUCCESS] statsmodels.tsa.vector_ar.var_model.VAR: 18,387 chars
+[SUCCESS] statsmodels.tsa.stattools.kpss: 14,893 chars
+[SUCCESS] statsmodels.regression.mixed_linear_model.MixedLM: 27,894 chars
+[SUCCESS] statsmodels.duration.hazard_regression.PHReg: 31,671 chars
+[SUCCESS] statsmodels.miscmodels.ordinal_model.OrderedModel: 38,227 chars
+[SUCCESS] statsmodels.genmod.families.family.Poisson: 30,685 chars
+[SUCCESS] statsmodels.genmod.families.family.NegativeBinomial: 33,726 chars
+
+============================================================
+Total: 28
+Success: 28
+Failed: 0
+Total characters: 666,256
