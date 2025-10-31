@@ -22,9 +22,16 @@
 └────────────────────┬────────────────────────────────────┘
                      │
     ┌────────────────▼────────────────┐
-    │  Docling (IBM Research)          │
-    │  - PDF/HTML → Markdown           │
-    │  - 수식/표/코드 추출             │
+    │  Crawl4AI (Web Crawler)         │
+    │  - 웹에서 HTML 다운로드          │
+    │  - 비동기 병렬 크롤링 (6x fast) │
+    └────────────────┬────────────────┘
+                     │
+    ┌────────────────▼────────────────┐
+    │  Docling (Parser, Optional)     │
+    │  - HTML/PDF → 정교한 Markdown   │
+    │  - AI 레이아웃 분석              │
+    │  - 수식/표 정밀 추출             │
     └────────────────┬────────────────┘
                      │
     ┌────────────────▼────────────────┐
@@ -92,42 +99,95 @@
 
 ## 🔧 기술 스택 상세
 
-### 1. Document Processing (Docling)
+### 1. Document Crawling & Parsing
+
+#### 1-1. Crawl4AI (Web Crawler)
 
 **설치**:
 ```bash
-pip install docling
+pip install crawl4ai  # v0.7.6 (2025)
 ```
 
+**역할**: 웹에서 HTML 다운로드 + 기본 Markdown 변환
 **기능**:
-- ✅ PDF → Markdown (LaTeX 수식 보존)
-- ✅ HTML → Markdown (코드 블록 보존)
-- ✅ 표 구조 인식 (Markdown table로 변환)
-- ✅ 레이아웃 분석 (제목, 본문, 각주)
+- ✅ 비동기 병렬 크롤링 (6x faster)
+- ✅ JavaScript 렌더링 지원
+- ✅ LLM-friendly Markdown 생성
+- ✅ 노이즈 자동 제거 (fit_markdown)
 
 **예시**:
 ```python
+from crawl4ai import AsyncWebCrawler
+from crawl4ai.markdown_generation import DefaultMarkdownGenerator
+
+async with AsyncWebCrawler() as crawler:
+    result = await crawler.arun(
+        url="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.ttest_ind.html",
+        markdown_generator=DefaultMarkdownGenerator()
+    )
+
+    # LLM-friendly Markdown (노이즈 제거됨)
+    markdown = result.markdown_v2.fit_markdown
+```
+
+---
+
+#### 1-2. Docling (Advanced Parser, Optional)
+
+**설치**:
+```bash
+pip install docling  # IBM Research (2025)
+```
+
+**역할**: PDF/HTML → **정교한** Markdown 파싱 (AI 레이아웃 분석)
+**기능**:
+- ✅ LaTeX 수식 완벽 복원 (`$$...$$`)
+- ✅ 복잡한 표 구조 보존 (94%+ 정확도)
+- ✅ 레이아웃 분석 (제목, 본문, 각주, 2단 레이아웃)
+- ✅ 이미지 분류 및 캡션 연결
+
+**PyPDF2 vs Docling 비교**:
+```python
+# ❌ PyPDF2 (단순 텍스트 추출)
+from PyPDF2 import PdfReader
+text = PdfReader("paper.pdf").pages[0].extract_text()
+# 결과: "t = (x 1 - x 2) / (s / n 1 + s / n 2)"  ← 수식 깨짐!
+
+# ✅ Docling (AI 파싱)
 from docling.document_converter import DocumentConverter
-
-converter = DocumentConverter()
-result = converter.convert("scipy-stats-ttest.pdf")
-
-# 출력 (Markdown with LaTeX)
+result = DocumentConverter().convert("paper.pdf")
 markdown = result.document.export_to_markdown()
-"""
-## scipy.stats.ttest_ind
+# 결과: "$$t = \frac{\bar{x}_1 - \bar{x}_2}{\sqrt{\frac{s^2}{n_1} + \frac{s^2}{n_2}}}$$"  ← 완벽!
+```
 
-Calculates the T-test for the means of two independent samples.
+**사용 시나리오**:
+- ✅ PDF 논문 파싱 (통계 이론 참고 문헌)
+- ✅ 복잡한 HTML (수식/표가 많은 경우)
+- ❌ 단순 HTML (Crawl4AI만으로 충분)
 
-### Formula
-$$t = \frac{\\bar{x}_1 - \\bar{x}_2}{s_p \\sqrt{\\frac{1}{n_1} + \\frac{1}{n_2}}}$$
+---
 
-### Parameters
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| a | array_like | First sample |
-| b | array_like | Second sample |
-"""
+#### 1-3. 파이프라인 선택 가이드
+
+| 문서 소스 | 복잡도 | 추천 도구 | 이유 |
+|-----------|--------|-----------|------|
+| SciPy HTML | 낮음 | **Crawl4AI만** | Sphinx 템플릿 (구조 단순) |
+| statsmodels HTML | 중간 | Crawl4AI → 샘플 테스트 | 품질 확인 후 결정 |
+| 통계 논문 PDF | 높음 | **Docling 필수** | LaTeX 수식 복원 필요 |
+| 프로젝트 문서 | 낮음 | 직접 복사 | 로컬 파일 |
+
+**최종 전략**:
+```python
+# Step 1: Crawl4AI로 샘플 크롤링 테스트
+sample = await crawl_with_crawl4ai("https://docs.scipy.org/.../ttest_ind.html")
+
+# Step 2: 품질 검사
+if has_latex_formulas(sample) and formulas_look_good(sample):
+    # Crawl4AI만 사용 (빠름)
+    use_crawl4ai_only()
+else:
+    # Crawl4AI + Docling 조합 (정교함)
+    use_crawl4ai_then_docling()
 ```
 
 ---

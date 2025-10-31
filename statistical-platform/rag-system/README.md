@@ -43,24 +43,40 @@ rag-system/
 ## 🚀 개발 일정 (5주)
 
 ### Week 1: 문서 수집 및 전처리 (2025-11-01 ~ 11-08)
-**목표**: SciPy/statsmodels 문서 크롤링 및 정제
+**목표**: Crawl4AI로 SciPy/statsmodels 문서 크롤링
 
-**작업**:
-- [ ] SciPy stats 문서 크롤링 (300+ 함수)
-- [ ] statsmodels 문서 크롤링 (200+ 함수)
-- [ ] pingouin API 문서 크롤링 (100+ 함수)
-- [ ] 프로젝트 내부 문서 수집
-  - [ ] `method-metadata.ts` 파싱 (60개 메서드)
-  - [ ] `implementation-summary.md` 복사
-  - [ ] Python Worker 코드 주석 추출
-- [ ] 문서 정제 (HTML → Markdown)
-- [ ] 메타데이터 추출 (함수명, 파라미터, 예제)
+**Day 1-2: Crawl4AI 셋업 및 샘플 테스트**
+- [ ] Crawl4AI 설치 및 환경 구성
+- [ ] 샘플 크롤링 테스트 (scipy.stats.ttest_ind)
+  - [ ] LaTeX 수식 보존 확인
+  - [ ] 표 구조 확인
+  - [ ] 코드 블록 확인
+- [ ] 품질 검사 후 파이프라인 결정
+  - ✅ Crawl4AI만 사용 (품질 충분 시)
+  - ⚠️ Crawl4AI + Docling 조합 (품질 부족 시)
+
+**Day 3-4: SciPy stats 크롤링 (300+ 함수)**
+- [ ] 함수 목록 URL 추출 (`scipy.stats` 모듈)
+- [ ] 비동기 병렬 크롤링 (Crawl4AI)
+- [ ] Markdown 저장 (`data/scipy/*.md`)
+
+**Day 5-6: statsmodels 크롤링 (200+ 함수)**
+- [ ] 함수 목록 URL 추출 (statsmodels API)
+- [ ] 비동기 병렬 크롤링
+- [ ] Markdown 저장 (`data/statsmodels/*.md`)
+
+**Day 7: 프로젝트 내부 문서 수집**
+- [ ] `method-metadata.ts` 파싱 (60개 메서드 설명)
+- [ ] `implementation-summary.md` 복사
+- [ ] Python Worker 코드 주석 추출
 
 **산출물**:
 - `data/scipy/*.md` (300+ 파일)
 - `data/statsmodels/*.md` (200+ 파일)
 - `data/project-docs/*.md` (60+ 파일)
-- `scripts/crawl-*.py` (크롤링 스크립트)
+- `scripts/crawl-scipy.py` (Crawl4AI 크롤러)
+- `scripts/crawl-statsmodels.py`
+- `scripts/quality-check.py` (품질 검사)
 
 **커밋**:
 ```bash
@@ -162,15 +178,20 @@ git commit -m "feat(rag): Integrate RAG chat interface into results pages"
 
 **⚠️ 라이브러리 버전 검증 (2025-10-31 기준)**:
 ```bash
-# Step 1: 핵심 라이브러리 설치 (검증됨)
+# Step 1: 문서 수집 (Crawling & Parsing)
+pip install crawl4ai                    # Web Crawler (v0.7.6, 2025)
+pip install docling                     # Advanced Parser (IBM Research, 2025)
+
+# Step 2: RAG 파이프라인
 pip install langchain>=1.0              # LangChain 1.0+ (안정화 버전)
 pip install langchain-experimental      # SemanticChunker (실험적)
 pip install langchain-cohere>=0.4.6     # Cohere Reranker (최신)
-pip install docling                     # Docling (IBM Research, 2025)
 pip install sentence-transformers       # HuggingFace Embeddings
 pip install chromadb                    # Vector Database
 pip install rank-bm25                   # BM25 Retriever
-pip install fastapi uvicorn            # Backend API
+
+# Step 3: Backend API
+pip install fastapi uvicorn            # FastAPI + ASGI 서버
 ```
 
 **⚠️ 실제 구현 시 주의사항**:
