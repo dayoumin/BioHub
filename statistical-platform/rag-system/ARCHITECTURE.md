@@ -14,6 +14,162 @@
 
 ---
 
+## 📚 문서 소스 전략 (정확성 최우선)
+
+### Tier 1: 필수 공식 문서 (현재 사용 중)
+
+#### 1. SciPy Documentation (최우선 ⭐⭐⭐⭐⭐)
+```
+URL: https://docs.scipy.org/doc/scipy/reference/stats.html
+버전: SciPy 1.14.x (Pyodide 버전과 일치)
+범위: scipy.stats 모듈 (~300 함수)
+상태: 프로젝트에서 실제 사용 중 (Worker 1-4 전체)
+```
+
+**크롤링 대상**:
+- ✅ **API Reference**: 함수별 상세 문서
+  - 예: `scipy.stats.ttest_ind`, `mannwhitneyu`, `kruskal`
+- ✅ **Parameters**: 파라미터 설명, 타입, 기본값
+- ✅ **Returns**: 리턴값 구조 (statistic, pvalue)
+- ✅ **Mathematical Formulas**: LaTeX 수식 (검정 통계량 계산)
+- ✅ **Examples**: 실제 사용 예제 (코드 + 해석)
+- ✅ **Notes**: 가정, 제한사항, 주의사항
+
+**URL 패턴**:
+```
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.{function}.html
+```
+
+---
+
+#### 2. NumPy Documentation (보조 ⭐⭐⭐)
+```
+URL: https://numpy.org/doc/stable/reference/routines.statistics.html
+버전: NumPy 1.26.x
+범위: 기술통계 함수 (~50 함수)
+상태: 프로젝트에서 실제 사용 중 (Worker 1 주로)
+```
+
+**크롤링 대상**:
+- ✅ **Basic Statistics**: `mean`, `median`, `std`, `var`
+- ✅ **Percentiles**: `percentile`, `quantile` (Kruskal-Wallis, Friedman에서 사용)
+- ✅ **Correlation**: `corrcoef`, `cov`
+- ❌ **배열 연산 제외**: reshape, indexing 등 (RAG 불필요)
+
+---
+
+### Tier 2: 프로젝트 내부 문서 (핵심! ⭐⭐⭐⭐⭐)
+
+#### 3. Method Metadata (60개 메서드)
+```
+경로: statistical-platform/lib/statistics/registry/method-metadata.ts
+내용: 각 통계 메서드의 메타데이터
+- 메서드 ID, 그룹 (descriptive/hypothesis/etc.)
+- 의존성 패키지 (numpy, scipy)
+- 예상 실행 시간
+```
+
+**RAG 활용**:
+- ✅ 메서드 추천: "두 그룹 비교" → t-test, mann-whitney
+- ✅ 의존성 확인: "이 메서드는 scipy가 필요합니다"
+- ✅ 실행 시간 예측: "약 0.3초 소요됩니다"
+
+---
+
+#### 4. Implementation Summary
+```
+경로: statistical-platform/docs/implementation-summary.md
+내용: 구현 현황 및 우선순위
+- 구현 완료 (41개)
+- 구현 필요 (24개)
+- 메타데이터만 등록 (우선순위 3)
+```
+
+**RAG 활용**:
+- ✅ 메서드 지원 여부: "이 메서드는 현재 구현되어 있습니다"
+- ✅ 대안 제시: "A는 미구현, B를 대신 사용하세요"
+
+---
+
+#### 5. Python Worker 코드 주석
+```
+경로: statistical-platform/public/workers/python/worker*.py
+내용: 실제 구현 코드 + 주석
+- Worker 1: 기술통계 (214 lines)
+- Worker 2: 가설검정 (338 lines)
+- Worker 3: 비모수/ANOVA (614 lines)
+- Worker 4: 회귀/고급 (656 lines)
+```
+
+**RAG 활용**:
+- ✅ 구현 세부사항: "이 메서드는 scipy.stats.mannwhitneyu를 사용합니다"
+- ✅ 에러 처리: "샘플 크기가 3 미만이면 에러 발생"
+- ✅ 데이터 전처리: "None 값은 자동으로 제거됩니다"
+
+---
+
+### Tier 3: 향후 확장 (현재 미사용)
+
+#### 6. statsmodels (Phase 7 이후)
+```
+URL: https://www.statsmodels.org/stable/index.html
+현재 상태: 코드베이스에서 import 없음
+계획: 회귀분석 고도화 시 도입 가능
+보류 이유: 현재 scipy로 충분
+```
+
+#### 7. pingouin (Phase 8 이후)
+```
+URL: https://pingouin-stats.org/api.html
+현재 상태: 코드베이스에서 import 없음
+계획: Effect size 고도화 시 도입 가능
+보류 이유: 현재 수동 계산으로 충분
+```
+
+---
+
+### 문서 수집 우선순위 (Week 1 Day-by-Day)
+
+**Day 1-2**: 샘플 테스트 + 품질 검사
+- SciPy t-test 문서 샘플 크롤링
+- LaTeX, 표, 코드 블록 품질 확인
+
+**Day 3**: SciPy 핵심 함수 (41개, 구현 완료)
+```python
+# 실제 사용 중인 함수만 크롤링
+scipy_functions = [
+    'ttest_ind', 'ttest_rel', 'ttest_1samp',        # t-tests
+    'mannwhitneyu', 'wilcoxon', 'kruskal',          # non-parametric
+    'f_oneway', 'friedmanchisquare',                # ANOVA
+    'shapiro', 'normaltest', 'kstest',              # normality
+    'levene', 'bartlett',                           # homogeneity
+    'chi2_contingency', 'fisher_exact',             # chi-square
+    'spearmanr', 'pearsonr', 'kendalltau',          # correlation
+    # ... 총 41개
+]
+```
+
+**Day 4**: NumPy 기초 통계 (~20개)
+```python
+numpy_functions = [
+    'mean', 'median', 'std', 'var',
+    'percentile', 'quantile',
+    'corrcoef', 'cov'
+]
+```
+
+**Day 5**: 프로젝트 내부 문서
+- method-metadata.ts 파싱 (60개 메서드 메타데이터)
+- implementation-summary.md 복사
+- Python Worker 코드 주석 추출 (4개 파일)
+
+**Day 6-7**: 품질 검증 및 보완
+- 누락된 함수 추가 크롤링
+- LaTeX 수식 검증
+- 중복 제거 및 정리
+
+---
+
 ## 🏗️ 전체 아키텍처
 
 ```

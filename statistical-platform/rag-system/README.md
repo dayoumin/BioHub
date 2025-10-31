@@ -55,28 +55,45 @@ rag-system/
   - ✅ Crawl4AI만 사용 (품질 충분 시)
   - ⚠️ Crawl4AI + Docling 조합 (품질 부족 시)
 
-**Day 3-4: SciPy stats 크롤링 (300+ 함수)**
-- [ ] 함수 목록 URL 추출 (`scipy.stats` 모듈)
+**Day 3: SciPy 핵심 함수 크롤링 (41개, 실제 사용 중)**
+- [ ] Worker 코드에서 실제 사용 중인 함수 목록 추출
+  ```python
+  # scipy.stats 함수: ttest_ind, mannwhitneyu, kruskal,
+  # shapiro, levene, chi2_contingency, pearsonr, etc.
+  ```
 - [ ] 비동기 병렬 크롤링 (Crawl4AI)
-- [ ] Markdown 저장 (`data/scipy/*.md`)
+- [ ] Markdown 저장 (`data/scipy/*.md`, ~41 파일)
 
-**Day 5-6: statsmodels 크롤링 (200+ 함수)**
-- [ ] 함수 목록 URL 추출 (statsmodels API)
+**Day 4: NumPy 기초 통계 크롤링 (~20개)**
+- [ ] 기술통계 함수 목록 추출
+  ```python
+  # numpy 함수: mean, median, std, var,
+  # percentile, quantile, corrcoef, cov
+  ```
 - [ ] 비동기 병렬 크롤링
-- [ ] Markdown 저장 (`data/statsmodels/*.md`)
+- [ ] Markdown 저장 (`data/numpy/*.md`, ~20 파일)
 
-**Day 7: 프로젝트 내부 문서 수집**
-- [ ] `method-metadata.ts` 파싱 (60개 메서드 설명)
-- [ ] `implementation-summary.md` 복사
-- [ ] Python Worker 코드 주석 추출
+**Day 5: 프로젝트 내부 문서 수집 (핵심!)**
+- [ ] `method-metadata.ts` 파싱 (60개 메서드 메타데이터)
+- [ ] `implementation-summary.md` 복사 (구현 현황)
+- [ ] Python Worker 코드 주석 추출 (Worker 1-4)
+- [ ] Markdown 저장 (`data/project-docs/*.md`, ~65 파일)
+
+**Day 6-7: 품질 검증 및 보완**
+- [ ] 누락된 함수 추가 크롤링 (Worker 코드 재검토)
+- [ ] LaTeX 수식 품질 검증 (`$$...$$` 형식)
+- [ ] 중복 제거 및 정리
+- [ ] 최종 문서 개수: ~126 파일 (scipy 41 + numpy 20 + project 65)
 
 **산출물**:
-- `data/scipy/*.md` (300+ 파일)
-- `data/statsmodels/*.md` (200+ 파일)
-- `data/project-docs/*.md` (60+ 파일)
+- `data/scipy/*.md` (~41 파일, 실제 사용 중인 함수만)
+- `data/numpy/*.md` (~20 파일, 기초 통계 함수)
+- `data/project-docs/*.md` (~65 파일, 내부 문서)
 - `scripts/crawl-scipy.py` (Crawl4AI 크롤러)
-- `scripts/crawl-statsmodels.py`
+- `scripts/crawl-numpy.py` (NumPy 크롤러)
+- `scripts/parse-project-docs.py` (내부 문서 파서)
 - `scripts/quality-check.py` (품질 검사)
+- **총 ~126 문서** (300→600 대신 프로젝트 특화)
 
 **커밋**:
 ```bash
