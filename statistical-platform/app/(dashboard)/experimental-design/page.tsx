@@ -365,9 +365,6 @@ export default function ExperimentalDesignPage() {
             </Link>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">실험설계 도우미</h2>
-          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-            연구 목적에 맞는 최적의 실험설계를 찾고, 표본크기부터 통계분석까지 완벽한 연구계획을 수립하세요
-          </p>
         </div>
 
         {/* 현재 단계 도움말 */}
@@ -382,11 +379,10 @@ export default function ExperimentalDesignPage() {
               {currentStep === 'research-details' && '4단계: 연구 세부정보를 입력하세요'}
             </AlertTitle>
             <AlertDescription>
-              {currentStep === 'purpose' && '연구의 주된 목적이 무엇인지 선택해주세요. 집단을 비교하려면 "차이 비교", 변수 관계를 알고 싶다면 "관계 분석"을 선택하세요.'}
-              {currentStep === 'groups' && '비교하려는 집단이 몇 개인지, 어떤 구조인지 선택해주세요. 대부분의 경우 2개 그룹 비교나 3개 이상 그룹 비교를 사용합니다.'}
+              {currentStep === 'purpose' && '연구의 주된 목적이 무엇인지 선택해주세요.'}
               {currentStep === 'measurement' && '같은 대상을 여러 번 측정하는지(전후 비교) 아니면 서로 다른 대상들을 비교하는지 선택해주세요.'}
               {currentStep === 'relationship-type' && '변수들 사이의 단순한 관계를 보고 싶다면 "상관분석", 한 변수로 다른 변수를 예측하고 싶다면 "회귀분석"을 선택하세요.'}
-              {currentStep === 'research-details' && '맞춤형 연구계획서 생성을 위해 연구 제목과 가설을 입력해주세요. 다른 항목들도 채우시면 더욱 상세한 계획서를 받을 수 있습니다.'}
+              {currentStep === 'research-details' && '맞춤형 연구계획서 생성을 위해 연구 제목과 가설을 입력해주세요.'}
             </AlertDescription>
           </Alert>
         )}

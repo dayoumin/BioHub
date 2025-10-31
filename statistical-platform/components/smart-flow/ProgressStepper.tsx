@@ -53,8 +53,8 @@ export function ProgressStepper({
 
   return (
     <div className={cn("relative py-4", className)}>
-      {/* Progress Bar */}
-      <div className="absolute top-9 left-0 w-full h-0.5 bg-gray-200 dark:bg-gray-700">
+      {/* Progress Bar - 원형 중심 기준으로 정렬 */}
+      <div className="absolute top-9 left-[calc(10%+0.5rem)] right-[calc(10%+0.5rem)] h-0.5 bg-gray-200 dark:bg-gray-700">
         <div
           className={getProgressBarColors()}
           style={{
@@ -63,7 +63,7 @@ export function ProgressStepper({
         />
       </div>
 
-      <div className="relative flex justify-between">
+      <div className="relative flex justify-between px-[10%]">
         {steps.map((step, index) => {
           const Icon = step.icon
           const isActive = step.id === currentStep
