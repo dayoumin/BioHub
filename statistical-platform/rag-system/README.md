@@ -45,15 +45,23 @@ rag-system/
 ### Week 1: 문서 수집 및 전처리 (2025-11-01 ~ 11-08)
 **목표**: Crawl4AI로 SciPy/statsmodels 문서 크롤링
 
-**Day 1-2: Crawl4AI 셋업 및 샘플 테스트**
+**Day 1: 통계 방법론 가이드 작성 (최우선!)**
+- [ ] 통계 방법 선택 플로우차트 (`data/methodology-guide/statistical-decision-tree.md`)
+  ```markdown
+  # 예시
+  ## 두 그룹 평균 비교
+  - 정규성 + 등분산 → 독립표본 t-검정
+  - 정규성 위반 → Mann-Whitney U 검정
+  - 등분산 위반 → Welch's t-test
+  ```
+- [ ] 가정 검증 가이드 (`assumption-guide.md`)
+- [ ] 결과 해석 가이드 (`interpretation-guide.md`)
+- [ ] 메서드 비교표 (`method-comparison.md`)
+
+**Day 2: Crawl4AI 셋업 및 샘플 테스트**
 - [ ] Crawl4AI 설치 및 환경 구성
 - [ ] 샘플 크롤링 테스트 (scipy.stats.ttest_ind)
-  - [ ] LaTeX 수식 보존 확인
-  - [ ] 표 구조 확인
-  - [ ] 코드 블록 확인
-- [ ] 품질 검사 후 파이프라인 결정
-  - ✅ Crawl4AI만 사용 (품질 충분 시)
-  - ⚠️ Crawl4AI + Docling 조합 (품질 부족 시)
+- [ ] LaTeX, 표, 코드 블록 품질 확인
 
 **Day 3: SciPy 핵심 함수 크롤링 (41개, 실제 사용 중)**
 - [ ] Worker 코드에서 실제 사용 중인 함수 목록 추출
@@ -64,36 +72,28 @@ rag-system/
 - [ ] 비동기 병렬 크롤링 (Crawl4AI)
 - [ ] Markdown 저장 (`data/scipy/*.md`, ~41 파일)
 
-**Day 4: NumPy 기초 통계 크롤링 (~20개)**
-- [ ] 기술통계 함수 목록 추출
-  ```python
-  # numpy 함수: mean, median, std, var,
-  # percentile, quantile, corrcoef, cov
-  ```
-- [ ] 비동기 병렬 크롤링
-- [ ] Markdown 저장 (`data/numpy/*.md`, ~20 파일)
+**Day 4: NumPy + 프로젝트 문서**
+- [ ] NumPy 기초 통계 크롤링 (~20개)
+- [ ] `method-metadata.ts` 파싱 (60개)
+- [ ] `implementation-summary.md` 복사
+- [ ] Python Worker 주석 추출
 
-**Day 5: 프로젝트 내부 문서 수집 (핵심!)**
-- [ ] `method-metadata.ts` 파싱 (60개 메서드 메타데이터)
-- [ ] `implementation-summary.md` 복사 (구현 현황)
-- [ ] Python Worker 코드 주석 추출 (Worker 1-4)
-- [ ] Markdown 저장 (`data/project-docs/*.md`, ~65 파일)
-
-**Day 6-7: 품질 검증 및 보완**
-- [ ] 누락된 함수 추가 크롤링 (Worker 코드 재검토)
-- [ ] LaTeX 수식 품질 검증 (`$$...$$` 형식)
-- [ ] 중복 제거 및 정리
-- [ ] 최종 문서 개수: ~126 파일 (scipy 41 + numpy 20 + project 65)
+**Day 5-7: 품질 검증 + Prompt 설계**
+- [ ] 문서 중복 제거 및 정리
+- [ ] RAG Prompt Template 작성 (사용자 친화적)
+- [ ] 샘플 질문-답변 테스트
+- [ ] 최종 문서: ~130개 (app-guide 4 + scipy 41 + numpy 20 + project 65)
 
 **산출물**:
-- `data/scipy/*.md` (~41 파일, 실제 사용 중인 함수만)
-- `data/numpy/*.md` (~20 파일, 기초 통계 함수)
+- `data/methodology-guide/*.md` (~4 파일, 통계 방법론 가이드) ⭐ 최우선!
+- `data/scipy/*.md` (~41 파일, 실제 사용 함수)
+- `data/numpy/*.md` (~20 파일, 기초 통계)
 - `data/project-docs/*.md` (~65 파일, 내부 문서)
+- `scripts/create-methodology-guide.py` (통계 가이드 생성)
 - `scripts/crawl-scipy.py` (Crawl4AI 크롤러)
-- `scripts/crawl-numpy.py` (NumPy 크롤러)
 - `scripts/parse-project-docs.py` (내부 문서 파서)
-- `scripts/quality-check.py` (품질 검사)
-- **총 ~126 문서** (300→600 대신 프로젝트 특화)
+- `prompts/rag-system-prompt.md` (LLM Prompt Template, 석박사 대상)
+- **총 ~130 문서** (방법론 중심 + 프로젝트 특화)
 
 **커밋**:
 ```bash

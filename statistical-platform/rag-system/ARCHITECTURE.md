@@ -16,9 +16,9 @@
 
 ## 📚 문서 소스 전략 (정확성 최우선)
 
-### Tier 1: 필수 공식 문서 (현재 사용 중)
+### Tier 2: 공식 라이브러리 문서 (참고용 ⭐⭐⭐)
 
-#### 1. SciPy Documentation (최우선 ⭐⭐⭐⭐⭐)
+#### 6. SciPy Documentation
 ```
 URL: https://docs.scipy.org/doc/scipy/reference/stats.html
 버전: SciPy 1.14.x (Pyodide 버전과 일치)
@@ -42,7 +42,7 @@ https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.{function}.html
 
 ---
 
-#### 2. NumPy Documentation (보조 ⭐⭐⭐)
+#### 7. NumPy Documentation
 ```
 URL: https://numpy.org/doc/stable/reference/routines.statistics.html
 버전: NumPy 1.26.x
@@ -58,9 +58,36 @@ URL: https://numpy.org/doc/stable/reference/routines.statistics.html
 
 ---
 
-### Tier 2: 프로젝트 내부 문서 (핵심! ⭐⭐⭐⭐⭐)
+### Tier 0: 통계 방법론 가이드 (석박사 대상 ⭐⭐⭐⭐⭐)
 
-#### 3. Method Metadata (60개 메서드)
+#### 1. 통계 방법 선택 및 해석 가이드 (신규 작성 필요)
+```
+경로: rag-system/data/methodology-guide/
+내용: 통계 방법론 중심 가이드 (앱 UI 무관)
+- statistical-decision-tree.md: 연구 질문 → 통계 방법 선택
+- assumption-guide.md: 가정 검증 및 위반 시 대안
+- interpretation-guide.md: 결과 해석 (p-value, effect size)
+- method-comparison.md: 유사 방법 비교 (t-test vs Mann-Whitney)
+```
+
+**RAG 활용** (통계 방법론 중심):
+- ✅ **방법 선택**: "정규성 가정 위반 시 → Mann-Whitney U 검정"
+- ✅ **가정 검증**: "Shapiro-Wilk p < 0.05 → 정규성 깨짐 → 비모수 검정"
+- ✅ **결과 해석**: "Cohen's d = 0.8 → 큰 효과크기 (실질적 의미 있음)"
+- ✅ **대안 제시**: "등분산 가정 위반 → Welch's t-test 사용"
+
+**메서드 위치** (method-metadata.ts에서 자동 추출):
+- ✅ **카테고리만 제공**: "이 방법은 '가설검정' 카테고리입니다"
+- ✅ **검색 키워드**: "앱 검색창에 't-test' 또는 'mann-whitney' 입력"
+- ❌ **상세 메뉴 경로 제외**: UI 변경 시 문서 수정 불필요
+
+**우선순위**: **가장 높음** (석박사 연구자의 실제 니즈)
+
+---
+
+### Tier 1: 프로젝트 내부 문서 (핵심! ⭐⭐⭐⭐⭐)
+
+#### 2. Method Metadata (60개 메서드)
 ```
 경로: statistical-platform/lib/statistics/registry/method-metadata.ts
 내용: 각 통계 메서드의 메타데이터
@@ -76,7 +103,7 @@ URL: https://numpy.org/doc/stable/reference/routines.statistics.html
 
 ---
 
-#### 4. Implementation Summary
+#### 3. Implementation Summary
 ```
 경로: statistical-platform/docs/implementation-summary.md
 내용: 구현 현황 및 우선순위
@@ -91,7 +118,7 @@ URL: https://numpy.org/doc/stable/reference/routines.statistics.html
 
 ---
 
-#### 5. Python Worker 코드 주석
+#### 4. Python Worker 코드 주석
 ```
 경로: statistical-platform/public/workers/python/worker*.py
 내용: 실제 구현 코드 + 주석
@@ -110,7 +137,7 @@ URL: https://numpy.org/doc/stable/reference/routines.statistics.html
 
 ### Tier 3: 향후 확장 (현재 미사용)
 
-#### 6. statsmodels (Phase 7 이후)
+#### 5. statsmodels (Phase 7 이후)
 ```
 URL: https://www.statsmodels.org/stable/index.html
 현재 상태: 코드베이스에서 import 없음
@@ -130,43 +157,38 @@ URL: https://pingouin-stats.org/api.html
 
 ### 문서 수집 우선순위 (Week 1 Day-by-Day)
 
-**Day 1-2**: 샘플 테스트 + 품질 검사
-- SciPy t-test 문서 샘플 크롤링
-- LaTeX, 표, 코드 블록 품질 확인
+**Day 1**: 통계 방법론 가이드 작성 (Tier 0, 최우선!)
+- [ ] statistical-decision-tree.md: 연구 질문 → 통계 방법 선택
+- [ ] assumption-guide.md: 가정 검증 및 위반 시 대안
+- [ ] interpretation-guide.md: 결과 해석 (p-value, effect size, 신뢰구간)
+- [ ] method-comparison.md: 유사 방법 비교 (모수 vs 비모수)
 
-**Day 3**: SciPy 핵심 함수 (41개, 구현 완료)
+**Day 2**: Crawl4AI 셋업 + 샘플 테스트
+- [ ] Crawl4AI 설치 및 환경 구성
+- [ ] SciPy t-test 샘플 크롤링
+- [ ] LaTeX, 표, 코드 블록 품질 확인
+
+**Day 3**: SciPy 핵심 함수 크롤링 (41개)
 ```python
-# 실제 사용 중인 함수만 크롤링
+# Worker 코드에서 실제 사용 중인 함수만
 scipy_functions = [
-    'ttest_ind', 'ttest_rel', 'ttest_1samp',        # t-tests
-    'mannwhitneyu', 'wilcoxon', 'kruskal',          # non-parametric
-    'f_oneway', 'friedmanchisquare',                # ANOVA
-    'shapiro', 'normaltest', 'kstest',              # normality
-    'levene', 'bartlett',                           # homogeneity
-    'chi2_contingency', 'fisher_exact',             # chi-square
-    'spearmanr', 'pearsonr', 'kendalltau',          # correlation
-    # ... 총 41개
+    'ttest_ind', 'mannwhitneyu', 'kruskal',
+    'shapiro', 'levene', 'chi2_contingency',
+    'pearsonr', 'spearmanr', # ... 총 41개
 ]
 ```
 
-**Day 4**: NumPy 기초 통계 (~20개)
-```python
-numpy_functions = [
-    'mean', 'median', 'std', 'var',
-    'percentile', 'quantile',
-    'corrcoef', 'cov'
-]
-```
+**Day 4**: NumPy 기초 통계 + 프로젝트 문서
+- [ ] NumPy 기초 통계 크롤링 (~20개)
+- [ ] method-metadata.ts 파싱 (60개)
+- [ ] implementation-summary.md 복사
+- [ ] Python Worker 주석 추출
 
-**Day 5**: 프로젝트 내부 문서
-- method-metadata.ts 파싱 (60개 메서드 메타데이터)
-- implementation-summary.md 복사
-- Python Worker 코드 주석 추출 (4개 파일)
-
-**Day 6-7**: 품질 검증 및 보완
-- 누락된 함수 추가 크롤링
-- LaTeX 수식 검증
-- 중복 제거 및 정리
+**Day 5-7**: 품질 검증 + LLM Prompt 설계
+- [ ] 문서 중복 제거 및 정리
+- [ ] RAG Prompt Template 작성 (사용자 친화적)
+- [ ] 샘플 질문-답변 테스트
+- [ ] 최종 문서 개수: ~130개 (app-guide 4 + scipy 41 + numpy 20 + project 65)
 
 ---
 
