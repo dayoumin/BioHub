@@ -10,6 +10,28 @@
  */
 export type SearchMode = 'fts5' | 'vector' | 'hybrid'
 
+/**
+ * Vector Store 정보
+ */
+export interface VectorStore {
+  /** Vector Store ID (파일명 기반, 예: 'qwen3-embedding-0.6b') */
+  id: string
+  /** 표시 이름 (예: 'Qwen3 Embedding (0.6B)') */
+  name: string
+  /** DB 파일 경로 (예: '/rag-data/rag-qwen3-embedding-0.6b.db') */
+  dbPath: string
+  /** 임베딩 모델 이름 (예: 'qwen3-embedding:0.6b') */
+  embeddingModel: string
+  /** 임베딩 차원 (예: 1024) */
+  dimensions: number
+  /** 문서 개수 */
+  docCount: number
+  /** DB 파일 크기 (예: '5.4 MB') */
+  fileSize: string
+  /** 생성 시간 (Unix timestamp, 선택사항) */
+  createdAt?: number
+}
+
 export interface RAGContext {
   /** 사용자 쿼리 */
   query: string

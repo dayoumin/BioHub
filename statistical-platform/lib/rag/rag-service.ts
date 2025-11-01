@@ -5,16 +5,23 @@
  * 내부망 환경을 위한 완전 로컬 RAG 시스템
  */
 
-import { BaseRAGProvider, RAGContext, RAGResponse } from './providers/base-provider'
+import { BaseRAGProvider, RAGContext, RAGResponse, VectorStore } from './providers/base-provider'
 import { OllamaRAGProvider } from './providers/ollama-provider'
 
 export type RAGProviderType = 'ollama'
 
 export interface RAGServiceConfig {
+  /** Vector Store ID (우선순위 1, 예: 'qwen3-embedding-0.6b') */
+  vectorStoreId?: string
+  /** 임베딩 모델 (우선순위 2, vectorStoreId가 없을 때 사용) */
   embeddingModel?: string
+  /** 추론 모델 (LLM) */
   inferenceModel?: string
+  /** Ollama 엔드포인트 */
   ollamaEndpoint?: string
+  /** Vector DB 경로 (Deprecated: vectorStoreId 사용 권장) */
   vectorDbPath?: string
+  /** Top-K 검색 결과 수 */
   topK?: number
 }
 
@@ -46,6 +53,7 @@ export class RAGService {
     // 설정이 변경되었으면 기존 provider 정리
     if (this.provider && config) {
       const hasConfigChanged =
+        config.vectorStoreId !== this.config.vectorStoreId ||
         config.embeddingModel !== this.config.embeddingModel ||
         config.inferenceModel !== this.config.inferenceModel
 
@@ -66,6 +74,16 @@ export class RAGService {
 
     console.log('[RAGService] Ollama Provider 초기화 중...')
 
+    // vectorStoreId → vectorDbPath 변환
+    let vectorDbPath = this.config.vectorDbPath || process.env.NEXT_PUBLIC_VECTOR_DB_PATH
+    if (this.config.vectorStoreId) {
+      vectorDbPath = vectorStoreIdToPath(this.config.vectorStoreId)
+      console.log(`[RAGService] Vector Store ID: ${this.config.vectorStoreId}`)
+      console.log(`[RAGService] Vector DB Path: ${vectorDbPath}`)
+    } else if (this.config.vectorDbPath) {
+      console.warn('[RAGService] ⚠️ vectorDbPath는 deprecated입니다. vectorStoreId 사용을 권장합니다.')
+    }
+
     // Ollama Provider 생성
     this.provider = new OllamaRAGProvider({
       name: 'Ollama (Local)',
@@ -79,10 +97,7 @@ export class RAGService {
       inferenceModel:
         this.config.inferenceModel ||
         process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL,
-      vectorDbPath:
-        this.config.vectorDbPath ||
-        process.env.NEXT_PUBLIC_VECTOR_DB_PATH ||
-        '/rag-data/rag.db',
+      vectorDbPath: vectorDbPath || '/rag-data/rag.db',
       topK: this.config.topK || parseInt(process.env.NEXT_PUBLIC_TOP_K || '5'),
       testMode: process.env.NODE_ENV === 'test' // 테스트 환경에서 testMode 활성화
     })
@@ -166,4 +181,58 @@ export async function queryRAG(context: RAGContext): Promise<RAGResponse> {
 export async function rebuildRAGDatabase(): Promise<void> {
   const ragService = RAGService.getInstance()
   await ragService.rebuildDatabase()
+}
+
+/**
+ * Vector Store ID를 DB 경로로 변환
+ * 예: 'qwen3-embedding-0.6b' → '/rag-data/rag-qwen3-embedding-0.6b.db'
+ */
+export function vectorStoreIdToPath(vectorStoreId: string): string {
+  return `/rag-data/rag-${vectorStoreId}.db`
+}
+
+/**
+ * DB 파일명에서 Vector Store 정보 파싱
+ * 예: 'rag-qwen3-embedding-0.6b.db' → { id: 'qwen3-embedding-0.6b', model: 'qwen3-embedding:0.6b' }
+ */
+export function parseVectorStoreFilename(filename: string): { id: string; model: string } | null {
+  const match = filename.match(/^rag-(.+)\.db$/)
+  if (!match) return null
+
+  const id = match[1]
+  // 파일명의 마지막 '-숫자' → 모델명의 ':숫자'로 변환
+  // 'qwen3-embedding-0.6b' → 'qwen3-embedding:0.6b'
+  // 'mxbai-embed-large' → 'mxbai-embed-large' (변환 안 함)
+  const model = id.replace(/-(\d+(?:\.\d+)?[a-z]?)$/, ':$1')
+
+  return { id, model }
+}
+
+/**
+ * 사용 가능한 Vector Store 목록 조회
+ */
+export async function getAvailableVectorStores(): Promise<VectorStore[]> {
+  // 하드코딩된 Vector Store 목록 (실제로는 DB 파일 스캔 또는 메타데이터 파일에서 로드)
+  const stores: VectorStore[] = [
+    {
+      id: 'qwen3-embedding-0.6b',
+      name: 'Qwen3 Embedding (0.6B)',
+      dbPath: '/rag-data/rag-qwen3-embedding-0.6b.db',
+      embeddingModel: 'qwen3-embedding:0.6b',
+      dimensions: 1024,
+      docCount: 111,
+      fileSize: '5.4 MB'
+    },
+    {
+      id: 'mxbai-embed-large',
+      name: 'MixedBread AI Embed Large',
+      dbPath: '/rag-data/rag-mxbai-embed-large.db',
+      embeddingModel: 'mxbai-embed-large',
+      dimensions: 1024,
+      docCount: 111,
+      fileSize: '8.2 MB'
+    }
+  ]
+
+  return stores
 }

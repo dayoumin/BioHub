@@ -740,6 +740,21 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       const embeddedDocsCount = this.documents.filter((d) => d.embedding !== null).length
       console.log(`[OllamaProvider] ✓ ${this.documents.length}개 원본 문서 로드됨 (임베딩: ${embeddedDocsCount}개)`)
 
+      // 5-1. DB에서 임베딩 모델 확인 및 자동 설정
+      const dbEmbeddingModel = this.documents.find((d) => d.embedding_model !== null)?.embedding_model
+      if (dbEmbeddingModel) {
+        if (this.embeddingModel && this.embeddingModel !== dbEmbeddingModel) {
+          console.log(`[OllamaProvider] ℹ️ 임베딩 모델 자동 변경 (Vector Store 일치성 보장):`)
+          console.log(`  - 설정값: ${this.embeddingModel}`)
+          console.log(`  - DB 저장 모델: ${dbEmbeddingModel}`)
+          console.log(`  → DB 모델로 자동 설정됩니다`)
+        }
+        this.embeddingModel = dbEmbeddingModel
+        console.log(`[OllamaProvider] ✓ 임베딩 모델: ${this.embeddingModel}`)
+      } else if (embeddedDocsCount > 0) {
+        console.warn(`[OllamaProvider] ⚠️ 임베딩은 있지만 embedding_model 정보가 없습니다`)
+      }
+
       // 6. IndexedDB에서 사용자 문서 로드 및 병합 (브라우저 환경에서만)
       if (typeof window !== 'undefined') {
         const userDocs = await IndexedDBStorage.getAllDocuments()
