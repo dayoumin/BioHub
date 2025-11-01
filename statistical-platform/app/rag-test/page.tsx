@@ -93,6 +93,13 @@ export default function RAGTestPage() {
   const [vectorStoreTab, setVectorStoreTab] = useState<'info' | 'build'>('info')
   const [buildEmbeddingModel, setBuildEmbeddingModel] = useState('')
 
+  // ===== 안전한 탭 전환 핸들러 =====
+  const handleVectorStoreTabChange = useCallback((value: string) => {
+    if (value === 'info' || value === 'build') {
+      setVectorStoreTab(value)
+    }
+  }, [])
+
   // ===== Ollama 모델 목록 조회 =====
   const fetchAvailableModels = useCallback(async () => {
     setIsLoadingModels(true)
@@ -416,7 +423,7 @@ export default function RAGTestPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Tabs value={vectorStoreTab} onValueChange={(v) => setVectorStoreTab(v as typeof vectorStoreTab)}>
+              <Tabs value={vectorStoreTab} onValueChange={handleVectorStoreTabChange}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="info">
                     <Info className="mr-2 h-4 w-4" />
