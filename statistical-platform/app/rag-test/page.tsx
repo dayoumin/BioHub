@@ -14,6 +14,8 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -1261,7 +1263,9 @@ export default function RAGTestPage() {
 
                     <TabsContent value="answer" className="space-y-2">
                       <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <ReactMarkdown>{result.response.answer}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                          {result.response.answer}
+                        </ReactMarkdown>
                       </div>
                     </TabsContent>
 

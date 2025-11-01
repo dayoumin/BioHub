@@ -47,7 +47,8 @@
       "Bash(C:/Users/User/AppData/Local/Programs/Python/Python313/python.exe scripts/extract_worker_docs.py)",
       "Bash(C:/Users/User/AppData/Local/Programs/Python/Python313/python.exe:*)",
       "Bash(ollama list:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

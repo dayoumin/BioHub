@@ -11,6 +11,8 @@
 
 import { useState, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -120,7 +122,9 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
                   <div className="bg-primary/5 rounded-lg p-3">
                     <p className="text-sm font-medium mb-2">답변:</p>
                     <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown>{msg.response.answer}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
+                        {msg.response.answer}
+                      </ReactMarkdown>
                     </div>
 
                     {/* 참조 문서 */}
