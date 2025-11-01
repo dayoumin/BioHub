@@ -51,6 +51,30 @@ export interface RAGProviderConfig {
 }
 
 /**
+ * 문서 입력 인터페이스
+ */
+export interface DocumentInput {
+  doc_id?: string
+  title: string
+  content: string
+  library: string
+  category?: string
+  summary?: string
+}
+
+/**
+ * 문서 조회 결과 인터페이스
+ */
+export interface Document {
+  doc_id: string
+  title: string
+  content: string
+  library: string
+  category?: string
+  summary?: string
+}
+
+/**
  * RAG Provider 추상 클래스
  *
  * 모든 RAG 제공자는 이 인터페이스를 구현해야 함
@@ -85,4 +109,39 @@ export abstract class BaseRAGProvider {
    * Provider 상태 확인
    */
   abstract isReady(): Promise<boolean>
+
+  /**
+   * 문서 추가 (선택)
+   */
+  async addDocument(document: DocumentInput): Promise<string> {
+    throw new Error('addDocument not implemented')
+  }
+
+  /**
+   * 문서 조회 (선택)
+   */
+  async getDocument(docId: string): Promise<Document | null> {
+    throw new Error('getDocument not implemented')
+  }
+
+  /**
+   * 문서 수정 (선택)
+   */
+  async updateDocument(docId: string, updates: Partial<DocumentInput>): Promise<boolean> {
+    throw new Error('updateDocument not implemented')
+  }
+
+  /**
+   * 문서 삭제 (선택)
+   */
+  async deleteDocument(docId: string): Promise<boolean> {
+    throw new Error('deleteDocument not implemented')
+  }
+
+  /**
+   * 문서 개수 조회 (선택)
+   */
+  getDocumentCount(): number {
+    throw new Error('getDocumentCount not implemented')
+  }
 }

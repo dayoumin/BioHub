@@ -10,10 +10,19 @@ import { OllamaRAGProvider } from './providers/ollama-provider'
 
 export type RAGProviderType = 'ollama'
 
+export interface RAGServiceConfig {
+  embeddingModel?: string
+  inferenceModel?: string
+  ollamaEndpoint?: string
+  vectorDbPath?: string
+  topK?: number
+}
+
 export class RAGService {
   private static instance: RAGService | null = null
   private provider: BaseRAGProvider | null = null
   private providerType: RAGProviderType
+  private config: RAGServiceConfig = {}
 
   private constructor() {
     // Ollama Provider 고정 (내부망 전용)
@@ -33,9 +42,26 @@ export class RAGService {
   /**
    * Provider 초기화
    */
-  async initialize(): Promise<void> {
+  async initialize(config?: RAGServiceConfig): Promise<void> {
+    // 설정이 변경되었으면 기존 provider 정리
+    if (this.provider && config) {
+      const hasConfigChanged =
+        config.embeddingModel !== this.config.embeddingModel ||
+        config.inferenceModel !== this.config.inferenceModel
+
+      if (hasConfigChanged) {
+        await this.provider.cleanup()
+        this.provider = null
+      }
+    }
+
     if (this.provider) {
       return // 이미 초기화됨
+    }
+
+    // 설정 업데이트
+    if (config) {
+      this.config = { ...this.config, ...config }
     }
 
     console.log('[RAGService] Ollama Provider 초기화 중...')
@@ -43,11 +69,23 @@ export class RAGService {
     // Ollama Provider 생성
     this.provider = new OllamaRAGProvider({
       name: 'Ollama (Local)',
-      ollamaEndpoint: process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434',
-      embeddingModel: process.env.NEXT_PUBLIC_OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text',
-      inferenceModel: process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL || 'qwen2.5:3b',
-      vectorDbPath: process.env.NEXT_PUBLIC_VECTOR_DB_PATH || '/rag-data/rag.db',
-      topK: parseInt(process.env.NEXT_PUBLIC_TOP_K || '5'),
+      ollamaEndpoint:
+        this.config.ollamaEndpoint ||
+        process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT ||
+        'http://localhost:11434',
+      embeddingModel:
+        this.config.embeddingModel ||
+        process.env.NEXT_PUBLIC_OLLAMA_EMBEDDING_MODEL ||
+        'nomic-embed-text',
+      inferenceModel:
+        this.config.inferenceModel ||
+        process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL ||
+        'qwen2.5:3b',
+      vectorDbPath:
+        this.config.vectorDbPath ||
+        process.env.NEXT_PUBLIC_VECTOR_DB_PATH ||
+        '/rag-data/rag.db',
+      topK: this.config.topK || parseInt(process.env.NEXT_PUBLIC_TOP_K || '5'),
       testMode: process.env.NODE_ENV === 'test' // 테스트 환경에서 testMode 활성화
     })
 

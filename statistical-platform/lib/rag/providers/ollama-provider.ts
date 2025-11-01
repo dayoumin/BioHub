@@ -13,7 +13,14 @@
  *    ollama pull qwen2.5:3b
  */
 
-import { BaseRAGProvider, RAGContext, RAGResponse, RAGProviderConfig } from './base-provider'
+import {
+  BaseRAGProvider,
+  RAGContext,
+  RAGResponse,
+  RAGProviderConfig,
+  DocumentInput,
+  Document
+} from './base-provider'
 
 /**
  * sql.js 타입 정의 (브라우저 SQLite)
@@ -122,17 +129,7 @@ interface DBDocument {
   summary: string | null
 }
 
-/**
- * 문서 입력 타입 (doc_id는 선택적)
- */
-export interface DocumentInput {
-  doc_id?: string
-  title: string
-  content: string
-  library: string
-  category?: string | null
-  summary?: string | null
-}
+// DocumentInput은 base-provider.ts에서 export됨
 
 export class OllamaRAGProvider extends BaseRAGProvider {
   private ollamaEndpoint: string
@@ -392,11 +389,23 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   /**
    * 문서 조회
    */
-  async getDocument(docId: string): Promise<DBDocument | null> {
+  async getDocument(docId: string): Promise<Document | null> {
     this.ensureInitialized()
 
-    const doc = this.documents.find((d) => d.doc_id === docId)
-    return doc || null
+    const dbDoc = this.documents.find((d) => d.doc_id === docId)
+    if (!dbDoc) {
+      return null
+    }
+
+    // DBDocument → Document 변환
+    return {
+      doc_id: dbDoc.doc_id,
+      title: dbDoc.title,
+      content: dbDoc.content,
+      library: dbDoc.library,
+      category: dbDoc.category || undefined,
+      summary: dbDoc.summary || undefined
+    }
   }
 
   /**
