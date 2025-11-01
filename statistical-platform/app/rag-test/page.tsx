@@ -35,7 +35,8 @@ import {
   Copy,
   MessageSquare,
   Info,
-  AlertCircle
+  AlertCircle,
+  XCircle
 } from 'lucide-react'
 import {
   Select,
@@ -44,11 +45,17 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { rebuildRAGDatabase, RAGService, getAvailableVectorStores } from '@/lib/rag/rag-service'
-import type { DocumentInput, Document, SearchMode, VectorStore } from '@/lib/rag/providers/base-provider'
+import { queryRAG, rebuildRAGDatabase, RAGService, getAvailableVectorStores } from '@/lib/rag/rag-service'
+import type { RAGResponse, DocumentInput, Document, SearchMode, VectorStore } from '@/lib/rag/providers/base-provider'
 import { ModelSettings } from '@/components/rag/model-settings'
 import type { OllamaModel } from '@/components/rag/model-settings'
 import { Textarea } from '@/components/ui/textarea'
+
+interface TestResult {
+  query: string
+  response: RAGResponse
+  timestamp: number
+}
 
 // OllamaModel은 model-settings.tsx에서 import
 
@@ -134,8 +141,11 @@ const FUNCTION_NAME_MAP: Record<string, string> = {
 }
 
 export default function RAGTestPage() {
-  // 에러 상태
+  // 쿼리 테스트 상태
+  const [query, setQuery] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [results, setResults] = useState<TestResult[]>([])
 
   // Vector Store 상태
   const [availableVectorStores, setAvailableVectorStores] = useState<VectorStore[]>([])
@@ -177,7 +187,11 @@ export default function RAGTestPage() {
 
   // DB 관리 상태
   const [isRebuilding, setIsRebuilding] = useState(false)
-  const [dbTab, setDbTab] = useState<'add' | 'edit' | 'delete' | 'list' | 'rebuild'>('list')
+  const [dbTab, setDbTab] = useState<'add' | 'edit' | 'delete' | 'list' | 'rebuild' | 'build'>('list')
+
+  // Vector Store 빌드 상태
+  const [buildEmbeddingModel, setBuildEmbeddingModel] = useState('')
+  const [isBuilding, setIsBuilding] = useState(false)
 
   // 문서 추가 상태
   const [newDocTitle, setNewDocTitle] = useState('')
@@ -315,6 +329,49 @@ export default function RAGTestPage() {
       localStorage.setItem('rag-search-mode', searchMode)
     }
   }, [searchMode])
+
+  // RAG 쿼리 실행
+  const handleQuery = useCallback(async () => {
+    if (!query.trim()) {
+      setError('질문을 입력하세요')
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // RAG 서비스 초기화 (선택된 Vector Store 또는 모델 사용)
+      const ragService = RAGService.getInstance()
+      await ragService.initialize({
+        vectorStoreId: selectedVectorStoreId || undefined,
+        embeddingModel: selectedEmbeddingModel,
+        inferenceModel: selectedInferenceModel
+      })
+
+      // 쿼리 실행 (검색 모드 전달)
+      const response = await queryRAG({
+        query: query.trim(),
+        searchMode
+      })
+
+      // 결과 저장
+      setResults((prev) => [
+        {
+          query: query.trim(),
+          response,
+          timestamp: Date.now()
+        },
+        ...prev
+      ])
+
+      setQuery('') // 입력 초기화
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '알 수 없는 오류')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [query, selectedVectorStoreId, selectedEmbeddingModel, selectedInferenceModel, searchMode])
 
   // 문서 추가
   const handleAddDocument = useCallback(async () => {
@@ -610,8 +667,133 @@ export default function RAGTestPage() {
             onInferenceModelChange={setSelectedInferenceModel}
             searchMode={searchMode}
             onSearchModeChange={(mode) => setSearchMode(mode)}
-            disabled={false}
+            disabled={isLoading}
           />
+
+          {/* 쿼리 입력 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>테스트 쿼리</CardTitle>
+              <CardDescription>통계 분석 질문을 입력하세요</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* 질문 입력 */}
+              <div className="space-y-2">
+                <Label htmlFor="query">질문</Label>
+                <Textarea
+                  id="query"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="예: t-test와 ANOVA의 차이점은 무엇인가요?"
+                  rows={4}
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  💡 선택한 검색 모드로 관련 문서를 찾아 AI가 답변합니다.
+                </p>
+              </div>
+
+              {/* 에러 메시지 */}
+              {error && (
+                <div className="flex items-center gap-2 text-destructive">
+                  <XCircle className="h-4 w-4" />
+                  <span className="text-sm">{error}</span>
+                </div>
+              )}
+
+              {/* 버튼 */}
+              <Button onClick={handleQuery} disabled={isLoading || !query.trim()}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    처리 중...
+                  </>
+                ) : (
+                  <>
+                    <Database className="mr-2 h-4 w-4" />
+                    쿼리 실행
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* 테스트 결과 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>테스트 결과 ({results.length}개)</CardTitle>
+              <CardDescription>최신 결과가 위에 표시됩니다</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {results.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">
+                  아직 테스트 결과가 없습니다. 위에서 질문을 입력하고 "쿼리 실행"을 눌러주세요.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {results.map((result, index) => (
+                    <div key={index} className="border rounded-lg p-4 space-y-3">
+                      {/* 쿼리 정보 */}
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <p className="font-medium">{result.query}</p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Badge variant="default">Ollama (Local)</Badge>
+                            <span>•</span>
+                            <span>{new Date(result.timestamp).toLocaleString('ko-KR')}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 응답 */}
+                      <div className="space-y-2">
+                        <Label className="text-base font-semibold">응답</Label>
+                        <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 p-4 rounded-lg">
+                          <div className="whitespace-pre-wrap">{result.response.answer}</div>
+                        </div>
+                      </div>
+
+                      {/* 참조 문서 */}
+                      {result.response.sources && result.response.sources.length > 0 && (
+                        <div className="space-y-2">
+                          <Label className="text-base font-semibold">참조 문서 ({result.response.sources.length}개)</Label>
+                          <div className="space-y-2">
+                            {result.response.sources.map((source, idx) => (
+                              <div key={idx} className="border rounded p-3 space-y-1 text-sm">
+                                <div className="flex items-center justify-between">
+                                  <p className="font-medium">{source.title}</p>
+                                  {source.score && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Score: {source.score.toFixed(3)}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-muted-foreground line-clamp-2">{source.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 메타데이터 */}
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
+                        <span>Provider: {result.response.model.provider}</span>
+                        {result.response.model.embedding && (
+                          <span>Embedding: {result.response.model.embedding}</span>
+                        )}
+                        {result.response.model.inference && (
+                          <span>LLM: {result.response.model.inference}</span>
+                        )}
+                        {result.response.metadata?.responseTime && (
+                          <span>Time: {result.response.metadata.responseTime}ms</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* 데이터베이스 관리 탭 */}
@@ -620,13 +802,49 @@ export default function RAGTestPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                데이터베이스 관리
+                Vector Store 데이터베이스
               </CardTitle>
-              <CardDescription>문서 추가, 수정, 삭제, 재구축</CardDescription>
+              <CardDescription>
+                통계 함수 문서 검색을 위한 임베딩 벡터 DB (SQLite + FTS5)
+              </CardDescription>
             </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {/* Vector Store 정보 */}
+          {selectedVectorStoreId && availableVectorStores.length > 0 && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>현재 Vector Store</AlertTitle>
+              <AlertDescription className="mt-2 space-y-1">
+                {(() => {
+                  const selectedStore = availableVectorStores.find((s) => s.id === selectedVectorStoreId)
+                  if (!selectedStore) return null
+                  return (
+                    <>
+                      <div>• <strong>임베딩 모델:</strong> {selectedStore.embeddingModel}</div>
+                      <div>• <strong>문서 수:</strong> {selectedStore.docCount}개</div>
+                      <div>• <strong>DB 크기:</strong> {selectedStore.fileSize}</div>
+                      <div>• <strong>경로:</strong> <code className="text-xs">{selectedStore.dbPath}</code></div>
+                    </>
+                  )
+                })()}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* IndexedDB 경고 */}
+          <Alert variant="default" className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="text-yellow-800 dark:text-yellow-200">
+              브라우저 영구 저장 (IndexedDB)
+            </AlertTitle>
+            <AlertDescription className="text-yellow-800 dark:text-yellow-200 mt-2">
+              <p>추가/수정한 문서는 브라우저 IndexedDB에 영구 저장됩니다.</p>
+              <p className="mt-1">페이지 새로고침 후에도 유지되지만, <strong>Vector Store 재구축 시 초기화</strong>됩니다.</p>
+            </AlertDescription>
+          </Alert>
+
           <Tabs value={dbTab} onValueChange={(v) => setDbTab(v as typeof dbTab)}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="list">
                 <List className="mr-2 h-4 w-4" />
                 문서 목록
@@ -642,6 +860,10 @@ export default function RAGTestPage() {
               <TabsTrigger value="delete">
                 <Trash2 className="mr-2 h-4 w-4" />
                 삭제
+              </TabsTrigger>
+              <TabsTrigger value="build">
+                <Database className="mr-2 h-4 w-4" />
+                Vector Store 빌드
               </TabsTrigger>
               <TabsTrigger value="rebuild">
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -1101,6 +1323,91 @@ export default function RAGTestPage() {
                   </>
                 )}
               </Button>
+            </TabsContent>
+
+            {/* Vector Store 빌드 */}
+            <TabsContent value="build" className="space-y-4">
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>Vector Store 빌드</AlertTitle>
+                <AlertDescription>
+                  새로운 임베딩 모델로 Vector Store를 생성합니다.
+                  다양한 모델로 테스트하여 최적의 검색 성능을 찾을 수 있습니다.
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="build-embedding-model">임베딩 모델 선택 *</Label>
+                <Select value={buildEmbeddingModel} onValueChange={setBuildEmbeddingModel}>
+                  <SelectTrigger id="build-embedding-model">
+                    <SelectValue placeholder="임베딩 모델을 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableModels
+                      .filter((m) =>
+                        m.name.toLowerCase().includes('embed') ||
+                        m.name.toLowerCase().includes('embedding')
+                      )
+                      .map((m) => (
+                        <SelectItem key={m.name} value={m.name}>
+                          {m.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  💡 임베딩 전용 모델을 선택하세요 (예: mxbai-embed-large, qwen3-embedding)
+                </p>
+              </div>
+
+              <Alert variant="default" className="border-blue-500/50 bg-blue-50 dark:bg-blue-950/20">
+                <AlertCircle className="h-4 w-4 text-blue-600" />
+                <AlertTitle className="text-blue-800 dark:text-blue-200">
+                  빌드 방법
+                </AlertTitle>
+                <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2 space-y-2">
+                  <p>터미널에서 다음 명령어를 실행하세요:</p>
+                  <pre className="bg-muted p-3 rounded text-xs overflow-x-auto mt-2">
+{`cd statistical-platform/rag-system
+python scripts/build_sqlite_db.py --model ${buildEmbeddingModel || '<embedding-model>'}`}
+                  </pre>
+                  <p className="mt-2 text-xs">
+                    빌드가 완료되면 자동으로 <code>public/rag-data/</code>에 새 DB 파일이 생성됩니다.
+                  </p>
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    if (!buildEmbeddingModel) {
+                      alert('임베딩 모델을 선택하세요')
+                      return
+                    }
+                    // 클립보드에 명령어 복사
+                    const command = `cd statistical-platform/rag-system\npython scripts/build_sqlite_db.py --model ${buildEmbeddingModel}`
+                    navigator.clipboard.writeText(command)
+                    alert('명령어가 클립보드에 복사되었습니다!')
+                  }}
+                  disabled={!buildEmbeddingModel || isBuilding}
+                  variant="outline"
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  명령어 복사
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    // Vector Store 목록 새로고침
+                    void loadVectorStores()
+                    alert('Vector Store 목록을 새로고침했습니다')
+                  }}
+                  variant="outline"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  목록 새로고침
+                </Button>
+              </div>
             </TabsContent>
 
             {/* DB 재구축 */}
