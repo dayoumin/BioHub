@@ -13,25 +13,17 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import remarkMath from 'remark-math'
-import rehypeKatex from 'rehype-katex'
-import 'katex/dist/katex.min.css'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Loader2,
-  XCircle,
   RefreshCw,
   Database,
-  Settings,
   FileText,
   Edit,
   Trash2,
@@ -41,9 +33,10 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  MessageSquare
+  MessageSquare,
+  Info,
+  AlertCircle
 } from 'lucide-react'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -51,26 +44,13 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip'
-import { queryRAG, rebuildRAGDatabase, RAGService } from '@/lib/rag/rag-service'
-import type { RAGResponse, DocumentInput, Document, SearchMode } from '@/lib/rag/providers/base-provider'
+import { rebuildRAGDatabase, RAGService, getAvailableVectorStores } from '@/lib/rag/rag-service'
+import type { DocumentInput, Document, SearchMode, VectorStore } from '@/lib/rag/providers/base-provider'
+import { ModelSettings } from '@/components/rag/model-settings'
+import type { OllamaModel } from '@/components/rag/model-settings'
+import { Textarea } from '@/components/ui/textarea'
 
-interface TestResult {
-  query: string
-  response: RAGResponse
-  timestamp: number
-}
-
-interface OllamaModel {
-  name: string
-  size?: number
-  modified_at?: string
-}
+// OllamaModel은 model-settings.tsx에서 import
 
 interface OllamaModelInfo {
   models: OllamaModel[]
@@ -154,11 +134,17 @@ const FUNCTION_NAME_MAP: Record<string, string> = {
 }
 
 export default function RAGTestPage() {
-  // 쿼리 테스트 상태
-  const [query, setQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  // 에러 상태
   const [error, setError] = useState<string | null>(null)
-  const [results, setResults] = useState<TestResult[]>([])
+
+  // Vector Store 상태
+  const [availableVectorStores, setAvailableVectorStores] = useState<VectorStore[]>([])
+  const [selectedVectorStoreId, setSelectedVectorStoreId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('rag-vector-store-id')
+    }
+    return null
+  })
 
   // 모델 선택 상태
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([])
@@ -170,7 +156,12 @@ export default function RAGTestPage() {
   })
   const [selectedInferenceModel, setSelectedInferenceModel] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('rag-inference-model') || 'qwen3:4b'
+      const stored = localStorage.getItem('rag-inference-model') || 'qwen3:4b'
+      // 임베딩 모델이 잘못 저장된 경우 기본값 사용
+      if (stored.toLowerCase().includes('embed')) {
+        return 'qwen3:4b'
+      }
+      return stored
     }
     return 'qwen3:4b'
   })
@@ -267,10 +258,44 @@ export default function RAGTestPage() {
     }
   }, [])
 
-  // 컴포넌트 마운트 시 모델 목록 조회
+  // Vector Store 목록 로드
+  const loadVectorStores = useCallback(async () => {
+    try {
+      const stores = await getAvailableVectorStores()
+      setAvailableVectorStores(stores)
+
+      // 저장된 Vector Store가 없으면 첫 번째 선택
+      if (!selectedVectorStoreId && stores.length > 0) {
+        const firstStoreId = stores[0].id
+        setSelectedVectorStoreId(firstStoreId)
+        setSelectedEmbeddingModel(stores[0].embeddingModel)
+      }
+    } catch (err) {
+      console.error('Vector Store 목록 조회 실패:', err)
+    }
+  }, [selectedVectorStoreId])
+
+  // Vector Store 선택 핸들러
+  const handleVectorStoreSelect = useCallback((storeId: string) => {
+    setSelectedVectorStoreId(storeId)
+
+    // 선택된 store의 임베딩 모델로 자동 설정
+    const selectedStore = availableVectorStores.find((s) => s.id === storeId)
+    if (selectedStore) {
+      setSelectedEmbeddingModel(selectedStore.embeddingModel)
+    }
+
+    // localStorage에 저장
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rag-vector-store-id', storeId)
+    }
+  }, [availableVectorStores])
+
+  // 컴포넌트 마운트 시 모델 목록 및 Vector Store 조회
   useEffect(() => {
     void fetchAvailableModels()
-  }, [fetchAvailableModels])
+    void loadVectorStores()
+  }, [fetchAvailableModels, loadVectorStores])
 
   // 모델 선택 변경 시 로컬스토리지에 저장
   useEffect(() => {
@@ -290,48 +315,6 @@ export default function RAGTestPage() {
       localStorage.setItem('rag-search-mode', searchMode)
     }
   }, [searchMode])
-
-  // RAG 쿼리 실행
-  const handleQuery = useCallback(async () => {
-    if (!query.trim()) {
-      setError('질문을 입력하세요')
-      return
-    }
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      // RAG 서비스 초기화 (선택된 모델 사용)
-      const ragService = RAGService.getInstance()
-      await ragService.initialize({
-        embeddingModel: selectedEmbeddingModel,
-        inferenceModel: selectedInferenceModel
-      })
-
-      // 쿼리 실행 (검색 모드 전달)
-      const response = await queryRAG({
-        query: query.trim(),
-        searchMode
-      })
-
-      // 결과 저장
-      setResults((prev) => [
-        {
-          query: query.trim(),
-          response,
-          timestamp: Date.now()
-        },
-        ...prev
-      ])
-
-      setQuery('') // 입력 초기화
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [query, selectedEmbeddingModel, selectedInferenceModel, searchMode])
 
   // 문서 추가
   const handleAddDocument = useCallback(async () => {
@@ -407,7 +390,7 @@ export default function RAGTestPage() {
       setEditDocCategory(doc.category || '')
       setEditDocSummary(doc.summary || '')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '문서 조회 실패')
+      setError(err instanceof Error ? err.message : '문서 조회 실��')
     } finally {
       setIsLoadingDoc(false)
     }
@@ -614,199 +597,21 @@ export default function RAGTestPage() {
         {/* 테스트 쿼리 탭 */}
         <TabsContent value="query" className="space-y-4">
           {/* 모델 설정 */}
-          <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            모델 설정
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            {/* 임베딩 모델 선택 */}
-            <div className="space-y-2">
-              <Label htmlFor="embedding-model">임베딩 모델</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={selectedEmbeddingModel}
-                  onValueChange={setSelectedEmbeddingModel}
-                  disabled={isLoadingModels}
-                >
-                  <SelectTrigger id="embedding-model">
-                    <SelectValue placeholder="임베딩 모델 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableModels
-                      .filter(
-                        (m) =>
-                          m.name.toLowerCase().includes('embed') ||
-                          m.name.toLowerCase().includes('embedding') ||
-                          m.name.includes('nomic')
-                      )
-                      .map((model) => (
-                        <SelectItem key={model.name} value={model.name}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    {availableModels.filter(
-                      (m) =>
-                        m.name.toLowerCase().includes('embed') ||
-                        m.name.toLowerCase().includes('embedding') ||
-                        m.name.includes('nomic')
-                    ).length === 0 && (
-                      <SelectItem value="mxbai-embed-large:latest">
-                        mxbai-embed-large:latest (기본값)
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={fetchAvailableModels}
-                  disabled={isLoadingModels}
-                  variant="outline"
-                  size="icon"
-                  title="모델 목록 새로고침"
-                >
-                  {isLoadingModels ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* 추론 모델 선택 */}
-            <div className="space-y-2">
-              <Label htmlFor="inference-model">추론 모델 (LLM)</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={selectedInferenceModel}
-                  onValueChange={setSelectedInferenceModel}
-                  disabled={isLoadingModels}
-                >
-                  <SelectTrigger id="inference-model">
-                    <SelectValue placeholder="추론 모델 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableModels
-                      .filter(
-                        (m) =>
-                          !m.name.toLowerCase().includes('embed') &&
-                          (m.name.includes('qwen') ||
-                            m.name.includes('llama') ||
-                            m.name.includes('mistral') ||
-                            m.name.includes('gemma') ||
-                            m.name.includes('gpt'))
-                      )
-                      .map((model) => (
-                        <SelectItem key={model.name} value={model.name}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    {availableModels.filter(
-                      (m) =>
-                        !m.name.toLowerCase().includes('embed') &&
-                        (m.name.includes('qwen') ||
-                          m.name.includes('llama') ||
-                          m.name.includes('mistral') ||
-                          m.name.includes('gemma') ||
-                          m.name.includes('gpt'))
-                    ).length === 0 && (
-                      <SelectItem value="qwen3:4b">qwen3:4b (기본값)</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <Button
-                  onClick={fetchAvailableModels}
-                  disabled={isLoadingModels}
-                  variant="outline"
-                  size="icon"
-                  title="모델 목록 새로고침"
-                >
-                  {isLoadingModels ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* 검색 모드 선택 (라디오 버튼 - 가로 배치 + 인라인 설명) */}
-          <div className="mt-4 space-y-3">
-            <Label className="text-base font-semibold">검색 모드</Label>
-            <TooltipProvider>
-              <RadioGroup
-                value={searchMode}
-                onValueChange={(value) => setSearchMode(value as SearchMode)}
-                className="grid grid-cols-3 gap-3"
-              >
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col space-y-1 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="fts5" id="mode-fts5" />
-                        <Label htmlFor="mode-fts5" className="cursor-pointer font-medium">
-                          FTS5
-                        </Label>
-                      </div>
-                      <p className="text-xs text-muted-foreground ml-6">키워드 · 빠름 (~50ms)</p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs bg-white dark:bg-gray-900 border shadow-lg">
-                    <p className="font-semibold text-foreground">SQLite Full-Text Search</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      키워드 기반 검색 · 빠름 (~50ms) · 현재 구현: 단순 .includes()
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col space-y-1 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="vector" id="mode-vector" />
-                        <Label htmlFor="mode-vector" className="cursor-pointer font-medium">
-                          Vector DB
-                        </Label>
-                      </div>
-                      <p className="text-xs text-muted-foreground ml-6">의미 · 느림 (~10-20초)</p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs bg-white dark:bg-gray-900 border shadow-lg">
-                    <p className="font-semibold text-foreground">임베딩 검색</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      의미론적 검색 · 느림 (~10-20초) · 코사인 유사도 계산
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex flex-col space-y-1 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="hybrid" id="mode-hybrid" />
-                        <Label htmlFor="mode-hybrid" className="cursor-pointer font-medium">
-                          Hybrid
-                        </Label>
-                      </div>
-                      <p className="text-xs text-muted-foreground ml-6">결합 · 가장 정확</p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs bg-white dark:bg-gray-900 border shadow-lg">
-                    <p className="font-semibold text-foreground">FTS5 + Vector 결합</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      RRF 알고리즘 결합 · 가장 느림 (~10-20초) · 가장 정확
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </RadioGroup>
-            </TooltipProvider>
-          </div>
-        </CardContent>
-      </Card>
+          <ModelSettings
+            availableVectorStores={availableVectorStores}
+            selectedVectorStoreId={selectedVectorStoreId}
+            onVectorStoreSelect={handleVectorStoreSelect}
+            availableModels={availableModels}
+            isLoadingModels={isLoadingModels}
+            onRefreshModels={fetchAvailableModels}
+            selectedEmbeddingModel={selectedEmbeddingModel}
+            onEmbeddingModelChange={setSelectedEmbeddingModel}
+            selectedInferenceModel={selectedInferenceModel}
+            onInferenceModelChange={setSelectedInferenceModel}
+            searchMode={searchMode}
+            onSearchModeChange={(mode) => setSearchMode(mode)}
+            disabled={false}
+          />
         </TabsContent>
 
         {/* 데이터베이스 관리 탭 */}
@@ -1345,158 +1150,6 @@ export default function RAGTestPage() {
         </Card>
       </TabsContent>
     </Tabs>
-
-      {/* 테스트 입력 (메인 탭 밖에 항상 표시) */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>테스트 쿼리</CardTitle>
-          <CardDescription>통계 분석 질문을 입력하세요</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* 질문 입력 */}
-          <div className="space-y-2">
-            <Label htmlFor="query">질문</Label>
-            <Textarea
-              id="query"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="예: t-test와 ANOVA의 차이점은 무엇인가요?"
-              rows={4}
-              disabled={isLoading}
-            />
-            <p className="text-xs text-muted-foreground">
-              💡 FTS5 검색이 질문에서 키워드를 자동으로 추출하여 관련 문서를 찾습니다.
-            </p>
-          </div>
-
-          {/* 에러 메시지 */}
-          {error && (
-            <div className="flex items-center gap-2 text-destructive">
-              <XCircle className="h-4 w-4" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-
-          {/* 버튼 */}
-          <Button onClick={handleQuery} disabled={isLoading || !query.trim()}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                처리 중...
-              </>
-            ) : (
-              <>
-                <Database className="mr-2 h-4 w-4" />
-                쿼리 실행
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* 테스트 결과 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>테스트 결과 ({results.length}개)</CardTitle>
-          <CardDescription>최신 결과가 위에 표시됩니다</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {results.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              아직 테스트 결과가 없습니다. 위에서 질문을 입력하고 "쿼리 실행"을 눌러주세요.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {results.map((result, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-3">
-                  {/* 쿼리 정보 */}
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <p className="font-medium">{result.query}</p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Badge variant="default">Ollama (Local)</Badge>
-                        <span>•</span>
-                        <span>{new Date(result.timestamp).toLocaleString('ko-KR')}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 응답 */}
-                  <Tabs defaultValue="answer" className="w-full">
-                    <TabsList>
-                      <TabsTrigger value="answer">응답</TabsTrigger>
-                      <TabsTrigger value="sources">참조 문서</TabsTrigger>
-                      <TabsTrigger value="metadata">메타데이터</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="answer" className="space-y-2">
-                      <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
-                          rehypePlugins={[rehypeKatex]}
-                        >
-                          {result.response.answer}
-                        </ReactMarkdown>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="sources" className="space-y-2">
-                      {result.response.sources && result.response.sources.length > 0 ? (
-                        <div className="space-y-2">
-                          {result.response.sources.map((source, idx) => (
-                            <div key={idx} className="border rounded p-3 space-y-1">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-sm">{source.title}</p>
-                                {source.score && (
-                                  <Badge variant="outline">Score: {source.score.toFixed(3)}</Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground line-clamp-3">
-                                {source.content}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-muted-foreground text-sm">참조 문서 없음</p>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="metadata" className="space-y-2">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Provider</p>
-                          <p className="font-medium">{result.response.model.provider}</p>
-                        </div>
-                        {result.response.model.embedding && (
-                          <div>
-                            <p className="text-muted-foreground">Embedding Model</p>
-                            <p className="font-medium">{result.response.model.embedding}</p>
-                          </div>
-                        )}
-                        {result.response.model.inference && (
-                          <div>
-                            <p className="text-muted-foreground">Inference Model</p>
-                            <p className="font-medium">{result.response.model.inference}</p>
-                          </div>
-                        )}
-                        {result.response.metadata?.responseTime && (
-                          <div>
-                            <p className="text-muted-foreground">Response Time</p>
-                            <p className="font-medium">
-                              {result.response.metadata.responseTime}ms
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   )
 }

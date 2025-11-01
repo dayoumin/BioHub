@@ -84,6 +84,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-plotly.js": "^2.6.3",
+    "better-sqlite3": "^12.4.1",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "identity-obj-proxy": "^3.0.0",
