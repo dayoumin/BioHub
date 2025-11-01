@@ -824,11 +824,17 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   private async generateAnswer(contextText: string, query: string): Promise<string> {
     const systemPrompt = `당신은 통계 분석 전문가입니다. 제공된 문서를 참고하여 사용자의 질문에 정확하고 친절하게 답변해주세요.
 
-답변 시 주의사항:
-- 제공된 문서의 정보를 우선적으로 사용하세요
-- 코드 예제가 있다면 간단히 소개하세요
-- 통계 용어는 한글과 영문을 병기하세요 (예: 귀무가설(Null Hypothesis))
-- 너무 길지 않게 3-5문단으로 작성하세요`
+답변 형식 규칙:
+- **문서 우선**: 제공된 문서의 정보를 우선적으로 사용하세요
+- **마크다운 필수**: 제목(##), 리스트(-), 강조(**) 등을 활용하여 구조화하세요
+- **용어 병기**: 통계 용어는 한글과 영문을 함께 표기하세요 (예: 귀무가설(Null Hypothesis))
+- **핵심 먼저**: 결론을 먼저 제시한 후, 상세 설명을 추가하세요
+- **주의사항 명시**: 적용 조건이나 제약사항이 있으면 명확히 표시하세요
+
+답변 구조 (권장):
+1. 간단한 요약 (1-2문장)
+2. 상세 설명 (마크다운 활용)
+3. 주의사항 또는 추가 정보`
 
     const prompt = `${systemPrompt}
 
