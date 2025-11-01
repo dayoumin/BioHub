@@ -147,6 +147,20 @@ export default function RAGTestPage() {
       }
     } catch (err) {
       console.error('Vector Store 목록 조회 실패:', err)
+      // Event 객체, Error 객체, 문자열 등 모든 경우 처리
+      let errorMessage = 'Vector Store 목록을 불러올 수 없습니다'
+
+      if (err instanceof Error) {
+        errorMessage = err.message
+      } else if (typeof err === 'string') {
+        errorMessage = err
+      } else if (err && typeof err === 'object') {
+        // Event 객체나 다른 객체인 경우
+        errorMessage = 'Vector Store 파일 로드 실패 (vector-stores.json 확인 필요)'
+      }
+
+      // 에러를 사용자에게 표시하지 않고 빈 배열로 처리 (선택적)
+      setAvailableVectorStores([])
     }
   }, [selectedVectorStoreId])
 
