@@ -209,30 +209,25 @@ export function parseVectorStoreFilename(filename: string): { id: string; model:
 }
 
 /**
- * 사용 가능한 Vector Store 목록 조회
+ * 사용 가능한 Vector Store 목록 조회 (동적 로드)
+ *
+ * 빌드 시 생성된 vector-stores.json 파일에서 메타데이터 로드
+ * 파일 생성: npm run generate:vector-stores
  */
 export async function getAvailableVectorStores(): Promise<VectorStore[]> {
-  // 하드코딩된 Vector Store 목록 (실제로는 DB 파일 스캔 또는 메타데이터 파일에서 로드)
-  const stores: VectorStore[] = [
-    {
-      id: 'qwen3-embedding-0.6b',
-      name: 'Qwen3 Embedding (0.6B)',
-      dbPath: '/rag-data/vector-qwen3-embedding-0.6b.db',
-      embeddingModel: 'qwen3-embedding:0.6b',
-      dimensions: 1024,
-      docCount: 111,
-      fileSize: '5.4 MB'
-    },
-    {
-      id: 'mxbai-embed-large',
-      name: 'MixedBread AI Embed Large',
-      dbPath: '/rag-data/vector-mxbai-embed-large.db',
-      embeddingModel: 'mxbai-embed-large',
-      dimensions: 1024,
-      docCount: 111,
-      fileSize: '8.2 MB'
-    }
-  ]
+  try {
+    // Fetch metadata JSON (static file generated at build time)
+    const response = await fetch('/rag-data/vector-stores.json')
 
-  return stores
+    if (!response.ok) {
+      console.warn('[getAvailableVectorStores] 메타데이터 파일 없음, 빈 배열 반환')
+      return []
+    }
+
+    const stores: VectorStore[] = await response.json()
+    return stores
+  } catch (error) {
+    console.error('[getAvailableVectorStores] 메타데이터 로드 실패:', error)
+    return []
+  }
 }

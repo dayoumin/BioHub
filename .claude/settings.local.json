@@ -49,7 +49,10 @@
       "Bash(ollama list:*)",
       "Bash(cp:*)",
       "Bash(npm install:*)",
-      "Bash(ollama pull:*)"
+      "Bash(ollama pull:*)",
+      "Bash(node scripts/generate-vector-store-metadata.js:*)",
+      "Bash(sqlite3:*)",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": []

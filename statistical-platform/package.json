@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "next dev --turbo",
-    "prebuild": "node scripts/copy-rag-db.js",
+    "prebuild": "node scripts/copy-rag-db.js && node scripts/generate-vector-store-metadata.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -17,7 +17,8 @@
     "e2e:ci": "playwright install --with-deps && playwright test",
     "verify:worker": "echo 'Web Worker 환경 검증: http://localhost:3000/verify-worker.html 페이지를 브라우저에서 열어서 실행하세요.'",
     "test:performance": "jest __tests__/performance/pyodide-regression.test.ts --verbose",
-    "test:performance:watch": "jest __tests__/performance/pyodide-regression.test.ts --watch"
+    "test:performance:watch": "jest __tests__/performance/pyodide-regression.test.ts --watch",
+    "generate:vector-stores": "node scripts/generate-vector-store-metadata.js"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",
