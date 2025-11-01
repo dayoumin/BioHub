@@ -57,6 +57,18 @@ interface DBDocument {
   summary: string | null
 }
 
+/**
+ * 문서 입력 타입 (doc_id는 선택적)
+ */
+export interface DocumentInput {
+  doc_id?: string
+  title: string
+  content: string
+  library: string
+  category?: string | null
+  summary?: string | null
+}
+
 export class OllamaRAGProvider extends BaseRAGProvider {
   private ollamaEndpoint: string
   private embeddingModel: string
@@ -142,19 +154,32 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   }
 
   /**
-   * 문서 추가 (TODO: Week 2에서 sql.js 연동)
+   * Helper: 초기화 확인
    */
-  async addDocument(document: {
-    doc_id?: string
-    title: string
-    content: string
-    library: string
-    category?: string | null
-    summary?: string | null
-  }): Promise<string> {
+  private ensureInitialized(): void {
     if (!this.isInitialized) {
       throw new Error('OllamaProvider가 초기화되지 않았습니다')
     }
+  }
+
+  /**
+   * Helper: 문서 인덱스 검색
+   * @returns 문서 인덱스 또는 null (찾지 못한 경우)
+   */
+  private findDocumentIndex(docId: string): number | null {
+    const index = this.documents.findIndex((doc) => doc.doc_id === docId)
+    if (index === -1) {
+      console.warn(`[OllamaProvider] 문서를 찾을 수 없음: ${docId}`)
+      return null
+    }
+    return index
+  }
+
+  /**
+   * 문서 추가 (TODO: Week 2에서 sql.js 연동)
+   */
+  async addDocument(document: DocumentInput): Promise<string> {
+    this.ensureInitialized()
 
     // 문서 ID 생성 (제공되지 않은 경우)
     const docId = document.doc_id || `${document.library}_${Date.now()}`
@@ -183,16 +208,13 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     docId: string,
     updates: Partial<Pick<DBDocument, 'title' | 'content' | 'category' | 'summary'>>
   ): Promise<boolean> {
-    if (!this.isInitialized) {
-      throw new Error('OllamaProvider가 초기화되지 않았습니다')
-    }
+    this.ensureInitialized()
 
     // TODO: Week 2에서 sql.js로 DB 업데이트
     // 현재는 메모리에서만 수정
-    const docIndex = this.documents.findIndex((doc) => doc.doc_id === docId)
+    const docIndex = this.findDocumentIndex(docId)
 
-    if (docIndex === -1) {
-      console.warn(`[OllamaProvider] 문서를 찾을 수 없음: ${docId}`)
+    if (docIndex === null) {
       return false
     }
 
@@ -218,16 +240,13 @@ export class OllamaRAGProvider extends BaseRAGProvider {
    * 문서 삭제 (TODO: Week 2에서 sql.js 연동)
    */
   async deleteDocument(docId: string): Promise<boolean> {
-    if (!this.isInitialized) {
-      throw new Error('OllamaProvider가 초기화되지 않았습니다')
-    }
+    this.ensureInitialized()
 
     // TODO: Week 2에서 sql.js로 DB에서 삭제
     // 현재는 메모리에서만 삭제
-    const docIndex = this.documents.findIndex((doc) => doc.doc_id === docId)
+    const docIndex = this.findDocumentIndex(docId)
 
-    if (docIndex === -1) {
-      console.warn(`[OllamaProvider] 문서를 찾을 수 없음: ${docId}`)
+    if (docIndex === null) {
       return false
     }
 
@@ -241,9 +260,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
    * 문서 조회
    */
   async getDocument(docId: string): Promise<DBDocument | null> {
-    if (!this.isInitialized) {
-      throw new Error('OllamaProvider가 초기화되지 않았습니다')
-    }
+    this.ensureInitialized()
 
     const doc = this.documents.find((d) => d.doc_id === docId)
     return doc || null
@@ -257,9 +274,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   }
 
   async query(context: RAGContext): Promise<RAGResponse> {
-    if (!this.isInitialized) {
-      throw new Error('OllamaProvider가 초기화되지 않았습니다')
-    }
+    this.ensureInitialized()
 
     const startTime = Date.now()
 
