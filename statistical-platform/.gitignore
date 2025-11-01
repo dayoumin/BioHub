@@ -55,3 +55,5 @@ __pycache__/
 venv/
 env/
 .venv
+# RAG Database (generated file)
+public/rag-data/
