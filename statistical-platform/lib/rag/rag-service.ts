@@ -75,12 +75,10 @@ export class RAGService {
         'http://localhost:11434',
       embeddingModel:
         this.config.embeddingModel ||
-        process.env.NEXT_PUBLIC_OLLAMA_EMBEDDING_MODEL ||
-        'nomic-embed-text',
+        process.env.NEXT_PUBLIC_OLLAMA_EMBEDDING_MODEL,
       inferenceModel:
         this.config.inferenceModel ||
-        process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL ||
-        'qwen2.5:3b',
+        process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL,
       vectorDbPath:
         this.config.vectorDbPath ||
         process.env.NEXT_PUBLIC_VECTOR_DB_PATH ||

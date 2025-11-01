@@ -149,8 +149,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     super(config)
 
     this.ollamaEndpoint = config.ollamaEndpoint || 'http://localhost:11434'
-    this.embeddingModel = config.embeddingModel || 'nomic-embed-text'
-    this.inferenceModel = config.inferenceModel || 'qwen2.5:3b'
+    this.embeddingModel = config.embeddingModel || '' // 빈 문자열로 초기화, initialize()에서 자동 감지
+    this.inferenceModel = config.inferenceModel || '' // 빈 문자열로 초기화, initialize()에서 자동 감지
     this.vectorDbPath = config.vectorDbPath || '/rag-data/rag.db'
     this.topK = config.topK || 5
     this.testMode = config.testMode || false
@@ -169,22 +169,59 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       const data = (await response.json()) as { models: Array<{ name: string }> }
       const models = data.models || []
 
-      // 2. 임베딩 모델 확인
-      const hasEmbeddingModel = models.some((m) => m.name.includes(this.embeddingModel))
-      if (!hasEmbeddingModel) {
-        throw new Error(
-          `임베딩 모델 '${this.embeddingModel}'이 설치되지 않았습니다.\n` +
-            `다음 명령어로 설치하세요: ollama pull ${this.embeddingModel}`
+      // 2. 임베딩 모델 자동 감지 또는 확인
+      if (!this.embeddingModel) {
+        // 모델이 지정되지 않았으면 자동 감지
+        const embeddingModel = models.find((m) =>
+          m.name.toLowerCase().includes('embed') ||
+          m.name.toLowerCase().includes('embedding')
         )
+        if (!embeddingModel) {
+          throw new Error(
+            '임베딩 모델을 찾을 수 없습니다.\n' +
+            '다음 명령어로 설치하세요: ollama pull nomic-embed-text'
+          )
+        }
+        this.embeddingModel = embeddingModel.name
+        console.log(`[OllamaProvider] 임베딩 모델 자동 감지: ${this.embeddingModel}`)
+      } else {
+        // 지정된 모델이 설치되어 있는지 확인
+        const hasEmbeddingModel = models.some((m) => m.name.includes(this.embeddingModel))
+        if (!hasEmbeddingModel) {
+          throw new Error(
+            `임베딩 모델 '${this.embeddingModel}'이 설치되지 않았습니다.\n` +
+            `다음 명령어로 설치하세요: ollama pull ${this.embeddingModel}`
+          )
+        }
       }
 
-      // 3. 추론 모델 확인
-      const hasInferenceModel = models.some((m) => m.name.includes(this.inferenceModel))
-      if (!hasInferenceModel) {
-        throw new Error(
-          `추론 모델 '${this.inferenceModel}'이 설치되지 않았습니다.\n` +
-            `다음 명령어로 설치하세요: ollama pull ${this.inferenceModel}`
+      // 3. 추론 모델 자동 감지 또는 확인
+      if (!this.inferenceModel) {
+        // 모델이 지정되지 않았으면 자동 감지 (임베딩 모델 제외)
+        const inferenceModel = models.find((m) =>
+          !m.name.toLowerCase().includes('embed') &&
+          !m.name.toLowerCase().includes('embedding') &&
+          (m.name.toLowerCase().includes('qwen') ||
+           m.name.toLowerCase().includes('gemma') ||
+           m.name.toLowerCase().includes('gpt'))
         )
+        if (!inferenceModel) {
+          throw new Error(
+            '추론 모델을 찾을 수 없습니다.\n' +
+            '다음 명령어로 설치하세요: ollama pull qwen2.5:3b'
+          )
+        }
+        this.inferenceModel = inferenceModel.name
+        console.log(`[OllamaProvider] 추론 모델 자동 감지: ${this.inferenceModel}`)
+      } else {
+        // 지정된 모델이 설치되어 있는지 확인
+        const hasInferenceModel = models.some((m) => m.name.includes(this.inferenceModel))
+        if (!hasInferenceModel) {
+          throw new Error(
+            `추론 모델 '${this.inferenceModel}'이 설치되지 않았습니다.\n` +
+            `다음 명령어로 설치하세요: ollama pull ${this.inferenceModel}`
+          )
+        }
       }
 
       console.log('[OllamaProvider] 모델 확인 완료:')
