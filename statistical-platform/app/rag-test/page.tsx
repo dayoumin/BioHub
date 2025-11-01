@@ -13,6 +13,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -33,7 +34,8 @@ import {
   List,
   Search,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Copy
 } from 'lucide-react'
 import {
   Select,
@@ -59,6 +61,83 @@ interface OllamaModel {
 
 interface OllamaModelInfo {
   models: OllamaModel[]
+}
+
+// 함수명 → 한글명 매핑 테이블 (주요 100개 함수)
+const FUNCTION_NAME_MAP: Record<string, string> = {
+  // SciPy - Hypothesis Testing
+  'scipy.stats.binom_test': '이항검정',
+  'scipy.stats.chi2_contingency': '카이제곱 독립성 검정',
+  'scipy.stats.chisquare': '카이제곱 적합도 검정',
+  'scipy.stats.fisher_exact': '피셔 정확검정',
+  'scipy.stats.friedmanchisquare': '프리드만 검정',
+  'scipy.f_oneway': '일원 분산분석',
+  'scipy.stats.kruskal': '크러스컬-왈리스 검정',
+  'scipy.stats.mannwhitneyu': '만-휘트니 U 검정',
+  'scipy.stats.ttest_ind': '독립표본 t검정',
+  'scipy.stats.ttest_rel': '대응표본 t검정',
+  'scipy.stats.ttest_1samp': '일표본 t검정',
+  'scipy.stats.wilcoxon': '윌콕슨 부호순위 검정',
+  'scipy.stats.ranksums': '윌콕슨 순위합 검정',
+  'scipy.stats.kstest': '콜모고로프-스미르노프 검정',
+  'scipy.stats.shapiro': '샤피로-윌크 정규성 검정',
+  'scipy.stats.normaltest': '정규성 검정',
+  'scipy.stats.levene': '레빈 등분산 검정',
+  'scipy.stats.bartlett': '바틀렛 등분산 검정',
+  'scipy.stats.anderson': '앤더슨-달링 정규성 검정',
+  'scipy.stats.jarque_bera': '자크-베라 정규성 검정',
+
+  // SciPy - Distributions
+  'scipy.stats.chi2': '카이제곱 분포',
+  'scipy.stats.f': 'F 분포',
+  'scipy.stats.t': 't 분포',
+  'scipy.stats.norm': '정규 분포',
+
+  // SciPy - Descriptive
+  'scipy.stats.describe': '기술통계',
+  'scipy.stats.entropy': '엔트로피',
+  'scipy.stats.kurtosis': '첨도',
+  'scipy.stats.skew': '왜도',
+  'scipy.stats.pearsonr': '피어슨 상관계수',
+  'scipy.stats.spearmanr': '스피어만 상관계수',
+  'scipy.stats.kendalltau': '켄달 타우 상관계수',
+
+  // NumPy - Descriptive
+  'numpy.mean': '평균',
+  'numpy.median': '중앙값',
+  'numpy.std': '표준편차',
+  'numpy.var': '분산',
+  'numpy.corrcoef': '상관계수',
+  'numpy.cov': '공분산',
+  'numpy.min': '최솟값',
+  'numpy.max': '최댓값',
+  'numpy.percentile': '백분위수',
+  'numpy.quantile': '분위수',
+
+  // Statsmodels - Regression
+  'statsmodels.api.OLS': '일반 최소제곱 회귀',
+  'statsmodels.api.Logit': '로지스틱 회귀',
+  'statsmodels.api.GLM': '일반화 선형 모형',
+  'statsmodels.api.WLS': '가중 최소제곱 회귀',
+  'statsmodels.api.GLS': '일반화 최소제곱 회귀',
+  'statsmodels.tsa.arima.model.ARIMA': 'ARIMA 모형',
+
+  // Pingouin
+  'pingouin.ttest': 't검정',
+  'pingouin.anova': '분산분석',
+  'pingouin.rm_anova': '반복측정 분산분석',
+  'pingouin.ancova': '공분산분석',
+  'pingouin.mixed_anova': '혼합 분산분석',
+  'pingouin.welch_anova': '웰치 분산분석',
+  'pingouin.kruskal': '크러스컬-왈리스 검정',
+  'pingouin.friedman': '프리드만 검정',
+  'pingouin.cochran': '코크란 Q 검정',
+  'pingouin.corr': '상관분석',
+  'pingouin.partial_corr': '편상관분석',
+  'pingouin.pairwise_corr': '쌍별 상관분석',
+  'pingouin.rm_corr': '반복측정 상관분석',
+  'pingouin.power_ttest': 't검정 검정력 분석',
+  'pingouin.power_anova': '분산분석 검정력 분석'
 }
 
 export default function RAGTestPage() {
@@ -108,6 +187,7 @@ export default function RAGTestPage() {
   const [filterLibrary, setFilterLibrary] = useState<string>('all') // 라이브러리 필터
   const [currentPage, setCurrentPage] = useState(1) // 현재 페이지
   const itemsPerPage = 20 // 페이지당 항목 수
+  const [copySuccess, setCopySuccess] = useState<string | null>(null) // 복사 성공 메시지
 
   // Ollama에서 사용 가능한 모델 목록 가져오기
   const fetchAvailableModels = useCallback(async () => {
@@ -692,7 +772,29 @@ export default function RAGTestPage() {
                   </div>
                 ) : (
                   filteredAndPagedDocuments.paged.map((doc) => {
-                    const displayName = doc.summary || doc.title
+                    // 1. 한글 매핑 우선 사용
+                    const koreanName = FUNCTION_NAME_MAP[doc.title]
+
+                    // 2. summary/title에서 "---" 제거
+                    const cleanSummary = doc.summary
+                      ? doc.summary
+                          .replace(/^---\s*/i, '')
+                          .replace(/^title:\s*/i, '')
+                          .replace(/description:.*$/i, '')
+                          .replace(/source:.*$/i, '')
+                          .trim()
+                      : null
+
+                    const cleanTitle = doc.title
+                      .replace(/^---\s*/i, '')
+                      .replace(/^title:\s*/i, '')
+                      .replace(/description:.*$/i, '')
+                      .replace(/source:.*$/i, '')
+                      .trim()
+
+                    // 3. 최종 표시 이름: 한글명 > summary > title
+                    const displayName = koreanName || cleanSummary || cleanTitle
+
                     const isExpanded = expandedDocId === doc.doc_id
 
                     return (
@@ -703,16 +805,18 @@ export default function RAGTestPage() {
                         {/* 기본 표시 (항상 보이는 정보) */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium truncate">{displayName}</span>
-                              <Badge variant="secondary" className="text-xs">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              {/* 라이브러리 배지를 맨 앞으로 */}
+                              <Badge variant="secondary" className="text-xs shrink-0">
                                 {doc.library}
                               </Badge>
                               {doc.category && (
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-xs shrink-0">
                                   {doc.category}
                                 </Badge>
                               )}
+                              {/* 한글 제목/요약 (폰트 크기 조정) */}
+                              <span className="text-sm truncate">{displayName}</span>
                             </div>
                           </div>
 
@@ -758,19 +862,35 @@ export default function RAGTestPage() {
                         {/* 상세 정보 (확장 시에만 표시) */}
                         {isExpanded && (
                           <div className="mt-3 pt-3 border-t space-y-2 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">ID:</span>{' '}
-                              <code className="text-xs bg-muted px-1 rounded">
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">ID:</span>
+                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded flex-1">
                                 {doc.doc_id}
                               </code>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={async () => {
+                                  await navigator.clipboard.writeText(doc.doc_id)
+                                  setCopySuccess(doc.doc_id)
+                                  setTimeout(() => setCopySuccess(null), 2000)
+                                }}
+                                title="ID 복사"
+                              >
+                                {copySuccess === doc.doc_id ? (
+                                  <span className="text-green-600 text-xs">✓</span>
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
                             </div>
-                            {doc.summary && (
+                            {cleanSummary && (
                               <div>
-                                <span className="text-muted-foreground">요약:</span> {doc.summary}
+                                <span className="text-muted-foreground">요약:</span> {cleanSummary}
                               </div>
                             )}
                             <div>
-                              <span className="text-muted-foreground">제목:</span> {doc.title}
+                              <span className="text-muted-foreground">제목:</span> {cleanTitle}
                             </div>
                             <div>
                               <span className="text-muted-foreground">내용 미리보기:</span>
@@ -1140,8 +1260,8 @@ export default function RAGTestPage() {
                     </TabsList>
 
                     <TabsContent value="answer" className="space-y-2">
-                      <div className="prose prose-sm max-w-none">
-                        <p className="whitespace-pre-wrap">{result.response.answer}</p>
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown>{result.response.answer}</ReactMarkdown>
                       </div>
                     </TabsContent>
 

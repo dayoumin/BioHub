@@ -511,7 +511,15 @@ export class OllamaRAGProvider extends BaseRAGProvider {
    * 전체 문서 목록 조회
    */
   getAllDocuments(): Document[] {
-    return this.documents
+    // DBDocument → Document 변환
+    return this.documents.map((dbDoc) => ({
+      doc_id: dbDoc.doc_id,
+      title: dbDoc.title,
+      content: dbDoc.content,
+      library: dbDoc.library,
+      category: dbDoc.category || undefined,
+      summary: dbDoc.summary || undefined
+    }))
   }
 
   async query(context: RAGContext): Promise<RAGResponse> {
@@ -840,7 +848,7 @@ ${contextText}
         options: {
           temperature: 0.7,
           top_p: 0.9,
-          num_predict: 1000
+          num_predict: 3000 // Increased from 1000 to prevent truncation
         }
       })
     })
