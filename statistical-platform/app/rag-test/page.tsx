@@ -12,7 +12,7 @@
  * 이 페이지는 개발/테스트 전용이며, 프로덕션 빌드에서는 제외됩니다.
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -30,7 +30,10 @@ import {
   Edit,
   Trash2,
   Plus,
-  List
+  List,
+  Search,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import {
   Select,
@@ -99,6 +102,12 @@ export default function RAGTestPage() {
   // 문서 목록 상태
   const [documents, setDocuments] = useState<Document[]>([])
   const [isLoadingDocs, setIsLoadingDocs] = useState(false)
+  const [expandedDocId, setExpandedDocId] = useState<string | null>(null) // 확장된 문서 ID
+  const [searchTerm, setSearchTerm] = useState('') // 검색어
+  const [filterCategory, setFilterCategory] = useState<string>('all') // 카테고리 필터
+  const [filterLibrary, setFilterLibrary] = useState<string>('all') // 라이브러리 필터
+  const [currentPage, setCurrentPage] = useState(1) // 현재 페이지
+  const itemsPerPage = 20 // 페이지당 항목 수
 
   // Ollama에서 사용 가능한 모델 목록 가져오기
   const fetchAvailableModels = useCallback(async () => {
@@ -365,6 +374,50 @@ export default function RAGTestPage() {
     }
   }, [])
 
+  // 필터링 및 페이지네이션 로직
+  const filteredAndPagedDocuments = useMemo(() => {
+    // 1. 검색 필터링
+    let filtered = documents.filter((doc) => {
+      const searchLower = searchTerm.toLowerCase()
+      const matchesSearch =
+        searchTerm === '' ||
+        doc.title.toLowerCase().includes(searchLower) ||
+        (doc.summary && doc.summary.toLowerCase().includes(searchLower)) ||
+        doc.content.toLowerCase().includes(searchLower)
+
+      // 2. 카테고리 필터링
+      const matchesCategory =
+        filterCategory === 'all' || doc.category === filterCategory
+
+      // 3. 라이브러리 필터링
+      const matchesLibrary =
+        filterLibrary === 'all' || doc.library === filterLibrary
+
+      return matchesSearch && matchesCategory && matchesLibrary
+    })
+
+    // 4. 페이지네이션
+    const totalPages = Math.ceil(filtered.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paged = filtered.slice(startIndex, endIndex)
+
+    return { filtered, paged, totalPages }
+  }, [documents, searchTerm, filterCategory, filterLibrary, currentPage])
+
+  // 고유 카테고리/라이브러리 목록
+  const uniqueCategories = useMemo(() => {
+    const categories = new Set(
+      documents.map((d) => d.category || 'uncategorized').filter(Boolean)
+    )
+    return Array.from(categories).sort()
+  }, [documents])
+
+  const uniqueLibraries = useMemo(() => {
+    const libraries = new Set(documents.map((d) => d.library))
+    return Array.from(libraries).sort()
+  }, [documents])
+
   // DB 재구축
   const handleRebuildDatabase = useCallback(async () => {
     if (!confirm('전체 데이터베이스를 재구축하시겠습니까? (모든 데이터가 초기화됩니다)')) {
@@ -545,9 +598,10 @@ export default function RAGTestPage() {
 
             {/* 문서 목록 */}
             <TabsContent value="list" className="space-y-4">
+              {/* 헤더: 전체 개수 + 새로고침 */}
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  전체 {documents.length}개 문서 (원본 DB + IndexedDB)
+                  전체 {documents.length}개 문서 · 필터링 결과 {filteredAndPagedDocuments.filtered.length}개
                 </p>
                 <Button
                   onClick={handleLoadDocuments}
@@ -569,79 +623,199 @@ export default function RAGTestPage() {
                 </Button>
               </div>
 
-              {/* 문서 목록 테이블 */}
-              <div className="border rounded-lg">
-                <div className="max-h-96 overflow-y-auto">
-                  <table className="w-full text-sm">
-                    <thead className="border-b bg-muted/50 sticky top-0">
-                      <tr>
-                        <th className="text-left p-3 font-medium">표시명</th>
-                        <th className="text-left p-3 font-medium">라이브러리</th>
-                        <th className="text-left p-3 font-medium">카테고리</th>
-                        <th className="text-left p-3 font-medium w-32">작업</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {documents.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="text-center p-8 text-muted-foreground">
-                            문서가 없습니다. "새로고침" 버튼을 눌러주세요.
-                          </td>
-                        </tr>
-                      ) : (
-                        documents.map((doc) => {
-                          // 표시명: "요약 (제목)" 또는 "제목"
-                          const displayName = doc.summary
-                            ? `${doc.summary} (${doc.title})`
-                            : doc.title
-
-                          return (
-                            <tr key={doc.doc_id} className="border-b hover:bg-muted/30">
-                              <td className="p-3">
-                                <div className="font-medium">{displayName}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  ID: {doc.doc_id}
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <Badge variant="secondary">{doc.library}</Badge>
-                              </td>
-                              <td className="p-3 text-muted-foreground">
-                                {doc.category || '-'}
-                              </td>
-                              <td className="p-3">
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditDocId(doc.doc_id)
-                                      setDbTab('edit')
-                                      void handleLoadDocument()
-                                    }}
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setDeleteDocId(doc.doc_id)
-                                      setDbTab('delete')
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })
-                      )}
-                    </tbody>
-                  </table>
+              {/* 필터 및 검색 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* 검색 */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="제목, 요약, 내용 검색..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value)
+                      setCurrentPage(1) // 검색 시 첫 페이지로
+                    }}
+                    className="pl-9"
+                  />
                 </div>
+
+                {/* 카테고리 필터 */}
+                <Select
+                  value={filterCategory}
+                  onValueChange={(value) => {
+                    setFilterCategory(value)
+                    setCurrentPage(1)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="카테고리 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">모든 카테고리</SelectItem>
+                    {uniqueCategories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* 라이브러리 필터 */}
+                <Select
+                  value={filterLibrary}
+                  onValueChange={(value) => {
+                    setFilterLibrary(value)
+                    setCurrentPage(1)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="라이브러리 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">모든 라이브러리</SelectItem>
+                    {uniqueLibraries.map((lib) => (
+                      <SelectItem key={lib} value={lib}>
+                        {lib}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* 문서 목록 (간결한 카드 형식) */}
+              <div className="space-y-2">
+                {filteredAndPagedDocuments.paged.length === 0 ? (
+                  <div className="text-center p-8 text-muted-foreground border rounded-lg">
+                    {documents.length === 0
+                      ? '문서가 없습니다. "새로고침" 버튼을 눌러주세요.'
+                      : '검색 결과가 없습니다.'}
+                  </div>
+                ) : (
+                  filteredAndPagedDocuments.paged.map((doc) => {
+                    const displayName = doc.summary || doc.title
+                    const isExpanded = expandedDocId === doc.doc_id
+
+                    return (
+                      <div
+                        key={doc.doc_id}
+                        className="border rounded-lg p-3 hover:bg-muted/30 transition-colors"
+                      >
+                        {/* 기본 표시 (항상 보이는 정보) */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium truncate">{displayName}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {doc.library}
+                              </Badge>
+                              {doc.category && (
+                                <Badge variant="outline" className="text-xs">
+                                  {doc.category}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 작업 버튼 */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                setExpandedDocId(isExpanded ? null : doc.doc_id)
+                              }
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditDocId(doc.doc_id)
+                                setDbTab('edit')
+                                void handleLoadDocument()
+                              }}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setDeleteDocId(doc.doc_id)
+                                setDbTab('delete')
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* 상세 정보 (확장 시에만 표시) */}
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t space-y-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">ID:</span>{' '}
+                              <code className="text-xs bg-muted px-1 rounded">
+                                {doc.doc_id}
+                              </code>
+                            </div>
+                            {doc.summary && (
+                              <div>
+                                <span className="text-muted-foreground">요약:</span> {doc.summary}
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-muted-foreground">제목:</span> {doc.title}
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">내용 미리보기:</span>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
+                                {doc.content}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              {/* 페이지네이션 */}
+              {filteredAndPagedDocuments.totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    페이지 {currentPage} / {filteredAndPagedDocuments.totalPages}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      이전
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setCurrentPage((p) =>
+                          Math.min(filteredAndPagedDocuments.totalPages, p + 1)
+                        )
+                      }
+                      disabled={currentPage === filteredAndPagedDocuments.totalPages}
+                    >
+                      다음
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             {/* 문서 추가 */}
