@@ -67,8 +67,8 @@ export default function RAGTestPage() {
 
   // 모델 선택 상태
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([])
-  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState('nomic-embed-text')
-  const [selectedInferenceModel, setSelectedInferenceModel] = useState('qwen2.5:3b')
+  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState('Q78KG/Qwen3-Embedding-4B:latest')
+  const [selectedInferenceModel, setSelectedInferenceModel] = useState('qwen3:4b')
   const [isLoadingModels, setIsLoadingModels] = useState(false)
 
   // DB 관리 상태
@@ -115,13 +115,21 @@ export default function RAGTestPage() {
       const data = (await response.json()) as OllamaModelInfo
       setAvailableModels(data.models || [])
 
-      // qwen3:4b가 있으면 기본값으로 설정
-      const hasQwen3 = data.models.some((m) => m.name.includes('qwen3'))
-      if (hasQwen3) {
-        const qwen3Model = data.models.find((m) => m.name.includes('qwen3'))
-        if (qwen3Model) {
-          setSelectedInferenceModel(qwen3Model.name)
-        }
+      // 임베딩 모델 자동 감지 및 설정
+      const embeddingModel = data.models.find((m) =>
+        m.name.toLowerCase().includes('embed') ||
+        m.name.toLowerCase().includes('embedding')
+      )
+      if (embeddingModel) {
+        setSelectedEmbeddingModel(embeddingModel.name)
+      }
+
+      // 추론 모델 자동 감지 및 설정 (qwen3 우선)
+      const inferenceModel = data.models.find((m) =>
+        m.name.includes('qwen3:4b') || m.name.includes('qwen3')
+      )
+      if (inferenceModel) {
+        setSelectedInferenceModel(inferenceModel.name)
       }
     } catch (err) {
       console.error('모델 목록 조회 실패:', err)
@@ -422,15 +430,21 @@ export default function RAGTestPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {availableModels
-                    .filter((m) => m.name.includes('embed') || m.name.includes('nomic'))
+                    .filter(
+                      (m) =>
+                        m.name.toLowerCase().includes('embed') ||
+                        m.name.toLowerCase().includes('embedding') ||
+                        m.name.includes('nomic')
+                    )
                     .map((model) => (
                       <SelectItem key={model.name} value={model.name}>
                         {model.name}
                       </SelectItem>
                     ))}
-                  {/* 기본값 포함 */}
-                  {!availableModels.some((m) => m.name === 'nomic-embed-text') && (
-                    <SelectItem value="nomic-embed-text">nomic-embed-text</SelectItem>
+                  {availableModels.length === 0 && (
+                    <SelectItem value="Q78KG/Qwen3-Embedding-4B:latest">
+                      Q78KG/Qwen3-Embedding-4B:latest (기본값)
+                    </SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -451,20 +465,20 @@ export default function RAGTestPage() {
                   {availableModels
                     .filter(
                       (m) =>
-                        !m.name.includes('embed') &&
+                        !m.name.toLowerCase().includes('embed') &&
                         (m.name.includes('qwen') ||
                           m.name.includes('llama') ||
                           m.name.includes('mistral') ||
-                          m.name.includes('gemma'))
+                          m.name.includes('gemma') ||
+                          m.name.includes('gpt'))
                     )
                     .map((model) => (
                       <SelectItem key={model.name} value={model.name}>
                         {model.name}
                       </SelectItem>
                     ))}
-                  {/* 기본값 포함 */}
-                  {!availableModels.some((m) => m.name === 'qwen2.5:3b') && (
-                    <SelectItem value="qwen2.5:3b">qwen2.5:3b</SelectItem>
+                  {availableModels.length === 0 && (
+                    <SelectItem value="qwen3:4b">qwen3:4b (기본값)</SelectItem>
                   )}
                 </SelectContent>
               </Select>
