@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
-import { ArrowUp, Home } from 'lucide-react'
+import { Home, BarChart2, Bot, Settings, Star, Sparkles } from 'lucide-react'
 import { STATISTICS_MENU } from '@/lib/statistics/menu-config'
 import { cn } from '@/lib/utils'
 
@@ -19,252 +20,389 @@ const CATEGORY_PURPOSE: Record<string, string> = {
   'advanced': '복잡한 다변량 및 고급 분석'
 }
 
+// 메뉴 아이템 타입
+interface MenuItem {
+  id: string
+  title: string
+  subtitle?: string
+  badge?: string
+  href: string
+  implemented: boolean
+  comingSoon?: boolean
+}
+
 export default function StatisticsMainPage() {
-  const [activeSection, setActiveSection] = useState<string>('')
-  const [showScrollTop, setShowScrollTop] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>('home')
+  const [favorites, setFavorites] = useState<string[]>([])
 
-  // Intersection Observer를 사용한 섹션 감지 (성능 개선)
+  // localStorage에서 즐겨찾기 로드
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveSection(entry.target.id)
-          }
-        })
-      },
-      {
-        threshold: 0.3, // 섹션의 30%가 보이면 활성화
-        rootMargin: '-80px 0px -50% 0px' // Sticky nav 높이만큼 offset
+    const saved = localStorage.getItem('statisticsFavorites')
+    if (saved) {
+      try {
+        setFavorites(JSON.parse(saved))
+      } catch (error) {
+        console.error('Failed to load favorites:', error)
       }
+    }
+  }, [])
+
+  // 즐겨찾기 토글
+  const toggleFavorite = useCallback((itemId: string) => {
+    setFavorites((prev) => {
+      const newFavorites = prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId]
+
+      localStorage.setItem('statisticsFavorites', JSON.stringify(newFavorites))
+      return newFavorites
+    })
+  }, [])
+
+  // 모든 메뉴 아이템을 평탄화
+  const allItems: MenuItem[] = STATISTICS_MENU.flatMap((category) => category.items)
+
+  // 즐겨찾기 아이템만 필터링
+  const favoriteItems = allItems.filter((item) => favorites.includes(item.id))
+
+  // 통계 카드 컴포넌트 (작은 버전 - 홈용)
+  const SmallStatCard = useCallback(({ item }: { item: MenuItem }) => (
+    <Card className="hover:shadow-md transition-all">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
+          {item.badge && (
+            <Badge variant="secondary" className="text-xs flex-shrink-0">
+              {item.badge}
+            </Badge>
+          )}
+        </div>
+        {item.implemented ? (
+          <Link href={item.href}>
+            <Button size="sm" className="w-full">
+              시작
+            </Button>
+          </Link>
+        ) : (
+          <Button size="sm" className="w-full" disabled>
+            준비 중
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  ), [])
+
+  // 통계 카드 컴포넌트 (일반 버전 - 통계분석 탭용)
+  const StatCard = useCallback(({ item }: { item: MenuItem }) => {
+    const isFavorite = favorites.includes(item.id)
+
+    return (
+      <Card className={cn('hover:shadow-lg transition-all', !item.implemented && 'opacity-60')}>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="text-base leading-tight">{item.title}</CardTitle>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {item.badge && (
+                <Badge variant="secondary" className="text-xs">
+                  {item.badge}
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => toggleFavorite(item.id)}
+                aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+              >
+                <Star
+                  className={cn(
+                    'h-4 w-4',
+                    isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                  )}
+                />
+              </Button>
+            </div>
+          </div>
+          {item.subtitle && (
+            <CardDescription className="text-xs leading-relaxed">
+              {item.subtitle}
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="pt-0">
+          {item.implemented ? (
+            <Link href={item.href}>
+              <Button className="w-full" size="sm">
+                분석 시작
+              </Button>
+            </Link>
+          ) : (
+            <Button className="w-full" size="sm" disabled>
+              {item.comingSoon ? '준비 중' : '미구현'}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
     )
-
-    // 모든 섹션 관찰 시작
-    STATISTICS_MENU.forEach((category) => {
-      const element = document.getElementById(category.id)
-      if (element) {
-        observer.observe(element)
-      }
-    })
-
-    return () => observer.disconnect()
-  }, [])
-
-  // Scroll-to-top 버튼 표시 감지 (별도 이벤트)
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300)
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
-  // 섹션으로 스크롤 + URL Hash 업데이트
-  const scrollToSection = (sectionId: string) => {
-    // URL Hash 업데이트 (북마크/공유 가능)
-    window.history.pushState(null, '', `#${sectionId}`)
-
-    const element = document.getElementById(sectionId)
-    if (element) {
-      const offset = 80 // Sticky nav 높이
-      const bodyRect = document.body.getBoundingClientRect().top
-      const elementRect = element.getBoundingClientRect().top
-      const elementPosition = elementRect - bodyRect
-      const offsetPosition = elementPosition - offset
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      })
-    }
-  }
-
-  // 초기 로드 시 URL Hash 읽기
-  useEffect(() => {
-    if (window.location.hash) {
-      const sectionId = window.location.hash.slice(1) // "#descriptive" → "descriptive"
-      // 약간의 딜레이 후 스크롤 (페이지 로드 완료 대기)
-      setTimeout(() => {
-        const element = document.getElementById(sectionId)
-        if (element) {
-          const offset = 80
-          const bodyRect = document.body.getBoundingClientRect().top
-          const elementRect = element.getBoundingClientRect().top
-          const elementPosition = elementRect - bodyRect
-          const offsetPosition = elementPosition - offset
-
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth'
-          })
-        }
-      }, 100)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // 상단으로 스크롤
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    })
-  }
+  }, [favorites, toggleFavorite])
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <Home className="w-4 h-4 mr-2" />
-                  홈
-                </Button>
-              </Link>
-              <span className="text-sm text-muted-foreground">|</span>
-              <h1 className="text-lg font-bold">통계 분석</h1>
-            </div>
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* 메인 탭 (4개) */}
+          <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsTrigger value="home" className="text-base">
+              <Home className="h-4 w-4 mr-2" />
+              홈
+            </TabsTrigger>
+            <TabsTrigger value="all-statistics" className="text-base">
+              <BarChart2 className="h-4 w-4 mr-2" />
+              통계분석
+            </TabsTrigger>
+            <TabsTrigger value="chatbot" className="text-base">
+              <Bot className="h-4 w-4 mr-2" />
+              챗봇
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="text-base">
+              <Settings className="h-4 w-4 mr-2" />
+              설정
+            </TabsTrigger>
+          </TabsList>
 
-            {/* 카테고리 빠른 링크 */}
-            <div className="hidden lg:flex items-center gap-2 overflow-x-auto">
-              {STATISTICS_MENU.map((category) => (
-                <Button
-                  key={category.id}
-                  variant={activeSection === category.id ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => scrollToSection(category.id)}
-                  className="flex items-center gap-2 whitespace-nowrap"
-                >
-                  <category.icon className="w-3 h-3" />
-                  <span className="text-xs">{category.title}</span>
-                </Button>
-              ))}
-            </div>
-
-            {/* 모바일: 드롭다운 메뉴 */}
-            <div className="lg:hidden">
-              <select
-                className="text-sm border rounded px-2 py-1"
-                onChange={(e) => scrollToSection(e.target.value)}
-                value={activeSection}
-              >
-                <option value="">카테고리 선택</option>
-                {STATISTICS_MENU.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.title}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* 메인 콘텐츠 */}
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* 헤더 섹션 */}
-        <div className="text-center space-y-4 mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold">전문 통계 분석 도구</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            SciPy 기반의 정확한 통계 계산과 다양한 분석 방법을 제공합니다
-          </p>
-        </div>
-
-        {/* 카테고리별 섹션 */}
-        <div className="space-y-16">
-          {STATISTICS_MENU.map((category) => (
-            <section
-              key={category.id}
-              id={category.id}
-              className="scroll-mt-20"
-            >
-              {/* 카테고리 헤더 */}
-              <div className="mb-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <category.icon className="h-5 w-5 text-primary" />
+          {/* 탭 1: 홈 (대시보드) */}
+          <TabsContent value="home" className="space-y-6">
+            {/* 스마트 분석 - 큰 버튼 */}
+            <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
+              <CardContent className="p-8">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                    <Sparkles className="h-8 w-8 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold">{category.title}</h3>
-                    <p className="text-sm text-muted-foreground">{category.description}</p>
+                    <h2 className="text-2xl font-bold mb-2">스마트 분석</h2>
+                    <p className="text-muted-foreground">
+                      AI가 데이터를 분석하고 최적의 통계 방법을 추천해드립니다
+                    </p>
                   </div>
+                  <Button size="lg" className="text-lg px-8" disabled>
+                    <Sparkles className="mr-2 h-5 w-5" />
+                    스마트 분석 시작 (준비 중)
+                  </Button>
                 </div>
-                <div className="mt-2 text-sm">
-                  <span className="font-medium">용도:</span>{' '}
-                  <span className="text-muted-foreground">{CATEGORY_PURPOSE[category.id]}</span>
+              </CardContent>
+            </Card>
+
+            {/* 즐겨찾기 통계 도구 */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">내 통계 도구</h3>
+                  <p className="text-sm text-muted-foreground">
+                    자주 사용하는 분석을 빠르게 시작하세요
+                  </p>
                 </div>
+                {favorites.length > 0 && (
+                  <Badge variant="secondary">{favorites.length}개</Badge>
+                )}
               </div>
 
-              {/* 메서드 카드 그리드 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {category.items.map((item) => (
-                  <Card
-                    key={item.id}
-                    className={cn(
-                      'hover:shadow-lg transition-all',
-                      !item.implemented && 'opacity-60'
-                    )}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base leading-tight">
-                          {item.title}
-                        </CardTitle>
-                        <div className="flex-shrink-0">
-                          {item.badge && (
-                            <Badge variant="secondary" className="text-xs">
-                              {item.badge}
-                            </Badge>
-                          )}
+              {favorites.length === 0 ? (
+                <Card className="text-center py-12 bg-muted/30">
+                  <CardContent>
+                    <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h4 className="font-semibold mb-2">즐겨찾기한 통계가 없습니다</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      통계분석 탭에서 별표(⭐)를 눌러 즐겨찾기를 추가하세요
+                    </p>
+                    <Button onClick={() => setActiveTab('all-statistics')}>
+                      통계분석 보기
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {favoriteItems.map((item) => (
+                    <SmallStatCard key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 빠른 시작 안내 */}
+            {favorites.length > 0 && (
+              <Card className="bg-muted/30">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-center text-muted-foreground">
+                    더 많은 통계 분석이 필요하신가요?{' '}
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto"
+                      onClick={() => setActiveTab('all-statistics')}
+                    >
+                      모든 통계 보기 →
+                    </Button>
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* 탭 2: 통계분석 (전체 카탈로그) */}
+          <TabsContent value="all-statistics" className="space-y-8">
+            {/* 상단 설명 */}
+            <Card className="bg-muted/50">
+              <CardContent className="pt-6">
+                <p className="text-center text-muted-foreground">
+                  <Star className="inline h-4 w-4 mr-1" />
+                  별표를 클릭하면 홈 화면의 "내 통계 도구"에 추가됩니다
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* 카테고리별 섹션 */}
+            {STATISTICS_MENU.map((category) => (
+              <div key={category.id} className="space-y-4">
+                {/* 카테고리 헤더 */}
+                <Card className="bg-muted/50">
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <category.icon className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <CardTitle className="text-2xl">{category.title}</CardTitle>
+                        <CardDescription className="text-base mt-1">
+                          {category.description}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2 text-sm">
+                      <Badge variant="outline">용도</Badge>
+                      <span className="text-muted-foreground">
+                        {CATEGORY_PURPOSE[category.id]}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* 메서드 카드 그리드 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {category.items.map((item) => (
+                    <StatCard key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </TabsContent>
+
+          {/* 탭 3: 챗봇 (준비 중) */}
+          <TabsContent value="chatbot" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Bot className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">AI 통계 상담</CardTitle>
+                    <CardDescription className="text-base mt-1">
+                      AI가 데이터 분석과 통계 방법을 추천해드립니다
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-muted/50 rounded-lg p-8 text-center">
+                  <Bot className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">준비 중입니다</h3>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    AI 챗봇 기능은 곧 추가될 예정입니다.
+                    데이터 분석 방법 추천, 통계 상담, 실험 설계 조언 등을 제공할 예정입니다.
+                  </p>
+                </div>
+
+                {/* 예정된 기능 안내 */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold">예정된 기능</h4>
+                  <div className="grid gap-2">
+                    {[
+                      { title: '통계 방법 추천', desc: '"두 그룹 비교하고 싶어요" → t-검정 추천' },
+                      { title: '데이터 분석 상담', desc: '데이터 특성에 맞는 분석 방법 안내' },
+                      { title: '실험 설계 조언', desc: '연구 설계와 표본 크기 계산' },
+                      { title: '결과 해석 도움', desc: '통계 결과의 의미 설명' }
+                    ].map((feature, idx) => (
+                      <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
+                        <Badge variant="outline" className="mt-0.5">{idx + 1}</Badge>
+                        <div>
+                          <div className="font-medium text-sm">{feature.title}</div>
+                          <div className="text-xs text-muted-foreground">{feature.desc}</div>
                         </div>
                       </div>
-                      {item.subtitle && (
-                        <CardDescription className="text-xs leading-relaxed">
-                          {item.subtitle}
-                        </CardDescription>
-                      )}
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      {item.implemented ? (
-                        <Link href={item.href}>
-                          <Button className="w-full" size="sm">
-                            분석 시작
-                          </Button>
-                        </Link>
-                      ) : (
-                        <Button className="w-full" size="sm" disabled>
-                          {item.comingSoon ? '준비 중' : '미구현'}
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* 탭 4: 설정 */}
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>설정</CardTitle>
+                <CardDescription>
+                  애플리케이션 설정을 관리하세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-muted/50 rounded-lg p-8 text-center">
+                  <Settings className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">설정 페이지</h3>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    테마, 언어, 알림 등 다양한 설정 기능이 추가될 예정입니다.
+                  </p>
+                </div>
+
+                {/* 즐겨찾기 관리 링크 */}
+                <div className="space-y-2">
+                  <h4 className="font-semibold">빠른 작업</h4>
+                  <div className="grid gap-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        const allItemIds = allItems.map((item) => item.id)
+                        setFavorites(allItemIds)
+                        localStorage.setItem('statisticsFavorites', JSON.stringify(allItemIds))
+                      }}
+                    >
+                      모든 통계를 즐겨찾기에 추가
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        setFavorites([])
+                        localStorage.setItem('statisticsFavorites', JSON.stringify([]))
+                      }}
+                    >
+                      모든 즐겨찾기 해제
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* 하단 안내 */}
         <div className="mt-16 text-center text-sm text-muted-foreground">
           <p>모든 통계 분석은 Python SciPy 라이브러리를 기반으로 정확하게 계산됩니다</p>
         </div>
       </main>
-
-      {/* Scroll-to-top 버튼 */}
-      {showScrollTop && (
-        <Button
-          onClick={scrollToTop}
-          className="fixed bottom-8 right-8 w-12 h-12 rounded-full shadow-lg z-40"
-          size="icon"
-          aria-label="맨 위로"
-        >
-          <ArrowUp className="w-5 h-5" />
-        </Button>
-      )}
     </div>
   )
 }
