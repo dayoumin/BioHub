@@ -40,8 +40,10 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
-  Copy
+  Copy,
+  MessageSquare
 } from 'lucide-react'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -49,6 +51,12 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip'
 import { queryRAG, rebuildRAGDatabase, RAGService } from '@/lib/rag/rag-service'
 import type { RAGResponse, DocumentInput, Document, SearchMode } from '@/lib/rag/providers/base-provider'
 
@@ -548,14 +556,28 @@ export default function RAGTestPage() {
         </Badge>
       </div>
 
-      {/* 모델 설정 */}
-      <Card className="mb-4">
+      {/* 메인 탭 (테스트 쿼리 vs 데이터베이스 관리) */}
+      <Tabs defaultValue="query" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="query">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            테스트 쿼리
+          </TabsTrigger>
+          <TabsTrigger value="database">
+            <Database className="mr-2 h-4 w-4" />
+            데이터베이스 관리
+          </TabsTrigger>
+        </TabsList>
+
+        {/* 테스트 쿼리 탭 */}
+        <TabsContent value="query" className="space-y-4">
+          {/* 모델 설정 */}
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
             모델 설정
           </CardTitle>
-          <CardDescription>Ollama에 설치된 모델을 선택하세요</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
@@ -627,42 +649,67 @@ export default function RAGTestPage() {
             </div>
           </div>
 
-          {/* 검색 모드 선택 */}
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="search-mode">검색 모드</Label>
-            <Select
-              value={searchMode}
-              onValueChange={(value) => setSearchMode(value as SearchMode)}
-            >
-              <SelectTrigger id="search-mode">
-                <SelectValue placeholder="검색 모드 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="fts5">
-                  <div className="flex flex-col">
-                    <span className="font-medium">FTS5 (SQLite Full-Text Search)</span>
-                    <span className="text-xs text-muted-foreground">키워드 기반 검색 (빠름)</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="vector">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Vector DB (임베딩 검색)</span>
-                    <span className="text-xs text-muted-foreground">의미론적 검색 (느림, 정확)</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="hybrid">
-                  <div className="flex flex-col">
-                    <span className="font-medium">Hybrid (FTS5 + Vector)</span>
-                    <span className="text-xs text-muted-foreground">RRF 결합 (가장 정확, 가장 느림)</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              💡 <strong>FTS5</strong>: 키워드 매칭 (현재 구현: 단순 .includes()) |
-              <strong>Vector</strong>: 임베딩 유사도 (코사인 유사도) |
-              <strong>Hybrid</strong>: RRF 알고리즘으로 결합
-            </p>
+          {/* 검색 모드 선택 (라디오 버튼 - 가로 배치) */}
+          <div className="mt-4 space-y-3">
+            <Label className="text-base font-semibold">검색 모드</Label>
+            <TooltipProvider>
+              <RadioGroup
+                value={searchMode}
+                onValueChange={(value) => setSearchMode(value as SearchMode)}
+                className="grid grid-cols-3 gap-3"
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <RadioGroupItem value="fts5" id="mode-fts5" />
+                      <Label htmlFor="mode-fts5" className="cursor-pointer font-medium">
+                        FTS5
+                      </Label>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold">SQLite Full-Text Search</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      키워드 기반 검색 · 빠름 (~50ms) · 현재 구현: 단순 .includes()
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <RadioGroupItem value="vector" id="mode-vector" />
+                      <Label htmlFor="mode-vector" className="cursor-pointer font-medium">
+                        Vector DB
+                      </Label>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold">임베딩 검색</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      의미론적 검색 · 느림 (~10-20초) · 코사인 유사도 계산
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <RadioGroupItem value="hybrid" id="mode-hybrid" />
+                      <Label htmlFor="mode-hybrid" className="cursor-pointer font-medium">
+                        Hybrid
+                      </Label>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-semibold">FTS5 + Vector 결합</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      RRF 알고리즘 결합 · 가장 느림 (~10-20초) · 가장 정확
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </RadioGroup>
+            </TooltipProvider>
           </div>
 
           <div className="mt-4 flex items-center gap-2">
@@ -688,16 +735,18 @@ export default function RAGTestPage() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* DB 관리 */}
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            데이터베이스 관리
-          </CardTitle>
-          <CardDescription>문서 추가, 수정, 삭제, 재구축</CardDescription>
-        </CardHeader>
+        {/* 데이터베이스 관리 탭 */}
+        <TabsContent value="database">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                데이터베이스 관리
+              </CardTitle>
+              <CardDescription>문서 추가, 수정, 삭제, 재구축</CardDescription>
+            </CardHeader>
         <CardContent>
           <Tabs value={dbTab} onValueChange={(v) => setDbTab(v as typeof dbTab)}>
             <TabsList className="grid w-full grid-cols-5">
@@ -1221,9 +1270,11 @@ export default function RAGTestPage() {
             </TabsContent>
           </Tabs>
         </CardContent>
-      </Card>
+        </Card>
+      </TabsContent>
+    </Tabs>
 
-      {/* 테스트 입력 */}
+      {/* 테스트 입력 (메인 탭 밖에 항상 표시) */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>테스트 쿼리</CardTitle>
