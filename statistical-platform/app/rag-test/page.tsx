@@ -50,7 +50,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { queryRAG, rebuildRAGDatabase, RAGService } from '@/lib/rag/rag-service'
-import type { RAGResponse, DocumentInput, Document } from '@/lib/rag/providers/base-provider'
+import type { RAGResponse, DocumentInput, Document, SearchMode } from '@/lib/rag/providers/base-provider'
 
 interface TestResult {
   query: string
@@ -158,6 +158,9 @@ export default function RAGTestPage() {
   const [selectedInferenceModel, setSelectedInferenceModel] = useState('qwen3:4b')
   const [isLoadingModels, setIsLoadingModels] = useState(false)
 
+  // 검색 모드 상태
+  const [searchMode, setSearchMode] = useState<SearchMode>('fts5')
+
   // DB 관리 상태
   const [isRebuilding, setIsRebuilding] = useState(false)
   const [dbTab, setDbTab] = useState<'add' | 'edit' | 'delete' | 'list' | 'rebuild'>('list')
@@ -256,9 +259,10 @@ export default function RAGTestPage() {
         inferenceModel: selectedInferenceModel
       })
 
-      // 쿼리 실행
+      // 쿼리 실행 (검색 모드 전달)
       const response = await queryRAG({
-        query: query.trim()
+        query: query.trim(),
+        searchMode
       })
 
       // 결과 저장
@@ -277,7 +281,7 @@ export default function RAGTestPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [query, selectedEmbeddingModel, selectedInferenceModel])
+  }, [query, selectedEmbeddingModel, selectedInferenceModel, searchMode])
 
   // 문서 추가
   const handleAddDocument = useCallback(async () => {
@@ -621,6 +625,44 @@ export default function RAGTestPage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* 검색 모드 선택 */}
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="search-mode">검색 모드</Label>
+            <Select
+              value={searchMode}
+              onValueChange={(value) => setSearchMode(value as SearchMode)}
+            >
+              <SelectTrigger id="search-mode">
+                <SelectValue placeholder="검색 모드 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fts5">
+                  <div className="flex flex-col">
+                    <span className="font-medium">FTS5 (SQLite Full-Text Search)</span>
+                    <span className="text-xs text-muted-foreground">키워드 기반 검색 (빠름)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="vector">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Vector DB (임베딩 검색)</span>
+                    <span className="text-xs text-muted-foreground">의미론적 검색 (느림, 정확)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="hybrid">
+                  <div className="flex flex-col">
+                    <span className="font-medium">Hybrid (FTS5 + Vector)</span>
+                    <span className="text-xs text-muted-foreground">RRF 결합 (가장 정확, 가장 느림)</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              💡 <strong>FTS5</strong>: 키워드 매칭 (현재 구현: 단순 .includes()) |
+              <strong>Vector</strong>: 임베딩 유사도 (코사인 유사도) |
+              <strong>Hybrid</strong>: RRF 알고리즘으로 결합
+            </p>
           </div>
 
           <div className="mt-4 flex items-center gap-2">

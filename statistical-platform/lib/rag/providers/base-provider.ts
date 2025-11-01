@@ -5,6 +5,11 @@
  * Claude API, 로컬 RAG 등 다양한 구현체를 지원
  */
 
+/**
+ * 검색 모드 (Ollama Provider 전용)
+ */
+export type SearchMode = 'fts5' | 'vector' | 'hybrid'
+
 export interface RAGContext {
   /** 사용자 쿼리 */
   query: string
@@ -17,6 +22,8 @@ export interface RAGContext {
     role: 'user' | 'assistant'
     content: string
   }>
+  /** 검색 모드 (Ollama Provider 전용) */
+  searchMode?: SearchMode
 }
 
 export interface RAGResponse {

@@ -526,29 +526,43 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     this.ensureInitialized()
 
     const startTime = Date.now()
+    const searchMode = context.searchMode || 'fts5' // 기본값: FTS5
 
     try {
-      // 1. 키워드 검색 (FTS5 사용)
-      console.log('[OllamaProvider] 키워드 검색 중...')
-      const keywordResults = this.searchByKeyword(context.query)
+      let searchResults: SearchResult[] = []
 
-      // 2. 검색 결과가 없으면 모든 문서에서 검색 (DBDocument → SearchResult 변환)
-      const searchResults: SearchResult[] =
-        keywordResults.length > 0
-          ? keywordResults
-          : this.documents.slice(0, this.topK).map((doc) => ({
-              doc_id: doc.doc_id,
-              title: doc.title,
-              content: doc.content,
-              library: doc.library,
-              category: doc.category,
-              score: 0.5 // 기본 스코어
-            }))
+      // 검색 모드에 따라 다른 검색 수행
+      if (searchMode === 'fts5') {
+        // 1. FTS5 키워드 검색 (기존 방식)
+        console.log('[OllamaProvider] FTS5 키워드 검색 중...')
+        searchResults = this.searchByKeyword(context.query)
+      } else if (searchMode === 'vector') {
+        // 2. Vector 검색 (임베딩 기반)
+        console.log('[OllamaProvider] Vector 검색 중...')
+        searchResults = await this.searchByVector(context.query)
+      } else if (searchMode === 'hybrid') {
+        // 3. Hybrid 검색 (FTS5 + Vector 결합)
+        console.log('[OllamaProvider] Hybrid 검색 중 (FTS5 + Vector)...')
+        searchResults = await this.searchHybrid(context.query)
+      }
 
-      // 3. 관련 문서 컨텍스트 생성
+      // 검색 결과가 없으면 모든 문서에서 상위 K개 반환 (Fallback)
+      if (searchResults.length === 0) {
+        console.log('[OllamaProvider] ⚠️ 검색 결과 없음 - Fallback: 상위 5개 문서 반환')
+        searchResults = this.documents.slice(0, this.topK).map((doc) => ({
+          doc_id: doc.doc_id,
+          title: doc.title,
+          content: doc.content,
+          library: doc.library,
+          category: doc.category,
+          score: 0.5 // 기본 스코어
+        }))
+      }
+
+      // 관련 문서 컨텍스트 생성
       const contextText = this.buildContext(searchResults, context)
 
-      // 4. 추론 모델로 응답 생성
+      // 추론 모델로 응답 생성
       console.log('[OllamaProvider] 응답 생성 중...')
       const answer = await this.generateAnswer(contextText, context.query)
 
@@ -562,7 +576,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           score: result.score
         })),
         model: {
-          provider: 'Ollama (Local)',
+          provider: `Ollama (Local - ${searchMode.toUpperCase()})`,
           embedding: this.embeddingModel,
           inference: this.inferenceModel
         },
@@ -777,6 +791,141 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     // 스코어 순 정렬 후 Top-K
     results.sort((a, b) => b.score - a.score)
     return results.slice(0, this.topK)
+  }
+
+  /**
+   * Vector 검색 (임베딩 기반 의미론적 검색)
+   */
+  private async searchByVector(query: string): Promise<SearchResult[]> {
+    console.log(`[OllamaProvider] Vector 검색: "${query}"`)
+
+    try {
+      // 1. 쿼리 임베딩 생성
+      const queryEmbedding = await this.generateEmbedding(query)
+
+      // 2. 모든 문서와 코사인 유사도 계산
+      const results: SearchResult[] = []
+
+      for (const doc of this.documents) {
+        // 문서 임베딩 생성 (캐싱 필요 - 현재는 매번 생성)
+        const docEmbedding = await this.generateEmbedding(doc.content)
+
+        // 코사인 유사도 계산
+        const similarity = this.cosineSimilarity(queryEmbedding, docEmbedding)
+
+        results.push({
+          doc_id: doc.doc_id,
+          title: doc.title,
+          content: doc.content,
+          library: doc.library,
+          category: doc.category,
+          score: similarity
+        })
+      }
+
+      // 유사도 순 정렬 후 Top-K
+      results.sort((a, b) => b.score - a.score)
+      return results.slice(0, this.topK)
+    } catch (error) {
+      console.error('[OllamaProvider] Vector 검색 실패:', error)
+      // Fallback: 빈 배열 반환 (query에서 Fallback 처리)
+      return []
+    }
+  }
+
+  /**
+   * Hybrid 검색 (FTS5 + Vector 결합)
+   *
+   * Reciprocal Rank Fusion (RRF) 알고리즘 사용:
+   * RRF(d) = Σ 1 / (k + rank(d))
+   *
+   * k = 60 (상수, 논문에서 검증된 값)
+   */
+  private async searchHybrid(query: string): Promise<SearchResult[]> {
+    console.log(`[OllamaProvider] Hybrid 검색: "${query}"`)
+
+    try {
+      // 1. FTS5 검색
+      const fts5Results = this.searchByKeyword(query)
+
+      // 2. Vector 검색
+      const vectorResults = await this.searchByVector(query)
+
+      // 3. RRF로 결합
+      const k = 60
+      const rrfScores = new Map<string, number>()
+
+      // FTS5 결과 RRF 점수 계산
+      fts5Results.forEach((result, index) => {
+        const rank = index + 1
+        const rrfScore = 1 / (k + rank)
+        rrfScores.set(result.doc_id, (rrfScores.get(result.doc_id) || 0) + rrfScore)
+      })
+
+      // Vector 결과 RRF 점수 계산
+      vectorResults.forEach((result, index) => {
+        const rank = index + 1
+        const rrfScore = 1 / (k + rank)
+        rrfScores.set(result.doc_id, (rrfScores.get(result.doc_id) || 0) + rrfScore)
+      })
+
+      // 4. 모든 문서 정보 매핑 (doc_id → Document)
+      const docMap = new Map<string, DBDocument>()
+      this.documents.forEach((doc) => docMap.set(doc.doc_id, doc))
+
+      // 5. RRF 점수 기준 정렬
+      const hybridResults: SearchResult[] = Array.from(rrfScores.entries())
+        .map(([doc_id, score]) => {
+          const doc = docMap.get(doc_id)
+          if (!doc) {
+            throw new Error(`문서를 찾을 수 없습니다: ${doc_id}`)
+          }
+
+          return {
+            doc_id: doc.doc_id,
+            title: doc.title,
+            content: doc.content,
+            library: doc.library,
+            category: doc.category,
+            score
+          }
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, this.topK)
+
+      console.log(`[OllamaProvider] Hybrid 검색 완료: ${hybridResults.length}개 문서 (FTS5: ${fts5Results.length}, Vector: ${vectorResults.length})`)
+      return hybridResults
+    } catch (error) {
+      console.error('[OllamaProvider] Hybrid 검색 실패:', error)
+      // Fallback: FTS5만 사용
+      return this.searchByKeyword(query)
+    }
+  }
+
+  /**
+   * 코사인 유사도 계산
+   */
+  private cosineSimilarity(vec1: number[], vec2: number[]): number {
+    if (vec1.length !== vec2.length) {
+      throw new Error('벡터 길이가 다릅니다')
+    }
+
+    let dotProduct = 0
+    let norm1 = 0
+    let norm2 = 0
+
+    for (let i = 0; i < vec1.length; i++) {
+      dotProduct += vec1[i] * vec2[i]
+      norm1 += vec1[i] * vec1[i]
+      norm2 += vec2[i] * vec2[i]
+    }
+
+    const magnitude = Math.sqrt(norm1) * Math.sqrt(norm2)
+    if (magnitude === 0) {
+      return 0
+    }
+
+    return dotProduct / magnitude
   }
 
   /**
