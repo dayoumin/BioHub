@@ -692,9 +692,12 @@ export default function RAGTestPage() {
             </div>
           </div>
 
-          {/* 검색 모드 선택 (라디오 버튼 - 가로 배치) */}
+          {/* 검색 모드 선택 (라디오 버튼 - 가로 배치 + 인라인 설명) */}
           <div className="mt-4 space-y-3">
-            <Label className="text-base font-semibold">검색 모드</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold">검색 모드</Label>
+              <Badge variant="secondary">{availableModels.length}개 모델</Badge>
+            </div>
             <TooltipProvider>
               <RadioGroup
                 value={searchMode}
@@ -703,15 +706,18 @@ export default function RAGTestPage() {
               >
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="fts5" id="mode-fts5" />
-                      <Label htmlFor="mode-fts5" className="cursor-pointer font-medium">
-                        FTS5
-                      </Label>
+                    <div className="flex flex-col space-y-1 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="fts5" id="mode-fts5" />
+                        <Label htmlFor="mode-fts5" className="cursor-pointer font-medium">
+                          FTS5
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-6">키워드 · 빠름 (~50ms)</p>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold">SQLite Full-Text Search</p>
+                  <TooltipContent side="top" className="max-w-xs bg-white dark:bg-gray-900 border shadow-lg">
+                    <p className="font-semibold text-foreground">SQLite Full-Text Search</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       키워드 기반 검색 · 빠름 (~50ms) · 현재 구현: 단순 .includes()
                     </p>
@@ -720,15 +726,18 @@ export default function RAGTestPage() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="vector" id="mode-vector" />
-                      <Label htmlFor="mode-vector" className="cursor-pointer font-medium">
-                        Vector DB
-                      </Label>
+                    <div className="flex flex-col space-y-1 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="vector" id="mode-vector" />
+                        <Label htmlFor="mode-vector" className="cursor-pointer font-medium">
+                          Vector DB
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-6">의미 · 느림 (~10-20초)</p>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold">임베딩 검색</p>
+                  <TooltipContent side="top" className="max-w-xs bg-white dark:bg-gray-900 border shadow-lg">
+                    <p className="font-semibold text-foreground">임베딩 검색</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       의미론적 검색 · 느림 (~10-20초) · 코사인 유사도 계산
                     </p>
@@ -737,15 +746,18 @@ export default function RAGTestPage() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
-                      <RadioGroupItem value="hybrid" id="mode-hybrid" />
-                      <Label htmlFor="mode-hybrid" className="cursor-pointer font-medium">
-                        Hybrid
-                      </Label>
+                    <div className="flex flex-col space-y-1 rounded-lg border p-3 hover:bg-muted/50 transition-colors cursor-pointer">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="hybrid" id="mode-hybrid" />
+                        <Label htmlFor="mode-hybrid" className="cursor-pointer font-medium">
+                          Hybrid
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-6">결합 · 가장 정확</p>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="font-semibold">FTS5 + Vector 결합</p>
+                  <TooltipContent side="top" className="max-w-xs bg-white dark:bg-gray-900 border shadow-lg">
+                    <p className="font-semibold text-foreground">FTS5 + Vector 결합</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       RRF 알고리즘 결합 · 가장 느림 (~10-20초) · 가장 정확
                     </p>
@@ -753,28 +765,6 @@ export default function RAGTestPage() {
                 </Tooltip>
               </RadioGroup>
             </TooltipProvider>
-          </div>
-
-          <div className="mt-4 flex items-center gap-2">
-            <Button
-              onClick={fetchAvailableModels}
-              disabled={isLoadingModels}
-              variant="outline"
-              size="sm"
-            >
-              {isLoadingModels ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  조회 중...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  모델 목록 새로고침
-                </>
-              )}
-            </Button>
-            <Badge variant="secondary">{availableModels.length}개 모델 감지됨</Badge>
           </div>
         </CardContent>
       </Card>
