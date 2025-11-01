@@ -62,10 +62,12 @@ function formatFileSize(bytes) {
 
 /**
  * Query SQLite database for metadata
+ * @returns {Object|null} Metadata object or null if database is corrupted
  */
 function getDatabaseMetadata(dbPath) {
+  let db = null;
   try {
-    const db = new Database(dbPath, { readonly: true });
+    db = new Database(dbPath, { readonly: true });
 
     // Get document count
     const docCountResult = db.prepare('SELECT COUNT(*) as count FROM documents').get();
@@ -77,8 +79,15 @@ function getDatabaseMetadata(dbPath) {
       const embeddingResult = db.prepare('SELECT embedding FROM embeddings LIMIT 1').get();
       if (embeddingResult?.embedding) {
         if (Buffer.isBuffer(embeddingResult.embedding)) {
-          // BLOB format: assume float32 (4 bytes per float)
-          dimensions = embeddingResult.embedding.length / 4;
+          // BLOB format: determine bytes per float from buffer size
+          const bufferSize = embeddingResult.embedding.length;
+
+          // Try to detect precision from embedding_model metadata
+          const modelResult = db.prepare('SELECT embedding_model FROM embeddings LIMIT 1').get();
+          const isQuantized = modelResult?.embedding_model?.toLowerCase().includes('quantized');
+          const bytesPerFloat = isQuantized ? 1 : 4; // int8 quantized = 1 byte, float32 = 4 bytes
+
+          dimensions = Math.floor(bufferSize / bytesPerFloat);
         } else if (typeof embeddingResult.embedding === 'string') {
           // JSON format
           const embedding = JSON.parse(embeddingResult.embedding);
@@ -99,7 +108,18 @@ function getDatabaseMetadata(dbPath) {
     return { docCount, dimensions };
   } catch (err) {
     console.error(`  ❌ Error reading database: ${err.message}`);
-    return { docCount: 0, dimensions: 1024 };
+    console.error(`  ⚠️  This database file appears to be corrupted and will be skipped`);
+
+    // Close database connection if it was opened
+    if (db) {
+      try {
+        db.close();
+      } catch (closeErr) {
+        // Ignore close errors for corrupted databases
+      }
+    }
+
+    return null; // Return null to indicate corrupted database
   }
 }
 
@@ -145,7 +165,15 @@ async function generateMetadata() {
     const fileSize = formatFileSize(stats.size);
 
     // Get database metadata
-    const { docCount, dimensions } = getDatabaseMetadata(dbPath);
+    const metadata = getDatabaseMetadata(dbPath);
+
+    // Skip corrupted databases
+    if (metadata === null) {
+      console.warn(`  ⚠️  Skipping ${filename} due to database errors\n`);
+      continue;
+    }
+
+    const { docCount, dimensions } = metadata;
 
     const store = {
       id: parsed.id,

@@ -1,3 +1,5 @@
+'use client'
+
 /**
  * RAG Test Page
  *
