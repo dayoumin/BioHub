@@ -144,4 +144,11 @@ export abstract class BaseRAGProvider {
   getDocumentCount(): number {
     throw new Error('getDocumentCount not implemented')
   }
+
+  /**
+   * 전체 문서 목록 조회 (선택)
+   */
+  getAllDocuments(): Document[] {
+    throw new Error('getAllDocuments not implemented')
+  }
 }

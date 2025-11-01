@@ -29,7 +29,8 @@ import {
   FileText,
   Edit,
   Trash2,
-  Plus
+  Plus,
+  List
 } from 'lucide-react'
 import {
   Select,
@@ -39,7 +40,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { queryRAG, rebuildRAGDatabase, RAGService } from '@/lib/rag/rag-service'
-import type { RAGResponse, DocumentInput } from '@/lib/rag/providers/base-provider'
+import type { RAGResponse, DocumentInput, Document } from '@/lib/rag/providers/base-provider'
 
 interface TestResult {
   query: string
@@ -60,7 +61,6 @@ interface OllamaModelInfo {
 export default function RAGTestPage() {
   // 쿼리 테스트 상태
   const [query, setQuery] = useState('')
-  const [selectedMethod, setSelectedMethod] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<TestResult[]>([])
@@ -73,7 +73,7 @@ export default function RAGTestPage() {
 
   // DB 관리 상태
   const [isRebuilding, setIsRebuilding] = useState(false)
-  const [dbTab, setDbTab] = useState<'add' | 'edit' | 'delete' | 'rebuild'>('add')
+  const [dbTab, setDbTab] = useState<'add' | 'edit' | 'delete' | 'list' | 'rebuild'>('list')
 
   // 문서 추가 상태
   const [newDocTitle, setNewDocTitle] = useState('')
@@ -95,6 +95,10 @@ export default function RAGTestPage() {
   // 문서 삭제 상태
   const [deleteDocId, setDeleteDocId] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // 문서 목록 상태
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false)
 
   // Ollama에서 사용 가능한 모델 목록 가져오기
   const fetchAvailableModels = useCallback(async () => {
@@ -152,8 +156,7 @@ export default function RAGTestPage() {
 
       // 쿼리 실행
       const response = await queryRAG({
-        query: query.trim(),
-        method: selectedMethod || undefined
+        query: query.trim()
       })
 
       // 결과 저장
@@ -172,7 +175,7 @@ export default function RAGTestPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [query, selectedMethod, selectedEmbeddingModel, selectedInferenceModel])
+  }, [query, selectedEmbeddingModel, selectedInferenceModel])
 
   // 문서 추가
   const handleAddDocument = useCallback(async () => {
@@ -330,6 +333,30 @@ export default function RAGTestPage() {
     }
   }, [deleteDocId])
 
+  // 문서 목록 조회
+  const handleLoadDocuments = useCallback(async () => {
+    setIsLoadingDocs(true)
+    setError(null)
+
+    try {
+      const ragService = RAGService.getInstance()
+      await ragService.initialize()
+
+      const provider = ragService['provider']
+      if (!provider) {
+        throw new Error('Provider가 초기화되지 않았습니다')
+      }
+
+      // Get all documents from the provider
+      const allDocs = provider.getAllDocuments()
+      setDocuments(allDocs)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '문서 목록 조회 실패')
+    } finally {
+      setIsLoadingDocs(false)
+    }
+  }, [])
+
   // DB 재구축
   const handleRebuildDatabase = useCallback(async () => {
     if (!confirm('전체 데이터베이스를 재구축하시겠습니까? (모든 데이터가 초기화됩니다)')) {
@@ -342,12 +369,21 @@ export default function RAGTestPage() {
     try {
       await rebuildRAGDatabase()
       alert('데이터베이스 재구축 완료!')
+      // 재구축 후 문서 목록 새로고침
+      void handleLoadDocuments()
     } catch (err) {
       setError(err instanceof Error ? err.message : '재구축 실패')
     } finally {
       setIsRebuilding(false)
     }
-  }, [])
+  }, [handleLoadDocuments])
+
+  // DB 탭이 'list'로 변경될 때 문서 목록 자동 로드
+  useEffect(() => {
+    if (dbTab === 'list') {
+      void handleLoadDocuments()
+    }
+  }, [dbTab, handleLoadDocuments])
 
   return (
     <div className="container mx-auto p-8 max-w-6xl">
@@ -470,7 +506,11 @@ export default function RAGTestPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={dbTab} onValueChange={(v) => setDbTab(v as typeof dbTab)}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="list">
+                <List className="mr-2 h-4 w-4" />
+                문서 목록
+              </TabsTrigger>
               <TabsTrigger value="add">
                 <Plus className="mr-2 h-4 w-4" />
                 추가
@@ -488,6 +528,107 @@ export default function RAGTestPage() {
                 재구축
               </TabsTrigger>
             </TabsList>
+
+            {/* 문서 목록 */}
+            <TabsContent value="list" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  전체 {documents.length}개 문서 (원본 DB + IndexedDB)
+                </p>
+                <Button
+                  onClick={handleLoadDocuments}
+                  disabled={isLoadingDocs}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isLoadingDocs ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      로딩 중...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      새로고침
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* 문서 목록 테이블 */}
+              <div className="border rounded-lg">
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b bg-muted/50 sticky top-0">
+                      <tr>
+                        <th className="text-left p-3 font-medium">표시명</th>
+                        <th className="text-left p-3 font-medium">라이브러리</th>
+                        <th className="text-left p-3 font-medium">카테고리</th>
+                        <th className="text-left p-3 font-medium w-32">작업</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documents.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="text-center p-8 text-muted-foreground">
+                            문서가 없습니다. "새로고침" 버튼을 눌러주세요.
+                          </td>
+                        </tr>
+                      ) : (
+                        documents.map((doc) => {
+                          // 표시명: "요약 (제목)" 또는 "제목"
+                          const displayName = doc.summary
+                            ? `${doc.summary} (${doc.title})`
+                            : doc.title
+
+                          return (
+                            <tr key={doc.doc_id} className="border-b hover:bg-muted/30">
+                              <td className="p-3">
+                                <div className="font-medium">{displayName}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  ID: {doc.doc_id}
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <Badge variant="secondary">{doc.library}</Badge>
+                              </td>
+                              <td className="p-3 text-muted-foreground">
+                                {doc.category || '-'}
+                              </td>
+                              <td className="p-3">
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setEditDocId(doc.doc_id)
+                                      setDbTab('edit')
+                                      void handleLoadDocument()
+                                    }}
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setDeleteDocId(doc.doc_id)
+                                      setDbTab('delete')
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </TabsContent>
 
             {/* 문서 추가 */}
             <TabsContent value="add" className="space-y-4">
@@ -683,10 +824,24 @@ export default function RAGTestPage() {
 
             {/* DB 재구축 */}
             <TabsContent value="rebuild" className="space-y-4">
-              <div className="rounded-lg border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20 p-4">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                  ⚠️ 주의: 전체 데이터베이스를 재구축하면 모든 사용자 추가 문서가 삭제되고,
-                  원본 데이터로 초기화됩니다.
+              <div className="rounded-lg border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20 p-4 space-y-2">
+                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
+                  ⚠️ 주의: 원본 데이터베이스로 초기화
+                </p>
+                <ul className="text-sm text-yellow-800 dark:text-yellow-200 list-disc list-inside space-y-1">
+                  <li>
+                    <strong>삭제됨</strong>: IndexedDB에 저장된 모든 사용자 문서 (영구 저장소)
+                  </li>
+                  <li>
+                    <strong>복원됨</strong>: 원본 DB 파일 (public/rag-data/rag.db)
+                  </li>
+                  <li>
+                    <strong>용도</strong>: 테스트 데이터 정리, 원본으로 되돌리기
+                  </li>
+                </ul>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
+                  💡 참고: 사용자가 추가/수정한 문서는 IndexedDB에 영구 저장되므로,
+                  페이지 새로고침 후에도 유지됩니다. 재구축 시 IndexedDB가 초기화됩니다.
                 </p>
               </div>
 
@@ -699,12 +854,12 @@ export default function RAGTestPage() {
                 {isRebuilding ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    재구축 중...
+                    초기화 중...
                   </>
                 ) : (
                   <>
                     <RefreshCw className="h-4 w-4" />
-                    전체 DB 재구축
+                    원본 DB로 초기화
                   </>
                 )}
               </Button>
@@ -728,23 +883,12 @@ export default function RAGTestPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="예: t-test와 ANOVA의 차이점은 무엇인가요?"
-              rows={3}
+              rows={4}
               disabled={isLoading}
             />
-          </div>
-
-          {/* 메서드 선택 (선택사항) */}
-          <div className="space-y-2">
-            <Label htmlFor="method">통계 메서드 범위 (선택)</Label>
-            <input
-              id="method"
-              type="text"
-              value={selectedMethod}
-              onChange={(e) => setSelectedMethod(e.target.value)}
-              placeholder="예: tTest, linearRegression (질문 범위를 좁힙니다)"
-              className="w-full px-3 py-2 border rounded-md"
-              disabled={isLoading}
-            />
+            <p className="text-xs text-muted-foreground">
+              💡 FTS5 검색이 질문에서 키워드를 자동으로 추출하여 관련 문서를 찾습니다.
+            </p>
           </div>
 
           {/* 에러 메시지 */}

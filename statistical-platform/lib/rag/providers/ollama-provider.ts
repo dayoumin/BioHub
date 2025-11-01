@@ -21,6 +21,7 @@ import {
   DocumentInput,
   Document
 } from './base-provider'
+import { IndexedDBStorage, type StoredDocument } from '../indexeddb-storage'
 
 /**
  * sql.js 타입 정의 (브라우저 SQLite)
@@ -213,6 +214,12 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     }
     this.documents = []
     this.isInitialized = false
+
+    // IndexedDB 초기화 (재구축 시 사용자 문서도 삭제)
+    if (typeof window !== 'undefined' && !this.testMode) {
+      await IndexedDBStorage.clearAllDocuments()
+      console.log('[OllamaProvider] ✓ IndexedDB 초기화 완료')
+    }
   }
 
   /**
@@ -265,9 +272,28 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
     this.documents.push(newDoc)
 
-    // 프로덕션 모드: SQLite에도 삽입
+    const currentTime = Date.now()
+
+    // IndexedDB에 저장 (영구 저장소 - 브라우저 환경에서만)
+    if (typeof window !== 'undefined' && !this.testMode) {
+      const storedDoc: StoredDocument = {
+        doc_id: docId,
+        title: document.title,
+        content: document.content,
+        library: document.library,
+        category: document.category || null,
+        summary: document.summary || null,
+        created_at: currentTime,
+        updated_at: currentTime
+      }
+
+      await IndexedDBStorage.saveDocument(storedDoc)
+      console.log(`[OllamaProvider] ✓ IndexedDB 저장 완료: ${docId}`)
+    }
+
+    // 프로덕션 모드: SQLite 메모리 DB에도 삽입 (검색 성능)
     if (!this.testMode && this.db) {
-      const currentTime = Math.floor(Date.now() / 1000)
+      const currentTimeSec = Math.floor(currentTime / 1000)
       const wordCount = document.content.split(/\s+/).length
 
       this.db.exec(`
@@ -282,8 +308,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           ${document.category ? `'${this.escapeSQL(document.category)}'` : 'NULL'},
           '${this.escapeSQL(document.content)}',
           ${document.summary ? `'${this.escapeSQL(document.summary)}'` : 'NULL'},
-          ${currentTime},
-          ${currentTime},
+          ${currentTimeSec},
+          ${currentTimeSec},
           ${wordCount}
         )
       `)
@@ -322,10 +348,33 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       this.documents[docIndex].summary = updates.summary
     }
 
-    // 프로덕션 모드: SQLite도 업데이트
+    const currentTime = Date.now()
+
+    // IndexedDB 업데이트 (영구 저장소)
+    if (typeof window !== 'undefined' && !this.testMode) {
+      // 기존 문서 조회
+      const existingDoc = await IndexedDBStorage.getDocument(docId)
+
+      if (existingDoc) {
+        // 업데이트된 문서 생성
+        const updatedDoc: StoredDocument = {
+          ...existingDoc,
+          title: updates.title !== undefined ? updates.title : existingDoc.title,
+          content: updates.content !== undefined ? updates.content : existingDoc.content,
+          category: updates.category !== undefined ? updates.category : existingDoc.category,
+          summary: updates.summary !== undefined ? updates.summary : existingDoc.summary,
+          updated_at: currentTime
+        }
+
+        await IndexedDBStorage.saveDocument(updatedDoc)
+        console.log(`[OllamaProvider] ✓ IndexedDB 업데이트 완료: ${docId}`)
+      }
+    }
+
+    // 프로덕션 모드: SQLite 메모리 DB도 업데이트
     if (!this.testMode && this.db) {
       const setClauses: string[] = []
-      const currentTime = Math.floor(Date.now() / 1000)
+      const currentTimeSec = Math.floor(currentTime / 1000)
 
       if (updates.title !== undefined) {
         setClauses.push(`title = '${this.escapeSQL(updates.title)}'`)
@@ -346,7 +395,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         )
       }
 
-      setClauses.push(`updated_at = ${currentTime}`)
+      setClauses.push(`updated_at = ${currentTimeSec}`)
 
       this.db.exec(`
         UPDATE documents
@@ -374,7 +423,13 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     // 메모리 캐시에서 삭제
     this.documents.splice(docIndex, 1)
 
-    // 프로덕션 모드: SQLite에서도 삭제
+    // IndexedDB에서 삭제 (영구 저장소)
+    if (typeof window !== 'undefined' && !this.testMode) {
+      await IndexedDBStorage.deleteDocument(docId)
+      console.log(`[OllamaProvider] ✓ IndexedDB 삭제 완료: ${docId}`)
+    }
+
+    // 프로덕션 모드: SQLite 메모리 DB에서도 삭제
     if (!this.testMode && this.db) {
       this.db.exec(`
         DELETE FROM documents
@@ -413,6 +468,13 @@ export class OllamaRAGProvider extends BaseRAGProvider {
    */
   getDocumentCount(): number {
     return this.documents.length
+  }
+
+  /**
+   * 전체 문서 목록 조회
+   */
+  getAllDocuments(): Document[] {
+    return this.documents
   }
 
   async query(context: RAGContext): Promise<RAGResponse> {
@@ -578,7 +640,58 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         }
       })
 
-      console.log(`[OllamaProvider] ✓ ${this.documents.length}개 문서 로드됨`)
+      console.log(`[OllamaProvider] ✓ ${this.documents.length}개 원본 문서 로드됨`)
+
+      // 6. IndexedDB에서 사용자 문서 로드 및 병합 (브라우저 환경에서만)
+      if (typeof window !== 'undefined') {
+        const userDocs = await IndexedDBStorage.getAllDocuments()
+
+        if (userDocs.length > 0) {
+          // StoredDocument → DBDocument 변환
+          const userDBDocs: DBDocument[] = userDocs.map((doc) => ({
+            doc_id: doc.doc_id,
+            title: doc.title,
+            content: doc.content,
+            library: doc.library,
+            category: doc.category,
+            summary: doc.summary
+          }))
+
+          // 메모리 캐시에 병합
+          this.documents = [...this.documents, ...userDBDocs]
+
+          // SQLite 메모리 DB에도 추가 (검색 성능)
+          if (this.db) {
+            for (const doc of userDocs) {
+              const wordCount = doc.content.split(/\s+/).length
+              const createdAtSec = Math.floor(doc.created_at / 1000)
+              const updatedAtSec = Math.floor(doc.updated_at / 1000)
+
+              this.db.exec(`
+                INSERT INTO documents (
+                  doc_id, title, library, category,
+                  content, summary,
+                  created_at, updated_at, word_count
+                ) VALUES (
+                  '${this.escapeSQL(doc.doc_id)}',
+                  '${this.escapeSQL(doc.title)}',
+                  '${this.escapeSQL(doc.library)}',
+                  ${doc.category ? `'${this.escapeSQL(doc.category)}'` : 'NULL'},
+                  '${this.escapeSQL(doc.content)}',
+                  ${doc.summary ? `'${this.escapeSQL(doc.summary)}'` : 'NULL'},
+                  ${createdAtSec},
+                  ${updatedAtSec},
+                  ${wordCount}
+                )
+              `)
+            }
+          }
+
+          console.log(`[OllamaProvider] ✓ ${userDocs.length}개 사용자 문서 병합됨 (IndexedDB)`)
+        }
+      }
+
+      console.log(`[OllamaProvider] ✓ 총 ${this.documents.length}개 문서 로드 완료`)
     } catch (error) {
       throw new Error(
         `SQLite DB 로드 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`

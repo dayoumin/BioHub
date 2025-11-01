@@ -158,27 +158,72 @@ modification, are permitted provided that...
 
 ---
 
-### 1.4 Tier 2: 프로젝트 내부 문서 (자동 변환)
+### 1.4 Tier 2: 프로젝트 내부 문서 (✅ 크롤링 완료)
 
-**대상**: 프로젝트 내 TypeScript/Python 파일 주석 및 메타데이터
+**대상**: 프로젝트 내 TypeScript/Markdown 메타데이터
 
-| 소스 파일 | 변환 방식 | 저장 경로 | 라인 수 | 상태 |
-|----------|----------|----------|---------|------|
-| `method-metadata.ts` | TypeScript → Markdown | `data/project-docs/method-metadata.md` | ~600 | ⏳ 대기 |
-| `implementation-summary.md` | 복사 | `data/project-docs/implementation-summary.md` | ~500 | ⏳ 대기 |
-| `worker1-descriptive.py` | Python 주석 추출 | `data/project-docs/worker1-comments.md` | ~50 | ⏳ 대기 |
-| `worker2-hypothesis.py` | Python 주석 추출 | `data/project-docs/worker2-comments.md` | ~80 | ⏳ 대기 |
-| `worker3-nonparametric-anova.py` | Python 주석 추출 | `data/project-docs/worker3-comments.md` | ~120 | ⏳ 대기 |
-| `worker4-regression-advanced.py` | Python 주석 추출 | `data/project-docs/worker4-comments.md` | ~130 | ⏳ 대기 |
+| 소스 파일 | 변환 방식 | 저장 경로 | 설명 | 상태 |
+|----------|----------|----------|------|------|
+| `method-metadata.ts` | TypeScript → Markdown | `data/project/method-metadata.md` | 60개 통계 메서드 카탈로그 | ✅ 완료 |
+| `implementation-summary.md` | 복사 | `data/project/implementation-summary.md` | 구현 현황 (41개 완료, 24개 예정) | ✅ 완료 |
 
-**총 라인 수**: ~1,480 lines
+**총 크기**: 10.2 KB (2개 파일)
 
 **라이선스**: 프로젝트 자체 라이선스 (MIT/BSD)
 **저작권 상태**: ✅ **내부 문서** (자유롭게 사용)
 
+**참고**: Worker Python 파일은 RAG 시스템에서 제외 (구현 코드는 메뉴 안내에 불필요)
+
 ---
 
-### 1.5 Tier 1: statsmodels 문서 (크롤링 예정)
+### 1.5 Tier 3: OpenIntro Statistics (✅ 크롤링 완료)
+
+**대상**: Introduction to Modern Statistics (IMS) 통계 교재 - 통계 이론 챕터
+
+| 소스 | 챕터 개수 | 크롤링 URL 패턴 | 라이선스 | 상태 |
+|------|----------|----------------|---------|------|
+| OpenIntro IMS | 9 | `https://openintro-ims.netlify.app/{chapter}` | CC BY-SA 3.0 | ✅ 완료 |
+
+**챕터 목록** (9개):
+
+#### A. 실험 설계 (1개)
+1. `ch2-data-design` - Study Design and Sampling (실험 설계, 관찰 연구 vs 실험 연구, 무작위 배정, 표본 추출 방법)
+
+#### B. 회귀분석 (3개)
+2. `ch7-model-slr` - Linear Regression with a Single Predictor (단순 선형 회귀, 최소제곱법, 잔차 분석, R²)
+3. `ch8-model-mlr` - Linear Regression with Multiple Predictors (다중 선형 회귀, 다중공선성, 모형 선택)
+4. `ch9-model-logistic` - Logistic Regression (이항 로지스틱 회귀, Odds Ratio, 분류 정확도)
+
+#### C. 가설검정 기초 (2개)
+5. `ch11-foundations-randomization` - Hypothesis Testing with Randomization (가설검정 원리, p-value, 부트스트랩)
+6. `ch13-foundations-mathematical` - Hypothesis Testing with Mathematical Models (정규분포 기반 가설검정, t-분포, 신뢰구간, Type I/II Error)
+
+#### D. ANOVA 및 회귀 추론 (3개)
+7. `ch22-inference-many-means` - Inference for Comparing Many Means (일원 ANOVA, F-검정, 사후 검정, 다중 비교)
+8. `ch24-inference-one-mean` - Inference for Linear Regression with a Single Predictor (회귀 계수 검정, 신뢰구간, 회귀 진단)
+9. `ch25-inference-many-means-mlr` - Inference for Linear Regression with Multiple Predictors (다중 회귀 추론, F-검정, 모형 진단)
+
+**크롤링 방법**: Crawl4AI v0.7.6 → HTML 크롤링 후 R/Python 코드 블록 제거
+**저장 경로**: `data/openintro/{chapter}.md`
+
+**라이선스**: CC BY-SA 3.0 (Creative Commons Attribution-ShareAlike 3.0)
+```
+Copyright (c) OpenIntro Project (www.openintro.org)
+Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+
+You are free to:
+- Share — copy and redistribute the material
+- Adapt — remix, transform, and build upon the material
+for any purpose, even commercially.
+```
+
+**저작권 상태**: ✅ **상업적 사용 가능** (CC BY-SA 3.0)
+
+**코드 제거**: R 및 Python 코드 블록 제거됨 (통계 이론만 유지)
+
+---
+
+### 1.6 Tier 1: statsmodels 문서 (✅ 크롤링 완료)
 
 **대상**: Worker 3-4에서 실제 사용하는 함수 (약 30개)
 
@@ -270,7 +315,8 @@ modification, are permitted provided that...
 | 2025-10-31 | NumPy (Retry 13개) | 13 | ~1.5분 | 251,645 | Crawl4AI v0.7.6 | ✅ 완료 |
 | 2025-10-31 | statsmodels (Batch 28개) | 28 | ~1분 | 666,256 | Crawl4AI v0.7.6 | ✅ 완료 |
 | 2025-10-31 | pingouin (Batch 2개) | 2 | ~5초 | 2,141 | Crawl4AI v0.7.6 | ✅ 완료 |
-| 2025-11-01 (예정) | Project Docs | 6 | ~30분 예상 | - | Script | ⏳ 대기 |
+| 2025-11-01 | OpenIntro IMS (Batch 9개) | 9 | ~2분 | 641,049 | Crawl4AI v0.7.6 | ✅ 완료 |
+| 2025-11-01 | Project Docs | 2 | ~10초 | 10,280 | TypeScript Parser + Copy | ✅ 완료 |
 
 **샘플 크롤링 상세 (2025-10-31)**:
 - **SciPy (3개)**: `ttest_ind.md` (305줄, 34,213자), `mannwhitneyu.md` (269줄, 33,347자), `f_oneway.md` (224줄, 26,066자)
@@ -316,10 +362,28 @@ modification, are permitted provided that...
 - 로그 파일: `data/crawl_log_pingouin_2025-10-31.txt`
 - 대상: Worker 1-2에서 사용하는 compute_effsize, cronbach_alpha
 
+**OpenIntro IMS (9개, 2025-11-01)**:
+- 100% 성공률 (9/9)
+- 총 글자 수: 641,049 (평균 71,228자/챕터)
+- 소요 시간: ~2분 (평균 13.3초/챕터)
+- 스크립트: `scripts/crawl_openintro_batch.py` (366 lines)
+- 로그 파일: `data/crawl_log_openintro_2025-11-01.txt`
+- 대상: 통계 이론 교재 (실험 설계, 회귀분석, 가설검정, ANOVA)
+- **특징**: R/Python 코드 블록 자동 제거 (`remove_code_blocks()` 함수 적용)
+
+**Project Docs (2개, 2025-11-01)**:
+- 100% 성공률 (2/2)
+- 총 크기: 10,280 bytes (7,140 + 3,140 bytes)
+- 소요 시간: ~10초
+- 스크립트: `scripts/extract_method_metadata.py` (191 lines)
+- 대상:
+  - `method-metadata.ts` (60개 통계 메서드 카탈로그)
+  - `implementation-summary.md` (구현 현황)
+
 **공통 설정**:
-- Rate Limiting: 1초 지연 (서버 부하 방지)
+- Rate Limiting: 1-2초 지연 (서버 부하 방지)
 - 에러 처리: Continue-on-failure 패턴
-- 저장 경로: `data/scipy/`, `data/numpy/`, `data/statsmodels/`, `data/pingouin/`
+- 저장 경로: `data/scipy/`, `data/numpy/`, `data/statsmodels/`, `data/pingouin/`, `data/openintro/`, `data/project/`
 
 ### 3.2 버전 추적
 

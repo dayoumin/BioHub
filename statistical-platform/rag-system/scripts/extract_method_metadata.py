@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
-method-metadata.ts 문서화 스크립트
-목적: TypeScript 메서드 메타데이터를 Markdown으로 변환
+method-metadata.ts → Markdown 변환 스크립트
+- TypeScript 메타데이터를 RAG 친화적 Markdown 테이블로 변환
+- 통계 메서드 카탈로그 생성
 """
 
 import sys
@@ -11,7 +11,7 @@ import io
 import re
 from pathlib import Path
 from datetime import datetime
-from collections import defaultdict
+from typing import Dict, List
 
 # Windows UTF-8 encoding fix
 if sys.platform == "win32":
@@ -19,152 +19,173 @@ if sys.platform == "win32":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 
-def parse_typescript_metadata(content: str) -> list:
-    """TypeScript METHOD_METADATA 객체 파싱"""
-    methods = []
-
-    # 메서드별로 파싱 (간단한 정규식)
-    # 패턴: methodName: { group: 'xxx', deps: ['a', 'b'], estimatedTime: 0.x }
-    pattern = r"(\w+):\s*\{\s*group:\s*'(\w+)',\s*deps:\s*\[([^\]]+)\],\s*estimatedTime:\s*([\d.]+)"
-
-    for match in re.finditer(pattern, content):
-        method_name, group, deps_str, time = match.groups()
-
-        # deps 파싱
-        deps = [d.strip().strip("'\"") for d in deps_str.split(',')]
-
-        methods.append({
-            'name': method_name,
+def parse_typescript_metadata(ts_file_path: Path) -> Dict[str, Dict]:
+    """
+    TypeScript method-metadata.ts 파일 파싱
+    
+    Returns:
+        dict: {method_name: {group, deps, estimatedTime}}
+    """
+    with open(ts_file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # TypeScript 객체 파싱 (정규식)
+    # 패턴: methodName: { group: 'xxx', deps: [...], estimatedTime: 0.x }
+    pattern = r"(\w+):\s*\{\s*group:\s*'(\w+)',\s*deps:\s*\[(.*?)\],\s*estimatedTime:\s*([\d.]+)"
+    
+    metadata = {}
+    for match in re.finditer(pattern, content, re.DOTALL):
+        method_name = match.group(1)
+        group = match.group(2)
+        deps_str = match.group(3)
+        estimated_time = float(match.group(4))
+        
+        # Parse dependencies
+        deps = [d.strip().strip("'\"") for d in deps_str.split(',') if d.strip()]
+        
+        metadata[method_name] = {
             'group': group,
             'deps': deps,
-            'estimatedTime': float(time)
-        })
+            'estimatedTime': estimated_time
+        }
+    
+    return metadata
 
-    return methods
 
-
-def main():
-    """메인 실행 함수"""
-    print("🚀 method-metadata.ts 문서화 시작")
-    print("=" * 60)
-
-    # 경로 설정
-    script_dir = Path(__file__).parent
-    metadata_path = script_dir.parent.parent / "lib" / "statistics" / "registry" / "method-metadata.ts"
-    output_dir = script_dir.parent / "data" / "project"
-    output_path = output_dir / "statistical_methods.md"
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # TypeScript 파일 읽기
-    with open(metadata_path, 'r', encoding='utf-8') as f:
-        ts_content = f.read()
-
-    print(f"\n[PARSE] {metadata_path.name}")
-
-    # 메서드 추출
-    methods = parse_typescript_metadata(ts_content)
-    print(f"  메서드 개수: {len(methods)}")
-
-    # 그룹별로 분류
-    group_info = {
-        'descriptive': {'name': 'Descriptive Statistics', 'worker': 'Worker 1', 'methods': []},
-        'hypothesis': {'name': 'Hypothesis Testing', 'worker': 'Worker 2', 'methods': []},
-        'nonparametric': {'name': 'Nonparametric Tests', 'worker': 'Worker 3', 'methods': []},
-        'anova': {'name': 'ANOVA', 'worker': 'Worker 3', 'methods': []},
-        'regression': {'name': 'Regression Analysis', 'worker': 'Worker 4', 'methods': []},
-        'advanced': {'name': 'Advanced Analytics', 'worker': 'Worker 4', 'methods': []}
-    }
-
-    for method in methods:
-        group_key = method['group']
-        if group_key in group_info:
-            group_info[group_key]['methods'].append(method)
-
-    # Markdown 생성
-    today = datetime.now().strftime("%Y-%m-%d")
-
+def create_markdown_table(metadata: Dict[str, Dict], crawled_date: str) -> str:
+    """Generate Markdown with YAML frontmatter + tables"""
+    
+    # Group by category
+    groups = {}
+    for method, info in metadata.items():
+        group_name = info['group']
+        if group_name not in groups:
+            groups[group_name] = []
+        groups[group_name].append((method, info))
+    
+    # Sort groups
+    for group_name in groups:
+        groups[group_name].sort(key=lambda x: x[0])
+    
+    # Build Markdown
     md = f"""---
 title: Statistical Methods Metadata
-source: lib/statistics/registry/method-metadata.ts
-type: Project Internal Documentation
-license: MIT
-crawled_date: {today}
+description: 통계 메서드 카탈로그 (그룹, 의존성, 실행 시간)
+source: statistical-platform/lib/statistics/registry/method-metadata.ts
+category: project-internal
+crawled_date: {crawled_date}
+total_methods: {len(metadata)}
 ---
 
 # Statistical Methods Metadata
 
-**파일**: `lib/statistics/registry/method-metadata.ts`
-**총 메서드 개수**: {len(methods)}
+**설명**: 통계 플랫폼에서 제공하는 {len(metadata)}개 통계 메서드의 메타데이터
 
-이 문서는 통계 플랫폼의 60개 통계 메서드 메타데이터를 정리한 것입니다.
+**원본 파일**: `lib/statistics/registry/method-metadata.ts`
 
 ---
 
-## 📋 메서드 그룹별 분류
+## 전체 메서드 목록 ({len(metadata)}개)
 
+| 메서드명 | 그룹 | 의존성 | 예상 실행 시간 (초) |
+|---------|------|--------|------------------|
 """
+    
+    # Full table
+    for method in sorted(metadata.keys()):
+        info = metadata[method]
+        deps_str = ', '.join(info['deps']) if info['deps'] else '-'
+        md += f"| {method} | {info['group']} | {deps_str} | {info['estimatedTime']} |\n"
+    
+    md += "\n---\n\n"
+    
+    # Group tables
+    group_names = {
+        'descriptive': '기술통계',
+        'hypothesis': '가설검정',
+        'regression': '회귀분석',
+        'nonparametric': '비모수',
+        'anova': '분산분석',
+        'advanced': '고급분석'
+    }
+    
+    for group_key in sorted(groups.keys()):
+        group_display = group_names.get(group_key, group_key)
+        methods = groups[group_key]
+        
+        md += f"## {group_display} ({len(methods)}개)\n\n"
+        md += "| 메서드명 | 의존성 | 예상 실행 시간 (초) |\n"
+        md += "|---------|--------|-------------------|\n"
+        
+        for method, info in methods:
+            deps_str = ', '.join(info['deps']) if info['deps'] else '-'
+            md += f"| {method} | {deps_str} | {info['estimatedTime']} |\n"
+        
+        md += "\n"
+    
+    # Statistics summary
+    md += "---\n\n## 통계 요약\n\n"
+    md += f"- **총 메서드 수**: {len(metadata)}개\n"
+    
+    for group_key in sorted(groups.keys()):
+        group_display = group_names.get(group_key, group_key)
+        md += f"- **{group_display}**: {len(groups[group_key])}개\n"
+    
+    # Dependency analysis
+    all_deps = set()
+    for info in metadata.values():
+        all_deps.update(info['deps'])
+    
+    md += f"\n### 사용 중인 Python 라이브러리\n\n"
+    for dep in sorted(all_deps):
+        count = sum(1 for info in metadata.values() if dep in info['deps'])
+        md += f"- **{dep}**: {count}개 메서드에서 사용\n"
+    
+    return md
 
-    # 그룹별로 테이블 생성
-    for group_key, group in group_info.items():
-        if not group['methods']:
-            continue
 
-        md += f"\n### {group['name']} ({group['worker']})\n\n"
-        md += f"**메서드 개수**: {len(group['methods'])}\n\n"
-        md += f"| 메서드 ID | 의존성 패키지 | 예상 실행 시간 (초) |\n"
-        md += f"|-----------|---------------|--------------------|\n"
-
-        for method in group['methods']:
-            deps = ', '.join(method['deps'])
-            md += f"| `{method['name']}` | {deps} | {method['estimatedTime']} |\n"
-
-        md += f"\n"
-
-    # 전체 메서드 목록 (알파벳 순)
-    md += f"\n---\n\n## 📚 전체 메서드 목록 (알파벳 순)\n\n"
-    md += f"| 메서드 ID | 그룹 | Worker | 의존성 | 예상 시간 |\n"
-    md += f"|-----------|------|--------|--------|----------|\n"
-
-    sorted_methods = sorted(methods, key=lambda m: m['name'])
-
-    for method in sorted_methods:
-        group = group_info.get(method['group'], {})
-        group_name = group.get('name', method['group'])
-        worker = group.get('worker', 'Unknown')
-        deps = ', '.join(method['deps'])
-
-        md += f"| `{method['name']}` | {group_name} | {worker} | {deps} | {method['estimatedTime']}s |\n"
-
-    # 의존성 패키지 통계
-    md += f"\n---\n\n## 📦 의존성 패키지 통계\n\n"
-
-    deps_count = defaultdict(int)
-    for method in methods:
-        for dep in method['deps']:
-            deps_count[dep] += 1
-
-    md += f"| 패키지 | 사용 메서드 수 | 비율 |\n"
-    md += f"|--------|---------------|------|\n"
-
-    for pkg, count in sorted(deps_count.items(), key=lambda x: -x[1]):
-        percentage = (count / len(methods)) * 100
-        md += f"| `{pkg}` | {count} | {percentage:.1f}% |\n"
-
-    # 파일 저장
-    with open(output_path, 'w', encoding='utf-8') as f:
-        f.write(md)
-
-    print(f"  ✅ 저장: {output_path}")
-
-    print("\n" + "=" * 60)
-    print("📋 요약")
-    print("=" * 60)
-    print(f"총 메서드: {len(methods)}")
-    print(f"그룹 수: {len([g for g in group_info.values() if g['methods']])}")
-    print(f"의존성 패키지: {', '.join(sorted(deps_count.keys()))}")
-    print("\n✅ method-metadata.ts 문서화 완료!")
+def main():
+    print("=== method-metadata.ts → Markdown 변환 ===\n")
+    
+    # Paths
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent.parent
+    ts_file = project_root / "lib" / "statistics" / "registry" / "method-metadata.ts"
+    output_dir = script_dir.parent / "data" / "project"
+    output_file = output_dir / "method-metadata.md"
+    
+    # Verify input file exists
+    if not ts_file.exists():
+        print(f"ERROR: TypeScript 파일을 찾을 수 없습니다: {ts_file}")
+        return 1
+    
+    print(f"Input: {ts_file}")
+    print(f"Output: {output_file}\n")
+    
+    # Create output directory
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Parse TypeScript
+    print("[1/3] TypeScript 파일 파싱 중...")
+    metadata = parse_typescript_metadata(ts_file)
+    print(f"  → {len(metadata)}개 메서드 발견\n")
+    
+    # Generate Markdown
+    print("[2/3] Markdown 생성 중...")
+    crawled_date = datetime.now().strftime("%Y-%m-%d")
+    markdown = create_markdown_table(metadata, crawled_date)
+    print(f"  → {len(markdown):,} characters\n")
+    
+    # Save
+    print("[3/3] 파일 저장 중...")
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(markdown)
+    
+    print(f"✅ 완료: {output_file.name}")
+    print(f"   크기: {output_file.stat().st_size:,} bytes")
+    
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
