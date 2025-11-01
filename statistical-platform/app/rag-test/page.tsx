@@ -108,7 +108,19 @@ export default function RAGTestPage() {
       setAvailableModels(data.models || [])
     } catch (err) {
       console.error('모델 목록 조회 실패:', err)
-      setError(err instanceof Error ? err.message : '모델 목록 조회 실패')
+      // Event 객체, Error 객체, 문자열 등 모든 경우 처리
+      let errorMessage = 'Ollama 서버에 연결할 수 없습니다'
+
+      if (err instanceof Error) {
+        errorMessage = err.message
+      } else if (typeof err === 'string') {
+        errorMessage = err
+      } else if (err && typeof err === 'object') {
+        // Event 객체나 다른 객체인 경우
+        errorMessage = 'Ollama 서버 연결 실패 (http://localhost:11434)'
+      }
+
+      setError(errorMessage)
     } finally {
       setIsLoadingModels(false)
     }
@@ -209,7 +221,20 @@ export default function RAGTestPage() {
 
       setQuery('') // 입력 초기화
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류')
+      console.error('RAG 쿼리 실행 실패:', err)
+      // Event 객체, Error 객체, 문자열 등 모든 경우 처리
+      let errorMessage = '쿼리 실행 중 오류가 발생했습니다'
+
+      if (err instanceof Error) {
+        errorMessage = err.message
+      } else if (typeof err === 'string') {
+        errorMessage = err
+      } else if (err && typeof err === 'object') {
+        // Event 객체나 다른 객체인 경우
+        errorMessage = 'RAG 시스템 오류 (Vector Store 또는 Ollama 서버 확인 필요)'
+      }
+
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
