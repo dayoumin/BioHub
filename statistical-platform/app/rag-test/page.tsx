@@ -162,12 +162,27 @@ export default function RAGTestPage() {
 
   // 모델 선택 상태
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([])
-  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState('Q78KG/Qwen3-Embedding-4B:latest')
-  const [selectedInferenceModel, setSelectedInferenceModel] = useState('qwen3:4b')
+  const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('rag-embedding-model') || 'mxbai-embed-large:latest'
+    }
+    return 'mxbai-embed-large:latest'
+  })
+  const [selectedInferenceModel, setSelectedInferenceModel] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('rag-inference-model') || 'qwen3:4b'
+    }
+    return 'qwen3:4b'
+  })
   const [isLoadingModels, setIsLoadingModels] = useState(false)
 
   // 검색 모드 상태
-  const [searchMode, setSearchMode] = useState<SearchMode>('fts5')
+  const [searchMode, setSearchMode] = useState<SearchMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('rag-search-mode') as SearchMode) || 'fts5'
+    }
+    return 'fts5'
+  })
 
   // DB 관리 상태
   const [isRebuilding, setIsRebuilding] = useState(false)
@@ -220,21 +235,29 @@ export default function RAGTestPage() {
       const data = (await response.json()) as OllamaModelInfo
       setAvailableModels(data.models || [])
 
-      // 임베딩 모델 자동 감지 및 설정
-      const embeddingModel = data.models.find((m) =>
-        m.name.toLowerCase().includes('embed') ||
-        m.name.toLowerCase().includes('embedding')
-      )
-      if (embeddingModel) {
-        setSelectedEmbeddingModel(embeddingModel.name)
+      // 로컬스토리지에 저장된 값이 없을 때만 자동 감지
+      const hasStoredEmbedding = typeof window !== 'undefined' && localStorage.getItem('rag-embedding-model')
+      const hasStoredInference = typeof window !== 'undefined' && localStorage.getItem('rag-inference-model')
+
+      // 임베딩 모델 자동 감지 및 설정 (저장된 값이 없을 때만)
+      if (!hasStoredEmbedding) {
+        const embeddingModel = data.models.find((m) =>
+          m.name.toLowerCase().includes('embed') ||
+          m.name.toLowerCase().includes('embedding')
+        )
+        if (embeddingModel) {
+          setSelectedEmbeddingModel(embeddingModel.name)
+        }
       }
 
-      // 추론 모델 자동 감지 및 설정 (qwen3 우선)
-      const inferenceModel = data.models.find((m) =>
-        m.name.includes('qwen3:4b') || m.name.includes('qwen3')
-      )
-      if (inferenceModel) {
-        setSelectedInferenceModel(inferenceModel.name)
+      // 추론 모델 자동 감지 및 설정 (저장된 값이 없을 때만, qwen3 우선)
+      if (!hasStoredInference) {
+        const inferenceModel = data.models.find((m) =>
+          m.name.includes('qwen3:4b') || m.name.includes('qwen3')
+        )
+        if (inferenceModel) {
+          setSelectedInferenceModel(inferenceModel.name)
+        }
       }
     } catch (err) {
       console.error('모델 목록 조회 실패:', err)
@@ -248,6 +271,25 @@ export default function RAGTestPage() {
   useEffect(() => {
     void fetchAvailableModels()
   }, [fetchAvailableModels])
+
+  // 모델 선택 변경 시 로컬스토리지에 저장
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rag-embedding-model', selectedEmbeddingModel)
+    }
+  }, [selectedEmbeddingModel])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rag-inference-model', selectedInferenceModel)
+    }
+  }, [selectedInferenceModel])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('rag-search-mode', searchMode)
+    }
+  }, [searchMode])
 
   // RAG 쿼리 실행
   const handleQuery = useCallback(async () => {
@@ -694,10 +736,7 @@ export default function RAGTestPage() {
 
           {/* 검색 모드 선택 (라디오 버튼 - 가로 배치 + 인라인 설명) */}
           <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">검색 모드</Label>
-              <Badge variant="secondary">{availableModels.length}개 모델</Badge>
-            </div>
+            <Label className="text-base font-semibold">검색 모드</Label>
             <TooltipProvider>
               <RadioGroup
                 value={searchMode}
