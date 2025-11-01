@@ -1,7 +1,9 @@
 """
-SQLite DB 빌더 스크립트 (멀티 모델 지원)
+Vector Store DB 빌더 스크립트 (멀티 모델 지원)
 
-크롤링된 111개 문서를 SQLite DB로 변환합니다.
+크롤링된 111개 문서를 Vector Store DB로 변환합니다.
+- SQLite 파일 안에 원본 문서 + 임베딩 벡터 저장 (하이브리드 DB)
+- FTS5 전문 검색 + Vector 의미 검색 지원
 
 실행:
     cd statistical-platform/rag-system
@@ -10,7 +12,8 @@ SQLite DB 빌더 스크립트 (멀티 모델 지원)
     python scripts/build_sqlite_db.py --model qwen3-embedding:0.6b
 
 출력:
-    data/rag-{model}.db (SQLite 데이터베이스)
+    data/vector-{model}.db (Vector Store 데이터베이스)
+    예: vector-mxbai-embed-large.db
 """
 
 import os
@@ -382,7 +385,8 @@ def main():
 
     # 모델명에서 파일명으로 변환 (콜론 제거)
     model_filename = args.model.replace(':', '-')
-    DB_PATH = DATA_DIR / f"rag-{model_filename}.db"
+    # Vector Store DB 파일명 (vector- 접두사로 명확화)
+    DB_PATH = DATA_DIR / f"vector-{model_filename}.db"
 
     print("=" * 60)
     print("RAG System - SQLite DB Builder (Multi-Model Support)")

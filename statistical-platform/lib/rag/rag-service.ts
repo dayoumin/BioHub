@@ -185,18 +185,18 @@ export async function rebuildRAGDatabase(): Promise<void> {
 
 /**
  * Vector Store ID를 DB 경로로 변환
- * 예: 'qwen3-embedding-0.6b' → '/rag-data/rag-qwen3-embedding-0.6b.db'
+ * 예: 'qwen3-embedding-0.6b' → '/rag-data/vector-qwen3-embedding-0.6b.db'
  */
 export function vectorStoreIdToPath(vectorStoreId: string): string {
-  return `/rag-data/rag-${vectorStoreId}.db`
+  return `/rag-data/vector-${vectorStoreId}.db`
 }
 
 /**
  * DB 파일명에서 Vector Store 정보 파싱
- * 예: 'rag-qwen3-embedding-0.6b.db' → { id: 'qwen3-embedding-0.6b', model: 'qwen3-embedding:0.6b' }
+ * 예: 'vector-qwen3-embedding-0.6b.db' → { id: 'qwen3-embedding-0.6b', model: 'qwen3-embedding:0.6b' }
  */
 export function parseVectorStoreFilename(filename: string): { id: string; model: string } | null {
-  const match = filename.match(/^rag-(.+)\.db$/)
+  const match = filename.match(/^vector-(.+)\.db$/)
   if (!match) return null
 
   const id = match[1]
@@ -217,7 +217,7 @@ export async function getAvailableVectorStores(): Promise<VectorStore[]> {
     {
       id: 'qwen3-embedding-0.6b',
       name: 'Qwen3 Embedding (0.6B)',
-      dbPath: '/rag-data/rag-qwen3-embedding-0.6b.db',
+      dbPath: '/rag-data/vector-qwen3-embedding-0.6b.db',
       embeddingModel: 'qwen3-embedding:0.6b',
       dimensions: 1024,
       docCount: 111,
@@ -226,7 +226,7 @@ export async function getAvailableVectorStores(): Promise<VectorStore[]> {
     {
       id: 'mxbai-embed-large',
       name: 'MixedBread AI Embed Large',
-      dbPath: '/rag-data/rag-mxbai-embed-large.db',
+      dbPath: '/rag-data/vector-mxbai-embed-large.db',
       embeddingModel: 'mxbai-embed-large',
       dimensions: 1024,
       docCount: 111,
