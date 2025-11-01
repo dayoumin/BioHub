@@ -1,14 +1,16 @@
 """
-SQLite DB 빌더 스크립트
+SQLite DB 빌더 스크립트 (멀티 모델 지원)
 
-크롤링된 101개 문서를 SQLite DB로 변환합니다.
+크롤링된 111개 문서를 SQLite DB로 변환합니다.
 
 실행:
     cd statistical-platform/rag-system
-    python scripts/build_sqlite_db.py
+    python scripts/build_sqlite_db.py --model mxbai-embed-large
+    python scripts/build_sqlite_db.py --model nomic-embed-text
+    python scripts/build_sqlite_db.py --model qwen3-embedding:0.6b
 
 출력:
-    data/rag.db (SQLite 데이터베이스)
+    data/rag-{model}.db (SQLite 데이터베이스)
 """
 
 import os
@@ -16,6 +18,7 @@ import sys
 import sqlite3
 import json
 import time
+import argparse
 from pathlib import Path
 from typing import List, Dict, Optional
 import hashlib
@@ -31,12 +34,14 @@ if sys.platform == "win32":
 SCRIPT_DIR = Path(__file__).parent
 RAG_SYSTEM_DIR = SCRIPT_DIR.parent
 DATA_DIR = RAG_SYSTEM_DIR / "data"
-DB_PATH = DATA_DIR / "rag.db"
 SCHEMA_PATH = RAG_SYSTEM_DIR / "schema.sql"
 
 # Ollama 설정
 OLLAMA_ENDPOINT = "http://localhost:11434"
-EMBEDDING_MODEL = "mxbai-embed-large"  # 1024 dimensions
+
+# 글로벌 변수 (argparse로 설정됨)
+EMBEDDING_MODEL = "mxbai-embed-large"  # 기본값
+DB_PATH = DATA_DIR / "rag.db"  # 기본값
 
 # 문서 디렉토리
 DOC_DIRS = {
@@ -350,10 +355,39 @@ def generate_statistics():
 
 def main():
     """메인 함수"""
-    print("=" * 50)
-    print("RAG System - SQLite DB Builder")
-    print("With Vector Embeddings (mxbai-embed-large)")
-    print("=" * 50)
+    global EMBEDDING_MODEL, DB_PATH
+
+    # 명령줄 인자 파싱
+    parser = argparse.ArgumentParser(
+        description='RAG System - SQLite DB Builder (멀티 모델 지원)',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+예제:
+  python scripts/build_sqlite_db.py --model mxbai-embed-large
+  python scripts/build_sqlite_db.py --model nomic-embed-text
+  python scripts/build_sqlite_db.py --model qwen3-embedding:0.6b
+        '''
+    )
+    parser.add_argument(
+        '--model',
+        type=str,
+        default='mxbai-embed-large',
+        help='Ollama 임베딩 모델 (기본: mxbai-embed-large)'
+    )
+
+    args = parser.parse_args()
+
+    # 글로벌 변수 설정
+    EMBEDDING_MODEL = args.model
+
+    # 모델명에서 파일명으로 변환 (콜론 제거)
+    model_filename = args.model.replace(':', '-')
+    DB_PATH = DATA_DIR / f"rag-{model_filename}.db"
+
+    print("=" * 60)
+    print("RAG System - SQLite DB Builder (Multi-Model Support)")
+    print(f"Embedding Model: {EMBEDDING_MODEL}")
+    print("=" * 60)
     print()
 
     # Ollama 서버 확인
@@ -362,6 +396,24 @@ def main():
         response = requests.get(f"{OLLAMA_ENDPOINT}/api/tags", timeout=5)
         if response.ok:
             print(f"  ✓ Ollama 서버 연결 성공 ({OLLAMA_ENDPOINT})")
+
+            # 모델 설치 확인
+            models_data = response.json()
+            available_models = [m['name'] for m in models_data.get('models', [])]
+
+            # 모델명 매칭 (버전 태그 고려)
+            model_exists = any(
+                EMBEDDING_MODEL in model_name or model_name.startswith(EMBEDDING_MODEL)
+                for model_name in available_models
+            )
+
+            if model_exists:
+                print(f"  ✓ 임베딩 모델 확인: {EMBEDDING_MODEL}")
+            else:
+                print(f"  ⚠️ 모델 '{EMBEDDING_MODEL}'이 설치되지 않았습니다.")
+                print(f"  → 다음 명령어로 설치하세요: ollama pull {EMBEDDING_MODEL}")
+                print(f"  → 사용 가능한 모델: {', '.join(available_models)}")
+                exit(1)
         else:
             print(f"  ⚠️ Ollama 서버 응답 이상: {response.status_code}")
     except Exception as e:
@@ -383,11 +435,11 @@ def main():
         generate_statistics()
 
         print()
-        print("=" * 50)
+        print("=" * 60)
         print("✅ DB 빌드 완료!")
         print(f"   위치: {DB_PATH}")
         print(f"   임베딩 모델: {EMBEDDING_MODEL}")
-        print("=" * 50)
+        print("=" * 60)
 
     except Exception as e:
         print(f"\n❌ 에러 발생: {e}")
