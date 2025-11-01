@@ -39,7 +39,8 @@ DOC_DIRS = {
     "statsmodels": DATA_DIR / "statsmodels",
     "pingouin": DATA_DIR / "pingouin",
     "project": DATA_DIR / "project",
-    "methodology": DATA_DIR / "methodology-guide"
+    "methodology": DATA_DIR / "methodology-guide",
+    "openintro": DATA_DIR / "openintro"
 }
 
 
