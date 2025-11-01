@@ -830,6 +830,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 - **용어 병기**: 통계 용어는 한글과 영문을 함께 표기하세요 (예: 귀무가설(Null Hypothesis))
 - **핵심 먼저**: 결론을 먼저 제시한 후, 상세 설명을 추가하세요
 - **주의사항 명시**: 적용 조건이나 제약사항이 있으면 명확히 표시하세요
+- **추론 과정 숨김**: <think>, </think>, <sensitive> 같은 내부 태그를 절대 사용하지 마세요
 
 답변 구조 (권장):
 1. 간단한 요약 (1-2문장)
@@ -864,6 +865,16 @@ ${contextText}
     }
 
     const data = (await response.json()) as GenerateResponse
-    return data.response.trim()
+    let answer = data.response.trim()
+
+    // <think> 태그 및 내용 제거 (후처리)
+    // 패턴 1: <think>...</think> 태그와 내용 모두 제거
+    answer = answer.replace(/<think>[\s\S]*?<\/think>/gi, '')
+    // 패턴 2: -sensitive <think> 형태 제거
+    answer = answer.replace(/-?sensitive\s*<think>[\s\S]*?<\/think>/gi, '')
+    // 패턴 3: 줄 시작의 -sensitive 제거
+    answer = answer.replace(/^-?sensitive\s*/im, '')
+
+    return answer.trim()
   }
 }
