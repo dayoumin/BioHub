@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { BarChart3, FlaskConical } from 'lucide-react'
+import { BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 
@@ -16,14 +16,6 @@ interface UserTrack {
 }
 
 const USER_TRACKS: UserTrack[] = [
-  {
-    id: 'design',
-    title: '실험 설계',
-    icon: FlaskConical,
-    journey: '/experimental-design-coming-soon',
-    color: 'bg-gradient-design',
-    comingSoon: true
-  },
   {
     id: 'analysis',
     title: '통계 분석',
