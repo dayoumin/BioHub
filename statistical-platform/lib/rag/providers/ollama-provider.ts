@@ -41,6 +41,22 @@ interface SqlJsExecResult {
 }
 
 /**
+ * SQLite BLOB을 float 배열로 변환
+ * Python에서 struct.pack('f', ...)로 저장된 데이터를 복원
+ */
+function blobToFloatArray(blob: Uint8Array): number[] {
+  const floats: number[] = []
+  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength)
+
+  // 4바이트씩 읽어서 float32로 변환
+  for (let i = 0; i < blob.byteLength; i += 4) {
+    floats.push(view.getFloat32(i, true)) // true = little-endian
+  }
+
+  return floats
+}
+
+/**
  * sql.js CDN 로더
  */
 async function loadSqlJs(): Promise<SqlJsStatic> {
@@ -128,6 +144,8 @@ interface DBDocument {
   library: string
   category: string | null
   summary: string | null
+  embedding: number[] | null  // 사전 생성된 임베딩 벡터
+  embedding_model: string | null
 }
 
 // DocumentInput은 base-provider.ts에서 export됨
@@ -304,7 +322,9 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       content: document.content,
       library: document.library,
       category: document.category || null,
-      summary: document.summary || null
+      summary: document.summary || null,
+      embedding: null,  // 새 문서는 임베딩 없음
+      embedding_model: null
     }
 
     this.documents.push(newDoc)
@@ -610,7 +630,9 @@ export class OllamaRAGProvider extends BaseRAGProvider {
               'Calculate the T-test for the means of two independent samples of scores. This test assumes that the populations have identical variances.',
             library: 'scipy',
             category: 'hypothesis',
-            summary: 'Two independent samples t-test'
+            summary: 'Two independent samples t-test',
+            embedding: null,
+            embedding_model: null
           },
           {
             doc_id: 'scipy_mannwhitneyu',
@@ -619,7 +641,9 @@ export class OllamaRAGProvider extends BaseRAGProvider {
               'Compute the Mann-Whitney U statistic. The Mann-Whitney U test is a nonparametric test of the null hypothesis that the distribution underlying sample x is the same as the distribution underlying sample y.',
             library: 'scipy',
             category: 'hypothesis',
-            summary: 'Mann-Whitney U test (nonparametric)'
+            summary: 'Mann-Whitney U test (nonparametric)',
+            embedding: null,
+            embedding_model: null
           },
           {
             doc_id: 'numpy_mean',
@@ -628,7 +652,9 @@ export class OllamaRAGProvider extends BaseRAGProvider {
               'Compute the arithmetic mean along the specified axis. Returns the average of the array elements.',
             library: 'numpy',
             category: 'descriptive',
-            summary: 'Arithmetic mean'
+            summary: 'Arithmetic mean',
+            embedding: null,
+            embedding_model: null
           }
         ]
 
@@ -656,9 +682,9 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       this.db = new SQL.Database(uint8Array)
       console.log('[OllamaProvider] ✓ DB 연결 성공')
 
-      // 4. documents 테이블에서 모든 문서 로드
+      // 4. documents 테이블에서 모든 문서 로드 (임베딩 포함)
       const result = this.db.exec(`
-        SELECT doc_id, title, content, library, category, summary
+        SELECT doc_id, title, content, library, category, summary, embedding, embedding_model
         FROM documents
         ORDER BY created_at DESC
       `)
@@ -689,17 +715,30 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           throw new Error('DB 스키마 오류: 필수 필드 누락')
         }
 
+        // 임베딩 BLOB 변환 (Uint8Array → number[])
+        let embedding: number[] | null = null
+        if (doc.embedding && doc.embedding instanceof Uint8Array) {
+          try {
+            embedding = blobToFloatArray(doc.embedding)
+          } catch (error) {
+            console.warn(`[OllamaProvider] 임베딩 변환 실패 (${doc.doc_id}):`, error)
+          }
+        }
+
         return {
           doc_id: doc.doc_id,
           title: doc.title,
           content: doc.content,
           library: doc.library,
           category: doc.category === null ? null : String(doc.category),
-          summary: doc.summary === null ? null : String(doc.summary)
+          summary: doc.summary === null ? null : String(doc.summary),
+          embedding,
+          embedding_model: doc.embedding_model === null ? null : String(doc.embedding_model)
         }
       })
 
-      console.log(`[OllamaProvider] ✓ ${this.documents.length}개 원본 문서 로드됨`)
+      const embeddedDocsCount = this.documents.filter((d) => d.embedding !== null).length
+      console.log(`[OllamaProvider] ✓ ${this.documents.length}개 원본 문서 로드됨 (임베딩: ${embeddedDocsCount}개)`)
 
       // 6. IndexedDB에서 사용자 문서 로드 및 병합 (브라우저 환경에서만)
       if (typeof window !== 'undefined') {
@@ -713,7 +752,9 @@ export class OllamaRAGProvider extends BaseRAGProvider {
             content: doc.content,
             library: doc.library,
             category: doc.category,
-            summary: doc.summary
+            summary: doc.summary,
+            embedding: null,  // 사용자 문서는 임베딩 없음 (실시간 생성 필요)
+            embedding_model: null
           }))
 
           // 메모리 캐시에 병합
@@ -800,15 +841,26 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     console.log(`[OllamaProvider] Vector 검색: "${query}"`)
 
     try {
-      // 1. 쿼리 임베딩 생성
+      // 1. 쿼리 임베딩 생성 (1개만 생성 - 빠름!)
+      const startTime = Date.now()
       const queryEmbedding = await this.generateEmbedding(query)
+      const embeddingTime = Date.now() - startTime
+      console.log(`[OllamaProvider] 쿼리 임베딩 생성: ${embeddingTime}ms`)
 
-      // 2. 모든 문서와 코사인 유사도 계산
+      // 2. 사전 생성된 임베딩이 있는 문서만 필터링
+      const docsWithEmbeddings = this.documents.filter((doc) => doc.embedding !== null)
+
+      if (docsWithEmbeddings.length === 0) {
+        console.warn('[OllamaProvider] ⚠️ 임베딩이 있는 문서가 없습니다. Fallback to FTS5.')
+        return []
+      }
+
+      // 3. 사전 생성된 임베딩으로 코사인 유사도 계산 (매우 빠름!)
       const results: SearchResult[] = []
 
-      for (const doc of this.documents) {
-        // 문서 임베딩 생성 (캐싱 필요 - 현재는 매번 생성)
-        const docEmbedding = await this.generateEmbedding(doc.content)
+      for (const doc of docsWithEmbeddings) {
+        // DB에서 로드한 사전 생성 임베딩 사용 (API 호출 없음!)
+        const docEmbedding = doc.embedding!
 
         // 코사인 유사도 계산
         const similarity = this.cosineSimilarity(queryEmbedding, docEmbedding)
@@ -825,6 +877,9 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
       // 유사도 순 정렬 후 Top-K
       results.sort((a, b) => b.score - a.score)
+      const totalTime = Date.now() - startTime
+      console.log(`[OllamaProvider] Vector 검색 완료: ${totalTime}ms (${docsWithEmbeddings.length}개 문서)`)
+
       return results.slice(0, this.topK)
     } catch (error) {
       console.error('[OllamaProvider] Vector 검색 실패:', error)
@@ -932,21 +987,59 @@ export class OllamaRAGProvider extends BaseRAGProvider {
    * 임베딩 생성 (Vector 검색용, Week 2에서 구현)
    */
   private async generateEmbedding(text: string): Promise<number[]> {
-    const response = await fetch(`${this.ollamaEndpoint}/api/embeddings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.embeddingModel,
-        prompt: text
+    // 텍스트 길이 제한 (임베딩 모델은 보통 512 토큰 제한)
+    // 대략 1 토큰 = 4자로 가정하여 2000자로 제한
+    const MAX_CHARS = 2000
+    const truncatedText = text.length > MAX_CHARS
+      ? text.slice(0, MAX_CHARS) + '...'
+      : text
+
+    try {
+      const response = await fetch(`${this.ollamaEndpoint}/api/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.embeddingModel,
+          prompt: truncatedText
+        })
       })
-    })
 
-    if (!response.ok) {
-      throw new Error(`임베딩 생성 실패: ${response.statusText}`)
+      if (!response.ok) {
+        // 에러 응답 본문 읽기
+        let errorDetail = response.statusText
+        try {
+          const errorData = await response.json()
+          errorDetail = errorData.error || errorData.message || response.statusText
+        } catch {
+          // JSON 파싱 실패 시 statusText 사용
+        }
+
+        console.error('[OllamaProvider] 임베딩 생성 실패 상세:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorDetail,
+          model: this.embeddingModel,
+          textLength: text.length,
+          truncatedLength: truncatedText.length
+        })
+
+        throw new Error(`임베딩 생성 실패 (${response.status}): ${errorDetail}`)
+      }
+
+      const data = (await response.json()) as EmbeddingResponse
+
+      if (!data.embedding || !Array.isArray(data.embedding)) {
+        throw new Error('임베딩 응답 형식이 올바르지 않습니다')
+      }
+
+      return data.embedding
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('[OllamaProvider] 임베딩 생성 에러:', error.message)
+        throw error
+      }
+      throw new Error('임베딩 생성 중 알 수 없는 오류 발생')
     }
-
-    const data = (await response.json()) as EmbeddingResponse
-    return data.embedding
   }
 
   /**

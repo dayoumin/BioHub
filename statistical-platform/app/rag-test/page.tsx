@@ -584,50 +584,85 @@ export default function RAGTestPage() {
             {/* 임베딩 모델 선택 */}
             <div className="space-y-2">
               <Label htmlFor="embedding-model">임베딩 모델</Label>
-              <Select
-                value={selectedEmbeddingModel}
-                onValueChange={setSelectedEmbeddingModel}
-                disabled={isLoadingModels}
-              >
-                <SelectTrigger id="embedding-model">
-                  <SelectValue placeholder="임베딩 모델 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableModels
-                    .filter(
+              <div className="flex gap-2">
+                <Select
+                  value={selectedEmbeddingModel}
+                  onValueChange={setSelectedEmbeddingModel}
+                  disabled={isLoadingModels}
+                >
+                  <SelectTrigger id="embedding-model">
+                    <SelectValue placeholder="임베딩 모델 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableModels
+                      .filter(
+                        (m) =>
+                          m.name.toLowerCase().includes('embed') ||
+                          m.name.toLowerCase().includes('embedding') ||
+                          m.name.includes('nomic')
+                      )
+                      .map((model) => (
+                        <SelectItem key={model.name} value={model.name}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    {availableModels.filter(
                       (m) =>
                         m.name.toLowerCase().includes('embed') ||
                         m.name.toLowerCase().includes('embedding') ||
                         m.name.includes('nomic')
-                    )
-                    .map((model) => (
-                      <SelectItem key={model.name} value={model.name}>
-                        {model.name}
+                    ).length === 0 && (
+                      <SelectItem value="mxbai-embed-large:latest">
+                        mxbai-embed-large:latest (기본값)
                       </SelectItem>
-                    ))}
-                  {availableModels.length === 0 && (
-                    <SelectItem value="Q78KG/Qwen3-Embedding-4B:latest">
-                      Q78KG/Qwen3-Embedding-4B:latest (기본값)
-                    </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={fetchAvailableModels}
+                  disabled={isLoadingModels}
+                  variant="outline"
+                  size="icon"
+                  title="모델 목록 새로고침"
+                >
+                  {isLoadingModels ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
                   )}
-                </SelectContent>
-              </Select>
+                </Button>
+              </div>
             </div>
 
             {/* 추론 모델 선택 */}
             <div className="space-y-2">
               <Label htmlFor="inference-model">추론 모델 (LLM)</Label>
-              <Select
-                value={selectedInferenceModel}
-                onValueChange={setSelectedInferenceModel}
-                disabled={isLoadingModels}
-              >
-                <SelectTrigger id="inference-model">
-                  <SelectValue placeholder="추론 모델 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableModels
-                    .filter(
+              <div className="flex gap-2">
+                <Select
+                  value={selectedInferenceModel}
+                  onValueChange={setSelectedInferenceModel}
+                  disabled={isLoadingModels}
+                >
+                  <SelectTrigger id="inference-model">
+                    <SelectValue placeholder="추론 모델 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableModels
+                      .filter(
+                        (m) =>
+                          !m.name.toLowerCase().includes('embed') &&
+                          (m.name.includes('qwen') ||
+                            m.name.includes('llama') ||
+                            m.name.includes('mistral') ||
+                            m.name.includes('gemma') ||
+                            m.name.includes('gpt'))
+                      )
+                      .map((model) => (
+                        <SelectItem key={model.name} value={model.name}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    {availableModels.filter(
                       (m) =>
                         !m.name.toLowerCase().includes('embed') &&
                         (m.name.includes('qwen') ||
@@ -635,17 +670,25 @@ export default function RAGTestPage() {
                           m.name.includes('mistral') ||
                           m.name.includes('gemma') ||
                           m.name.includes('gpt'))
-                    )
-                    .map((model) => (
-                      <SelectItem key={model.name} value={model.name}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
-                  {availableModels.length === 0 && (
-                    <SelectItem value="qwen3:4b">qwen3:4b (기본값)</SelectItem>
+                    ).length === 0 && (
+                      <SelectItem value="qwen3:4b">qwen3:4b (기본값)</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={fetchAvailableModels}
+                  disabled={isLoadingModels}
+                  variant="outline"
+                  size="icon"
+                  title="모델 목록 새로고침"
+                >
+                  {isLoadingModels ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
                   )}
-                </SelectContent>
-              </Select>
+                </Button>
+              </div>
             </div>
           </div>
 

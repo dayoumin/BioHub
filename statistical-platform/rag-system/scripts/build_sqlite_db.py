@@ -19,6 +19,8 @@ import time
 from pathlib import Path
 from typing import List, Dict, Optional
 import hashlib
+import struct
+import requests
 
 # Windows 콘솔 UTF-8 출력 강제
 if sys.platform == "win32":
@@ -31,6 +33,10 @@ RAG_SYSTEM_DIR = SCRIPT_DIR.parent
 DATA_DIR = RAG_SYSTEM_DIR / "data"
 DB_PATH = DATA_DIR / "rag.db"
 SCHEMA_PATH = RAG_SYSTEM_DIR / "schema.sql"
+
+# Ollama 설정
+OLLAMA_ENDPOINT = "http://localhost:11434"
+EMBEDDING_MODEL = "mxbai-embed-large"  # 1024 dimensions
 
 # 문서 디렉토리
 DOC_DIRS = {
@@ -148,12 +154,55 @@ def count_words(text: str) -> int:
     return len(text.split())
 
 
+def generate_embedding(text: str) -> Optional[List[float]]:
+    """Ollama API를 통해 텍스트 임베딩 생성"""
+    # 텍스트 길이 제한 (임베딩 모델은 보통 512 토큰 제한)
+    MAX_CHARS = 2000
+    truncated_text = text[:MAX_CHARS] if len(text) > MAX_CHARS else text
+
+    try:
+        response = requests.post(
+            f"{OLLAMA_ENDPOINT}/api/embeddings",
+            json={
+                "model": EMBEDDING_MODEL,
+                "prompt": truncated_text
+            },
+            timeout=30
+        )
+
+        if not response.ok:
+            print(f"  ⚠️ 임베딩 생성 실패 ({response.status_code}): {response.text[:100]}")
+            return None
+
+        data = response.json()
+        return data.get("embedding")
+
+    except Exception as e:
+        print(f"  ⚠️ 임베딩 생성 에러: {e}")
+        return None
+
+
+def embedding_to_blob(embedding: List[float]) -> bytes:
+    """임베딩 벡터를 SQLite BLOB으로 변환 (float32 배열)"""
+    # float32로 변환 (4바이트 * 1024 = 4096 바이트)
+    return struct.pack(f'{len(embedding)}f', *embedding)
+
+
+def blob_to_embedding(blob: bytes) -> List[float]:
+    """SQLite BLOB을 임베딩 벡터로 복원"""
+    # BLOB 크기로 차원 계산
+    num_dimensions = len(blob) // 4  # 4바이트 = float32
+    return list(struct.unpack(f'{num_dimensions}f', blob))
+
+
 def load_documents() -> List[Dict]:
-    """모든 문서 로드"""
-    print(f"[2/4] 문서 로드 중...")
+    """모든 문서 로드 및 임베딩 생성"""
+    print(f"[2/5] 문서 로드 및 임베딩 생성 중...")
 
     documents = []
     current_time = int(time.time())
+    embedding_success = 0
+    embedding_failed = 0
 
     for library, doc_dir in DOC_DIRS.items():
         if not doc_dir.exists():
@@ -161,9 +210,9 @@ def load_documents() -> List[Dict]:
             continue
 
         md_files = list(doc_dir.glob("*.md"))
-        print(f"  - {library}: {len(md_files)}개 파일")
+        print(f"  - {library}: {len(md_files)}개 파일 처리 중...")
 
-        for md_file in md_files:
+        for idx, md_file in enumerate(md_files, 1):
             try:
                 # 파일 읽기
                 with open(md_file, 'r', encoding='utf-8') as f:
@@ -178,6 +227,19 @@ def load_documents() -> List[Dict]:
                 category = categorize_document(library, doc_id, content)
                 word_count = count_words(content)
 
+                # 🔥 임베딩 생성 (Ollama API 호출)
+                print(f"    [{idx}/{len(md_files)}] {doc_id[:30]:30} ... 임베딩 생성 중", end=" ")
+                embedding = generate_embedding(content)
+
+                if embedding:
+                    embedding_blob = embedding_to_blob(embedding)
+                    embedding_success += 1
+                    print(f"✓ ({len(embedding)}차원)")
+                else:
+                    embedding_blob = None
+                    embedding_failed += 1
+                    print("✗")
+
                 # 문서 객체 생성
                 doc = {
                     "doc_id": doc_id,
@@ -186,11 +248,13 @@ def load_documents() -> List[Dict]:
                     "category": category,
                     "content": content,
                     "summary": summary,
-                    "source_url": None,  # 크롤링 로그에서 추출 가능
+                    "source_url": None,
                     "source_file": str(md_file.relative_to(RAG_SYSTEM_DIR)),
                     "created_at": current_time,
                     "updated_at": current_time,
-                    "word_count": word_count
+                    "word_count": word_count,
+                    "embedding": embedding_blob,
+                    "embedding_model": EMBEDDING_MODEL if embedding_blob else None
                 }
 
                 documents.append(doc)
@@ -198,13 +262,14 @@ def load_documents() -> List[Dict]:
             except Exception as e:
                 print(f"  ⚠️ 에러 ({md_file.name}): {e}")
 
-    print(f"  ✓ 총 {len(documents)}개 문서 로드 완료")
+    print(f"\n  ✓ 총 {len(documents)}개 문서 로드 완료")
+    print(f"  ✓ 임베딩 성공: {embedding_success}개 | 실패: {embedding_failed}개")
     return documents
 
 
 def insert_documents(documents: List[Dict]):
-    """문서를 DB에 삽입"""
-    print(f"[3/4] 문서 DB 삽입 중...")
+    """문서를 DB에 삽입 (임베딩 포함)"""
+    print(f"[3/5] 문서 DB 삽입 중...")
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -215,8 +280,9 @@ def insert_documents(documents: List[Dict]):
                 doc_id, title, library, category,
                 content, summary,
                 source_url, source_file,
-                created_at, updated_at, word_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                created_at, updated_at, word_count,
+                embedding, embedding_model
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             doc["doc_id"],
             doc["title"],
@@ -228,7 +294,9 @@ def insert_documents(documents: List[Dict]):
             doc["source_file"],
             doc["created_at"],
             doc["updated_at"],
-            doc["word_count"]
+            doc["word_count"],
+            doc["embedding"],
+            doc["embedding_model"]
         ))
 
     conn.commit()
@@ -239,7 +307,7 @@ def insert_documents(documents: List[Dict]):
 
 def generate_statistics():
     """DB 통계 생성"""
-    print(f"[4/4] DB 통계 생성 중...")
+    print(f"[4/5] DB 통계 생성 중...")
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -268,6 +336,11 @@ def generate_statistics():
     fts_count = cursor.fetchone()[0]
     print(f"\n✓ FTS 인덱스: {fts_count}개 문서")
 
+    # 임베딩 통계
+    cursor.execute("SELECT COUNT(*) FROM documents WHERE embedding IS NOT NULL")
+    embedding_count = cursor.fetchone()[0]
+    print(f"✓ 임베딩: {embedding_count}개 문서 ({EMBEDDING_MODEL})")
+
     # DB 파일 크기
     db_size = DB_PATH.stat().st_size / (1024 * 1024)  # MB
     print(f"✓ DB 크기: {db_size:.2f} MB")
@@ -279,14 +352,28 @@ def main():
     """메인 함수"""
     print("=" * 50)
     print("RAG System - SQLite DB Builder")
+    print("With Vector Embeddings (mxbai-embed-large)")
     print("=" * 50)
+    print()
+
+    # Ollama 서버 확인
+    print("[0/5] Ollama 서버 확인 중...")
+    try:
+        response = requests.get(f"{OLLAMA_ENDPOINT}/api/tags", timeout=5)
+        if response.ok:
+            print(f"  ✓ Ollama 서버 연결 성공 ({OLLAMA_ENDPOINT})")
+        else:
+            print(f"  ⚠️ Ollama 서버 응답 이상: {response.status_code}")
+    except Exception as e:
+        print(f"  ❌ Ollama 서버 연결 실패: {e}")
+        print(f"  → 임베딩 생성이 스킵됩니다.")
     print()
 
     try:
         # 1. DB 생성
         create_database()
 
-        # 2. 문서 로드
+        # 2. 문서 로드 및 임베딩 생성
         documents = load_documents()
 
         # 3. DB 삽입
@@ -299,6 +386,7 @@ def main():
         print("=" * 50)
         print("✅ DB 빌드 완료!")
         print(f"   위치: {DB_PATH}")
+        print(f"   임베딩 모델: {EMBEDDING_MODEL}")
         print("=" * 50)
 
     except Exception as e:

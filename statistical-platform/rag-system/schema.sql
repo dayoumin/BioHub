@@ -26,7 +26,11 @@ CREATE TABLE IF NOT EXISTS documents (
 
   -- 통계
   word_count INTEGER,                       -- 단어 수
-  view_count INTEGER DEFAULT 0              -- 조회 수 (인기도)
+  view_count INTEGER DEFAULT 0,             -- 조회 수 (인기도)
+
+  -- Vector Embedding (전체 문서 임베딩)
+  embedding BLOB,                           -- 임베딩 벡터 (binary, 1024 dimensions for mxbai-embed-large)
+  embedding_model TEXT                      -- 예: 'mxbai-embed-large'
 );
 
 -- 인덱스
