@@ -23,7 +23,8 @@ describe('OllamaRAGProvider', () => {
       embeddingModel: 'nomic-embed-text',
       inferenceModel: 'qwen2.5:3b',
       vectorDbPath: '/test/rag.db',
-      topK: 5
+      topK: 5,
+      testMode: true // 테스트 모드 활성화
     })
 
     // Fetch mock 초기화

@@ -47,7 +47,8 @@ export class RAGService {
       embeddingModel: process.env.NEXT_PUBLIC_OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text',
       inferenceModel: process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL || 'qwen2.5:3b',
       vectorDbPath: process.env.NEXT_PUBLIC_VECTOR_DB_PATH || '/rag-data/rag.db',
-      topK: parseInt(process.env.NEXT_PUBLIC_TOP_K || '5')
+      topK: parseInt(process.env.NEXT_PUBLIC_TOP_K || '5'),
+      testMode: process.env.NODE_ENV === 'test' // 테스트 환경에서 testMode 활성화
     })
 
     await this.provider.initialize()
