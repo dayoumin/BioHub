@@ -1,21 +1,16 @@
-'use client'
-
 /**
- * RAG 시스템 테스트 페이지 (Ollama 전용)
+ * RAG Test Page
  *
- * 목적:
- * 1. Ollama 로컬 RAG 검색 정확도 테스트
- * 2. 응답 품질 평가
- * 3. DB 관리 (추가/수정/삭제/재구축)
- * 4. 모델 선택 (임베딩/추론 모델)
+ * Vector Store 기반 RAG 시스템 테스트 페이지
+ * 1. 쿼리 테스트 (질문 → AI 응답)
+ * 2. Vector Store 관리 (정보 조회, 빌드 안내)
  *
  * 이 페이지는 개발/테스트 전용이며, 프로덕션 빌드에서는 제외됩니다.
  */
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -24,16 +19,7 @@ import {
   Loader2,
   RefreshCw,
   Database,
-  FileText,
-  Edit,
-  Trash2,
-  Plus,
-  List,
-  Search,
-  ChevronDown,
-  ChevronUp,
   Copy,
-  MessageSquare,
   Info,
   AlertCircle,
   XCircle
@@ -45,11 +31,11 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { queryRAG, rebuildRAGDatabase, RAGService, getAvailableVectorStores } from '@/lib/rag/rag-service'
-import type { RAGResponse, DocumentInput, Document, SearchMode, VectorStore } from '@/lib/rag/providers/base-provider'
+import { Textarea } from '@/components/ui/textarea'
+import { queryRAG, RAGService, getAvailableVectorStores } from '@/lib/rag/rag-service'
+import type { RAGResponse, SearchMode, VectorStore } from '@/lib/rag/providers/base-provider'
 import { ModelSettings } from '@/components/rag/model-settings'
 import type { OllamaModel } from '@/components/rag/model-settings'
-import { Textarea } from '@/components/ui/textarea'
 
 interface TestResult {
   query: string
@@ -57,97 +43,18 @@ interface TestResult {
   timestamp: number
 }
 
-// OllamaModel은 model-settings.tsx에서 import
-
 interface OllamaModelInfo {
   models: OllamaModel[]
 }
 
-// 함수명 → 한글명 매핑 테이블 (주요 100개 함수)
-const FUNCTION_NAME_MAP: Record<string, string> = {
-  // SciPy - Hypothesis Testing
-  'scipy.stats.binom_test': '이항검정',
-  'scipy.stats.chi2_contingency': '카이제곱 독립성 검정',
-  'scipy.stats.chisquare': '카이제곱 적합도 검정',
-  'scipy.stats.fisher_exact': '피셔 정확검정',
-  'scipy.stats.friedmanchisquare': '프리드만 검정',
-  'scipy.f_oneway': '일원 분산분석',
-  'scipy.stats.kruskal': '크러스컬-왈리스 검정',
-  'scipy.stats.mannwhitneyu': '만-휘트니 U 검정',
-  'scipy.stats.ttest_ind': '독립표본 t검정',
-  'scipy.stats.ttest_rel': '대응표본 t검정',
-  'scipy.stats.ttest_1samp': '일표본 t검정',
-  'scipy.stats.wilcoxon': '윌콕슨 부호순위 검정',
-  'scipy.stats.ranksums': '윌콕슨 순위합 검정',
-  'scipy.stats.kstest': '콜모고로프-스미르노프 검정',
-  'scipy.stats.shapiro': '샤피로-윌크 정규성 검정',
-  'scipy.stats.normaltest': '정규성 검정',
-  'scipy.stats.levene': '레빈 등분산 검정',
-  'scipy.stats.bartlett': '바틀렛 등분산 검정',
-  'scipy.stats.anderson': '앤더슨-달링 정규성 검정',
-  'scipy.stats.jarque_bera': '자크-베라 정규성 검정',
-
-  // SciPy - Distributions
-  'scipy.stats.chi2': '카이제곱 분포',
-  'scipy.stats.f': 'F 분포',
-  'scipy.stats.t': 't 분포',
-  'scipy.stats.norm': '정규 분포',
-
-  // SciPy - Descriptive
-  'scipy.stats.describe': '기술통계',
-  'scipy.stats.entropy': '엔트로피',
-  'scipy.stats.kurtosis': '첨도',
-  'scipy.stats.skew': '왜도',
-  'scipy.stats.pearsonr': '피어슨 상관계수',
-  'scipy.stats.spearmanr': '스피어만 상관계수',
-  'scipy.stats.kendalltau': '켄달 타우 상관계수',
-
-  // NumPy - Descriptive
-  'numpy.mean': '평균',
-  'numpy.median': '중앙값',
-  'numpy.std': '표준편차',
-  'numpy.var': '분산',
-  'numpy.corrcoef': '상관계수',
-  'numpy.cov': '공분산',
-  'numpy.min': '최솟값',
-  'numpy.max': '최댓값',
-  'numpy.percentile': '백분위수',
-  'numpy.quantile': '분위수',
-
-  // Statsmodels - Regression
-  'statsmodels.api.OLS': '일반 최소제곱 회귀',
-  'statsmodels.api.Logit': '로지스틱 회귀',
-  'statsmodels.api.GLM': '일반화 선형 모형',
-  'statsmodels.api.WLS': '가중 최소제곱 회귀',
-  'statsmodels.api.GLS': '일반화 최소제곱 회귀',
-  'statsmodels.tsa.arima.model.ARIMA': 'ARIMA 모형',
-
-  // Pingouin
-  'pingouin.ttest': 't검정',
-  'pingouin.anova': '분산분석',
-  'pingouin.rm_anova': '반복측정 분산분석',
-  'pingouin.ancova': '공분산분석',
-  'pingouin.mixed_anova': '혼합 분산분석',
-  'pingouin.welch_anova': '웰치 분산분석',
-  'pingouin.kruskal': '크러스컬-왈리스 검정',
-  'pingouin.friedman': '프리드만 검정',
-  'pingouin.cochran': '코크란 Q 검정',
-  'pingouin.corr': '상관분석',
-  'pingouin.partial_corr': '편상관분석',
-  'pingouin.pairwise_corr': '쌍별 상관분석',
-  'pingouin.rm_corr': '반복측정 상관분석',
-  'pingouin.power_ttest': 't검정 검정력 분석',
-  'pingouin.power_anova': '분산분석 검정력 분석'
-}
-
 export default function RAGTestPage() {
-  // 쿼리 테스트 상태
+  // ===== 쿼리 테스트 상태 =====
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<TestResult[]>([])
 
-  // Vector Store 상태
+  // ===== Vector Store 상태 =====
   const [availableVectorStores, setAvailableVectorStores] = useState<VectorStore[]>([])
   const [selectedVectorStoreId, setSelectedVectorStoreId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
@@ -156,114 +63,47 @@ export default function RAGTestPage() {
     return null
   })
 
-  // 모델 선택 상태
+  // ===== 모델 선택 상태 =====
   const [availableModels, setAvailableModels] = useState<OllamaModel[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(false)
   const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('rag-embedding-model') || 'mxbai-embed-large:latest'
+      return localStorage.getItem('rag-embedding-model') || 'mxbai-embed-large'
     }
-    return 'mxbai-embed-large:latest'
+    return 'mxbai-embed-large'
   })
   const [selectedInferenceModel, setSelectedInferenceModel] = useState(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('rag-inference-model') || 'qwen3:4b'
-      // 임베딩 모델이 잘못 저장된 경우 기본값 사용
-      if (stored.toLowerCase().includes('embed')) {
-        return 'qwen3:4b'
-      }
-      return stored
+      return localStorage.getItem('rag-inference-model') || 'qwen3:4b'
     }
     return 'qwen3:4b'
   })
-  const [isLoadingModels, setIsLoadingModels] = useState(false)
 
-  // 검색 모드 상태
+  // ===== 검색 모드 상태 =====
   const [searchMode, setSearchMode] = useState<SearchMode>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('rag-search-mode') as SearchMode) || 'fts5'
+      return (localStorage.getItem('rag-search-mode') as SearchMode) || 'vector'
     }
-    return 'fts5'
+    return 'vector'
   })
 
-  // DB 관리 상태
-  const [isRebuilding, setIsRebuilding] = useState(false)
-  const [dbTab, setDbTab] = useState<'add' | 'edit' | 'delete' | 'list' | 'rebuild' | 'build'>('list')
-
-  // Vector Store 빌드 상태
+  // ===== Vector Store 관리 상태 =====
+  const [vectorStoreTab, setVectorStoreTab] = useState<'info' | 'build'>('info')
   const [buildEmbeddingModel, setBuildEmbeddingModel] = useState('')
-  const [isBuilding, setIsBuilding] = useState(false)
 
-  // 문서 추가 상태
-  const [newDocTitle, setNewDocTitle] = useState('')
-  const [newDocContent, setNewDocContent] = useState('')
-  const [newDocLibrary, setNewDocLibrary] = useState('')
-  const [newDocCategory, setNewDocCategory] = useState('')
-  const [newDocSummary, setNewDocSummary] = useState('')
-  const [isAdding, setIsAdding] = useState(false)
-
-  // 문서 수정 상태
-  const [editDocId, setEditDocId] = useState('')
-  const [editDocTitle, setEditDocTitle] = useState('')
-  const [editDocContent, setEditDocContent] = useState('')
-  const [editDocCategory, setEditDocCategory] = useState('')
-  const [editDocSummary, setEditDocSummary] = useState('')
-  const [isEditing, setIsEditing] = useState(false)
-  const [isLoadingDoc, setIsLoadingDoc] = useState(false)
-
-  // 문서 삭제 상태
-  const [deleteDocId, setDeleteDocId] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  // 문서 목록 상태
-  const [documents, setDocuments] = useState<Document[]>([])
-  const [isLoadingDocs, setIsLoadingDocs] = useState(false)
-  const [expandedDocId, setExpandedDocId] = useState<string | null>(null) // 확장된 문서 ID
-  const [searchTerm, setSearchTerm] = useState('') // 검색어
-  const [filterCategory, setFilterCategory] = useState<string>('all') // 카테고리 필터
-  const [filterLibrary, setFilterLibrary] = useState<string>('all') // 라이브러리 필터
-  const [currentPage, setCurrentPage] = useState(1) // 현재 페이지
-  const itemsPerPage = 20 // 페이지당 항목 수
-  const [copySuccess, setCopySuccess] = useState<string | null>(null) // 복사 성공 메시지
-
-  // Ollama에서 사용 가능한 모델 목록 가져오기
+  // ===== Ollama 모델 목록 조회 =====
   const fetchAvailableModels = useCallback(async () => {
     setIsLoadingModels(true)
+
     try {
-      const ollamaEndpoint =
-        process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434'
-      const response = await fetch(`${ollamaEndpoint}/api/tags`)
+      const response = await fetch('http://localhost:11434/api/tags')
 
       if (!response.ok) {
         throw new Error('Ollama 서버에 연결할 수 없습니다')
       }
 
-      const data = (await response.json()) as OllamaModelInfo
+      const data: OllamaModelInfo = await response.json()
       setAvailableModels(data.models || [])
-
-      // 로컬스토리지에 저장된 값이 없을 때만 자동 감지
-      const hasStoredEmbedding = typeof window !== 'undefined' && localStorage.getItem('rag-embedding-model')
-      const hasStoredInference = typeof window !== 'undefined' && localStorage.getItem('rag-inference-model')
-
-      // 임베딩 모델 자동 감지 및 설정 (저장된 값이 없을 때만)
-      if (!hasStoredEmbedding) {
-        const embeddingModel = data.models.find((m) =>
-          m.name.toLowerCase().includes('embed') ||
-          m.name.toLowerCase().includes('embedding')
-        )
-        if (embeddingModel) {
-          setSelectedEmbeddingModel(embeddingModel.name)
-        }
-      }
-
-      // 추론 모델 자동 감지 및 설정 (저장된 값이 없을 때만, qwen3 우선)
-      if (!hasStoredInference) {
-        const inferenceModel = data.models.find((m) =>
-          m.name.includes('qwen3:4b') || m.name.includes('qwen3')
-        )
-        if (inferenceModel) {
-          setSelectedInferenceModel(inferenceModel.name)
-        }
-      }
     } catch (err) {
       console.error('모델 목록 조회 실패:', err)
       setError(err instanceof Error ? err.message : '모델 목록 조회 실패')
@@ -272,7 +112,7 @@ export default function RAGTestPage() {
     }
   }, [])
 
-  // Vector Store 목록 로드
+  // ===== Vector Store 목록 로드 =====
   const loadVectorStores = useCallback(async () => {
     try {
       const stores = await getAvailableVectorStores()
@@ -289,7 +129,7 @@ export default function RAGTestPage() {
     }
   }, [selectedVectorStoreId])
 
-  // Vector Store 선택 핸들러
+  // ===== Vector Store 선택 핸들러 =====
   const handleVectorStoreSelect = useCallback((storeId: string) => {
     setSelectedVectorStoreId(storeId)
 
@@ -305,13 +145,13 @@ export default function RAGTestPage() {
     }
   }, [availableVectorStores])
 
-  // 컴포넌트 마운트 시 모델 목록 및 Vector Store 조회
+  // ===== 컴포넌트 마운트 시 초기화 =====
   useEffect(() => {
     void fetchAvailableModels()
     void loadVectorStores()
   }, [fetchAvailableModels, loadVectorStores])
 
-  // 모델 선택 변경 시 로컬스토리지에 저장
+  // ===== 모델 선택 변경 시 로컬스토리지 저장 =====
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('rag-embedding-model', selectedEmbeddingModel)
@@ -330,7 +170,7 @@ export default function RAGTestPage() {
     }
   }, [searchMode])
 
-  // RAG 쿼리 실행
+  // ===== 쿼리 실행 =====
   const handleQuery = useCallback(async () => {
     if (!query.trim()) {
       setError('질문을 입력하세요')
@@ -341,7 +181,7 @@ export default function RAGTestPage() {
     setError(null)
 
     try {
-      // RAG 서비스 초기화 (선택된 Vector Store 또는 모델 사용)
+      // RAG 서비스 초기화
       const ragService = RAGService.getInstance()
       await ragService.initialize({
         vectorStoreId: selectedVectorStoreId || undefined,
@@ -349,7 +189,7 @@ export default function RAGTestPage() {
         inferenceModel: selectedInferenceModel
       })
 
-      // 쿼리 실행 (검색 모드 전달)
+      // 쿼리 실행
       const response = await queryRAG({
         query: query.trim(),
         searchMode
@@ -373,285 +213,28 @@ export default function RAGTestPage() {
     }
   }, [query, selectedVectorStoreId, selectedEmbeddingModel, selectedInferenceModel, searchMode])
 
-  // 문서 추가
-  const handleAddDocument = useCallback(async () => {
-    if (!newDocTitle.trim() || !newDocContent.trim() || !newDocLibrary.trim()) {
-      setError('제목, 내용, 라이브러리는 필수 입력 항목입니다')
-      return
-    }
-
-    setIsAdding(true)
-    setError(null)
-
-    try {
-      const ragService = RAGService.getInstance()
-      await ragService.initialize()
-
-      const provider = ragService['provider']
-      if (!provider) {
-        throw new Error('Provider가 초기화되지 않았습니다')
-      }
-
-      const docInput: DocumentInput = {
-        title: newDocTitle.trim(),
-        content: newDocContent.trim(),
-        library: newDocLibrary.trim(),
-        category: newDocCategory.trim() || undefined,
-        summary: newDocSummary.trim() || undefined
-      }
-
-      const docId = await provider.addDocument(docInput)
-
-      alert(`문서가 추가되었습니다!\nDocument ID: ${docId}`)
-
-      // 입력 초기화
-      setNewDocTitle('')
-      setNewDocContent('')
-      setNewDocLibrary('')
-      setNewDocCategory('')
-      setNewDocSummary('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '문서 추가 실패')
-    } finally {
-      setIsAdding(false)
-    }
-  }, [newDocTitle, newDocContent, newDocLibrary, newDocCategory, newDocSummary])
-
-  // 문서 조회 (수정용)
-  const handleLoadDocument = useCallback(async () => {
-    if (!editDocId.trim()) {
-      setError('Document ID를 입력하세요')
-      return
-    }
-
-    setIsLoadingDoc(true)
-    setError(null)
-
-    try {
-      const ragService = RAGService.getInstance()
-      await ragService.initialize()
-
-      const provider = ragService['provider']
-      if (!provider) {
-        throw new Error('Provider가 초기화되지 않았습니다')
-      }
-
-      const doc = await provider.getDocument(editDocId.trim())
-
-      if (!doc) {
-        throw new Error('문서를 찾을 수 없습니다')
-      }
-
-      setEditDocTitle(doc.title)
-      setEditDocContent(doc.content)
-      setEditDocCategory(doc.category || '')
-      setEditDocSummary(doc.summary || '')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '문서 조회 실��')
-    } finally {
-      setIsLoadingDoc(false)
-    }
-  }, [editDocId])
-
-  // 문서 수정
-  const handleUpdateDocument = useCallback(async () => {
-    if (!editDocId.trim()) {
-      setError('Document ID를 입력하세요')
-      return
-    }
-
-    setIsEditing(true)
-    setError(null)
-
-    try {
-      const ragService = RAGService.getInstance()
-      await ragService.initialize()
-
-      const provider = ragService['provider']
-      if (!provider) {
-        throw new Error('Provider가 초기화되지 않았습니다')
-      }
-
-      const success = await provider.updateDocument(editDocId.trim(), {
-        title: editDocTitle.trim() || undefined,
-        content: editDocContent.trim() || undefined,
-        category: editDocCategory.trim() || undefined,
-        summary: editDocSummary.trim() || undefined
-      })
-
-      if (!success) {
-        throw new Error('문서 수정 실패')
-      }
-
-      alert('문서가 수정되었습니다!')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '문서 수정 실패')
-    } finally {
-      setIsEditing(false)
-    }
-  }, [editDocId, editDocTitle, editDocContent, editDocCategory, editDocSummary])
-
-  // 문서 삭제
-  const handleDeleteDocument = useCallback(async () => {
-    if (!deleteDocId.trim()) {
-      setError('Document ID를 입력하세요')
-      return
-    }
-
-    if (!confirm(`정말로 문서 "${deleteDocId}"를 삭제하시겠습니까?`)) {
-      return
-    }
-
-    setIsDeleting(true)
-    setError(null)
-
-    try {
-      const ragService = RAGService.getInstance()
-      await ragService.initialize()
-
-      const provider = ragService['provider']
-      if (!provider) {
-        throw new Error('Provider가 초기화되지 않았습니다')
-      }
-
-      const success = await provider.deleteDocument(deleteDocId.trim())
-
-      if (!success) {
-        throw new Error('문서 삭제 실패')
-      }
-
-      alert('문서가 삭제되었습니다!')
-      setDeleteDocId('')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '문서 삭제 실패')
-    } finally {
-      setIsDeleting(false)
-    }
-  }, [deleteDocId])
-
-  // 문서 목록 조회
-  const handleLoadDocuments = useCallback(async () => {
-    setIsLoadingDocs(true)
-    setError(null)
-
-    try {
-      const ragService = RAGService.getInstance()
-      await ragService.initialize()
-
-      const provider = ragService['provider']
-      if (!provider) {
-        throw new Error('Provider가 초기화되지 않았습니다')
-      }
-
-      // Get all documents from the provider
-      const allDocs = provider.getAllDocuments()
-      setDocuments(allDocs)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '문서 목록 조회 실패')
-    } finally {
-      setIsLoadingDocs(false)
-    }
-  }, [])
-
-  // 필터링 및 페이지네이션 로직
-  const filteredAndPagedDocuments = useMemo(() => {
-    // 1. 검색 필터링
-    let filtered = documents.filter((doc) => {
-      const searchLower = searchTerm.toLowerCase()
-      const matchesSearch =
-        searchTerm === '' ||
-        doc.title.toLowerCase().includes(searchLower) ||
-        (doc.summary && doc.summary.toLowerCase().includes(searchLower)) ||
-        doc.content.toLowerCase().includes(searchLower)
-
-      // 2. 카테고리 필터링
-      const matchesCategory =
-        filterCategory === 'all' || doc.category === filterCategory
-
-      // 3. 라이브러리 필터링
-      const matchesLibrary =
-        filterLibrary === 'all' || doc.library === filterLibrary
-
-      return matchesSearch && matchesCategory && matchesLibrary
-    })
-
-    // 4. 페이지네이션
-    const totalPages = Math.ceil(filtered.length / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
-    const paged = filtered.slice(startIndex, endIndex)
-
-    return { filtered, paged, totalPages }
-  }, [documents, searchTerm, filterCategory, filterLibrary, currentPage])
-
-  // 고유 카테고리/라이브러리 목록
-  const uniqueCategories = useMemo(() => {
-    const categories = new Set(
-      documents.map((d) => d.category || 'uncategorized').filter(Boolean)
-    )
-    return Array.from(categories).sort()
-  }, [documents])
-
-  const uniqueLibraries = useMemo(() => {
-    const libraries = new Set(documents.map((d) => d.library))
-    return Array.from(libraries).sort()
-  }, [documents])
-
-  // DB 재구축
-  const handleRebuildDatabase = useCallback(async () => {
-    if (!confirm('전체 데이터베이스를 재구축하시겠습니까? (모든 데이터가 초기화됩니다)')) {
-      return
-    }
-
-    setIsRebuilding(true)
-    setError(null)
-
-    try {
-      await rebuildRAGDatabase()
-      alert('데이터베이스 재구축 완료!')
-      // 재구축 후 문서 목록 새로고침
-      void handleLoadDocuments()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '재구축 실패')
-    } finally {
-      setIsRebuilding(false)
-    }
-  }, [handleLoadDocuments])
-
-  // DB 탭이 'list'로 변경될 때 문서 목록 자동 로드
-  useEffect(() => {
-    if (dbTab === 'list') {
-      void handleLoadDocuments()
-    }
-  }, [dbTab, handleLoadDocuments])
-
   return (
-    <div className="container mx-auto p-8 max-w-6xl">
-      {/* 헤더 */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">RAG 시스템 테스트 (Ollama 전용)</h1>
-        <p className="text-muted-foreground">
-          Ollama 로컬 RAG 시스템의 검색 정확도와 응답 품질을 테스트합니다.
+    <div className="container mx-auto p-6 max-w-7xl">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">RAG 시스템 테스트</h1>
+        <p className="text-muted-foreground mt-2">
+          Vector Store 기반 검색 및 AI 응답 테스트
         </p>
-        <Badge variant="outline" className="mt-2">
-          개발/테스트 전용 페이지
-        </Badge>
       </div>
 
-      {/* 메인 탭 (테스트 쿼리 vs 데이터베이스 관리) */}
       <Tabs defaultValue="query" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="query">
-            <MessageSquare className="mr-2 h-4 w-4" />
+            <Database className="mr-2 h-4 w-4" />
             테스트 쿼리
           </TabsTrigger>
-          <TabsTrigger value="database">
-            <Database className="mr-2 h-4 w-4" />
-            데이터베이스 관리
+          <TabsTrigger value="vector-store">
+            <Info className="mr-2 h-4 w-4" />
+            Vector Store 관리
           </TabsTrigger>
         </TabsList>
 
-        {/* 테스트 쿼리 탭 */}
+        {/* ==================== 테스트 쿼리 탭 ==================== */}
         <TabsContent value="query" className="space-y-4">
           {/* 모델 설정 */}
           <ModelSettings
@@ -677,7 +260,6 @@ export default function RAGTestPage() {
               <CardDescription>통계 분석 질문을 입력하세요</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* 질문 입력 */}
               <div className="space-y-2">
                 <Label htmlFor="query">질문</Label>
                 <Textarea
@@ -693,7 +275,6 @@ export default function RAGTestPage() {
                 </p>
               </div>
 
-              {/* 에러 메시지 */}
               {error && (
                 <div className="flex items-center gap-2 text-destructive">
                   <XCircle className="h-4 w-4" />
@@ -701,7 +282,6 @@ export default function RAGTestPage() {
                 </div>
               )}
 
-              {/* 버튼 */}
               <Button onClick={handleQuery} disabled={isLoading || !query.trim()}>
                 {isLoading ? (
                   <>
@@ -734,14 +314,12 @@ export default function RAGTestPage() {
                   {results.map((result, index) => (
                     <div key={index} className="border rounded-lg p-4 space-y-3">
                       {/* 쿼리 정보 */}
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <p className="font-medium">{result.query}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Badge variant="default">Ollama (Local)</Badge>
-                            <span>•</span>
-                            <span>{new Date(result.timestamp).toLocaleString('ko-KR')}</span>
-                          </div>
+                      <div className="space-y-1">
+                        <p className="font-medium">{result.query}</p>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Badge variant="default">Ollama (Local)</Badge>
+                          <span>•</span>
+                          <span>{new Date(result.timestamp).toLocaleString('ko-KR')}</span>
                         </div>
                       </div>
 
@@ -756,7 +334,9 @@ export default function RAGTestPage() {
                       {/* 참조 문서 */}
                       {result.response.sources && result.response.sources.length > 0 && (
                         <div className="space-y-2">
-                          <Label className="text-base font-semibold">참조 문서 ({result.response.sources.length}개)</Label>
+                          <Label className="text-base font-semibold">
+                            참조 문서 ({result.response.sources.length}개)
+                          </Label>
                           <div className="space-y-2">
                             {result.response.sources.map((source, idx) => (
                               <div key={idx} className="border rounded p-3 space-y-1 text-sm">
@@ -796,667 +376,169 @@ export default function RAGTestPage() {
           </Card>
         </TabsContent>
 
-        {/* 데이터베이스 관리 탭 */}
-        <TabsContent value="database">
+        {/* ==================== Vector Store 관리 탭 ==================== */}
+        <TabsContent value="vector-store">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5" />
-                Vector Store 데이터베이스
+                Vector Store 관리
               </CardTitle>
               <CardDescription>
-                통계 함수 문서 검색을 위한 임베딩 벡터 DB (SQLite + FTS5)
+                사전 생성된 임베딩 벡터 DB (읽기 전용)
               </CardDescription>
             </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Vector Store 정보 */}
-          {selectedVectorStoreId && availableVectorStores.length > 0 && (
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>현재 Vector Store</AlertTitle>
-              <AlertDescription className="mt-2 space-y-1">
-                {(() => {
-                  const selectedStore = availableVectorStores.find((s) => s.id === selectedVectorStoreId)
-                  if (!selectedStore) return null
-                  return (
-                    <>
-                      <div>• <strong>임베딩 모델:</strong> {selectedStore.embeddingModel}</div>
-                      <div>• <strong>문서 수:</strong> {selectedStore.docCount}개</div>
-                      <div>• <strong>DB 크기:</strong> {selectedStore.fileSize}</div>
-                      <div>• <strong>경로:</strong> <code className="text-xs">{selectedStore.dbPath}</code></div>
-                    </>
-                  )
-                })()}
-              </AlertDescription>
-            </Alert>
-          )}
+            <CardContent className="space-y-4">
+              <Tabs value={vectorStoreTab} onValueChange={(v) => setVectorStoreTab(v as typeof vectorStoreTab)}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="info">
+                    <Info className="mr-2 h-4 w-4" />
+                    정보
+                  </TabsTrigger>
+                  <TabsTrigger value="build">
+                    <Database className="mr-2 h-4 w-4" />
+                    빌드
+                  </TabsTrigger>
+                </TabsList>
 
-          {/* IndexedDB 경고 */}
-          <Alert variant="default" className="border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20">
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="text-yellow-800 dark:text-yellow-200">
-              브라우저 영구 저장 (IndexedDB)
-            </AlertTitle>
-            <AlertDescription className="text-yellow-800 dark:text-yellow-200 mt-2">
-              <p>추가/수정한 문서는 브라우저 IndexedDB에 영구 저장됩니다.</p>
-              <p className="mt-1">페이지 새로고침 후에도 유지되지만, <strong>Vector Store 재구축 시 초기화</strong>됩니다.</p>
-            </AlertDescription>
-          </Alert>
-
-          <Tabs value={dbTab} onValueChange={(v) => setDbTab(v as typeof dbTab)}>
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="list">
-                <List className="mr-2 h-4 w-4" />
-                문서 목록
-              </TabsTrigger>
-              <TabsTrigger value="add">
-                <Plus className="mr-2 h-4 w-4" />
-                추가
-              </TabsTrigger>
-              <TabsTrigger value="edit">
-                <Edit className="mr-2 h-4 w-4" />
-                수정
-              </TabsTrigger>
-              <TabsTrigger value="delete">
-                <Trash2 className="mr-2 h-4 w-4" />
-                삭제
-              </TabsTrigger>
-              <TabsTrigger value="build">
-                <Database className="mr-2 h-4 w-4" />
-                Vector Store 빌드
-              </TabsTrigger>
-              <TabsTrigger value="rebuild">
-                <RefreshCw className="mr-2 h-4 w-4" />
-                재구축
-              </TabsTrigger>
-            </TabsList>
-
-            {/* 문서 목록 */}
-            <TabsContent value="list" className="space-y-4">
-              {/* 헤더: 전체 개수 + 새로고침 */}
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  전체 {documents.length}개 문서 · 필터링 결과 {filteredAndPagedDocuments.filtered.length}개
-                </p>
-                <Button
-                  onClick={handleLoadDocuments}
-                  disabled={isLoadingDocs}
-                  variant="outline"
-                  size="sm"
-                >
-                  {isLoadingDocs ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      로딩 중...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      새로고침
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* 필터 및 검색 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* 검색 */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="제목, 요약, 내용 검색..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value)
-                      setCurrentPage(1) // 검색 시 첫 페이지로
-                    }}
-                    className="pl-9"
-                  />
-                </div>
-
-                {/* 카테고리 필터 */}
-                <Select
-                  value={filterCategory}
-                  onValueChange={(value) => {
-                    setFilterCategory(value)
-                    setCurrentPage(1)
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="카테고리 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">모든 카테고리</SelectItem>
-                    {uniqueCategories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {/* 라이브러리 필터 */}
-                <Select
-                  value={filterLibrary}
-                  onValueChange={(value) => {
-                    setFilterLibrary(value)
-                    setCurrentPage(1)
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="라이브러리 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">모든 라이브러리</SelectItem>
-                    {uniqueLibraries.map((lib) => (
-                      <SelectItem key={lib} value={lib}>
-                        {lib}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* 문서 목록 (간결한 카드 형식) */}
-              <div className="space-y-2">
-                {filteredAndPagedDocuments.paged.length === 0 ? (
-                  <div className="text-center p-8 text-muted-foreground border rounded-lg">
-                    {documents.length === 0
-                      ? '문서가 없습니다. "새로고침" 버튼을 눌러주세요.'
-                      : '검색 결과가 없습니다.'}
-                  </div>
-                ) : (
-                  filteredAndPagedDocuments.paged.map((doc) => {
-                    // 1. 한글 매핑 우선 사용
-                    const koreanName = FUNCTION_NAME_MAP[doc.title]
-
-                    // 2. summary/title에서 "---" 제거
-                    const cleanSummary = doc.summary
-                      ? doc.summary
-                          .replace(/^---\s*/i, '')
-                          .replace(/^title:\s*/i, '')
-                          .replace(/description:.*$/i, '')
-                          .replace(/source:.*$/i, '')
-                          .trim()
-                      : null
-
-                    const cleanTitle = doc.title
-                      .replace(/^---\s*/i, '')
-                      .replace(/^title:\s*/i, '')
-                      .replace(/description:.*$/i, '')
-                      .replace(/source:.*$/i, '')
-                      .trim()
-
-                    // 3. 최종 표시 이름: 한글명 > summary > title
-                    const displayName = koreanName || cleanSummary || cleanTitle
-
-                    const isExpanded = expandedDocId === doc.doc_id
-
-                    return (
-                      <div
-                        key={doc.doc_id}
-                        className="border rounded-lg p-3 hover:bg-muted/30 transition-colors"
-                      >
-                        {/* 기본 표시 (항상 보이는 정보) */}
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              {/* 라이브러리 배지를 맨 앞으로 */}
-                              <Badge variant="secondary" className="text-xs shrink-0">
-                                {doc.library}
-                              </Badge>
-                              {doc.category && (
-                                <Badge variant="outline" className="text-xs shrink-0">
-                                  {doc.category}
-                                </Badge>
-                              )}
-                              {/* 한글 제목/요약 (폰트 크기 조정) */}
-                              <span className="text-sm truncate">{displayName}</span>
-                            </div>
-                          </div>
-
-                          {/* 작업 버튼 */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                setExpandedDocId(isExpanded ? null : doc.doc_id)
-                              }
-                            >
-                              {isExpanded ? (
-                                <ChevronUp className="h-4 w-4" />
-                              ) : (
-                                <ChevronDown className="h-4 w-4" />
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setEditDocId(doc.doc_id)
-                                setDbTab('edit')
-                                void handleLoadDocument()
-                              }}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setDeleteDocId(doc.doc_id)
-                                setDbTab('delete')
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* 상세 정보 (확장 시에만 표시) */}
-                        {isExpanded && (
-                          <div className="mt-3 pt-3 border-t space-y-2 text-sm">
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">ID:</span>
-                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded flex-1">
-                                {doc.doc_id}
-                              </code>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={async () => {
-                                  await navigator.clipboard.writeText(doc.doc_id)
-                                  setCopySuccess(doc.doc_id)
-                                  setTimeout(() => setCopySuccess(null), 2000)
-                                }}
-                                title="ID 복사"
-                              >
-                                {copySuccess === doc.doc_id ? (
-                                  <span className="text-green-600 text-xs">✓</span>
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </div>
-                            {cleanSummary && (
+                {/* ========== 정보 탭 ========== */}
+                <TabsContent value="info" className="space-y-4">
+                  {selectedVectorStoreId && availableVectorStores.length > 0 && (
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>현재 Vector Store</AlertTitle>
+                      <AlertDescription className="mt-2 space-y-1">
+                        {(() => {
+                          const selectedStore = availableVectorStores.find((s) => s.id === selectedVectorStoreId)
+                          if (!selectedStore) return null
+                          return (
+                            <>
+                              <div>• <strong>이름:</strong> {selectedStore.name}</div>
                               <div>
-                                <span className="text-muted-foreground">요약:</span> {cleanSummary}
+                                • <strong>임베딩 모델:</strong>{' '}
+                                <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                                  {selectedStore.embeddingModel}
+                                </code>
                               </div>
-                            )}
-                            <div>
-                              <span className="text-muted-foreground">제목:</span> {cleanTitle}
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">내용 미리보기:</span>
-                              <p className="text-xs text-muted-foreground mt-1 line-clamp-3">
-                                {doc.content}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })
-                )}
-              </div>
+                              <div>• <strong>문서 수:</strong> {selectedStore.docCount}개</div>
+                              <div>• <strong>임베딩 차원:</strong> {selectedStore.dimensions}</div>
+                              <div>• <strong>DB 크기:</strong> {selectedStore.fileSize}</div>
+                              <div>
+                                • <strong>경로:</strong>{' '}
+                                <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                                  {selectedStore.dbPath}
+                                </code>
+                              </div>
+                            </>
+                          )
+                        })()}
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
-              {/* 페이지네이션 */}
-              {filteredAndPagedDocuments.totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    페이지 {currentPage} / {filteredAndPagedDocuments.totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      이전
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setCurrentPage((p) =>
-                          Math.min(filteredAndPagedDocuments.totalPages, p + 1)
-                        )
-                      }
-                      disabled={currentPage === filteredAndPagedDocuments.totalPages}
-                    >
-                      다음
-                    </Button>
+                  <Alert variant="default" className="border-blue-500/50 bg-blue-50 dark:bg-blue-950/20">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800 dark:text-blue-200">
+                      Vector Store란?
+                    </AlertTitle>
+                    <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2 space-y-2">
+                      <p>특정 임베딩 모델로 사전 생성된 벡터 데이터베이스입니다.</p>
+                      <ul className="list-disc list-inside space-y-1 text-sm">
+                        <li>111개 통계 함수 문서가 포함됨 (SciPy, NumPy, statsmodels, pingouin)</li>
+                        <li>임베딩이 미리 생성되어 검색 속도가 22배 빠름 (~50ms)</li>
+                        <li>읽기 전용: 문서 수정은 Python 스크립트로만 가능</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                </TabsContent>
+
+                {/* ========== 빌드 탭 ========== */}
+                <TabsContent value="build" className="space-y-4">
+                  <Alert>
+                    <Database className="h-4 w-4" />
+                    <AlertTitle>Vector Store 빌드</AlertTitle>
+                    <AlertDescription>
+                      새로운 임베딩 모델로 Vector Store를 생성합니다.
+                      다양한 모델로 테스트하여 최적의 검색 성능을 찾을 수 있습니다.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="build-embedding-model">임베딩 모델 선택 *</Label>
+                    <Select value={buildEmbeddingModel} onValueChange={setBuildEmbeddingModel}>
+                      <SelectTrigger id="build-embedding-model">
+                        <SelectValue placeholder="임베딩 모델을 선택하세요" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableModels
+                          .filter((m) =>
+                            m.name.toLowerCase().includes('embed') ||
+                            m.name.toLowerCase().includes('embedding')
+                          )
+                          .map((m) => (
+                            <SelectItem key={m.name} value={m.name}>
+                              {m.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      💡 임베딩 전용 모델을 선택하세요 (예: mxbai-embed-large, qwen3-embedding)
+                    </p>
                   </div>
-                </div>
-              )}
-            </TabsContent>
 
-            {/* 문서 추가 */}
-            <TabsContent value="add" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-title">제목 *</Label>
-                <Input
-                  id="new-title"
-                  value={newDocTitle}
-                  onChange={(e) => setNewDocTitle(e.target.value)}
-                  placeholder="예: t-test 개요"
-                  disabled={isAdding}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="new-content">내용 *</Label>
-                <Textarea
-                  id="new-content"
-                  value={newDocContent}
-                  onChange={(e) => setNewDocContent(e.target.value)}
-                  placeholder="문서 내용을 입력하세요..."
-                  rows={6}
-                  disabled={isAdding}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-library">라이브러리 *</Label>
-                  <Input
-                    id="new-library"
-                    value={newDocLibrary}
-                    onChange={(e) => setNewDocLibrary(e.target.value)}
-                    placeholder="예: scipy, statsmodels"
-                    disabled={isAdding}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="new-category">카테고리</Label>
-                  <Input
-                    id="new-category"
-                    value={newDocCategory}
-                    onChange={(e) => setNewDocCategory(e.target.value)}
-                    placeholder="예: hypothesis-testing"
-                    disabled={isAdding}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="new-summary">요약</Label>
-                <Textarea
-                  id="new-summary"
-                  value={newDocSummary}
-                  onChange={(e) => setNewDocSummary(e.target.value)}
-                  placeholder="문서 요약 (선택사항)"
-                  rows={2}
-                  disabled={isAdding}
-                />
-              </div>
-
-              <Button onClick={handleAddDocument} disabled={isAdding}>
-                {isAdding ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    추가 중...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="mr-2 h-4 w-4" />
-                    문서 추가
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-
-            {/* 문서 수정 */}
-            <TabsContent value="edit" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-id">Document ID</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="edit-id"
-                    value={editDocId}
-                    onChange={(e) => setEditDocId(e.target.value)}
-                    placeholder="예: scipy_ttest_ind"
-                    disabled={isLoadingDoc || isEditing}
-                  />
-                  <Button
-                    onClick={handleLoadDocument}
-                    disabled={isLoadingDoc || !editDocId.trim()}
-                    variant="outline"
-                  >
-                    {isLoadingDoc ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <FileText className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-title">제목</Label>
-                <Input
-                  id="edit-title"
-                  value={editDocTitle}
-                  onChange={(e) => setEditDocTitle(e.target.value)}
-                  disabled={isEditing}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="edit-content">내용</Label>
-                <Textarea
-                  id="edit-content"
-                  value={editDocContent}
-                  onChange={(e) => setEditDocContent(e.target.value)}
-                  rows={6}
-                  disabled={isEditing}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-category">카테고리</Label>
-                  <Input
-                    id="edit-category"
-                    value={editDocCategory}
-                    onChange={(e) => setEditDocCategory(e.target.value)}
-                    disabled={isEditing}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="edit-summary">요약</Label>
-                  <Input
-                    id="edit-summary"
-                    value={editDocSummary}
-                    onChange={(e) => setEditDocSummary(e.target.value)}
-                    disabled={isEditing}
-                  />
-                </div>
-              </div>
-
-              <Button onClick={handleUpdateDocument} disabled={isEditing || !editDocId.trim()}>
-                {isEditing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    수정 중...
-                  </>
-                ) : (
-                  <>
-                    <Edit className="mr-2 h-4 w-4" />
-                    문서 수정
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-
-            {/* 문서 삭제 */}
-            <TabsContent value="delete" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="delete-id">Document ID</Label>
-                <Input
-                  id="delete-id"
-                  value={deleteDocId}
-                  onChange={(e) => setDeleteDocId(e.target.value)}
-                  placeholder="예: scipy_ttest_ind"
-                  disabled={isDeleting}
-                />
-              </div>
-
-              <Button
-                onClick={handleDeleteDocument}
-                disabled={isDeleting || !deleteDocId.trim()}
-                variant="destructive"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    삭제 중...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    문서 삭제
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-
-            {/* Vector Store 빌드 */}
-            <TabsContent value="build" className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>Vector Store 빌드</AlertTitle>
-                <AlertDescription>
-                  새로운 임베딩 모델로 Vector Store를 생성합니다.
-                  다양한 모델로 테스트하여 최적의 검색 성능을 찾을 수 있습니다.
-                </AlertDescription>
-              </Alert>
-
-              <div className="space-y-2">
-                <Label htmlFor="build-embedding-model">임베딩 모델 선택 *</Label>
-                <Select value={buildEmbeddingModel} onValueChange={setBuildEmbeddingModel}>
-                  <SelectTrigger id="build-embedding-model">
-                    <SelectValue placeholder="임베딩 모델을 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableModels
-                      .filter((m) =>
-                        m.name.toLowerCase().includes('embed') ||
-                        m.name.toLowerCase().includes('embedding')
-                      )
-                      .map((m) => (
-                        <SelectItem key={m.name} value={m.name}>
-                          {m.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  💡 임베딩 전용 모델을 선택하세요 (예: mxbai-embed-large, qwen3-embedding)
-                </p>
-              </div>
-
-              <Alert variant="default" className="border-blue-500/50 bg-blue-50 dark:bg-blue-950/20">
-                <AlertCircle className="h-4 w-4 text-blue-600" />
-                <AlertTitle className="text-blue-800 dark:text-blue-200">
-                  빌드 방법
-                </AlertTitle>
-                <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2 space-y-2">
-                  <p>터미널에서 다음 명령어를 실행하세요:</p>
-                  <pre className="bg-muted p-3 rounded text-xs overflow-x-auto mt-2">
+                  <Alert variant="default" className="border-blue-500/50 bg-blue-50 dark:bg-blue-950/20">
+                    <AlertCircle className="h-4 w-4 text-blue-600" />
+                    <AlertTitle className="text-blue-800 dark:text-blue-200">
+                      빌드 방법
+                    </AlertTitle>
+                    <AlertDescription className="text-blue-800 dark:text-blue-200 mt-2 space-y-2">
+                      <p>터미널에서 다음 명령어를 실행하세요:</p>
+                      <pre className="bg-muted p-3 rounded text-xs overflow-x-auto mt-2">
 {`cd statistical-platform/rag-system
 python scripts/build_sqlite_db.py --model ${buildEmbeddingModel || '<embedding-model>'}`}
-                  </pre>
-                  <p className="mt-2 text-xs">
-                    빌드가 완료되면 자동으로 <code>public/rag-data/</code>에 새 DB 파일이 생성됩니다.
-                  </p>
-                </AlertDescription>
-              </Alert>
+                      </pre>
+                      <p className="mt-2 text-xs">
+                        빌드가 완료되면 자동으로 <code>public/rag-data/</code>에 새 DB 파일이 생성됩니다.
+                      </p>
+                    </AlertDescription>
+                  </Alert>
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    if (!buildEmbeddingModel) {
-                      alert('임베딩 모델을 선택하세요')
-                      return
-                    }
-                    // 클립보드에 명령어 복사
-                    const command = `cd statistical-platform/rag-system\npython scripts/build_sqlite_db.py --model ${buildEmbeddingModel}`
-                    navigator.clipboard.writeText(command)
-                    alert('명령어가 클립보드에 복사되었습니다!')
-                  }}
-                  disabled={!buildEmbeddingModel || isBuilding}
-                  variant="outline"
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  명령어 복사
-                </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        if (!buildEmbeddingModel) {
+                          alert('임베딩 모델을 선택하세요')
+                          return
+                        }
+                        const command = `cd statistical-platform/rag-system\npython scripts/build_sqlite_db.py --model ${buildEmbeddingModel}`
+                        navigator.clipboard.writeText(command)
+                        alert('명령어가 클립보드에 복사되었습니다!')
+                      }}
+                      disabled={!buildEmbeddingModel}
+                      variant="outline"
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      명령어 복사
+                    </Button>
 
-                <Button
-                  onClick={() => {
-                    // Vector Store 목록 새로고침
-                    void loadVectorStores()
-                    alert('Vector Store 목록을 새로고침했습니다')
-                  }}
-                  variant="outline"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  목록 새로고침
-                </Button>
-              </div>
-            </TabsContent>
-
-            {/* DB 재구축 */}
-            <TabsContent value="rebuild" className="space-y-4">
-              <div className="rounded-lg border border-yellow-500/50 bg-yellow-50 dark:bg-yellow-950/20 p-4 space-y-2">
-                <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                  ⚠️ 주의: 원본 데이터베이스로 초기화
-                </p>
-                <ul className="text-sm text-yellow-800 dark:text-yellow-200 list-disc list-inside space-y-1">
-                  <li>
-                    <strong>삭제됨</strong>: IndexedDB에 저장된 모든 사용자 문서 (영구 저장소)
-                  </li>
-                  <li>
-                    <strong>복원됨</strong>: 원본 DB 파일 (public/rag-data/rag.db)
-                  </li>
-                  <li>
-                    <strong>용도</strong>: 테스트 데이터 정리, 원본으로 되돌리기
-                  </li>
-                </ul>
-                <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
-                  💡 참고: 사용자가 추가/수정한 문서는 IndexedDB에 영구 저장되므로,
-                  페이지 새로고침 후에도 유지됩니다. 재구축 시 IndexedDB가 초기화됩니다.
-                </p>
-              </div>
-
-              <Button
-                onClick={handleRebuildDatabase}
-                disabled={isRebuilding}
-                variant="outline"
-                className="gap-2"
-              >
-                {isRebuilding ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    초기화 중...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4" />
-                    원본 DB로 초기화
-                  </>
-                )}
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+                    <Button
+                      onClick={() => {
+                        void loadVectorStores()
+                        alert('Vector Store 목록을 새로고침했습니다')
+                      }}
+                      variant="outline"
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      목록 새로고침
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
