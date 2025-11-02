@@ -181,6 +181,22 @@ export interface HomogeneityTestResult {
   equalVariance: boolean
 }
 
+/**
+ * Fisher 정확 검정 결과
+ */
+export interface FisherExactTestResult {
+  oddsRatio: number
+  pValue: number
+  reject: boolean
+  alternative: 'two-sided' | 'less' | 'greater'
+  oddsRatioInterpretation: string
+  observedMatrix: number[][]
+  expectedMatrix: number[][]
+  rowTotals: number[]
+  columnTotals: number[]
+  sampleSize: number
+}
+
 // ========================================
 // Worker 3: 비모수 검정 + ANOVA
 // ========================================

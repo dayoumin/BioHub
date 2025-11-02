@@ -338,24 +338,24 @@ def chi_square_independence_test(
     alpha: float = 0.05
 ) -> Dict[str, Union[float, int, bool, List[List[float]], None]]:
     observed = np.array(observed_matrix, dtype=float)
-    
+
     if observed.size == 0:
         raise ValueError("Empty observed matrix")
-    
+
     if observed.ndim != 2:
         raise ValueError("Observed matrix must be 2-dimensional")
-    
+
     chi2_stat, p_value, dof, expected = stats.chi2_contingency(
-        observed, 
+        observed,
         correction=yates_correction
     )
-    
+
     critical_value = stats.chi2.ppf(1 - alpha, dof)
-    
+
     n = np.sum(observed)
     min_dim = min(observed.shape[0], observed.shape[1])
     cramers_v = np.sqrt(chi2_stat / (n * (min_dim - 1))) if min_dim > 1 else 0.0
-    
+
     return {
         'chiSquare': float(chi2_stat),
         'pValue': _safe_float(p_value),
@@ -365,5 +365,71 @@ def chi_square_independence_test(
         'cramersV': float(cramers_v),
         'observedMatrix': observed.tolist(),
         'expectedMatrix': expected.tolist()
+    }
+
+
+def fisher_exact_test(
+    table: List[List[Union[float, int]]],
+    alternative: Literal['two-sided', 'less', 'greater'] = 'two-sided',
+    alpha: float = 0.05
+) -> Dict[str, Union[float, int, bool, str, None]]:
+    """
+    Fisher's Exact Test for 2x2 contingency tables
+
+    Args:
+        table: 2x2 contingency table [[a, b], [c, d]]
+        alternative: Alternative hypothesis ('two-sided', 'less', 'greater')
+        alpha: Significance level (default: 0.05)
+
+    Returns:
+        Dictionary with test results
+    """
+    observed = np.array(table, dtype=int)
+
+    if observed.shape != (2, 2):
+        raise ValueError("Fisher's exact test requires a 2x2 contingency table")
+
+    if np.any(observed < 0):
+        raise ValueError("All counts must be non-negative")
+
+    if np.sum(observed) == 0:
+        raise ValueError("Table cannot be all zeros")
+
+    # scipy.stats.fisher_exact
+    odds_ratio, p_value = stats.fisher_exact(observed, alternative=alternative)
+
+    # Calculate marginal totals
+    row_totals = observed.sum(axis=1)
+    col_totals = observed.sum(axis=0)
+    n = observed.sum()
+
+    # Calculate expected frequencies (for reference)
+    expected = np.outer(row_totals, col_totals) / n
+
+    # Odds ratio interpretation
+    if odds_ratio == 0:
+        or_interpretation = "완전한 음의 연관성 (Perfect negative association)"
+    elif odds_ratio < 1:
+        or_interpretation = "음의 연관성 (Negative association)"
+    elif odds_ratio == 1:
+        or_interpretation = "연관성 없음 (No association)"
+    elif odds_ratio < 2:
+        or_interpretation = "약한 양의 연관성 (Weak positive association)"
+    elif odds_ratio < 5:
+        or_interpretation = "중간 양의 연관성 (Moderate positive association)"
+    else:
+        or_interpretation = "강한 양의 연관성 (Strong positive association)"
+
+    return {
+        'oddsRatio': _safe_float(odds_ratio),
+        'pValue': _safe_float(p_value),
+        'reject': bool(p_value < alpha),
+        'alternative': alternative,
+        'oddsRatioInterpretation': or_interpretation,
+        'observedMatrix': observed.tolist(),
+        'expectedMatrix': expected.tolist(),
+        'rowTotals': row_totals.tolist(),
+        'columnTotals': col_totals.tolist(),
+        'sampleSize': int(n)
     }
 

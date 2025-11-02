@@ -328,9 +328,8 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         title: 'Fisher 정확 검정',
         subtitle: '소표본 2×2 분할표',
         category: 'chi-square',
-        icon: PieChart,
-        implemented: false,
-        badge: '개발중'
+        icon: CheckCircle2,
+        implemented: true
       }
     ]
   },

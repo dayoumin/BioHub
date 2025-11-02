@@ -30,6 +30,7 @@ import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface UploadedData {
@@ -193,16 +194,22 @@ export default function CorrelationPage() {
     actions.setCurrentStep(1)
   }
 
-  const handleDataUpload = (data: UploadedData) => {
-    actions.setUploadedData?.(data)
-    actions.setCurrentStep(2)
-  }
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'correlation'
+  )
 
-  const handleVariableSelection = (variables: VariableSelection) => {
-    actions.setSelectedVariables?.(variables)
-    // 자동으로 분석 실행
-    handleAnalysis(variables)
-  }
+  const handleVariableSelection = createVariableSelectionHandler<VariableSelection>(
+    actions.setSelectedVariables,
+    (variables) => {
+      // 자동으로 분석 실행
+      handleAnalysis(variables)
+    },
+    'correlation'
+  )
 
   const handleAnalysis = async (_variables: VariableSelection) => {
     try {

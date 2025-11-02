@@ -29,6 +29,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import type { VariableMapping, UploadedData } from '@/hooks/use-statistics-page'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface VariableAssignment {
   [role: string]: string | string[]
@@ -198,17 +199,17 @@ export default function DescriptiveStatsPage() {
   }
 
   // 변수 선택 핸들러
-  const handleVariableSelection = (variables: VariableAssignment) => {
-    if (!actions.setSelectedVariables) {
-      console.error('[descriptive] setSelectedVariables not available')
-      return
-    }
-    const mapping: VariableMapping = {
-      variables: Array.isArray(variables.variables) ? variables.variables as string[] : [variables.variables as string]
-    }
-    actions.setSelectedVariables(mapping)
-    actions.setCurrentStep(2)
-  }
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      const mapping: VariableMapping = {
+        variables: Array.isArray(variables.variables) ? variables.variables as string[] : [variables.variables as string]
+      }
+      actions.setSelectedVariables?.(mapping)
+      actions.setCurrentStep(2)
+    },
+    'descriptive'
+  )
 
   // 기술통계 테이블 렌더링
   const renderDescriptiveTable = () => {
@@ -392,21 +393,11 @@ export default function DescriptiveStatsPage() {
             </CardHeader>
             <CardContent>
               <DataUploadStep
-                onUploadComplete={(file: File, data: unknown[]) => {
-                  if (!actions.setUploadedData) {
-                    console.error('[descriptive] setUploadedData not available')
-                    return
-                  }
-                  const dataArray = data as Record<string, unknown>[]
-                  const columns = dataArray.length > 0 ? Object.keys(dataArray[0]) : []
-                  const uploadedData: UploadedData = {
-                    fileName: file.name,
-                    data: dataArray,
-                    columns
-                  }
-                  actions.setUploadedData(uploadedData)
-                  actions.setCurrentStep(1)
-                }}
+                onUploadComplete={createDataUploadHandler(
+                  actions.setUploadedData,
+                  () => actions.setCurrentStep(1),
+                  'descriptive'
+                )}
                 onNext={() => actions.setCurrentStep(1)}
                 canGoNext={false}
                 currentStep={1}

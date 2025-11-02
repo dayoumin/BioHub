@@ -39,6 +39,7 @@ import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 type LinearRegressionResults = {
   coefficients: Array<{ name: string; estimate: number; stdError: number; tValue: number; pValue: number; ci: number[] }>
@@ -153,21 +154,22 @@ export default function RegressionPage() {
     actions.setCurrentStep?.(1)
   }
 
-  const handleDataUpload = (file: File, data: Record<string, unknown>[]) => {
-    const uploadedDataObj: UploadedData = {
-      data,
-      fileName: file.name,
-      columns: Object.keys(data[0] || {})
-    }
-    actions.setUploadedData?.(uploadedDataObj)
-    actions.setCurrentStep?.(2)
-  }
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep?.(2)
+    },
+    'regression'
+  )
 
-  const handleVariableSelection = (variables: unknown) => {
-    actions.setSelectedVariables?.(variables as RegressionVariables | null)
-    // 자동으로 분석 실행
-    handleAnalysis(variables)
-  }
+  const handleVariableSelection = createVariableSelectionHandler<RegressionVariables | null>(
+    actions.setSelectedVariables,
+    (variables) => {
+      // 자동으로 분석 실행
+      handleAnalysis(variables)
+    },
+    'regression'
+  )
 
   const handleAnalysis = async (variables: unknown) => {
     if (!uploadedData) {

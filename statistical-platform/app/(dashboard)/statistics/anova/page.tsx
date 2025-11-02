@@ -29,6 +29,7 @@ import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface UploadedData {
   data: Record<string, unknown>[]
@@ -182,24 +183,22 @@ export default function ANOVAPage() {
     actions.setCurrentStep(1)
   }
 
-  const handleDataUpload = (data: UploadedData) => {
-    if (!actions.setUploadedData) {
-      console.error('[anova] setUploadedData not available - check hook configuration')
-      return
-    }
-    actions.setUploadedData(data)
-    actions.setCurrentStep(2)
-  }
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'anova'
+  )
 
-  const handleVariableSelection = (variables: SelectedVariables) => {
-    if (!actions.setSelectedVariables) {
-      console.error('[anova] setSelectedVariables not available - check hook configuration')
-      return
-    }
-    actions.setSelectedVariables(variables)
-    // 자동으로 분석 실행
-    handleAnalysis(variables)
-  }
+  const handleVariableSelection = createVariableSelectionHandler<SelectedVariables>(
+    actions.setSelectedVariables,
+    (variables) => {
+      // 자동으로 분석 실행
+      handleAnalysis(variables)
+    },
+    'anova'
+  )
 
   const handleAnalysis = async (_variables: SelectedVariables) => {
     try {
@@ -348,14 +347,7 @@ export default function ANOVAPage() {
     >
       <DataUploadStep
         onNext={() => {}}
-        onUploadComplete={(file, data) => {
-          const uploadedData: UploadedData = {
-            data: data as Record<string, unknown>[],
-            fileName: file.name,
-            columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : []
-          }
-          handleDataUpload(uploadedData)
-        }}
+        onUploadComplete={handleDataUpload}
       />
     </StepCard>
   )

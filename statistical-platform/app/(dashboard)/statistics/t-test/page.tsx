@@ -32,7 +32,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface UploadedData {
@@ -169,17 +169,26 @@ export default function TTestPage() {
   }
 
   // 데이터 업로드 완료
-  const handleDataUpload = useCallback((uploadedData: UploadedData) => {
-    actions.setUploadedData?.(uploadedData)
-    actions.setCurrentStep(2)
-    actions.setError?.('')
-  }, [actions])
+  // 데이터 업로드 핸들러 (공통 유틸 사용)
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    (uploadedData) => {
+      actions.setCurrentStep(2)
+      if (actions.setError) {
+        actions.setError('')
+      }
+    },
+    't-test'
+  )
 
   // 변수 선택 완료
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables?.(variables)
-    runAnalysis(variables)
-  }, [uploadedData, activeTab, testValue, actions])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      runAnalysis(variables)
+    },
+    't-test'
+  )
 
   // 분석 실행
   const runAnalysis = async (variables: VariableAssignment) => {
