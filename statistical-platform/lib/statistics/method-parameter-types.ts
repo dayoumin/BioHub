@@ -86,7 +86,7 @@ export interface OneSampleProportionTestParams extends BaseParameters {
 export interface SimpleLinearRegressionParams extends BaseParameters {
   independentColumn: string
   dependentColumn: string
-  predictValues?: number[]
+  predictValues?: string  // UI type: 'text', 쉼표로 구분된 문자열 (예: "10, 20, 30")
 }
 
 export interface MultipleRegressionParams extends BaseParameters {

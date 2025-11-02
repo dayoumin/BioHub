@@ -52,7 +52,8 @@
       "Bash(ollama pull:*)",
       "Bash(node scripts/generate-vector-store-metadata.js:*)",
       "Bash(sqlite3:*)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

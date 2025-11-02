@@ -70,17 +70,20 @@ const simpleLinearRegression = async (
 
   // 예측값 계산
   const predictions: Array<{ X: number; 예측값: string }> = []
-  if (predictValues) {
+  if (predictValues && typeof predictValues === 'string') {
     const predX = predictValues
       .split(',')
       .map((v: string) => parseFloat(v.trim()))
       .filter((v: number) => !isNaN(v))
-    predictions.push(
-      ...predX.map((x: number) => ({
-        X: x,
-        예측값: (result.slope * x + result.intercept).toFixed(4)
-      }))
-    )
+
+    if (predX.length > 0) {
+      predictions.push(
+        ...predX.map((x: number) => ({
+          X: x,
+          예측값: (result.slope * x + result.intercept).toFixed(4)
+        }))
+      )
+    }
   }
 
   const tables = [
@@ -239,8 +242,6 @@ const logisticRegression = async (
 ): Promise<CalculationResult> => {
   const independentColumns = parameters.independentColumns
   const dependentColumn = parameters.dependentColumn
-  const method = parameters.method || 'lbfgs'
-  const maxIter = parameters.maxIter || 100
 
   if (!independentColumns || independentColumns.length === 0) {
     return { success: false, error: ERROR_MESSAGES.MISSING_COLUMN('독립변수') }

@@ -102,10 +102,10 @@ export const METHOD_PARAMETERS: Record<string, ParameterDefinition[]> = {
       type: 'select',
       defaultValue: 'levene',
       options: [
-        { value: 'levene', label: "Levene's 검정" },
-        { value: 'bartlett', label: "Bartlett's 검정" },
-        { value: 'fligner', label: "Fligner-Killeen 검정" }
-      ]
+        { value: 'levene', label: "Levene's 검정 (평균 기반)" },
+        { value: 'bartlett', label: "Bartlett's 검정 (정규성 가정)" }
+      ],
+      description: 'Levene: 평균 기반 (비모수), Bartlett: 정규성 가정 (모수)'
     },
     {
       id: 'alpha',
@@ -531,36 +531,6 @@ export const METHOD_PARAMETERS: Record<string, ParameterDefinition[]> = {
       type: 'column-select',
       required: true,
       description: '이진 분류 변수 (0/1 또는 범주형)'
-    },
-    {
-      id: 'method',
-      label: '최적화 방법',
-      type: 'select',
-      defaultValue: 'newton-cg',
-      options: [
-        { value: 'newton-cg', label: 'Newton-CG' },
-        { value: 'lbfgs', label: 'L-BFGS' },
-        { value: 'liblinear', label: 'Liblinear' },
-        { value: 'saga', label: 'SAGA' }
-      ]
-    },
-    {
-      id: 'maxIter',
-      label: '최대 반복 횟수',
-      type: 'number',
-      defaultValue: 100,
-      min: 10,
-      max: 1000,
-      step: 10
-    },
-    {
-      id: 'alpha',
-      label: '유의수준',
-      type: 'number',
-      defaultValue: 0.05,
-      min: 0.001,
-      max: 0.1,
-      step: 0.001
     }
   ],
 

@@ -18,7 +18,13 @@ const calculateDescriptiveStats = async (
   data: any[],
   parameters: Record<string, any>
 ): Promise<CalculationResult> => {
-  const column = parameters.columns || parameters.column
+  const columns = parameters.columns || parameters.column
+  if (!columns) {
+    return { success: false, error: '분석할 열을 선택하세요' }
+  }
+
+  // 다중 컬럼 지원: 배열이면 첫 번째 컬럼만 사용 (UI가 단일 결과 구조)
+  const column = Array.isArray(columns) ? columns[0] : columns
   if (!column) {
     return { success: false, error: '분석할 열을 선택하세요' }
   }
@@ -167,17 +173,16 @@ const homogeneityTest = async (
     }
   })
 
+  // 검정 방법 이름 (fligner 제거됨)
+  const methodName = method === 'bartlett' ? "Bartlett's Test" : "Levene's Test"
+  const statisticName = method === 'bartlett' ? 'Bartlett 통계량' : 'Levene 통계량'
+
   return {
     success: true,
     data: {
       metrics: [
         {
-          name:
-            method === 'levene'
-              ? 'Levene 통계량'
-              : method === 'bartlett'
-                ? 'Bartlett 통계량'
-                : 'Fligner-Killeen 통계량',
+          name: statisticName,
           value: result.statistic.toFixed(4)
         },
         { name: 'p-value', value: result.pValue.toFixed(4) },
@@ -193,12 +198,7 @@ const homogeneityTest = async (
           data: [
             {
               항목: '검정 방법',
-              값:
-                method === 'levene'
-                  ? "Levene's Test"
-                  : method === 'bartlett'
-                    ? "Bartlett's Test"
-                    : 'Fligner-Killeen Test'
+              값: methodName
             },
             { 항목: '검정통계량', 값: result.statistic.toFixed(4) },
             { 항목: 'p-value', 값: result.pValue.toFixed(4) },
