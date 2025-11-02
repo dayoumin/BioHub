@@ -30,6 +30,7 @@ import {
 } from 'recharts'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import {
   TrendingUp,
   AlertTriangle,
@@ -171,29 +172,13 @@ export default function OrdinalRegressionPage() {
     [availableVariables]
   )
 
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[ordinal-regression] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-
-    if (!actions.setCurrentStep) {
-      console.error('[ordinal-regression] setCurrentStep not available')
-      return
-    }
-
-    actions.setCurrentStep(1)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(1)
+    },
+    'ordinal-regression'
+  )
 
   const canProceedToAnalysis = useMemo(() => {
     return selectedDependent && selectedIndependent.length > 0

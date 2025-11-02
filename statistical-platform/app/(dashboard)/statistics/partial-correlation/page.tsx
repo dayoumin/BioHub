@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp } from 'lucide-react'
 import type { StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface SelectedVariables {
   dependent: string[]
@@ -223,29 +224,22 @@ json.dumps(results)
     }
   }, [uploadedData, actions])
 
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-    if (actions.setUploadedData) {
-      actions.setUploadedData(uploadedData)
-    }
-    actions.setCurrentStep(1)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(1)
+    },
+    'partial-correlation'
+  )
 
-  const handleVariablesSelected = useCallback((variables: unknown) => {
-    if (typeof variables === 'object' && variables !== null) {
-      if (actions.setSelectedVariables) {
-        actions.setSelectedVariables(variables as SelectedVariables)
-      }
+  const handleVariablesSelected = createVariableSelectionHandler<SelectedVariables>(
+    actions.setSelectedVariables as ((mapping: SelectedVariables) => void) | undefined,
+    (variables) => {
       actions.setCurrentStep(3)
-      runPartialCorrelationAnalysis(variables as SelectedVariables)
-    }
-  }, [actions, runPartialCorrelationAnalysis])
+      runPartialCorrelationAnalysis(variables)
+    },
+    'partial-correlation'
+  )
 
   const getCorrelationStrength = (corr: number) => {
     const abs = Math.abs(corr)
@@ -651,7 +645,7 @@ json.dumps(results)
         <VariableSelector
           methodId="partial-correlation"
           data={uploadedData.data}
-          onVariablesSelected={handleVariablesSelected}
+          onVariablesSelected={handleVariablesSelected as (variables: unknown) => void}
           onBack={handleVariablesBack}
         />
       )}
