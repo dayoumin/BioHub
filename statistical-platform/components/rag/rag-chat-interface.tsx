@@ -109,6 +109,8 @@ export function RAGChatInterface({
 
       // AI 응답 메시지 준비 (빈 내용으로 시작)
       const assistantMessageId = `${Date.now()}-assistant`
+      let finalContent = '' // ✅ finalContent로 정답 추적
+
       const assistantMessage: ExtendedChatMessage = {
         id: assistantMessageId,
         role: 'assistant',
@@ -197,40 +199,39 @@ export function RAGChatInterface({
             }
           }
 
+          // ✅ 최종 content 저장 (setState 스냅샷 대신 실제 값 사용)
+          finalContent = fullContent
+
           reader.releaseLock()
         } catch (streamError) {
           // 스트리밍 실패 시 폴백: 이미 받은 initialResponse 사용
           console.warn('[handleSubmit] 스트리밍 실패, 기존 응답 사용:', streamError)
+          finalContent = initialResponse.answer
           setMessages((prev) =>
             prev.map((msg) =>
               msg.id === assistantMessageId
-                ? { ...msg, content: initialResponse.answer }
+                ? { ...msg, content: finalContent }
                 : msg
             )
           )
         }
       } else {
         // 스트리밍 미사용: 기존 방식 (initialResponse 사용)
+        finalContent = initialResponse.answer
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMessageId
-              ? { ...msg, content: initialResponse.answer }
+              ? { ...msg, content: finalContent }
               : msg
           )
         )
       }
 
-      // 최종 메시지 저장
-      const finalMessage: ExtendedChatMessage = {
-        ...assistantMessage,
-        content: (messages.find((m) => m.id === assistantMessageId)?.content || ''),
-      }
-
-      // ✅ 응답 메시지 저장 (userMessage는 이미 저장됨)
+      // ✅ 응답 메시지 저장 (finalContent 직접 사용, messages 스냅샷 사용 안 함)
       ChatStorage.addMessage(sessionId, {
         id: assistantMessageId,
         role: 'assistant',
-        content: finalMessage.content,
+        content: finalContent,
         timestamp: Date.now(),
         // ✅ Citation 정보 및 모델 메타데이터 저장
         sources: initialResponse.sources,
@@ -291,7 +292,7 @@ export function RAGChatInterface({
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* 메시지 영역 */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+      <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-hidden p-4">
         <div className="space-y-4 max-w-3xl mx-auto">
           {messages.map((msg, idx) => (
             <div
@@ -406,8 +407,8 @@ export function RAGChatInterface({
         </div>
       </ScrollArea>
 
-      {/* 입력 영역 */}
-      <div className="border-t p-4">
+      {/* 입력 영역 - 항상 하단 표시 */}
+      <div className="border-t p-4 bg-background shrink-0">
         <div className="max-w-3xl mx-auto space-y-2">
           <Textarea
             value={query}

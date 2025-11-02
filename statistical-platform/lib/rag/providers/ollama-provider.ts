@@ -65,7 +65,7 @@ async function loadSqlJs(): Promise<SqlJsStatic> {
     throw new Error('sql.js는 브라우저 환경에서만 사용 가능합니다')
   }
 
-  // @ts-expect-error - window.initSqlJs is loaded from CDN
+  // ✅ 온라인 환경: CDN에서 로드 시도
   if (typeof window.initSqlJs === 'function') {
     // @ts-expect-error - CDN script provides this
     return await window.initSqlJs({
@@ -73,15 +73,56 @@ async function loadSqlJs(): Promise<SqlJsStatic> {
     })
   }
 
-  // CDN 스크립트가 없으면 동적 로드 시도
-  console.log('[sql.js] CDN 스크립트 동적 로드 시도...')
+  // ✅ 오프라인 대응: 로컬 리소스에서 로드 (public/sql-wasm/)
+  console.log('[sql.js] CDN 실패, 로컬 리소스 로드 시도...')
 
   return new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://sql.js.org/dist/sql-wasm.js'
-    script.async = true
+    // 방법 1: 로컬 CDN 시도 (public/sql-wasm/)
+    const localScript = document.createElement('script')
+    localScript.src = '/sql-wasm/sql-wasm.js'
+    localScript.async = true
 
-    script.onload = async () => {
+    localScript.onload = async () => {
+      try {
+        // @ts-expect-error - local script provides this
+        if (typeof window.initSqlJs === 'function') {
+          // @ts-expect-error - local script provides this
+          return resolve(
+            await window.initSqlJs({
+              locateFile: (file: string) => `/sql-wasm/${file}`
+            })
+          )
+        }
+        // 로컬 로드 실패 시 CDN 폴백
+        throw new Error('로컬 sql.js 로드 실패')
+      } catch (error) {
+        console.warn('[sql.js] 로컬 로드 실패, CDN 폴백:', error)
+        loadFromCDN(resolve, reject)
+      }
+    }
+
+    localScript.onerror = () => {
+      console.warn('[sql.js] 로컬 파일 없음, CDN 폴백')
+      loadFromCDN(resolve, reject)
+    }
+
+    document.head.appendChild(localScript)
+  })
+}
+
+/**
+ * CDN에서 sql.js 로드 (폴백)
+ */
+function loadFromCDN(
+  resolve: (value: unknown) => void,
+  reject: (reason?: unknown) => void
+) {
+  const cdnScript = document.createElement('script')
+  cdnScript.src = 'https://sql.js.org/dist/sql-wasm.js'
+  cdnScript.async = true
+
+  cdnScript.onload = async () => {
+    try {
       // @ts-expect-error - CDN에서 로드됨
       if (typeof window.initSqlJs === 'function') {
         // @ts-expect-error - CDN에서 로드됨
@@ -92,14 +133,16 @@ async function loadSqlJs(): Promise<SqlJsStatic> {
       } else {
         reject(new Error('sql.js 로드 실패'))
       }
+    } catch (error) {
+      reject(error)
     }
+  }
 
-    script.onerror = () => {
-      reject(new Error('sql.js CDN 스크립트 로드 실패'))
-    }
+  cdnScript.onerror = () => {
+    reject(new Error('sql.js CDN 스크립트 로드 실패'))
+  }
 
-    document.head.appendChild(script)
-  })
+  document.head.appendChild(cdnScript)
 }
 
 export interface OllamaProviderConfig extends RAGProviderConfig {

@@ -84,9 +84,14 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
         const userMsg = session.messages[i]
         const assistantMsg = session.messages[i + 1]
         if (userMsg && assistantMsg && userMsg.role === 'user') {
+          // ✅ assistantMsg에서 sources와 model 메타데이터 복원
           convertedMessages.push({
             query: userMsg.content,
-            response: { answer: assistantMsg.content, sources: [] },
+            response: {
+              answer: assistantMsg.content,
+              sources: assistantMsg.sources || [],
+              model: assistantMsg.model,
+            },
             timestamp: userMsg.timestamp
           })
         }
