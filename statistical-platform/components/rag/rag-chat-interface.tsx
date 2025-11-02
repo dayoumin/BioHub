@@ -337,15 +337,15 @@ export function RAGChatInterface({
             >
               <div
                 className={cn(
-                  'w-auto rounded-lg p-4',
+                  'rounded-lg p-4',
                   msg.role === 'user'
-                    ? 'bg-gray-200 text-black'
-                    : 'bg-background'
+                    ? 'bg-gray-200 text-black w-auto max-w-xs'
+                    : 'bg-background w-auto'
                 )}
               >
                 {/* 메시지 내용 */}
                 {msg.role === 'user' ? (
-                  <p className="text-sm whitespace-pre-wrap text-right">{msg.content}</p>
+                  <p className="text-sm whitespace-pre-wrap text-right break-words">{msg.content}</p>
                 ) : (
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown
