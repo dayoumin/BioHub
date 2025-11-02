@@ -44,7 +44,7 @@ export function DataUploadStep({
 
   const handleFileProcess = useCallback(async (file: File) => {
     setIsUploading(true)
-    actions.setError(null)
+    setError(null)
     setProgress(null)
     setMemoryWarning(false)
 
@@ -59,7 +59,7 @@ export function DataUploadStep({
 
     if (file.size > maxSize) {
       const errorMsg = `파일이 너무 큽니다. 최대 ${maxSize / 1024 / 1024}MB까지 가능합니다.`
-      actions.setError(errorMsg)
+      setError(errorMsg)
       toast.error('파일 크기 초과', {
         description: `현재: ${(file.size / 1024 / 1024).toFixed(1)}MB`
       })
@@ -74,7 +74,7 @@ export function DataUploadStep({
         const securityCheck = await DataValidationService.validateFileContent(file)
         if (!securityCheck.isValid) {
           const errorMsg = getUserFriendlyErrorMessage(securityCheck.error || 'File security validation failed')
-          actions.setError(errorMsg)
+          setError(errorMsg)
           toast.error('파일 검증 실패', {
             description: errorMsg
           })
@@ -109,7 +109,7 @@ export function DataUploadStep({
           })
 
           if (dataRows.length === 0) {
-            actions.setError('파일에 데이터가 없습니다.')
+            setError('파일에 데이터가 없습니다.')
             toast.error('데이터 없음', {
               description: '파일에 처리 가능한 데이터가 없습니다'
             })
@@ -131,7 +131,7 @@ export function DataUploadStep({
               if (result.errors.length > 0) {
                 const errorMessages = result.errors.map(e => e.message).join(', ')
                 const friendlyError = getUserFriendlyErrorMessage(`CSV parsing error: ${errorMessages}`)
-                actions.setError(friendlyError)
+                setError(friendlyError)
                 setIsUploading(false)
                 return
               }
@@ -139,7 +139,7 @@ export function DataUploadStep({
               const dataRows = result.data as DataRow[]
               if (dataRows.length > DATA_LIMITS.MAX_ROWS) {
                 const errorMsg = `데이터가 너무 많습니다. 최대 ${DATA_LIMITS.MAX_ROWS.toLocaleString()}행까지 가능합니다.`
-                actions.setError(errorMsg)
+                setError(errorMsg)
                 toast.error('데이터 크기 초과', {
                   description: `현재: ${dataRows.length.toLocaleString()}행`
                 })
@@ -148,7 +148,7 @@ export function DataUploadStep({
               }
 
               if (dataRows.length === 0) {
-                actions.setError('파일에 데이터가 없습니다.')
+                setError('파일에 데이터가 없습니다.')
                 setIsUploading(false)
                 return
               }
@@ -164,13 +164,13 @@ export function DataUploadStep({
             dynamicTyping: true,
             skipEmptyLines: true,
             error: (error) => {
-              actions.setError(getUserFriendlyErrorMessage(error))
+              setError(getUserFriendlyErrorMessage(error))
               setIsUploading(false)
             }
           })
         }
       } catch (err) {
-        actions.setError(err instanceof Error ? err.message : '파일 처리 중 오류가 발생했습니다.')
+        setError(err instanceof Error ? err.message : '파일 처리 중 오류가 발생했습니다.')
         setIsUploading(false)
         setProgress(null)
       }
@@ -180,7 +180,7 @@ export function DataUploadStep({
         // Excel 파일 유효성 검증
         const validation = ExcelProcessor.validateExcelFile(file)
         if (!validation.isValid) {
-          actions.setError(validation.error || 'Excel 파일 검증 실패')
+          setError(validation.error || 'Excel 파일 검증 실패')
           toast.error('Excel 파일 오류', {
             description: validation.error
           })
@@ -214,11 +214,11 @@ export function DataUploadStep({
           })
         }
       } catch (err) {
-        actions.setError(err instanceof Error ? err.message : 'Excel 파일 처리 중 오류가 발생했습니다.')
+        setError(err instanceof Error ? err.message : 'Excel 파일 처리 중 오류가 발생했습니다.')
         setIsUploading(false)
       }
     } else {
-      actions.setError('지원하지 않는 파일 형식입니다.')
+      setError('지원하지 않는 파일 형식입니다.')
       toast.error('지원하지 않는 파일 형식', {
         description: 'CSV 파일을 업로드해주세요'
       })
@@ -237,7 +237,7 @@ export function DataUploadStep({
     if (!pendingExcelFile || selectedSheet === null) return
 
     setIsUploading(true)
-    actions.setError(null)
+    setError(null)
 
     try {
       const data = await ExcelProcessor.parseExcelFile(pendingExcelFile, {
@@ -257,7 +257,7 @@ export function DataUploadStep({
       setSelectedSheet(0)
       setIsUploading(false)
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : 'Excel 시트 처리 중 오류가 발생했습니다.')
+      setError(err instanceof Error ? err.message : 'Excel 시트 처리 중 오류가 발생했습니다.')
       setIsUploading(false)
     }
   }, [pendingExcelFile, selectedSheet, onUploadComplete])

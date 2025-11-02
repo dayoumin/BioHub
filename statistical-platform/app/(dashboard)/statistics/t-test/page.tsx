@@ -32,6 +32,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface UploadedData {

@@ -305,13 +305,32 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
     icon: PieChart,
     items: [
       {
+        id: 'chi-square-independence',
+        href: '/statistics/chi-square-independence',
+        title: '독립성 검정',
+        subtitle: '두 범주형 변수 간 연관성',
+        category: 'chi-square',
+        icon: Grid3X3,
+        implemented: true
+      },
+      {
+        id: 'chi-square-goodness',
+        href: '/statistics/chi-square-goodness',
+        title: '적합도 검정',
+        subtitle: '관측 빈도와 기대 분포 비교',
+        category: 'chi-square',
+        icon: BarChart3,
+        implemented: true
+      },
+      {
         id: 'chi-square',
         href: '/statistics/chi-square',
-        title: '카이제곱 검정',
-        subtitle: '독립성, 적합도, Fisher',
+        title: 'Fisher 정확 검정',
+        subtitle: '소표본 2×2 분할표',
         category: 'chi-square',
         icon: PieChart,
-        implemented: true
+        implemented: false,
+        badge: '개발중'
       }
     ]
   },
@@ -419,10 +438,10 @@ export function getMenuItemByPath(path: string): StatisticsMenuItem | undefined 
 
 // 통계 정보 요약
 export const STATISTICS_SUMMARY = {
-  totalMethods: 44,
+  totalMethods: 46,
   implementedMethods: getImplementedMenuItems().length,
   categories: STATISTICS_MENU.length,
-  completionRate: Math.round((getImplementedMenuItems().length / 44) * 100)
+  completionRate: Math.round((getImplementedMenuItems().length / 46) * 100)
 }
 
 // 고급 방식으로 구현된 페이지들

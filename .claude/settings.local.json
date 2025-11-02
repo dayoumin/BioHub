@@ -53,7 +53,8 @@
       "Bash(node scripts/generate-vector-store-metadata.js:*)",
       "Bash(sqlite3:*)",
       "Bash(node -e:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(node scripts/centralize-colors.js:*)"
     ],
     "deny": [],
     "ask": []
