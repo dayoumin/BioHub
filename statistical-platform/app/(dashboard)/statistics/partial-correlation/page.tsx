@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -17,12 +18,6 @@ import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp } from 'lucide-react'
 import type { StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
-
-interface SelectedVariables {
-  dependent: string[]
-  factor: string[]
-  covariate?: string[]
-}
 
 interface PartialCorrelationResults {
   correlations: Array<{
@@ -54,7 +49,7 @@ interface PartialCorrelationResults {
 }
 
 export default function PartialCorrelationPage() {
-  const { state, actions } = useStatisticsPage<PartialCorrelationResults, SelectedVariables>({
+  const { state, actions } = useStatisticsPage<PartialCorrelationResults, VariableAssignment>({
     withUploadedData: true,
     withError: true,
     initialStep: 0
@@ -92,7 +87,7 @@ export default function PartialCorrelationPage() {
     }
   ]
 
-  const runPartialCorrelationAnalysis = useCallback(async (variables: SelectedVariables) => {
+  const runPartialCorrelationAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData) return
 
     actions.startAnalysis()
@@ -232,8 +227,8 @@ json.dumps(results)
     'partial-correlation'
   )
 
-  const handleVariablesSelected = createVariableSelectionHandler<SelectedVariables>(
-    actions.setSelectedVariables as ((mapping: SelectedVariables) => void) | undefined,
+  const handleVariablesSelected = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
     (variables) => {
       actions.setCurrentStep(3)
       runPartialCorrelationAnalysis(variables)
@@ -428,7 +423,9 @@ json.dumps(results)
                   <div className="mt-4 p-3 bg-muted rounded-lg">
                     <h4 className="font-semibold mb-2">통제변수</h4>
                     <div className="flex flex-wrap gap-1">
-                      {selectedVariables.covariate.map((variable, index) => (
+                      {(Array.isArray(selectedVariables.covariate)
+                        ? selectedVariables.covariate
+                        : [selectedVariables.covariate]).map((variable: string, index: number) => (
                         <Badge key={index} variant="secondary" className="bg-muted">
                           {variable}
                         </Badge>
@@ -645,7 +642,7 @@ json.dumps(results)
         <VariableSelector
           methodId="partial-correlation"
           data={uploadedData.data}
-          onVariablesSelected={handleVariablesSelected as (variables: unknown) => void}
+          onVariablesSelected={handleVariablesSelected}
           onBack={handleVariablesBack}
         />
       )}
