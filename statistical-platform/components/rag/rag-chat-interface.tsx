@@ -137,6 +137,12 @@ export function RAGChatInterface({
       setMessages((prev) => [...prev, errorChatMessage])
       ChatStorage.addMessage(sessionId, userMessage)
       ChatStorage.addMessage(sessionId, errorChatMessage)
+
+      // 세션 업데이트 콜백 (에러 메시지도 저장되므로)
+      const updatedSession = ChatStorage.loadSession(sessionId)
+      if (updatedSession && onSessionUpdate) {
+        onSessionUpdate(updatedSession)
+      }
     } finally {
       setIsLoading(false)
     }

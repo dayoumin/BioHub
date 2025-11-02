@@ -18,7 +18,7 @@ export default function SettingsPage() {
   // localStorage에서 설정 로드
   useEffect(() => {
     // 즐겨찾기 로드
-    const savedFavorites = localStorage.getItem('statisticsFavorites')
+    const savedFavorites = localStorage.getItem('statPlatform_favorites')
     if (savedFavorites) {
       try {
         setFavorites(JSON.parse(savedFavorites))
@@ -28,19 +28,19 @@ export default function SettingsPage() {
     }
 
     // 테마 로드
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null
+    const savedTheme = localStorage.getItem('statPlatform_theme') as 'light' | 'dark' | 'system' | null
     if (savedTheme) {
       setTheme(savedTheme)
     }
 
     // 챗봇 모델 로드
-    const savedModel = localStorage.getItem('chatbotModel')
+    const savedModel = localStorage.getItem('statPlatform_chatbotModel')
     if (savedModel) {
       setChatbotModel(savedModel)
     }
 
     // Vector DB 로드
-    const savedDb = localStorage.getItem('vectorDb')
+    const savedDb = localStorage.getItem('statPlatform_vectorDb')
     if (savedDb) {
       setVectorDb(savedDb)
     }
@@ -54,7 +54,7 @@ export default function SettingsPage() {
   // 테마 변경 핸들러
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
+    localStorage.setItem('statPlatform_theme', newTheme)
 
     // 실제 테마 적용 로직 (준비 중)
     if (newTheme === 'dark') {
@@ -74,13 +74,13 @@ export default function SettingsPage() {
   // 챗봇 모델 변경 핸들러
   const handleModelChange = (model: string) => {
     setChatbotModel(model)
-    localStorage.setItem('chatbotModel', model)
+    localStorage.setItem('statPlatform_chatbotModel', model)
   }
 
   // Vector DB 변경 핸들러
   const handleDbChange = (db: string) => {
     setVectorDb(db)
-    localStorage.setItem('vectorDb', db)
+    localStorage.setItem('statPlatform_vectorDb', db)
   }
 
   return (
@@ -263,7 +263,7 @@ export default function SettingsPage() {
                   className="w-full justify-start"
                   onClick={() => {
                     setFavorites(allItemIds)
-                    localStorage.setItem('statisticsFavorites', JSON.stringify(allItemIds))
+                    localStorage.setItem('statPlatform_favorites', JSON.stringify(allItemIds))
                   }}
                 >
                   <Star className="h-4 w-4 mr-2" />
@@ -274,7 +274,7 @@ export default function SettingsPage() {
                   className="w-full justify-start"
                   onClick={() => {
                     setFavorites([])
-                    localStorage.setItem('statisticsFavorites', JSON.stringify([]))
+                    localStorage.setItem('statPlatform_favorites', JSON.stringify([]))
                   }}
                   disabled={favorites.length === 0}
                 >

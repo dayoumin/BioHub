@@ -35,7 +35,7 @@ export default function StatisticsPage() {
 
   // localStorage에서 즐겨찾기 로드
   useEffect(() => {
-    const saved = localStorage.getItem('statisticsFavorites')
+    const saved = localStorage.getItem('statPlatform_favorites')
     if (saved) {
       try {
         setFavorites(JSON.parse(saved))
@@ -52,7 +52,7 @@ export default function StatisticsPage() {
         ? prev.filter((id) => id !== itemId)
         : [...prev, itemId]
 
-      localStorage.setItem('statisticsFavorites', JSON.stringify(newFavorites))
+      localStorage.setItem('statPlatform_favorites', JSON.stringify(newFavorites))
       return newFavorites
     })
   }, [])

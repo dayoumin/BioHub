@@ -1,4 +1,6 @@
 {
-  "/page": "app/page.js",
-  "/rag-test/page": "app/rag-test/page.js"
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
+  "/(dashboard)/statistics/page": "app/(dashboard)/statistics/page.js"
 }

@@ -90,7 +90,9 @@ export default function ChatbotPage() {
   // 새 대화
   const handleNewChat = useCallback(() => {
     const newSession = ChatStorage.createNewSession()
-    setSessions((prev) => [newSession, ...prev])
+    // cleanupIfNeeded()로 세션이 삭제될 수 있으므로 storage에서 다시 로드
+    const updatedSessions = ChatStorage.loadSessions()
+    setSessions(updatedSessions)
     setCurrentSessionId(newSession.id)
   }, [])
 

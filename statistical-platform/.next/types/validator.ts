@@ -36,6 +36,12 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 }
 
 
+// Validate ../../app/(dashboard)/chatbot/page.tsx
+{
+  const handler = {} as typeof import("../../app/(dashboard)/chatbot/page.js")
+  handler satisfies AppPageConfig<"/chatbot">
+}
+
 // Validate ../../app/(dashboard)/dashboard/page.tsx
 {
   const handler = {} as typeof import("../../app/(dashboard)/dashboard/page.js")
@@ -52,12 +58,6 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   const handler = {} as typeof import("../../app/(dashboard)/experimental-design-coming-soon/page.js")
   handler satisfies AppPageConfig<"/experimental-design-coming-soon">
-}
-
-// Validate ../../app/(dashboard)/experimental-design/page.tsx
-{
-  const handler = {} as typeof import("../../app/(dashboard)/experimental-design/page.js")
-  handler satisfies AppPageConfig<"/experimental-design">
 }
 
 // Validate ../../app/(dashboard)/help/page.tsx
@@ -360,6 +360,12 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   handler satisfies AppPageConfig<"/about">
 }
 
+// Validate ../../app/chatbot/page.tsx
+{
+  const handler = {} as typeof import("../../app/chatbot/page.js")
+  handler satisfies AppPageConfig<"/chatbot">
+}
+
 // Validate ../../app/page.tsx
 {
   const handler = {} as typeof import("../../app/page.js")
@@ -370,6 +376,12 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   const handler = {} as typeof import("../../app/rag-test/page.js")
   handler satisfies AppPageConfig<"/rag-test">
+}
+
+// Validate ../../app/settings/page.tsx
+{
+  const handler = {} as typeof import("../../app/settings/page.js")
+  handler satisfies AppPageConfig<"/settings">
 }
 
 // Validate ../../app/smart-flow/page.tsx
