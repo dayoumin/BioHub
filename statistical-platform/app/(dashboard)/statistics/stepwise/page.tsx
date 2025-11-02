@@ -936,28 +936,7 @@ json.dumps(results)
       {currentStep === 1 && renderMethodIntroduction()}
       {currentStep === 2 && (
         <DataUploadStep
-          onUploadComplete={(file: File, data: unknown[]) => {
-            const uploadedData: UploadedData = {
-              data: data as Record<string, unknown>[],
-              fileName: file.name,
-              columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-                ? Object.keys(data[0] as Record<string, unknown>)
-                : []
-            }
-
-            if (!actions.setUploadedData) {
-              console.error('[stepwise] setUploadedData not available')
-              return
-            }
-
-            actions.setUploadedData(uploadedData)
-
-            // Also update legacy state
-            setData(data as unknown[])
-            setColumns(uploadedData.columns)
-
-            actions.setCurrentStep(3)
-          }}
+          onUploadComplete={handleDataUpload}
           onPrevious={() => actions.setCurrentStep(1)}
         />
       )}

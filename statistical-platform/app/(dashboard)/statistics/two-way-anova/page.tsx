@@ -162,15 +162,23 @@ export default function TwoWayAnovaPage() {
     'two-way-anova'
   )
 
+  // 타입 변환 함수: VariableAssignment → SelectedVariables
+  const convertToSelectedVariables = useCallback((variables: VariableAssignment): SelectedVariables => {
+    return {
+      dependent: Array.isArray(variables.dependent) ? variables.dependent : [variables.dependent as string],
+      factor: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string],
+      covariate: variables.covariate
+        ? (Array.isArray(variables.covariate) ? variables.covariate : [variables.covariate as string])
+        : undefined
+    }
+  }, [])
+
   const handleVariablesSelected = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
+    actions.setSelectedVariables ? (variables) => {
+      actions.setSelectedVariables?.(convertToSelectedVariables(variables))
+    } : undefined,
     (variables) => {
-      const typedVariables: SelectedVariables = {
-        dependent: Array.isArray(variables.dependent) ? variables.dependent : [variables.dependent as string],
-        factor: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string],
-        covariate: variables.covariate ? (Array.isArray(variables.covariate) ? variables.covariate : [variables.covariate as string]) : undefined
-      }
-      actions.setSelectedVariables?.(typedVariables)
+      const typedVariables = convertToSelectedVariables(variables)
       actions.setCurrentStep(4)
       runTwoWayAnovaAnalysis(typedVariables)
     },
