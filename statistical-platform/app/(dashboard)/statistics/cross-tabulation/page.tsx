@@ -29,6 +29,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface CrossTabCell {
   rowCategory: string
@@ -248,21 +249,23 @@ export default function CrossTabulationPage() {
     setActiveTab('summary')
   }
 
+  // 데이터 업로드 핸들러
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(1)
+    },
+    'cross-tabulation'
+  )
+
   // 변수 선택 핸들러
-  const handleVariablesSelected = useCallback((variables: unknown) => {
-    if (!variables || typeof variables !== 'object') {
-      console.error('[cross-tabulation] Invalid variables format')
-      return
-    }
-
-    if (!actions.setSelectedVariables) {
-      console.error('[cross-tabulation] setSelectedVariables not available')
-      return
-    }
-
-    actions.setSelectedVariables(variables as SelectedVariables)
-    actions.setCurrentStep(2)
-  }, [actions])
+  const handleVariablesSelected = createVariableSelectionHandler<SelectedVariables>(
+    actions.setSelectedVariables,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'cross-tabulation'
+  )
 
   // 교차표 렌더링
   const renderCrossTable = () => {
@@ -498,20 +501,7 @@ export default function CrossTabulationPage() {
         {/* 0단계: 데이터 업로드 */}
         {currentStep === 0 && uploadedData === null && (
           <DataUploadStep
-            onUploadComplete={(file: File, data: unknown[]) => {
-              if (!actions.setUploadedData) {
-                console.error('[cross-tabulation] setUploadedData not available')
-                return
-              }
-              const dataRecords = data as Record<string, unknown>[]
-              const uploadedData: UploadedData = {
-                fileName: file.name,
-                data: dataRecords,
-                columns: dataRecords.length > 0 ? Object.keys(dataRecords[0]) : []
-              }
-              actions.setUploadedData(uploadedData)
-              actions.setCurrentStep(1)
-            }}
+            onUploadComplete={handleDataUpload}
             onNext={() => actions.setCurrentStep(1)}
             canGoNext={false}
             currentStep={1}
@@ -524,7 +514,7 @@ export default function CrossTabulationPage() {
           <VariableSelector
             methodId="cross-tabulation"
             data={uploadedData.data}
-            onVariablesSelected={handleVariablesSelected}
+            onVariablesSelected={handleVariablesSelected as (variables: unknown) => void}
             onBack={() => actions.setCurrentStep(0)}
           />
         )}

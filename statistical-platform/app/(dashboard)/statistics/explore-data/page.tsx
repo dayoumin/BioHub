@@ -31,6 +31,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface ExploreResults {
   variable: string
@@ -112,33 +113,22 @@ export default function ExploreDataPage() {
   const { pyodideService: _pyodideService } = usePyodideService()
 
   // 데이터 업로드 핸들러
-  const handleDataUpload = (file: File, data: unknown[]) => {
-    const uploadedDataObj = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[explore-data] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedDataObj)
-    actions.setCurrentStep(1)
-  }
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(1)
+    },
+    'explore-data'
+  )
 
   // 변수 선택 핸들러
-  const handleVariablesSelected = (variables: VariableMapping) => {
-    if (!actions.setSelectedVariables) {
-      console.error('[explore-data] setSelectedVariables not available')
-      return
-    }
-    actions.setSelectedVariables(variables)
-    actions.setCurrentStep(2)
-  }
+  const handleVariablesSelected = createVariableSelectionHandler<VariableMapping>(
+    actions.setSelectedVariables,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'explore-data'
+  )
 
   // 단계 정의
   const steps: StatisticsStep[] = [
