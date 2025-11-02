@@ -326,13 +326,13 @@ export function RAGChatInterface({
     <div className={cn('flex flex-col h-full', className)}>
       {/* 메시지 영역 */}
       <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-hidden p-4">
-        <div className="space-y-4 w-full">
+        <div className="space-y-4 max-w-3xl mx-auto">
           {messages.map((msg, idx) => (
             <div
               key={msg.id}
               className={cn(
-                'group relative',
-                msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'
+                'group relative flex',
+                msg.role === 'user' ? 'justify-end' : 'justify-end'
               )}
             >
               <div
@@ -460,7 +460,7 @@ export function RAGChatInterface({
 
       {/* 입력 영역 - 항상 하단 표시 */}
       <div className="border-t p-4 bg-background shrink-0">
-        <div className="w-full space-y-2">
+        <div className="max-w-3xl mx-auto space-y-2">
           <div className="relative">
             <Textarea
               value={query}
