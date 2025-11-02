@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -189,10 +189,10 @@ export default function CorrelationPage() {
     }
   }
 
-  const handleMethodSelect = (type: 'pearson' | 'spearman' | 'kendall' | 'partial') => {
+  const handleMethodSelect = useCallback((type: 'pearson' | 'spearman' | 'kendall' | 'partial') => {
     setCorrelationType(type)
     actions.setCurrentStep(1)
-  }
+  }, [actions])
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
@@ -211,7 +211,7 @@ export default function CorrelationPage() {
     'correlation'
   )
 
-  const handleAnalysis = async (_variables: VariableSelection) => {
+  const handleAnalysis = useCallback(async (_variables: VariableSelection) => {
     try {
       actions.startAnalysis()
 
@@ -317,7 +317,7 @@ export default function CorrelationPage() {
     } catch (err) {
       console.error('Analysis error:', err)
     }
-  }
+  }, [actions, correlationType])
 
   const renderMethodSelection = () => (
     <StepCard

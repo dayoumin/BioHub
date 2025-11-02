@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -188,10 +188,10 @@ export default function ANOVAPage() {
     }
   }
 
-  const handleMethodSelect = (type: 'oneWay' | 'twoWay' | 'threeWay' | 'repeated') => {
+  const handleMethodSelect = useCallback((type: 'oneWay' | 'twoWay' | 'threeWay' | 'repeated') => {
     setAnovaType(type)
     actions.setCurrentStep(1)
-  }
+  }, [actions])
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
@@ -210,7 +210,7 @@ export default function ANOVAPage() {
     'anova'
   )
 
-  const handleAnalysis = async (_variables: SelectedVariables) => {
+  const handleAnalysis = useCallback(async (_variables: SelectedVariables) => {
     try {
       actions.startAnalysis()
 
@@ -266,7 +266,7 @@ export default function ANOVAPage() {
     } catch (err) {
       console.error('Analysis error:', err)
     }
-  }
+  }, [actions])
 
   const renderMethodSelection = () => (
     <StepCard
