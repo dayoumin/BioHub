@@ -456,7 +456,7 @@ export default function SmartAnalysisPage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">상태:</span>
-                  <div className="font-medium text-green-600">정상</div>
+                  <div className="font-medium text-success">정상</div>
                 </div>
               </div>
             </div>
@@ -465,13 +465,13 @@ export default function SmartAnalysisPage() {
               <h4 className="font-medium mb-3">변수 목록</h4>
               <div className="grid gap-2 max-h-48 overflow-y-auto">
                 {datasetInfo.numericColumns.map((col, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                  <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <span className="font-medium">{col}</span>
                     <Badge variant="secondary">숫자형</Badge>
                   </div>
                 ))}
                 {datasetInfo.categoricalColumns.map((col, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded">
+                  <div key={index} className="flex items-center justify-between p-2 bg-muted/30 rounded">
                     <span className="font-medium">{col}</span>
                     <Badge variant="outline">범주형</Badge>
                   </div>
@@ -712,7 +712,7 @@ export default function SmartAnalysisPage() {
           </CardHeader>
           <CardContent>
             <div className="text-center space-y-6">
-              <CheckCircle2 className="h-16 w-16 mx-auto text-green-500" />
+              <CheckCircle2 className="h-16 w-16 mx-auto text-success" />
               <div>
                 <h3 className="text-lg font-medium">분석이 성공적으로 완료되었습니다!</h3>
                 <p className="text-muted-foreground">
@@ -742,7 +742,7 @@ export default function SmartAnalysisPage() {
                   </div>
                   <div className="flex justify-between">
                     <span>결론:</span>
-                    <span className="font-medium text-green-600">통계적으로 유의한 차이 있음</span>
+                    <span className="font-medium text-success">통계적으로 유의한 차이 있음</span>
                   </div>
                 </div>
               </div>

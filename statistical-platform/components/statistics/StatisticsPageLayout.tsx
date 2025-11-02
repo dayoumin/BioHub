@@ -32,7 +32,6 @@ import {
   BookOpen,
   Video,
   MessageSquare,
-  Sparkles,
   CheckCircle2,
   XCircle,
   Clock,
@@ -120,7 +119,6 @@ export function StatisticsPageLayout({
   className
 }: StatisticsPageLayoutProps) {
   const [showMethodInfo, setShowMethodInfo] = useState(false)
-  const [showQuickTip, setShowQuickTip] = useState(true)
 
   // 기존 페이지 호환성: steps가 없으면 간단한 모드
   const isAdvancedMode = steps && steps.length > 0
@@ -131,16 +129,6 @@ export function StatisticsPageLayout({
   // 현재 단계 정보 (고급 모드에서만)
   const currentStepInfo = isAdvancedMode ? steps[currentStep] : null
 
-  // 빠른 도움말
-  const quickTips = [
-    "💡 데이터는 CSV, Excel 형식을 지원합니다",
-    "📊 변수 타입이 자동으로 감지됩니다",
-    "🎯 AI가 최적의 변수를 추천해드립니다",
-    "📈 결과는 자동으로 시각화됩니다",
-    "📝 보고서를 PDF로 저장할 수 있습니다"
-  ]
-
-  const randomTip = quickTips[Math.floor(Math.random() * quickTips.length)]
 
   return (
     <div className={cn("min-h-screen bg-gradient-to-br from-background via-background to-muted/20", className)}>
@@ -318,14 +306,14 @@ export function StatisticsPageLayout({
                                   className={cn(
                                     "flex items-center gap-2 px-3 py-2 rounded-lg transition-all",
                                     idx === currentStep && "bg-primary/10 ring-2 ring-primary",
-                                    idx < currentStep && "bg-green-500/10 text-green-700",
+                                    idx < currentStep && "bg-success/10 text-success",
                                     idx > currentStep && "opacity-50 cursor-not-allowed"
                                   )}
                                 >
                                   <div className={cn(
                                     "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
                                     idx === currentStep && "bg-primary text-primary-foreground",
-                                    idx < currentStep && "bg-green-500 text-white",
+                                    idx < currentStep && "bg-success text-success-foreground",
                                     idx > currentStep && "bg-muted"
                                   )}>
                                     {step.status === 'completed' ? (
@@ -391,7 +379,7 @@ export function StatisticsPageLayout({
                             size="sm"
                             onClick={onRun}
                             disabled={isRunning}
-                            className="bg-gradient-to-r from-blue-500 to-purple-500"
+                            className="bg-gradient-analysis"
                           >
                             {isRunning ? (
                               <>
@@ -414,32 +402,6 @@ export function StatisticsPageLayout({
             )}
           </Card>
 
-          {/* 빠른 도움말 */}
-          {showTips && showQuickTip && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="absolute -bottom-12 left-4 right-4"
-            >
-              <div className="bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg px-4 py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-yellow-600" />
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    {randomTip}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setShowQuickTip(false)}
-                >
-                  <XCircle className="w-4 h-4" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
         </motion.div>
 
         {/* 메인 콘텐츠 영역 */}
@@ -451,7 +413,7 @@ export function StatisticsPageLayout({
             animate="visible"
             exit="exit"
             transition={{ duration: 0.3 }}
-            className={showQuickTip ? "mt-16" : "mt-6"}
+            className="mt-6"
           >
             {/* Multi-step workflow support (cluster, factor-analysis) */}
             {(onDataUpload || variableSelectionStep || resultsStep) ? (
