@@ -315,7 +315,7 @@ export default function CorrelationPage() {
 
       actions.completeAnalysis(mockResults, 3)
     } catch (err) {
-      console.error('Analysis error:', err)
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
   }, [actions, correlationType])
 

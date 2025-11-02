@@ -250,7 +250,7 @@ export default function NonParametricTestPage() {
             description: `${i}번째 측정값 또는 조건`,
             required: true,
             multiple: false,
-            allowedTypes: ['continuous', 'ordinal'] as any
+            allowedTypes: ['continuous', 'ordinal'] as const
           })
         }
       } else {
@@ -260,7 +260,7 @@ export default function NonParametricTestPage() {
           description: '분석할 연속형 또는 순서형 변수',
           required: true,
           multiple: false,
-          allowedTypes: ['continuous', 'ordinal'] as any
+          allowedTypes: ['continuous', 'ordinal'] as const
         })
       }
     }
@@ -272,7 +272,7 @@ export default function NonParametricTestPage() {
         description: '그룹을 구분하는 범주형 변수',
         required: true,
         multiple: false,
-        allowedTypes: ['categorical', 'binary'] as any
+        allowedTypes: ['categorical', 'binary'] as const
       })
     }
 

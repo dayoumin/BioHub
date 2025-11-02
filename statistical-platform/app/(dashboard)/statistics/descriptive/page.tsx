@@ -181,7 +181,7 @@ export default function DescriptiveStatsPage() {
       actions.completeAnalysis(mockResults, 4)
       setActiveTab('summary')
     } catch (err) {
-      console.error('Analysis error:', err)
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
   }, [actions, setActiveTab])
 
