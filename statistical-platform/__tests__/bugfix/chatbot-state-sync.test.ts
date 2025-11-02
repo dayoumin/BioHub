@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import type { ChatSession } from '@/lib/types/chat'
+import { sortSessionsByFavoriteAndRecent } from '@/lib/utils/session-sorter'
 
 // LocalStorage Mock
 class LocalStorageMock {
@@ -219,12 +220,8 @@ describe('챗봇 상태 동기화 버그 수정', () => {
       // 3. 세션 로드 (handleNewChat이 하는 것처럼)
       const sessions = ChatStorage.loadSessions()
 
-      // 4. 즐겨찾기 우선 정렬 적용 (버그 수정 후)
-      const sortedSessions = sessions.sort((a, b) => {
-        if (a.isFavorite && !b.isFavorite) return -1
-        if (!a.isFavorite && b.isFavorite) return 1
-        return b.updatedAt - a.updatedAt
-      })
+      // 4. 즐겨찾기 우선 정렬 적용 (공유 함수 사용 - 회귀 테스트)
+      const sortedSessions = sortSessionsByFavoriteAndRecent(sessions)
 
       // 5. 검증: 즐겨찾기 세션이 첫 번째여야 함
       expect(sortedSessions[0].id).toBe(session2.id)
@@ -241,13 +238,9 @@ describe('챗봇 상태 동기화 버그 수정', () => {
       ChatStorage.toggleFavorite(session1.id)
       ChatStorage.toggleFavorite(session3.id)
 
-      // 3. 정렬
+      // 3. 정렬 (공유 함수 사용 - 회귀 테스트)
       const sessions = ChatStorage.loadSessions()
-      const sortedSessions = sessions.sort((a, b) => {
-        if (a.isFavorite && !b.isFavorite) return -1
-        if (!a.isFavorite && b.isFavorite) return 1
-        return b.updatedAt - a.updatedAt
-      })
+      const sortedSessions = sortSessionsByFavoriteAndRecent(sessions)
 
       // 4. 검증: 즐겨찾기 2개가 상단에, 나머지는 하단
       expect(sortedSessions[0].isFavorite).toBe(true)

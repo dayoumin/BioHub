@@ -39,6 +39,7 @@ import { ChatStorage } from '@/lib/services/chat-storage'
 import type { ChatSession } from '@/lib/types/chat'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import { cn } from '@/lib/utils'
+import { sortSessionsByFavoriteAndRecent } from '@/lib/utils/session-sorter'
 
 const QUICK_PROMPTS = [
   {
@@ -94,11 +95,7 @@ export default function ChatbotPage() {
     const updatedSessions = ChatStorage.loadSessions()
 
     // 즐겨찾기 우선 정렬 유지
-    const sortedSessions = updatedSessions.sort((a, b) => {
-      if (a.isFavorite && !b.isFavorite) return -1
-      if (!a.isFavorite && b.isFavorite) return 1
-      return b.updatedAt - a.updatedAt
-    })
+    const sortedSessions = sortSessionsByFavoriteAndRecent(updatedSessions)
 
     setSessions(sortedSessions)
     setCurrentSessionId(newSession.id)
@@ -136,11 +133,7 @@ export default function ChatbotPage() {
         s.id === sessionId ? { ...s, isFavorite: !s.isFavorite } : s
       )
       // 즐겨찾기 순으로 재정렬
-      return updated.sort((a, b) => {
-        if (a.isFavorite && !b.isFavorite) return -1
-        if (!a.isFavorite && b.isFavorite) return 1
-        return b.updatedAt - a.updatedAt
-      })
+      return sortSessionsByFavoriteAndRecent(updated)
     })
   }, [])
 

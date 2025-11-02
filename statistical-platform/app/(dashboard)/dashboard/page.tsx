@@ -30,41 +30,32 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
       {/* 헤더 */}
-      <div className="text-center space-y-3">
+      <div className="text-center space-y-3 pt-8">
         <h1 className="text-4xl font-bold">통계 분석 플랫폼</h1>
-        <p className="text-lg text-muted-foreground">
-          전문가급 통계 분석 도구 - SPSS와 R Studio의 강력함을 웹에서
-        </p>
       </div>
 
       {/* 스마트 분석 */}
       <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 max-w-md mx-auto">
         <CardContent className="p-6 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
-            <h2 className="text-2xl font-bold">스마트 분석</h2>
+          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="h-6 w-6 text-primary" />
           </div>
-          <Button size="lg" className="w-full mt-6 font-semibold" disabled>
-            <Sparkles className="mr-2 h-5 w-5" />
-            시작하기 (준비 중)
-          </Button>
+          <Link href="/smart-analysis">
+            <Button size="lg" className="w-full font-semibold">
+              <Sparkles className="mr-2 h-5 w-5" />
+              스마트 분석
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 
       {/* 즐겨찾기 통계 도구 */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
-              내 통계 도구
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              자주 사용하는 분석을 빠르게 시작하세요
-            </p>
-          </div>
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+            내 통계 도구
+          </h2>
           {favorites.length > 0 && (
             <Badge variant="secondary" className="text-base px-3 py-1">
               {favorites.length}개
@@ -77,15 +68,6 @@ export default function DashboardPage() {
             <CardContent>
               <Star className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                통계분석 페이지에서 별표(⭐)를 눌러 자주 사용하는 분석을 즐겨찾기에 추가하세요
-              </p>
-              <Link href="/statistics">
-                <Button size="lg">
-                  <BarChart2 className="mr-2 h-5 w-5" />
-                  통계분석 보기
-                </Button>
-              </Link>
             </CardContent>
           </Card>
         ) : (
