@@ -105,15 +105,22 @@ export function FloatingChatbot() {
         <Card
           className={cn(
             'fixed z-50 shadow-2xl border-2',
-            'bottom-24 right-6 w-[768px] h-[800px]',
+            'bottom-24 right-6',
             'max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bottom-0 max-md:right-0',
             'flex flex-col',
-            'resize overflow-auto min-w-[400px] min-h-[400px] max-w-[90vw] max-h-[90vh]',
-            isMinimized && 'h-auto resize-none'
+            isMinimized ? 'h-auto' : 'w-[768px] h-[800px] overflow-auto'
           )}
-          style={{
-            resize: isMinimized ? 'none' : 'both'
-          }}
+          style={
+            isMinimized
+              ? undefined
+              : {
+                  resize: 'both',
+                  minWidth: '400px',
+                  minHeight: '400px',
+                  maxWidth: '90vw',
+                  maxHeight: '90vh',
+                }
+          }
         >
           {/* 헤더 */}
           <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground">
