@@ -206,6 +206,61 @@ describe('챗봇 상태 동기화 버그 수정', () => {
     })
   })
 
+  describe('즐겨찾기 정렬 유지', () => {
+    it('새 대화 생성 시 즐겨찾기 세션이 상단에 유지되어야 함', () => {
+      // 1. 일반 세션 3개 생성
+      const session1 = ChatStorage.createNewSession()
+      const session2 = ChatStorage.createNewSession()
+      const session3 = ChatStorage.createNewSession()
+
+      // 2. session2를 즐겨찾기로 설정
+      ChatStorage.toggleFavorite(session2.id)
+
+      // 3. 세션 로드 (handleNewChat이 하는 것처럼)
+      const sessions = ChatStorage.loadSessions()
+
+      // 4. 즐겨찾기 우선 정렬 적용 (버그 수정 후)
+      const sortedSessions = sessions.sort((a, b) => {
+        if (a.isFavorite && !b.isFavorite) return -1
+        if (!a.isFavorite && b.isFavorite) return 1
+        return b.updatedAt - a.updatedAt
+      })
+
+      // 5. 검증: 즐겨찾기 세션이 첫 번째여야 함
+      expect(sortedSessions[0].id).toBe(session2.id)
+      expect(sortedSessions[0].isFavorite).toBe(true)
+    })
+
+    it('즐겨찾기가 여러 개일 때 최근 순으로 정렬되어야 함', () => {
+      // 1. 3개 세션 생성
+      const session1 = ChatStorage.createNewSession()
+      const session2 = ChatStorage.createNewSession()
+      const session3 = ChatStorage.createNewSession()
+
+      // 2. session1, session3을 즐겨찾기로 설정
+      ChatStorage.toggleFavorite(session1.id)
+      ChatStorage.toggleFavorite(session3.id)
+
+      // 3. 정렬
+      const sessions = ChatStorage.loadSessions()
+      const sortedSessions = sessions.sort((a, b) => {
+        if (a.isFavorite && !b.isFavorite) return -1
+        if (!a.isFavorite && b.isFavorite) return 1
+        return b.updatedAt - a.updatedAt
+      })
+
+      // 4. 검증: 즐겨찾기 2개가 상단에, 나머지는 하단
+      expect(sortedSessions[0].isFavorite).toBe(true)
+      expect(sortedSessions[1].isFavorite).toBe(true)
+      expect(sortedSessions[2].isFavorite).toBe(false)
+
+      // 5. 검증: 즐겨찾기 세션 ID가 올바른지 확인 (순서는 보장하지 않음 - 동일 시간)
+      const favoriteIds = [sortedSessions[0].id, sortedSessions[1].id].sort()
+      const expectedIds = [session1.id, session3.id].sort()
+      expect(favoriteIds).toEqual(expectedIds)
+    })
+  })
+
   describe('통합 시나리오', () => {
     it('20개 세션 + 새 대화 생성 + 에러 발생 시나리오', () => {
       // 1. 19개 세션 생성

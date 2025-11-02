@@ -92,7 +92,15 @@ export default function ChatbotPage() {
     const newSession = ChatStorage.createNewSession()
     // cleanupIfNeeded()로 세션이 삭제될 수 있으므로 storage에서 다시 로드
     const updatedSessions = ChatStorage.loadSessions()
-    setSessions(updatedSessions)
+
+    // 즐겨찾기 우선 정렬 유지
+    const sortedSessions = updatedSessions.sort((a, b) => {
+      if (a.isFavorite && !b.isFavorite) return -1
+      if (!a.isFavorite && b.isFavorite) return 1
+      return b.updatedAt - a.updatedAt
+    })
+
+    setSessions(sortedSessions)
     setCurrentSessionId(newSession.id)
   }, [])
 

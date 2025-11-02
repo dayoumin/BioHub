@@ -38,21 +38,16 @@ export default function DashboardPage() {
       </div>
 
       {/* 스마트 분석 */}
-      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 max-w-md">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 max-w-md mx-auto">
+        <CardContent className="p-6 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
               <Sparkles className="h-6 w-6 text-primary" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold mb-1">스마트 분석</h2>
-              <p className="text-sm text-muted-foreground">
-                AI가 최적의 통계 방법을 추천
-              </p>
-            </div>
+            <h2 className="text-2xl font-bold">스마트 분석</h2>
           </div>
-          <Button size="default" className="w-full mt-4" disabled>
-            <Sparkles className="mr-2 h-4 w-4" />
+          <Button size="lg" className="w-full mt-6 font-semibold" disabled>
+            <Sparkles className="mr-2 h-5 w-5" />
             시작하기 (준비 중)
           </Button>
         </CardContent>
