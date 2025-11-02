@@ -24,11 +24,13 @@ import {
   Table
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 interface FrequencyData {
   value: string
@@ -49,10 +51,10 @@ interface FrequencyResults {
 
 export default function FrequencyTablePage() {
   const { state, actions } = useStatisticsPage<FrequencyResults, VariableMapping>({
-    withUploadedData: false,
-    withError: false
+    withUploadedData: true,
+    withError: true
   })
-  const { currentStep, variableMapping, results, isAnalyzing, selectedVariables } = state
+  const { currentStep, uploadedData, variableMapping, results, isAnalyzing, selectedVariables } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [showPercentages, setShowPercentages] = useState(true)
   const [showCumulative, setShowCumulative] = useState(true)
@@ -62,11 +64,18 @@ export default function FrequencyTablePage() {
   // 단계 정의
   const steps: StatisticsStep[] = [
     {
+      id: 'upload-data',
+      number: 0,
+      title: '데이터 업로드',
+      description: '분석할 CSV/Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
       id: 'select-variable',
       number: 1,
       title: '변수 선택',
       description: '분석할 범주형 변수 선택',
-      status: Object.keys(variableMapping).length > 0 ? 'completed' : 'current'
+      status: uploadedData && Object.keys(variableMapping).length > 0 ? 'completed' : (uploadedData ? 'current' : 'pending')
     },
     {
       id: 'configure-options',
@@ -102,7 +111,7 @@ export default function FrequencyTablePage() {
 
     actions.setSelectedVariables(mapping as VariableMapping)
     if (Object.keys(mapping as VariableMapping).length > 0) {
-      actions.setCurrentStep(1)
+      actions.setCurrentStep(2)
     }
   }, [actions])
 
@@ -126,7 +135,7 @@ export default function FrequencyTablePage() {
         uniqueValues: 4
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.completeAnalysis(mockResults, 4)
       setActiveTab('summary')
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
@@ -254,8 +263,24 @@ export default function FrequencyTablePage() {
       }}
     >
       <div className="space-y-6">
-        {/* 1단계: 변수 선택 */}
+        {/* 0단계: 데이터 업로드 */}
         {currentStep === 0 && (
+          <DataUploadStep
+            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
+              if (actions.setUploadedData) {
+                actions.setUploadedData({
+                  data,
+                  fileName: file.name,
+                  columns: data.length > 0 ? Object.keys(data[0]) : []
+                } as UploadedData)
+                actions.setCurrentStep(1)
+              }
+            }}
+          />
+        )}
+
+        {/* 1단계: 변수 선택 */}
+        {currentStep === 1 && uploadedData && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -269,7 +294,7 @@ export default function FrequencyTablePage() {
             <CardContent>
               <VariableSelector
                 methodId="frequency-table"
-                data={[]}
+                data={uploadedData.data}
                 onVariablesSelected={handleVariablesSelected}
                 onBack={() => actions.setCurrentStep(0)}
               />
@@ -278,7 +303,7 @@ export default function FrequencyTablePage() {
         )}
 
         {/* 2단계: 옵션 설정 */}
-        {currentStep === 1 && (
+        {currentStep === 2 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -326,7 +351,7 @@ export default function FrequencyTablePage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => actions.setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(3)}
                   disabled={Object.keys(variableMapping).length === 0}
                 >
                   다음 단계
@@ -337,7 +362,7 @@ export default function FrequencyTablePage() {
         )}
 
         {/* 3단계: 분석 실행 */}
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -364,7 +389,7 @@ export default function FrequencyTablePage() {
         )}
 
         {/* 4단계: 결과 확인 */}
-        {results && currentStep === 3 && (
+        {results && currentStep === 4 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="summary">요약</TabsTrigger>

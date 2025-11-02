@@ -24,11 +24,13 @@ import {
   Percent
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 interface ProportionTestResults {
   variable: string
@@ -50,10 +52,10 @@ interface ProportionTestResults {
 
 export default function ProportionTestPage() {
   const { state, actions } = useStatisticsPage<ProportionTestResults, VariableMapping>({
-    withUploadedData: false,
+    withUploadedData: true,
     withError: false
   })
-  const { currentStep, results, isAnalyzing, selectedVariables } = state
+  const { currentStep, uploadedData, results, isAnalyzing, selectedVariables } = state
   const variableMapping = selectedVariables || {}
   const [activeTab, setActiveTab] = useState('summary')
   const [testProportion, setTestProportion] = useState('0.5')
@@ -65,11 +67,18 @@ export default function ProportionTestPage() {
   // 단계 정의
   const steps: StatisticsStep[] = [
     {
+      id: 'upload-data',
+      number: 0,
+      title: '데이터 업로드',
+      description: '분석할 CSV/Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
       id: 'select-variable',
       number: 1,
       title: '변수 선택',
       description: '검정할 이분 변수 선택',
-      status: Object.keys(variableMapping).length > 0 ? 'completed' : 'current'
+      status: uploadedData && Object.keys(variableMapping).length > 0 ? 'completed' : (uploadedData ? 'current' : 'pending')
     },
     {
       id: 'set-hypothesis',
@@ -123,7 +132,7 @@ export default function ProportionTestPage() {
         continuityCorrection: totalCount < 50
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.completeAnalysis(mockResults, 4)
       setActiveTab('summary')
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
@@ -393,8 +402,24 @@ export default function ProportionTestPage() {
       }}
     >
       <div className="space-y-6">
+        {/* 0단계: 데이터 업로드 */}
+        {currentStep === 0 && !uploadedData && (
+          <DataUploadStep
+            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
+              if (actions.setUploadedData) {
+                actions.setUploadedData({
+                  data,
+                  fileName: file.name,
+                  columns: data.length > 0 ? Object.keys(data[0]) : []
+                } as UploadedData)
+                actions.setCurrentStep(1)
+              }
+            }}
+          />
+        )}
+
         {/* 1단계: 변수 선택 */}
-        {currentStep === 0 && (
+        {currentStep === 1 && uploadedData && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -408,16 +433,16 @@ export default function ProportionTestPage() {
             <CardContent>
               <VariableSelector
                 methodId="proportion-test"
-                data={[]}
+                data={uploadedData.data}
                 onVariablesSelected={handleVariablesSelected}
-                onBack={() => actions.setCurrentStep(0)}
+                onBack={() => actions.reset()}
               />
             </CardContent>
           </Card>
         )}
 
         {/* 2단계: 가설 설정 */}
-        {currentStep === 1 && (
+        {currentStep === 2 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -506,7 +531,7 @@ export default function ProportionTestPage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => actions.setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(3)}
                   disabled={Object.keys(variableMapping).length === 0 || !testProportion}
                 >
                   다음 단계
@@ -517,7 +542,7 @@ export default function ProportionTestPage() {
         )}
 
         {/* 3단계: 분석 실행 */}
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -544,7 +569,7 @@ export default function ProportionTestPage() {
         )}
 
         {/* 4단계: 결과 확인 */}
-        {results && currentStep === 3 && (
+        {results && currentStep === 4 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="summary">요약</TabsTrigger>

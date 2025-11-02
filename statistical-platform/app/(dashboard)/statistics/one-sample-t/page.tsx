@@ -25,11 +25,13 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 interface OneSampleTResults {
   variable: string
@@ -356,8 +358,24 @@ export default function OneSampleTPage() {
       }}
     >
       <div className="space-y-6">
+        {/* 0단계: 데이터 업로드 */}
+        {currentStep === 0 && !uploadedData && (
+          <DataUploadStep
+            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
+              if (actions.setUploadedData) {
+                actions.setUploadedData({
+                  data,
+                  fileName: file.name,
+                  columns: data.length > 0 ? Object.keys(data[0]) : []
+                } as UploadedData)
+                actions.setCurrentStep(0)
+              }
+            }}
+          />
+        )}
+
         {/* 1단계: 변수 선택 */}
-        {currentStep === 0 && (
+        {currentStep === 0 && uploadedData && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -369,25 +387,19 @@ export default function OneSampleTPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {uploadedData && (
-                <VariableSelector
-                  methodId="one-sample-t"
-                  data={uploadedData.data}
-                  onVariablesSelected={(variables: VariableAssignment) => {
-                    actions.setSelectedVariables?.(variables)
-                    if (Object.keys(variables).length > 0) {
-                      actions.setCurrentStep?.(1)
-                    }
-                  }}
-                />
-              )}
-              {!uploadedData && (
-                <div className="p-4 border rounded-lg bg-muted/50">
-                  <p className="text-sm text-muted-foreground">
-                    데이터를 먼저 업로드해주세요.
-                  </p>
-                </div>
-              )}
+              <VariableSelector
+                methodId="one-sample-t"
+                data={uploadedData.data}
+                onVariablesSelected={(variables: VariableAssignment) => {
+                  actions.setSelectedVariables?.(variables)
+                  if (Object.keys(variables).length > 0) {
+                    actions.setCurrentStep?.(1)
+                  }
+                }}
+                onBack={() => {
+                  actions.reset()
+                }}
+              />
             </CardContent>
           </Card>
         )}

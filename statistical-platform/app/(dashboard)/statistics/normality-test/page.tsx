@@ -16,11 +16,13 @@ import {
   XCircle
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 interface NormalityTestResult {
   test: string
@@ -64,11 +66,18 @@ export default function NormalityTestPage() {
   // 단계 정의
   const steps: StatisticsStep[] = [
     {
+      id: 'upload-data',
+      number: 0,
+      title: '데이터 업로드',
+      description: '분석할 CSV/Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
       id: 'select-variable',
       number: 1,
       title: '변수 선택',
       description: '정규성을 검정할 수치형 변수 선택',
-      status: Object.keys(variableMapping).length > 0 ? 'completed' : 'current'
+      status: uploadedData && Object.keys(variableMapping).length > 0 ? 'completed' : (uploadedData ? 'current' : 'pending')
     },
     {
       id: 'configure-tests',
@@ -154,7 +163,7 @@ export default function NormalityTestPage() {
         }
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.completeAnalysis(mockResults, 4)
       setActiveTab('summary')
     } catch (error) {
       console.error('정규성 검정 중 오류:', error)
@@ -436,8 +445,24 @@ export default function NormalityTestPage() {
       }}
     >
       <div className="space-y-6">
-        {/* 1단계: 변수 선택 */}
+        {/* 0단계: 데이터 업로드 */}
         {currentStep === 0 && (
+          <DataUploadStep
+            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
+              if (actions.setUploadedData) {
+                actions.setUploadedData({
+                  data,
+                  fileName: file.name,
+                  columns: data.length > 0 ? Object.keys(data[0]) : []
+                } as UploadedData)
+                actions.setCurrentStep(1)
+              }
+            }}
+          />
+        )}
+
+        {/* 1단계: 변수 선택 */}
+        {currentStep === 1 && uploadedData && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -449,24 +474,23 @@ export default function NormalityTestPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {uploadedData && (
-                <VariableSelector
-                  methodId="normality-test"
-                  data={uploadedData.data}
-                  onVariablesSelected={(variables: VariableAssignment) => {
-                    actions.setSelectedVariables?.(variables)
-                    if (Object.keys(variables).length > 0) {
-                      actions.setCurrentStep(1)
-                    }
-                  }}
-                />
-              )}
+              <VariableSelector
+                methodId="normality-test"
+                data={uploadedData.data}
+                onVariablesSelected={(variables: VariableAssignment) => {
+                  actions.setSelectedVariables?.(variables)
+                  if (Object.keys(variables).length > 0) {
+                    actions.setCurrentStep(2)
+                  }
+                }}
+                onBack={() => actions.setCurrentStep(0)}
+              />
             </CardContent>
           </Card>
         )}
 
         {/* 2단계: 검정 설정 */}
-        {currentStep === 1 && (
+        {currentStep === 2 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -504,7 +528,7 @@ export default function NormalityTestPage() {
 
               <div className="flex justify-end mt-6">
                 <Button
-                  onClick={() => actions.setCurrentStep(2)}
+                  onClick={() => actions.setCurrentStep(3)}
                   disabled={Object.keys(variableMapping).length === 0}
                 >
                   다음 단계
@@ -515,7 +539,7 @@ export default function NormalityTestPage() {
         )}
 
         {/* 3단계: 분석 실행 */}
-        {currentStep === 2 && (
+        {currentStep === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -542,7 +566,7 @@ export default function NormalityTestPage() {
         )}
 
         {/* 4단계: 결과 확인 */}
-        {results && currentStep === 3 && (
+        {results && currentStep === 4 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="summary">요약</TabsTrigger>
