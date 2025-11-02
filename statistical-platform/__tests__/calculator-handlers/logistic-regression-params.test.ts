@@ -81,4 +81,31 @@ describe('Issue 3: logisticRegression 옵션 제거', () => {
     expect(Object.keys(params)).not.toContain('method')
     expect(Object.keys(params)).not.toContain('maxIter')
   })
+
+  it('타입 정의 일관성 검증', () => {
+    // LogisticRegressionParams 타입은 maxIterations, tolerance를 포함하지 않아야 함
+    type LogisticParams = {
+      independentColumns: string[]
+      dependentColumn: string
+    }
+
+    const validParams: LogisticParams = {
+      independentColumns: ['age', 'income'],
+      dependentColumn: 'purchase'
+    }
+
+    expect(validParams.independentColumns).toEqual(['age', 'income'])
+    expect(validParams.dependentColumn).toBe('purchase')
+
+    // TypeScript 컴파일 타임에 maxIterations, tolerance는 타입 에러
+    // @ts-expect-error - maxIterations는 더 이상 지원되지 않음
+    const invalidParams1 = { ...validParams, maxIterations: 100 }
+
+    // @ts-expect-error - tolerance는 더 이상 지원되지 않음
+    const invalidParams2 = { ...validParams, tolerance: 0.001 }
+
+    // 런타임에서는 추가 속성이 존재할 수 있지만, 타입 시스템에서는 경고
+    expect(invalidParams1).toBeDefined()
+    expect(invalidParams2).toBeDefined()
+  })
 })

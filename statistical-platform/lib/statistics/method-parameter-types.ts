@@ -98,8 +98,7 @@ export interface MultipleRegressionParams extends BaseParameters {
 export interface LogisticRegressionParams extends BaseParameters {
   independentColumns: string[]
   dependentColumn: string
-  maxIterations?: number
-  tolerance?: number
+  // maxIterations, tolerance 제거됨: Pyodide worker가 해당 파라미터 미지원
 }
 
 export interface CorrelationAnalysisParams extends BaseParameters {
