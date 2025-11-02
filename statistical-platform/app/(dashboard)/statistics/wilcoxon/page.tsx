@@ -31,6 +31,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -144,23 +145,13 @@ export default function WilcoxonPage() {
   ]
 
   // Event handlers
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[wilcoxon] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-    actions.setCurrentStep(2)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'wilcoxon'
+  )
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !variables.dependent || variables.dependent.length !== 2) {
@@ -205,17 +196,15 @@ export default function WilcoxonPage() {
     }
   }, [uploadedData, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (!actions.setSelectedVariables) {
-      console.error('[wilcoxon] setSelectedVariables not available')
-      return
-    }
-
-    actions.setSelectedVariables(variables)
-    if (variables.dependent && variables.dependent.length === 2) {
-      runAnalysis(variables)
-    }
-  }, [actions, runAnalysis])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      if (variables.dependent && variables.dependent.length === 2) {
+        runAnalysis(variables)
+      }
+    },
+    'wilcoxon'
+  )
 
   return (
     <StatisticsPageLayout

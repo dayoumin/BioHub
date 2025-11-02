@@ -33,6 +33,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -232,23 +233,13 @@ export default function ThreeWayAnovaPage() {
     ]
   }), [])
 
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[three-way-anova] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-    actions.setCurrentStep(3)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(3)
+    },
+    'three-way-anova'
+  )
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {

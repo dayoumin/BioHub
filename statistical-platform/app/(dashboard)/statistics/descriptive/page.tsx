@@ -198,6 +198,13 @@ export default function DescriptiveStatsPage() {
     setActiveTab('summary')
   }
 
+  // 데이터 업로드 핸들러
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => actions.setCurrentStep(1),
+    'descriptive'
+  )
+
   // 변수 선택 핸들러
   const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
     actions.setSelectedVariables,
@@ -393,11 +400,7 @@ export default function DescriptiveStatsPage() {
             </CardHeader>
             <CardContent>
               <DataUploadStep
-                onUploadComplete={createDataUploadHandler(
-                  actions.setUploadedData,
-                  () => actions.setCurrentStep(1),
-                  'descriptive'
-                )}
+                onUploadComplete={handleDataUpload}
                 onNext={() => actions.setCurrentStep(1)}
                 canGoNext={false}
                 currentStep={1}

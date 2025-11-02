@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus } from 'lucide-react'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface SelectedVariables {
   dependent: string[]
@@ -123,13 +124,19 @@ export default function StepwiseRegressionPage() {
     }
   ]
 
-  const handleDataUpload = (uploadedData: unknown[], uploadedColumns: string[]) => {
-    setData((uploadedData as unknown[] ?? []))
-    setColumns(uploadedColumns)
-    actions.setCurrentStep(3)
-  }
+  // Data upload handler using common utility
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    (uploadedData) => {
+      // Update legacy state for pyodide compatibility
+      setData(uploadedData.data)
+      setColumns(uploadedData.columns)
+      actions.setCurrentStep(3)
+    },
+    'stepwise'
+  )
 
-  const handleVariablesSelected = (variables: unknown) => {
+  const handleVariablesSelected = useCallback((variables: unknown) => {
     if (!actions.setSelectedVariables) {
       console.error('[stepwise] setSelectedVariables not available')
       return
@@ -140,9 +147,9 @@ export default function StepwiseRegressionPage() {
       actions.setCurrentStep(4)
       runStepwiseAnalysis(variables as SelectedVariables)
     }
-  }
+  }, [actions])
 
-  const runStepwiseAnalysis = async (variables: SelectedVariables) => {
+  const runStepwiseAnalysis = useCallback(async (variables: SelectedVariables) => {
     actions.startAnalysis()
 
     try {
@@ -430,7 +437,7 @@ json.dumps(results)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
-  }
+  }, [actions, data])
 
   const getModelFitInterpretation = (r2: number) => {
     if (r2 >= 0.7) return { level: '우수', color: 'text-muted-foreground', bg: 'bg-muted' }

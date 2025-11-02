@@ -7,6 +7,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -153,39 +154,28 @@ export default function TwoWayAnovaPage() {
     }
   ]
 
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(3)
+    },
+    'two-way-anova'
+  )
 
-    if (!actions.setUploadedData) {
-      console.error('[two-way-anova] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-    actions.setCurrentStep(3)
-  }, [actions])
-
-  const handleVariablesSelected = useCallback((variables: VariableAssignment) => {
-    const typedVariables: SelectedVariables = {
-      dependent: Array.isArray(variables.dependent) ? variables.dependent : [variables.dependent as string],
-      factor: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string],
-      covariate: variables.covariate ? (Array.isArray(variables.covariate) ? variables.covariate : [variables.covariate as string]) : undefined
-    }
-
-    if (!actions.setSelectedVariables) {
-      console.error('[two-way-anova] setSelectedVariables not available')
-      return
-    }
-    actions.setSelectedVariables(typedVariables)
-    actions.setCurrentStep(4)
-    runTwoWayAnovaAnalysis(typedVariables)
-  }, [actions])
+  const handleVariablesSelected = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      const typedVariables: SelectedVariables = {
+        dependent: Array.isArray(variables.dependent) ? variables.dependent : [variables.dependent as string],
+        factor: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string],
+        covariate: variables.covariate ? (Array.isArray(variables.covariate) ? variables.covariate : [variables.covariate as string]) : undefined
+      }
+      actions.setSelectedVariables?.(typedVariables)
+      actions.setCurrentStep(4)
+      runTwoWayAnovaAnalysis(typedVariables)
+    },
+    'two-way-anova'
+  )
 
   const runTwoWayAnovaAnalysis = useCallback(async (variables: SelectedVariables) => {
     if (!uploadedData) {

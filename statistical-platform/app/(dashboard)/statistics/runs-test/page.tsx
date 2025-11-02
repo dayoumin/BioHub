@@ -25,6 +25,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
 // 데이터 인터페이스
 interface UploadedData {
@@ -110,28 +111,13 @@ export default function RunsTestPage() {
     }
   ]
 
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[runs-test] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-
-    if (!actions.setCurrentStep) {
-      console.error('[runs-test] setCurrentStep not available')
-      return
-    }
-    actions.setCurrentStep(2)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'runs-test'
+  )
 
   // 실제 런 검정 계산 로직 (간단 구현)
   const calculateRunsTest = useCallback((data: unknown[], variable: string): RunsTestResult => {
