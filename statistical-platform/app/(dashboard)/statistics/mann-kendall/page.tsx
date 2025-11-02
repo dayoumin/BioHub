@@ -523,7 +523,7 @@ export default function MannKendallPage() {
         columns: data.length > 0 ? Object.keys(data[0]) : []
       })
     }
-    actions.setCurrentStep(2) // Move to next step
+    actions.setCurrentStep(2)
   }, [actions])
 
   // Build steps array dynamically based on currentStep

@@ -447,7 +447,7 @@ json.dumps(results)
       {currentStep === 1 && renderMethodIntroduction()}
       {currentStep === 2 && (
         <DataUploadStep
-          onUploadComplete={(_file, data) => handleDataUpload(data, Object.keys(data[0] || {}))}
+          onUploadComplete={(_file: File, data: Record<string, unknown>[]) => handleDataUpload(data, Object.keys(data[0] || {}))}
           onNext={() => actions.setCurrentStep(3)}
         />
       )}

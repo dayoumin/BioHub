@@ -25,7 +25,6 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
-import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
 // 데이터 인터페이스
 interface UploadedData {
@@ -394,7 +393,7 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
       <DataUploadStep
-        onUploadComplete={(file, data) => {
+        onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
           const columns = Object.keys(data[0] || {})
           handleDataUpload({
             data,

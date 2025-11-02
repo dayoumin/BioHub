@@ -1,1 +1,4 @@
-{}
+{
+  "/page": "app/page.js",
+  "/(dashboard)/statistics/anova/page": "app/(dashboard)/statistics/anova/page.js"
+}
