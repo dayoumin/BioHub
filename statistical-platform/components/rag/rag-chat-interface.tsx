@@ -339,13 +339,13 @@ export function RAGChatInterface({
                 className={cn(
                   'w-auto rounded-lg p-4',
                   msg.role === 'user'
-                    ? 'bg-gray-200 text-gray-400'
+                    ? 'bg-gray-200 text-black'
                     : 'bg-background'
                 )}
               >
                 {/* 메시지 내용 */}
                 {msg.role === 'user' ? (
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  <p className="text-sm whitespace-pre-wrap text-right">{msg.content}</p>
                 ) : (
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown
