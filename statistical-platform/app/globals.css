@@ -208,6 +208,22 @@
 }
 
 @layer utilities {
+  /* Floating Chatbot - 4-Direction Resize */
+  .resizable-container {
+    resize: both !important;
+    overflow: auto !important;
+  }
+
+  .resizable-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    cursor: nwse-resize;
+  }
+
   /* Hover Effects - Unified */
   .hover-lift {
     @apply transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-md;

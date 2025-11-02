@@ -56,7 +56,11 @@
       "Bash(npm run dev:*)",
       "Bash(node scripts/centralize-colors.js:*)",
       "Bash(cd:*)",
-      "Bash(do echo \"=== $dir ===\")"
+      "Bash(do echo \"=== $dir ===\")",
+      "Bash(head:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(xargs taskkill:*)"
     ],
     "deny": [],
     "ask": []

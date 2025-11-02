@@ -1136,4 +1136,122 @@ ${contextText}
 
     return answer.trim()
   }
+
+  /**
+   * Ollama 스트리밍 응답 생성 (단어/토큰별 실시간 반환)
+   *
+   * @param contextText - RAG 검색 결과로 생성한 컨텍스트
+   * @param query - 사용자 질문
+   * @yields 생성된 응답의 토큰들
+   */
+  async *streamGenerateAnswer(contextText: string, query: string): AsyncGenerator<string> {
+    const systemPrompt = `당신은 통계 분석 전문가입니다. 제공된 문서를 참고하여 사용자의 질문에 정확하고 친절하게 답변해주세요.
+
+답변 형식 규칙:
+- **문서 우선**: 제공된 문서의 정보를 우선적으로 사용하세요
+- **마크다운 필수**: 제목(##), 리스트(-), 강조(**) 등을 활용하여 구조화하세요
+- **용어 병기**: 통계 용어는 한글과 영문을 함께 표기하세요 (예: 귀무가설(Null Hypothesis))
+- **핵심 먼저**: 결론을 먼저 제시한 후, 상세 설명을 추가하세요
+- **주의사항 명시**: 적용 조건이나 제약사항이 있으면 명확히 표시하세요
+- **추론 과정 숨김**: <think>, </think>, <sensitive> 같은 내부 태그를 절대 사용하지 마세요
+
+답변 구조 (권장):
+1. 간단한 요약 (1-2문장)
+2. 상세 설명 (마크다운 활용)
+3. 주의사항 또는 추가 정보`
+
+    const prompt = `${systemPrompt}
+
+${contextText}
+
+사용자 질문: ${query}
+
+답변:`
+
+    const response = await fetch(`${this.ollamaEndpoint}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: this.inferenceModel,
+        prompt,
+        stream: true, // 스트리밍 활성화
+        options: {
+          temperature: 0.7,
+          top_p: 0.9,
+          num_predict: 3000
+        }
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`응답 생성 실패: ${response.statusText}`)
+    }
+
+    // ReadableStream으로 스트리밍 처리
+    const reader = response.body?.getReader()
+    if (!reader) {
+      throw new Error('응답 스트림을 읽을 수 없습니다')
+    }
+
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+
+        // 마지막 불완전한 라인은 다음 반복을 위해 보관
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.trim() === '') continue
+
+          try {
+            const json = JSON.parse(line) as { response?: string; done?: boolean }
+            if (json.response) {
+              // <think> 태그 제거 (스트리밍 중)
+              let chunk = json.response
+              chunk = chunk.replace(/<think>[\s\S]*?<\/think>/gi, '')
+              chunk = chunk.replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;/gi, '')
+              chunk = chunk.replace(/-?sensitive\s*<think>[\s\S]*?<\/think>/gi, '')
+              chunk = chunk.replace(/^-?sensitive\s*/im, '')
+
+              if (chunk) {
+                yield chunk
+              }
+            }
+          } catch {
+            // JSON 파싱 실패는 무시 (불완전한 데이터일 수 있음)
+            console.debug('[streamGenerateAnswer] JSON 파싱 실패:', line)
+          }
+        }
+      }
+
+      // 남은 버퍼 처리
+      if (buffer.trim()) {
+        try {
+          const json = JSON.parse(buffer) as { response?: string }
+          if (json.response) {
+            let chunk = json.response
+            chunk = chunk.replace(/<think>[\s\S]*?<\/think>/gi, '')
+            chunk = chunk.replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;/gi, '')
+            chunk = chunk.replace(/-?sensitive\s*<think>[\s\S]*?<\/think>/gi, '')
+            chunk = chunk.replace(/^-?sensitive\s*/im, '')
+
+            if (chunk) {
+              yield chunk
+            }
+          }
+        } catch {
+          console.debug('[streamGenerateAnswer] 최종 버퍼 JSON 파싱 실패')
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+  }
 }
