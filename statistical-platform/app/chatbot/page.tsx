@@ -39,7 +39,7 @@ import { ChatStorage } from '@/lib/services/chat-storage'
 import type { ChatSession } from '@/lib/types/chat'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import { cn } from '@/lib/utils'
-import { sortSessionsByFavoriteAndRecent } from '@/lib/utils/session-sorter'
+import { createNewChatSession, sortSessionsByFavoriteAndRecent } from '@/lib/utils/session-sorter'
 
 const QUICK_PROMPTS = [
   {
@@ -90,15 +90,9 @@ export default function ChatbotPage() {
 
   // 새 대화
   const handleNewChat = useCallback(() => {
-    const newSession = ChatStorage.createNewSession()
-    // cleanupIfNeeded()로 세션이 삭제될 수 있으므로 storage에서 다시 로드
-    const updatedSessions = ChatStorage.loadSessions()
-
-    // 즐겨찾기 우선 정렬 유지
-    const sortedSessions = sortSessionsByFavoriteAndRecent(updatedSessions)
-
+    const { sessions: sortedSessions, newSessionId } = createNewChatSession()
     setSessions(sortedSessions)
-    setCurrentSessionId(newSession.id)
+    setCurrentSessionId(newSessionId)
   }, [])
 
   // 세션 선택

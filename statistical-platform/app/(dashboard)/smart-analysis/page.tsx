@@ -10,6 +10,7 @@ import { Sparkles, Upload, CheckCircle2, BarChart3, HelpCircle, ArrowRight } fro
 import { FileUpload } from "@/components/ui/file-upload"
 import Link from "next/link"
 import { useAppStore } from "@/lib/store"
+import { PyodideCoreService } from "@/lib/services/pyodide/core/pyodide-core.service"
 
 type Step = 'upload' | 'descriptive' | 'assumptions' | 'method-selection' | 'analysis' | 'results'
 
@@ -40,7 +41,7 @@ export default function SmartAnalysisPage() {
   const [_selectedAnalysisType, setSelectedAnalysisType] = useState<string | null>(null)
   const [analysisResultId, setAnalysisResultId] = useState<string | null>(null)
 
-  const { addAnalysisResult } = useAppStore()
+  const { addAnalysisResult, getDatasetById } = useAppStore()
 
   // 해시 기반 라우팅 처리
   useEffect(() => {
@@ -70,38 +71,267 @@ export default function SmartAnalysisPage() {
   }
 
   const handleUploadComplete = (id: string) => {
-    // 실제로는 업로드된 데이터셋 정보를 가져와야 함
-    setDatasetInfo({
-      id,
-      name: "업로드된 데이터",
-      numericColumns: ["age", "score", "height"],
-      categoricalColumns: ["group", "gender"],
-      rowCount: 100
+    // Store에서 실제 업로드된 데이터셋 정보 가져오기
+    const dataset = getDatasetById(id)
+
+    if (!dataset) {
+      console.error(`Dataset not found: ${id}`)
+      return
+    }
+
+    // 데이터가 없으면 에러 처리
+    if (!dataset.data || dataset.data.length === 0) {
+      console.error('Dataset has no data')
+      return
+    }
+
+    // 첫 번째 행에서 컬럼명 추출
+    const columns = Object.keys(dataset.data[0])
+
+    // 컬럼 타입 자동 감지
+    const numericColumns: string[] = []
+    const categoricalColumns: string[] = []
+
+    columns.forEach(column => {
+      // 모든 행의 해당 컬럼 값 확인
+      const allNumeric = dataset.data!.every(row => {
+        const value = row[column]
+        // null, undefined는 허용 (결측치)
+        if (value === null || value === undefined || value === '') {
+          return true
+        }
+        // 숫자형 체크
+        return typeof value === 'number' || !isNaN(Number(value))
+      })
+
+      if (allNumeric) {
+        numericColumns.push(column)
+      } else {
+        categoricalColumns.push(column)
+      }
     })
+
+    // DatasetInfo 설정
+    setDatasetInfo({
+      id: dataset.id,
+      name: dataset.name,
+      numericColumns,
+      categoricalColumns,
+      rowCount: dataset.rows
+    })
+
     setCurrentStep('descriptive')
   }
 
-  const handleDescriptiveComplete = () => {
+  const handleDescriptiveComplete = async () => {
+    if (!datasetInfo) {
+      console.error('No dataset info available')
+      return
+    }
+
+    // Dataset 가져오기
+    const dataset = getDatasetById(datasetInfo.id)
+    if (!dataset || !dataset.data || dataset.data.length === 0) {
+      console.error('Dataset not found or empty')
+      return
+    }
+
     setCurrentStep('assumptions')
-    // 가정 검정 시뮬레이션
-    setTimeout(() => {
-      setAssumptionResults({
-        normality: {
-          'age': { test: 'Shapiro-Wilk', pValue: 0.024, isNormal: false },
-          'score': { test: 'Shapiro-Wilk', pValue: 0.145, isNormal: true },
-          'height': { test: 'Shapiro-Wilk', pValue: 0.892, isNormal: true }
-        },
-        homogeneity: {
-          'score_by_group': { test: "Levene's test", pValue: 0.067, isHomogeneous: true }
-        },
-        recommendation: {
-          parametric: false,
-          suggestedMethod: "Mann-Whitney U test",
-          reason: "'age' 변수가 정규분포를 따르지 않아 비모수 검정을 권장합니다"
+    setIsAnalyzing(true)
+
+    try {
+      // PyodideCore 초기화
+      const pyodideService = PyodideCoreService.getInstance()
+      await pyodideService.initialize()
+
+      // ========================================
+      // 1. 정규성 검정 (Shapiro-Wilk Test)
+      // ========================================
+      const normalityResults: Record<string, { test: string; pValue: number; isNormal: boolean }> = {}
+
+      for (const column of datasetInfo.numericColumns) {
+        // 컬럼 데이터 추출 (결측치 제거)
+        const columnData = dataset.data
+          .map(row => row[column])
+          .filter(value => value !== null && value !== undefined && value !== '') as number[]
+
+        if (columnData.length < 3) {
+          console.warn(`Column '${column}' has insufficient data for normality test (n=${columnData.length})`)
+          continue
         }
+
+        // Worker 1: normality_test 호출
+        const result = await pyodideService.callWorkerMethod<{
+          statistic: number
+          pValue: number
+          isNormal: boolean
+          alpha: number
+        }>(
+          1, // Worker 1: Descriptive (normality_test 포함)
+          'normality_test',
+          { data: columnData, alpha: 0.05 }
+        )
+
+        normalityResults[column] = {
+          test: 'Shapiro-Wilk',
+          pValue: result.pValue,
+          isNormal: result.isNormal
+        }
+      }
+
+      // ========================================
+      // 2. 등분산성 검정 (Levene's Test)
+      // ========================================
+      const homogeneityResults: Record<string, { test: string; pValue: number; isHomogeneous: boolean }> = {}
+
+      // 범주형 변수로 그룹핑 가능한 경우만 검정
+      if (datasetInfo.categoricalColumns.length > 0 && datasetInfo.numericColumns.length > 0) {
+        const groupColumn = datasetInfo.categoricalColumns[0] // 첫 번째 범주형 변수
+        const valueColumn = datasetInfo.numericColumns[0] // 첫 번째 수치형 변수
+
+        // 그룹별 데이터 분리
+        const groupsMap = new Map<string, number[]>()
+        dataset.data.forEach(row => {
+          const groupKey = String(row[groupColumn])
+          const value = row[valueColumn]
+
+          // 결측치 제외
+          if (value === null || value === undefined || value === '') {
+            return
+          }
+
+          if (!groupsMap.has(groupKey)) {
+            groupsMap.set(groupKey, [])
+          }
+          groupsMap.get(groupKey)!.push(Number(value))
+        })
+
+        // 최소 2개 그룹 필요
+        if (groupsMap.size >= 2) {
+          const groupsArray = Array.from(groupsMap.values())
+
+          // Worker 2: levene_test 호출
+          const leveneResult = await pyodideService.callWorkerMethod<{
+            statistic: number
+            pValue: number
+            equalVariance: boolean
+          }>(
+            2, // Worker 2: Hypothesis Tests
+            'levene_test',
+            { groups: groupsArray }
+          )
+
+          homogeneityResults[`${valueColumn}_by_${groupColumn}`] = {
+            test: "Levene's test",
+            pValue: leveneResult.pValue,
+            isHomogeneous: leveneResult.equalVariance
+          }
+        }
+      }
+
+      // ========================================
+      // 3. AI 추천 로직
+      // ========================================
+      const allNormal = Object.values(normalityResults).every(r => r.isNormal)
+      const allHomogeneous = Object.values(homogeneityResults).length === 0 ||
+                             Object.values(homogeneityResults).every(r => r.isHomogeneous)
+
+      let recommendation: { parametric: boolean; suggestedMethod: string; reason: string }
+
+      // 그룹 수 확인
+      const numGroups = datasetInfo.categoricalColumns.length > 0
+        ? new Set(dataset.data.map(r => r[datasetInfo.categoricalColumns[0]])).size
+        : 0
+
+      // 시나리오별 추천
+      if (numGroups === 2 && datasetInfo.numericColumns.length >= 1) {
+        // 두 그룹 비교
+        if (allNormal && allHomogeneous) {
+          recommendation = {
+            parametric: true,
+            suggestedMethod: "Independent t-test",
+            reason: "두 그룹 간 비교이며 정규성과 등분산성을 만족하여 독립표본 t-검정을 권장합니다"
+          }
+        } else if (allNormal && !allHomogeneous) {
+          recommendation = {
+            parametric: true,
+            suggestedMethod: "Welch's t-test",
+            reason: "정규성은 만족하나 등분산성을 만족하지 않아 Welch's t-test를 권장합니다"
+          }
+        } else {
+          recommendation = {
+            parametric: false,
+            suggestedMethod: "Mann-Whitney U test",
+            reason: "정규성 가정을 만족하지 않아 비모수 검정인 Mann-Whitney U test를 권장합니다"
+          }
+        }
+      } else if (numGroups >= 3 && datasetInfo.numericColumns.length >= 1) {
+        // 세 그룹 이상 비교
+        if (allNormal && allHomogeneous) {
+          recommendation = {
+            parametric: true,
+            suggestedMethod: "One-way ANOVA",
+            reason: `${numGroups}개 그룹 비교이며 정규성과 등분산성을 만족하여 일원분산분석(ANOVA)을 권장합니다`
+          }
+        } else {
+          recommendation = {
+            parametric: false,
+            suggestedMethod: "Kruskal-Wallis test",
+            reason: "가정을 만족하지 않아 비모수 검정인 Kruskal-Wallis test를 권장합니다"
+          }
+        }
+      } else if (datasetInfo.numericColumns.length >= 2 && numGroups === 0) {
+        // 상관/회귀 분석
+        if (allNormal) {
+          recommendation = {
+            parametric: true,
+            suggestedMethod: "Pearson Correlation",
+            reason: "수치형 변수 간 관계 분석이며 정규성을 만족하여 Pearson 상관분석을 권장합니다"
+          }
+        } else {
+          recommendation = {
+            parametric: false,
+            suggestedMethod: "Spearman Correlation",
+            reason: "정규성을 만족하지 않아 Spearman 순위 상관분석을 권장합니다"
+          }
+        }
+      } else {
+        // 단일 그룹 또는 기타
+        if (allNormal) {
+          recommendation = {
+            parametric: true,
+            suggestedMethod: "One-sample t-test",
+            reason: "단일 그룹 분석이며 정규성을 만족하여 일표본 t-검정을 권장합니다"
+          }
+        } else {
+          recommendation = {
+            parametric: false,
+            suggestedMethod: "Descriptive Statistics",
+            reason: "데이터 특성에 맞는 분석 방법을 수동으로 선택해주세요"
+          }
+        }
+      }
+
+      // ========================================
+      // 4. 결과 저장
+      // ========================================
+      setAssumptionResults({
+        normality: normalityResults,
+        homogeneity: homogeneityResults,
+        recommendation
       })
+
       setCurrentStep('method-selection')
-    }, 3000)
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error('Assumption testing failed:', errorMessage)
+      alert(`가정 검정 실패: ${errorMessage}`)
+      // 에러 발생 시 이전 단계로 복귀
+      setCurrentStep('descriptive')
+    } finally {
+      setIsAnalyzing(false)
+    }
   }
 
   const steps = [

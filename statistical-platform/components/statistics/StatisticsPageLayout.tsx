@@ -36,7 +36,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Zap,
   BarChart3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -470,33 +469,6 @@ export function StatisticsPageLayout({
           </motion.div>
         </AnimatePresence>
 
-        {/* 플로팅 액션 버튼 (빠른 분석) */}
-        {onRun && (
-          <motion.div
-            className="fixed bottom-8 right-8"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 1 }}
-          >
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="lg"
-                    className="rounded-full w-14 h-14 shadow-2xl bg-gradient-to-r from-primary to-purple-600"
-                    onClick={onRun}
-                    disabled={isRunning}
-                  >
-                    <Zap className="w-6 h-6" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>빠른 분석 실행 (Ctrl+Enter)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </motion.div>
-        )}
       </div>
     </div>
   )

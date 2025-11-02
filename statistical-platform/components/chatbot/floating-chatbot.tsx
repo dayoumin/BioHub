@@ -48,6 +48,17 @@ export function FloatingChatbot() {
     setIsEnabled(settings.floatingButtonEnabled)
   }, [])
 
+  // 설정 변경 감지
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      const settings = ChatStorage.loadSettings()
+      setIsEnabled(settings.floatingButtonEnabled)
+    }
+
+    window.addEventListener('chatbot-settings-changed', handleSettingsChange)
+    return () => window.removeEventListener('chatbot-settings-changed', handleSettingsChange)
+  }, [])
+
   // Esc 키로 닫기
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -68,6 +79,14 @@ export function FloatingChatbot() {
   const handleClose = useCallback(() => {
     setIsOpen(false)
     setIsMinimized(false)
+  }, [])
+
+  const handleHidePermanently = useCallback(() => {
+    const settings = ChatStorage.loadSettings()
+    settings.floatingButtonEnabled = false
+    ChatStorage.saveSettings(settings)
+    setIsEnabled(false)
+    setIsOpen(false)
   }, [])
 
   const handleMinimize = useCallback(() => {
@@ -130,8 +149,8 @@ export function FloatingChatbot() {
 
           {/* 푸터 */}
           {!isMinimized && (
-            <div className="p-3 border-t bg-muted/30 text-center">
-              <p className="text-xs text-muted-foreground">
+            <div className="p-3 border-t bg-muted/30 space-y-2">
+              <p className="text-xs text-muted-foreground text-center">
                 더 많은 기능을 원하시면{' '}
                 <a
                   href="/chatbot"
@@ -142,6 +161,14 @@ export function FloatingChatbot() {
                 </a>
                 를 이용하세요
               </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-muted-foreground hover:text-destructive"
+                onClick={handleHidePermanently}
+              >
+                플로팅 버튼 숨기기 (설정에서 다시 켤 수 있습니다)
+              </Button>
             </div>
           )}
         </Card>

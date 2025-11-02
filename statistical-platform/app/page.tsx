@@ -1,91 +1,220 @@
-'use client'
+"use client"
 
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { BarChart3 } from 'lucide-react'
-import Link from 'next/link'
-import React from 'react'
-
-interface UserTrack {
-  id: string
-  title: string
-  icon: React.ComponentType<{ className?: string }>
-  journey: string
-  color: string
-  comingSoon?: boolean
-}
-
-const USER_TRACKS: UserTrack[] = [
-  {
-    id: 'analysis',
-    title: '통계 분석',
-    icon: BarChart3,
-    journey: '/smart-flow',
-    color: 'bg-gradient-analysis'
-  }
-]
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Star } from "lucide-react"
+import Link from "next/link"
+import { useState, useEffect, useCallback } from "react"
+import { STATISTICS_MENU } from "@/lib/statistics/menu-config"
+import { cn } from "@/lib/utils"
 
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <div className="container max-w-4xl mx-auto p-6 space-y-16">
+  // 즐겨찾기 상태 관리
+  const [favorites, setFavorites] = useState<string[]>([])
+  // 선택된 카테고리 (토글용)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
-        {/* Hero */}
-        <div className="text-center space-y-8 pt-12">
-          <div className="space-y-4">
-            <h1 className="text-5xl font-bold tracking-tight">
-              실험계획 및 통계분석 시스템
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              연구 설계부터 데이터 분석까지 한 곳에서 빠르게 완료하세요.
-            </p>
-          </div>
+  useEffect(() => {
+    const saved = localStorage.getItem('statPlatform_favorites')
+    if (saved) {
+      try {
+        setFavorites(JSON.parse(saved))
+      } catch (error) {
+        console.error('Failed to load favorites:', error)
+      }
+    }
+  }, [])
+
+  // 즐겨찾기 토글
+  const toggleFavorite = useCallback((itemId: string) => {
+    setFavorites((prev) => {
+      const newFavorites = prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId]
+
+      localStorage.setItem('statPlatform_favorites', JSON.stringify(newFavorites))
+      return newFavorites
+    })
+  }, [])
+
+  // 카테고리 토글
+  const toggleCategory = useCallback((categoryId: string) => {
+    setSelectedCategory((prev) => (prev === categoryId ? null : categoryId))
+  }, [])
+
+  // 모든 메뉴 아이템 평탄화
+  const allItems = STATISTICS_MENU.flatMap((category) => category.items)
+  const favoriteItems = allItems.filter((item) => favorites.includes(item.id))
+
+  return (
+    <div className="space-y-8 max-w-5xl mx-auto py-8">
+      {/* 1. 스마트 분석 버튼 */}
+      <Link href="/smart-analysis" className="block max-w-md mx-auto">
+        <Button
+          size="lg"
+          className="w-full h-16 text-lg font-semibold gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md hover:shadow-lg transition-all"
+        >
+          <Star className="h-6 w-6" />
+          스마트 분석 시작하기
+        </Button>
+      </Link>
+
+      {/* 2. 통계 분석 카테고리 */}
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-center">통계 분석 카테고리</h2>
+
+        {/* 카테고리 버튼 그리드 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-4xl mx-auto">
+          {STATISTICS_MENU.map((category) => {
+            const Icon = category.icon
+            const isSelected = selectedCategory === category.id
+
+            return (
+              <Button
+                key={category.id}
+                variant={isSelected ? "default" : "outline"}
+                className={cn(
+                  "h-auto py-2 px-3 flex items-center justify-center gap-1.5 transition-all",
+                  !isSelected && "hover:bg-accent"
+                )}
+                onClick={() => toggleCategory(category.id)}
+              >
+                <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                <div className="text-xs font-semibold">{category.title}</div>
+              </Button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 3. 내 통계 도구 */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+            내 통계 도구
+          </h2>
+          {favorites.length > 0 && (
+            <Badge variant="secondary" className="text-base px-3 py-1">
+              {favorites.length}개
+            </Badge>
+          )}
         </div>
 
-        {/* Tracks */}
-        <div className="text-center space-y-8">
-          <h2 className="text-3xl font-semibold">무엇을 도와드릴까요?</h2>
+        {favorites.length === 0 ? (
+          <Card className="text-center py-12 bg-muted/30">
+            <CardContent>
+              <Star className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
+              <p className="text-sm text-muted-foreground">
+                카테고리에서 분석 방법을 선택하고 별표를 클릭하세요
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {favoriteItems.map((item) => (
+              <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
+                      {item.subtitle && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleFavorite(item.id)
+                      }}
+                      aria-label="즐겨찾기 해제"
+                    >
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    </Button>
+                  </div>
+                  {item.implemented ? (
+                    <Link href={item.href}>
+                      <Button size="sm" variant="outline" className="w-full h-7 text-xs">
+                        분석 시작
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
+                      준비 중
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-          <div className="grid gap-8 md:grid-cols-2">
-            {USER_TRACKS.map((track) => {
-              const Icon = track.icon
-              const isDisabled = track.comingSoon
+      {/* 4. 선택된 카테고리의 분석 방법들 */}
+      {selectedCategory && (
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold flex items-center gap-2">
+            {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title} 분석 방법
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.items.map((item) => {
+              const isFavorite = favorites.includes(item.id)
 
               return (
-                <div key={track.id}>
-                  {isDisabled ? (
-                    <Card className="relative overflow-hidden border-2 cursor-not-allowed opacity-60 h-full">
-                      <div className="absolute inset-0 bg-gradient-to-br opacity-5 pointer-events-none" />
-                      <div className="relative p-8 flex flex-col items-center justify-center space-y-4 min-h-[200px]">
-                        <div className={`p-4 rounded-xl ${track.color} text-white opacity-50`}>
-                          <Icon className="w-12 h-12" />
-                        </div>
-                        <h3 className="text-2xl font-semibold text-muted-foreground">{track.title}</h3>
-                        <p className="text-sm text-muted-foreground">준비 중</p>
+                <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-1">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
+                        {item.subtitle && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
+                        )}
                       </div>
-                    </Card>
-                  ) : (
-                    <Link href={track.journey}>
-                      <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50 cursor-pointer h-full">
-                        <div
-                          className="absolute inset-0 bg-gradient-to-br opacity-5 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"
-                          style={{ background: `linear-gradient(135deg, var(--primary), var(--primary-foreground))` }}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleFavorite(item.id)
+                        }}
+                        aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                      >
+                        <Star
+                          className={cn(
+                            'h-3 w-3',
+                            isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                          )}
                         />
-                        <div className="relative p-8 flex flex-col items-center justify-center space-y-4 min-h-[200px]">
-                          <div className={`p-4 rounded-xl ${track.color} text-white`}>
-                            <Icon className="w-12 h-12" />
-                          </div>
-                          <h3 className="text-2xl font-semibold">{track.title}</h3>
-                        </div>
-                      </Card>
-                    </Link>
-                  )}
+                      </Button>
+                    </div>
+                    {item.implemented ? (
+                      <Link href={item.href}>
+                        <Button size="sm" variant="outline" className="w-full h-7 text-xs">
+                          분석 시작
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
+                        준비 중
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )
             })}
           </div>
         </div>
+      )}
 
+      {/* 하단 안내 */}
+      <div className="text-center text-sm text-muted-foreground pt-8">
+        <p>모든 통계 분석은 Python SciPy 라이브러리를 기반으로 정확하게 계산됩니다</p>
       </div>
     </div>
   )

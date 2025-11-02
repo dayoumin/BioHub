@@ -31,61 +31,8 @@ export interface StatisticsCategory {
   items: StatisticsMenuItem[]
 }
 
-// 41개 통계 메서드를 카테고리별로 구성
+// 통계 메서드를 카테고리별로 구성 (기술통계는 내부적으로만 사용)
 export const STATISTICS_MENU: StatisticsCategory[] = [
-  {
-    id: 'descriptive',
-    title: '기술통계',
-    description: '데이터의 기본적인 특성 파악',
-    icon: FileText,
-    items: [
-      {
-        id: 'descriptive-stats',
-        href: '/statistics/descriptive',
-        title: '기술통계',
-        subtitle: '평균, 중앙값, 표준편차',
-        category: 'descriptive',
-        icon: FileText,
-        implemented: true
-      },
-      {
-        id: 'frequency-table',
-        href: '/statistics/frequency-table',
-        title: '빈도분석',
-        subtitle: '범주형 변수의 빈도와 비율',
-        category: 'descriptive',
-        icon: BarChart3,
-        implemented: true
-      },
-      {
-        id: 'cross-tabulation',
-        href: '/statistics/cross-tabulation',
-        title: '교차표',
-        subtitle: '두 범주형 변수 간의 교차 빈도',
-        category: 'descriptive',
-        icon: GitBranch,
-        implemented: true
-      },
-      {
-        id: 'explore-data',
-        href: '/statistics/explore-data',
-        title: '데이터 탐색',
-        subtitle: '상자그림, 정규성 검정 포함',
-        category: 'descriptive',
-        icon: Microscope,
-        implemented: true
-      },
-      {
-        id: 'reliability-analysis',
-        href: '/statistics/reliability',
-        title: '신뢰도 분석',
-        subtitle: 'Cronbach\'s α',
-        category: 'descriptive',
-        icon: Activity,
-        implemented: true
-      }
-    ]
-  },
   {
     id: 'compare',
     title: '평균 비교',
