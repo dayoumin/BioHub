@@ -1,5 +1,4 @@
 {
-  "/favicon.ico/route": "app/favicon.ico/route.js",
   "/page": "app/page.js",
   "/(dashboard)/statistics/two-way-anova/page": "app/(dashboard)/statistics/two-way-anova/page.js",
   "/(dashboard)/statistics/pca/page": "app/(dashboard)/statistics/pca/page.js",

@@ -494,11 +494,22 @@ json.dumps(results)
         </AlertDescription>
       </Alert>
 
-      <div className="flex justify-center">
-        <Button onClick={() => actions.setCurrentStep(2)} size="lg">
-          데이터 업로드하기
-        </Button>
-      </div>
+      <Separator className="my-6" />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>데이터 업로드</CardTitle>
+          <CardDescription>
+            CSV 파일을 업로드하여 이원분산분석을 시작하세요
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataUploadStep
+            onUploadComplete={handleDataUpload}
+            onPrevious={() => {}}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 
