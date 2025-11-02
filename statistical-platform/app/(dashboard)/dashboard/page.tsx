@@ -239,7 +239,7 @@ export default function DashboardPage() {
 
       {/* 하단 안내 */}
       <div className="text-center text-sm text-muted-foreground pt-8">
-        <p>모든 통계 분석은 Python SciPy 라이브러리를 기반으로 정확하게 계산됩니다</p>
+        <p>모든 통계 분석은 검증된 Python 과학 라이브러리(SciPy, statsmodels 등)를 기반으로 정확하게 계산됩니다</p>
       </div>
     </div>
   )
