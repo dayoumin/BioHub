@@ -102,57 +102,68 @@ export default function HomePage() {
           )}
         </div>
 
-        {favorites.length === 0 ? (
-          <Card className="text-center py-12 bg-muted/30">
-            <CardContent>
-              <Star className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
-              <p className="text-sm text-muted-foreground">
-                카테고리에서 분석 방법을 선택하고 별표를 클릭하세요
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {favoriteItems.map((item) => (
-              <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-1">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
-                      {item.subtitle && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
+        <Card className={cn(
+          "transition-all",
+          favorites.length === 0 ? "text-center bg-muted/30" : ""
+        )}>
+          <CardContent className={cn(
+            "flex items-center justify-center",
+            favorites.length === 0 ? "min-h-[280px]" : "min-h-[280px] p-4"
+          )}>
+            {favorites.length === 0 ? (
+              <div className="text-center">
+                <Star className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
+                <p className="text-sm text-muted-foreground">
+                  카테고리에서 분석 방법을 선택하고 별표를 클릭하세요
+                </p>
+              </div>
+            ) : (
+              <div className={cn(
+                "grid grid-cols-2 md:grid-cols-4 gap-3 w-full",
+                favorites.length > 8 && "max-h-[560px] overflow-y-auto pr-2"
+              )}>
+                {favoriteItems.map((item) => (
+                  <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
+                          {item.subtitle && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleFavorite(item.id)
+                          }}
+                          aria-label="즐겨찾기 해제"
+                        >
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        </Button>
+                      </div>
+                      {item.implemented ? (
+                        <Link href={item.href}>
+                          <Button size="sm" variant="outline" className="w-full h-7 text-xs">
+                            분석 시작
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
+                          준비 중
+                        </Button>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 flex-shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleFavorite(item.id)
-                      }}
-                      aria-label="즐겨찾기 해제"
-                    >
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                    </Button>
                   </div>
-                  {item.implemented ? (
-                    <Link href={item.href}>
-                      <Button size="sm" variant="outline" className="w-full h-7 text-xs">
-                        분석 시작
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
-                      준비 중
-                    </Button>
-                  )}
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* 4. 선택된 카테고리의 분석 방법들 */}
@@ -163,35 +174,14 @@ export default function HomePage() {
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.items.map((item) => {
-              const isFavorite = favorites.includes(item.id)
-
               return (
                 <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
                   <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-1">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
-                        {item.subtitle && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 flex-shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleFavorite(item.id)
-                        }}
-                        aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
-                      >
-                        <Star
-                          className={cn(
-                            'h-3 w-3',
-                            isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
-                          )}
-                        />
-                      </Button>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
+                      {item.subtitle && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
+                      )}
                     </div>
                     {item.implemented ? (
                       <Link href={item.href}>
