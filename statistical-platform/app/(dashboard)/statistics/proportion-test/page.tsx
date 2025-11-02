@@ -31,6 +31,7 @@ import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface ProportionTestResults {
   variable: string
@@ -153,20 +154,16 @@ export default function ProportionTestPage() {
     setActiveTab('summary')
   }
 
-  // 변수 선택 핸들러
-  const handleVariablesSelected = useCallback((mapping: unknown) => {
-    if (!mapping || typeof mapping !== 'object') return
-
-    if (!actions.setSelectedVariables) {
-      console.error('[ProportionTest] setSelectedVariables not available')
-      return
-    }
-
-    actions.setSelectedVariables(mapping as VariableMapping)
-    if (Object.keys(mapping as Record<string, unknown>).length > 0) {
-      actions.setCurrentStep(1)
-    }
-  }, [actions])
+  // 변수 선택 핸들러 (공통 유틸 사용)
+  const handleVariablesSelected = createVariableSelectionHandler(
+    actions.setSelectedVariables,
+    (mapping) => {
+      if (Object.keys(mapping as VariableMapping).length > 0) {
+        actions.setCurrentStep(1)
+      }
+    },
+    'proportion-test'
+  )
 
   // 검정 결과 테이블 렌더링
   const renderTestResultsTable = () => {
@@ -405,16 +402,11 @@ export default function ProportionTestPage() {
         {/* 0단계: 데이터 업로드 */}
         {currentStep === 0 && !uploadedData && (
           <DataUploadStep
-            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
-              if (actions.setUploadedData) {
-                actions.setUploadedData({
-                  data,
-                  fileName: file.name,
-                  columns: data.length > 0 ? Object.keys(data[0]) : []
-                } as UploadedData)
-                actions.setCurrentStep(1)
-              }
-            }}
+            onUploadComplete={createDataUploadHandler(
+              actions.setUploadedData,
+              () => actions.setCurrentStep(1),
+              'proportion-test'
+            )}
           />
         )}
 

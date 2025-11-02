@@ -17,6 +17,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
 interface DoseResponseResult {
   model: string
@@ -658,38 +659,17 @@ export default function DoseResponsePage() {
   const [selectedModel, setSelectedModel] = useState('logistic4')
 
   // Event handlers
-  const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    // Type guard and data validation
-    if (!Array.isArray(data) || data.length === 0) {
+  // 데이터 업로드 핸들러 (공통 유틸 사용 + 커스텀 에러 처리)
+  const handleDataUploadComplete = createDataUploadHandler(
+    actions.setUploadedData,
+    (uploadedData) => {
+      actions.setCurrentStep(2)
       if (actions.setError) {
-        actions.setError('업로드된 데이터가 비어있습니다.')
+        actions.setError('')
       }
-      return
-    }
-
-    // Extract columns from first row
-    const firstRow = data[0]
-    const columns = firstRow && typeof firstRow === 'object' && firstRow !== null
-      ? Object.keys(firstRow as Record<string, unknown>)
-      : []
-
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[dose-response] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-    actions.setCurrentStep(2)
-    if (actions.setError) {
-      actions.setError('')
-    }
-  }, [actions])
+    },
+    'dose-response'
+  )
 
   return (
     <StatisticsPageLayout

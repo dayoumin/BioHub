@@ -23,6 +23,7 @@ import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface NormalityTestResult {
   test: string
@@ -448,16 +449,11 @@ export default function NormalityTestPage() {
         {/* 0단계: 데이터 업로드 */}
         {currentStep === 0 && (
           <DataUploadStep
-            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
-              if (actions.setUploadedData) {
-                actions.setUploadedData({
-                  data,
-                  fileName: file.name,
-                  columns: data.length > 0 ? Object.keys(data[0]) : []
-                } as UploadedData)
-                actions.setCurrentStep(1)
-              }
-            }}
+            onUploadComplete={createDataUploadHandler(
+              actions.setUploadedData,
+              () => actions.setCurrentStep(1),
+              'normality-test'
+            )}
           />
         )}
 

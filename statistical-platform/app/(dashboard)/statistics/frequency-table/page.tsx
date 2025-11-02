@@ -31,6 +31,7 @@ import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface FrequencyData {
   value: string
@@ -100,20 +101,16 @@ export default function FrequencyTablePage() {
     }
   ]
 
-  // 변수 선택 핸들러 (표준 패턴)
-  const handleVariablesSelected = useCallback((mapping: unknown) => {
-    if (!mapping || typeof mapping !== 'object') return
-
-    if (!actions.setSelectedVariables) {
-      console.error('[FrequencyTable] setSelectedVariables not available')
-      return
-    }
-
-    actions.setSelectedVariables(mapping as VariableMapping)
-    if (Object.keys(mapping as VariableMapping).length > 0) {
-      actions.setCurrentStep(2)
-    }
-  }, [actions])
+  // 변수 선택 핸들러 (공통 유틸 사용)
+  const handleVariablesSelected = createVariableSelectionHandler(
+    actions.setSelectedVariables,
+    (mapping) => {
+      if (Object.keys(mapping as VariableMapping).length > 0) {
+        actions.setCurrentStep(2)
+      }
+    },
+    'frequency-table'
+  )
 
   // 분석 실행
   const handleAnalysis = async () => {
@@ -266,16 +263,11 @@ export default function FrequencyTablePage() {
         {/* 0단계: 데이터 업로드 */}
         {currentStep === 0 && (
           <DataUploadStep
-            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
-              if (actions.setUploadedData) {
-                actions.setUploadedData({
-                  data,
-                  fileName: file.name,
-                  columns: data.length > 0 ? Object.keys(data[0]) : []
-                } as UploadedData)
-                actions.setCurrentStep(1)
-              }
-            }}
+            onUploadComplete={createDataUploadHandler(
+              actions.setUploadedData,
+              () => actions.setCurrentStep(1),
+              'frequency-table'
+            )}
           />
         )}
 

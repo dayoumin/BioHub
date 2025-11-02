@@ -32,6 +32,7 @@ import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface OneSampleTResults {
   variable: string
@@ -361,16 +362,11 @@ export default function OneSampleTPage() {
         {/* 0단계: 데이터 업로드 */}
         {currentStep === 0 && !uploadedData && (
           <DataUploadStep
-            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
-              if (actions.setUploadedData) {
-                actions.setUploadedData({
-                  data,
-                  fileName: file.name,
-                  columns: data.length > 0 ? Object.keys(data[0]) : []
-                } as UploadedData)
-                actions.setCurrentStep(0)
-              }
-            }}
+            onUploadComplete={createDataUploadHandler(
+              actions.setUploadedData,
+              () => actions.setCurrentStep(0),
+              'one-sample-t'
+            )}
           />
         )}
 
@@ -390,12 +386,15 @@ export default function OneSampleTPage() {
               <VariableSelector
                 methodId="one-sample-t"
                 data={uploadedData.data}
-                onVariablesSelected={(variables: VariableAssignment) => {
-                  actions.setSelectedVariables?.(variables)
-                  if (Object.keys(variables).length > 0) {
-                    actions.setCurrentStep?.(1)
-                  }
-                }}
+                onVariablesSelected={createVariableSelectionHandler(
+                  actions.setSelectedVariables,
+                  (variables) => {
+                    if (Object.keys(variables as Record<string, unknown>).length > 0) {
+                      actions.setCurrentStep?.(1)
+                    }
+                  },
+                  'one-sample-t'
+                )}
                 onBack={() => {
                   actions.reset()
                 }}

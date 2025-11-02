@@ -31,6 +31,7 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface WelchTResults {
   group1: {
@@ -187,20 +188,16 @@ export default function WelchTPage() {
     setActiveTab('summary')
   }
 
-  // 변수 선택 핸들러
-  const handleVariablesSelected = useCallback((mapping: unknown) => {
-    if (!mapping || typeof mapping !== 'object') return
-
-    if (!actions.setSelectedVariables) {
-      console.error('[WelchT] setSelectedVariables not available')
-      return
-    }
-
-    actions.setSelectedVariables(mapping as VariableMapping)
-    if (Object.keys(mapping as Record<string, unknown>).length >= 2) {
-      actions.setCurrentStep(1)
-    }
-  }, [actions])
+  // 변수 선택 핸들러 (공통 유틸 사용)
+  const handleVariablesSelected = createVariableSelectionHandler(
+    actions.setSelectedVariables,
+    (mapping) => {
+      if (Object.keys(mapping as VariableMapping).length >= 2) {
+        actions.setCurrentStep(1)
+      }
+    },
+    'welch-t'
+  )
 
   // 검정 결과 테이블 렌더링
   const renderTestResultsTable = () => {
@@ -472,16 +469,11 @@ export default function WelchTPage() {
         {/* 0단계: 데이터 업로드 */}
         {currentStep === 0 && !uploadedData && (
           <DataUploadStep
-            onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
-              if (actions.setUploadedData) {
-                actions.setUploadedData({
-                  data,
-                  fileName: file.name,
-                  columns: data.length > 0 ? Object.keys(data[0]) : []
-                } as UploadedData)
-                actions.setCurrentStep(1)
-              }
-            }}
+            onUploadComplete={createDataUploadHandler(
+              actions.setUploadedData,
+              () => actions.setCurrentStep(1),
+              'welch-t'
+            )}
           />
         )}
 
