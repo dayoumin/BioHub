@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -149,10 +149,10 @@ export default function RegressionPage() {
     return undefined
   }
 
-  const handleMethodSelect = (type: 'simple' | 'multiple' | 'logistic') => {
+  const handleMethodSelect = useCallback((type: 'simple' | 'multiple' | 'logistic') => {
     setRegressionType(type)
     actions.setCurrentStep?.(1)
-  }
+  }, [actions, setRegressionType])
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
@@ -171,7 +171,7 @@ export default function RegressionPage() {
     'regression'
   )
 
-  const handleAnalysis = async (variables: unknown) => {
+  const handleAnalysis = useCallback(async (variables: unknown) => {
     if (!uploadedData) {
       actions.setError?.('데이터를 먼저 업로드해주세요.')
       return
@@ -252,7 +252,7 @@ export default function RegressionPage() {
       console.error('Analysis error:', err)
       actions.setError?.(errorMessage)
     }
-  }
+  }, [actions, uploadedData, regressionType])
 
   const renderMethodSelection = () => (
     <StepCard

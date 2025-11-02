@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -163,7 +163,7 @@ export default function ExploreDataPage() {
   ]
 
   // 분석 실행
-  const handleAnalysis = async () => {
+  const handleAnalysis = useCallback(async () => {
     if (!uploadedData || uploadedData.data.length === 0) {
       actions.setError('분석할 데이터가 없습니다.')
       return
@@ -250,21 +250,21 @@ export default function ExploreDataPage() {
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }
+  }, [actions, uploadedData, setActiveTab, setSelectedVariable])
 
   // 단계 변경 처리
-  const handleStepChange = (step: number) => {
+  const handleStepChange = useCallback((step: number) => {
     if (step <= currentStep + 1) {
       actions.setCurrentStep(step)
     }
-  }
+  }, [actions, currentStep])
 
   // 초기화
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     actions.reset()
     setSelectedVariable('')
     setActiveTab('overview')
-  }
+  }, [actions, setSelectedVariable, setActiveTab])
 
   // 전체 개요 테이블 렌더링
   const renderOverviewTable = () => {

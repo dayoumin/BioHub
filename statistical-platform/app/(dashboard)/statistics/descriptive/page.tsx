@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -122,7 +122,7 @@ export default function DescriptiveStatsPage() {
   ]
 
   // 분석 실행
-  const handleAnalysis = async () => {
+  const handleAnalysis = useCallback(async () => {
     try {
       actions.startAnalysis()
 
@@ -183,20 +183,20 @@ export default function DescriptiveStatsPage() {
     } catch (err) {
       console.error('Analysis error:', err)
     }
-  }
+  }, [actions, setActiveTab])
 
   // 단계 변경 처리
-  const handleStepChange = (step: number) => {
+  const handleStepChange = useCallback((step: number) => {
     if (step <= currentStep + 1) {
       actions.setCurrentStep(step)
     }
-  }
+  }, [actions, currentStep])
 
   // 초기화
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     actions.reset()
     setActiveTab('summary')
-  }
+  }, [actions, setActiveTab])
 
   // 데이터 업로드 핸들러
   const handleDataUpload = createDataUploadHandler(
