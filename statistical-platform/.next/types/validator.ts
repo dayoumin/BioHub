@@ -294,12 +294,6 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
   handler satisfies AppPageConfig<"/statistics/reliability">
 }
 
-// Validate ../../app/(dashboard)/statistics/repeated-measures/page.tsx
-{
-  const handler = {} as typeof import("../../app/(dashboard)/statistics/repeated-measures/page.js")
-  handler satisfies AppPageConfig<"/statistics/repeated-measures">
-}
-
 // Validate ../../app/(dashboard)/statistics/response-surface/page.tsx
 {
   const handler = {} as typeof import("../../app/(dashboard)/statistics/response-surface/page.js")
@@ -328,18 +322,6 @@ type LayoutConfig<Route extends LayoutRoutes = LayoutRoutes> = {
 {
   const handler = {} as typeof import("../../app/(dashboard)/statistics/t-test/page.js")
   handler satisfies AppPageConfig<"/statistics/t-test">
-}
-
-// Validate ../../app/(dashboard)/statistics/three-way-anova/page.tsx
-{
-  const handler = {} as typeof import("../../app/(dashboard)/statistics/three-way-anova/page.js")
-  handler satisfies AppPageConfig<"/statistics/three-way-anova">
-}
-
-// Validate ../../app/(dashboard)/statistics/two-way-anova/page.tsx
-{
-  const handler = {} as typeof import("../../app/(dashboard)/statistics/two-way-anova/page.js")
-  handler satisfies AppPageConfig<"/statistics/two-way-anova">
 }
 
 // Validate ../../app/(dashboard)/statistics/welch-t/page.tsx

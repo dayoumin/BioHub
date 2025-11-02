@@ -113,7 +113,7 @@ export default function ANOVAPage() {
   const { currentStep, uploadedData, selectedVariables, results: results, isAnalyzing } = state
 
   // Page-specific state
-  const [anovaType, setAnovaType] = useState<'oneWay' | 'twoWay' | 'repeated' | ''>('')
+  const [anovaType, setAnovaType] = useState<'oneWay' | 'twoWay' | 'threeWay' | 'repeated' | ''>('')
 
   // ANOVA 단계 정의
   const steps: StatisticsStep[] = [
@@ -167,6 +167,15 @@ export default function ANOVAPage() {
       assumptions: ['정규성', '등분산성', '독립성'],
       minGroups: 2
     },
+    threeWay: {
+      title: '삼원 분산분석',
+      subtitle: 'Three-way ANOVA',
+      description: '세 개의 독립변수와 상호작용이 종속변수에 미치는 영향 검정',
+      icon: <Network className="w-5 h-5" />,
+      example: '교육 방법(A, B), 성별(남, 여), 학년(1, 2, 3)이 시험 성적에 미치는 영향',
+      assumptions: ['정규성', '등분산성', '독립성'],
+      minGroups: 2
+    },
     repeated: {
       title: '반복측정 분산분석',
       subtitle: 'Repeated Measures ANOVA',
@@ -178,7 +187,7 @@ export default function ANOVAPage() {
     }
   }
 
-  const handleMethodSelect = (type: 'oneWay' | 'twoWay' | 'repeated') => {
+  const handleMethodSelect = (type: 'oneWay' | 'twoWay' | 'threeWay' | 'repeated') => {
     setAnovaType(type)
     actions.setCurrentStep(1)
   }
@@ -278,7 +287,7 @@ export default function ANOVAPage() {
                   ? "border-primary bg-primary/5 shadow-lg"
                   : "border-border hover:border-primary/50 hover:shadow-md"
               )}
-              onClick={() => handleMethodSelect(key as 'oneWay' | 'twoWay' | 'repeated')}
+              onClick={() => handleMethodSelect(key as 'oneWay' | 'twoWay' | 'threeWay' | 'repeated')}
             >
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -356,11 +365,12 @@ export default function ANOVAPage() {
     if (!uploadedData) return null
 
     // Type guard for anovaType to ensure it's not empty string
-    const currentAnovaType = anovaType as 'oneWay' | 'twoWay' | 'repeated'
+    const currentAnovaType = anovaType as 'oneWay' | 'twoWay' | 'threeWay' | 'repeated'
     if (!currentAnovaType) return null
 
     const methodId = currentAnovaType === 'oneWay' ? 'oneWayANOVA' :
       currentAnovaType === 'twoWay' ? 'twoWayANOVA' :
+      currentAnovaType === 'threeWay' ? 'threeWayANOVA' :
       'repeatedMeasuresANOVA'
 
     return (

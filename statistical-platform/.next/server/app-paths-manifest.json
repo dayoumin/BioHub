@@ -1,7 +1,1 @@
-{
-  "/page": "app/page.js",
-  "/(dashboard)/statistics/two-way-anova/page": "app/(dashboard)/statistics/two-way-anova/page.js",
-  "/(dashboard)/statistics/anova/page": "app/(dashboard)/statistics/anova/page.js",
-  "/(dashboard)/statistics/one-sample-t/page": "app/(dashboard)/statistics/one-sample-t/page.js",
-  "/(dashboard)/statistics/ancova/page": "app/(dashboard)/statistics/ancova/page.js"
-}
+{}
