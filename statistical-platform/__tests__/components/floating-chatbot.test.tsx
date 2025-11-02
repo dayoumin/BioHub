@@ -37,6 +37,12 @@ class LocalStorageMock {
 
 global.localStorage = new LocalStorageMock() as Storage
 
+// Next.js usePathname Mock
+const mockPathname = jest.fn(() => '/')
+jest.mock('next/navigation', () => ({
+  usePathname: () => mockPathname(),
+}))
+
 // RAGAssistant Mock (react-markdown 의존성 회피)
 jest.mock('@/components/rag/rag-assistant', () => ({
   RAGAssistant: () => <div>RAG 도우미</div>,
@@ -53,6 +59,8 @@ jest.mock('@/lib/rag/rag-service', () => ({
 describe('FloatingChatbot', () => {
   beforeEach(() => {
     localStorage.clear()
+    // 기본 경로: 홈페이지
+    mockPathname.mockReturnValue('/')
     // 기본 설정: 플로팅 버튼 활성화
     ChatStorage.saveSettings({
       floatingButtonEnabled: true,
@@ -62,6 +70,7 @@ describe('FloatingChatbot', () => {
 
   afterEach(() => {
     ChatStorage.clearAll()
+    jest.clearAllMocks()
   })
 
   describe('버튼 렌더링', () => {
@@ -190,6 +199,58 @@ describe('FloatingChatbot', () => {
         const popup = screen.getByText('AI 도우미')
         expect(popup).toBeInTheDocument()
       })
+    })
+  })
+
+  describe('경로 기반 조건부 렌더링', () => {
+    it('/chatbot 페이지에서는 플로팅 버튼이 렌더링되지 않아야 함', () => {
+      // /chatbot 경로로 설정
+      mockPathname.mockReturnValue('/chatbot')
+
+      const { container } = render(<FloatingChatbot />)
+
+      // 컴포넌트가 null을 반환해야 함
+      expect(container.firstChild).toBeNull()
+
+      // 플로팅 버튼이 존재하지 않아야 함
+      const button = screen.queryByLabelText('AI 도우미 열기')
+      expect(button).toBeNull()
+    })
+
+    it('다른 페이지(/statistics)에서는 플로팅 버튼이 렌더링되어야 함', () => {
+      // /statistics 경로로 설정
+      mockPathname.mockReturnValue('/statistics')
+
+      render(<FloatingChatbot />)
+
+      const button = screen.getByLabelText('AI 도우미 열기')
+      expect(button).toBeInTheDocument()
+    })
+
+    it('홈페이지(/)에서는 플로팅 버튼이 렌더링되어야 함', () => {
+      // / 경로로 설정
+      mockPathname.mockReturnValue('/')
+
+      render(<FloatingChatbot />)
+
+      const button = screen.getByLabelText('AI 도우미 열기')
+      expect(button).toBeInTheDocument()
+    })
+
+    it('/chatbot 페이지에서는 설정이 활성화되어도 렌더링되지 않아야 함', () => {
+      // /chatbot 경로로 설정
+      mockPathname.mockReturnValue('/chatbot')
+
+      // 설정 활성화
+      ChatStorage.saveSettings({
+        floatingButtonEnabled: true,
+        theme: 'system',
+      })
+
+      const { container } = render(<FloatingChatbot />)
+
+      // 경로 체크가 설정 체크보다 우선하므로 렌더링되지 않음
+      expect(container.firstChild).toBeNull()
     })
   })
 })

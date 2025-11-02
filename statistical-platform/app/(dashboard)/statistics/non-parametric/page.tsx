@@ -131,7 +131,7 @@ export default function NonParametricTestPage() {
     withUploadedData: true,
     withError: true
   })
-  const { uploadedData, variableMapping, results: result, isAnalyzing, error } = state
+  const { uploadedData, selectedVariables, results: result, isAnalyzing, error } = state
   const [selectedTest, setSelectedTest] = useState<NonParametricTest>('mann-whitney')
   const [activeTab, setActiveTab] = useState('setup')
   const [alpha, setAlpha] = useState('0.05')
@@ -160,7 +160,7 @@ export default function NonParametricTestPage() {
     }
 
     actions.setSelectedVariables(variables as VariableMapping)
-    setActiveTab('analysis')
+    setActiveTab('setup')  // ✅ 'analysis' → 'setup' (정의된 탭으로 유지)
   }, [actions])
 
   // Mock 분석 실행
@@ -433,7 +433,7 @@ export default function NonParametricTestPage() {
               <Button
                 size="lg"
                 onClick={runAnalysis}
-                disabled={isAnalyzing || !variableMapping || Object.keys(variableMapping).length === 0}
+                disabled={isAnalyzing || !selectedVariables || Object.keys(selectedVariables).length === 0}
                 className="px-8"
               >
                 {isAnalyzing ? (

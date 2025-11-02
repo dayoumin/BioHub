@@ -11,6 +11,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -38,9 +39,15 @@ const QUICK_PROMPTS = [
 ]
 
 export function FloatingChatbot() {
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [isEnabled, setIsEnabled] = useState(true)
+
+  // /chatbot 페이지에서는 플로팅 버튼 숨기기
+  if (pathname === '/chatbot') {
+    return null
+  }
 
   // 설정 로드
   useEffect(() => {
