@@ -339,7 +339,7 @@ export function RAGChatInterface({
                 className={cn(
                   'w-full rounded-lg p-4',
                   msg.role === 'user'
-                    ? 'bg-gray-500 text-white'
+                    ? 'bg-gray-300 text-gray-900'
                     : 'bg-background'
                 )}
               >
