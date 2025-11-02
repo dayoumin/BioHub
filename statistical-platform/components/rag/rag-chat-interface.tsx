@@ -332,14 +332,14 @@ export function RAGChatInterface({
               key={msg.id}
               className={cn(
                 'group relative flex',
-                msg.role === 'user' ? 'justify-end' : 'justify-end'
+                msg.role === 'user' ? 'justify-start' : 'justify-end'
               )}
             >
               <div
                 className={cn(
                   'w-full rounded-lg p-4',
                   msg.role === 'user'
-                    ? 'bg-gray-300 text-gray-900'
+                    ? 'bg-gray-200 text-gray-800'
                     : 'bg-background'
                 )}
               >
