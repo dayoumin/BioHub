@@ -5,7 +5,6 @@
  * Phase 1-3 표준화를 위한 재사용 가능한 헬퍼 함수들
  */
 
-import { useCallback } from 'react'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 
 /**
@@ -46,57 +45,63 @@ export const createUploadedData = (
 }
 
 /**
- * 데이터 업로드 핸들러 생성 (useCallback 래핑)
+ * 데이터 업로드 핸들러 생성 (순수 함수 반환)
+ *
+ * ⚠️ 이 함수는 useCallback을 사용하지 않습니다.
+ * 필요 시 컴포넌트에서 useCallback으로 래핑하세요.
  *
  * @param setUploadedData - useStatisticsPage의 setUploadedData 액션
  * @param onUploadSuccess - 업로드 성공 후 실행할 콜백 (e.g., 다음 step으로 이동)
  * @param pageId - 디버깅용 페이지 ID (선택사항)
- * @returns 업로드 핸들러 함수
+ * @returns 업로드 핸들러 함수 (순수 함수)
  *
  * @example
- * const handleDataUpload = createDataUploadHandler(
+ * // 컴포넌트에서 사용
+ * const handler = createDataUploadHandler(
  *   actions.setUploadedData,
  *   () => actions.setCurrentStep(1),
  *   'frequency-table'
  * )
+ * const handleDataUpload = useCallback(handler, [actions])
  */
 export const createDataUploadHandler = (
   setUploadedData: ((data: UploadedData) => void) | undefined,
   onUploadSuccess: (data: UploadedData) => void,
   pageId?: string
-) => {
-  return useCallback(
-    (file: File, data: unknown[]) => {
-      if (!setUploadedData) {
-        console.error(`[${pageId || 'statistics-page'}] setUploadedData not available`)
-        return
-      }
+): ((file: File, data: unknown[]) => void) => {
+  return (file: File, data: unknown[]) => {
+    if (!setUploadedData) {
+      console.error(`[${pageId || 'statistics-page'}] setUploadedData not available`)
+      return
+    }
 
-      const uploadedData = createUploadedData(file, data)
+    const uploadedData = createUploadedData(file, data)
 
-      // 데이터가 비어있는 경우 조기 종료
-      if (uploadedData.data.length === 0) {
-        console.warn(`[${pageId || 'statistics-page'}] Empty data uploaded`)
-        return
-      }
+    // 데이터가 비어있는 경우 조기 종료
+    if (uploadedData.data.length === 0) {
+      console.warn(`[${pageId || 'statistics-page'}] Empty data uploaded`)
+      return
+    }
 
-      setUploadedData(uploadedData)
-      onUploadSuccess(uploadedData)
-    },
-    [setUploadedData, onUploadSuccess, pageId]
-  )
+    setUploadedData(uploadedData)
+    onUploadSuccess(uploadedData)
+  }
 }
 
 /**
- * 변수 선택 핸들러 생성
+ * 변수 선택 핸들러 생성 (순수 함수 반환)
+ *
+ * ⚠️ 이 함수는 useCallback을 사용하지 않습니다.
+ * 필요 시 컴포넌트에서 useCallback으로 래핑하세요.
  *
  * @param setSelectedVariables - useStatisticsPage의 setSelectedVariables 액션
  * @param onVariablesSelected - 변수 선택 후 실행할 콜백 (e.g., 다음 step으로 이동)
  * @param pageId - 디버깅용 페이지 ID (선택사항)
- * @returns 변수 선택 핸들러 함수
+ * @returns 변수 선택 핸들러 함수 (순수 함수)
  *
  * @example
- * const handleVariablesSelected = createVariableSelectionHandler(
+ * // 컴포넌트에서 사용
+ * const handler = createVariableSelectionHandler(
  *   actions.setSelectedVariables,
  *   (variables) => {
  *     if (Object.keys(variables).length > 0) {
@@ -105,29 +110,27 @@ export const createDataUploadHandler = (
  *   },
  *   'normality-test'
  * )
+ * const handleVariablesSelected = useCallback(handler, [actions])
  */
 export const createVariableSelectionHandler = <T = unknown>(
   setSelectedVariables: ((mapping: T) => void) | undefined,
   onVariablesSelected: (mapping: T) => void,
   pageId?: string
-) => {
-  return useCallback(
-    (mapping: T) => {
-      if (!mapping || typeof mapping !== 'object') {
-        console.warn(`[${pageId || 'statistics-page'}] Invalid variable mapping`, mapping)
-        return
-      }
+): ((mapping: T) => void) => {
+  return (mapping: T) => {
+    if (!mapping || typeof mapping !== 'object') {
+      console.warn(`[${pageId || 'statistics-page'}] Invalid variable mapping`, mapping)
+      return
+    }
 
-      if (!setSelectedVariables) {
-        console.error(`[${pageId || 'statistics-page'}] setSelectedVariables not available`)
-        return
-      }
+    if (!setSelectedVariables) {
+      console.error(`[${pageId || 'statistics-page'}] setSelectedVariables not available`)
+      return
+    }
 
-      setSelectedVariables(mapping)
-      onVariablesSelected(mapping)
-    },
-    [setSelectedVariables, onVariablesSelected, pageId]
-  )
+    setSelectedVariables(mapping)
+    onVariablesSelected(mapping)
+  }
 }
 
 /**

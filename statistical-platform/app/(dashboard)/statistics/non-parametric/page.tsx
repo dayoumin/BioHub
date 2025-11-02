@@ -38,6 +38,7 @@ import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { TableColumn } from '@/components/statistics/common/StatisticsTable'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import type { AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
@@ -140,22 +141,14 @@ export default function NonParametricTestPage() {
 
   const currentTest = testDescriptions[selectedTest]
 
-  // 데이터 업로드 핸들러
-  const handleDataUpload = useCallback((file: File, data: Record<string, unknown>[]) => {
-    const uploadedData = {
-      data,
-      fileName: file.name,
-      columns: data.length > 0 ? Object.keys(data[0]) : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[non-parametric] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-    setActiveTab('setup')
-  }, [actions])
+  // 데이터 업로드 핸들러 (표준 패턴)
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      setActiveTab('setup')
+    },
+    'non-parametric'
+  )
 
   // 변수 선택 핸들러 (표준 패턴)
   const handleVariablesSelected = useCallback((variables: unknown) => {
