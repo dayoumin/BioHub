@@ -33,6 +33,7 @@ import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -208,17 +209,13 @@ export default function MixedModelPage() {
     ]
   }), [])
 
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : []
-    }
-    if (actions.setUploadedData) {
-      actions.setUploadedData(uploadedData)
-    }
-    actions.setCurrentStep(2)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'mixed-model'
+  )
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {
@@ -355,15 +352,16 @@ export default function MixedModelPage() {
     }
   }, [uploadedData, pyodide])
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (actions.setSelectedVariables) {
-      actions.setSelectedVariables(variables)
-    }
-    if (variables.dependent && variables.independent &&
-        variables.dependent.length === 1 && variables.independent.length >= 1) {
-      runAnalysis(variables)
-    }
-  }, [runAnalysis, actions])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      if (variables.dependent && variables.independent &&
+          variables.dependent.length === 1 && variables.independent.length >= 1) {
+        runAnalysis(variables)
+      }
+    },
+    'mixed-model'
+  )
 
   const getSignificanceColor = (pValue: number) => {
     if (pValue < 0.001) return 'text-muted-foreground bg-muted'

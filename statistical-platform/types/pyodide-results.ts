@@ -185,7 +185,7 @@ export interface HomogeneityTestResult {
  * Fisher 정확 검정 결과
  */
 export interface FisherExactTestResult {
-  oddsRatio: number
+  oddsRatio: number | null  // null when inf/nan (e.g., zero cells in 2x2 table)
   pValue: number
   reject: boolean
   alternative: 'two-sided' | 'less' | 'greater'

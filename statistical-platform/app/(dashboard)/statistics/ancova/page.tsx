@@ -31,6 +31,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -193,23 +194,14 @@ export default function ANCOVAPage() {
     usage: "공변량을 통제한 집단 간 평균 비교"
   }), [])
 
-  // Event handlers
-  const handleDataUpload = useCallback((data: unknown[]) => {
-    if (!actions.setUploadedData) {
-      console.error('[ancova] setUploadedData not available')
-      return
-    }
-
-    // Convert unknown[] to UploadedData structure
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: 'uploaded_data.csv',
-      columns: data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : []
-    }
-
-    actions.setUploadedData(uploadedData)
-    actions.setCurrentStep(2)
-  }, [actions])
+  // Event handlers - using common utility
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'ancova'
+  )
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || !variables.independent || !variables.covariates) {
@@ -318,18 +310,16 @@ export default function ANCOVAPage() {
     }
   }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (!actions.setSelectedVariables) {
-      console.error('[ancova] setSelectedVariables not available')
-      return
-    }
-
-    actions.setSelectedVariables(variables)
-    if (variables.dependent && variables.independent && variables.covariates &&
-        variables.dependent.length === 1 && variables.independent.length === 1 && variables.covariates.length >= 1) {
-      runAnalysis(variables)
-    }
-  }, [runAnalysis, actions])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      if (variables.dependent && variables.independent && variables.covariates &&
+          variables.dependent.length === 1 && variables.independent.length === 1 && variables.covariates.length >= 1) {
+        runAnalysis(variables)
+      }
+    },
+    'ancova'
+  )
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
@@ -448,7 +438,7 @@ export default function ANCOVAPage() {
         >
           <DataUploadStep
             onNext={() => {}}
-            onUploadComplete={(_file, data) => handleDataUpload(data)}
+            onUploadComplete={handleDataUpload}
           />
 
           <Alert className="mt-4">

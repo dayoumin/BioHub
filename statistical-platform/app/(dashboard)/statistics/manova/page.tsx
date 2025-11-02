@@ -32,6 +32,7 @@ import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-pag
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -232,23 +233,13 @@ export default function ManovaPage() {
     ]
   }), [])
 
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[manova] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-    actions.setCurrentStep(2)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'manova'
+  )
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {
@@ -378,18 +369,16 @@ export default function ManovaPage() {
     }
   }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (!actions.setSelectedVariables) {
-      console.error('[manova] setSelectedVariables not available')
-      return
-    }
-
-    actions.setSelectedVariables(variables)
-    if (variables.dependent && variables.independent &&
-        variables.dependent.length >= 2 && variables.independent.length >= 1) {
-      runAnalysis(variables)
-    }
-  }, [runAnalysis, actions])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      if (variables.dependent && variables.independent &&
+          variables.dependent.length >= 2 && variables.independent.length >= 1) {
+        runAnalysis(variables)
+      }
+    },
+    'manova'
+  )
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }

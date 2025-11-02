@@ -8,7 +8,9 @@ import {
   Shuffle,
   FileText,
   Zap,
-  Microscope
+  Microscope,
+  CheckCircle2,
+  Grid3X3
 } from 'lucide-react'
 
 export interface StatisticsMenuItem {

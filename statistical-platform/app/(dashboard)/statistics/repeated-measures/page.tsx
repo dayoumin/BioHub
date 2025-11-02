@@ -32,6 +32,7 @@ import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -187,24 +188,14 @@ export default function RepeatedMeasuresANOVAPage() {
     usage: "동일 대상의 여러 시점 평균 비교"
   }), [])
 
-  // Event handlers
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[repeated-measures] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-    actions.setCurrentStep(3)
-  }, [actions])
+  // Event handlers - using common utility
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(3)
+    },
+    'repeated-measures'
+  )
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || variables.dependent.length < 2) {
@@ -292,19 +283,15 @@ export default function RepeatedMeasuresANOVAPage() {
     }
   }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = useCallback((variables: unknown) => {
-    if (!variables || typeof variables !== 'object') return
-
-    const variablesAssignment = variables as VariableAssignment
-    if (!actions.setSelectedVariables) {
-      console.error('[repeated-measures] setSelectedVariables not available')
-      return
-    }
-    actions.setSelectedVariables(variablesAssignment)
-    if (variablesAssignment.dependent && variablesAssignment.dependent.length >= 2) {
-      runAnalysis(variablesAssignment)
-    }
-  }, [runAnalysis, actions])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variablesAssignment) => {
+      if (variablesAssignment.dependent && variablesAssignment.dependent.length >= 2) {
+        runAnalysis(variablesAssignment)
+      }
+    },
+    'repeated-measures'
+  )
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }

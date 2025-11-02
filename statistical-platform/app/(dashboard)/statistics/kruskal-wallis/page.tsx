@@ -30,6 +30,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -147,27 +148,25 @@ export default function KruskalWallisPage() {
     usage: "정규분포를 따르지 않는 다집단 비교"
   }), [])
 
-  // Event handlers
-  const handleDataUpload = useCallback((data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...row as Record<string, unknown>,
-      _id: index
-    })) as DataRow[]
-    actions.setUploadedData?.({
-      data: processedData,
-      fileName: 'uploaded_data.csv',
-      columns: Object.keys(processedData[0] || {})
-    })
-    actions.setCurrentStep?.(2)
-  }, [actions])
+  // Event handlers - using common utility
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep?.(2)
+    },
+    'kruskal-wallis'
+  )
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables?.(variables)
-    if (variables.dependent && variables.independent &&
-        variables.dependent.length === 1 && variables.independent.length === 1) {
-      void runAnalysis(variables)
-    }
-  }, [uploadedData, pyodide, actions])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      if (variables.dependent && variables.independent &&
+          variables.dependent.length === 1 && variables.independent.length === 1) {
+        void runAnalysis(variables)
+      }
+    },
+    'kruskal-wallis'
+  )
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent || !variables.independent) {
@@ -360,7 +359,7 @@ export default function KruskalWallisPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onUploadComplete={(file: File, data: unknown[]) => handleDataUpload(data)}
+            onUploadComplete={handleDataUpload}
           />
 
           <Alert className="mt-4">

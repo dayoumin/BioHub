@@ -31,6 +31,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -147,24 +148,14 @@ export default function FriedmanPage() {
     usage: "반복측정 분산분석의 비모수 대안"
   }), [])
 
-  // Event handlers
-  const handleDataUpload = useCallback((data: unknown[]) => {
-    const processedData = data.map((row, index) => ({
-      ...row as Record<string, unknown>,
-      _id: index
-    })) as DataRow[]
-
-    // Create UploadedData structure
-    const columns = processedData.length > 0 ? Object.keys(processedData[0]) : []
-    const uploadedData = {
-      data: processedData,
-      fileName: 'uploaded.csv',
-      columns
-    }
-
-    actions.setUploadedData?.(uploadedData)
-    actions.setCurrentStep(2)
-  }, [actions])
+  // Event handlers - using common utility
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'friedman'
+  )
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.dependent) {
@@ -269,18 +260,20 @@ export default function FriedmanPage() {
     }
   }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables?.(variables)
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      // Handle both string and string[] types
+      const dependentCount = Array.isArray(variables.dependent)
+        ? variables.dependent.length
+        : variables.dependent ? 1 : 0
 
-    // Handle both string and string[] types
-    const dependentCount = Array.isArray(variables.dependent)
-      ? variables.dependent.length
-      : variables.dependent ? 1 : 0
-
-    if (dependentCount >= 3) {
-      runAnalysis(variables)
-    }
-  }, [actions, runAnalysis])
+      if (dependentCount >= 3) {
+        runAnalysis(variables)
+      }
+    },
+    'friedman'
+  )
 
   const getKendallWInterpretation = (w: number) => {
     if (w >= 0.7) return { level: '강한 일치도', color: 'text-muted-foreground', bg: 'bg-muted' }
@@ -379,9 +372,7 @@ export default function FriedmanPage() {
           icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
         >
           <DataUploadStep
-            onUploadComplete={(file, data) => {
-              handleDataUpload(data)
-            }}
+            onUploadComplete={handleDataUpload}
           />
 
           <Alert className="mt-4">

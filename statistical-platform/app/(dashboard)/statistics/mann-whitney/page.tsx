@@ -31,6 +31,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -134,34 +135,25 @@ export default function MannWhitneyPage() {
     }
   ]
 
-  // Event handlers
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedDataObj = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
+  // Event handlers - using common utility
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+      actions.setError('')
+    },
+    'mann-whitney'
+  )
 
-    if (!actions.setUploadedData) {
-      console.error('[mann-whitney] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedDataObj)
-    actions.setCurrentStep(2)
-    actions.setError('')
-  }, [actions])
-
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (actions.setSelectedVariables) {
-      actions.setSelectedVariables(variables)
-    }
-    if (variables.dependent && variables.independent && variables.dependent.length === 1 && variables.independent.length === 1) {
-      runAnalysis(variables)
-    }
-  }, [actions, uploadedData, pyodide])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      if (variables.dependent && variables.independent && variables.dependent.length === 1 && variables.independent.length === 1) {
+        runAnalysis(variables)
+      }
+    },
+    'mann-whitney'
+  )
 
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.independent) {

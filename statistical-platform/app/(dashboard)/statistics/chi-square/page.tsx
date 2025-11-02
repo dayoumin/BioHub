@@ -38,7 +38,8 @@ export default function FisherExactTestPage() {
     [10, 5],
     [3, 12]
   ])
-  const [alpha, setAlpha] = useState(0.05)
+  const [alpha, setAlpha] = useState<number>(0.05)
+  const [alphaInput, setAlphaInput] = useState<string>('0.05') // UI 입력 상태 (문자열)
   const [alternative, setAlternative] = useState<'two-sided' | 'less' | 'greater'>('two-sided')
 
   // 셀 값 변경
@@ -48,6 +49,28 @@ export default function FisherExactTestPage() {
     )
     setTable(newTable)
   }
+
+  // Alpha 입력 핸들러
+  const handleAlphaChange = useCallback((value: string) => {
+    setAlphaInput(value) // 입력 중 상태 유지 (예: "0.", "0.0", "")
+
+    // 유효한 숫자로 변환 가능한 경우에만 alpha 업데이트
+    const parsed = parseFloat(value)
+    if (!isNaN(parsed) && parsed > 0 && parsed <= 0.5) {
+      setAlpha(parsed)
+    }
+    // 빈 문자열이거나 유효하지 않은 경우 기본값으로 복구하지 않음
+    // 사용자가 입력을 완료할 때까지 대기
+  }, [])
+
+  // Alpha 입력 필드에서 포커스 해제 시 (blur)
+  const handleAlphaBlur = useCallback(() => {
+    const parsed = parseFloat(alphaInput)
+    if (isNaN(parsed) || parsed <= 0 || parsed > 0.5) {
+      // 유효하지 않은 값이면 현재 alpha 값으로 복구
+      setAlphaInput(alpha.toString())
+    }
+  }, [alphaInput, alpha])
 
   // 실제 분석 실행
   const runAnalysis = useCallback(async () => {
@@ -223,8 +246,9 @@ export default function FisherExactTestPage() {
               min="0.001"
               max="0.5"
               step="0.01"
-              value={alpha}
-              onChange={(e) => setAlpha(parseFloat(e.target.value) || 0.05)}
+              value={alphaInput}
+              onChange={(e) => handleAlphaChange(e.target.value)}
+              onBlur={handleAlphaBlur}
             />
           </div>
           <div>
@@ -273,7 +297,9 @@ export default function FisherExactTestPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-muted-foreground">Odds Ratio (승산비)</Label>
-                <p className="text-2xl font-semibold">{results.oddsRatio.toFixed(4)}</p>
+                <p className="text-2xl font-semibold">
+                  {results.oddsRatio !== null ? results.oddsRatio.toFixed(4) : '∞ (Infinity)'}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">{results.oddsRatioInterpretation}</p>
               </div>
               <div>
