@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle, XCircle, Target, BarChart3, Activity, Zap, TrendingUp } from 'lucide-react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
 // 요인분석 결과 인터페이스
 interface FactorAnalysisResult {
@@ -65,23 +66,13 @@ export default function FactorAnalysisPage() {
   const [minEigenvalue, setMinEigenvalue] = useState<number>(1.0)
 
   // 데이터 업로드 핸들러
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[factor-analysis] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-    actions.setCurrentStep(2)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'factor-analysis'
+  )
 
     // 상관행렬 계산
   const calculateCorrelationMatrix = useCallback((data: number[][]): number[][] => {

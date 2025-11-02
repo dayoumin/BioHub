@@ -14,28 +14,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
   ChevronRight,
-  Info,
-  Settings,
-  FileText,
-  Download,
-  Share2,
-  HelpCircle,
   Play,
   RotateCcw,
-  BookOpen,
-  Video,
-  MessageSquare,
   CheckCircle2,
   XCircle,
-  Clock,
-  BarChart3
+  Clock
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -118,7 +102,6 @@ export function StatisticsPageLayout({
   showTips = true,
   className
 }: StatisticsPageLayoutProps) {
-  const [showMethodInfo, setShowMethodInfo] = useState(false)
 
   // 기존 페이지 호환성: steps가 없으면 간단한 모드
   const isAdvancedMode = steps && steps.length > 0
@@ -165,126 +148,7 @@ export function StatisticsPageLayout({
                   </div>
                 </div>
 
-                {/* 액션 버튼 */}
-                <div className="flex items-center gap-2">
-                  {/* 방법 정보 */}
-                  {methodInfo && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setShowMethodInfo(!showMethodInfo)}
-                          >
-                            <Info className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>통계 방법 정보</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-
-                  {/* 설정 */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Settings className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <FileText className="w-4 h-4 mr-2" />
-                        보고서 생성
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={onExport}>
-                        <Download className="w-4 h-4 mr-2" />
-                        결과 내보내기
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Share2 className="w-4 h-4 mr-2" />
-                        공유하기
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {/* 도움말 */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <HelpCircle className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={onHelp}>
-                        <BookOpen className="w-4 h-4 mr-2" />
-                        사용 가이드
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Video className="w-4 h-4 mr-2" />
-                        동영상 튜토리얼
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        커뮤니티 질문
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
               </div>
-
-              {/* 방법 정보 표시 */}
-              <AnimatePresence>
-                {showMethodInfo && methodInfo && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mt-4 pt-4 border-t"
-                  >
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {methodInfo.formula && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">수식</p>
-                          <code className="text-xs bg-muted px-2 py-1 rounded">
-                            {methodInfo.formula}
-                          </code>
-                        </div>
-                      )}
-                      {methodInfo.assumptions && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">가정</p>
-                          <div className="flex flex-wrap gap-1">
-                            {methodInfo.assumptions.map((assumption, idx) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {assumption}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {methodInfo.sampleSize && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">표본 크기</p>
-                          <p className="text-xs text-muted-foreground">
-                            {methodInfo.sampleSize}
-                          </p>
-                        </div>
-                      )}
-                      {methodInfo.usage && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">사용 예시</p>
-                          <p className="text-xs text-muted-foreground">
-                            {methodInfo.usage}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </CardHeader>
 
             {/* 진행 상태 바 (고급 모드에서만) */}

@@ -55,7 +55,8 @@
       "Bash(node -e:*)",
       "Bash(npm run dev:*)",
       "Bash(node scripts/centralize-colors.js:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(do echo \"=== $dir ===\")"
     ],
     "deny": [],
     "ask": []
