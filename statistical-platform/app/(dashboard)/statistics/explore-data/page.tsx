@@ -241,13 +241,8 @@ export default function ExploreDataPage() {
         }
       ]
 
-      if (!actions.setResults) {
-        console.error('[explore-data] setResults not available')
-        return
-      }
-
-      actions.setResults(mockResults)
-      actions.setCurrentStep(3)
+      // completeAnalysis로 결과 저장 + Step 이동 + isAnalyzing 리셋
+      actions.completeAnalysis(mockResults, 3)
       if (mockResults.length > 0) {
         setSelectedVariable(mockResults[0].variable)
       }

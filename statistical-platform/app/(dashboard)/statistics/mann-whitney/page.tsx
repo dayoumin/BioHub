@@ -196,11 +196,6 @@ export default function MannWhitneyPage() {
       // Mann-Whitney U 검정 실행
       const result = await pyodide.mannWhitneyU(group1, group2)
 
-      if (!actions.setResults) {
-        console.error('[mann-whitney] setResults not available')
-        return
-      }
-
       // 결과를 MannWhitneyResult 형식으로 변환
       const formattedResult: MannWhitneyResult = {
         statistic: result.statistic,
@@ -246,8 +241,8 @@ export default function MannWhitneyPage() {
         }
       }
 
-      actions.setResults(formattedResult)
-      actions.setCurrentStep(3)
+      // completeAnalysis로 결과 저장 + Step 이동 + isAnalyzing 리셋
+      actions.completeAnalysis(formattedResult, 3)
     } catch (err) {
       console.error('Mann-Whitney U 검정 실패:', err)
       actions.setError('Mann-Whitney U 검정 중 오류가 발생했습니다.')
