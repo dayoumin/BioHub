@@ -127,37 +127,30 @@ export default function TwoWayAnovaPage() {
     {
       id: 'step-1',
       number: 1,
-      title: '이원분산분석',
-      description: '두 개의 독립변수가 종속변수에 미치는 주효과와 상호작용효과를 분석합니다.',
+      title: '데이터 업로드',
+      description: 'CSV 파일을 업로드하고 이원분산분석 시작',
       status: (currentStep === 1 ? 'current' : (currentStep > 1 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
     },
     {
       id: 'step-2',
       number: 2,
-      title: '데이터 업로드',
-      description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
+      title: '변수 선택',
+      description: '종속변수와 두 개의 독립변수(요인)를 선택합니다.',
       status: (currentStep === 2 ? 'current' : (currentStep > 2 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
     },
     {
       id: 'step-3',
       number: 3,
-      title: '변수 선택',
-      description: '종속변수와 두 개의 독립변수(요인)를 선택합니다.',
-      status: (currentStep === 3 ? 'current' : (currentStep > 3 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
-    },
-    {
-      id: 'step-4',
-      number: 4,
       title: '분석 결과',
       description: '주효과, 상호작용효과 및 분산분석표를 확인합니다.',
-      status: (currentStep === 4 ? 'current' : (currentStep > 4 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
+      status: (currentStep === 3 ? 'current' : (currentStep > 3 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
     }
   ]
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
     () => {
-      actions.setCurrentStep(3)
+      actions.setCurrentStep(2)
     },
     'two-way-anova'
   )
@@ -179,7 +172,7 @@ export default function TwoWayAnovaPage() {
     } : undefined,
     (variables) => {
       const typedVariables = convertToSelectedVariables(variables)
-      actions.setCurrentStep(4)
+      actions.setCurrentStep(3)
       runTwoWayAnovaAnalysis(typedVariables)
     },
     'two-way-anova'
@@ -401,7 +394,7 @@ json.dumps(results)
         console.error('[two-way-anova] completeAnalysis not available')
         return
       }
-      actions.completeAnalysis(results, 4)
+      actions.completeAnalysis(results, 3)
     } catch (err) {
       if (!actions.setError) {
         console.error('[two-way-anova] setError not available')
@@ -942,20 +935,14 @@ json.dumps(results)
       description="두 독립변수의 주효과와 상호작용효과 분석"
     >
       {currentStep === 1 && renderMethodIntroduction()}
-      {currentStep === 2 && (
-        <DataUploadStep
-          onUploadComplete={handleDataUpload}
-          onPrevious={() => actions.setCurrentStep(1)}
-        />
-      )}
-      {currentStep === 3 && uploadedData && (
+      {currentStep === 2 && uploadedData && (
         <VariableSelector
           methodId="two-way-anova"
           data={uploadedData.data}
           onVariablesSelected={handleVariablesSelected}
         />
       )}
-      {currentStep === 4 && renderResults()}
+      {currentStep === 3 && renderResults()}
     </StatisticsPageLayout>
   )
 }
