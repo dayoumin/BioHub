@@ -4,6 +4,7 @@ import "./globals.css"
 import { Header } from "@/components/layout/header"
 import { Toaster } from "@/components/ui/sonner"
 import { ClientProviders } from "@/components/providers/ClientProviders"
+import { FloatingChatbot } from "@/components/chatbot/floating-chatbot"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,9 +28,10 @@ export default function RootLayout({
         <ClientProviders>
           <div className="min-h-screen bg-background">
             <Header />
-            <main className="container mx-auto px-4 py-6">
+            <main>
               {children}
             </main>
+            <FloatingChatbot />
             <Toaster
               position="top-center"
               richColors

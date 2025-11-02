@@ -84,9 +84,9 @@ export default function RAGTestPage() {
   // ===== 검색 모드 상태 =====
   const [searchMode, setSearchMode] = useState<SearchMode>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('rag-search-mode') as SearchMode) || 'vector'
+      return (localStorage.getItem('rag-search-mode') as SearchMode) || 'hybrid'
     }
-    return 'vector'
+    return 'hybrid'
   })
 
   // ===== Vector Store 관리 상태 =====

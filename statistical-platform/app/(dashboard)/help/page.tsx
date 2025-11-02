@@ -116,24 +116,7 @@ export default function HelpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sticky Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <Home className="w-4 h-4 mr-2" />
-                홈
-              </Button>
-            </Link>
-            <span className="text-sm text-muted-foreground">|</span>
-            <h1 className="text-lg font-bold">도움말</h1>
-          </div>
-        </div>
-      </nav>
-
-      <div className="container mx-auto px-4 py-8 max-w-6xl space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3">
             <HelpCircle className="h-8 w-8 text-primary" />
@@ -554,7 +537,6 @@ export default function HelpPage() {
           </div>
         </TabsContent>
       </Tabs>
-      </div>
     </div>
   )
 }

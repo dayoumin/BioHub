@@ -143,19 +143,19 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
   })
 
   describe('2. 검색 모드 저장/복원', () => {
-    it('검색 모드: 로컬스토리지에 저장된 값이 없으면 기본값 (fts5) 사용', () => {
+    it('검색 모드: 로컬스토리지에 저장된 값이 없으면 기본값 (hybrid) 사용', () => {
       const { result } = renderHook(() => {
         type SearchMode = 'fts5' | 'vector' | 'hybrid'
         const [searchMode] = useState<SearchMode>(() => {
           if (typeof window !== 'undefined') {
-            return (localStorage.getItem('rag-search-mode') as SearchMode) || 'fts5'
+            return (localStorage.getItem('rag-search-mode') as SearchMode) || 'hybrid'
           }
-          return 'fts5'
+          return 'hybrid'
         })
         return searchMode
       })
 
-      expect(result.current).toBe('fts5')
+      expect(result.current).toBe('hybrid')
     })
 
     it('검색 모드: 로컬스토리지에 저장된 값이 있으면 복원', () => {
@@ -165,9 +165,9 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
         type SearchMode = 'fts5' | 'vector' | 'hybrid'
         const [searchMode] = useState<SearchMode>(() => {
           if (typeof window !== 'undefined') {
-            return (localStorage.getItem('rag-search-mode') as SearchMode) || 'fts5'
+            return (localStorage.getItem('rag-search-mode') as SearchMode) || 'hybrid'
           }
-          return 'fts5'
+          return 'hybrid'
         })
         return searchMode
       })
@@ -202,10 +202,13 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
 
   describe('3. 자동 감지 로직', () => {
     it('임베딩 모델: 저장된 값이 없을 때만 자동 감지 실행', () => {
+      // 테스트 시작 전 명시적으로 초기화
+      localStorage.clear()
+
       const autoDetectMock = jest.fn()
 
-      // 저장된 값이 없는 경우
-      const hasStoredEmbedding1 = typeof window !== 'undefined' && localStorage.getItem('rag-embedding-model')
+      // 저장된 값이 없는 경우 (localStorage.getItem()이 null 반환)
+      const hasStoredEmbedding1 = localStorage.getItem('rag-embedding-model')
       if (!hasStoredEmbedding1) {
         autoDetectMock()
       }
@@ -216,7 +219,7 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
       localStorage.setItem('rag-embedding-model', 'qwen3-embedding:0.6b')
       autoDetectMock.mockClear()
 
-      const hasStoredEmbedding2 = typeof window !== 'undefined' && localStorage.getItem('rag-embedding-model')
+      const hasStoredEmbedding2 = localStorage.getItem('rag-embedding-model')
       if (!hasStoredEmbedding2) {
         autoDetectMock()
       }
@@ -225,10 +228,13 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
     })
 
     it('추론 모델: 저장된 값이 없을 때만 자동 감지 실행', () => {
+      // 테스트 시작 전 명시적으로 초기화
+      localStorage.clear()
+
       const autoDetectMock = jest.fn()
 
-      // 저장된 값이 없는 경우
-      const hasStoredInference1 = typeof window !== 'undefined' && localStorage.getItem('rag-inference-model')
+      // 저장된 값이 없는 경우 (localStorage.getItem()이 null 반환)
+      const hasStoredInference1 = localStorage.getItem('rag-inference-model')
       if (!hasStoredInference1) {
         autoDetectMock()
       }
@@ -239,7 +245,7 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
       localStorage.setItem('rag-inference-model', 'qwen3:8b')
       autoDetectMock.mockClear()
 
-      const hasStoredInference2 = typeof window !== 'undefined' && localStorage.getItem('rag-inference-model')
+      const hasStoredInference2 = localStorage.getItem('rag-inference-model')
       if (!hasStoredInference2) {
         autoDetectMock()
       }
@@ -250,6 +256,9 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
 
   describe('4. 통합 시나리오', () => {
     it('시나리오 1: 첫 방문 → 모델 선택 → 새로고침 → 선택 유지', () => {
+      // 테스트 시작 전 명시적으로 초기화
+      localStorage.clear()
+
       // 1. 첫 방문 (로컬스토리지 비어있음)
       expect(localStorage.getItem('rag-embedding-model')).toBeNull()
       expect(localStorage.getItem('rag-inference-model')).toBeNull()
@@ -263,7 +272,7 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
       // 3. 페이지 새로고침 후 복원
       const embeddingModel = localStorage.getItem('rag-embedding-model') || 'mxbai-embed-large:latest'
       const inferenceModel = localStorage.getItem('rag-inference-model') || 'qwen3:4b'
-      const searchMode = localStorage.getItem('rag-search-mode') || 'fts5'
+      const searchMode = localStorage.getItem('rag-search-mode') || 'hybrid'
 
       expect(embeddingModel).toBe('qwen3-embedding:0.6b')
       expect(inferenceModel).toBe('qwen3:8b')

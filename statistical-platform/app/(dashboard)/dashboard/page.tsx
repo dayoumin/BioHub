@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { BarChart3, FileText, TrendingUp, Activity, Database, Clock, Eye, Download, Calendar, Target } from "lucide-react"
+import { BarChart3, FileText, TrendingUp, Activity, Database, Clock, Eye, Download, Calendar, Target, Sparkles, Star } from "lucide-react"
 import Link from "next/link"
 import { useAppStore } from "@/lib/store"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts"
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
+import { STATISTICS_MENU } from "@/lib/statistics/menu-config"
 
 export default function DashboardPage() {
   const { 
@@ -108,6 +109,24 @@ export default function DashboardPage() {
     }
   }, [results, datasets])
 
+  // 즐겨찾기 상태 관리
+  const [favorites, setFavorites] = useState<string[]>([])
+
+  useEffect(() => {
+    const saved = localStorage.getItem('statisticsFavorites')
+    if (saved) {
+      try {
+        setFavorites(JSON.parse(saved))
+      } catch (error) {
+        console.error('Failed to load favorites:', error)
+      }
+    }
+  }, [])
+
+  // 모든 메뉴 아이템 평탄화
+  const allItems = STATISTICS_MENU.flatMap((category) => category.items)
+  const favoriteItems = allItems.filter((item) => favorites.includes(item.id))
+
   return (
     <div className="space-y-6">
       <div>
@@ -115,6 +134,85 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">
           통계 분석 이력과 데이터 현황을 한눈에 확인하고 관리하세요.
         </p>
+      </div>
+
+      {/* 스마트 분석 */}
+      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
+        <CardContent className="p-8">
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <Sparkles className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold mb-2">스마트 분석</h2>
+              <p className="text-muted-foreground">
+                AI가 데이터를 분석하고 최적의 통계 방법을 추천해드립니다
+              </p>
+            </div>
+            <Button size="lg" className="text-lg px-8" disabled>
+              <Sparkles className="mr-2 h-5 w-5" />
+              스마트 분석 시작 (준비 중)
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 즐겨찾기 통계 도구 */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">내 통계 도구</h2>
+            <p className="text-sm text-muted-foreground">
+              자주 사용하는 분석을 빠르게 시작하세요
+            </p>
+          </div>
+          {favorites.length > 0 && (
+            <Badge variant="secondary">{favorites.length}개</Badge>
+          )}
+        </div>
+
+        {favorites.length === 0 ? (
+          <Card className="text-center py-8 bg-muted/30">
+            <CardContent>
+              <Star className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                통계분석 페이지에서 별표(⭐)를 눌러 즐겨찾기를 추가하세요
+              </p>
+              <Link href="/statistics">
+                <Button>통계분석 보기</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {favoriteItems.map((item) => (
+              <Card key={item.id} className="hover:shadow-md transition-all">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
+                    {item.badge && (
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </div>
+                  {item.implemented ? (
+                    <Link href={item.href}>
+                      <Button size="sm" className="w-full">
+                        시작
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button size="sm" className="w-full" disabled>
+                      준비 중
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Real Stats Overview */}

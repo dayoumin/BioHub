@@ -546,7 +546,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     this.ensureInitialized()
 
     const startTime = Date.now()
-    const searchMode = context.searchMode || 'fts5' // 기본값: FTS5
+    const searchMode = context.searchMode || 'hybrid' // 기본값: hybrid
 
     try {
       let searchResults: SearchResult[] = []

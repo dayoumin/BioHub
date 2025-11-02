@@ -1,552 +1,290 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  User,
-  Bell,
-  Shield,
-  Palette,
-  Download, 
-  HelpCircle, 
-  Save,
-  RefreshCw,
-  CheckCircle2,
-  BarChart3
-} from "lucide-react"
-import { useAppStore } from "@/lib/store"
-import { useTheme } from "next-themes"
-import { toast } from "sonner"
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Settings, Palette, Bot, Database, Star, Moon, Sun } from 'lucide-react'
+import { STATISTICS_MENU } from '@/lib/statistics/menu-config'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export default function SettingsPage() {
-  const { preferences, updatePreferences } = useAppStore()
-  const { theme, setTheme } = useTheme()
-  const [isSaving, setIsSaving] = useState(false)
-  const [hasChanges, setHasChanges] = useState(false)
-  
-  // Local state for form values
-  const [localPreferences, setLocalPreferences] = useState(preferences)
-  const [profileData, setProfileData] = useState({
-    name: "Dr. Research Scientist",
-    email: "researcher@university.edu",
-    institution: "Marine Research Institute",
-    role: "Senior Researcher"
-  })
+  const [favorites, setFavorites] = useState<string[]>([])
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+  const [chatbotModel, setChatbotModel] = useState<string>('llama3.2')
+  const [vectorDb, setVectorDb] = useState<string>('chromadb')
 
+  // localStorage에서 설정 로드
   useEffect(() => {
-    setLocalPreferences(preferences)
-  }, [preferences])
-
-  useEffect(() => {
-    const hasChanged = JSON.stringify(localPreferences) !== JSON.stringify(preferences)
-    setHasChanges(hasChanged)
-  }, [localPreferences, preferences])
-
-  const handleSaveSettings = async () => {
-    setIsSaving(true)
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      updatePreferences(localPreferences)
-      setHasChanges(false)
-      toast.success("Settings saved successfully!", {
-        description: "Your preferences have been updated."
-      })
-    } catch (_error) {
-      toast.error("Failed to save settings", {
-        description: "Please try again later."
-      })
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleResetSettings = () => {
-    const defaultPreferences = {
-      defaultSignificanceLevel: 0.05,
-      defaultConfidenceLevel: 95,
-      multipleComparisonsCorrection: 'bonferroni' as const,
-      effectSizeReporting: true,
-      chartStyle: 'professional' as const,
-      notifications: {
-        analysisCompletion: true,
-        dataUploadErrors: true,
-        weeklySummary: false
+    // 즐겨찾기 로드
+    const savedFavorites = localStorage.getItem('statisticsFavorites')
+    if (savedFavorites) {
+      try {
+        setFavorites(JSON.parse(savedFavorites))
+      } catch (error) {
+        console.error('Failed to load favorites:', error)
       }
     }
-    setLocalPreferences(defaultPreferences)
-    toast.info("Settings reset to defaults", {
-      description: "Don't forget to save your changes."
-    })
+
+    // 테마 로드
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null
+    if (savedTheme) {
+      setTheme(savedTheme)
+    }
+
+    // 챗봇 모델 로드
+    const savedModel = localStorage.getItem('chatbotModel')
+    if (savedModel) {
+      setChatbotModel(savedModel)
+    }
+
+    // Vector DB 로드
+    const savedDb = localStorage.getItem('vectorDb')
+    if (savedDb) {
+      setVectorDb(savedDb)
+    }
+  }, [])
+
+  // 모든 아이템 ID 가져오기
+  const allItemIds = STATISTICS_MENU.flatMap((category) =>
+    category.items.map((item) => item.id)
+  )
+
+  // 테마 변경 핸들러
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme)
+    localStorage.setItem('theme', newTheme)
+
+    // 실제 테마 적용 로직 (준비 중)
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else if (newTheme === 'light') {
+      document.documentElement.classList.remove('dark')
+    } else {
+      // system: 브라우저 설정 따라가기
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    }
   }
 
-  const handleExportData = (type: 'datasets' | 'results' | 'account') => {
-    toast.info(`Preparing ${type} export...`, {
-      description: "You will receive an email when the export is ready."
-    })
+  // 챗봇 모델 변경 핸들러
+  const handleModelChange = (model: string) => {
+    setChatbotModel(model)
+    localStorage.setItem('chatbotModel', model)
+  }
+
+  // Vector DB 변경 핸들러
+  const handleDbChange = (db: string) => {
+    setVectorDb(db)
+    localStorage.setItem('vectorDb', db)
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your account preferences and application settings.
-          </p>
-        </div>
-        
-        {hasChanges && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handleResetSettings}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Reset
-            </Button>
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
-              {isSaving ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              Save Changes
-            </Button>
-          </div>
-        )}
+      {/* 헤더 */}
+      <div>
+        <h1 className="text-3xl font-bold mb-2">설정</h1>
+        <p className="text-muted-foreground">
+          애플리케이션 설정을 관리하세요
+        </p>
       </div>
 
-      <Tabs defaultValue="analysis" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="analysis">Analysis</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="data">Data</TabsTrigger>
+      {/* 탭 기반 설정 UI */}
+      <Tabs defaultValue="appearance" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="appearance">
+            <Palette className="h-4 w-4 mr-2" />
+            외관
+          </TabsTrigger>
+          <TabsTrigger value="chatbot">
+            <Bot className="h-4 w-4 mr-2" />
+            챗봇
+          </TabsTrigger>
+          <TabsTrigger value="database">
+            <Database className="h-4 w-4 mr-2" />
+            데이터베이스
+          </TabsTrigger>
+          <TabsTrigger value="favorites">
+            <Star className="h-4 w-4 mr-2" />
+            즐겨찾기
+          </TabsTrigger>
         </TabsList>
 
-        {/* Analysis Settings */}
-        <TabsContent value="analysis" className="space-y-6">
+        {/* 외관 설정 */}
+        <TabsContent value="appearance" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Statistical Analysis Preferences
-              </CardTitle>
+              <CardTitle>테마 설정</CardTitle>
               <CardDescription>
-                Configure default settings for your statistical analyses
+                애플리케이션의 색상 테마를 변경하세요
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="significanceLevel">Default Significance Level (α)</Label>
-                  <Select 
-                    value={localPreferences.defaultSignificanceLevel.toString()} 
-                    onValueChange={(value) => setLocalPreferences(prev => ({
-                      ...prev, 
-                      defaultSignificanceLevel: parseFloat(value)
-                    }))}
-                  >
-                    <SelectTrigger id="significanceLevel">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0.01">0.01 (99% confidence)</SelectItem>
-                      <SelectItem value="0.05">0.05 (95% confidence)</SelectItem>
-                      <SelectItem value="0.10">0.10 (90% confidence)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-3">
+                <Label htmlFor="theme">테마 모드</Label>
+                <Select value={theme} onValueChange={handleThemeChange}>
+                  <SelectTrigger id="theme">
+                    <SelectValue placeholder="테마 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">
+                      <div className="flex items-center gap-2">
+                        <Sun className="h-4 w-4" />
+                        <span>라이트 모드</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="dark">
+                      <div className="flex items-center gap-2">
+                        <Moon className="h-4 w-4" />
+                        <span>다크 모드</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="system">
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        <span>시스템 설정 따르기</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  현재 설정: <strong>{theme === 'light' ? '라이트' : theme === 'dark' ? '다크' : '시스템 자동'}</strong>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confidenceLevel">Default Confidence Level</Label>
-                  <Select 
-                    value={localPreferences.defaultConfidenceLevel.toString()} 
-                    onValueChange={(value) => setLocalPreferences(prev => ({
-                      ...prev, 
-                      defaultConfidenceLevel: parseInt(value)
-                    }))}
-                  >
-                    <SelectTrigger id="confidenceLevel">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="90">90%</SelectItem>
-                      <SelectItem value="95">95%</SelectItem>
-                      <SelectItem value="99">99%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="multipleComparisons">Multiple Comparisons Correction</Label>
-                  <Select 
-                    value={localPreferences.multipleComparisonsCorrection} 
-                    onValueChange={(value: 'bonferroni' | 'holm' | 'fdr' | 'none') => 
-                      setLocalPreferences(prev => ({
-                        ...prev, 
-                        multipleComparisonsCorrection: value
-                      }))
-                    }
-                  >
-                    <SelectTrigger id="multipleComparisons">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bonferroni">Bonferroni Correction</SelectItem>
-                      <SelectItem value="holm">Holm-Bonferroni</SelectItem>
-                      <SelectItem value="fdr">False Discovery Rate (FDR)</SelectItem>
-                      <SelectItem value="none">No Correction</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="chartStyle">Chart Style</Label>
-                  <Select 
-                    value={localPreferences.chartStyle} 
-                    onValueChange={(value: 'professional' | 'minimal' | 'colorful') => 
-                      setLocalPreferences(prev => ({
-                        ...prev, 
-                        chartStyle: value
-                      }))
-                    }
-                  >
-                    <SelectTrigger id="chartStyle">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="professional">Professional</SelectItem>
-                      <SelectItem value="minimal">Minimal</SelectItem>
-                      <SelectItem value="colorful">Colorful</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* 챗봇 설정 */}
+        <TabsContent value="chatbot" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>AI 챗봇 설정</CardTitle>
+              <CardDescription>
+                챗봇에 사용할 AI 모델을 선택하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="model">AI 모델</Label>
+                <Select value={chatbotModel} onValueChange={handleModelChange}>
+                  <SelectTrigger id="model">
+                    <SelectValue placeholder="모델 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="llama3.2">Llama 3.2 (추천)</SelectItem>
+                    <SelectItem value="llama3.1">Llama 3.1</SelectItem>
+                    <SelectItem value="mistral">Mistral</SelectItem>
+                    <SelectItem value="gemma">Gemma</SelectItem>
+                    <SelectItem value="phi">Phi-3</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  현재 모델: <strong>{chatbotModel}</strong>
+                </p>
               </div>
 
-              <Separator />
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm">
+                  <strong>참고:</strong> AI 챗봇 기능은 준비 중입니다. 모델 설정은 챗봇 기능 출시 후 적용됩니다.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Label>Effect Size Reporting</Label>
+        {/* 데이터베이스 설정 */}
+        <TabsContent value="database" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Vector 데이터베이스 설정</CardTitle>
+              <CardDescription>
+                RAG 시스템에 사용할 Vector DB를 선택하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="vectordb">Vector DB 종류</Label>
+                <Select value={vectorDb} onValueChange={handleDbChange}>
+                  <SelectTrigger id="vectordb">
+                    <SelectValue placeholder="DB 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="chromadb">ChromaDB (추천)</SelectItem>
+                    <SelectItem value="faiss">FAISS</SelectItem>
+                    <SelectItem value="pinecone">Pinecone</SelectItem>
+                    <SelectItem value="qdrant">Qdrant</SelectItem>
+                    <SelectItem value="weaviate">Weaviate</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  현재 DB: <strong>{vectorDb}</strong>
+                </p>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm">
+                  <strong>참고:</strong> Vector DB 설정은 RAG 시스템에서 사용됩니다. 변경 시 챗봇 응답 품질에 영향을 줄 수 있습니다.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* 즐겨찾기 관리 */}
+        <TabsContent value="favorites" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>즐겨찾기 관리</CardTitle>
+              <CardDescription>
+                통계 분석 즐겨찾기를 일괄 관리하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div>
+                  <p className="font-medium">현재 즐겨찾기</p>
                   <p className="text-sm text-muted-foreground">
-                    Automatically calculate and display effect sizes (Cohen&apos;s d, eta-squared, etc.)
+                    {favorites.length}개의 통계 분석
                   </p>
                 </div>
-                <Switch
-                  checked={localPreferences.effectSizeReporting}
-                  onCheckedChange={(checked) => 
-                    setLocalPreferences(prev => ({
-                      ...prev, 
-                      effectSizeReporting: checked
-                    }))
-                  }
-                />
-              </div>
-
-              {localPreferences.multipleComparisonsCorrection !== 'none' && (
-                <Alert>
-                  <CheckCircle2 className="h-4 w-4" />
-                  <AlertDescription>
-                    Multiple comparisons correction is enabled. This will automatically adjust p-values 
-                    for ANOVA post-hoc tests and other multiple comparison scenarios.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Appearance Settings */}
-        <TabsContent value="appearance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Appearance Settings
-              </CardTitle>
-              <CardDescription>
-                Customize the look and feel of the application
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="theme">Theme</Label>
-                  <Select value={theme} onValueChange={setTheme}>
-                    <SelectTrigger id="theme">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System (Auto)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="chartStyleDisplay">Chart Style</Label>
-                  <div className="p-3 border rounded-md">
-                    <p className="text-sm font-medium capitalize">
-                      {localPreferences.chartStyle}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {localPreferences.chartStyle === 'professional' && "Clean, publication-ready charts"}
-                      {localPreferences.chartStyle === 'minimal' && "Simple, distraction-free visuals"}
-                      {localPreferences.chartStyle === 'colorful' && "Vibrant, engaging presentations"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <Alert>
-                <Palette className="h-4 w-4" />
-                <AlertDescription>
-                  Theme changes apply immediately. Chart style changes will be reflected in new analyses.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Notification Settings */}
-        <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5" />
-                Notification Settings
-              </CardTitle>
-              <CardDescription>
-                Control how you receive notifications and updates
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Analysis Completion</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified when statistical analyses finish processing
-                    </p>
-                  </div>
-                  <Switch
-                    checked={localPreferences.notifications.analysisCompletion}
-                    onCheckedChange={(checked) => 
-                      setLocalPreferences(prev => ({
-                        ...prev, 
-                        notifications: { ...prev.notifications, analysisCompletion: checked }
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Data Upload Errors</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Alert for data validation issues and upload failures
-                    </p>
-                  </div>
-                  <Switch
-                    checked={localPreferences.notifications.dataUploadErrors}
-                    onCheckedChange={(checked) => 
-                      setLocalPreferences(prev => ({
-                        ...prev, 
-                        notifications: { ...prev.notifications, dataUploadErrors: checked }
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label>Weekly Summary</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive weekly analysis activity summaries via email
-                    </p>
-                  </div>
-                  <Switch
-                    checked={localPreferences.notifications.weeklySummary}
-                    onCheckedChange={(checked) => 
-                      setLocalPreferences(prev => ({
-                        ...prev, 
-                        notifications: { ...prev.notifications, weeklySummary: checked }
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Profile Settings */}
-        <TabsContent value="profile" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Profile Information
-              </CardTitle>
-              <CardDescription>
-                Manage your personal information and account settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    value={profileData.name}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="Enter your email"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="institution">Institution</Label>
-                  <Input
-                    id="institution"
-                    value={profileData.institution}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, institution: e.target.value }))}
-                    placeholder="Enter your institution"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Input
-                    id="role"
-                    value={profileData.role}
-                    onChange={(e) => setProfileData(prev => ({ ...prev, role: e.target.value }))}
-                    placeholder="Enter your role"
-                  />
+                <div className="text-3xl font-bold text-primary">
+                  {favorites.length}
                 </div>
               </div>
 
-              <Separator />
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Security Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Two-Factor Authentication</p>
-                      <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
-                    </div>
-                    <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                      Enabled
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Session Timeout</p>
-                      <p className="text-sm text-muted-foreground">Automatic logout after inactivity</p>
-                    </div>
-                    <Badge variant="outline">24 hours</Badge>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Change Password</Button>
-                    <Button variant="outline" size="sm">Manage 2FA</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Data Management */}
-        <TabsContent value="data" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                Data Export & Management
-              </CardTitle>
-              <CardDescription>
-                Export your data and manage your account information
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Export All Datasets</p>
-                    <p className="text-sm text-muted-foreground">Download all uploaded datasets as CSV files</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => handleExportData('datasets')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Export Analysis Results</p>
-                    <p className="text-sm text-muted-foreground">Download all statistical analysis results and reports</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => handleExportData('results')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Export Account Data</p>
-                    <p className="text-sm text-muted-foreground">Complete data export including profile and settings</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => handleExportData('account')}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Request
-                  </Button>
-                </div>
+              <div className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setFavorites(allItemIds)
+                    localStorage.setItem('statisticsFavorites', JSON.stringify(allItemIds))
+                  }}
+                >
+                  <Star className="h-4 w-4 mr-2" />
+                  모든 통계를 즐겨찾기에 추가 ({allItemIds.length}개)
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setFavorites([])
+                    localStorage.setItem('statisticsFavorites', JSON.stringify([]))
+                  }}
+                  disabled={favorites.length === 0}
+                >
+                  모든 즐겨찾기 해제
+                </Button>
               </div>
 
-              <Separator />
-
-              <Alert>
-                <HelpCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Export requests may take up to 24 hours to process. You will receive an email notification when your data is ready for download.
-                </AlertDescription>
-              </Alert>
-
-              <div className="text-center space-y-2 pt-4">
-                <p className="text-sm font-medium">Statistical Analysis Platform</p>
-                <p className="text-xs text-muted-foreground">Version 1.0.0</p>
-                <p className="text-xs text-muted-foreground">
-                  Professional statistical analysis software with SciPy integration
+              <div className="bg-yellow-50 dark:bg-yellow-950/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <p className="text-sm">
+                  <strong>참고:</strong> 개별 통계의 즐겨찾기는 통계분석 페이지에서 별표(⭐) 아이콘을 클릭하여 관리할 수 있습니다.
                 </p>
               </div>
             </CardContent>

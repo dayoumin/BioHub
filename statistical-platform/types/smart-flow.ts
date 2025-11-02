@@ -52,6 +52,21 @@ export interface StatisticalMethod {
   category: 'descriptive' | 't-test' | 'anova' | 'regression' | 'nonparametric' | 'advanced'
 }
 
+/**
+ * 경고/알림 항목 (StatisticalMethod와 별도 타입)
+ */
+export interface MethodWarning {
+  id: string
+  name: string
+  description: string
+  type: 'warning' | 'info' | 'recommendation'
+}
+
+/**
+ * 통계 메서드 또는 경고 (UI 표시용 유니온 타입)
+ */
+export type MethodOrWarning = StatisticalMethod | MethodWarning
+
 export interface AnalysisResult {
   method: string
   statistic: number

@@ -5,28 +5,29 @@
 
 import { KeywordBasedRecommender } from './keyword-based-recommender'
 import { OllamaRecommender } from './ollama-recommender'
-import { StatisticalMethod } from '@/types/smart-flow'
+import { StatisticalMethod, MethodWarning, MethodOrWarning } from '@/types/smart-flow'
 
 export interface HybridRecommendation {
   immediate: {
-    methods: StatisticalMethod[]
+    methods: MethodOrWarning[]
     source: 'keyword'
     confidence: number
     timestamp: number
   }
   enhanced?: {
-    methods: StatisticalMethod[]
+    methods: MethodOrWarning[]
     source: 'llm'
     confidence: number
     timestamp: number
     insights?: string
   }
   final: {
-    methods: StatisticalMethod[]
+    methods: MethodOrWarning[]
     source: 'hybrid'
     confidence: number
     reasoning: string
   }
+  llmFailed?: boolean // LLM 실패 플래그 (캐시 재시도용)
 }
 
 export class HybridRecommender {
@@ -46,10 +47,11 @@ export class HybridRecommender {
       onFinal?: (result: any) => void
     }
   ): Promise<HybridRecommendation> {
-    // 캐시 확인
+    // 캐시 확인 (LLM 실패 시에는 재시도)
     const cacheKey = `${purposeText}_${JSON.stringify(dataInfo)}`
-    if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey)!
+    const cached = this.cache.get(cacheKey)
+    if (cached && !cached.llmFailed) {
+      return cached
     }
 
     const result: HybridRecommendation = {
@@ -99,7 +101,7 @@ export class HybridRecommender {
 
     // 🎯 3단계: 결과 통합
     const llmResult = await llmPromise
-    
+
     if (llmResult) {
       // LLM 성공: 지능적 통합
       result.final = this.mergeResults(
@@ -107,20 +109,24 @@ export class HybridRecommender {
         result.enhanced!,
         dataInfo
       )
+      result.llmFailed = false
+
+      // LLM 성공 시에만 캐시 저장
+      this.cache.set(cacheKey, result)
     } else {
-      // LLM 실패: 키워드 결과 사용
+      // LLM 실패: 키워드 결과만 사용 (캐시 저장 안 함)
       result.final = {
         methods: result.immediate.methods,
         source: 'hybrid',
         confidence: result.immediate.confidence * 0.8, // 신뢰도 하향
         reasoning: '기본 분석 기반 추천 (고급 분석 사용 불가)'
       }
+      result.llmFailed = true
+
+      // LLM 실패 시에는 캐시에 저장하지 않음 (다음 요청 시 재시도)
     }
 
-    // 캐시 저장
-    this.cache.set(cacheKey, result)
     callbacks?.onFinal?.(result.final)
-
     return result
   }
 
@@ -143,15 +149,52 @@ export class HybridRecommender {
   ): Promise<any> {
     // Ollama 사용 가능 여부 확인
     const isAvailable = await this.ollamaRecommender.checkHealth()
-    
+
     if (!isAvailable) {
       throw new Error('Ollama not available')
     }
 
-    return await this.ollamaRecommender.recommend(purposeText, {
+    const llmResponse = await this.ollamaRecommender.recommend(purposeText, {
       shape: [dataInfo.rowCount || 0, dataInfo.columnCount || 0],
       types: dataInfo.columnTypes || []
     })
+
+    // LLM 응답을 StatisticalMethod 형식으로 변환
+    return {
+      methods: this.convertLLMMethodsToStatisticalMethods(llmResponse.methods),
+      confidence: llmResponse.confidence,
+      insights: llmResponse.clarification
+    }
+  }
+
+  /**
+   * LLM 응답 메서드를 StatisticalMethod 타입으로 변환
+   */
+  private convertLLMMethodsToStatisticalMethods(llmMethods: any[]): StatisticalMethod[] {
+    return llmMethods.map(method => ({
+      id: method.id || 'unknown',
+      name: method.name || '알 수 없는 메서드',
+      description: method.reason || method.description || '',
+      category: this.inferCategory(method.id)
+    }))
+  }
+
+  /**
+   * 메서드 ID로부터 카테고리 추론
+   */
+  private inferCategory(methodId: string | undefined): StatisticalMethod['category'] {
+    if (!methodId) return 'descriptive' // 기본값
+
+    const id = methodId.toLowerCase()
+
+    if (id.includes('t-test') || id.includes('ttest')) return 't-test'
+    if (id.includes('anova')) return 'anova'
+    if (id.includes('regression') || id.includes('회귀')) return 'regression'
+    if (id.includes('mann-whitney') || id.includes('kruskal') || id.includes('wilcoxon') || id.includes('friedman')) return 'nonparametric'
+    if (id.includes('correlation') || id.includes('상관')) return 'descriptive'
+    if (id.includes('chi-square') || id.includes('카이제곱')) return 'advanced'
+
+    return 'descriptive' // 기본값
   }
 
   /**
@@ -241,27 +284,27 @@ export class HybridRecommender {
   private adjustForDataCharacteristics(
     methods: StatisticalMethod[],
     dataInfo: any
-  ): StatisticalMethod[] {
-    const adjusted = [...methods]
+  ): MethodOrWarning[] {
+    const adjusted: MethodOrWarning[] = [...methods]
 
     // 작은 샘플 → 비모수 검정 우선
     if (dataInfo.rowCount < 30) {
-      const nonparametric = {
+      const nonparametric: MethodWarning = {
         id: 'nonparametric-notice',
         name: '⚠️ 비모수 검정 권장',
         description: `샘플이 작습니다 (n=${dataInfo.rowCount})`,
-        category: 'warning' as const
+        type: 'recommendation'
       }
       adjusted.unshift(nonparametric)
     }
 
     // 결측값 많음 → 경고
     if (dataInfo.missingRatio > 0.2) {
-      const warning = {
+      const warning: MethodWarning = {
         id: 'missing-data-notice',
         name: '⚠️ 결측값 처리 필요',
         description: `결측값 ${(dataInfo.missingRatio * 100).toFixed(0)}%`,
-        category: 'warning' as const
+        type: 'warning'
       }
       adjusted.unshift(warning)
     }
