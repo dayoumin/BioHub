@@ -25,9 +25,11 @@ import {
   CheckCircle2,
   TrendingUp,
   Users,
-  Shuffle
+  Shuffle,
+  FileSpreadsheet
 } from 'lucide-react'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
@@ -125,10 +127,10 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
 
 export default function NonParametricTestPage() {
   const { state, actions } = useStatisticsPage<StatisticalResult, VariableMapping>({
-    withUploadedData: false,
-    withError: false
+    withUploadedData: true,
+    withError: true
   })
-  const { variableMapping, results: result, isAnalyzing } = state
+  const { uploadedData, variableMapping, results: result, isAnalyzing, error } = state
   const [selectedTest, setSelectedTest] = useState<NonParametricTest>('mann-whitney')
   const [activeTab, setActiveTab] = useState('setup')
   const [alpha, setAlpha] = useState('0.05')
@@ -137,6 +139,23 @@ export default function NonParametricTestPage() {
   const { pyodideService, isLoading: isPyodideLoading, error: pyodideError } = usePyodideService()
 
   const currentTest = testDescriptions[selectedTest]
+
+  // 데이터 업로드 핸들러
+  const handleDataUpload = useCallback((file: File, data: Record<string, unknown>[]) => {
+    const uploadedData = {
+      data,
+      fileName: file.name,
+      columns: data.length > 0 ? Object.keys(data[0]) : []
+    }
+
+    if (!actions.setUploadedData) {
+      console.error('[non-parametric] setUploadedData not available')
+      return
+    }
+
+    actions.setUploadedData(uploadedData)
+    setActiveTab('setup')
+  }, [actions])
 
   // 변수 선택 핸들러 (표준 패턴)
   const handleVariablesSelected = useCallback((variables: unknown) => {
@@ -325,22 +344,43 @@ export default function NonParametricTestPage() {
           </CardContent>
         </Card>
 
-        {/* 분석 설정 및 결과 탭 */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="setup">분석 설정</TabsTrigger>
-            <TabsTrigger value="assumptions">가정 확인</TabsTrigger>
-            <TabsTrigger value="results" disabled={!result}>결과</TabsTrigger>
-          </TabsList>
+        {/* 데이터 업로드 */}
+        {!uploadedData && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5" />
+                데이터 업로드
+              </CardTitle>
+              <CardDescription>
+                비모수 검정을 수행할 데이터를 업로드하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataUploadStep
+                onUploadComplete={handleDataUpload}
+              />
+            </CardContent>
+          </Card>
+        )}
 
-          {/* 분석 설정 탭 */}
-          <TabsContent value="setup" className="space-y-6">
-            {/* 변수 선택 */}
-            <VariableSelector
-              methodId="non-parametric"
-              data={[]}
-              onVariablesSelected={handleVariablesSelected}
-            />
+        {/* 분석 설정 및 결과 탭 */}
+        {uploadedData && (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="setup">분석 설정</TabsTrigger>
+              <TabsTrigger value="assumptions">가정 확인</TabsTrigger>
+              <TabsTrigger value="results" disabled={!result}>결과</TabsTrigger>
+            </TabsList>
+
+            {/* 분석 설정 탭 */}
+            <TabsContent value="setup" className="space-y-6">
+              {/* 변수 선택 */}
+              <VariableSelector
+                methodId="non-parametric"
+                data={uploadedData.data}
+                onVariablesSelected={handleVariablesSelected}
+              />
 
             {/* 분석 옵션 */}
             <Card>
@@ -539,6 +579,7 @@ export default function NonParametricTestPage() {
             )}
           </TabsContent>
         </Tabs>
+        )}
       </div>
     </StatisticsPageLayout>
   )

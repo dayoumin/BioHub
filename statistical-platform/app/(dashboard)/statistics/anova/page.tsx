@@ -278,7 +278,6 @@ export default function ANOVAPage() {
         {Object.entries(anovaTypeInfo).map(([key, info]) => (
           <MethodSelectionCard
             key={key}
-            methodKey={key}
             methodInfo={info}
             isSelected={anovaType === key}
             onSelect={() => handleMethodSelect(key as 'oneWay' | 'twoWay' | 'threeWay' | 'repeated')}

@@ -1,7 +1,1 @@
-{
-  "/page": "app/page.js",
-  "/(dashboard)/smart-analysis/page": "app/(dashboard)/smart-analysis/page.js",
-  "/(dashboard)/statistics/partial-correlation/page": "app/(dashboard)/statistics/partial-correlation/page.js",
-  "/(dashboard)/statistics/chi-square/page": "app/(dashboard)/statistics/chi-square/page.js",
-  "/(dashboard)/statistics/mann-kendall/page": "app/(dashboard)/statistics/mann-kendall/page.js"
-}
+{}

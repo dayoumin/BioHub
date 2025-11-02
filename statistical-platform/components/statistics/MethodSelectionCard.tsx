@@ -24,7 +24,6 @@ export interface MethodInfo {
 }
 
 interface MethodSelectionCardProps {
-  methodKey: string
   methodInfo: MethodInfo
   isSelected: boolean
   onSelect: () => void
@@ -43,7 +42,6 @@ const assumptionDescriptions: Record<string, string> = {
 }
 
 export function MethodSelectionCard({
-  methodKey,
   methodInfo,
   isSelected,
   onSelect
@@ -98,10 +96,10 @@ export function MethodSelectionCard({
           </div>
 
           {/* 가정 (툴팁 포함) */}
-          <div className="flex flex-wrap gap-1.5">
-            {methodInfo.assumptions.map((assumption, idx) => (
-              <TooltipProvider key={idx}>
-                <Tooltip>
+          <TooltipProvider>
+            <div className="flex flex-wrap gap-1.5">
+              {methodInfo.assumptions.map((assumption, idx) => (
+                <Tooltip key={idx}>
                   <TooltipTrigger asChild>
                     <Badge
                       variant="outline"
@@ -117,9 +115,9 @@ export function MethodSelectionCard({
                     </p>
                   </TooltipContent>
                 </Tooltip>
-              </TooltipProvider>
-            ))}
-          </div>
+              ))}
+            </div>
+          </TooltipProvider>
 
           {/* 수식 (선택적) */}
           {methodInfo.equation && (
