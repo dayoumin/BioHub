@@ -177,7 +177,35 @@ describe('OllamaRAGProvider', () => {
       expect(autoProvider['inferenceModel']).toBe('gpt4')
     })
 
-    it('should show available models in error message when no inference model found', async () => {
+    it('should auto-detect fallback model (e.g. mistral) when qwen/gemma/gpt not available', async () => {
+      const autoProvider = new OllamaRAGProvider({
+        name: 'Fallback Auto Detect Test',
+        embeddingModel: 'nomic-embed-text',
+        testMode: true // SQLite DB 로드 스킵
+        // inferenceModel 미지정
+      })
+
+      ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          models: [
+            { name: 'nomic-embed-text' },
+            { name: 'mistral' }, // qwen/gemma/gpt 없음
+            { name: 'neural-chat' }
+          ]
+        })
+      })
+
+      await autoProvider.initialize()
+
+      // mistral 이나 neural-chat 중 하나가 선택되어야 함 (4순위)
+      expect(
+        autoProvider['inferenceModel'] === 'mistral' ||
+        autoProvider['inferenceModel'] === 'neural-chat'
+      ).toBe(true)
+    })
+
+    it('should show available models in error message when only embedding models found', async () => {
       const autoProvider = new OllamaRAGProvider({
         name: 'Error Message Test',
         embeddingModel: 'nomic-embed-text',
@@ -190,8 +218,7 @@ describe('OllamaRAGProvider', () => {
         json: async () => ({
           models: [
             { name: 'nomic-embed-text' },
-            { name: 'mistral' }, // embedding이 아닌 일반 모델
-            { name: 'neural-chat' }
+            { name: 'mxbai-embed-large' } // embedding 모델만 있음
           ]
         })
       })
@@ -201,20 +228,23 @@ describe('OllamaRAGProvider', () => {
         fail('Should have thrown error')
       } catch (error) {
         const errorMessage = (error as Error).message
-        // 에러 메시지에 설치된 모델 목록 포함 확인
+        // 에러 메시지에 embedding 모델만 설치되어 있음을 명시
+        expect(errorMessage).toContain('embedding 모델만 설치')
+        // 설치된 모든 모델 목록 포함 확인
         expect(errorMessage).toContain('설치된 모델:')
-        expect(errorMessage).toContain('mistral')
-        expect(errorMessage).toContain('neural-chat')
+        expect(errorMessage).toContain('nomic-embed-text')
+        expect(errorMessage).toContain('mxbai-embed-large')
         // 하드코딩된 모델이 없는지 확인
         expect(errorMessage).not.toContain('qwen2.5:3b')
       }
     })
 
-    it('should not include embedding models in available list', async () => {
+    it('should respect priority order regardless of API response order', async () => {
       const autoProvider = new OllamaRAGProvider({
-        name: 'Embedding Filter Test',
+        name: 'Priority Order Test',
         embeddingModel: 'nomic-embed-text',
         testMode: true // SQLite DB 로드 스킵
+        // inferenceModel 미지정
       })
 
       ;(global.fetch as jest.Mock).mockResolvedValueOnce({
@@ -222,23 +252,17 @@ describe('OllamaRAGProvider', () => {
         json: async () => ({
           models: [
             { name: 'nomic-embed-text' },
-            { name: 'embedding-model' },
-            { name: 'mistral' }
+            { name: 'gemma' },      // 2순위가 먼저 나옴
+            { name: 'qwen2.5' },    // 1순위가 뒤에 나옴
+            { name: 'mistral' }     // fallback
           ]
         })
       })
 
-      try {
-        await autoProvider.initialize()
-        fail('Should have thrown error')
-      } catch (error) {
-        const errorMessage = (error as Error).message
-        // embedding 포함된 모델은 제외되어야 함
-        expect(errorMessage).not.toContain('embedding-model')
-        expect(errorMessage).not.toContain('nomic-embed-text')
-        // 일반 모델만 포함
-        expect(errorMessage).toContain('mistral')
-      }
+      await autoProvider.initialize()
+
+      // API 응답 순서에 관계없이 qwen(1순위)이 선택되어야 함
+      expect(autoProvider['inferenceModel']).toBe('qwen2.5')
     })
   })
 

@@ -263,24 +263,32 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
       // 3. 추론 모델 자동 감지 또는 확인
       if (!this.inferenceModel) {
-        // 모델이 지정되지 않았으면 자동 감지 (임베딩 모델 제외)
-        const inferenceModel = models.find((m) =>
-          !m.name.toLowerCase().includes('embed') &&
-          !m.name.toLowerCase().includes('embedding') &&
-          (m.name.toLowerCase().includes('qwen') ||
-           m.name.toLowerCase().includes('gemma') ||
-           m.name.toLowerCase().includes('gpt'))
+        // 모델이 지정되지 않았으면 자동 감지 (임베딩 모델 제외, 우선순위: qwen > gemma > gpt > 기타)
+        const nonEmbeddingModels = models.filter(
+          (m) =>
+            !m.name.toLowerCase().includes('embed') &&
+            !m.name.toLowerCase().includes('embedding')
         )
+
+        // 우선순위별로 정렬: 1순위(qwen), 2순위(gemma), 3순위(gpt), 4순위(기타)
+        const inferenceModel = nonEmbeddingModels.sort((a, b) => {
+          const getPriority = (name: string): number => {
+            const lower = name.toLowerCase()
+            if (lower.includes('qwen')) return 0  // 1순위
+            if (lower.includes('gemma')) return 1 // 2순위
+            if (lower.includes('gpt')) return 2   // 3순위
+            return 3                               // 4순위 (기타)
+          }
+          return getPriority(a.name) - getPriority(b.name)
+        })[0]
+
         if (!inferenceModel) {
-          // 설치된 모델 목록을 에러 메시지에 포함
-          const availableModels = models
-            .filter((m) => !m.name.toLowerCase().includes('embed'))
-            .map((m) => m.name)
-            .join(', ')
+          // 설치된 모델 목록을 에러 메시지에 포함 (embedding 모델만 존재하는 경우)
+          const allModelNames = models.map((m) => m.name).join(', ')
 
           throw new Error(
-            '추론 가능한 모델을 찾을 수 없습니다.\n' +
-            `설치된 모델: ${availableModels || '없음'}\n` +
+            '추론 가능한 모델을 찾을 수 없습니다. embedding 모델만 설치되어 있습니다.\n' +
+            `설치된 모델: ${allModelNames || '없음'}\n` +
             '다음 중 하나를 설치하세요:\n' +
             '  ollama pull qwen2.5\n' +
             '  ollama pull gemma\n' +
