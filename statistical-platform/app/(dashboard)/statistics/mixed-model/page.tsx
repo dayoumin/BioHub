@@ -366,9 +366,9 @@ export default function MixedModelPage() {
   }, [runAnalysis, actions])
 
   const getSignificanceColor = (pValue: number) => {
-    if (pValue < 0.001) return 'text-red-600 bg-red-50'
-    if (pValue < 0.01) return 'text-orange-600 bg-orange-50'
-    if (pValue < 0.05) return 'text-yellow-600 bg-yellow-50'
+    if (pValue < 0.001) return 'text-muted-foreground bg-muted'
+    if (pValue < 0.01) return 'text-muted-foreground bg-muted'
+    if (pValue < 0.05) return 'text-muted-foreground bg-muted'
     return 'text-gray-600 bg-gray-50'
   }
 
@@ -429,17 +429,17 @@ export default function MixedModelPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">교육 연구</h4>
-                      <p className="text-green-700">학생(Level 1) ⊂ 학급(Level 2) ⊂ 학교(Level 3)</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">교육 연구</h4>
+                      <p className="text-muted-foreground">학생(Level 1) ⊂ 학급(Level 2) ⊂ 학교(Level 3)</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">의학 연구</h4>
-                      <p className="text-blue-700">측정시점 ⊂ 환자 ⊂ 병원 (반복측정)</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">의학 연구</h4>
+                      <p className="text-muted-foreground">측정시점 ⊂ 환자 ⊂ 병원 (반복측정)</p>
                     </div>
-                    <div className="bg-purple-50 p-3 rounded">
-                      <h4 className="font-medium text-purple-800">심리학</h4>
-                      <p className="text-purple-700">반복측정 ⊂ 개인 ⊂ 집단</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">심리학</h4>
+                      <p className="text-muted-foreground">반복측정 ⊂ 개인 ⊂ 집단</p>
                     </div>
                   </div>
                 </CardContent>
@@ -457,9 +457,9 @@ export default function MixedModelPage() {
               </AlertDescription>
             </Alert>
 
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h4 className="font-medium text-yellow-800 mb-2">모형 선택 기준</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
+            <div className="p-4 bg-muted border border rounded-lg">
+              <h4 className="font-medium mb-2">모형 선택 기준</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• <strong>ICC &gt; 0.05:</strong> 다수준 모형 고려 필요</li>
                 <li>• <strong>AIC/BIC:</strong> 작을수록 더 나은 모형</li>
                 <li>• <strong>우도비 검정:</strong> 중첩 모형 간 비교</li>
@@ -500,23 +500,23 @@ export default function MixedModelPage() {
             </AlertDescription>
           </Alert>
 
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <h4 className="font-medium text-blue-800 mb-2">데이터 구조 예시</h4>
-            <div className="text-sm text-blue-700">
-              <table className="w-full border-collapse border border-blue-200">
+          <div className="mt-4 p-4 bg-muted rounded-lg">
+            <h4 className="font-medium mb-2">데이터 구조 예시</h4>
+            <div className="text-sm text-muted-foreground">
+              <table className="w-full border-collapse border border">
                 <thead>
-                  <tr className="bg-blue-100">
-                    <th className="border border-blue-200 px-2 py-1">ID</th>
-                    <th className="border border-blue-200 px-2 py-1">School</th>
-                    <th className="border border-blue-200 px-2 py-1">Treatment</th>
-                    <th className="border border-blue-200 px-2 py-1">Time</th>
-                    <th className="border border-blue-200 px-2 py-1">Score</th>
+                  <tr className="bg-muted">
+                    <th className="border border px-2 py-1">ID</th>
+                    <th className="border border px-2 py-1">School</th>
+                    <th className="border border px-2 py-1">Treatment</th>
+                    <th className="border border px-2 py-1">Time</th>
+                    <th className="border border px-2 py-1">Score</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td className="border border-blue-200 px-2 py-1">001</td><td className="border border-blue-200 px-2 py-1">A</td><td className="border border-blue-200 px-2 py-1">Control</td><td className="border border-blue-200 px-2 py-1">1</td><td className="border border-blue-200 px-2 py-1">45.2</td></tr>
-                  <tr><td className="border border-blue-200 px-2 py-1">001</td><td className="border border-blue-200 px-2 py-1">A</td><td className="border border-blue-200 px-2 py-1">Control</td><td className="border border-blue-200 px-2 py-1">2</td><td className="border border-blue-200 px-2 py-1">47.8</td></tr>
-                  <tr><td className="border border-blue-200 px-2 py-1">002</td><td className="border border-blue-200 px-2 py-1">A</td><td className="border border-blue-200 px-2 py-1">Treatment</td><td className="border border-blue-200 px-2 py-1">1</td><td className="border border-blue-200 px-2 py-1">52.1</td></tr>
+                  <tr><td className="border border px-2 py-1">001</td><td className="border border px-2 py-1">A</td><td className="border border px-2 py-1">Control</td><td className="border border px-2 py-1">1</td><td className="border border px-2 py-1">45.2</td></tr>
+                  <tr><td className="border border px-2 py-1">001</td><td className="border border px-2 py-1">A</td><td className="border border px-2 py-1">Control</td><td className="border border px-2 py-1">2</td><td className="border border px-2 py-1">47.8</td></tr>
+                  <tr><td className="border border px-2 py-1">002</td><td className="border border px-2 py-1">A</td><td className="border border px-2 py-1">Treatment</td><td className="border border px-2 py-1">1</td><td className="border border px-2 py-1">52.1</td></tr>
                 </tbody>
               </table>
             </div>
@@ -762,7 +762,7 @@ export default function MixedModelPage() {
                                 <span className="font-medium">{(component.proportion * 100).toFixed(1)}%</span>
                                 <div className="w-16 h-2 bg-gray-200 rounded">
                                   <div
-                                    className="h-2 bg-blue-500 rounded"
+                                    className="h-2 bg-muted0 rounded"
                                     style={{width: `${component.proportion * 100}%`}}
                                   />
                                 </div>
@@ -780,18 +780,18 @@ export default function MixedModelPage() {
                   </div>
 
                   <div className="mt-6 grid md:grid-cols-2 gap-6">
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-800 mb-2">분산 분해 요약</h4>
-                      <div className="space-y-2 text-sm text-blue-700">
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">분산 분해 요약</h4>
+                      <div className="space-y-2 text-sm text-muted-foreground">
                         <p><strong>집단 수준 변동:</strong> {((analysisResult.varianceComponents[0].proportion + analysisResult.varianceComponents[1].proportion + analysisResult.varianceComponents[2].proportion) * 100).toFixed(1)}%</p>
                         <p><strong>개체 내 변동 (잔차):</strong> {(analysisResult.varianceComponents[3].proportion * 100).toFixed(1)}%</p>
                         <p><strong>ICC:</strong> {analysisResult.modelFit.icc.toFixed(3)} (클러스터링 효과)</p>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-green-50 rounded-lg">
-                      <h4 className="font-medium text-green-800 mb-2">해석 가이드</h4>
-                      <div className="space-y-1 text-sm text-green-700">
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">해석 가이드</h4>
+                      <div className="space-y-1 text-sm text-muted-foreground">
                         <p>• ICC &gt; 0.05: 다수준 분석 필요</p>
                         <p>• 개체 수준 변동이 가장 큰 비율 차지</p>
                         <p>• 학교 수준 변동도 상당함</p>
@@ -816,30 +816,30 @@ export default function MixedModelPage() {
                 <CardContent>
                   <div className="grid md:grid-cols-3 gap-6">
                     <div className="space-y-4">
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <h4 className="font-medium text-blue-800 mb-2">R² 값</h4>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">R² 값</h4>
                         <div className="space-y-2">
                           <div>
-                            <p className="text-sm text-blue-700">주변 R² (고정효과)</p>
-                            <p className="text-2xl font-bold text-blue-900">{(analysisResult.modelFit.marginalRSquared * 100).toFixed(1)}%</p>
+                            <p className="text-sm text-muted-foreground">주변 R² (고정효과)</p>
+                            <p className="text-2xl font-bold">{(analysisResult.modelFit.marginalRSquared * 100).toFixed(1)}%</p>
                           </div>
                           <div>
-                            <p className="text-sm text-blue-700">조건부 R² (전체)</p>
-                            <p className="text-2xl font-bold text-blue-900">{(analysisResult.modelFit.conditionalRSquared * 100).toFixed(1)}%</p>
+                            <p className="text-sm text-muted-foreground">조건부 R² (전체)</p>
+                            <p className="text-2xl font-bold">{(analysisResult.modelFit.conditionalRSquared * 100).toFixed(1)}%</p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="p-4 bg-green-50 rounded-lg">
-                        <h4 className="font-medium text-green-800 mb-2">ICC</h4>
-                        <p className="text-2xl font-bold text-green-900">{analysisResult.modelFit.icc.toFixed(3)}</p>
-                        <p className="text-sm text-green-700">계층내 상관계수</p>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">ICC</h4>
+                        <p className="text-2xl font-bold">{analysisResult.modelFit.icc.toFixed(3)}</p>
+                        <p className="text-sm text-muted-foreground">계층내 상관계수</p>
                       </div>
                     </div>
 
                     <div className="space-y-4">
-                      <div className="p-4 bg-orange-50 rounded-lg">
-                        <h4 className="font-medium text-orange-800 mb-2">정보 기준</h4>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">정보 기준</h4>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>AIC:</span>
@@ -850,11 +850,11 @@ export default function MixedModelPage() {
                             <span className="font-bold">{analysisResult.modelFit.bic.toFixed(2)}</span>
                           </div>
                         </div>
-                        <p className="text-xs text-orange-700 mt-2">작을수록 좋은 모형</p>
+                        <p className="text-xs text-muted-foreground mt-2">작을수록 좋은 모형</p>
                       </div>
 
-                      <div className="p-4 bg-purple-50 rounded-lg">
-                        <h4 className="font-medium text-purple-800 mb-2">우도</h4>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">우도</h4>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>Log-likelihood:</span>
@@ -917,7 +917,7 @@ export default function MixedModelPage() {
                           ) : (
                             <AlertTriangle className="w-4 h-4 text-red-500" />
                           )}
-                          <span className={analysisResult.residualAnalysis.normality.assumptionMet ? 'text-green-700' : 'text-red-700'}>
+                          <span className={analysisResult.residualAnalysis.normality.assumptionMet ? 'text-muted-foreground' : 'text-muted-foreground'}>
                             {analysisResult.residualAnalysis.normality.assumptionMet ? '가정 충족' : '가정 위반'}
                           </span>
                         </div>
@@ -941,7 +941,7 @@ export default function MixedModelPage() {
                           ) : (
                             <AlertTriangle className="w-4 h-4 text-red-500" />
                           )}
-                          <span className={analysisResult.residualAnalysis.homoscedasticity.assumptionMet ? 'text-green-700' : 'text-red-700'}>
+                          <span className={analysisResult.residualAnalysis.homoscedasticity.assumptionMet ? 'text-muted-foreground' : 'text-muted-foreground'}>
                             {analysisResult.residualAnalysis.homoscedasticity.assumptionMet ? '가정 충족' : '가정 위반'}
                           </span>
                         </div>
@@ -965,7 +965,7 @@ export default function MixedModelPage() {
                           ) : (
                             <AlertTriangle className="w-4 h-4 text-red-500" />
                           )}
-                          <span className={analysisResult.residualAnalysis.independence.assumptionMet ? 'text-green-700' : 'text-red-700'}>
+                          <span className={analysisResult.residualAnalysis.independence.assumptionMet ? 'text-muted-foreground' : 'text-muted-foreground'}>
                             {analysisResult.residualAnalysis.independence.assumptionMet ? '가정 충족' : '가정 위반'}
                           </span>
                         </div>
@@ -1014,8 +1014,8 @@ export default function MixedModelPage() {
                             <td className="border border-gray-300 px-4 py-2 text-center font-medium">{pred.residual.toFixed(1)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-center">
                               <Badge variant="outline" className={
-                                Math.abs(pred.standardizedResidual) > 2 ? 'text-red-600 bg-red-50' :
-                                Math.abs(pred.standardizedResidual) > 1.5 ? 'text-orange-600 bg-orange-50' :
+                                Math.abs(pred.standardizedResidual) > 2 ? 'text-muted-foreground bg-muted' :
+                                Math.abs(pred.standardizedResidual) > 1.5 ? 'text-muted-foreground bg-muted' :
                                 'text-gray-600 bg-gray-50'
                               }>
                                 {pred.standardizedResidual.toFixed(2)}
@@ -1051,9 +1051,9 @@ export default function MixedModelPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* 요약 */}
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-800 mb-2">분석 요약</h4>
-                    <p className="text-blue-700">{analysisResult.interpretation.summary}</p>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">분석 요약</h4>
+                    <p className="text-muted-foreground">{analysisResult.interpretation.summary}</p>
                   </div>
 
                   {/* 고정효과 해석 */}
@@ -1061,8 +1061,8 @@ export default function MixedModelPage() {
                     <h4 className="font-medium mb-3">고정효과 해석</h4>
                     <div className="space-y-2">
                       {analysisResult.interpretation.fixedEffectsInterpretation.map((interpretation, index) => (
-                        <div key={index} className="p-3 bg-green-50 rounded border-l-4 border-green-400">
-                          <p className="text-green-700 text-sm">{interpretation}</p>
+                        <div key={index} className="p-3 bg-muted rounded border-l-4 border-green-400">
+                          <p className="text-muted-foreground text-sm">{interpretation}</p>
                         </div>
                       ))}
                     </div>
@@ -1073,17 +1073,17 @@ export default function MixedModelPage() {
                     <h4 className="font-medium mb-3">무선효과 해석</h4>
                     <div className="space-y-2">
                       {analysisResult.interpretation.randomEffectsInterpretation.map((interpretation, index) => (
-                        <div key={index} className="p-3 bg-orange-50 rounded border-l-4 border-orange-400">
-                          <p className="text-orange-700 text-sm">{interpretation}</p>
+                        <div key={index} className="p-3 bg-muted rounded border-l-4 border-orange-400">
+                          <p className="text-muted-foreground text-sm">{interpretation}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* 분산 설명 */}
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <h4 className="font-medium text-purple-800 mb-2">분산 설명</h4>
-                    <p className="text-purple-700">{analysisResult.interpretation.varianceExplained}</p>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">분산 설명</h4>
+                    <p className="text-muted-foreground">{analysisResult.interpretation.varianceExplained}</p>
                   </div>
 
                   {/* 권장사항 */}

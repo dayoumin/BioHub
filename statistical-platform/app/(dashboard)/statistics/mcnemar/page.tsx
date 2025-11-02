@@ -317,9 +317,9 @@ export default function McNemarTestPage() {
                 동일한 대상에서 두 시점 또는 두 처리에서 측정한
                 <strong>이진 변수의 변화</strong>를 검정하는 방법입니다.
               </p>
-              <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="bg-muted p-3 rounded-lg">
                 <p className="text-xs font-medium mb-1">검정 통계량</p>
-                <p className="text-xs text-blue-700">
+                <p className="text-xs text-muted-foreground">
                   χ² = (b - c)² / (b + c)<br/>
                   b, c: 불일치 쌍의 개수
                 </p>
@@ -388,13 +388,13 @@ export default function McNemarTestPage() {
               <tbody>
                 <tr>
                   <td className="border border-gray-300 p-2">Positive</td>
-                  <td className="border border-gray-300 p-2 bg-green-50">a (일치)</td>
-                  <td className="border border-gray-300 p-2 bg-red-50">b (불일치)</td>
+                  <td className="border border-gray-300 p-2 bg-muted">a (일치)</td>
+                  <td className="border border-gray-300 p-2 bg-muted">b (불일치)</td>
                 </tr>
                 <tr>
                   <td className="border border-gray-300 p-2">Negative</td>
-                  <td className="border border-gray-300 p-2 bg-red-50">c (불일치)</td>
-                  <td className="border border-gray-300 p-2 bg-green-50">d (일치)</td>
+                  <td className="border border-gray-300 p-2 bg-muted">c (불일치)</td>
+                  <td className="border border-gray-300 p-2 bg-muted">d (일치)</td>
                 </tr>
               </tbody>
             </table>
@@ -503,7 +503,7 @@ export default function McNemarTestPage() {
       >
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
-          <Alert className={significant ? "border-red-500 bg-red-50" : "border-green-500 bg-green-50"}>
+          <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>검정 결과</AlertTitle>
             <AlertDescription>
@@ -518,7 +518,7 @@ export default function McNemarTestPage() {
                 </p>
                 <p className="text-sm text-muted-foreground">{interpretation}</p>
                 {continuityCorrection && (
-                  <p className="text-xs text-blue-600">연속성 수정이 적용되었습니다 (불일치 쌍 &lt; 25)</p>
+                  <p className="text-xs text-muted-foreground">연속성 수정이 적용되었습니다 (불일치 쌍 &lt; 25)</p>
                 )}
               </div>
             </AlertDescription>
@@ -550,11 +550,11 @@ export default function McNemarTestPage() {
                   <tbody>
                     <tr>
                       <td className="border border-gray-300 p-3">Positive</td>
-                      <td className="border border-gray-300 p-3 text-center bg-green-50">
+                      <td className="border border-gray-300 p-3 text-center bg-muted">
                         <div className="font-bold">{contingencyTable.both_positive}</div>
                         <div className="text-xs text-gray-500">(a)</div>
                       </td>
-                      <td className="border border-gray-300 p-3 text-center bg-red-50">
+                      <td className="border border-gray-300 p-3 text-center bg-muted">
                         <div className="font-bold">{contingencyTable.first_positive_second_negative}</div>
                         <div className="text-xs text-gray-500">(b)</div>
                       </td>
@@ -564,11 +564,11 @@ export default function McNemarTestPage() {
                     </tr>
                     <tr>
                       <td className="border border-gray-300 p-3">Negative</td>
-                      <td className="border border-gray-300 p-3 text-center bg-red-50">
+                      <td className="border border-gray-300 p-3 text-center bg-muted">
                         <div className="font-bold">{contingencyTable.first_negative_second_positive}</div>
                         <div className="text-xs text-gray-500">(c)</div>
                       </td>
-                      <td className="border border-gray-300 p-3 text-center bg-green-50">
+                      <td className="border border-gray-300 p-3 text-center bg-muted">
                         <div className="font-bold">{contingencyTable.both_negative}</div>
                         <div className="text-xs text-gray-500">(d)</div>
                       </td>
@@ -679,9 +679,9 @@ export default function McNemarTestPage() {
               </Alert>
 
               {effectSize && isFinite(effectSize) && (
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-purple-800 mb-2">오즈비 해석</h4>
-                  <div className="text-sm text-purple-700 space-y-1">
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">오즈비 해석</h4>
+                  <div className="text-sm text-muted-foreground space-y-1">
                     <p>• <strong>1에 가까움</strong>: 처리 효과 차이 없음</p>
                     <p>• <strong>1보다 큼</strong>: 첫 번째 처리가 더 효과적</p>
                     <p>• <strong>1보다 작음</strong>: 두 번째 처리가 더 효과적</p>
@@ -690,9 +690,9 @@ export default function McNemarTestPage() {
                 </div>
               )}
 
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h4 className="font-medium text-yellow-800 mb-2">주의사항</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">주의사항</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• 불일치 쌍이 5개 미만일 때는 정확검정 사용 권장</li>
                   <li>• 대응성이 중요: 동일한 개체의 전후 비교여야 함</li>
                   <li>• 일치하는 쌍은 검정에 기여하지 않음</li>

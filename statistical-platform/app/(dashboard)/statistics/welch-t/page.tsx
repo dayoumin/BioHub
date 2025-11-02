@@ -352,13 +352,13 @@ export default function WelchTPage() {
     const isViolated = results.equalVariances.assumption === 'violated'
 
     return (
-      <Card className={isViolated ? 'border-orange-200 bg-orange-50 dark:bg-orange-950/20' : 'border-green-200 bg-green-50 dark:bg-green-950/20'}>
+      <Card className={isViolated ? 'border bg-muted dark:bg-orange-950/20' : 'border bg-muted dark:bg-green-950/20'}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {isViolated ? (
-              <XCircle className="w-5 h-5 text-orange-600" />
+              <XCircle className="w-5 h-5 text-muted-foreground" />
             ) : (
-              <CheckCircle className="w-5 h-5 text-green-600" />
+              <CheckCircle className="w-5 h-5 text-muted-foreground" />
             )}
             등분산 가정 검토 (Levene 검정)
           </CardTitle>
@@ -383,8 +383,8 @@ export default function WelchTPage() {
             </div>
           </div>
 
-          <div className={`p-3 rounded-lg ${isViolated ? 'bg-orange-100 dark:bg-orange-950/40' : 'bg-green-100 dark:bg-green-950/40'}`}>
-            <p className={`text-sm ${isViolated ? 'text-orange-800 dark:text-orange-200' : 'text-green-800 dark:text-green-200'}`}>
+          <div className={`p-3 rounded-lg ${isViolated ? 'bg-muted dark:bg-orange-950/40' : 'bg-muted dark:bg-green-950/40'}`}>
+            <p className={`text-sm ${isViolated ? ' dark:text-orange-200' : ' dark:text-green-200'}`}>
               {isViolated ? (
                 <>
                   <AlertCircle className="w-4 h-4 inline mr-1" />
@@ -435,8 +435,8 @@ export default function WelchTPage() {
             </p>
           </div>
 
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+          <div className="p-3 bg-muted dark:bg-blue-950/20 rounded-lg">
+            <p className="text-sm text-muted-foreground dark:text-blue-300">
               <strong>해석:</strong> {results.confidenceLevel}% 확률로 두 그룹의 실제 평균 차이는
               {results.ciLower.toFixed(2)}과 {results.ciUpper.toFixed(2)} 사이에 있습니다.
               {results.ciLower * results.ciUpper > 0
@@ -551,7 +551,7 @@ export default function WelchTPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
                 <h4 className="font-semibold mb-2">Welch t-검정의 특징</h4>
                 <ul className="text-sm space-y-1">
                   <li>• 등분산 가정을 하지 않음 (Unequal variance t-test)</li>
@@ -616,10 +616,10 @@ export default function WelchTPage() {
                 <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
                 {renderSummaryCards()}
               </div>
-              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">결론</h4>
-                <p className="text-green-700 dark:text-green-300">{results.conclusion}</p>
-                <p className="text-sm text-green-600 dark:text-green-400 mt-1">{results.interpretation}</p>
+              <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
+                <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
+                <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
+                <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
               </div>
             </TabsContent>
 

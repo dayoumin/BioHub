@@ -694,11 +694,11 @@ export default function ClusterAnalysisPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       {results.silhouetteScore > 0.5 ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                       ) : results.silhouetteScore > 0.25 ? (
-                        <CheckCircle className="h-4 w-4 text-yellow-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircle className="h-4 w-4 text-muted-foreground" />
                       )}
                       <span>
                         실루엣 스코어 {results.silhouetteScore.toFixed(3)}는{' '}
@@ -708,7 +708,7 @@ export default function ClusterAnalysisPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-blue-600" />
+                      <CheckCircle className="h-4 w-4 text-muted-foreground" />
                       <span>
                         전체 분산의 {((results.betweenClusterSS / results.totalSS) * 100).toFixed(1)}%가
                         군집 간 차이로 설명됩니다.
@@ -717,7 +717,7 @@ export default function ClusterAnalysisPage() {
 
                     {results.davies_bouldin_score < 1 && (
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         <span>
                           Davies-Bouldin 지수 {results.davies_bouldin_score.toFixed(3)}는
                           잘 분리된 군집을 나타냅니다.
@@ -732,7 +732,7 @@ export default function ClusterAnalysisPage() {
                   <div className="space-y-2 text-sm">
                     {results.clusterStatistics.map((stat) => (
                       <div key={stat.cluster} className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-blue-600" />
+                        <Users className="h-4 w-4 text-muted-foreground" />
                         <span>
                           군집 {stat.cluster}: {stat.size}개 데이터 포인트
                           ({((stat.size / (uploadedData?.data.length ?? 1)) * 100).toFixed(1)}%)
@@ -774,12 +774,12 @@ export default function ClusterAnalysisPage() {
                     <li><strong>엘보우 플롯:</strong> 최적 군집 수 결정 과정</li>
                     <li><strong>군집 중심점:</strong> 각 군집의 특성 시각화</li>
                   </ul>
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <div className="mt-4 p-4 bg-muted rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-blue-600" />
-                      <span className="font-semibold text-blue-900">Pyodide 통합 예정</span>
+                      <Zap className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold">Pyodide 통합 예정</span>
                     </div>
-                    <p className="text-blue-800 text-sm mt-1">
+                    <p className="text-sm mt-1">
                       scikit-learn을 통한 정확한 군집분석과 matplotlib/seaborn을 통한
                       전문적인 시각화가 구현될 예정입니다.
                     </p>

@@ -235,19 +235,19 @@ export default function MannWhitneyPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">
                         {MANN_WHITNEY_TEXTS.comparison.mannWhitney.title}
                       </h4>
-                      <p className="text-green-700">
+                      <p className="text-muted-foreground">
                         {MANN_WHITNEY_TEXTS.comparison.mannWhitney.description}
                       </p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">
                         {MANN_WHITNEY_TEXTS.comparison.tTest.title}
                       </h4>
-                      <p className="text-blue-700">
+                      <p className="text-muted-foreground">
                         {MANN_WHITNEY_TEXTS.comparison.tTest.description}
                       </p>
                     </div>

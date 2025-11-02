@@ -494,8 +494,8 @@ export default function ChiSquareTestPage() {
                 </Alert>
 
                 {selectedTest === 'fishers-exact' && (
-                  <Alert className="bg-blue-50 border-blue-200">
-                    <Info className="h-4 w-4 text-blue-600" />
+                  <Alert className="bg-muted border">
+                    <Info className="h-4 w-4 text-muted-foreground" />
                     <AlertTitle>Fisher 정확 검정 사용 시기</AlertTitle>
                     <AlertDescription>
                       <ul className="list-disc list-inside mt-2 space-y-1">

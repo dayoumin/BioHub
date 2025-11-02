@@ -316,9 +316,9 @@ export default function ChiSquareIndependencePage() {
   }, [runAnalysis, actions])
 
   const getCramersVInterpretation = (v: number) => {
-    if (v >= 0.5) return { level: '강한 연관성', color: 'text-red-600', bg: 'bg-red-50' }
-    if (v >= 0.3) return { level: '중간 연관성', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (v >= 0.1) return { level: '약한 연관성', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (v >= 0.5) return { level: '강한 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (v >= 0.3) return { level: '중간 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (v >= 0.1) return { level: '약한 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '연관성 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
@@ -381,13 +381,13 @@ export default function ChiSquareIndependencePage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">성별 × 선호도</h4>
-                      <p className="text-green-700">성별에 따른 제품 선호도 차이</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">성별 × 선호도</h4>
+                      <p className="text-muted-foreground">성별에 따른 제품 선호도 차이</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">교육 × 소득</h4>
-                      <p className="text-blue-700">교육수준과 소득수준의 관계</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">교육 × 소득</h4>
+                      <p className="text-muted-foreground">교육수준과 소득수준의 관계</p>
                     </div>
                   </div>
                 </CardContent>
@@ -503,7 +503,7 @@ export default function ChiSquareIndependencePage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.effectSizes.cramersV.toFixed(3)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Cramér's V</p>
@@ -626,8 +626,8 @@ export default function ChiSquareIndependencePage() {
                                 <td key={col} className="border p-2 text-center">
                                   <div className="space-y-1">
                                     <div className={`font-mono text-sm ${
-                                      absStdResidual > 2 ? 'text-red-600 font-bold' :
-                                      absStdResidual > 1.5 ? 'text-orange-600' : 'text-gray-700'
+                                      absStdResidual > 2 ? 'text-muted-foreground font-bold' :
+                                      absStdResidual > 1.5 ? 'text-muted-foreground' : 'text-gray-700'
                                     }`}>
                                       {cell.standardizedResidual > 0 ? '+' : ''}
                                       {cell.standardizedResidual.toFixed(2)}
@@ -651,9 +651,9 @@ export default function ChiSquareIndependencePage() {
                     </table>
                   </div>
 
-                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
-                    <h4 className="font-medium text-yellow-800 mb-2">잔차 해석</h4>
-                    <ul className="text-sm text-yellow-700 space-y-1">
+                  <div className="mt-4 p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">잔차 해석</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• |표준화 잔차| &gt; 2: 해당 셀이 독립성에서 크게 벗어남</li>
                       <li>• 양의 잔차: 기댓값보다 많은 관측 (양의 연관성)</li>
                       <li>• 음의 잔차: 기댓값보다 적은 관측 (음의 연관성)</li>
@@ -709,12 +709,12 @@ export default function ChiSquareIndependencePage() {
                       </p>
                     </div>
 
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-800 mb-2">Phi 계수 (2×2표)</h4>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">Phi 계수 (2×2표)</h4>
                       <p className="text-sm">
                         φ = {analysisResult.effectSizes.phi.toFixed(3)}
                         <br />
-                        <span className="text-blue-600">
+                        <span className="text-muted-foreground">
                           {analysisResult.effectSizes.phiInterpretation}
                         </span>
                       </p>
@@ -749,7 +749,7 @@ export default function ChiSquareIndependencePage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.assumptionMet ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={analysisResult.assumptions.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
                             {analysisResult.assumptions.assumptionMet ? '만족' : '위반'}
                           </Badge>
                         </div>

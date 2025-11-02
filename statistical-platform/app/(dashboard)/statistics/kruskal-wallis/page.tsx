@@ -264,9 +264,9 @@ export default function KruskalWallisPage() {
   }
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
-    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
-    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '미미한 효과', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
@@ -319,13 +319,13 @@ export default function KruskalWallisPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">Kruskal-Wallis</h4>
-                      <p className="text-green-700">비모수, 순위 기반, 강건</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">Kruskal-Wallis</h4>
+                      <p className="text-muted-foreground">비모수, 순위 기반, 강건</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">일원분산분석</h4>
-                      <p className="text-blue-700">모수, 정규분포 가정 필요</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">일원분산분석</h4>
+                      <p className="text-muted-foreground">모수, 정규분포 가정 필요</p>
                     </div>
                   </div>
                 </CardContent>
@@ -438,7 +438,7 @@ export default function KruskalWallisPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.effectSize.etaSquared.toFixed(3)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">효과크기 (η²)</p>
@@ -600,8 +600,8 @@ export default function KruskalWallisPage() {
                     </ul>
                   </div>
 
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-800 mb-2">효과크기 가이드라인</h4>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">효과크기 가이드라인</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>η² ≥ 0.14: 큰 효과</div>
                       <div>η² ≥ 0.06: 중간 효과</div>

@@ -322,8 +322,8 @@ export default function NormalityTestPage() {
 
     const isNormal = results.overallConclusion === 'normal'
     const IconComponent = isNormal ? CheckCircle : XCircle
-    const colorClass = isNormal ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-    const bgClass = isNormal ? 'bg-green-50 dark:bg-green-950/20' : 'bg-red-50 dark:bg-red-950/20'
+    const colorClass = isNormal ? 'text-muted-foreground dark:text-green-400' : 'text-muted-foreground dark:text-red-400'
+    const bgClass = isNormal ? 'bg-muted dark:bg-green-950/20' : 'bg-muted dark:bg-red-950/20'
 
     return (
       <Card className={bgClass}>
@@ -411,11 +411,11 @@ export default function NormalityTestPage() {
               <p className="text-sm text-muted-foreground mb-2">{desc.description}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 <div>
-                  <span className="font-medium text-green-600">적합한 경우: </span>
+                  <span className="font-medium text-muted-foreground">적합한 경우: </span>
                   {desc.suitableFor}
                 </div>
                 <div>
-                  <span className="font-medium text-orange-600">제한사항: </span>
+                  <span className="font-medium text-muted-foreground">제한사항: </span>
                   {desc.limitation}
                 </div>
               </div>
@@ -511,7 +511,7 @@ export default function NormalityTestPage() {
                 <Label htmlFor="all-tests">모든 검정 방법 실행 (5가지)</Label>
               </div>
 
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
                 <h4 className="font-semibold mb-2">실행될 검정 방법</h4>
                 <ul className="text-sm space-y-1">
                   <li>• <strong>Shapiro-Wilk:</strong> 소표본에서 가장 강력</li>

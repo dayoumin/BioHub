@@ -392,9 +392,9 @@ export default function ManovaPage() {
   }, [runAnalysis, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
-    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
-    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '효과 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
@@ -455,17 +455,17 @@ export default function ManovaPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">교육 연구</h4>
-                      <p className="text-green-700">학습법이 수학, 국어, 과학 성취도에 미치는 효과</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">교육 연구</h4>
+                      <p className="text-muted-foreground">학습법이 수학, 국어, 과학 성취도에 미치는 효과</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">심리 연구</h4>
-                      <p className="text-blue-700">치료법이 불안, 우울, 스트레스에 미치는 영향</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">심리 연구</h4>
+                      <p className="text-muted-foreground">치료법이 불안, 우울, 스트레스에 미치는 영향</p>
                     </div>
-                    <div className="bg-purple-50 p-3 rounded">
-                      <h4 className="font-medium text-purple-800">의학 연구</h4>
-                      <p className="text-purple-700">약물이 혈압, 콜레스테롤, 혈당에 미치는 효과</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">의학 연구</h4>
+                      <p className="text-muted-foreground">약물이 혈압, 콜레스테롤, 혈당에 미치는 효과</p>
                     </div>
                   </div>
                 </CardContent>
@@ -483,9 +483,9 @@ export default function ManovaPage() {
               </AlertDescription>
             </Alert>
 
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h4 className="font-medium text-yellow-800 mb-2">다변량 검정 통계량</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
+            <div className="p-4 bg-muted border border rounded-lg">
+              <h4 className="font-medium mb-2">다변량 검정 통계량</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• <strong>Pillai&apos;s Trace:</strong> 가장 보수적, 가정 위반에 강함</li>
                 <li>• <strong>Wilks&apos; Lambda:</strong> 가장 일반적, 검정력 높음</li>
                 <li>• <strong>Hotelling&apos;s Trace:</strong> 표본 크기가 클 때 유용</li>
@@ -647,22 +647,22 @@ export default function ManovaPage() {
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <h4 className="font-medium text-blue-800 mb-2">다변량 R²</h4>
-                        <p className="text-2xl font-bold text-blue-900">
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">다변량 R²</h4>
+                        <p className="text-2xl font-bold">
                           {(analysisResult.modelFit.rSquaredMultivariate * 100).toFixed(1)}%
                         </p>
-                        <p className="text-sm text-blue-700">
+                        <p className="text-sm text-muted-foreground">
                           전체 다변량 변동의 설명 비율
                         </p>
                       </div>
 
-                      <div className="p-4 bg-green-50 rounded-lg">
-                        <h4 className="font-medium text-green-800 mb-2">효과크기 (d)</h4>
-                        <p className="text-2xl font-bold text-green-900">
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">효과크기 (d)</h4>
+                        <p className="text-2xl font-bold">
                           {analysisResult.modelFit.effectSize.toFixed(2)}
                         </p>
-                        <p className="text-sm text-green-700">
+                        <p className="text-sm text-muted-foreground">
                           Cohen의 다변량 효과크기
                         </p>
                       </div>
@@ -785,9 +785,9 @@ export default function ManovaPage() {
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-center">
                               <Badge variant="outline" className={
-                                Math.abs(test.cohensD) >= 0.8 ? 'text-red-600 bg-red-50' :
-                                Math.abs(test.cohensD) >= 0.5 ? 'text-orange-600 bg-orange-50' :
-                                Math.abs(test.cohensD) >= 0.2 ? 'text-yellow-600 bg-yellow-50' : 'text-gray-600 bg-gray-50'
+                                Math.abs(test.cohensD) >= 0.8 ? 'text-muted-foreground bg-muted' :
+                                Math.abs(test.cohensD) >= 0.5 ? 'text-muted-foreground bg-muted' :
+                                Math.abs(test.cohensD) >= 0.2 ? 'text-muted-foreground bg-muted' : 'text-gray-600 bg-gray-50'
                               }>
                                 {test.cohensD.toFixed(2)}
                               </Badge>
@@ -986,12 +986,12 @@ export default function ManovaPage() {
                       {analysisResult.assumptions.multivariateNormality.assumptionMet ? (
                         <div className="flex items-center gap-2 mt-1">
                           <CheckCircle className="w-5 h-5 text-green-500" />
-                          <span className="text-green-700">다변량 정규성 가정이 충족되었습니다</span>
+                          <span className="text-muted-foreground">다변량 정규성 가정이 충족되었습니다</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 mt-1">
                           <AlertTriangle className="w-5 h-5 text-red-500" />
-                          <span className="text-red-700">다변량 정규성 가정이 위반되었습니다</span>
+                          <span className="text-muted-foreground">다변량 정규성 가정이 위반되었습니다</span>
                         </div>
                       )}
                     </div>
@@ -1029,12 +1029,12 @@ export default function ManovaPage() {
                       {analysisResult.assumptions.homogeneityOfCovariance.assumptionMet ? (
                         <div className="flex items-center gap-2 mt-1">
                           <CheckCircle className="w-5 h-5 text-green-500" />
-                          <span className="text-green-700">공분산 행렬 동질성 가정이 충족되었습니다</span>
+                          <span className="text-muted-foreground">공분산 행렬 동질성 가정이 충족되었습니다</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 mt-1">
                           <AlertTriangle className="w-5 h-5 text-red-500" />
-                          <span className="text-red-700">공분산 행렬 동질성 가정이 위반되었습니다</span>
+                          <span className="text-muted-foreground">공분산 행렬 동질성 가정이 위반되었습니다</span>
                         </div>
                       )}
                     </div>
@@ -1083,7 +1083,7 @@ export default function ManovaPage() {
                                 <PValueBadge value={outlier.pValue} />
                               </td>
                               <td className="border border-gray-300 px-4 py-2 text-center">
-                                <Badge variant="outline" className="text-red-600 bg-red-50">
+                                <Badge variant="outline" className="text-muted-foreground bg-muted">
                                   이상치
                                 </Badge>
                               </td>
@@ -1119,15 +1119,15 @@ export default function ManovaPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* 요약 */}
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-800 mb-2">분석 요약</h4>
-                    <p className="text-blue-700">{analysisResult.interpretation.summary}</p>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">분석 요약</h4>
+                    <p className="text-muted-foreground">{analysisResult.interpretation.summary}</p>
                   </div>
 
                   {/* 전체 효과 */}
-                  <div className="p-4 bg-green-50 rounded-lg">
-                    <h4 className="font-medium text-green-800 mb-2">다변량 효과</h4>
-                    <p className="text-green-700">{analysisResult.interpretation.overallEffect}</p>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">다변량 효과</h4>
+                    <p className="text-muted-foreground">{analysisResult.interpretation.overallEffect}</p>
                   </div>
 
                   {/* 단변량 효과 해석 */}
@@ -1135,17 +1135,17 @@ export default function ManovaPage() {
                     <h4 className="font-medium mb-3">단변량 효과 해석</h4>
                     <div className="space-y-2">
                       {analysisResult.interpretation.univariateEffects.map((interpretation, index) => (
-                        <div key={index} className="p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
-                          <p className="text-yellow-700 text-sm">{interpretation}</p>
+                        <div key={index} className="p-3 bg-muted rounded border-l-4 border-yellow-400">
+                          <p className="text-muted-foreground text-sm">{interpretation}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* 판별분석 해석 */}
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <h4 className="font-medium text-purple-800 mb-2">판별분석 해석</h4>
-                    <p className="text-purple-700">{analysisResult.interpretation.discriminantInterpretation}</p>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">판별분석 해석</h4>
+                    <p className="text-muted-foreground">{analysisResult.interpretation.discriminantInterpretation}</p>
                   </div>
 
                   {/* 권장사항 */}

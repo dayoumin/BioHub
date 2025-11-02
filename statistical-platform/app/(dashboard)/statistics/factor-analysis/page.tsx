@@ -454,7 +454,7 @@ export default function FactorAnalysisPage() {
       </div>
 
       {(selectedVariables ?? []).length > 0 && uploadedData && uploadedData.data.length > 0 && (
-        <div className="p-4 bg-blue-50 rounded-lg">
+        <div className="p-4 bg-muted rounded-lg">
           <div className="text-sm space-y-1">
             <p><strong>선택된 변수:</strong> {(selectedVariables ?? []).length}개</p>
             <p><strong>표본 크기:</strong> {uploadedData.data.length}개</p>
@@ -593,7 +593,7 @@ export default function FactorAnalysisPage() {
                           <td className="border border-gray-200 px-4 py-2 font-medium">{variable}</td>
                           {results.factorLoadings[i].map((loading, j) => (
                             <td key={j} className="border border-gray-200 px-4 py-2 text-center font-mono">
-                              <span className={Math.abs(loading) >= 0.5 ? 'font-bold text-blue-600' : ''}>
+                              <span className={Math.abs(loading) >= 0.5 ? 'font-bold text-muted-foreground' : ''}>
                                 {loading.toFixed(3)}
                               </span>
                             </td>
@@ -664,12 +664,12 @@ export default function FactorAnalysisPage() {
                       <li><strong>분산설명력 막대그래프:</strong> 각 요인별 설명력</li>
                       <li><strong>누적 분산 곡선:</strong> 요인 수에 따른 누적 설명력</li>
                     </ul>
-                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
                       <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-blue-600" />
-                        <span className="font-semibold text-blue-900">Pyodide 통합 예정</span>
+                        <Zap className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-semibold">Pyodide 통합 예정</span>
                       </div>
-                      <p className="text-blue-800 text-sm mt-1">
+                      <p className="text-sm mt-1">
                         scikit-learn의 FactorAnalysis와 matplotlib을 통한
                         전문적인 시각화가 구현될 예정입니다.
                       </p>
@@ -713,24 +713,24 @@ export default function FactorAnalysisPage() {
                     <h4 className="font-semibold mb-3">공통성 해석 기준</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         <span><strong>0.7 이상:</strong> 매우 좋음</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-blue-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         <span><strong>0.5-0.7:</strong> 양호함</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-yellow-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         <span><strong>0.3-0.5:</strong> 보통</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircle className="h-4 w-4 text-muted-foreground" />
                         <span><strong>0.3 미만:</strong> 낮음 (제외 고려)</span>
                       </div>
                     </div>
-                    <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                      <p className="text-sm text-yellow-800">
+                    <div className="mt-4 p-3 bg-muted rounded-lg">
+                      <p className="text-sm">
                         <strong>권장사항:</strong> 공통성이 0.3 미만인 변수는
                         요인분석에서 제외하거나 추가 검토가 필요합니다.
                       </p>
@@ -752,9 +752,9 @@ export default function FactorAnalysisPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       {results.kmo >= 0.6 ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircle className="h-4 w-4 text-muted-foreground" />
                       )}
                       <span>
                         KMO 값 {results.kmo.toFixed(3)}는{' '}
@@ -767,9 +767,9 @@ export default function FactorAnalysisPage() {
 
                     <div className="flex items-center gap-2">
                       {results.bartlettTest.significant ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
+                        <XCircle className="h-4 w-4 text-muted-foreground" />
                       )}
                       <span>
                         Bartlett 구형성 검정은 {results.bartlettTest.significant ? '유의하여' : '유의하지 않아'}{' '}
@@ -784,7 +784,7 @@ export default function FactorAnalysisPage() {
                   <h4 className="font-semibold mb-2">요인 구조 해석</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-blue-600" />
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
                       <span>
                         {results.numFactors}개 요인이 전체 분산의{' '}
                         {results.varianceExplained.cumulative[results.numFactors - 1]?.toFixed(1)}%를 설명합니다.
@@ -793,12 +793,12 @@ export default function FactorAnalysisPage() {
 
                     {results.varianceExplained.cumulative[results.numFactors - 1] >= 60 ? (
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         <span>분산설명력이 60% 이상으로 양호합니다.</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-yellow-600" />
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                         <span>분산설명력이 60% 미만입니다. 요인 수 조정을 고려해보세요.</span>
                       </div>
                     )}

@@ -332,9 +332,9 @@ export default function ANCOVAPage() {
   }, [runAnalysis, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
-    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
-    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '효과 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
@@ -395,13 +395,13 @@ export default function ANCOVAPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">교육 효과</h4>
-                      <p className="text-green-700">사전 점수를 통제한 학습법 비교</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">교육 효과</h4>
+                      <p className="text-muted-foreground">사전 점수를 통제한 학습법 비교</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">임상 시험</h4>
-                      <p className="text-blue-700">기저선 값을 통제한 치료 효과</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">임상 시험</h4>
+                      <p className="text-muted-foreground">기저선 값을 통제한 치료 효과</p>
                     </div>
                   </div>
                 </CardContent>
@@ -419,9 +419,9 @@ export default function ANCOVAPage() {
               </AlertDescription>
             </Alert>
 
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h4 className="font-medium text-yellow-800 mb-2">주요 가정</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
+            <div className="p-4 bg-muted border border rounded-lg">
+              <h4 className="font-medium mb-2">주요 가정</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• <strong>선형성:</strong> 공변량과 종속변수 간 선형관계</li>
                 <li>• <strong>회귀직선 동질성:</strong> 집단별 회귀계수가 동일</li>
                 <li>• <strong>정규성:</strong> 잔차가 정규분포</li>
@@ -531,7 +531,7 @@ export default function ANCOVAPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.mainEffects[0].partialEtaSquared.toFixed(3)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">부분 η²</p>
@@ -624,7 +624,7 @@ export default function ANCOVAPage() {
                           </tr>
                         ))}
                         {analysisResult.mainEffects.map(effect => (
-                          <tr key={effect.factor} className="hover:bg-muted/50 bg-blue-50">
+                          <tr key={effect.factor} className="hover:bg-muted/50 bg-muted">
                             <td className="border p-3 font-bold">{effect.factor}</td>
                             <td className="border p-3 text-center">{effect.degreesOfFreedom[0]}, {effect.degreesOfFreedom[1]}</td>
                             <td className="border p-3 text-center font-mono font-bold">{effect.statistic.toFixed(2)}</td>
@@ -639,23 +639,23 @@ export default function ANCOVAPage() {
                     </table>
                   </div>
 
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-800 mb-3">모델 적합도</h4>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-3">모델 적합도</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-blue-600">R²:</span>
+                        <span className="text-muted-foreground">R²:</span>
                         <p className="font-mono font-bold">{analysisResult.modelFit.rSquared.toFixed(3)}</p>
                       </div>
                       <div>
-                        <span className="text-blue-600">수정된 R²:</span>
+                        <span className="text-muted-foreground">수정된 R²:</span>
                         <p className="font-mono">{analysisResult.modelFit.adjustedRSquared.toFixed(3)}</p>
                       </div>
                       <div>
-                        <span className="text-blue-600">모델 F:</span>
+                        <span className="text-muted-foreground">모델 F:</span>
                         <p className="font-mono">{analysisResult.modelFit.fStatistic.toFixed(2)}</p>
                       </div>
                       <div>
-                        <span className="text-blue-600">잔차 표준오차:</span>
+                        <span className="text-muted-foreground">잔차 표준오차:</span>
                         <p className="font-mono">{analysisResult.modelFit.residualStandardError.toFixed(2)}</p>
                       </div>
                     </div>
@@ -735,7 +735,7 @@ export default function ANCOVAPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.homogeneityOfSlopes.assumptionMet ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={analysisResult.assumptions.homogeneityOfSlopes.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
                             {analysisResult.assumptions.homogeneityOfSlopes.assumptionMet ? '만족' : '위반'}
                           </Badge>
                         </div>
@@ -755,7 +755,7 @@ export default function ANCOVAPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.homogeneityOfVariance.assumptionMet ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={analysisResult.assumptions.homogeneityOfVariance.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
                             {analysisResult.assumptions.homogeneityOfVariance.assumptionMet ? '만족' : '위반'}
                           </Badge>
                         </div>
@@ -775,7 +775,7 @@ export default function ANCOVAPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.normalityOfResiduals.assumptionMet ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={analysisResult.assumptions.normalityOfResiduals.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
                             {analysisResult.assumptions.normalityOfResiduals.assumptionMet ? '만족' : '위반'}
                           </Badge>
                         </div>
@@ -793,7 +793,7 @@ export default function ANCOVAPage() {
                         ))}
                         <div className="flex justify-between items-center mt-2">
                           <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.linearityOfCovariate.assumptionMet ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={analysisResult.assumptions.linearityOfCovariate.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
                             {analysisResult.assumptions.linearityOfCovariate.assumptionMet ? '만족' : '위반'}
                           </Badge>
                         </div>
@@ -858,12 +858,12 @@ export default function ANCOVAPage() {
                       </p>
                     </div>
 
-                    <div className="p-4 bg-green-50 rounded-lg">
-                      <h4 className="font-medium text-green-800 mb-2">공변량 기여도</h4>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">공변량 기여도</h4>
                       <p className="text-sm">
                         R² 증가분 = {(analysisResult.covariates[0].partialEtaSquared * 100).toFixed(1)}%
                         <br />
-                        <span className="text-green-600">
+                        <span className="text-muted-foreground">
                           공변량으로 인한 검정력 향상
                         </span>
                       </p>

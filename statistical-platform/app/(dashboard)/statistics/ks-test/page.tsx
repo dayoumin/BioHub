@@ -321,9 +321,9 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
                 두 분포의 <strong>누적분포함수(CDF)</strong> 간의 최대 차이를 이용하여
                 분포의 동일성을 검정하는 비모수 방법입니다.
               </p>
-              <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="bg-muted p-3 rounded-lg">
                 <p className="text-xs font-medium mb-1">검정 통계량</p>
-                <p className="text-xs text-blue-700">
+                <p className="text-xs text-muted-foreground">
                   D = max|F₁(x) - F₂(x)|<br/>
                   F₁, F₂: 각각의 경험적 분포함수
                 </p>
@@ -462,7 +462,7 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
       >
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
-          <Alert className={significant ? "border-red-500 bg-red-50" : "border-green-500 bg-green-50"}>
+          <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>검정 결과</AlertTitle>
             <AlertDescription>
@@ -546,9 +546,9 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-center p-3 bg-muted rounded-lg">
                     <p className="font-medium">관측 평균</p>
-                    <p className="text-lg font-bold text-blue-600">{distributionInfo.observedMean.toFixed(3)}</p>
+                    <p className="text-lg font-bold text-muted-foreground">{distributionInfo.observedMean.toFixed(3)}</p>
                   </div>
                   <div className="text-center p-3 bg-gray-50 rounded-lg">
                     <p className="font-medium">관측 표준편차</p>
@@ -588,9 +588,9 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
               </Alert>
 
               {testType === 'two-sample' && effectSize && (
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-purple-800 mb-2">효과크기 해석</h4>
-                  <div className="text-sm text-purple-700 space-y-1">
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">효과크기 해석</h4>
+                  <div className="text-sm text-muted-foreground space-y-1">
                     <p>• <strong>작은 효과</strong>: 0.2 ~ 0.5</p>
                     <p>• <strong>중간 효과</strong>: 0.5 ~ 0.8</p>
                     <p>• <strong>큰 효과</strong>: 0.8 이상</p>
@@ -601,9 +601,9 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
                 </div>
               )}
 
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h4 className="font-medium text-yellow-800 mb-2">주의사항</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">주의사항</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• K-S 검정은 분포의 모든 측면(위치, 척도, 모양)을 고려합니다</li>
                   <li>• 표본 크기가 클수록 작은 차이도 유의하게 검출될 수 있습니다</li>
                   <li>• 이산형 데이터에서는 보수적인 결과를 보일 수 있습니다</li>

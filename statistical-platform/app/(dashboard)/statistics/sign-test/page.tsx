@@ -294,12 +294,12 @@ export default function SignTestPage() {
           </p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2 flex items-center">
                 <Plus className="w-4 h-4 mr-2" />
                 주요 장점
               </h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 분포 가정 불필요</li>
                 <li>• 이상치에 강건함</li>
                 <li>• 계산이 간단함</li>
@@ -307,12 +307,12 @@ export default function SignTestPage() {
               </ul>
             </div>
 
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-medium text-green-800 mb-2 flex items-center">
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2 flex items-center">
                 <Scale className="w-4 h-4 mr-2" />
                 적용 상황
               </h4>
-              <ul className="text-sm text-green-700 space-y-1">
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 사전-사후 비교</li>
                 <li>• 치료 전후 효과</li>
                 <li>• 교육 프로그램 효과</li>
@@ -526,9 +526,9 @@ export default function SignTestPage() {
           </p>
         </div>
 
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <h4 className="font-medium text-yellow-800 mb-2">분석 가이드</h4>
-          <ul className="text-sm text-yellow-700 space-y-1">
+        <div className="bg-muted p-4 rounded-lg">
+          <h4 className="font-medium mb-2">분석 가이드</h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
             <li>• <strong>대응 표본</strong>: 동일한 개체에서 두 번 측정된 데이터</li>
             <li>• <strong>차이값 계산</strong>: 사후값 - 사전값으로 계산됨</li>
             <li>• <strong>가정</strong>: 독립성만 만족하면 됨 (정규성 불필요)</li>
@@ -718,14 +718,14 @@ export default function SignTestPage() {
                       <div className="flex justify-between">
                         <span className="text-sm">양의 차이:</span>
                         <span className="text-sm font-medium flex items-center">
-                          <Plus className="w-3 h-3 text-green-600 mr-1" />
+                          <Plus className="w-3 h-3 text-muted-foreground mr-1" />
                           {results.descriptive.positive_differences}개
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">음의 차이:</span>
                         <span className="text-sm font-medium flex items-center">
-                          <Minus className="w-3 h-3 text-red-600 mr-1" />
+                          <Minus className="w-3 h-3 text-muted-foreground mr-1" />
                           {results.descriptive.negative_differences}개
                         </span>
                       </div>
@@ -851,20 +851,20 @@ export default function SignTestPage() {
                         </div>
                       </div>
 
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <h6 className="font-medium text-blue-800 mb-2">효과크기 해석 기준</h6>
+                      <div className="bg-muted p-3 rounded-lg">
+                        <h6 className="font-medium mb-2">효과크기 해석 기준</h6>
                         <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>
-                            <span className="font-medium text-blue-700">작은 효과</span>
-                            <p className="text-blue-600">r ≈ 0.1</p>
+                            <span className="font-medium text-muted-foreground">작은 효과</span>
+                            <p className="text-muted-foreground">r ≈ 0.1</p>
                           </div>
                           <div>
-                            <span className="font-medium text-blue-700">중간 효과</span>
-                            <p className="text-blue-600">r ≈ 0.3</p>
+                            <span className="font-medium text-muted-foreground">중간 효과</span>
+                            <p className="text-muted-foreground">r ≈ 0.3</p>
                           </div>
                           <div>
-                            <span className="font-medium text-blue-700">큰 효과</span>
-                            <p className="text-blue-600">r ≈ 0.5</p>
+                            <span className="font-medium text-muted-foreground">큰 효과</span>
+                            <p className="text-muted-foreground">r ≈ 0.5</p>
                           </div>
                         </div>
                       </div>
@@ -983,7 +983,7 @@ export default function SignTestPage() {
 
               <div>
                 <h4 className="font-medium mb-3">추가 고려사항</h4>
-                <div className="bg-yellow-50 p-4 rounded-lg">
+                <div className="bg-muted p-4 rounded-lg">
                   <ul className="space-y-2 text-sm">
                     <li>• <strong>대안 검정:</strong> Wilcoxon 부호순위 검정이 더 높은 검정력을 제공할 수 있습니다</li>
                     <li>• <strong>표본크기:</strong> 소표본(n&lt;20)에서는 정확 p-값을 사용하는 것이 좋습니다</li>

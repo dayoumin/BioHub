@@ -608,7 +608,7 @@ export default function ExploreDataPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
                 <h4 className="font-semibold mb-2">데이터 탐색 포함 항목</h4>
                 <ul className="text-sm space-y-1">
                   <li>• 기본 통계량 (평균, 중앙값, 표준편차 등)</li>

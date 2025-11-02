@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info } from 'lucide-react'
 import { StatisticsPageLayout, StepCard } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
@@ -309,67 +310,74 @@ except Exception as e:
   }, [uploadedData, doseColumn, responseColumn, selectedModel, constraintsEnabled, bottomConstraint, topConstraint])
 
   const getModelQuality = (rSquared: number) => {
-    if (rSquared >= 0.95) return { label: '매우 우수', color: 'bg-green-50 text-green-700 border-green-200' }
-    if (rSquared >= 0.90) return { label: '우수', color: 'bg-blue-50 text-blue-700 border-blue-200' }
-    if (rSquared >= 0.80) return { label: '양호', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' }
-    return { label: '개선 필요', color: 'bg-red-50 text-red-700 border-red-200' }
+    if (rSquared >= 0.95) return { label: '매우 우수', color: 'bg-muted text-muted-foreground border' }
+    if (rSquared >= 0.90) return { label: '우수', color: 'bg-muted text-muted-foreground border' }
+    if (rSquared >= 0.80) return { label: '양호', color: 'bg-muted text-muted-foreground border' }
+    return { label: '개선 필요', color: 'bg-muted text-muted-foreground border' }
   }
 
   return (
     <div className="space-y-6">
       {/* Variable Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>변수 선택</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="dose-column">용량/농도 변수</Label>
-            <select
-              id="dose-column"
-              value={doseColumn}
-              onChange={(e) => setDoseColumn(e.target.value)}
-              className="w-full mt-1 p-2 border rounded-md"
-              disabled={!uploadedData}
-            >
-              <option value="">선택하세요</option>
-              {uploadedData?.columns.map(col => (
-                <option key={col} value={col}>{col}</option>
-              ))}
-            </select>
-            <p className="text-sm text-muted-foreground mt-1">
-              독립변수: 용량, 농도, 시간 등
-            </p>
-          </div>
+      {uploadedData ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>변수 선택</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="dose-column">용량/농도 변수</Label>
+              <select
+                id="dose-column"
+                value={doseColumn}
+                onChange={(e) => setDoseColumn(e.target.value)}
+                className="w-full mt-1 p-2 border rounded-md"
+              >
+                <option value="">선택하세요</option>
+                {uploadedData.columns.map(col => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+              <p className="text-sm text-muted-foreground mt-1">
+                독립변수: 용량, 농도, 시간 등
+              </p>
+            </div>
 
-          <div>
-            <Label htmlFor="response-column">반응 변수</Label>
-            <select
-              id="response-column"
-              value={responseColumn}
-              onChange={(e) => setResponseColumn(e.target.value)}
-              className="w-full mt-1 p-2 border rounded-md"
-              disabled={!uploadedData}
-            >
-              <option value="">선택하세요</option>
-              {uploadedData?.columns.map(col => (
-                <option key={col} value={col}>{col}</option>
-              ))}
-            </select>
-            <p className="text-sm text-muted-foreground mt-1">
-              종속변수: 생물학적 반응, 억제율, 활성도 등
-            </p>
-          </div>
+            <div>
+              <Label htmlFor="response-column">반응 변수</Label>
+              <select
+                id="response-column"
+                value={responseColumn}
+                onChange={(e) => setResponseColumn(e.target.value)}
+                className="w-full mt-1 p-2 border rounded-md"
+              >
+                <option value="">선택하세요</option>
+                {uploadedData.columns.map(col => (
+                  <option key={col} value={col}>{col}</option>
+                ))}
+              </select>
+              <p className="text-sm text-muted-foreground mt-1">
+                종속변수: 생물학적 반응, 억제율, 활성도 등
+              </p>
+            </div>
 
-          <Button
-            onClick={handleAnalysis}
-            disabled={isLoading || !doseColumn || !responseColumn}
-            className="w-full"
-          >
-            {isLoading ? '분석 중...' : '분석 실행'}
-          </Button>
-        </CardContent>
-      </Card>
+            <Button
+              onClick={handleAnalysis}
+              disabled={isLoading || !doseColumn || !responseColumn}
+              className="w-full"
+            >
+              {isLoading ? '분석 중...' : '분석 실행'}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            변수를 선택하려면 먼저 데이터를 업로드해주세요.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* 모델 제약조건 설정 */}
       <Card>
@@ -757,7 +765,7 @@ export default function DoseResponsePage() {
                             <p className="text-xs text-muted-foreground">
                               매개변수: {model.parameters.join(', ')}
                             </p>
-                            <p className="text-xs text-blue-600">
+                            <p className="text-xs text-muted-foreground">
                               적용: {model.applications}
                             </p>
                           </div>

@@ -307,9 +307,9 @@ export default function RepeatedMeasuresANOVAPage() {
   }, [runAnalysis, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
-    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
-    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '효과 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
@@ -370,13 +370,13 @@ export default function RepeatedMeasuresANOVAPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">치료 효과</h4>
-                      <p className="text-green-700">사전-중간-사후 측정 비교</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">치료 효과</h4>
+                      <p className="text-muted-foreground">사전-중간-사후 측정 비교</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">학습 곡선</h4>
-                      <p className="text-blue-700">시간별 성과 변화 추적</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">학습 곡선</h4>
+                      <p className="text-muted-foreground">시간별 성과 변화 추적</p>
                     </div>
                   </div>
                 </CardContent>
@@ -394,9 +394,9 @@ export default function RepeatedMeasuresANOVAPage() {
               </AlertDescription>
             </Alert>
 
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h4 className="font-medium text-yellow-800 mb-2">주요 가정</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
+            <div className="p-4 bg-muted border border rounded-lg">
+              <h4 className="font-medium mb-2">주요 가정</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• <strong>구형성(Sphericity):</strong> 차이점수들의 분산이 동일</li>
                 <li>• <strong>정규성:</strong> 각 시점의 측정값이 정규분포</li>
                 <li>• <strong>독립성:</strong> 피험자 간 측정값이 독립적</li>
@@ -506,7 +506,7 @@ export default function RepeatedMeasuresANOVAPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.withinSubjectsEffects.partialEtaSquared.toFixed(3)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">부분 η²</p>
@@ -588,7 +588,7 @@ export default function RepeatedMeasuresANOVAPage() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span>구형성:</span>
-                          <Badge className={analysisResult.sphericityTest.sphericityViolated ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
+                          <Badge className={analysisResult.sphericityTest.sphericityViolated ? 'bg-muted ' : 'bg-muted '}>
                             {analysisResult.sphericityTest.sphericityViolated ? '위반' : '만족'}
                           </Badge>
                         </div>
@@ -614,23 +614,23 @@ export default function RepeatedMeasuresANOVAPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-800 mb-3">ANOVA 결과 (보정됨)</h4>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-3">ANOVA 결과 (보정됨)</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-blue-600">F 통계량:</span>
+                        <span className="text-muted-foreground">F 통계량:</span>
                         <p className="font-mono font-bold">{analysisResult.sphericityCorrection.correctedF.toFixed(2)}</p>
                       </div>
                       <div>
-                        <span className="text-blue-600">자유도:</span>
+                        <span className="text-muted-foreground">자유도:</span>
                         <p className="font-mono">{analysisResult.sphericityCorrection.correctedDf.toFixed(1)}, {analysisResult.withinSubjectsEffects.degreesOfFreedom[1]}</p>
                       </div>
                       <div>
-                        <span className="text-blue-600">p-값:</span>
+                        <span className="text-muted-foreground">p-값:</span>
                         <PValueBadge value={analysisResult.sphericityCorrection.correctedPValue} />
                       </div>
                       <div>
-                        <span className="text-blue-600">부분 η²:</span>
+                        <span className="text-muted-foreground">부분 η²:</span>
                         <p className="font-mono font-bold">{analysisResult.withinSubjectsEffects.partialEtaSquared.toFixed(3)}</p>
                       </div>
                     </div>
@@ -706,7 +706,7 @@ export default function RepeatedMeasuresANOVAPage() {
                             <div className="flex items-center gap-2">
                               <span className="font-mono text-sm">W = {test.shapiroW.toFixed(3)}</span>
                               <PValueBadge value={test.pValue} />
-                              <Badge className={test.normal ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                              <Badge className={test.normal ? 'bg-muted ' : 'bg-muted '}>
                                 {test.normal ? '정상' : '위반'}
                               </Badge>
                             </div>
@@ -720,13 +720,13 @@ export default function RepeatedMeasuresANOVAPage() {
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-sm">구형성:</span>
-                          <Badge className={analysisResult.assumptions.sphericityMet ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={analysisResult.assumptions.sphericityMet ? 'bg-muted ' : 'bg-muted '}>
                             {analysisResult.assumptions.sphericityMet ? '만족' : '위반'}
                           </Badge>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm">복합대칭성:</span>
-                          <Badge className={analysisResult.assumptions.compoundSymmetryMet ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={analysisResult.assumptions.compoundSymmetryMet ? 'bg-muted ' : 'bg-muted '}>
                             {analysisResult.assumptions.compoundSymmetryMet ? '만족' : '위반'}
                           </Badge>
                         </div>
@@ -794,12 +794,12 @@ export default function RepeatedMeasuresANOVAPage() {
                       </p>
                     </div>
 
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-800 mb-2">검정력</h4>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">검정력</h4>
                       <p className="text-sm">
                         검정력 = {(analysisResult.withinSubjectsEffects.observedPower * 100).toFixed(1)}%
                         <br />
-                        <span className="text-blue-600">
+                        <span className="text-muted-foreground">
                           {analysisResult.withinSubjectsEffects.observedPower >= 0.8 ? '충분한 검정력' : '검정력 부족'}
                         </span>
                       </p>

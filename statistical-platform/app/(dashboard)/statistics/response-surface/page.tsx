@@ -364,9 +364,9 @@ anova_table = {
 
   const getNatureLabel = (nature: string) => {
     switch (nature) {
-      case 'maximum': return { label: '최대점', color: 'bg-green-50 text-green-700 border-green-200' }
-      case 'minimum': return { label: '최소점', color: 'bg-blue-50 text-blue-700 border-blue-200' }
-      case 'saddle_point': return { label: '안장점', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' }
+      case 'maximum': return { label: '최대점', color: 'bg-muted text-muted-foreground border' }
+      case 'minimum': return { label: '최소점', color: 'bg-muted text-muted-foreground border' }
+      case 'saddle_point': return { label: '안장점', color: 'bg-muted text-muted-foreground border' }
       default: return { label: '분석 불가', color: 'bg-gray-50 text-gray-700 border-gray-200' }
     }
   }
@@ -736,7 +736,7 @@ export default function ResponseSurfacePage() {
                     <p className="text-xs font-mono bg-muted/50 p-1 rounded">
                       {model.equation}
                     </p>
-                    <p className="text-xs text-blue-600">
+                    <p className="text-xs text-muted-foreground">
                       적용: {model.applications}
                     </p>
                   </div>

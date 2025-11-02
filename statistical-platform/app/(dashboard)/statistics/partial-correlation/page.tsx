@@ -249,9 +249,9 @@ json.dumps(results)
 
   const getCorrelationStrength = (corr: number) => {
     const abs = Math.abs(corr)
-    if (abs >= 0.7) return { level: '강함', color: 'text-red-600', bgColor: 'bg-red-50' }
-    if (abs >= 0.5) return { level: '중간', color: 'text-orange-600', bgColor: 'bg-orange-50' }
-    if (abs >= 0.3) return { level: '약함', color: 'text-yellow-600', bgColor: 'bg-yellow-50' }
+    if (abs >= 0.7) return { level: '강함', color: 'text-muted-foreground', bgColor: 'bg-muted' }
+    if (abs >= 0.5) return { level: '중간', color: 'text-muted-foreground', bgColor: 'bg-muted' }
+    if (abs >= 0.3) return { level: '약함', color: 'text-muted-foreground', bgColor: 'bg-muted' }
     return { level: '매우 약함', color: 'text-gray-600', bgColor: 'bg-gray-50' }
   }
 
@@ -270,7 +270,7 @@ json.dumps(results)
   const renderMethodIntroduction = useCallback(() => (
     <div className="space-y-6">
       <div className="text-center">
-        <Activity className="mx-auto h-12 w-12 text-blue-600 mb-4" />
+        <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">편상관분석 (Partial Correlation)</h1>
         <p className="text-lg text-gray-600">제3변수의 영향을 통제한 후 두 변수 간의 순수한 상관관계를 분석합니다</p>
       </div>
@@ -407,7 +407,7 @@ json.dumps(results)
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">통계적 유의한 쌍</span>
-                      <span className="font-semibold text-red-600">{results.summary.significant_pairs}개</span>
+                      <span className="font-semibold text-muted-foreground">{results.summary.significant_pairs}개</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">평균 편상관계수</span>
@@ -417,11 +417,11 @@ json.dumps(results)
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">최대 편상관계수</span>
-                      <span className="font-semibold text-green-600">{results.summary.max_partial_corr.toFixed(3)}</span>
+                      <span className="font-semibold text-muted-foreground">{results.summary.max_partial_corr.toFixed(3)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">최소 편상관계수</span>
-                      <span className="font-semibold text-blue-600">{results.summary.min_partial_corr.toFixed(3)}</span>
+                      <span className="font-semibold text-muted-foreground">{results.summary.min_partial_corr.toFixed(3)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">통제변수 수</span>
@@ -431,11 +431,11 @@ json.dumps(results)
                 </div>
 
                 {selectedVariables && selectedVariables.covariate && selectedVariables.covariate.length > 0 && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <h4 className="font-semibold text-blue-800 mb-2">통제변수</h4>
+                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">통제변수</h4>
                     <div className="flex flex-wrap gap-1">
                       {selectedVariables.covariate.map((variable, index) => (
-                        <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
+                        <Badge key={index} variant="secondary" className="bg-muted">
                           {variable}
                         </Badge>
                       ))}
@@ -481,7 +481,7 @@ json.dumps(results)
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right">{corr.t_stat.toFixed(3)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
-                              <span className={corr.p_value < 0.05 ? 'text-red-600 font-medium' : ''}>
+                              <span className={corr.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
                                 {corr.p_value.toFixed(4)}
                               </span>
                             </td>
@@ -530,11 +530,11 @@ json.dumps(results)
 
                         let changeInterpretation = { text: '변화 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
                         if (absChange > 0.2) {
-                          changeInterpretation = { text: '큰 변화', color: 'text-red-600', bg: 'bg-red-50' }
+                          changeInterpretation = { text: '큰 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
                         } else if (absChange > 0.1) {
-                          changeInterpretation = { text: '중간 변화', color: 'text-orange-600', bg: 'bg-orange-50' }
+                          changeInterpretation = { text: '중간 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
                         } else if (absChange > 0.05) {
-                          changeInterpretation = { text: '작은 변화', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+                          changeInterpretation = { text: '작은 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
                         }
 
                         return (
@@ -589,17 +589,17 @@ json.dumps(results)
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                        <div className="w-3 h-3 bg-muted0 rounded-full mr-2"></div>
                         <span className="text-sm">|r| ≥ 0.7: 강한 상관</span>
                       </div>
                       <div className="flex items-center">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                        <div className="w-3 h-3 bg-muted0 rounded-full mr-2"></div>
                         <span className="text-sm">0.5 ≤ |r| &lt; 0.7: 중간 상관</span>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                        <div className="w-3 h-3 bg-muted0 rounded-full mr-2"></div>
                         <span className="text-sm">0.3 ≤ |r| &lt; 0.5: 약한 상관</span>
                       </div>
                       <div className="flex items-center">

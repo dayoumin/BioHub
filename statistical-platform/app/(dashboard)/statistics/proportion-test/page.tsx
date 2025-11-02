@@ -327,8 +327,8 @@ export default function ProportionTestPage() {
             </p>
           </div>
 
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+          <div className="p-3 bg-muted dark:bg-blue-950/20 rounded-lg">
+            <p className="text-sm text-muted-foreground dark:text-blue-300">
               <strong>해석:</strong> {results.confidenceLevel}% 확률로 모집단의 실제 성공 비율은
               {(results.ciLower * 100).toFixed(1)}%과 {(results.ciUpper * 100).toFixed(1)}% 사이에 있습니다.
               {(results.testProportion >= results.ciLower && results.testProportion <= results.ciUpper)
@@ -584,10 +584,10 @@ export default function ProportionTestPage() {
                 <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
                 {renderSummaryCards()}
               </div>
-              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">결론</h4>
-                <p className="text-green-700 dark:text-green-300">{results.conclusion}</p>
-                <p className="text-sm text-green-600 dark:text-green-400 mt-1">{results.interpretation}</p>
+              <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
+                <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
+                <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
+                <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
               </div>
             </TabsContent>
 

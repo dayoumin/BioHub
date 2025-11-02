@@ -320,13 +320,13 @@ export default function MannWhitneyPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">Mann-Whitney U</h4>
-                      <p className="text-green-700">비모수 검정, 정규분포 불필요</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">Mann-Whitney U</h4>
+                      <p className="text-muted-foreground">비모수 검정, 정규분포 불필요</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">독립표본 t-검정</h4>
-                      <p className="text-blue-700">모수 검정, 정규분포 가정 필요</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">독립표본 t-검정</h4>
+                      <p className="text-muted-foreground">모수 검정, 정규분포 가정 필요</p>
                     </div>
                   </div>
                 </CardContent>
@@ -419,7 +419,7 @@ export default function MannWhitneyPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.effectSize.value.toFixed(3)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">효과크기 (r)</p>

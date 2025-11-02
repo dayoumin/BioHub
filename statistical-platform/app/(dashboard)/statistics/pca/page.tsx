@@ -422,9 +422,9 @@ export default function PCAPage() {
                 고차원 데이터를 <strong>주성분</strong>으로 변환하여 차원을 축소하면서도
                 최대한 많은 정보를 보존하는 통계 기법입니다.
               </p>
-              <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="bg-muted p-3 rounded-lg">
                 <p className="text-xs font-medium mb-1">핵심 개념</p>
-                <p className="text-xs text-blue-700">
+                <p className="text-xs text-muted-foreground">
                   분산이 최대인 방향으로 새로운 축 생성<br/>
                   원래 변수들의 선형결합으로 주성분 구성
                 </p>
@@ -574,7 +574,7 @@ export default function PCAPage() {
       >
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
-          <Alert className="border-blue-500 bg-blue-50">
+          <Alert className="border-blue-500 bg-muted">
             <Zap className="h-4 w-4" />
             <AlertTitle>분석 결과 요약</AlertTitle>
             <AlertDescription>
@@ -773,9 +773,9 @@ export default function PCAPage() {
                 </AlertDescription>
               </Alert>
 
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h4 className="font-medium text-yellow-800 mb-2">활용 방안</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">활용 방안</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• 선택된 주성분으로 차원 축소된 데이터 사용</li>
                   <li>• 높은 적재량을 가진 변수들로 성분의 의미 해석</li>
                   <li>• Scree plot에서 급격한 감소 지점으로 성분 수 결정</li>

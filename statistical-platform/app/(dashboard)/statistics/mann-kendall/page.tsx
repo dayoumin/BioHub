@@ -188,8 +188,8 @@ else:
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
-      case 'increasing': return <TrendingUp className="w-4 h-4 text-green-600" />
-      case 'decreasing': return <TrendingDown className="w-4 h-4 text-red-600" />
+      case 'increasing': return <TrendingUp className="w-4 h-4 text-muted-foreground" />
+      case 'decreasing': return <TrendingDown className="w-4 h-4 text-muted-foreground" />
       case 'no trend': return <Minus className="w-4 h-4 text-gray-600" />
       default: return <Minus className="w-4 h-4 text-gray-600" />
     }
@@ -206,8 +206,8 @@ else:
 
   const getTrendColor = (trend: string) => {
     switch (trend) {
-      case 'increasing': return 'bg-green-50 text-green-700 border-green-200'
-      case 'decreasing': return 'bg-red-50 text-red-700 border-red-200'
+      case 'increasing': return 'bg-muted text-muted-foreground border'
+      case 'decreasing': return 'bg-muted text-muted-foreground border'
       case 'no trend': return 'bg-gray-50 text-gray-700 border-gray-200'
       default: return 'bg-gray-50 text-gray-700 border-gray-200'
     }
@@ -361,8 +361,8 @@ else:
                       {result.trend === 'increasing' && (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4 text-green-600" />
-                            <span className="font-medium text-green-700">증가 추세 감지</span>
+                            <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium text-muted-foreground">증가 추세 감지</span>
                           </div>
                           <p className="text-sm">
                             시계열 데이터에서 통계적으로 유의한 증가 추세가 발견되었습니다.
@@ -373,8 +373,8 @@ else:
                       {result.trend === 'decreasing' && (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
-                            <TrendingDown className="w-4 h-4 text-red-600" />
-                            <span className="font-medium text-red-700">감소 추세 감지</span>
+                            <TrendingDown className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium text-muted-foreground">감소 추세 감지</span>
                           </div>
                           <p className="text-sm">
                             시계열 데이터에서 통계적으로 유의한 감소 추세가 발견되었습니다.
@@ -424,7 +424,7 @@ else:
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+                      <CheckCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
                       <div>
                         <h4 className="font-semibold">비모수적 방법</h4>
                         <p className="text-sm text-muted-foreground">
@@ -434,7 +434,7 @@ else:
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5" />
+                      <AlertTriangle className="w-5 h-5 text-muted-foreground mt-0.5" />
                       <div>
                         <h4 className="font-semibold">독립성 가정</h4>
                         <p className="text-sm text-muted-foreground">
@@ -445,7 +445,7 @@ else:
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <Info className="w-5 h-5 text-muted-foreground mt-0.5" />
                       <div>
                         <h4 className="font-semibold">최소 표본 크기</h4>
                         <p className="text-sm text-muted-foreground">
@@ -456,7 +456,7 @@ else:
                     </div>
 
                     <div className="flex items-start gap-3">
-                      <Activity className="w-5 h-5 text-purple-600 mt-0.5" />
+                      <Activity className="w-5 h-5 text-muted-foreground mt-0.5" />
                       <div>
                         <h4 className="font-semibold">단조성 가정</h4>
                         <p className="text-sm text-muted-foreground">
@@ -658,8 +658,8 @@ export default function MannKendallPage() {
 
     const getTrendIcon = (trend: string) => {
       switch (trend) {
-        case 'increasing': return <TrendingUp className="w-4 h-4 text-green-600" />
-        case 'decreasing': return <TrendingDown className="w-4 h-4 text-red-600" />
+        case 'increasing': return <TrendingUp className="w-4 h-4 text-muted-foreground" />
+        case 'decreasing': return <TrendingDown className="w-4 h-4 text-muted-foreground" />
         case 'no trend': return <Minus className="w-4 h-4 text-gray-600" />
         default: return <Minus className="w-4 h-4 text-gray-600" />
       }
@@ -676,8 +676,8 @@ export default function MannKendallPage() {
 
     const getTrendColor = (trend: string) => {
       switch (trend) {
-        case 'increasing': return 'bg-green-50 text-green-700 border-green-200'
-        case 'decreasing': return 'bg-red-50 text-red-700 border-red-200'
+        case 'increasing': return 'bg-muted text-muted-foreground border'
+        case 'decreasing': return 'bg-muted text-muted-foreground border'
         case 'no trend': return 'bg-gray-50 text-gray-700 border-gray-200'
         default: return 'bg-gray-50 text-gray-700 border-gray-200'
       }

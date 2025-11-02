@@ -280,9 +280,9 @@ export default function RunsTestPage() {
                 연속된 데이터에서 <strong>런(run)</strong>의 개수를 이용하여
                 데이터가 무작위로 배열되었는지를 검정합니다.
               </p>
-              <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="bg-muted p-3 rounded-lg">
                 <p className="text-xs font-medium mb-1">런(Run)이란?</p>
-                <p className="text-xs text-blue-700">
+                <p className="text-xs text-muted-foreground">
                   동일한 특성을 가진 연속된 관측값들의 그룹<br/>
                   예: A-A-B-B-B-A → 3개의 런
                 </p>
@@ -411,7 +411,7 @@ export default function RunsTestPage() {
       >
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
-          <Alert className={significant ? "border-red-500 bg-red-50" : "border-green-500 bg-green-50"}>
+          <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>검정 결과</AlertTitle>
             <AlertDescription>
@@ -437,9 +437,9 @@ export default function RunsTestPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-center p-3 bg-muted rounded-lg">
                     <p className="font-medium">관측된 런</p>
-                    <p className="text-xl font-bold text-blue-600">{totalRuns}</p>
+                    <p className="text-xl font-bold text-muted-foreground">{totalRuns}</p>
                   </div>
                   <div className="text-center p-3 bg-gray-50 rounded-lg">
                     <p className="font-medium">기댓값</p>
@@ -502,7 +502,7 @@ export default function RunsTestPage() {
                 <div className="flex flex-wrap gap-2">
                   {runSequence.map((item, idx) => (
                     <div key={idx} className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      item.run % 2 === 1 ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                      item.run % 2 === 1 ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'
                     }`}>
                       Run {item.run}: {String(item.value)} ({item.runLength})
                     </div>
@@ -533,9 +533,9 @@ export default function RunsTestPage() {
                 </AlertDescription>
               </Alert>
 
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h4 className="font-medium text-yellow-800 mb-2">주의사항</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">주의사항</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• 런 검정은 데이터의 순서가 중요합니다</li>
                   <li>• 중앙값을 기준으로 이분화할 때 동점 처리 방법을 고려하세요</li>
                   <li>• 작은 표본에서는 정확한 확률을 계산해야 할 수 있습니다</li>

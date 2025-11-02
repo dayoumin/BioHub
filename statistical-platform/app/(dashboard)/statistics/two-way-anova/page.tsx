@@ -414,16 +414,16 @@ json.dumps(results)
   }, [uploadedData, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
-    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
-    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '미미한 효과', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
   const renderMethodIntroduction = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <GitBranch className="mx-auto h-12 w-12 text-blue-600 mb-4" />
+        <GitBranch className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">이원분산분석 (Two-Way ANOVA)</h1>
         <p className="text-lg text-gray-600">두 개의 독립변수가 종속변수에 미치는 주효과와 상호작용효과를 분석합니다</p>
       </div>
@@ -574,7 +574,7 @@ json.dumps(results)
                         <td className="border border-gray-300 px-4 py-2 text-right">{results.anova_table.factor_a.ms.toFixed(3)}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">{results.anova_table.factor_a.f_stat.toFixed(3)}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">
-                          <span className={results.anova_table.factor_a.p_value < 0.05 ? 'text-red-600 font-medium' : ''}>
+                          <span className={results.anova_table.factor_a.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
                             {results.anova_table.factor_a.p_value.toFixed(4)}
                             {results.anova_table.factor_a.p_value < 0.05 && <span className="ml-1">*</span>}
                           </span>
@@ -593,7 +593,7 @@ json.dumps(results)
                         <td className="border border-gray-300 px-4 py-2 text-right">{results.anova_table.factor_b.ms.toFixed(3)}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">{results.anova_table.factor_b.f_stat.toFixed(3)}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">
-                          <span className={results.anova_table.factor_b.p_value < 0.05 ? 'text-red-600 font-medium' : ''}>
+                          <span className={results.anova_table.factor_b.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
                             {results.anova_table.factor_b.p_value.toFixed(4)}
                             {results.anova_table.factor_b.p_value < 0.05 && <span className="ml-1">*</span>}
                           </span>
@@ -605,14 +605,14 @@ json.dumps(results)
                           </Badge>
                         </td>
                       </tr>
-                      <tr className="hover:bg-gray-50 bg-yellow-50">
+                      <tr className="hover:bg-gray-50 bg-muted">
                         <td className="border border-gray-300 px-4 py-2 font-medium">A × B 상호작용</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">{results.anova_table.interaction.df}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">{results.anova_table.interaction.ss.toFixed(3)}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">{results.anova_table.interaction.ms.toFixed(3)}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">{results.anova_table.interaction.f_stat.toFixed(3)}</td>
                         <td className="border border-gray-300 px-4 py-2 text-right">
-                          <span className={results.anova_table.interaction.p_value < 0.05 ? 'text-red-600 font-medium' : ''}>
+                          <span className={results.anova_table.interaction.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
                             {results.anova_table.interaction.p_value.toFixed(4)}
                             {results.anova_table.interaction.p_value < 0.05 && <span className="ml-1">*</span>}
                           </span>
@@ -798,7 +798,7 @@ json.dumps(results)
                       </div>
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-sm">가정 만족</span>
-                        <Badge className={results.assumptions.levene_test.assumption_met ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                        <Badge className={results.assumptions.levene_test.assumption_met ? 'bg-muted ' : 'bg-muted '}>
                           {results.assumptions.levene_test.assumption_met ? '만족' : '위반'}
                         </Badge>
                       </div>
@@ -818,7 +818,7 @@ json.dumps(results)
                       </div>
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-sm">가정 만족</span>
-                        <Badge className={results.assumptions.normality_test.assumption_met ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                        <Badge className={results.assumptions.normality_test.assumption_met ? 'bg-muted ' : 'bg-muted '}>
                           {results.assumptions.normality_test.assumption_met ? '만족' : '위반'}
                         </Badge>
                       </div>
@@ -897,17 +897,17 @@ json.dumps(results)
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                        <div className="w-3 h-3 bg-muted0 rounded-full mr-2"></div>
                         <span className="text-sm">η² ≥ 0.14: 큰 효과</span>
                       </div>
                       <div className="flex items-center">
-                        <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
+                        <div className="w-3 h-3 bg-muted0 rounded-full mr-2"></div>
                         <span className="text-sm">0.06 ≤ η² &lt; 0.14: 중간 효과</span>
                       </div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center">
-                        <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                        <div className="w-3 h-3 bg-muted0 rounded-full mr-2"></div>
                         <span className="text-sm">0.01 ≤ η² &lt; 0.06: 작은 효과</span>
                       </div>
                       <div className="flex items-center">

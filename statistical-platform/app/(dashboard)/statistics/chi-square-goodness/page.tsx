@@ -272,9 +272,9 @@ export default function ChiSquareGoodnessPage() {
   }
 
   const getCramersVInterpretation = (v: number) => {
-    if (v >= 0.5) return { level: '강한 연관성', color: 'text-red-600', bg: 'bg-red-50' }
-    if (v >= 0.3) return { level: '중간 연관성', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (v >= 0.1) return { level: '약한 연관성', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (v >= 0.5) return { level: '강한 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (v >= 0.3) return { level: '중간 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (v >= 0.1) return { level: '약한 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '연관성 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
@@ -327,13 +327,13 @@ export default function ChiSquareGoodnessPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">주사위 공정성</h4>
-                      <p className="text-green-700">각 면이 균등하게 나오는가?</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">주사위 공정성</h4>
+                      <p className="text-muted-foreground">각 면이 균등하게 나오는가?</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">선호도 조사</h4>
-                      <p className="text-blue-700">특정 비율대로 응답하는가?</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">선호도 조사</h4>
+                      <p className="text-muted-foreground">특정 비율대로 응답하는가?</p>
                     </div>
                   </div>
                 </CardContent>
@@ -514,7 +514,7 @@ export default function ChiSquareGoodnessPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.effectSize.cramersV.toFixed(3)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Cramér's V</p>
@@ -569,7 +569,7 @@ export default function ChiSquareGoodnessPage() {
                             <td className="border p-2 text-right font-mono">{category.observed}</td>
                             <td className="border p-2 text-right font-mono">{category.expected.toFixed(2)}</td>
                             <td className="border p-2 text-right font-mono">
-                              <span className={category.residual > 0 ? 'text-green-600' : 'text-red-600'}>
+                              <span className={category.residual > 0 ? 'text-muted-foreground' : 'text-muted-foreground'}>
                                 {category.residual > 0 ? '+' : ''}{category.residual.toFixed(2)}
                               </span>
                             </td>
@@ -633,8 +633,8 @@ export default function ChiSquareGoodnessPage() {
                               <td className="border p-2 font-medium">{category.category}</td>
                               <td className="border p-2 text-right font-mono">
                                 <span className={
-                                  absStdResidual > 2 ? 'text-red-600 font-bold' :
-                                  absStdResidual > 1.5 ? 'text-orange-600' : 'text-gray-700'
+                                  absStdResidual > 2 ? 'text-muted-foreground font-bold' :
+                                  absStdResidual > 1.5 ? 'text-muted-foreground' : 'text-gray-700'
                                 }>
                                   {category.standardizedResidual > 0 ? '+' : ''}
                                   {category.standardizedResidual.toFixed(3)}
@@ -653,9 +653,9 @@ export default function ChiSquareGoodnessPage() {
                     </table>
                   </div>
 
-                  <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
-                    <h4 className="font-medium text-yellow-800 mb-2">잔차 해석 가이드</h4>
-                    <ul className="text-sm text-yellow-700 space-y-1">
+                  <div className="mt-4 p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">잔차 해석 가이드</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• |표준화 잔차| &gt; 2: 해당 범주가 기댓값과 크게 다름</li>
                       <li>• 양의 잔차: 관측값이 기댓값보다 큼 (과다표현)</li>
                       <li>• 음의 잔차: 관측값이 기댓값보다 작음 (과소표현)</li>
@@ -712,8 +712,8 @@ export default function ChiSquareGoodnessPage() {
                       </p>
                     </div>
 
-                    <div className="p-4 bg-blue-50 rounded-lg">
-                      <h4 className="font-medium text-blue-800 mb-2">Cramér's V 해석 기준</h4>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">Cramér's V 해석 기준</h4>
                       <div className="text-sm space-y-1">
                         <div>V ≥ 0.5: 강한 연관성</div>
                         <div>V ≥ 0.3: 중간 연관성</div>

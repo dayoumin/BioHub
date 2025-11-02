@@ -283,9 +283,9 @@ export default function FriedmanPage() {
   }, [actions, runAnalysis])
 
   const getKendallWInterpretation = (w: number) => {
-    if (w >= 0.7) return { level: '강한 일치도', color: 'text-red-600', bg: 'bg-red-50' }
-    if (w >= 0.5) return { level: '중간 일치도', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (w >= 0.3) return { level: '약한 일치도', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (w >= 0.7) return { level: '강한 일치도', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (w >= 0.5) return { level: '중간 일치도', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (w >= 0.3) return { level: '약한 일치도', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '일치도 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
@@ -338,13 +338,13 @@ export default function FriedmanPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">Friedman 검정</h4>
-                      <p className="text-green-700">비모수, 구형성 가정 불필요</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">Friedman 검정</h4>
+                      <p className="text-muted-foreground">비모수, 구형성 가정 불필요</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">반복측정 분산분석</h4>
-                      <p className="text-blue-700">모수, 정규분포+구형성 가정</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">반복측정 분산분석</h4>
+                      <p className="text-muted-foreground">모수, 정규분포+구형성 가정</p>
                     </div>
                   </div>
                 </CardContent>
@@ -460,7 +460,7 @@ export default function FriedmanPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.effectSize.kendallW.toFixed(3)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Kendall's W</p>
@@ -621,8 +621,8 @@ export default function FriedmanPage() {
                     </ul>
                   </div>
 
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <h4 className="font-medium text-purple-800 mb-2">Kendall's W 해석 기준</h4>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">Kendall's W 해석 기준</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>W ≥ 0.7: 강한 일치도</div>
                       <div>W ≥ 0.5: 중간 일치도</div>

@@ -328,8 +328,8 @@ export default function OneSampleTPage() {
             </div>
           </div>
 
-          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
+          <div className="mt-4 p-3 bg-muted dark:bg-blue-950/20 rounded-lg">
+            <p className="text-sm text-muted-foreground dark:text-blue-300">
               <Info className="w-4 h-4 inline mr-1" />
               표본크기가 30 이상이면 중심극한정리에 의해 정규성 가정을 완화할 수 있습니다.
             </p>
@@ -532,10 +532,10 @@ export default function OneSampleTPage() {
                 <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
                 {renderSummaryCards()}
               </div>
-              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                <h4 className="font-semibold text-green-800 dark:text-green-200 mb-2">결론</h4>
-                <p className="text-green-700 dark:text-green-300">{results.conclusion}</p>
-                <p className="text-sm text-green-600 dark:text-green-400 mt-1">{results.interpretation}</p>
+              <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
+                <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
+                <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
+                <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
               </div>
             </TabsContent>
 

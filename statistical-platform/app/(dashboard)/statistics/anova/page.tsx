@@ -424,7 +424,7 @@ export default function ANOVAPage() {
       >
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
-          <Alert className={results.pValue < 0.05 ? "border-green-500 bg-green-50" : "border-yellow-500 bg-yellow-50"}>
+          <Alert className={results.pValue < 0.05 ? "border-green-500 bg-muted" : "border-yellow-500 bg-muted"}>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>분석 결과</AlertTitle>
             <AlertDescription>

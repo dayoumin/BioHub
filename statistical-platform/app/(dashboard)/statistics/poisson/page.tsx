@@ -411,12 +411,12 @@ export default function PoissonRegressionPage() {
           </p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2 flex items-center">
                 <Calculator className="w-4 h-4 mr-2" />
                 주요 특징
               </h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 카운트 데이터 전용</li>
                 <li>• 포아송 분포 가정</li>
                 <li>• 로그 연결함수 사용</li>
@@ -424,12 +424,12 @@ export default function PoissonRegressionPage() {
               </ul>
             </div>
 
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-medium text-green-800 mb-2 flex items-center">
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2 flex items-center">
                 <Target className="w-4 h-4 mr-2" />
                 적용 예시
               </h4>
-              <ul className="text-sm text-green-700 space-y-1">
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 질병 발생 건수</li>
                 <li>• 교통사고 발생 횟수</li>
                 <li>• 고객 방문 횟수</li>
@@ -651,9 +651,9 @@ export default function PoissonRegressionPage() {
           </p>
         </div>
 
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <h4 className="font-medium text-yellow-800 mb-2">변수 선택 가이드</h4>
-          <ul className="text-sm text-yellow-700 space-y-1">
+        <div className="bg-muted p-4 rounded-lg">
+          <h4 className="font-medium mb-2">변수 선택 가이드</h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
             <li>• <strong>종속변수</strong>: 반드시 카운트 데이터 (0 이상의 정수)</li>
             <li>• <strong>독립변수</strong>: 연속형, 이진형, 다항 범주형 모두 가능</li>
             <li>• <strong>표본크기</strong>: 독립변수당 최소 10-15개 사건 권장</li>
@@ -871,12 +871,12 @@ export default function PoissonRegressionPage() {
                         )}
                         <AlertDescription>
                           {results.assumptions.overdispersion.assumption_met ? (
-                            <span className="text-green-700">
+                            <span className="text-muted-foreground">
                               과산포가 없습니다. 포아송 모델이 적절합니다.
                               (산포비 = {results.assumptions.overdispersion.dispersion_ratio.toFixed(3)})
                             </span>
                           ) : (
-                            <span className="text-amber-700">
+                            <span className="text-muted-foreground">
                               과산포가 감지되었습니다. 준-포아송 모델이나 음이항 회귀를 고려하세요.
                             </span>
                           )}
@@ -1049,19 +1049,19 @@ export default function PoissonRegressionPage() {
 
               <div>
                 <h4 className="font-medium mb-3">발생률비 해석 가이드</h4>
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-muted p-4 rounded-lg">
                   <div className="grid md:grid-cols-3 gap-4 text-sm">
                     <div>
-                      <h5 className="font-medium text-blue-800 mb-2">IRR = 1</h5>
-                      <p className="text-blue-700">해당 변수가 발생률에 영향 없음</p>
+                      <h5 className="font-medium mb-2">IRR = 1</h5>
+                      <p className="text-muted-foreground">해당 변수가 발생률에 영향 없음</p>
                     </div>
                     <div>
-                      <h5 className="font-medium text-blue-800 mb-2">IRR &gt; 1</h5>
-                      <p className="text-blue-700">해당 변수가 발생률을 증가시킴</p>
+                      <h5 className="font-medium mb-2">IRR &gt; 1</h5>
+                      <p className="text-muted-foreground">해당 변수가 발생률을 증가시킴</p>
                     </div>
                     <div>
-                      <h5 className="font-medium text-blue-800 mb-2">IRR &lt; 1</h5>
-                      <p className="text-blue-700">해당 변수가 발생률을 감소시킴</p>
+                      <h5 className="font-medium mb-2">IRR &lt; 1</h5>
+                      <p className="text-muted-foreground">해당 변수가 발생률을 감소시킴</p>
                     </div>
                   </div>
                 </div>
@@ -1106,7 +1106,7 @@ export default function PoissonRegressionPage() {
 
               <div>
                 <h4 className="font-medium mb-3">실용적 함의</h4>
-                <div className="bg-green-50 p-4 rounded-lg">
+                <div className="bg-muted p-4 rounded-lg">
                   <ul className="space-y-2 text-sm">
                     <li>• <strong>임상 적용:</strong> 치료 효과의 크기와 통계적 유의성을 정량화</li>
                     <li>• <strong>위험도 평가:</strong> 위험요인들의 상대적 영향력 비교</li>

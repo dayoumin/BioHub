@@ -433,16 +433,16 @@ json.dumps(results)
   }
 
   const getModelFitInterpretation = (r2: number) => {
-    if (r2 >= 0.7) return { level: '우수', color: 'text-green-600', bg: 'bg-green-50' }
-    if (r2 >= 0.5) return { level: '양호', color: 'text-blue-600', bg: 'bg-blue-50' }
-    if (r2 >= 0.3) return { level: '보통', color: 'text-yellow-600', bg: 'bg-yellow-50' }
-    return { level: '낮음', color: 'text-red-600', bg: 'bg-red-50' }
+    if (r2 >= 0.7) return { level: '우수', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (r2 >= 0.5) return { level: '양호', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (r2 >= 0.3) return { level: '보통', color: 'text-muted-foreground', bg: 'bg-muted' }
+    return { level: '낮음', color: 'text-muted-foreground', bg: 'bg-muted' }
   }
 
   const renderMethodIntroduction = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <TrendingUp className="mx-auto h-12 w-12 text-blue-600 mb-4" />
+        <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">단계적 회귀분석 (Stepwise Regression)</h1>
         <p className="text-lg text-gray-600">통계적 기준에 따라 예측변수를 자동으로 선택하는 회귀분석입니다</p>
       </div>
@@ -577,7 +577,7 @@ json.dumps(results)
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div className={`text-center p-4 border rounded-lg ${modelFit.bg}`}>
-                      <div className="text-3xl font-bold text-blue-600 mb-2">
+                      <div className="text-3xl font-bold text-muted-foreground mb-2">
                         {results.final_model.r_squared.toFixed(3)}
                       </div>
                       <div className="text-sm text-gray-600 mb-2">R² (결정계수)</div>
@@ -586,7 +586,7 @@ json.dumps(results)
                       </Badge>
                     </div>
                     <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">
+                      <div className="text-2xl font-bold text-muted-foreground">
                         {results.final_model.adj_r_squared.toFixed(3)}
                       </div>
                       <div className="text-sm text-gray-600">수정된 R²</div>
@@ -604,7 +604,7 @@ json.dumps(results)
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">F p값</span>
-                      <span className={`font-semibold ${results.final_model.f_p_value < 0.05 ? 'text-red-600' : ''}`}>
+                      <span className={`font-semibold ${results.final_model.f_p_value < 0.05 ? 'text-muted-foreground' : ''}`}>
                         {results.final_model.f_p_value.toFixed(4)}
                       </span>
                     </div>
@@ -624,11 +624,11 @@ json.dumps(results)
                 </div>
 
                 {results.final_model.variables.length > 0 && (
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <h4 className="font-semibold text-blue-800 mb-2">선택된 변수</h4>
+                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                    <h4 className="font-semibold mb-2">선택된 변수</h4>
                     <div className="flex flex-wrap gap-1">
                       {results.final_model.variables.map((variable, index) => (
-                        <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
+                        <Badge key={index} variant="secondary" className="bg-muted">
                           {variable}
                         </Badge>
                       ))}
@@ -668,7 +668,7 @@ json.dumps(results)
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="border border-gray-300 px-4 py-2 font-medium">{step.step}</td>
                             <td className="border border-gray-300 px-4 py-2">
-                              <Badge className={step.action === 'add' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                              <Badge className={step.action === 'add' ? 'bg-muted ' : 'bg-muted '}>
                                 {step.action === 'add' ? (
                                   <><Plus className="h-3 w-3 mr-1" />추가</>
                                 ) : (
@@ -681,7 +681,7 @@ json.dumps(results)
                             <td className="border border-gray-300 px-4 py-2 text-right">{step.adj_r_squared.toFixed(3)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">{step.f_change.toFixed(2)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
-                              <span className={step.f_change_p < 0.05 ? 'text-red-600 font-medium' : ''}>
+                              <span className={step.f_change_p < 0.05 ? 'text-muted-foreground font-medium' : ''}>
                                 {step.f_change_p.toFixed(4)}
                               </span>
                             </td>
@@ -737,14 +737,14 @@ json.dumps(results)
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right">{coef.t_statistic.toFixed(2)}</td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
-                              <span className={coef.p_value < 0.05 ? 'text-red-600 font-medium' : ''}>
+                              <span className={coef.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
                                 {coef.p_value.toFixed(4)}
                                 {coef.p_value < 0.05 && <span className="ml-1">*</span>}
                               </span>
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-right">
                               {coef.variable === '상수' ? '-' : (
-                                <span className={coef.vif > 10 ? 'text-red-600 font-medium' : ''}>
+                                <span className={coef.vif > 10 ? 'text-muted-foreground font-medium' : ''}>
                                   {coef.vif.toFixed(2)}
                                 </span>
                               )}
@@ -819,7 +819,7 @@ json.dumps(results)
                         <span className="text-sm">Durbin-Watson</span>
                         <div className="text-right">
                           <div className="font-semibold">{results.model_diagnostics.durbin_watson.toFixed(3)}</div>
-                          <Badge className={Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                          <Badge className={Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5 ? 'bg-muted ' : 'bg-muted '}>
                             {Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5 ? '양호' : '주의'}
                           </Badge>
                         </div>
@@ -832,7 +832,7 @@ json.dumps(results)
                         <span className="text-sm">Jarque-Bera p값</span>
                         <div className="text-right">
                           <div className="font-semibold">{results.model_diagnostics.jarque_bera_p.toFixed(3)}</div>
-                          <Badge className={results.model_diagnostics.jarque_bera_p > 0.05 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={results.model_diagnostics.jarque_bera_p > 0.05 ? 'bg-muted ' : 'bg-muted '}>
                             {results.model_diagnostics.jarque_bera_p > 0.05 ? '만족' : '위반'}
                           </Badge>
                         </div>
@@ -847,7 +847,7 @@ json.dumps(results)
                         <span className="text-sm">Breusch-Pagan p값</span>
                         <div className="text-right">
                           <div className="font-semibold">{results.model_diagnostics.breusch_pagan_p.toFixed(3)}</div>
-                          <Badge className={results.model_diagnostics.breusch_pagan_p > 0.05 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={results.model_diagnostics.breusch_pagan_p > 0.05 ? 'bg-muted ' : 'bg-muted '}>
                             {results.model_diagnostics.breusch_pagan_p > 0.05 ? '만족' : '위반'}
                           </Badge>
                         </div>
@@ -860,7 +860,7 @@ json.dumps(results)
                         <span className="text-sm">조건수</span>
                         <div className="text-right">
                           <div className="font-semibold">{results.model_diagnostics.condition_number.toFixed(1)}</div>
-                          <Badge className={results.model_diagnostics.condition_number < 30 ? 'bg-green-100 text-green-800' : results.model_diagnostics.condition_number < 100 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}>
+                          <Badge className={results.model_diagnostics.condition_number < 30 ? 'bg-muted ' : results.model_diagnostics.condition_number < 100 ? 'bg-muted ' : 'bg-muted '}>
                             {results.model_diagnostics.condition_number < 30 ? '양호' : results.model_diagnostics.condition_number < 100 ? '주의' : '문제'}
                           </Badge>
                         </div>

@@ -372,8 +372,8 @@ export default function TTestPage() {
 
             <div className="mt-6 space-y-4">
               <TabsContent value="one-sample" className="space-y-4">
-                <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950">
-                  <Info className="h-4 w-4 text-blue-600" />
+                <Alert className="border bg-muted dark:bg-blue-950">
+                  <Info className="h-4 w-4 text-muted-foreground" />
                   <AlertTitle>일표본 t-검정이란?</AlertTitle>
                   <AlertDescription>
                     하나의 표본 평균이 특정 기준값과 차이가 있는지 검정합니다.
@@ -397,8 +397,8 @@ export default function TTestPage() {
               </TabsContent>
 
               <TabsContent value="two-sample">
-                <Alert className="border-green-200 bg-green-50 dark:bg-green-950">
-                  <Info className="h-4 w-4 text-green-600" />
+                <Alert className="border bg-muted dark:bg-green-950">
+                  <Info className="h-4 w-4 text-muted-foreground" />
                   <AlertTitle>독립표본 t-검정이란?</AlertTitle>
                   <AlertDescription>
                     서로 독립적인 두 그룹의 평균을 비교합니다.
@@ -408,8 +408,8 @@ export default function TTestPage() {
               </TabsContent>
 
               <TabsContent value="paired">
-                <Alert className="border-purple-200 bg-purple-50 dark:bg-purple-950">
-                  <Info className="h-4 w-4 text-purple-600" />
+                <Alert className="border bg-muted dark:bg-purple-950">
+                  <Info className="h-4 w-4 text-muted-foreground" />
                   <AlertTitle>대응표본 t-검정이란?</AlertTitle>
                   <AlertDescription>
                     동일한 대상의 전후 측정값을 비교합니다.
@@ -493,7 +493,7 @@ export default function TTestPage() {
             <Card className={analysisResult.pvalue < 0.05 ? "border-2 border-green-500" : "border-2"}>
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className={`text-3xl font-bold ${analysisResult.pvalue < 0.05 ? 'text-green-600' : 'text-gray-600'}`}>
+                  <div className={`text-3xl font-bold ${analysisResult.pvalue < 0.05 ? 'text-muted-foreground' : 'text-gray-600'}`}>
                     {analysisResult.pvalue.toFixed(4)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">p-value</p>
@@ -515,7 +515,7 @@ export default function TTestPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.effect_size?.cohens_d.toFixed(3)}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">Cohen&apos;s d</p>
@@ -527,14 +527,14 @@ export default function TTestPage() {
           {/* 해석 */}
           <StepCard
             title="결과 해석"
-            icon={<CheckCircle2 className="w-5 h-5 text-green-600" />}
+            icon={<CheckCircle2 className="w-5 h-5 text-muted-foreground" />}
           >
             <div className="space-y-4">
               {(() => {
                 const interpretation = getResultInterpretation(analysisResult)
                 return (
                   <>
-                    <Alert className={interpretation.significant ? "border-green-500 bg-green-50 dark:bg-green-950" : ""}>
+                    <Alert className={interpretation.significant ? "border-green-500 bg-muted dark:bg-green-950" : ""}>
                       <CheckCircle2 className="h-4 w-4" />
                       <AlertTitle>통계적 결론</AlertTitle>
                       <AlertDescription>

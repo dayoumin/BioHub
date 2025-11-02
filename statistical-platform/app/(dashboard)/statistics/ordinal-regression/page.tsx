@@ -375,12 +375,12 @@ export default function OrdinalRegressionPage() {
           </p>
 
           <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-2 flex items-center">
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2 flex items-center">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 주요 특징
               </h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 순서형 종속변수 예측</li>
                 <li>• 비례 오즈 가정 (Proportional Odds)</li>
                 <li>• 로지스틱 회귀의 확장</li>
@@ -388,12 +388,12 @@ export default function OrdinalRegressionPage() {
               </ul>
             </div>
 
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-medium text-green-800 mb-2 flex items-center">
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2 flex items-center">
                 <Target className="w-4 h-4 mr-2" />
                 적용 예시
               </h4>
-              <ul className="text-sm text-green-700 space-y-1">
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• 만족도 조사 (불만족→보통→만족)</li>
                 <li>• 학점 예측 (F→D→C→B→A)</li>
                 <li>• 질병 중증도 (경증→중등→중증)</li>
@@ -582,9 +582,9 @@ export default function OrdinalRegressionPage() {
           </p>
         </div>
 
-        <div className="bg-yellow-50 p-4 rounded-lg">
-          <h4 className="font-medium text-yellow-800 mb-2">변수 선택 가이드</h4>
-          <ul className="text-sm text-yellow-700 space-y-1">
+        <div className="bg-muted p-4 rounded-lg">
+          <h4 className="font-medium mb-2">변수 선택 가이드</h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
             <li>• <strong>종속변수</strong>: 반드시 순서가 있는 범주형 (3개 이상 범주 권장)</li>
             <li>• <strong>독립변수</strong>: 연속형, 이진형, 범주형 모두 가능</li>
             <li>• <strong>표본 크기</strong>: 범주당 최소 10-15개 관측치 필요</li>
@@ -845,11 +845,11 @@ export default function OrdinalRegressionPage() {
                         )}
                         <AlertDescription>
                           {results.assumptions.proportional_odds.assumption_met ? (
-                            <span className="text-green-700">
+                            <span className="text-muted-foreground">
                               비례 오즈 가정이 충족됩니다. 표준 서열 회귀모델을 사용할 수 있습니다.
                             </span>
                           ) : (
-                            <span className="text-amber-700">
+                            <span className="text-muted-foreground">
                               비례 오즈 가정이 위반되었습니다. 부분 비례 오즈 모델을 고려하세요.
                             </span>
                           )}
@@ -946,7 +946,7 @@ export default function OrdinalRegressionPage() {
                               {results.classification_metrics.category_labels[i]}
                             </TableCell>
                             {row.map((cell, j) => (
-                              <TableCell key={j} className={i === j ? "bg-blue-50 font-medium" : ""}>
+                              <TableCell key={j} className={i === j ? "bg-muted font-medium" : ""}>
                                 {cell}
                               </TableCell>
                             ))}
@@ -1024,7 +1024,7 @@ export default function OrdinalRegressionPage() {
 
               <div>
                 <h4 className="font-medium mb-3">실용적 함의</h4>
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-muted p-4 rounded-lg">
                   <ul className="space-y-2 text-sm">
                     <li>• <strong>정책 결정:</strong> 각 변수의 영향력을 통해 만족도 향상을 위한 우선순위 설정</li>
                     <li>• <strong>자원 배분:</strong> 가장 효과적인 변수에 집중적으로 투자</li>

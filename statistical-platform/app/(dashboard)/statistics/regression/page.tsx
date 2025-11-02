@@ -395,7 +395,7 @@ export default function RegressionPage() {
     return (
       <div className="space-y-6">
         {/* 모델 요약 */}
-        <Alert className="border-green-500 bg-green-50">
+        <Alert className="border-green-500 bg-muted">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>모델 요약</AlertTitle>
           <AlertDescription>
@@ -556,7 +556,7 @@ export default function RegressionPage() {
     return (
       <div className="space-y-6">
         {/* 모델 성능 요약 */}
-        <Alert className="border-green-500 bg-green-50">
+        <Alert className="border-green-500 bg-muted">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>모델 성능</AlertTitle>
           <AlertDescription>
@@ -628,19 +628,19 @@ export default function RegressionPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-2">
-                <div className="text-center p-4 bg-green-100 rounded">
+                <div className="text-center p-4 bg-muted rounded">
                   <p className="text-2xl font-bold">{confusionMatrix.tp}</p>
                   <p className="text-xs">True Positive</p>
                 </div>
-                <div className="text-center p-4 bg-red-100 rounded">
+                <div className="text-center p-4 bg-muted rounded">
                   <p className="text-2xl font-bold">{confusionMatrix.fp}</p>
                   <p className="text-xs">False Positive</p>
                 </div>
-                <div className="text-center p-4 bg-red-100 rounded">
+                <div className="text-center p-4 bg-muted rounded">
                   <p className="text-2xl font-bold">{confusionMatrix.fn}</p>
                   <p className="text-xs">False Negative</p>
                 </div>
-                <div className="text-center p-4 bg-green-100 rounded">
+                <div className="text-center p-4 bg-muted rounded">
                   <p className="text-2xl font-bold">{confusionMatrix.tn}</p>
                   <p className="text-xs">True Negative</p>
                 </div>

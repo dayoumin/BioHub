@@ -376,9 +376,9 @@ export default function ThreeWayAnovaPage() {
   }, [runAnalysis, actions])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
-    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-red-600', bg: 'bg-red-50' }
-    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-orange-600', bg: 'bg-orange-50' }
-    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-yellow-600', bg: 'bg-yellow-50' }
+    if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.06) return { level: '중간 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
+    if (etaSquared >= 0.01) return { level: '작은 효과', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '효과 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
   }
 
@@ -439,17 +439,17 @@ export default function ThreeWayAnovaPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="space-y-3 text-sm">
-                    <div className="bg-green-50 p-3 rounded">
-                      <h4 className="font-medium text-green-800">교육 연구</h4>
-                      <p className="text-green-700">학습법×성별×학년이 성취도에 미치는 효과</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">교육 연구</h4>
+                      <p className="text-muted-foreground">학습법×성별×학년이 성취도에 미치는 효과</p>
                     </div>
-                    <div className="bg-blue-50 p-3 rounded">
-                      <h4 className="font-medium text-blue-800">심리 실험</h4>
-                      <p className="text-blue-700">처치×성격×환경이 행동에 미치는 영향</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">심리 실험</h4>
+                      <p className="text-muted-foreground">처치×성격×환경이 행동에 미치는 영향</p>
                     </div>
-                    <div className="bg-purple-50 p-3 rounded">
-                      <h4 className="font-medium text-purple-800">마케팅</h4>
-                      <p className="text-purple-700">광고×가격×매장이 구매에 미치는 효과</p>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">마케팅</h4>
+                      <p className="text-muted-foreground">광고×가격×매장이 구매에 미치는 효과</p>
                     </div>
                   </div>
                 </CardContent>
@@ -467,9 +467,9 @@ export default function ThreeWayAnovaPage() {
               </AlertDescription>
             </Alert>
 
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h4 className="font-medium text-yellow-800 mb-2">검정할 가설들</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
+            <div className="p-4 bg-muted border border rounded-lg">
+              <h4 className="font-medium mb-2">검정할 가설들</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• <strong>주효과 3개:</strong> 각 독립변수의 개별 효과</li>
                 <li>• <strong>2원 상호작용 3개:</strong> A×B, A×C, B×C 효과</li>
                 <li>• <strong>3원 상호작용 1개:</strong> A×B×C 효과</li>
@@ -737,7 +737,7 @@ export default function ThreeWayAnovaPage() {
                       <p className="text-sm">자유도: {results.error.degreesOfFreedom}</p>
                       <p className="text-sm">평균제곱: {results.error.meanSquare.toFixed(2)}</p>
                     </div>
-                    <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">전체 (Total)</h4>
                       <p className="text-sm">제곱합: {results.total.sumSquares.toFixed(2)}</p>
                       <p className="text-sm">자유도: {results.total.degreesOfFreedom}</p>
@@ -834,9 +834,9 @@ export default function ThreeWayAnovaPage() {
                             </td>
                             <td className="border border-gray-300 px-4 py-2 text-center">
                               <Badge variant="outline" className={
-                                Math.abs(test.cohensD) >= 0.8 ? 'text-red-600 bg-red-50' :
-                                Math.abs(test.cohensD) >= 0.5 ? 'text-orange-600 bg-orange-50' :
-                                Math.abs(test.cohensD) >= 0.2 ? 'text-yellow-600 bg-yellow-50' : 'text-gray-600 bg-gray-50'
+                                Math.abs(test.cohensD) >= 0.8 ? 'text-muted-foreground bg-muted' :
+                                Math.abs(test.cohensD) >= 0.5 ? 'text-muted-foreground bg-muted' :
+                                Math.abs(test.cohensD) >= 0.2 ? 'text-muted-foreground bg-muted' : 'text-gray-600 bg-gray-50'
                               }>
                                 {test.cohensD.toFixed(2)}
                               </Badge>
@@ -964,16 +964,16 @@ export default function ThreeWayAnovaPage() {
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <div className="p-4 bg-blue-50 rounded-lg">
-                        <h4 className="font-medium text-blue-800 mb-2">결정계수</h4>
-                        <p className="text-2xl font-bold text-blue-900">{(results.modelFit.rSquared * 100).toFixed(1)}%</p>
-                        <p className="text-sm text-blue-700">R² = {results.modelFit.rSquared.toFixed(3)}</p>
-                        <p className="text-sm text-blue-700">수정된 R² = {results.modelFit.adjustedRSquared.toFixed(3)}</p>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">결정계수</h4>
+                        <p className="text-2xl font-bold">{(results.modelFit.rSquared * 100).toFixed(1)}%</p>
+                        <p className="text-sm text-muted-foreground">R² = {results.modelFit.rSquared.toFixed(3)}</p>
+                        <p className="text-sm text-muted-foreground">수정된 R² = {results.modelFit.adjustedRSquared.toFixed(3)}</p>
                       </div>
 
-                      <div className="p-4 bg-green-50 rounded-lg">
-                        <h4 className="font-medium text-green-800 mb-2">모델 유의성</h4>
-                        <p className="text-lg font-bold text-green-900">F = {results.modelFit.fStatistic.toFixed(2)}</p>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">모델 유의성</h4>
+                        <p className="text-lg font-bold">F = {results.modelFit.fStatistic.toFixed(2)}</p>
                         <PValueBadge value={results.modelFit.modelPValue} />
                       </div>
                     </div>
@@ -1010,9 +1010,9 @@ export default function ThreeWayAnovaPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* 요약 */}
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-800 mb-2">분석 요약</h4>
-                    <p className="text-blue-700">{results.interpretation.summary}</p>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">분석 요약</h4>
+                    <p className="text-muted-foreground">{results.interpretation.summary}</p>
                   </div>
 
                   {/* 주효과 해석 */}
@@ -1020,17 +1020,17 @@ export default function ThreeWayAnovaPage() {
                     <h4 className="font-medium mb-3">주효과 해석</h4>
                     <div className="space-y-2">
                       {results.interpretation.mainEffectsInterpretation.map((interpretation, index) => (
-                        <div key={index} className="p-3 bg-green-50 rounded border-l-4 border-green-400">
-                          <p className="text-green-700 text-sm">{interpretation}</p>
+                        <div key={index} className="p-3 bg-muted rounded border-l-4 border-green-400">
+                          <p className="text-muted-foreground text-sm">{interpretation}</p>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* 상호작용 해석 */}
-                  <div className="p-4 bg-yellow-50 rounded-lg">
-                    <h4 className="font-medium text-yellow-800 mb-2">상호작용 해석</h4>
-                    <p className="text-yellow-700">{results.interpretation.interactionInterpretation}</p>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-2">상호작용 해석</h4>
+                    <p className="text-muted-foreground">{results.interpretation.interactionInterpretation}</p>
                   </div>
 
                   {/* 권장사항 */}

@@ -211,7 +211,7 @@ json.dumps(results)
   const renderMethodIntroduction = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <BarChart3 className="mx-auto h-12 w-12 text-blue-600 mb-4" />
+        <BarChart3 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">평균 도표 (Means Plot)</h1>
         <p className="text-lg text-gray-600">집단별 평균값과 오차막대를 시각화하여 집단 간 차이를 탐색합니다</p>
       </div>

@@ -501,7 +501,7 @@ export default function CorrelationPage() {
       >
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
-          <Alert className="border-blue-500 bg-blue-50">
+          <Alert className="border-blue-500 bg-muted">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>분석 요약</AlertTitle>
             <AlertDescription>

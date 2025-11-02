@@ -281,11 +281,11 @@ export default function ReliabilityAnalysisPage() {
   }
 
   const getAlphaInterpretation = (alpha: number) => {
-    if (alpha >= 0.9) return { level: 'Excellent', color: 'bg-green-500', description: '우수한 신뢰도' }
-    if (alpha >= 0.8) return { level: 'Good', color: 'bg-blue-500', description: '양호한 신뢰도' }
-    if (alpha >= 0.7) return { level: 'Acceptable', color: 'bg-yellow-500', description: '수용 가능한 신뢰도' }
-    if (alpha >= 0.6) return { level: 'Questionable', color: 'bg-orange-500', description: '의문스러운 신뢰도' }
-    return { level: 'Poor', color: 'bg-red-500', description: '낮은 신뢰도' }
+    if (alpha >= 0.9) return { level: 'Excellent', color: 'bg-muted0', description: '우수한 신뢰도' }
+    if (alpha >= 0.8) return { level: 'Good', color: 'bg-muted0', description: '양호한 신뢰도' }
+    if (alpha >= 0.7) return { level: 'Acceptable', color: 'bg-muted0', description: '수용 가능한 신뢰도' }
+    if (alpha >= 0.6) return { level: 'Questionable', color: 'bg-muted0', description: '의문스러운 신뢰도' }
+    return { level: 'Poor', color: 'bg-muted0', description: '낮은 신뢰도' }
   }
 
   return (
@@ -347,19 +347,19 @@ export default function ReliabilityAnalysisPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>α ≥ 0.9</span>
-                      <Badge className="bg-green-500">우수</Badge>
+                      <Badge className="bg-muted0">우수</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span>α ≥ 0.8</span>
-                      <Badge className="bg-blue-500">양호</Badge>
+                      <Badge className="bg-muted0">양호</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span>α ≥ 0.7</span>
-                      <Badge className="bg-yellow-500">수용가능</Badge>
+                      <Badge className="bg-muted0">수용가능</Badge>
                     </div>
                     <div className="flex justify-between">
                       <span>α &lt; 0.7</span>
-                      <Badge className="bg-red-500">개선필요</Badge>
+                      <Badge className="bg-muted0">개선필요</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -491,7 +491,7 @@ export default function ReliabilityAnalysisPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.itemCount}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">분석 항목 수</p>
@@ -502,7 +502,7 @@ export default function ReliabilityAnalysisPage() {
             <Card className="border-2">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
+                  <div className="text-3xl font-bold text-muted-foreground">
                     {analysisResult.sampleSize}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">표본 크기</p>
@@ -545,7 +545,7 @@ export default function ReliabilityAnalysisPage() {
                             <td className="border p-2 text-right font-mono">{item.stdDev.toFixed(2)}</td>
                             <td className="border p-2 text-right font-mono">{item.correctedItemTotal.toFixed(3)}</td>
                             <td className="border p-2 text-right font-mono">
-                              <span className={item.alphaIfDeleted > analysisResult.cronbachAlpha ? 'text-red-600' : 'text-green-600'}>
+                              <span className={item.alphaIfDeleted > analysisResult.cronbachAlpha ? 'text-muted-foreground' : 'text-muted-foreground'}>
                                 {item.alphaIfDeleted.toFixed(3)}
                               </span>
                             </td>

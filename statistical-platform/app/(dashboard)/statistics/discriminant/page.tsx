@@ -399,9 +399,9 @@ export default function DiscriminantPage() {
                 여러 개의 연속형 변수를 사용하여 <strong>그룹을 구별</strong>하고
                 새로운 관찰치를 가장 적합한 그룹으로 <strong>분류</strong>하는 통계 기법입니다.
               </p>
-              <div className="bg-blue-50 p-3 rounded-lg">
+              <div className="bg-muted p-3 rounded-lg">
                 <p className="text-xs font-medium mb-1">핵심 개념</p>
-                <p className="text-xs text-blue-700">
+                <p className="text-xs text-muted-foreground">
                   그룹 간 차이를 최대화하는 판별함수 생성<br/>
                   베이즈 정리를 활용한 분류 확률 계산
                 </p>
@@ -532,7 +532,7 @@ export default function DiscriminantPage() {
       >
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
-          <Alert className="border-blue-500 bg-blue-50">
+          <Alert className="border-blue-500 bg-muted">
             <Activity className="h-4 w-4" />
             <AlertTitle>분석 결과 요약</AlertTitle>
             <AlertDescription>
@@ -806,9 +806,9 @@ export default function DiscriminantPage() {
                 </AlertDescription>
               </Alert>
 
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h4 className="font-medium text-yellow-800 mb-2">활용 방안</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">활용 방안</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• 새로운 관찰치를 기존 그룹으로 분류</li>
                   <li>• 그룹 간 차이를 만드는 주요 변수 파악</li>
                   <li>• 분류 정확도를 높이기 위한 변수 조합 탐색</li>

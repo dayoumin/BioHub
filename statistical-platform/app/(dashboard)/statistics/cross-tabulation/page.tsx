@@ -431,7 +431,7 @@ export default function CrossTabulationPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className={`p-4 rounded-lg ${isSignificant ? 'bg-green-50 dark:bg-green-950/20' : 'bg-gray-50 dark:bg-gray-950/20'}`}>
+          <div className={`p-4 rounded-lg ${isSignificant ? 'bg-muted dark:bg-green-950/20' : 'bg-gray-50 dark:bg-gray-950/20'}`}>
             <h4 className="font-semibold mb-2">독립성 검정</h4>
             <p className="text-sm">
               {isSignificant ? (
@@ -442,7 +442,7 @@ export default function CrossTabulationPage() {
             </p>
           </div>
 
-          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+          <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
             <h4 className="font-semibold mb-2">연관성 강도 (Cramer&apos;s V)</h4>
             <p className="text-sm">
               V = {cramersV.toFixed(3)} ({
@@ -454,7 +454,7 @@ export default function CrossTabulationPage() {
             <div className="mt-2">
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className="bg-blue-500 h-2 rounded-full"
+                  className="bg-muted0 h-2 rounded-full"
                   style={{ width: `${Math.min(cramersV * 200, 100)}%` }}
                 />
               </div>
@@ -462,7 +462,7 @@ export default function CrossTabulationPage() {
           </div>
 
           {results.fishersExactTest && (
-            <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
+            <div className="p-4 bg-muted dark:bg-orange-950/20 rounded-lg">
               <h4 className="font-semibold mb-2">Fisher 정확검정</h4>
               <p className="text-sm">
                 p = {results.fishersExactTest.pValue.toFixed(3)}<br />
@@ -598,7 +598,7 @@ export default function CrossTabulationPage() {
                 </Select>
               </div>
 
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
                 <h4 className="font-semibold mb-2">분석 설정 요약</h4>
                 <ul className="text-sm space-y-1">
                   <li>• 교차표 형식: 관측빈도{showExpected && ' + 기대빈도'}{showResiduals && ' + 잔차'}</li>
