@@ -62,7 +62,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // 먼저 RAG 쿼리 실행 (컨텍스트 생성)
+          // 먼저 RAG 쿼리 실행 (검색 결과만 필요)
           const ragResponse = await ragService.query(context)
 
           // 1. RAG 메타데이터 전송
@@ -75,21 +75,11 @@ export async function POST(request: NextRequest): Promise<Response> {
             encoder.encode(JSON.stringify(metadataChunk) + '\n')
           )
 
-          // 2. 스트리밍 시작
-          // RAG 응답의 컨텍스트 텍스트 재생성
-          const searchResults = ragResponse.sources.map((source) => ({
-            doc_id: source.title,
-            title: source.title,
-            content: source.content,
-            library: 'rag',
-            category: 'assistant',
-            score: source.score,
-          }))
-
-          const contextText = (provider as any).buildContext(
-            searchResults,
-            context
-          )
+          // 2. 컨텍스트 텍스트 생성
+          // sources 데이터를 기반으로 프롬프트용 컨텍스트 구성
+          const contextText = ragResponse.sources
+            .map((source, index) => `[문서 ${index + 1}]\n제목: ${source.title}\n내용: ${source.content}`)
+            .join('\n\n---\n\n')
 
           // 3. 스트리밍 응답 생성
           for await (const chunk of provider.streamGenerateAnswer(
