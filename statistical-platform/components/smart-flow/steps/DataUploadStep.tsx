@@ -289,8 +289,8 @@ export function DataUploadStep({
           {isDragActive ? '파일을 놓으세요' : '파일을 드래그하거나 클릭하여 업로드'}
         </h3>
         <div className="space-y-1 text-sm text-muted-foreground mb-4">
-          <p>최대 파일 크기: 50MB | 최대 데이터: 100,000행</p>
-          <p>지원 형식: CSV (Excel은 CSV로 변환 필요)</p>
+          <p>CSV 최대 100MB, Excel 최대 20MB | 최대 100,000행</p>
+          <p>지원 형식: CSV (.csv), Excel (.xlsx, .xls)</p>
         </div>
         <Button variant="outline" disabled={isUploading}>
           {isUploading ? '업로드 중...' : '파일 선택'}
