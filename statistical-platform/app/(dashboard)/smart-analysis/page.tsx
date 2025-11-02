@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Sparkles, Upload, CheckCircle2, BarChart3, HelpCircle, ArrowRight } from "lucide-react"
+import { Sparkles, Upload, CheckCircle2, BarChart3, HelpCircle, ArrowRight, Info } from "lucide-react"
 import { FileUpload } from "@/components/ui/file-upload"
 import Link from "next/link"
 import { useAppStore } from "@/lib/store"
@@ -40,6 +40,7 @@ export default function SmartAnalysisPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [_selectedAnalysisType, setSelectedAnalysisType] = useState<string | null>(null)
   const [analysisResultId, setAnalysisResultId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const { addAnalysisResult, getDatasetById } = useAppStore()
 
@@ -75,13 +76,13 @@ export default function SmartAnalysisPage() {
     const dataset = getDatasetById(id)
 
     if (!dataset) {
-      console.error(`Dataset not found: ${id}`)
+      setError(`데이터를 찾을 수 없습니다: ${id}`)
       return
     }
 
     // 데이터가 없으면 에러 처리
     if (!dataset.data || dataset.data.length === 0) {
-      console.error('Dataset has no data')
+      setError('업로드된 데이터가 비어있습니다. 데이터가 있는 파일을 다시 업로드해주세요.')
       return
     }
 
@@ -120,6 +121,8 @@ export default function SmartAnalysisPage() {
       rowCount: dataset.rows
     })
 
+    // 에러 초기화
+    setError(null)
     setCurrentStep('descriptive')
   }
 
@@ -417,8 +420,13 @@ export default function SmartAnalysisPage() {
               CSV 또는 Excel 파일을 드래그하거나 클릭해서 업로드하세요
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <FileUpload 
+          <CardContent className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <FileUpload
               enableSmartAnalysis={false}
               onUploadComplete={handleUploadComplete}
             />
@@ -520,13 +528,23 @@ export default function SmartAnalysisPage() {
             ) : (
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-medium mb-3">정규성 검정 (Shapiro-Wilk Test)</h4>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h4 className="font-medium">정규성 검정 (Shapiro-Wilk Test)</h4>
+                    <div className="relative group cursor-help">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      <div className="hidden group-hover:block absolute z-10 bg-slate-900 text-white text-xs p-2 rounded w-48 -ml-24">
+                        데이터가 정규분포(종 모양)를 따르는지 검사합니다. p-값이 0.05보다 작으면 정규분포가 아닙니다.
+                      </div>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     {Object.entries(assumptionResults.normality).map(([variable, result]) => (
                       <div key={variable} className="flex items-center justify-between p-3 border rounded">
                         <div>
                           <span className="font-medium">{variable}</span>
-                          <p className="text-sm text-muted-foreground">p = {result.pValue.toFixed(3)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            p = {result.pValue.toFixed(3)} {result.pValue < 0.05 ? '(정규분포 아님)' : '(정규분포)'}
+                          </p>
                         </div>
                         <Badge variant={result.isNormal ? "default" : "destructive"}>
                           {result.isNormal ? "정규분포 ✓" : "비정규분포 ✗"}
@@ -537,13 +555,23 @@ export default function SmartAnalysisPage() {
                 </div>
 
                 <div>
-                  <h4 className="font-medium mb-3">등분산성 검정 (Levene&apos;s Test)</h4>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h4 className="font-medium">등분산성 검정 (Levene&apos;s Test)</h4>
+                    <div className="relative group cursor-help">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      <div className="hidden group-hover:block absolute z-10 bg-slate-900 text-white text-xs p-2 rounded w-48 -ml-24">
+                        각 그룹의 데이터 퍼짐정도가 같은지 검사합니다. p-값이 0.05보다 작으면 그룹 간 분산이 다릅니다.
+                      </div>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     {Object.entries(assumptionResults.homogeneity).map(([test, result]) => (
                       <div key={test} className="flex items-center justify-between p-3 border rounded">
                         <div>
                           <span className="font-medium">{test.replace('_', ' → ')}</span>
-                          <p className="text-sm text-muted-foreground">p = {result.pValue.toFixed(3)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            p = {result.pValue.toFixed(3)} {result.pValue < 0.05 ? '(분산 다름)' : '(분산 같음)'}
+                          </p>
                         </div>
                         <Badge variant={result.isHomogeneous ? "default" : "destructive"}>
                           {result.isHomogeneous ? "등분산 ✓" : "이분산 ✗"}

@@ -89,7 +89,7 @@ export default function HomePage() {
       </div>
 
       {/* 3. 내 통계 도구 */}
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-4xl mx-auto">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
