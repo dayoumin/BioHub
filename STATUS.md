@@ -71,6 +71,68 @@
 
 ## ✅ 최근 완료 작업
 
+### 공통 핸들러 유틸 추출 (2025-11-02)
+**우선순위**: 🟢 **High** (코드 중복 제거, 유지보수성 향상)
+
+**작업 개요**:
+- ✅ 공통 유틸 파일 생성: [statistics-handlers.ts](statistical-platform/lib/utils/statistics-handlers.ts) (226 lines)
+- ✅ 6개 통계 페이지 리팩토링 완료
+- ✅ 코드 중복 제거: ~140 lines → ~60 lines (**-57%**)
+- ✅ TypeScript 에러: 리팩토링한 파일 **0 errors** ✓
+
+**생성된 공통 유틸**:
+1. `createDataUploadHandler()` - 데이터 업로드 로직 중앙화
+2. `createVariableSelectionHandler<T>()` - 변수 선택 로직 중앙화 (제네릭 타입 지원)
+3. `extractNumericData()` - 숫자 데이터 추출 (군집분석, 요인분석 등)
+4. `validateVariableSelection()` - 변수 선택 검증
+
+**리팩토링 완료 페이지 (6개)**:
+1. [normality-test/page.tsx](statistical-platform/app/(dashboard)/statistics/normality-test/page.tsx) - DataUploadStep 공통화
+2. [frequency-table/page.tsx](statistical-platform/app/(dashboard)/statistics/frequency-table/page.tsx) - DataUploadStep + VariableSelector 공통화
+3. [one-sample-t/page.tsx](statistical-platform/app/(dashboard)/statistics/one-sample-t/page.tsx) - 전체 핸들러 공통화
+4. [proportion-test/page.tsx](statistical-platform/app/(dashboard)/statistics/proportion-test/page.tsx) - 전체 핸들러 공통화
+5. [welch-t/page.tsx](statistical-platform/app/(dashboard)/statistics/welch-t/page.tsx) - 전체 핸들러 공통화
+6. [dose-response/page.tsx](statistical-platform/app/(dashboard)/statistics/dose-response/page.tsx) - 31 lines → 10 lines (-68% 가장 큰 개선)
+
+**Before/After 비교**:
+```typescript
+// Before: 각 페이지마다 13줄씩 중복
+onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
+  if (actions.setUploadedData) {
+    actions.setUploadedData({
+      data, fileName: file.name,
+      columns: data.length > 0 ? Object.keys(data[0]) : []
+    } as UploadedData)
+    actions.setCurrentStep(1)
+  }
+}}
+
+// After: 공통 유틸 사용 (5줄)
+onUploadComplete={createDataUploadHandler(
+  actions.setUploadedData,
+  () => actions.setCurrentStep(1),
+  'page-name'
+)}
+```
+
+**성과 지표**:
+- **코드 라인 수**: ~140 lines → ~60 lines (-57%)
+- **중복 코드 블록**: 12개 → 0개 (-100%)
+- **파일 수정 시 영향 범위**: 6개 파일 → 1개 파일 (-83%)
+
+**커밋**: `fbf9f93` - refactor: 통계 페이지 공통 핸들러 유틸 추출 (6개 페이지)
+
+**검증**:
+- ✅ TypeScript: 리팩토링한 파일 0 errors
+- ✅ 제네릭 타입: `<T>` 타입 안전성 보장
+- ✅ 일관성: 모든 페이지 동일한 패턴 사용
+
+**남은 작업**:
+- 🔜 추가 33개 페이지 리팩토링 (DataUploadStep 사용 페이지)
+- 🔜 cluster & factor-analysis 표준화 (Phase 3)
+
+---
+
 ### UI 개선 및 정확성 개선 (2025-11-02)
 **우선순위**: 🟢 **High** (사용자 경험 개선, 기술 설명 정확성)
 
