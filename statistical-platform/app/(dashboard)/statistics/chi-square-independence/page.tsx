@@ -31,6 +31,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Helper functions
 function interpretCramersV(value: number): string {
@@ -168,18 +169,13 @@ export default function ChiSquareIndependencePage() {
   }), [])
 
   // Event handlers
-  const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    const processedData = data.map((row) => ({
-      ...row as Record<string, unknown>
-    })) as Record<string, unknown>[]
-    const columns = processedData.length > 0 ? Object.keys(processedData[0]) : []
-    actions.setUploadedData?.({
-      data: processedData,
-      fileName: file.name,
-      columns
-    })
-    actions.setCurrentStep(2)
-  }, [actions])
+  const handleDataUploadComplete = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'chi-square-independence'
+  )
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodide || !variables.independent || !variables.dependent) {
@@ -303,17 +299,16 @@ export default function ChiSquareIndependencePage() {
     }
   }, [uploadedData, pyodide])
 
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    if (!actions.setSelectedVariables) {
-      console.error('[chi-square-independence] setSelectedVariables not available')
-      return
-    }
-    actions.setSelectedVariables(variables)
-    if (variables.independent && variables.dependent &&
-        variables.independent.length === 1 && variables.dependent.length === 1) {
-      runAnalysis(variables)
-    }
-  }, [runAnalysis, actions])
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      if (variables.independent && variables.dependent &&
+          variables.independent.length === 1 && variables.dependent.length === 1) {
+        runAnalysis(variables)
+      }
+    },
+    'chi-square-independence'
+  )
 
   const getCramersVInterpretation = (v: number) => {
     if (v >= 0.5) return { level: '강한 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }

@@ -25,6 +25,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // 데이터 인터페이스
 interface UploadedData {
@@ -100,28 +101,13 @@ export default function McNemarTestPage() {
     }
   ]
 
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    const uploadedData: UploadedData = {
-      data: data as Record<string, unknown>[],
-      fileName: file.name,
-      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
-        ? Object.keys(data[0] as Record<string, unknown>)
-        : []
-    }
-
-    if (!actions.setUploadedData) {
-      console.error('[mcnemar] setUploadedData not available')
-      return
-    }
-
-    actions.setUploadedData(uploadedData)
-
-    if (!actions.setCurrentStep) {
-      console.error('[mcnemar] setCurrentStep not available')
-      return
-    }
-    actions.setCurrentStep(2)
-  }, [actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'mcnemar'
+  )
 
   // 표준정규분포 CDF
   const normalCDF = useCallback((z: number): number => {
@@ -279,23 +265,20 @@ export default function McNemarTestPage() {
     }
   }, [uploadedData, calculateMcNemarTest, actions])
 
-  const handleVariableSelection = useCallback((variables: unknown) => {
-    if (!variables || typeof variables !== 'object') return
+  const handleVariableSelection = createVariableSelectionHandler<unknown>(
+    actions.setSelectedVariables as ((mapping: unknown) => void) | undefined,
+    (variables) => {
+      if (!variables || typeof variables !== 'object') return
 
-    // Extract variable names from the selection object
-    const variableSelection = variables as { variables: string[] }
-    const selectedVars = variableSelection.variables || []
+      // Extract variable names from the selection object
+      const variableSelection = variables as { variables: string[] }
+      const selectedVars = variableSelection.variables || []
 
-    if (!actions.setSelectedVariables) {
-      console.error('[mcnemar] setSelectedVariables not available')
-      return
-    }
-
-    actions.setSelectedVariables(selectedVars)
-
-    // 자동으로 분석 실행
-    runAnalysis(selectedVars)
-  }, [runAnalysis, actions])
+      // 자동으로 분석 실행
+      runAnalysis(selectedVars)
+    },
+    'mcnemar'
+  )
 
   const renderMethodIntroduction = () => (
     <StepCard

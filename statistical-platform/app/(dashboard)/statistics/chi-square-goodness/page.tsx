@@ -33,6 +33,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface DataRow {
@@ -157,46 +158,38 @@ export default function ChiSquareGoodnessPage() {
   }), [])
 
   // Event handlers
-  const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
-    const processedData = data.map((row) => ({
-      ...row as Record<string, unknown>
-    })) as Record<string, unknown>[]
+  const handleDataUploadComplete = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'chi-square-goodness'
+  )
 
-    // Get column names from first row
-    const columns = processedData.length > 0
-      ? Object.keys(processedData[0])
-      : []
+  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
+    actions.setSelectedVariables,
+    (variables) => {
+      // 범주형 변수의 고유값들을 찾아서 기댓값 설정 UI 준비
+      if (variables.dependent && variables.dependent.length === 1 && uploadedData) {
+        const categoryVariable = variables.dependent[0]
+        const uniqueCategories = [...new Set(
+          uploadedData.data
+            .map((row: Record<string, unknown>) => row[categoryVariable])
+            .filter((val: unknown) => val !== null && val !== undefined)
+            .map((val: unknown) => String(val))
+        )]
 
-    actions.setUploadedData({
-      data: processedData,
-      fileName: file.name,
-      columns
-    })
-    actions.setCurrentStep(2)
-  }, [actions])
-
-  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables(variables)
-
-    // 범주형 변수의 고유값들을 찾아서 기댓값 설정 UI 준비
-    if (variables.dependent && variables.dependent.length === 1 && uploadedData) {
-      const categoryVariable = variables.dependent[0]
-      const uniqueCategories = [...new Set(
-        uploadedData.data
-          .map((row: Record<string, unknown>) => row[categoryVariable])
-          .filter((val: unknown) => val !== null && val !== undefined)
-          .map((val: unknown) => String(val))
-      )]
-
-      // 균등분포로 초기 설정
-      const initialProportions: Record<string, number> = {}
-      const uniformProportion = 1 / uniqueCategories.length
-      uniqueCategories.forEach((category: string) => {
-        initialProportions[category] = uniformProportion
-      })
-      setExpectedProportions(initialProportions)
-    }
-  }, [uploadedData, actions])
+        // 균등분포로 초기 설정
+        const initialProportions: Record<string, number> = {}
+        const uniformProportion = 1 / uniqueCategories.length
+        uniqueCategories.forEach((category: string) => {
+          initialProportions[category] = uniformProportion
+        })
+        setExpectedProportions(initialProportions)
+      }
+    },
+    'chi-square-goodness'
+  )
 
   const runAnalysis = async () => {
     if (!uploadedData || !pyodide || !selectedVariables?.dependent) {
