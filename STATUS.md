@@ -71,6 +71,109 @@
 
 ## ✅ 최근 완료 작업
 
+### 챗봇 RAG 시스템 개선 및 버그 수정 (2025-11-02) 🤖
+**우선순위**: 🟢 **High** (사용자 경험 개선, 모델 선택 안정성)
+
+**작업 개요**:
+- ✅ 시스템 프롬프트 친근화 및 가독성 향상
+- ✅ 모델 자동 감지 로직 개선 (2가지 중요 버그 수정)
+- ✅ 포괄적 테스트 추가 (17개 테스트 모두 통과)
+- ✅ AI 검토 의견 반영 및 기능 검증
+
+#### 1. 시스템 프롬프트 개선 (친근한 톤)
+**파일**: `lib/rag/providers/ollama-provider.ts` (generateAnswer, streamGenerateAnswer)
+- 기존: 딱딱한 명령형 ("~해주세요")
+- 개선: 친근한 제안형 ("~하면 좋겠어")
+- 섹션 이모지 추가: 📚 💬 🚫 📖
+- 구분선(───) 추가로 시각성 향상
+- 구체적 예시 포함으로 추상성 해결
+
+**커밋**: `0cf3106` - refactor(chatbot): 시스템 프롬프트 개선
+
+#### 2. 모델 자동 감지 개선 (하드코딩 제거)
+**파일**:
+- `lib/rag/providers/ollama-provider.ts` (initialize 메서드)
+- `components/rag/model-settings.tsx` (UI)
+
+**개선 사항**:
+- 주석에서 "qwen2.5:3b" 제거 → "자동 감지" 명시
+- UI에서 "qwen3:4b" 기본값 옵션 제거
+- 에러 메시지 동적화: 설치된 모델 목록 표시
+
+**커밋**: `aa17205` - refactor: 챗봇 RAG 추론 모델 자동 감지로 하드코딩된 기본값 제거
+
+#### 3. 자동 감지 테스트 추가 (5개 + 기본값 수정)
+**파일**: `__tests__/rag/ollama-provider.test.ts`
+
+**추가된 테스트**:
+- ✅ should auto-detect qwen model when not explicitly set
+- ✅ should auto-detect gemma model when qwen not available
+- ✅ should auto-detect gpt model when qwen and gemma not available
+- ✅ should auto-detect fallback model (mistral 등)
+- ✅ should show available models in error message
+
+**수정된 테스트**:
+- should use default values when not provided → 하드코딩된 기본값 → 자동 감지 동작 검증
+
+**성능 개선**: testMode: true 추가로 SQLite DB 로드 스킵 → 30초 → 1.3초 (약 23배 빠름!)
+
+**커밋**: `3f8348c` - test: RAG 모델 자동 감지 테스트 추가 및 기본값 테스트 업데이트
+
+#### 4. 중요 버그 수정 (AI 검토 반영) 🐛
+**파일**: `lib/rag/providers/ollama-provider.ts` (264-306줄)
+
+**Bug #1: Fallback 모델 선택 불가** ✅
+- **문제**: mistral, llama 등만 설치되면 실패
+- **원인**: qwen/gemma/gpt 3가지만 체크하고 실패
+- **해결**: 비embedding 모델 중 우선순위 정렬 후 첫 번째 선택
+- **결과**: mistral, neural-chat 등 모든 모델 지원 가능 ✅
+
+**Bug #2: 우선순위 정렬 없음** ✅
+- **문제**: API 응답 순서에 따라 우선순위 무시됨
+- **원인**: Array.find()가 응답 순서대로 먼저 매칭되는 것 선택
+- **해결**: 명시적 우선순위 함수로 정렬 후 첫 번째 선택
+- **결과**: gemma가 먼저 나와도 qwen(1순위) 선택됨 ✅
+
+**코드 비교**:
+```typescript
+// Before: Fallback 없음 + 우선순위 미보장
+const inferenceModel = models.find((m) =>
+  !m.name.includes('embed') &&
+  (m.name.includes('qwen') || m.name.includes('gemma') || m.name.includes('gpt'))
+)
+if (!inferenceModel) throw Error(...)  // mistral만 있으면 실패
+
+// After: Fallback 지원 + 우선순위 보장
+const nonEmbeddingModels = models.filter(...)
+const inferenceModel = nonEmbeddingModels.sort((a, b) => {
+  const getPriority = (name) => {
+    if (name.includes('qwen')) return 0   // 1순위
+    if (name.includes('gemma')) return 1  // 2순위
+    if (name.includes('gpt')) return 2    // 3순위
+    return 3  // 4순위 (fallback)
+  }
+  return getPriority(a.name) - getPriority(b.name)
+})[0]  // fallback도 선택 가능
+```
+
+**커밋**: `f811134` - fix: RAG 모델 자동 감지 버그 수정 - Fallback 모델 선택 및 우선순위 정렬
+
+#### 5. 검증 결과
+```
+✅ Test Suites: 1 passed
+✅ Tests: 17 passed, 17 total (기존 11 + 새로 추가 6)
+✅ Time: 1.401s
+✅ TypeScript: 0 errors (ollama-provider.ts, model-settings.tsx)
+✅ Remote: 4 commits pushed to origin/master
+```
+
+**최종 기능**:
+- mistral, llama, neural-chat, gpt-3.5, gpt-4 등 모든 모델 지원
+- API 응답 순서와 무관하게 우선순위 유지
+- embedding 모델만 있을 때 명확한 에러 메시지
+
+---
+
 ### 공통 핸들러 유틸 추출 (2025-11-02)
 **우선순위**: 🟢 **High** (코드 중복 제거, 유지보수성 향상)
 
