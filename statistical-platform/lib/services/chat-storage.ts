@@ -109,6 +109,26 @@ export class ChatStorage {
   }
 
   /**
+   * 메시지 삭제
+   */
+  static deleteMessage(sessionId: string, messageId: string): void {
+    try {
+      const session = this.loadSession(sessionId)
+      if (!session) {
+        throw new Error('Session not found')
+      }
+
+      session.messages = session.messages.filter(m => m.id !== messageId)
+      session.updatedAt = Date.now()
+
+      this.saveSession(session)
+    } catch (error) {
+      console.error('Failed to delete message:', error)
+      throw new Error('메시지 삭제에 실패했습니다.')
+    }
+  }
+
+  /**
    * 세션 삭제
    */
   static deleteSession(id: string): void {

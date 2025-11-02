@@ -27,6 +27,8 @@ import {
   ChevronUp,
   Copy,
   Check,
+  Edit2,
+  Trash2,
 } from 'lucide-react'
 import { queryRAG } from '@/lib/rag/rag-service'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
@@ -55,6 +57,8 @@ export function RAGChatInterface({
   const [messages, setMessages] = useState<ExtendedChatMessage[]>([])
   const [expandedSources, setExpandedSources] = useState<number | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState('')
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
   // 세션 로드
@@ -289,6 +293,30 @@ export function RAGChatInterface({
     }
   }, [])
 
+  // 메시지 수정 시작
+  const handleEditMessage = useCallback((messageId: string, content: string) => {
+    setEditingMessageId(messageId)
+    setEditingContent(content)
+    setQuery(content)
+  }, [])
+
+  // 메시지 삭제
+  const handleDeleteMessage = useCallback((messageId: string) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+    ChatStorage.deleteMessage(sessionId, messageId)
+
+    const updatedSession = ChatStorage.loadSession(sessionId)
+    if (updatedSession) {
+      setMessages(updatedSession.messages as ExtendedChatMessage[])
+    }
+  }, [sessionId])
+
+  // 수정 취소
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessageId(null)
+    setEditingContent('')
+  }, [])
+
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* 메시지 영역 */}
@@ -338,45 +366,63 @@ export function RAGChatInterface({
                   )}
                 </Button>
 
-                {/* 참조 문서 (Assistant 메시지만) */}
-                {msg.role === 'assistant' &&
-                  (msg.response?.sources || msg.sources) &&
-                  (msg.response?.sources || msg.sources)?.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-border/50">
+                {/* 참조 문서 (Assistant 메시지만) - 확장 기본값 true */}
+                {msg.role === 'assistant' && (() => {
+                  const sources = msg.response?.sources || msg.sources
+                  return sources && sources.length > 0 ? (
+                    <div className="mt-4 pt-3 border-t border-border/50">
                       <button
                         onClick={() =>
                           setExpandedSources(expandedSources === idx ? null : idx)
                         }
-                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
                       >
-                        <span>참조 문서 ({(msg.response?.sources || msg.sources)?.length || 0}개)</span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-full">
+                          📚 참조 문서
+                          <span className="font-bold">({(msg.response?.sources || msg.sources)?.length || 0})</span>
+                        </span>
                         {expandedSources === idx ? (
-                          <ChevronUp className="h-3 w-3" />
+                          <ChevronUp className="h-4 w-4" />
                         ) : (
-                          <ChevronDown className="h-3 w-3" />
+                          <ChevronDown className="h-4 w-4" />
                         )}
                       </button>
 
-                      {expandedSources === idx && (
-                        <div className="mt-2 space-y-1">
+                      {/* 기본값: expandedSources가 설정되지 않으면 true (첫 로드 시 열림) */}
+                      {(expandedSources === idx || (expandedSources === null && idx === 0)) && (
+                        <div className="mt-3 space-y-2">
                           {(msg.response?.sources || msg.sources)?.map((source, sourceIdx) => (
                             <div
                               key={sourceIdx}
-                              className="text-xs bg-background/50 rounded p-2"
+                              className="text-xs bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20"
                             >
-                              <div className="font-medium">{source.title}</div>
-                              <div className="text-muted-foreground mt-1 line-clamp-2">
-                                {source.content}
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-semibold text-foreground">{source.title}</div>
+                                  <div className="text-muted-foreground mt-1.5 leading-relaxed">
+                                    {source.content}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-muted-foreground mt-1">
-                                관련도: {(source.score * 100).toFixed(0)}%
+                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/10">
+                                <span className="text-muted-foreground">관련도:</span>
+                                <div className="flex-1 h-1.5 bg-primary/20 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary transition-all"
+                                    style={{ width: `${source.score * 100}%` }}
+                                  />
+                                </div>
+                                <span className="font-semibold text-primary">
+                                  {(source.score * 100).toFixed(0)}%
+                                </span>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
                     </div>
-                  )}
+                  ) : null
+                })()}
               </div>
             </div>
           ))}
@@ -410,15 +456,71 @@ export function RAGChatInterface({
       {/* 입력 영역 - 항상 하단 표시 */}
       <div className="border-t p-4 bg-background shrink-0">
         <div className="max-w-3xl mx-auto space-y-2">
-          <Textarea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="질문을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
-            rows={3}
-            disabled={isLoading}
-            className="resize-none"
-          />
+          <div className="relative">
+            <Textarea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="질문을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
+              rows={3}
+              disabled={isLoading}
+              className="resize-none"
+            />
+            {/* 입력 영역 위 우측 버튼 그룹 */}
+            {query.trim() && !isLoading && (
+              <div className="absolute -top-10 right-0 flex gap-1">
+                {editingMessageId ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        void handleSubmit()
+                        handleCancelEdit()
+                      }}
+                      className="h-7 px-2"
+                    >
+                      <Check className="h-3 w-3" />
+                      저장
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      className="h-7 px-2"
+                    >
+                      취소
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopyMessage('input', query)}
+                      className="h-7 px-2"
+                      title="입력 텍스트 복사"
+                    >
+                      {copiedMessageId === 'input' ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setQuery('')}
+                      className="h-7 px-2"
+                      title="입력 텍스트 삭제"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           <div className="flex justify-between items-center">
             <div className="text-xs text-muted-foreground">
               <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Enter</kbd> 전송
