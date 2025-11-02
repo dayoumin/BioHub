@@ -133,12 +133,7 @@ export function ModelSettings({
                         {model.name}
                       </SelectItem>
                     ))}
-                  {/* 모델이 하나도 없을 때 기본값 표시 */}
-                  {availableModels.filter((m) => !m.name.toLowerCase().includes('embed'))
-                    .length === 0 &&
-                    selectedInferenceModel !== 'qwen3:4b' && (
-                      <SelectItem value="qwen3:4b">qwen3:4b (기본값)</SelectItem>
-                    )}
+                  {/* 모델이 하나도 없을 때 표시 - 하드코딩 제거 */}
                 </SelectContent>
               </Select>
               <Button

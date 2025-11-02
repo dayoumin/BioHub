@@ -2,15 +2,16 @@
  * Ollama RAG Provider (SQLite 연동)
  *
  * Ollama를 사용하는 완전 로컬 RAG 제공자
- * - 임베딩: nomic-embed-text (137M, 빠르고 정확)
- * - 추론: qwen2.5 (3B-7B, 한국어 우수)
+ * - 임베딩: Ollama에 설치된 embedding 모델 자동 감지
+ * - 추론: Ollama에 설치된 추론 모델 자동 감지 (우선순위: qwen > gemma > gpt > 기타)
  * - Vector DB: SQLite (sql.js로 브라우저에서 실행)
  *
  * 설치:
  * 1. Ollama 설치: https://ollama.com/download
- * 2. 모델 다운로드:
+ * 2. 모델 다운로드 (예시):
  *    ollama pull nomic-embed-text
- *    ollama pull qwen2.5:3b
+ *    ollama pull qwen2.5
+ *    # 또는 다른 모델: gemma, mistral, neural-chat 등
  */
 
 import {
@@ -154,7 +155,7 @@ export interface OllamaProviderConfig extends RAGProviderConfig {
   ollamaEndpoint?: string
   /** 임베딩 모델 (기본: nomic-embed-text) */
   embeddingModel?: string
-  /** 추론 모델 (기본: qwen2.5:3b) */
+  /** 추론 모델 (자동 감지 또는 명시적 지정) */
   inferenceModel?: string
   /** SQLite DB 경로 (기본: /rag-data/rag.db) */
   vectorDbPath?: string
@@ -271,9 +272,20 @@ export class OllamaRAGProvider extends BaseRAGProvider {
            m.name.toLowerCase().includes('gpt'))
         )
         if (!inferenceModel) {
+          // 설치된 모델 목록을 에러 메시지에 포함
+          const availableModels = models
+            .filter((m) => !m.name.toLowerCase().includes('embed'))
+            .map((m) => m.name)
+            .join(', ')
+
           throw new Error(
-            '추론 모델을 찾을 수 없습니다.\n' +
-            '다음 명령어로 설치하세요: ollama pull qwen2.5:3b'
+            '추론 가능한 모델을 찾을 수 없습니다.\n' +
+            `설치된 모델: ${availableModels || '없음'}\n` +
+            '다음 중 하나를 설치하세요:\n' +
+            '  ollama pull qwen2.5\n' +
+            '  ollama pull gemma\n' +
+            '  ollama pull mistral\n' +
+            '  또는 다른 대형 언어 모델'
           )
         }
         this.inferenceModel = inferenceModel.name
