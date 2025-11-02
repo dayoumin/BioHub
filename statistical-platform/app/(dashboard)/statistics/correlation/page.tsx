@@ -417,16 +417,9 @@ export default function CorrelationPage() {
       description="상관분석할 데이터 파일을 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
-      <DataUploadStep 
+      <DataUploadStep
         onNext={() => {}}
-        onUploadComplete={(file, data) => {
-          const uploadedData: UploadedData = {
-            data: data,
-            fileName: file.name,
-            columns: Object.keys(data[0] || {})
-          }
-          handleDataUpload(uploadedData)
-        }}
+        onUploadComplete={handleDataUpload}
       />
     </StepCard>
   )

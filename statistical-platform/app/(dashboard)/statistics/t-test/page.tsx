@@ -450,14 +450,7 @@ export default function TTestPage() {
         >
           <DataUploadStep
             onNext={() => {}}
-            onUploadComplete={(file, data) => {
-              const uploadedData: UploadedData = {
-                data: data as Record<string, unknown>[],
-                fileName: file.name,
-                columns: Object.keys(data[0] || {})
-              }
-              handleDataUpload(uploadedData)
-            }}
+            onUploadComplete={handleDataUpload}
           />
 
           <div className="flex justify-between mt-6">

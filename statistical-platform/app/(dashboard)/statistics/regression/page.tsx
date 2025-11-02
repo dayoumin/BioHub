@@ -382,7 +382,7 @@ export default function RegressionPage() {
                     regressionType === 'multiple' ? 'multiple-regression' :
                     'logistic-regression'}
           data={uploadedData.data}
-          onVariablesSelected={handleVariableSelection}
+          onVariablesSelected={(vars) => handleVariableSelection(vars as RegressionVariables | null)}
         />
       </StepCard>
     )
