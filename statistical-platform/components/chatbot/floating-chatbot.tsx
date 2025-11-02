@@ -107,25 +107,55 @@ export function FloatingChatbot() {
 
   return (
     <>
+      {/* 플로팅 버튼 */}
+      {!isOpen && (
+        <Button
+          onClick={handleToggle}
+          className={cn(
+            'fixed z-40 h-14 w-14 rounded-full shadow-lg',
+            'bottom-6 right-6',
+            'max-md:bottom-4 max-md:right-4',
+            'hover:scale-110 transition-transform'
+          )}
+          size="icon"
+          aria-label="AI 도우미 열기"
+        >
+          <MessageCircle className="h-6 w-6" />
+        </Button>
+      )}
+
+      {/* 배경 오버레이 (Dialog 역할) */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/20"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* 팝업 창 */}
       {isOpen && (
-        <Card
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chatbot-title"
           className={cn(
-            'fixed z-50 shadow-2xl border-2',
+            'fixed z-50 shadow-2xl border-2 bg-background rounded-lg',
             'bottom-24 right-6',
             'max-md:inset-0 max-md:w-full max-md:h-full max-md:rounded-none max-md:bottom-0 max-md:right-0',
             'flex flex-col',
-            isMinimized ? 'h-auto' : 'w-[768px] h-[800px] overflow-auto'
+            isMinimized ? 'h-auto' : 'w-[400px] h-[600px] overflow-hidden',
+            isMinimized ? '' : 'resizable-container'
           )}
           style={
             isMinimized
               ? undefined
               : {
-                  resize: 'both',
                   minWidth: '400px',
                   minHeight: '400px',
                   maxWidth: '90vw',
                   maxHeight: '90vh',
+                  overflow: 'hidden',
                 }
           }
         >
@@ -133,7 +163,7 @@ export function FloatingChatbot() {
           <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
-              <h3 className="font-semibold">AI 도우미</h3>
+              <h3 id="chatbot-title" className="font-semibold">AI 도우미</h3>
               <Badge variant="secondary" className="text-xs">
                 Beta
               </Badge>
@@ -144,6 +174,7 @@ export function FloatingChatbot() {
                 variant="ghost"
                 className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
                 onClick={handleMinimize}
+                aria-label="최소화"
               >
                 <Minus className="h-4 w-4" />
               </Button>
@@ -152,6 +183,7 @@ export function FloatingChatbot() {
                 variant="ghost"
                 className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
                 onClick={handleClose}
+                aria-label="닫기"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -173,7 +205,6 @@ export function FloatingChatbot() {
                 <a
                   href="/chatbot"
                   className="text-primary hover:underline font-medium"
-                  onClick={handleClose}
                 >
                   전용 페이지
                 </a>
@@ -189,24 +220,7 @@ export function FloatingChatbot() {
               </Button>
             </div>
           )}
-        </Card>
-      )}
-
-      {/* 플로팅 버튼 */}
-      {!isOpen && (
-        <Button
-          onClick={handleToggle}
-          className={cn(
-            'fixed z-40 h-14 w-14 rounded-full shadow-lg',
-            'bottom-6 right-6',
-            'max-md:bottom-4 max-md:right-4',
-            'hover:scale-110 transition-transform'
-          )}
-          size="icon"
-          aria-label="AI 도우미 열기"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </Button>
+        </div>
       )}
 
       {/* 새 메시지 알림 배지 (선택 사항) */}
@@ -218,6 +232,8 @@ export function FloatingChatbot() {
             'max-md:bottom-[56px] max-md:right-[56px]',
             'hidden' // 실제 구현 시 조건부로 표시
           )}
+          role="status"
+          aria-live="polite"
         >
           <span className="text-xs text-destructive-foreground font-bold flex items-center justify-center h-full">
             1
