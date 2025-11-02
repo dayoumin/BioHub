@@ -127,9 +127,14 @@ export function RAGChatInterface({
       setMessages((prev) => [...prev, assistantMessage])
 
       // 스트리밍 사용 가능 여부 확인
-      const useStreaming = localStorage.getItem('enableStreaming') !== 'false'
+      // ✅ 환경변수로 조건부 제어 (정적 배포 시 불필요한 404 방지)
+      const streamingEnabled = process.env.NEXT_PUBLIC_ENABLE_STREAMING !== 'false'
+      const userPreference = localStorage.getItem('enableStreaming')
+      const useStreaming = userPreference !== null
+        ? userPreference !== 'false'
+        : streamingEnabled
 
-      if (useStreaming) {
+      if (useStreaming && streamingEnabled) {
         // 스트리밍 방식: 점진적으로 응답 업데이트
         try {
           const response = await fetch('/api/rag/stream', {
