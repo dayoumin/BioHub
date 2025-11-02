@@ -61,11 +61,15 @@ export default function ChatbotPage() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
+  const [archivedSessions, setArchivedSessions] = useState<ChatSession[]>([])
 
   // 세션 로드
   useEffect(() => {
     const loadedSessions = ChatStorage.loadSessions()
+    const archived = ChatStorage.loadArchivedSessions()
     setSessions(loadedSessions)
+    setArchivedSessions(archived)
 
     // 첫 세션 자동 선택 또는 새 세션 생성
     if (loadedSessions.length > 0) {
@@ -153,6 +157,10 @@ export default function ChatbotPage() {
   const handleArchiveSession = useCallback((sessionId: string) => {
     ChatStorage.toggleArchive(sessionId)
     setSessions((prev) => prev.filter((s) => s.id !== sessionId))
+    setArchivedSessions((prev) => {
+      const archived = ChatStorage.loadArchivedSessions()
+      return archived
+    })
 
     // 보관한 세션이 현재 세션이면 다른 세션 선택
     if (currentSessionId === sessionId) {
@@ -166,6 +174,18 @@ export default function ChatbotPage() {
       }
     }
   }, [currentSessionId, sessions])
+
+  // 보관된 세션 복구
+  const handleRestoreSession = useCallback((sessionId: string) => {
+    ChatStorage.toggleArchive(sessionId)
+    setArchivedSessions((prev) => prev.filter((s) => s.id !== sessionId))
+    // 복구된 세션을 목록에 추가
+    const restored = ChatStorage.loadSession(sessionId)
+    if (restored) {
+      setSessions((prev) => [restored, ...prev])
+      setCurrentSessionId(sessionId)
+    }
+  }, [])
 
   // 키보드 단축키 (Ctrl+N: 새 대화)
   useEffect(() => {
@@ -326,6 +346,43 @@ export default function ChatbotPage() {
             )}
           </div>
         </ScrollArea>
+
+        {/* 보관함 섹션 */}
+        {archivedSessions.length > 0 && (
+          <div className="border-t p-2 space-y-1">
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className="w-full text-left text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5"
+            >
+              📦 보관함 ({archivedSessions.length})
+            </button>
+
+            {showArchived && (
+              <div className="space-y-1 px-1">
+                {archivedSessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className="flex items-center gap-1 p-1.5 rounded text-xs hover:bg-muted/30 group"
+                  >
+                    <Archive className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="flex-1 min-w-0 truncate text-muted-foreground">
+                      {session.title}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-5 shrink-0 opacity-0 group-hover:opacity-100"
+                      onClick={() => handleRestoreSession(session.id)}
+                      title="복구"
+                    >
+                      <Check className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="p-4 border-t text-xs text-muted-foreground">
           <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Ctrl+N</kbd>{' '}
