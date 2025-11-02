@@ -22,19 +22,11 @@ import {
   Trash2,
   Edit2,
   Archive,
-  MoreVertical,
   MessageSquare,
   Sparkles,
   Check,
   X,
 } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import type { ChatSession } from '@/lib/types/chat'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
@@ -272,50 +264,61 @@ export default function ChatbotPage() {
                         </div>
                       </div>
 
-                      {session.isFavorite && (
-                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />
-                      )}
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreVertical className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleToggleFavorite(session.id)}
-                          >
-                            <Star className="mr-2 h-4 w-4" />
-                            {session.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleStartRename(session)}
-                          >
-                            <Edit2 className="mr-2 h-4 w-4" />
-                            이름 변경
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleArchiveSession(session.id)}
-                          >
-                            <Archive className="mr-2 h-4 w-4" />
-                            보관
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteSession(session.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            삭제
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleFavorite(session.id)
+                          }}
+                          title={session.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+                        >
+                          <Star
+                            className={cn(
+                              'h-3.5 w-3.5',
+                              session.isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                            )}
+                          />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStartRename(session)
+                          }}
+                          title="이름 변경"
+                        >
+                          <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleArchiveSession(session.id)
+                          }}
+                          title="보관"
+                        >
+                          <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteSession(session.id)
+                          }}
+                          title="삭제"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>

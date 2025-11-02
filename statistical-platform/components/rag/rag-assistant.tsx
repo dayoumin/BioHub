@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, XCircle, Send, ChevronDown, ChevronUp, History, Star, Trash2, Plus, Menu, X as CloseIcon } from 'lucide-react'
+import { Loader2, XCircle, Send, ChevronDown, ChevronUp, Star, Trash2, Plus, Menu, X as CloseIcon } from 'lucide-react'
 import { queryRAG } from '@/lib/rag/rag-service'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import { ChatStorage } from '@/lib/services/chat-storage'
@@ -246,23 +246,25 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-6 w-6"
+                        className="h-6 w-6 flex-shrink-0"
                         onClick={(e) => handleToggleFavorite(session.id, e)}
+                        title={session.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
                       >
                         <Star
                           className={cn(
-                            'h-3 w-3',
-                            session.isFavorite && 'fill-yellow-400 text-yellow-400'
+                            'h-3.5 w-3.5',
+                            session.isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
                           )}
                         />
                       </Button>
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-6 w-6 text-destructive"
+                        className="h-6 w-6 flex-shrink-0 hover:bg-destructive/10"
                         onClick={(e) => handleDeleteSession(session.id, e)}
+                        title="삭제"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
                       </Button>
                     </div>
                   </div>

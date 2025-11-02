@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { HelpCircle, Settings } from "lucide-react"
+import { HelpCircle, Settings, MessageCircle } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { memo } from "react"
@@ -34,8 +34,14 @@ export const Header = memo(() => {
             NIFS 통계 분석 플랫폼
           </Link>
 
-          {/* 오른쪽: 도움말, 설정 아이콘 */}
+          {/* 오른쪽: AI 챗봇, 도움말, 설정 아이콘 */}
           <div className="flex items-center gap-2">
+            <IconButton
+              href="/chatbot"
+              icon={MessageCircle}
+              label="AI 챗봇"
+              isActive={pathname === '/chatbot'}
+            />
             <IconButton
               href="/help"
               icon={HelpCircle}
