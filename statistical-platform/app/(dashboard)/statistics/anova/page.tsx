@@ -23,6 +23,7 @@ import {
   Download
 } from 'lucide-react'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { MethodSelectionCard, type MethodInfo } from '@/components/statistics/MethodSelectionCard'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
@@ -273,58 +274,15 @@ export default function ANOVAPage() {
       description="데이터 구조와 연구 목적에 맞는 ANOVA 방법을 선택하세요"
       icon={<BarChart3 className="w-5 h-5 text-primary" />}
     >
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         {Object.entries(anovaTypeInfo).map(([key, info]) => (
-          <motion.div
+          <MethodSelectionCard
             key={key}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Card
-              className={cn(
-                "cursor-pointer border-2 transition-all",
-                anovaType === key
-                  ? "border-primary bg-primary/5 shadow-lg"
-                  : "border-border hover:border-primary/50 hover:shadow-md"
-              )}
-              onClick={() => handleMethodSelect(key as 'oneWay' | 'twoWay' | 'threeWay' | 'repeated')}
-            >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
-                    {info.icon}
-                  </div>
-                  {anovaType === key && (
-                    <CheckCircle className="w-5 h-5 text-primary" />
-                  )}
-                </div>
-                <CardTitle className="text-lg mt-3">{info.title}</CardTitle>
-                <Badge variant="outline" className="w-fit mt-2">
-                  {info.subtitle}
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {info.description}
-                </p>
-
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <p className="text-xs font-medium mb-1">예시:</p>
-                  <p className="text-xs text-muted-foreground">
-                    {info.example}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-1">
-                  {info.assumptions.map((assumption) => (
-                    <Badge key={assumption} variant="secondary" className="text-xs">
-                      {assumption}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            methodKey={key}
+            methodInfo={info}
+            isSelected={anovaType === key}
+            onSelect={() => handleMethodSelect(key as 'oneWay' | 'twoWay' | 'threeWay' | 'repeated')}
+          />
         ))}
       </div>
 
@@ -354,6 +312,17 @@ export default function ANOVAPage() {
       description="분산 분석할 데이터 파일을 업로드하세요"
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
+      {anovaType && (
+        <Alert className="mb-4">
+          <Sparkles className="h-4 w-4" />
+          <AlertTitle>선택된 분석 방법</AlertTitle>
+          <AlertDescription>
+            <Badge variant="secondary" className="mt-1">
+              {anovaTypeInfo[anovaType].title} ({anovaTypeInfo[anovaType].subtitle})
+            </Badge>
+          </AlertDescription>
+        </Alert>
+      )}
       <DataUploadStep
         onNext={() => {}}
         onUploadComplete={handleDataUpload}
@@ -362,11 +331,67 @@ export default function ANOVAPage() {
   )
 
   const renderVariableSelection = () => {
-    if (!uploadedData) return null
+    if (!uploadedData) {
+      return (
+        <StepCard
+          title="변수 선택"
+          description="데이터가 업로드되지 않았습니다"
+          icon={<Users className="w-5 h-5 text-primary" />}
+        >
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>데이터 없음</AlertTitle>
+            <AlertDescription>
+              데이터를 먼저 업로드해주세요. Step 2로 돌아가서 데이터를 업로드하세요.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => actions.setCurrentStep(1)} className="mt-4">
+            데이터 업로드로 돌아가기
+          </Button>
+        </StepCard>
+      )
+    }
+
+    if (!uploadedData.data || uploadedData.data.length === 0) {
+      return (
+        <StepCard
+          title="변수 선택"
+          description="데이터를 불러올 수 없습니다"
+          icon={<Users className="w-5 h-5 text-primary" />}
+        >
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>데이터 오류</AlertTitle>
+            <AlertDescription>
+              업로드된 데이터가 비어있습니다. 올바른 CSV 파일인지 확인해주세요.
+            </AlertDescription>
+          </Alert>
+        </StepCard>
+      )
+    }
 
     // Type guard for anovaType to ensure it's not empty string
     const currentAnovaType = anovaType as 'oneWay' | 'twoWay' | 'threeWay' | 'repeated'
-    if (!currentAnovaType) return null
+    if (!currentAnovaType) {
+      return (
+        <StepCard
+          title="변수 선택"
+          description="분석 방법을 선택해주세요"
+          icon={<Users className="w-5 h-5 text-primary" />}
+        >
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>분석 방법 미선택</AlertTitle>
+            <AlertDescription>
+              Step 1에서 ANOVA 유형을 먼저 선택해주세요.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => actions.setCurrentStep(0)} className="mt-4">
+            ANOVA 유형 선택으로 돌아가기
+          </Button>
+        </StepCard>
+      )
+    }
 
     const methodId = currentAnovaType === 'oneWay' ? 'oneWayANOVA' :
       currentAnovaType === 'twoWay' ? 'twoWayANOVA' :
@@ -379,6 +404,17 @@ export default function ANOVAPage() {
         description="분산분석에 사용할 종속변수와 요인을 선택하세요"
         icon={<Users className="w-5 h-5 text-primary" />}
       >
+        {anovaType && (
+          <Alert className="mb-4">
+            <Sparkles className="h-4 w-4" />
+            <AlertTitle>선택된 분석 방법</AlertTitle>
+            <AlertDescription>
+              <Badge variant="secondary" className="mt-1">
+                {anovaTypeInfo[anovaType].title} ({anovaTypeInfo[anovaType].subtitle})
+              </Badge>
+            </AlertDescription>
+          </Alert>
+        )}
         <VariableSelector
           methodId={methodId}
           data={uploadedData.data}
@@ -424,6 +460,17 @@ export default function ANOVAPage() {
         description="ANOVA 분석이 완료되었습니다"
         icon={<TrendingUp className="w-5 h-5 text-primary" />}
       >
+        {anovaType && (
+          <Alert className="mb-4">
+            <Sparkles className="h-4 w-4" />
+            <AlertTitle>선택된 분석 방법</AlertTitle>
+            <AlertDescription>
+              <Badge variant="secondary" className="mt-1">
+                {anovaTypeInfo[anovaType].title} ({anovaTypeInfo[anovaType].subtitle})
+              </Badge>
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="space-y-6">
           {/* 주요 결과 요약 */}
           <Alert className={results.pValue < 0.05 ? "border-green-500 bg-muted" : "border-yellow-500 bg-muted"}>
