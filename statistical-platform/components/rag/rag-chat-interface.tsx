@@ -337,9 +337,9 @@ export function RAGChatInterface({
             >
               <div
                 className={cn(
-                  'w-full rounded-lg p-4',
+                  'w-auto rounded-lg p-4',
                   msg.role === 'user'
-                    ? 'bg-gray-200 text-gray-800'
+                    ? 'bg-gray-200 text-gray-400'
                     : 'bg-background'
                 )}
               >
