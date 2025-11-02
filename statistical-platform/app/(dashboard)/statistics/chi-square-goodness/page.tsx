@@ -245,13 +245,13 @@ export default function ChiSquareGoodnessPage() {
     }
   }
 
-  const handleProportionChange = (category: string, value: string) => {
+  const handleProportionChange = useCallback((category: string, value: string) => {
     const numValue = parseFloat(value) || 0
     setExpectedProportions(prev => ({
       ...prev,
       [category]: numValue
     }))
-  }
+  }, [setExpectedProportions])
 
   const normalizeProportions = () => {
     const total = Object.values(expectedProportions).reduce((sum, val) => sum + val, 0)

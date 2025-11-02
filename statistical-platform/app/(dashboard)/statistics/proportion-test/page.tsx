@@ -105,7 +105,7 @@ export default function ProportionTestPage() {
   ]
 
   // 분석 실행
-  const handleAnalysis = async () => {
+  const handleAnalysis = useCallback(async () => {
     actions.startAnalysis()
 
     try {
@@ -138,21 +138,21 @@ export default function ProportionTestPage() {
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }
+  }, [actions, setActiveTab, testProportion, confidenceLevel, method])
 
   // 단계 변경 처리
-  const handleStepChange = (step: number) => {
+  const handleStepChange = useCallback((step: number) => {
     if (step <= currentStep + 1) {
       actions.setCurrentStep(step)
     }
-  }
+  }, [actions, currentStep])
 
   // 초기화
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     actions.reset()
     setTestProportion('0.5')
     setActiveTab('summary')
-  }
+  }, [actions, setTestProportion, setActiveTab])
 
   // 변수 선택 핸들러 (공통 유틸 사용)
   const handleVariablesSelected = createVariableSelectionHandler(
