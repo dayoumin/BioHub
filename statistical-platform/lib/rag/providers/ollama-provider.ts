@@ -41,6 +41,15 @@ interface SqlJsExecResult {
 }
 
 /**
+ * window 객체 확장 (sql.js 스크립트 로드 시 추가됨)
+ */
+declare global {
+  interface Window {
+    initSqlJs?: (config: { locateFile?: (file: string) => string }) => Promise<SqlJsStatic>
+  }
+}
+
+/**
  * SQLite BLOB을 float 배열로 변환
  * Python에서 struct.pack('f', ...)로 저장된 데이터를 복원
  */
@@ -67,16 +76,16 @@ async function loadSqlJs(): Promise<SqlJsStatic> {
 
   // ✅ 온라인 환경: CDN에서 로드 시도
   if (typeof window.initSqlJs === 'function') {
-    // @ts-expect-error - CDN script provides this
-    return await window.initSqlJs({
+    const SQL = await window.initSqlJs({
       locateFile: (file: string) => `https://sql.js.org/dist/${file}`
     })
+    return SQL as SqlJsStatic
   }
 
   // ✅ 오프라인 대응: 로컬 리소스에서 로드 (public/sql-wasm/)
   console.log('[sql.js] CDN 실패, 로컬 리소스 로드 시도...')
 
-  return new Promise((resolve, reject) => {
+  return new Promise<SqlJsStatic>((resolve, reject) => {
     // 방법 1: 로컬 CDN 시도 (public/sql-wasm/)
     const localScript = document.createElement('script')
     localScript.src = '/sql-wasm/sql-wasm.js'
@@ -84,17 +93,14 @@ async function loadSqlJs(): Promise<SqlJsStatic> {
 
     localScript.onload = async () => {
       try {
-        // @ts-expect-error - local script provides this
         if (typeof window.initSqlJs === 'function') {
-          // @ts-expect-error - local script provides this
-          return resolve(
-            await window.initSqlJs({
-              locateFile: (file: string) => `/sql-wasm/${file}`
-            })
-          )
+          const SQL = await window.initSqlJs({
+            locateFile: (file: string) => `/sql-wasm/${file}`
+          })
+          resolve(SQL as SqlJsStatic)
+        } else {
+          throw new Error('로컬 sql.js 로드 실패')
         }
-        // 로컬 로드 실패 시 CDN 폴백
-        throw new Error('로컬 sql.js 로드 실패')
       } catch (error) {
         console.warn('[sql.js] 로컬 로드 실패, CDN 폴백:', error)
         loadFromCDN(resolve, reject)
@@ -114,22 +120,20 @@ async function loadSqlJs(): Promise<SqlJsStatic> {
  * CDN에서 sql.js 로드 (폴백)
  */
 function loadFromCDN(
-  resolve: (value: unknown) => void,
+  resolve: (value: SqlJsStatic) => void,
   reject: (reason?: unknown) => void
-) {
+): void {
   const cdnScript = document.createElement('script')
   cdnScript.src = 'https://sql.js.org/dist/sql-wasm.js'
   cdnScript.async = true
 
   cdnScript.onload = async () => {
     try {
-      // @ts-expect-error - CDN에서 로드됨
       if (typeof window.initSqlJs === 'function') {
-        // @ts-expect-error - CDN에서 로드됨
         const SQL = await window.initSqlJs({
           locateFile: (file: string) => `https://sql.js.org/dist/${file}`
         })
-        resolve(SQL)
+        resolve(SQL as SqlJsStatic)
       } else {
         reject(new Error('sql.js 로드 실패'))
       }

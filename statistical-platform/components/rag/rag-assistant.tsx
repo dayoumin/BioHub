@@ -90,7 +90,7 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
             response: {
               answer: assistantMsg.content,
               sources: assistantMsg.sources || [],
-              model: assistantMsg.model,
+              model: assistantMsg.model || { provider: 'unknown' },
             },
             timestamp: userMsg.timestamp
           })
