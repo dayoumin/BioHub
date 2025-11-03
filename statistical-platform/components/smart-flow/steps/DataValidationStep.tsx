@@ -1648,28 +1648,28 @@ export const DataValidationStep = memo(function DataValidationStep({
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-medium">Levene's Test</h4>
                           <Badge
-                            variant={assumptionResults.homogeneity.pValue > alpha ? "success" : "warning"}
+                            variant={(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0) > alpha ? "success" : "warning"}
                           >
-                            {assumptionResults.homogeneity.pValue > alpha ? '등분산 ✓' : '이분산 ✗'}
+                            {(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0) > alpha ? '등분산 ✓' : '이분산 ✗'}
                           </Badge>
                         </div>
 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">검정 통계량</span>
-                            <span>F = {assumptionResults.homogeneity.statistic?.toFixed(4) || 'N/A'}</span>
+                            <span>F = {(assumptionResults.homogeneity.levene?.statistic ?? assumptionResults.homogeneity.bartlett?.statistic ?? 0)?.toFixed(4) || 'N/A'}</span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">p-value</span>
-                            <span className={assumptionResults.homogeneity.pValue > alpha ? 'text-green-600' : 'text-amber-600'}>
-                              {assumptionResults.homogeneity.pValue.toFixed(4)}
+                            <span className={(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0) > alpha ? 'text-green-600' : 'text-amber-600'}>
+                              {(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0).toFixed(4)}
                             </span>
                           </div>
                         </div>
 
                         {/* 해석 */}
                         <div className="mt-3 p-2 bg-muted/30 rounded text-xs">
-                          {assumptionResults.homogeneity.pValue > alpha ? (
+                          {(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0) > alpha ? (
                             <p className="text-green-700 dark:text-green-400">
                               ✓ 그룹 간 분산이 동일합니다. 일반 ANOVA 사용 가능
                             </p>

@@ -115,9 +115,13 @@ export class PDFReportService {
       if (data.analysisResult.assumptions.homogeneity) {
         yPosition += lineHeight * 0.5
         const homo = data.analysisResult.assumptions.homogeneity
-        pdf.text(`Homogeneity Test (Levene):`, margin + 5, yPosition)
+        const testName = homo.levene ? 'Levene' : homo.bartlett ? 'Bartlett' : 'Unknown'
+        const statistic = homo.levene?.statistic ?? homo.bartlett?.statistic ?? 0
+        const pValue = homo.levene?.pValue ?? homo.bartlett?.pValue ?? 0
+        const equalVariance = homo.levene?.equalVariance ?? homo.bartlett?.equalVariance ?? false
+        pdf.text(`Homogeneity Test (${testName}):`, margin + 5, yPosition)
         yPosition += lineHeight * 0.8
-        pdf.text(`  - F=${homo.statistic.toFixed(4)}, p=${homo.pValue.toFixed(4)} ${homo.isHomogeneous ? '(Equal Variance)' : '(Unequal Variance)'}`,
+        pdf.text(`  - F=${statistic.toFixed(4)}, p=${pValue.toFixed(4)} ${equalVariance ? '(Equal Variance)' : '(Unequal Variance)'}`,
           margin + 10, yPosition)
         yPosition += lineHeight * 0.8
       }
@@ -287,7 +291,7 @@ export class PDFReportService {
       }
     }
 
-    if (result.assumptions?.homogeneity && !result.assumptions.homogeneity.isHomogeneous) {
+    if (result.assumptions?.homogeneity && !(result.assumptions.homogeneity.levene?.equalVariance ?? result.assumptions.homogeneity.bartlett?.equalVariance ?? false)) {
       recommendations.push('Data shows unequal variances. Consider Welch test or transformation.')
     }
 
@@ -338,7 +342,9 @@ export class PDFReportService {
         }
       }
       if (result.assumptions.homogeneity) {
-        summary += `- Equal Variance: ${result.assumptions.homogeneity.isHomogeneous ? 'Met' : 'Violated'} (p=${result.assumptions.homogeneity.pValue.toFixed(4)})\n`
+        const equalVariance = result.assumptions.homogeneity.levene?.equalVariance ?? result.assumptions.homogeneity.bartlett?.equalVariance ?? false
+        const pValue = result.assumptions.homogeneity.levene?.pValue ?? result.assumptions.homogeneity.bartlett?.pValue ?? 0
+        summary += `- Equal Variance: ${equalVariance ? 'Met' : 'Violated'} (p=${pValue.toFixed(4)})\n`
       }
     }
 

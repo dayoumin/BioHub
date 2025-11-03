@@ -9,10 +9,16 @@
  */
 
 import React from 'react'
-import { Folder, Plus, ChevronDown, ChevronRight, Edit, Trash2 } from 'lucide-react'
+import { Folder, Plus, ChevronDown, ChevronRight, Edit, Trash2, HelpCircle } from 'lucide-react'
 import { SessionItem } from './SessionItem'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { ChatProject, ChatSession } from '@/lib/types/chat'
 
 interface ProjectsSectionProps {
@@ -50,39 +56,42 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   }
 
   return (
-    <div className="border-b py-2">
-      {/* 섹션 헤더 */}
-      <div className="flex items-center gap-2 px-4 py-2">
-        <Folder className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-semibold">프로젝트</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="ml-auto h-6 w-6"
-          onClick={onCreateProject}
-          title="새 프로젝트"
-        >
-          <Plus className="h-3 w-3" />
-        </Button>
-      </div>
-
-      {/* 프로젝트 목록 */}
-      <div className="mt-1 space-y-1">
-        {projects.length === 0 ? (
-          <div className="px-4 py-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              프로젝트가 없습니다
-            </p>
-            <Button
-              variant="link"
-              size="sm"
-              onClick={onCreateProject}
-              className="mt-2"
-            >
-              첫 프로젝트 만들기
-            </Button>
+    <TooltipProvider>
+      <div className="border-b py-2">
+        {/* 섹션 헤더 */}
+        <div className="flex items-center gap-2 px-4 py-2">
+          <Folder className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-semibold">주제별 채팅</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>특정 주제에 대한 채팅 내역을 모아서 관리할 수 있습니다.</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
-        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-6 w-6"
+            onClick={onCreateProject}
+            title="새 주제 만들기"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        </div>
+
+        {/* 프로젝트 목록 */}
+        <div className="mt-1 space-y-1">
+          {projects.length === 0 ? (
+            <div className="px-4 py-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                주제별 채팅이 없습니다
+              </p>
+            </div>
+          ) : (
           projects.map((project) => {
             const projectSessions = getProjectSessions(project.id)
             const isExpanded = expandedProjectIds.has(project.id)
@@ -170,8 +179,9 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
               </div>
             )
           })
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }

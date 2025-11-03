@@ -135,9 +135,9 @@ export class DescriptiveExecutor extends BaseExecutor {
         metadata: this.createMetadata('교차표 분석', data.length, startTime),
         mainResults: {
           statistic: chiSquare.statistic,
-          pvalue: chiSquare.pValue,
+          pvalue: chiSquare.pvalue,
           df: chiSquare.df,
-          interpretation: this.interpretPValue(chiSquare.pValue)
+          interpretation: this.interpretPValue(chiSquare.pvalue)
         },
         additionalInfo: {
           crosstab: Object.fromEntries(

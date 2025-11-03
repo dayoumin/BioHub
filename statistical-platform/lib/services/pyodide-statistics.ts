@@ -1015,7 +1015,7 @@ export class PyodideStatisticsService {
     options: { type?: 'one-way' | 'two-way' } = {}
   ): Promise<{
     fStatistic: number
-    pvalue: number
+    pValue: number
     df: number[]
     etaSquared?: number
   }> {
@@ -1023,7 +1023,7 @@ export class PyodideStatisticsService {
     const result = await this.oneWayAnovaWorker(groups)
     return {
       fStatistic: result.fStatistic,
-      pvalue: result.pValue,
+      pValue: result.pValue,
       df: [result.dfBetween, result.dfWithin]
     }
   }

@@ -309,9 +309,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {results.assumptions.homogeneity && (
                   <div className="flex justify-between">
                     <span>등분산성:</span>
-                    <span className={results.assumptions.homogeneity.isHomogeneous ? 'text-green-600' : 'text-orange-600'}>
-                      {results.assumptions.homogeneity.isHomogeneous ? '✓ 만족' : '⚠ 위반'}
-                      (p={results.assumptions.homogeneity.pValue.toFixed(3)})
+                    <span className={(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? 'text-green-600' : 'text-orange-600'}>
+                      {(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? '✓ 만족' : '⚠ 위반'}
+                      (p={(results.assumptions.homogeneity.levene?.pValue ?? results.assumptions.homogeneity.bartlett?.pValue ?? 0).toFixed(3)})
                     </span>
                   </div>
                 )}

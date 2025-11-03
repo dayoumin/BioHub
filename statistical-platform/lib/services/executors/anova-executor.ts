@@ -49,7 +49,7 @@ export class AnovaExecutor extends BaseExecutor {
           }
         },
         mainResults: {
-          statistic: anovaResult.statistic,
+          statistic: anovaResult.fStatistic,
           pvalue: anovaResult.pValue,
           df: anovaResult.df,
           interpretation: `${this.interpretPValue(anovaResult.pValue)}. ${groups.length}개 그룹 간 평균 차이 검정`
@@ -60,9 +60,7 @@ export class AnovaExecutor extends BaseExecutor {
             type: 'eta-squared',
             interpretation: this.interpretEffectSize(etaSquared, 'eta')
           },
-          groupStats,
-          betweenSS: anovaResult.betweenSS,
-          withinSS: anovaResult.withinSS
+          groupStats
         },
         visualizationData: {
           type: 'boxplot',
@@ -150,14 +148,12 @@ export class AnovaExecutor extends BaseExecutor {
       return {
         metadata: this.createMetadata('반복측정 분산분석', data.length * data[0].length, startTime),
         mainResults: {
-          statistic: result.statistic,
+          statistic: result.fStatistic,
           pvalue: result.pValue,
-          df: result.df,
           interpretation: `${this.interpretPValue(result.pValue)}. ${data[0].length}개 시점 간 평균 차이 검정`
         },
         additionalInfo: {
-          sphericity: result.sphericity,
-          greenhouseGeisser: result.greenhouseGeisser
+          degreesOfFreedom: result.df
         },
         visualizationData: {
           type: 'line',
@@ -190,11 +186,11 @@ export class AnovaExecutor extends BaseExecutor {
         metadata: this.createMetadata('Tukey HSD 사후검정', groups.flat().length, startTime),
         mainResults: {
           statistic: result.comparisons.length,
-          pvalue: Math.min(...result.comparisons.map(c => c.pValue)),
-          interpretation: `${result.comparisons.filter(c => c.reject).length}개 쌍에서 유의한 차이 발견`
+          pvalue: Math.min(...result.comparisons.map((c: { pValue: number }) => c.pValue)),
+          interpretation: `${result.comparisons.filter((c: { reject: boolean }) => c.reject).length}개 쌍에서 유의한 차이 발견`
         },
         additionalInfo: {
-          postHoc: result.comparisons.map(comp => ({
+          postHoc: result.comparisons.map((comp: { group1: number; group2: number; meanDiff: number; pValue: number; reject: boolean }) => ({
             group1: comp.group1,
             group2: comp.group2,
             meanDiff: comp.meanDiff,
@@ -221,17 +217,17 @@ export class AnovaExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.gamesHowell(groups)
+      const result = await pyodideStats.gamesHowellTest(groups)
 
       return {
         metadata: this.createMetadata('Games-Howell 사후검정', groups.flat().length, startTime),
         mainResults: {
           statistic: result.comparisons.length,
-          pvalue: Math.min(...result.comparisons.map(c => c.pValue)),
-          interpretation: `이분산 가정 하에서 ${result.comparisons.filter(c => c.reject).length}개 쌍에서 유의한 차이 발견`
+          pvalue: Math.min(...result.comparisons.map((c: { pValue: number }) => c.pValue)),
+          interpretation: `이분산 가정 하에서 ${result.comparisons.filter((c: { reject: boolean }) => c.reject).length}개 쌍에서 유의한 차이 발견`
         },
         additionalInfo: {
-          postHoc: result.comparisons.map(comp => ({
+          postHoc: result.comparisons.map((comp: { group1: number; group2: number; meanDiff: number; pValue: number; reject: boolean }) => ({
             group1: comp.group1,
             group2: comp.group2,
             meanDiff: comp.meanDiff,

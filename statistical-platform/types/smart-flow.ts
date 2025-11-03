@@ -34,9 +34,14 @@ export interface ColumnStatistics {
   max?: number
   q1?: number
   q3?: number
+  q25?: number
+  q75?: number
+  skewness?: number
+  kurtosis?: number
   outliers?: number[]
   // 범주형 변수일 경우
   topCategories?: { value: string; count: number }[]
+  topValues?: { value: string; count: number }[]
 }
 
 export interface AnalysisConfig {
@@ -67,6 +72,61 @@ export interface MethodWarning {
  */
 export type MethodOrWarning = StatisticalMethod | MethodWarning
 
+/**
+ * 통계적 가정 검정 결과
+ */
+export interface StatisticalAssumptions {
+  normality?: {
+    // 그룹별 정규성 검정 (t-test, ANOVA 등)
+    group1?: {
+      statistic: number
+      pValue: number
+      isNormal: boolean
+      interpretation?: string
+    }
+    group2?: {
+      statistic: number
+      pValue: number
+      isNormal: boolean
+      interpretation?: string
+    }
+    // 검정 방법별 상세 결과
+    shapiroWilk?: {
+      statistic: number
+      pValue: number
+      isNormal: boolean
+    }
+    kolmogorovSmirnov?: {
+      statistic: number
+      pValue: number
+      isNormal: boolean
+    }
+  }
+  homogeneity?: {
+    levene?: {
+      statistic: number
+      pValue: number
+      equalVariance: boolean
+    }
+    bartlett?: {
+      statistic: number
+      pValue: number
+      equalVariance: boolean
+    }
+  }
+  independence?: {
+    durbin?: {
+      statistic: number
+      pValue: number
+      isIndependent: boolean
+    }
+  }
+  summary?: {
+    meetsAssumptions: boolean
+    recommendation: string
+  }
+}
+
 export interface AnalysisResult {
   method: string
   statistic: number
@@ -78,28 +138,7 @@ export interface AnalysisResult {
   }
   interpretation: string
   nextActions?: NextAction[]
-  assumptions?: {
-    normality?: {
-      group1: {
-        statistic: number
-        pValue: number
-        isNormal: boolean
-        interpretation: string
-      }
-      group2: {
-        statistic: number
-        pValue: number
-        isNormal: boolean
-        interpretation: string
-      }
-    }
-    homogeneity?: {
-      statistic: number
-      pValue: number
-      isHomogeneous: boolean
-      interpretation: string
-    }
-  }
+  assumptions?: StatisticalAssumptions
   additional?: {
     intercept?: number
     rmse?: number
