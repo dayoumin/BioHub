@@ -99,17 +99,27 @@ export default function ChatbotPage() {
     }
   }, [searchQuery, forceUpdate])
 
-  // 즐겨찾기 세션
-  const favoriteSessions = useMemo(
-    () => ChatStorage.getFavoriteSessions(),
-    [forceUpdate]
-  )
+  // 즐겨찾기 세션 (검색 필터 적용)
+  const favoriteSessions = useMemo(() => {
+    const favorites = ChatStorage.getFavoriteSessions()
+    if (!searchQuery.trim()) return favorites
 
-  // 히스토리 (프로젝트 미속 세션)
-  const unorganizedSessions = useMemo(
-    () => ChatStorage.getUnorganizedSessions(),
-    [forceUpdate]
-  )
+    const query = searchQuery.toLowerCase()
+    return favorites.filter(session =>
+      session.title.toLowerCase().includes(query)
+    )
+  }, [searchQuery, forceUpdate])
+
+  // 히스토리 (프로젝트 미속 세션, 검색 필터 적용)
+  const unorganizedSessions = useMemo(() => {
+    const unorganized = ChatStorage.getUnorganizedSessions()
+    if (!searchQuery.trim()) return unorganized
+
+    const query = searchQuery.toLowerCase()
+    return unorganized.filter(session =>
+      session.title.toLowerCase().includes(query)
+    )
+  }, [searchQuery, forceUpdate])
 
   // 현재 세션
   const currentSession = useMemo(() => {
@@ -197,7 +207,16 @@ export default function ChatbotPage() {
         handleNewChat()
       }
     } else {
+      // 프로젝트 삭제 시: 현재 세션이 해당 프로젝트에 속했는지 확인
+      const deletedProjectSessions = ChatStorage.getSessionsByProject(deleteTarget.id)
       ChatStorage.deleteProject(deleteTarget.id)
+
+      // 현재 세션이 삭제된 프로젝트에 속했으면 루트로 이동되었으므로 UI 갱신만 필요
+      // (세션 자체는 삭제되지 않고 projectId만 제거됨)
+      const wasCurrentSessionInProject = deletedProjectSessions.some(s => s.id === currentSessionId)
+      if (wasCurrentSessionInProject) {
+        // triggerUpdate()로 UI가 갱신되면 자동으로 루트(히스토리)로 이동
+      }
     }
 
     setIsDeleteDialogOpen(false)

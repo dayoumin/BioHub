@@ -86,7 +86,7 @@ describe('ChatStorage - Projects', () => {
       expect(projects).toHaveLength(0)
     })
 
-    it('프로젝트 삭제 시 하위 세션도 함께 삭제', () => {
+    it('프로젝트 삭제 시 하위 세션은 루트로 이동', () => {
       const project = ChatStorage.createProject('Test Project')
       const session = ChatStorage.createNewSession()
       ChatStorage.moveSessionToProject(session.id, project.id)
@@ -98,9 +98,10 @@ describe('ChatStorage - Projects', () => {
       // 프로젝트 삭제
       ChatStorage.deleteProject(project.id)
 
-      // 세션이 완전히 삭제됨
+      // 세션은 삭제되지 않고 루트로 이동 (projectId 제거됨)
       loadedSession = ChatStorage.loadSession(session.id)
-      expect(loadedSession).toBeNull()
+      expect(loadedSession).not.toBeNull()
+      expect(loadedSession?.projectId).toBeUndefined()
     })
   })
 
@@ -291,7 +292,7 @@ describe('ChatStorage - Projects', () => {
   })
 
   describe('프로젝트 삭제', () => {
-    it('프로젝트 삭제 시 하위 세션도 함께 삭제', () => {
+    it('프로젝트 삭제 시 하위 세션은 루트로 이동', () => {
       const project = ChatStorage.createProject('Test Project')
       const session1 = ChatStorage.createNewSession()
       const session2 = ChatStorage.createNewSession()
@@ -315,12 +316,17 @@ describe('ChatStorage - Projects', () => {
       // 확인: 프로젝트 삭제됨
       expect(ChatStorage.getProjects()).toHaveLength(0)
 
-      // 확인: 프로젝트 내 세션도 삭제됨 (session1, session2 제거)
+      // 확인: 세션은 삭제되지 않고 루트로 이동 (session1, session2도 유지)
       const remaining = ChatStorage.loadSessions()
-      expect(remaining).toHaveLength(1)
-      expect(remaining[0].id).toBe(session3.id)
+      expect(remaining).toHaveLength(3)
 
-      // 확인: 프로젝트 내 세션 조회는 0개
+      // 확인: session1, session2의 projectId가 제거됨
+      const session1AfterDelete = ChatStorage.loadSession(session1.id)
+      const session2AfterDelete = ChatStorage.loadSession(session2.id)
+      expect(session1AfterDelete?.projectId).toBeUndefined()
+      expect(session2AfterDelete?.projectId).toBeUndefined()
+
+      // 확인: 프로젝트 내 세션 조회는 0개 (더 이상 해당 프로젝트에 속하지 않음)
       expect(ChatStorage.getSessionsByProject(project.id)).toHaveLength(0)
     })
 
