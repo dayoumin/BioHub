@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic'
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Edit2, MoreVertical, Pin, MapPin, FolderInput, Trash2 } from 'lucide-react'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
@@ -68,6 +68,9 @@ export default function ChatbotPage() {
   // 제목 편집 상태
   const [isRenamingSessionId, setIsRenamingSessionId] = useState<string | null>(null)
   const [renamingText, setRenamingText] = useState('')
+
+  // 드롭다운 메뉴 상태
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   // 모달 상태 (Phase 4에서 구현)
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
@@ -358,8 +361,8 @@ export default function ChatbotPage() {
       <main className="flex-1 flex flex-col">
         {currentSession ? (
           <>
-            {/* 헤더 - 현재 대화 제목 */}
-            <div className="px-4 py-3 border-b flex items-center justify-between gap-3">
+            {/* 헤더 - 현재 대화 제목 + 3점 메뉴 */}
+            <div className="px-4 py-3 border-b flex items-center justify-between gap-3 relative">
               {isRenamingSessionId === currentSession.id ? (
                 <input
                   type="text"
@@ -381,15 +384,85 @@ export default function ChatbotPage() {
                   <span className="text-sm text-muted-foreground flex-1 truncate">
                     {currentSession.title}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 flex-shrink-0"
-                    onClick={() => handleRenameSession(currentSession.id)}
-                    title="제목 변경"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
+
+                  {/* 3점 메뉴 버튼 */}
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 flex-shrink-0"
+                      onClick={() => setIsMenuOpen(!isMenuOpen)}
+                      title="옵션"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+
+                    {/* 드롭다운 메뉴 */}
+                    {isMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-popover border rounded-md shadow-lg z-50 py-1">
+                        {/* 즐겨찾기 토글 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleToggleFavorite(currentSession.id)
+                            setIsMenuOpen(false)
+                          }}
+                          className="w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors flex items-center gap-2"
+                        >
+                          {currentSession.isFavorite ? (
+                            <>
+                              <Pin className="h-4 w-4" />
+                              <span>즐겨찾기 해제</span>
+                            </>
+                          ) : (
+                            <>
+                              <MapPin className="h-4 w-4" />
+                              <span>즐겨찾기 추가</span>
+                            </>
+                          )}
+                        </button>
+
+                        {/* 이름 변경 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleRenameSession(currentSession.id)
+                            setIsMenuOpen(false)
+                          }}
+                          className="w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors flex items-center gap-2"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          <span>이름 변경</span>
+                        </button>
+
+                        {/* 프로젝트 이동 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleMoveSession(currentSession.id)
+                            setIsMenuOpen(false)
+                          }}
+                          className="w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors flex items-center gap-2"
+                        >
+                          <FolderInput className="h-4 w-4" />
+                          <span>프로젝트 이동</span>
+                        </button>
+
+                        {/* 삭제 */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleDeleteSession(currentSession.id)
+                            setIsMenuOpen(false)
+                          }}
+                          className="w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors flex items-center gap-2 text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>삭제</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>

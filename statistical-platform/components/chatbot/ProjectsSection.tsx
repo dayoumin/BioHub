@@ -132,7 +132,7 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     ) : (
                       <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     )}
-                    <span className="text-lg flex-shrink-0">
+                    <span className="text-lg flex-shrink-0 text-muted-foreground">
                       {project.emoji || '📁'}
                     </span>
                     <span className="text-sm font-medium truncate flex-1 text-left">

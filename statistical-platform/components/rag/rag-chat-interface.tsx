@@ -334,7 +334,7 @@ export function RAGChatInterface({
   }, [])
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
+    <div className={cn('flex flex-col h-full bg-muted/5', className)}>
       {/* 메시지 영역 */}
       <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-hidden p-4">
         <div className="space-y-4 max-w-3xl mx-auto">
@@ -486,7 +486,7 @@ export function RAGChatInterface({
                 {quickPrompts.map((prompt, idx) => (
                   <Card
                     key={idx}
-                    className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    className="p-4 cursor-pointer border-muted hover:bg-muted/10 transition-colors"
                     onClick={() => {
                       setQuery(prompt.prompt)
                       onQuickPrompt?.(prompt.prompt)
@@ -510,7 +510,7 @@ export function RAGChatInterface({
       </ScrollArea>
 
       {/* 입력 영역 - 항상 하단 표시 */}
-      <div className="p-4 bg-background shrink-0">
+      <div className="p-4 bg-muted/5 shrink-0">
         <div className="max-w-3xl mx-auto space-y-2">
           <div className="relative bg-background border border-border rounded-lg overflow-hidden">
             <Textarea

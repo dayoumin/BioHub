@@ -63,17 +63,18 @@ export const SessionItem: React.FC<SessionItemProps> = ({
       )}
       onClick={() => onSelect(session.id)}
     >
-      {/* 세션 제목 및 타임스탬프 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          {session.isFavorite && showFavoriteIndicator && (
-            <Pin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-          )}
-          <p className="text-sm font-medium truncate">
-            {session.title}
-          </p>
-        </div>
+      {/* 즐겨찾기 아이콘 (항상 공간 확보) */}
+      <div className="w-3 h-3 flex-shrink-0">
+        {session.isFavorite && showFavoriteIndicator && (
+          <Pin className="h-3 w-3 text-muted-foreground" />
+        )}
+      </div>
 
+      {/* 세션 제목 */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">
+          {session.title}
+        </p>
       </div>
 
       {/* 호버 시 액션 버튼 */}
