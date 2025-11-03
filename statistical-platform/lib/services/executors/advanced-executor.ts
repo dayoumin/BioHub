@@ -249,8 +249,12 @@ export class AdvancedExecutor extends BaseExecutor {
           interpretation: `검정력 = ${(power * 100).toFixed(1)}% (${interpretation})`
         },
         additionalInfo: {
+          effectSize: {
+            value: effectSize,
+            type: 'effect-size',
+            interpretation: `Effect size = ${effectSize.toFixed(3)}`
+          },
           power,
-          effectSize,
           sampleSize,
           alpha,
           testType,

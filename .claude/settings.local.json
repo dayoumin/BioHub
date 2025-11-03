@@ -65,7 +65,10 @@
       "Bash(rm:*)",
       "Bash(sed:*)",
       "Bash(dir /s /b *rag*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(where:*)",
+      "Bash(reg query \"HKEY_CURRENT_USER\\Software\\Ollama\" 2)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []

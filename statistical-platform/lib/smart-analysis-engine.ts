@@ -144,7 +144,9 @@ export class SmartAnalysisEngine {
       if (!merged[key]) {
         merged[key] = rec
       } else {
-        const keep = confidenceRank[rec.confidence] >= confidenceRank[merged[key].confidence] ? rec : merged[key]
+        const recRank = confidenceRank[rec.confidence as keyof typeof confidenceRank] ?? 0
+        const mergedRank = confidenceRank[merged[key].confidence as keyof typeof confidenceRank] ?? 0
+        const keep = recRank >= mergedRank ? rec : merged[key]
         merged[key] = {
           ...keep,
           // 다음 단계/가정은 합집합으로 보존
@@ -157,16 +159,20 @@ export class SmartAnalysisEngine {
     const deduped = Object.values(merged)
 
     // 신뢰도 정규화: 연구질문 기반만 있고 데이터 근거가 약하면 medium 이하로 완화
-    const normalized = deduped.map(rec => {
+    const normalized: AnalysisRecommendation[] = deduped.map(rec => {
       const hasAssumptions = (rec.assumptions && rec.assumptions.length > 0)
       if (!hasAssumptions && rec.confidence === 'high') {
-        return { ...rec, confidence: 'medium' }
+        return { ...rec, confidence: 'medium' as const }
       }
-      return rec
+      return rec as AnalysisRecommendation
     })
 
     // 신뢰도 순으로 정렬
-    return normalized.sort((a, b) => confidenceRank[b.confidence] - confidenceRank[a.confidence])
+    return normalized.sort((a, b) => {
+      const aRank = confidenceRank[a.confidence as keyof typeof confidenceRank] ?? 0
+      const bRank = confidenceRank[b.confidence as keyof typeof confidenceRank] ?? 0
+      return bRank - aRank
+    })
   }
   
   /**

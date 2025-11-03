@@ -106,7 +106,8 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           }
 
           const groups = new Map<string, number[]>()
-          ;((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
+          const dataArray = (dataset.data as Record<string, unknown>[]) ?? []
+          dataArray.forEach((row: Record<string, unknown>) => {
             const group = String(row[groupColumn])
             const value = parseFloat(String(row[selectedColumns[0]]))
 
@@ -132,14 +133,15 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           if (selectedColumns.length !== 2) {
             throw new Error('Please select exactly two columns for scatter plot')
           }
-          
+
           const xData: number[] = []
           const yData: number[] = []
 
-          ((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
+          const dataArray = (dataset.data as Record<string, unknown>[]) ?? []
+          dataArray.forEach((row: Record<string, unknown>) => {
             const x = parseFloat(String(row[selectedColumns[0]]))
             const y = parseFloat(String(row[selectedColumns[1]]))
-            
+
             if (!isNaN(x) && !isNaN(y)) {
               xData.push(x)
               yData.push(y)
@@ -178,7 +180,8 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           }
 
           const groups = new Map<string, number[]>()
-          ;((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
+          const dataArray = (dataset.data as Record<string, unknown>[]) ?? []
+          dataArray.forEach((row: Record<string, unknown>) => {
             const group = String(row[groupColumn])
             const value = parseFloat(String(row[selectedColumns[0]]))
 

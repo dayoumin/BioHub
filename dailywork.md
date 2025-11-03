@@ -1,3 +1,56 @@
+## 2025-11-04 (월) - 내일 예정
+
+### 📋 벡터스토어 관리 시스템 구현 준비 (Critical 4개 개선사항)
+
+**문서**: [VECTOR_STORE_MANAGEMENT_PLAN.md](VECTOR_STORE_MANAGEMENT_PLAN.md)
+
+#### 🔴 Critical 작업 (우선순위 순)
+
+**1️⃣ Phase 기간 수정** (1줄 수정)
+- 위치: Line 22-23 표
+- 현재: `| **Phase 1** | 백엔드 API | 1주 | 📋 계획 |`
+- 변경: `| **Phase 1** | 백엔드 API | 4-5일 | 📋 계획 |`
+- 같이 수정: Phase 2도 `1주 → 4-5일`
+- 계산 근거: 총 12-13일 / 4 Phase = 3-4일 (개발) + 1일 (QA/배포)
+
+**2️⃣ Python Workers 구현 예시 추가** (200-300줄)
+- 위치: Section 1.3.4 "Python Workers"
+- 필요 파일:
+  - `embedding_worker.py` - Ollama 통합, 임베딩 생성
+  - `vector_store_indexer.py` - 벡터스토어 인덱싱 로직
+  - `document_processor.py` - 문서 전처리 (TXT, PDF 파싱)
+- 예시: 각 파일 50-100줄 실제 구현 코드 (SciPy/NumPy 활용)
+
+**3️⃣ Hook 구현 완성** (300-400줄)
+- 위치: Section 2.3 "상태 관리 (Hooks)"
+- 현재: 의사코드만 있음 (// 구현 패턴:)
+- 필요: 실제 구현 (50-100줄씩)
+  - `useVectorStores()` - 전체 CRUD 로직
+  - `useDocuments()` - 문서 관리 + 필터링
+  - `useIndexingJob()` - WebSocket/Polling 실시간 업데이트
+  - `useEmbeddingModels()` - 모델 캐싱 + 새로고침
+- 패턴: useState, useCallback, useEffect 조합
+
+**4️⃣ API 구현 패턴 확장** (400-500줄)
+- 위치: Section 1.2.1 "API Routes 설계"
+- 현재: POST만 있음 (1개 예시)
+- 필요: 모든 CRUD 패턴 (6개 API)
+  - GET /api/rag/vector-stores (목록)
+  - GET /api/rag/vector-stores/:id (상세)
+  - PATCH /api/rag/vector-stores/:id (메타데이터 수정)
+  - DELETE /api/rag/vector-stores/:id (삭제)
+  - POST /api/rag/vector-stores/:id/set-default (기본값 설정)
+  - POST /api/rag/documents (문서 추가)
+- 각 API: 40-60줄 완전한 구현 (유효성 검사, 에러 처리, 타입 정의)
+
+#### 🟡 High 개선사항 (선택사항)
+- [ ] Component JSX 예시 (VectorStoreCard, DocumentList, AddDocumentModal)
+- [ ] 테스트 시나리오 (0, 1, 100, 1000 문서)
+- [ ] 보안 구현 (DOMPurify, 입력 검증)
+- [ ] FloatingChatbot 수정 코드 (Database 버튼 추가)
+
+---
+
 ## 2025-11-02 (토)
 
 ### ✅ 통계 페이지 색상 시스템 중앙화 완료 (2시간)

@@ -89,7 +89,8 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
             throw new Error('Please select exactly one column for histogram')
           }
 
-          const data = ((dataset.data as Record<string, unknown>[]) ?? [])
+          const dataArray = (dataset.data as Record<string, unknown>[]) ?? []
+          const data = dataArray
             .map((row: Record<string, unknown>) => parseFloat(String(row[selectedColumns[0]])))
             .filter(val => !isNaN(val))
           
@@ -108,10 +109,11 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           }
 
           const groups = new Map<string, number[]>()
-          ;((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
+          const dataArray = (dataset.data as Record<string, unknown>[]) ?? []
+          dataArray.forEach((row: Record<string, unknown>) => {
             const group = String(row[groupColumn])
             const value = parseFloat(String(row[selectedColumns[0]]))
-            
+
             if (!isNaN(value)) {
               if (!groups.has(group)) {
                 groups.set(group, [])
@@ -160,11 +162,12 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           if (selectedColumns.length !== 2) {
             throw new Error('Please select exactly two columns for scatter plot')
           }
-          
+
           const xData: number[] = []
           const yData: number[] = []
 
-          ((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
+          const dataArray = (dataset.data as Record<string, unknown>[]) ?? []
+          dataArray.forEach((row: Record<string, unknown>) => {
             const x = parseFloat(String(row[selectedColumns[0]]))
             const y = parseFloat(String(row[selectedColumns[1]]))
 
@@ -188,16 +191,17 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           if (selectedColumns.length !== 3) {
             throw new Error('Please select exactly three columns for 3D scatter plot')
           }
-          
+
           const xData: number[] = []
           const yData: number[] = []
           const zData: number[] = []
 
-          ((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
+          const dataArray = (dataset.data as Record<string, unknown>[]) ?? []
+          dataArray.forEach((row: Record<string, unknown>) => {
             const x = parseFloat(String(row[selectedColumns[0]]))
             const y = parseFloat(String(row[selectedColumns[1]]))
             const z = parseFloat(String(row[selectedColumns[2]]))
-            
+
             if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
               xData.push(x)
               yData.push(y)

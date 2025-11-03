@@ -609,8 +609,10 @@ export class StatisticalExecutor {
     data: any
   ): Promise<AnalysisResult> {
     const timeData = data.arrays.dependent || []
+    const validMethods: ('decomposition' | 'arima' | 'exponential')[] = ['decomposition', 'arima', 'exponential']
+    const methodId = validMethods.includes(method.id as any) ? (method.id as 'decomposition' | 'arima' | 'exponential') : 'decomposition'
     const result = await pyodideStats.timeSeriesAnalysis(timeData, {
-      method: method.id
+      method: methodId
     })
 
     return {

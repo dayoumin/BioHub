@@ -206,7 +206,7 @@ export class PyodideStatisticsService {
    * @internal
    */
   get pyodide(): PyodideInterface | null {
-    return (this.core as { pyodide: PyodideInterface | null }).pyodide
+    return (this.core as unknown as { pyodide: PyodideInterface | null }).pyodide
   }
 
   /**
