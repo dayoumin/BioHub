@@ -252,7 +252,7 @@ export default function ChatbotPage() {
         {/* 헤더 */}
         <div className="p-4 border-b">
           <h2 className="text-lg font-semibold mb-3">대화 목록</h2>
-          <Button onClick={handleNewChat} className="w-full" size="sm">
+          <Button onClick={handleNewChat} className="w-full bg-slate-700 hover:bg-slate-800 text-white" size="sm">
             <Plus className="mr-2 h-4 w-4" />
             새 대화
           </Button>
