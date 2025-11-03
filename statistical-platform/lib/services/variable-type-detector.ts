@@ -22,6 +22,10 @@ export interface ColumnAnalysis {
     mean?: number
     median?: number
     mode?: any
+    skewness?: number
+    kurtosis?: number
+    std?: number
+    variance?: number
     isInteger?: boolean
     hasNegative?: boolean
     hasDecimal?: boolean
@@ -36,6 +40,7 @@ export interface ColumnAnalysis {
 
 export interface DatasetAnalysis {
   columns: ColumnAnalysis[]
+  rows?: number  // Alias for totalRows
   summary: {
     totalColumns: number
     totalRows: number

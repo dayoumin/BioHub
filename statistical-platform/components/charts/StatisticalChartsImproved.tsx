@@ -46,7 +46,7 @@ export const HistogramChart = memo(function HistogramChart({
         nbinsx: Math.min(30, Math.ceil(Math.sqrt(finalData.length))),
         name: 'Distribution',
         hovertemplate: '범위: %{x}<br>빈도: %{y}<extra></extra>'
-      }] as Data[]
+      }] as unknown as Data[]
     } catch (error) {
       onError?.(error as Error)
       return []
@@ -104,7 +104,7 @@ export const BoxPlotChart = memo(function BoxPlotChart({
             ? '값: %{y}<br>%{text}<extra></extra>'
             : '값: %{x}<br>%{text}<extra></extra>',
           text: `n=${validData.length}`
-        }] as Data[]
+        }] as unknown as Data[]
       } else if (validated.isGrouped && !Array.isArray(validated.data)) {
         return Object.entries(validated.data).map(([name, values]) => {
           const validValues = values.filter(v => !isNaN(v) && isFinite(v))
@@ -189,7 +189,7 @@ export const BarChart = memo(function BarChart({
         hovertemplate: orientation === 'v'
           ? '%{x}: %{y}<extra></extra>'
           : '%{y}: %{x}<extra></extra>'
-      }] as Data[]
+      }] as unknown as Data[]
     } catch (error) {
       onError?.(error as Error)
       return []
@@ -331,7 +331,7 @@ export const HeatmapChart = memo(function HeatmapChart({
         type: 'heatmap' as const,
         ...CHART_STYLES.heatmap,
         hovertemplate: '%{y} - %{x}<br>값: %{z:.2f}<extra></extra>'
-      }] as Data[]
+      }] as unknown as Data[]
     } catch (error) {
       onError?.(error as Error)
       return []

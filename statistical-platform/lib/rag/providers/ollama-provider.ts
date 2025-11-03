@@ -1082,7 +1082,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: this.embeddingModel,
-          prompt: truncatedText
+          input: truncatedText // Ollama embeddings API expects `input`
         })
       })
 

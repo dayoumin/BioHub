@@ -168,10 +168,29 @@ export class RAGService {
 
 /**
  * 편의 함수: RAG 쿼리 실행
+ *
+ * ✅ 초기화 전략:
+ * - 이미 초기화되어 있으면 스킵 (기존 설정 보존)
+ * - 첫 호출 시만 초기화 (성능 최적화)
+ *
+ * ✅ 벡터 스토어 선택 우선순위:
+ * 1. NEXT_PUBLIC_VECTOR_STORE_ID 환경변수 (배포 시 유연함)
+ * 2. 기본값: 'qwen3-embedding-0.6b' (111개 문서, 최신 DB)
  */
 export async function queryRAG(context: RAGContext): Promise<RAGResponse> {
   const ragService = RAGService.getInstance()
-  await ragService.initialize()
+
+  // 이미 초기화되어 있으면 스킵 (기존 설정 보존)
+  if (!(await ragService.isReady())) {
+    // 환경변수로 벡터 스토어 선택 (프로덕션 배포 시 유연함)
+    const vectorStoreId =
+      process.env.NEXT_PUBLIC_VECTOR_STORE_ID || 'qwen3-embedding-0.6b'
+
+    await ragService.initialize({
+      vectorStoreId,
+    })
+  }
+
   return ragService.query(context)
 }
 

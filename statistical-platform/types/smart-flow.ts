@@ -10,8 +10,10 @@ export interface StepConfig {
 export interface ValidationResults {
   isValid: boolean
   totalRows: number
+  totalColumns?: number // Alias for columnCount
   columnCount: number
   missingValues: number
+  duplicateRows?: number
   dataType: string
   variables: string[]
   errors: string[]
@@ -26,6 +28,7 @@ export interface ColumnStatistics {
   textCount: number
   missingCount: number
   uniqueValues: number
+  count?: number  // Total count of values
   // 수치형 변수일 경우
   mean?: number
   median?: number
@@ -79,6 +82,18 @@ export interface MethodWarning {
 export type MethodOrWarning = StatisticalMethod | MethodWarning
 
 /**
+ * 통계적 가정 검정 요약
+ */
+export interface StatisticalAssumptionsSummary {
+  meetsAssumptions: boolean
+  recommendation: string
+  canUseParametric: boolean
+  reasons: string[]
+  recommendations: string[]
+  violations?: string[]
+}
+
+/**
  * 통계적 가정 검정 결과
  */
 export interface StatisticalAssumptions {
@@ -127,14 +142,7 @@ export interface StatisticalAssumptions {
       isIndependent: boolean
     }
   }
-  summary?: {
-    meetsAssumptions: boolean
-    recommendation: string
-    canUseParametric: boolean
-    reasons: string[]
-    recommendations: string[]
-    violations?: string[]
-  }
+  summary?: StatisticalAssumptionsSummary
 }
 
 export interface AnalysisResult {

@@ -2,7 +2,7 @@
 
 import { memo, useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import { CheckCircle, CheckCircle2, AlertTriangle, XCircle, Info, BarChart, Clock, Pause, Play, TrendingUp, Activity, ArrowLeft, ChevronRight, BarChart3, LineChart, FlaskConical, Edit2, FileEdit } from 'lucide-react'
-import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -252,7 +252,7 @@ export const DataValidationStep = memo(function DataValidationStep({
           const assumptions = await pyodideService.checkAllAssumptions(testData, {
             alpha,
             normalityRule
-          })
+          }) as StatisticalAssumptions
           if (isActive && currentRunId === assumptionRunId.current) setAssumptionResults(assumptions)
 
           console.log('[DataValidation] 통계 가정 검정 완료:', assumptions.summary)
@@ -507,13 +507,13 @@ export const DataValidationStep = memo(function DataValidationStep({
                 </h4>
 
                 {/* 가정 위반 사항 */}
-                {assumptionResults.summary.violations && assumptionResults.summary.violations.length > 0 && (
+                {assumptionResults.summary?.violations && assumptionResults.summary.violations.length > 0 && (
                   <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
                     <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">
                       🔍 발견된 가정 위반:
                     </p>
                     <ul className="text-sm space-y-1.5">
-                      {assumptionResults.summary.violations.map((violation: string, idx: number) => {
+                      {assumptionResults.summary?.violations?.map((violation: string, idx: number) => {
                         let icon = '📊'
                         let detail = ''
 
@@ -1267,7 +1267,7 @@ export const DataValidationStep = memo(function DataValidationStep({
           </Card>
 
           {/* 가정 위반 시 대응 방안 */}
-          {assumptionResults?.summary && assumptionResults.summary.violations.length > 0 && (
+          {assumptionResults?.summary?.violations && assumptionResults.summary.violations.length > 0 && (
             <Card className="border-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
@@ -1277,7 +1277,7 @@ export const DataValidationStep = memo(function DataValidationStep({
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* 정규성 위반 대응 */}
-                {assumptionResults.summary.violations.includes('정규성 위반') && (
+                {assumptionResults.summary?.violations?.includes('정규성 위반') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <BarChart3 className="h-4 w-4" />
@@ -1314,7 +1314,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 등분산성 위반 대응 */}
-                {assumptionResults.summary.violations.includes('등분산성 위반') && (
+                {assumptionResults.summary?.violations?.includes('등분산성 위반') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <Activity className="h-4 w-4" />
@@ -1330,7 +1330,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 이상치 과다 대응 */}
-                {assumptionResults.summary.violations.includes('이상치 과다') && (
+                {assumptionResults.summary?.violations?.includes('이상치 과다') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
@@ -1346,7 +1346,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 표본 크기 부족 대응 */}
-                {assumptionResults.summary.violations.includes('표본 크기 부족') && (
+                {assumptionResults.summary?.violations?.includes('표본 크기 부족') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <Info className="h-4 w-4" />
