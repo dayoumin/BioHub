@@ -24,6 +24,7 @@ export function FloatingChatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [isEnabled, setIsEnabled] = useState(true)
+  const [hasNewMessage, setHasNewMessage] = useState(false)
 
   // 설정 로드
   useEffect(() => {
@@ -55,14 +56,14 @@ export function FloatingChatbot() {
   }, [isOpen])
 
   // /chatbot 페이지 또는 /chatbot로 시작하는 모든 경로에서는 플로팅 버튼 숨기기
+  // 모든 훅이 호출된 후에 조건부 렌더링을 수행해야 합니다
   const isChatbotPage = pathname === '/chatbot' || pathname.startsWith('/chatbot/')
-  if (isChatbotPage) {
-    return null
-  }
 
   const handleToggle = useCallback(() => {
     setIsOpen((prev) => !prev)
     setIsMinimized(false)
+    // 팝업 열 때 배지 제거
+    setHasNewMessage(false)
   }, [])
 
   const handleClose = useCallback(() => {
@@ -82,8 +83,8 @@ export function FloatingChatbot() {
     setIsMinimized((prev) => !prev)
   }, [])
 
-  // 설정에서 비활성화된 경우 렌더링하지 않음
-  if (!isEnabled) {
+  // 설정에서 비활성화된 경우 또는 /chatbot 페이지에서는 렌더링하지 않음
+  if (!isEnabled || isChatbotPage) {
     return null
   }
 
@@ -175,7 +176,10 @@ export function FloatingChatbot() {
           {/* 본문 */}
           {!isMinimized && (
             <div className="flex-1 overflow-hidden">
-              <RAGAssistant className="h-full" />
+              <RAGAssistant
+                className="h-full"
+                onNewMessage={() => setHasNewMessage(true)}
+              />
             </div>
           )}
 
@@ -205,17 +209,18 @@ export function FloatingChatbot() {
         </div>
       )}
 
-      {/* 새 메시지 알림 배지 (선택 사항) */}
-      {!isOpen && (
+      {/* 새 메시지 알림 배지 */}
+      {!isOpen && hasNewMessage && (
         <div
           className={cn(
             'fixed z-50 h-5 w-5 rounded-full bg-destructive',
             'bottom-[72px] right-[72px]',
             'max-md:bottom-[56px] max-md:right-[56px]',
-            'hidden' // 실제 구현 시 조건부로 표시
+            'animate-pulse'
           )}
           role="status"
           aria-live="polite"
+          aria-label="새 메시지 있음"
         >
           <span className="text-xs text-destructive-foreground font-bold flex items-center justify-center h-full">
             1

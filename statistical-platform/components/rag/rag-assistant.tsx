@@ -39,6 +39,8 @@ interface RAGAssistantProps {
   method?: string
   /** 사이드바 클래스 (선택) */
   className?: string
+  /** 새 메시지 받을 때 호출되는 콜백 (선택) */
+  onNewMessage?: () => void
 }
 
 interface ChatMessage {
@@ -47,7 +49,7 @@ interface ChatMessage {
   timestamp: number
 }
 
-export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
+export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssistantProps) {
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -166,13 +168,18 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
       // 세션 목록 업데이트
       setSessions(ChatStorage.loadSessions())
 
+      // 새 메시지 콜백 호출 (FloatingChatbot 알림용)
+      if (onNewMessage) {
+        onNewMessage()
+      }
+
       setQuery('') // 입력 초기화
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류')
     } finally {
       setIsLoading(false)
     }
-  }, [query, method, currentSessionId])
+  }, [query, method, currentSessionId, onNewMessage])
 
   // Enter 키로 전송
   const handleKeyDown = useCallback(
@@ -240,9 +247,9 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
                     currentSessionId === session.id && 'bg-muted'
                   )}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-2 min-w-0">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate max-w-[160px]">
+                      <div className="text-sm font-medium truncate">
                         {session.title}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -270,7 +277,9 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
                       onDelete={() => {
                         handleDeleteSession(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className={cn(
+                        'opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto'
+                      )}
                     />
                   </div>
                 </div>
