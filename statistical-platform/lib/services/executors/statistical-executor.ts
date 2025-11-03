@@ -348,7 +348,7 @@ export class StatisticalExecutor {
     }
 
     return data.map(row =>
-      columnNames!.map(col => Number(row[col]))
+      columnNames!.map((col: string) => Number(row[col]))
     )
   }
 
@@ -389,7 +389,7 @@ export class StatisticalExecutor {
     }
 
     return data.map(row =>
-      measureCols.map(col => Number(row[col]))
+      measureCols.map((col: string) => Number(row[col]))
     )
   }
 }

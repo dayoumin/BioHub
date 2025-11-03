@@ -61,7 +61,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const encoder = new TextEncoder()
     const stream = new ReadableStream(
       {
-        async pull(controller) {
+        async pull(controller: ReadableStreamDefaultController) {
           try {
             // 처음 한 번만 실행되도록 플래그 사용
             if (!this.initialized) {
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest): Promise<Response> {
               )
 
               // 2. 컨텍스트 텍스트 생성
-              const contextText = ragResponse.sources
+              const contextText = (ragResponse.sources ?? [])
                 .map((source, index) => `[문서 ${index + 1}]\n제목: ${source.title}\n내용: ${source.content}`)
                 .join('\n\n---\n\n')
 

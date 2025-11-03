@@ -119,7 +119,7 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
       PapaModule.parse(file, {
       header: true,
       dynamicTyping: true,
-      complete: (result) => {
+      complete: (result: { data: unknown[] }) => {
         if (result.data && result.data.length > 0) {
           // 빈 행 제거
           const cleanData = result.data.filter((row: any) =>
@@ -132,7 +132,7 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
           showNotification('success', `데이터 업로드 완료: ${cleanData.length}개 행`)
         }
       },
-      error: (error) => {
+      error: (error: { message: string }) => {
         showNotification('error', `업로드 실패: ${error.message}`)
       }
     })
@@ -545,7 +545,7 @@ function renderParameterForm(
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {param.options.map(opt => (
+                {param.options.map((opt: { value: string; label: string }) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>

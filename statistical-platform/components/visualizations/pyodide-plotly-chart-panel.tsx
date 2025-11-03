@@ -57,7 +57,7 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
     )
   }
   
-  if (!dataset.data || dataset.data.length === 0) {
+  if (!dataset.data || dataset.data?.length === 0) {
     return (
       <Alert>
         <AlertDescription>Dataset has no data</AlertDescription>
@@ -65,9 +65,9 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
     )
   }
   
-  const columnNames = Object.keys(dataset.data[0] || {})
+  const columnNames = Object.keys(dataset.data?.[0] || {})
   const numericColumns = columnNames.filter(col => {
-    const value = dataset.data[0][col]
+    const value = dataset.data?.[0][col]
     return !isNaN(parseFloat(String(value)))
   })
   

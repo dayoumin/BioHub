@@ -165,7 +165,7 @@ export class StatisticalExecutor {
 
     // 독립변수 추출
     if (variables.independent && variables.independent.length > 0) {
-      prepared.arrays.independent = variables.independent.map(col =>
+      prepared.arrays.independent = variables.independent.map((col: string) =>
         data.map(row => Number(row[col])).filter(v => !isNaN(v))
       )
     }

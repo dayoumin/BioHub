@@ -68,6 +68,7 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
               onToggleFavorite={onToggleFavorite}
               onDelete={onDeleteSession}
               onMove={onMoveSession}
+              showFavoriteIndicator={false}
             />
           ))}
         </div>

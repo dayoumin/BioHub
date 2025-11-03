@@ -38,6 +38,7 @@ export interface ColumnStatistics {
   q75?: number
   skewness?: number
   kurtosis?: number
+  cv?: number  // Coefficient of Variation
   outliers?: number[]
   // 범주형 변수일 경우
   topCategories?: { value: string; count: number }[]

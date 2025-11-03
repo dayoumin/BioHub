@@ -292,16 +292,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   <>
                     <div className="flex justify-between">
                       <span>정규성 (그룹 1):</span>
-                      <span className={results.assumptions.normality.group1.isNormal ? 'text-green-600' : 'text-orange-600'}>
-                        {results.assumptions.normality.group1.isNormal ? '✓ 만족' : '⚠ 위반'}
-                        (p={results.assumptions.normality.group1.pValue.toFixed(3)})
+                      <span className={results.assumptions.normality.group1?.isNormal ? 'text-green-600' : 'text-orange-600'}>
+                        {results.assumptions.normality.group1?.isNormal ? '✓ 만족' : '⚠ 위반'}
+                        (p={results.assumptions.normality.group1?.pValue.toFixed(3)})
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span>정규성 (그룹 2):</span>
-                      <span className={results.assumptions.normality.group2.isNormal ? 'text-green-600' : 'text-orange-600'}>
-                        {results.assumptions.normality.group2.isNormal ? '✓ 만족' : '⚠ 위반'}
-                        (p={results.assumptions.normality.group2.pValue.toFixed(3)})
+                      <span className={results.assumptions.normality.group2?.isNormal ? 'text-green-600' : 'text-orange-600'}>
+                        {results.assumptions.normality.group2?.isNormal ? '✓ 만족' : '⚠ 위반'}
+                        (p={results.assumptions.normality.group2?.pValue.toFixed(3)})
                       </span>
                     </div>
                   </>

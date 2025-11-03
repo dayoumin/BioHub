@@ -513,7 +513,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                       🔍 발견된 가정 위반:
                     </p>
                     <ul className="text-sm space-y-1.5">
-                      {assumptionResults.summary.violations.map((violation, idx) => {
+                      {assumptionResults.summary.violations.map((violation: string, idx: number) => {
                         let icon = '📊'
                         let detail = ''
 
@@ -794,9 +794,9 @@ export const DataValidationStep = memo(function DataValidationStep({
                             <td className="text-right p-2">{stat.max?.toFixed(2)}</td>
                             <td className="text-right p-2">
                               {stat.outliers?.length || 0}
-                              {stat.outliers && stat.outliers.length > 0 && (
+                              {stat.outliers && (stat.outliers?.length ?? 0) > 0 && (
                                 <span className="text-xs text-orange-600 ml-1">
-                                  ({((stat.outliers.length / stat.numericCount) * 100).toFixed(1)}%)
+                                  ({(((stat.outliers?.length ?? 0) / stat.numericCount) * 100).toFixed(1)}%)
                                 </span>
                               )}
                             </td>
@@ -982,8 +982,8 @@ export const DataValidationStep = memo(function DataValidationStep({
                                 <div>
                                   <span className="text-muted-foreground">위치:</span>
                                   <span className="ml-2">
-                                    {stat.outliers.filter((v: number) => v < (stat.q25! - 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length}개 하단,
-                                    {stat.outliers.filter((v: number) => v > (stat.q75! + 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length}개 상단
+                                    {stat.outliers?.filter((v: number) => v < (stat.q25! - 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length}개 하단,
+                                    {stat.outliers?.filter((v: number) => v > (stat.q75! + 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length}개 상단
                                   </span>
                                 </div>
                               </div>
@@ -991,8 +991,8 @@ export const DataValidationStep = memo(function DataValidationStep({
                               <div className="p-2 bg-muted/30 rounded text-xs">
                                 <p className="font-medium mb-1">이상치 값:</p>
                                 <p className="font-mono">
-                                  {stat.outliers.slice(0, 10).map((v: number) => v.toFixed(2)).join(', ')}
-                                  {stat.outliers.length > 10 && ` ... 외 ${stat.outliers.length - 10}개`}
+                                  {stat.outliers?.slice(0, 10).map((v: number) => v.toFixed(2)).join(', ')}
+                                  {(stat.outliers?.length ?? 0) > 10 && ` ... 외 ${(stat.outliers?.length ?? 0) - 10}개`}
                                 </p>
                               </div>
 
@@ -2035,9 +2035,9 @@ export const DataValidationStep = memo(function DataValidationStep({
                         layout={{
                           ...getModalLayout({
                             title: { text: '' },
-                            xaxis: { title: stat.name },
+                            xaxis: { title: { text: stat.name } },
                             yaxis: {
-                              title: '빈도',
+                              title: { text: '빈도' },
                               domain: [0, 0.7]
                             },
                             yaxis2: {
@@ -2091,8 +2091,8 @@ export const DataValidationStep = memo(function DataValidationStep({
                       layout={{
                         ...getModalLayout({
                           title: { text: '' },
-                          xaxis: { title: '', tickangle: -45 },
-                          yaxis: { title: '빈도' },
+                          xaxis: { title: { text: '' }, tickangle: -45 },
+                          yaxis: { title: { text: '빈도' } },
                           height: 250,
                           showlegend: false
                         }),
@@ -2149,7 +2149,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                         hovertemplate: '%{x} - %{y}<br>상관계수: %{z:.3f}<extra></extra>',
                         showscale: true,
                         colorbar: {
-                          title: '상관계수',
+                          title: { text: '상관계수' },
                           titleside: 'right',
                           tickmode: 'array',
                           tickvals: [-1, -0.5, 0, 0.5, 1],
@@ -2233,11 +2233,11 @@ export const DataValidationStep = memo(function DataValidationStep({
                               ...getModalLayout({
                                 title: { text: '' },
                                 xaxis: {
-                                  title: col1.name,
+                                  title: { text: col1.name },
                                   titlefont: { size: 10 }
                                 },
                                 yaxis: {
-                                  title: col2.name,
+                                  title: { text: col2.name },
                                   titlefont: { size: 10 }
                                 },
                                 height: 200,
@@ -2315,8 +2315,8 @@ export const DataValidationStep = memo(function DataValidationStep({
                           layout={{
                             ...getModalLayout({
                               title: { text: col.name, font: { size: 12 } },
-                              xaxis: { title: '이론적 분위수', titlefont: { size: 10 } },
-                              yaxis: { title: '표본 분위수', titlefont: { size: 10 } },
+                              xaxis: { title: { text: '이론적 분위수' }, titlefont: { size: 10 } },
+                              yaxis: { title: { text: '표본 분위수' }, titlefont: { size: 10 } },
                               height: 220,
                               showlegend: false
                             }),

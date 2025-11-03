@@ -21,6 +21,7 @@ interface SessionItemProps {
   onToggleFavorite: (sessionId: string) => void
   onDelete: (sessionId: string) => void
   onMove: (sessionId: string) => void
+  showFavoriteIndicator?: boolean
 }
 
 /**
@@ -51,6 +52,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
   onToggleFavorite,
   onDelete,
   onMove,
+  showFavoriteIndicator = true,
 }) => {
   return (
     <div
@@ -64,7 +66,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
       {/* 세션 제목 및 타임스탬프 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          {session.isFavorite && (
+          {session.isFavorite && showFavoriteIndicator && (
             <Pin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
           )}
           <p className="text-sm font-medium truncate">

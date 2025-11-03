@@ -150,13 +150,13 @@ export function DataAnalysisFlow({ datasetId, onAnalysisComplete }: DataAnalysis
               </div>
               
               <div className="space-y-2">
-                {dataset.validation?.warnings?.map((warning, i) => (
+                {dataset.validation?.warnings?.map((warning: string, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-sm">
                     <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
                     <span className="text-muted-foreground">{warning}</span>
                   </div>
                 ))}
-                {dataset.validation?.errors?.map((error, i) => (
+                {dataset.validation?.errors?.map((error: string, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-sm">
                     <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
                     <span className="text-muted-foreground">{error}</span>
@@ -175,7 +175,7 @@ export function DataAnalysisFlow({ datasetId, onAnalysisComplete }: DataAnalysis
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm font-medium mb-2">데이터 열 정보:</p>
               <div className="flex flex-wrap gap-2">
-                {dataset.columns?.map((col, i) => (
+                {dataset.columns?.map((col: { name: string; type: string }, i: number) => (
                   <Badge key={i} variant="outline">
                     {col.name} ({col.type})
                   </Badge>

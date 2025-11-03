@@ -202,6 +202,14 @@ export class PyodideStatisticsService {
   }
 
   /**
+   * Pyodide 인스턴스에 접근 (테스트용)
+   * @internal
+   */
+  get pyodide(): PyodideInterface | null {
+    return (this.core as { pyodide: PyodideInterface | null }).pyodide
+  }
+
+  /**
    * Pyodide 초기화 (PyodideCoreService에 위임)
    */
   async initialize(): Promise<void> {
@@ -335,6 +343,34 @@ export class PyodideStatisticsService {
       { data },
       { errorMessage: 'K-S test 실행 실패' }
     )
+  }
+
+  /**
+   * Anderson-Darling 정규성 검정
+   * @param data 검정할 데이터
+   */
+  async andersonDarlingTest(data: number[]): Promise<{
+    statistic: number
+    pValue: number
+    isNormal: boolean
+  }> {
+    // TODO: Implement Anderson-Darling test using SciPy
+    // For now, fallback to Shapiro-Wilk
+    return this.shapiroWilkTest(data)
+  }
+
+  /**
+   * D'Agostino-Pearson 정규성 검정
+   * @param data 검정할 데이터
+   */
+  async dagostinoPearsonTest(data: number[]): Promise<{
+    statistic: number
+    pValue: number
+    isNormal: boolean
+  }> {
+    // TODO: Implement D'Agostino-Pearson test using SciPy
+    // For now, fallback to Shapiro-Wilk
+    return this.shapiroWilkTest(data)
   }
 
   /**

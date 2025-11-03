@@ -50,6 +50,9 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   onDeleteProject,
   onCreateProject,
 }) => {
+  // 섹션 전체 축소/펼침 상태
+  const [isSectionExpanded, setIsSectionExpanded] = React.useState(true)
+
   // 프로젝트별 세션 그룹화
   const getProjectSessions = (projectId: string): ChatSession[] => {
     return sessions.filter((s) => s.projectId === projectId)
@@ -58,8 +61,16 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
   return (
     <TooltipProvider>
       <div className="border-b py-2">
-        {/* 섹션 헤더 */}
-        <div className="flex items-center gap-2 px-4 py-2">
+        {/* 섹션 헤더 - 축소/펼침 가능 */}
+        <button
+          onClick={() => setIsSectionExpanded(!isSectionExpanded)}
+          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-accent rounded-md transition-colors"
+        >
+          {isSectionExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
           <Folder className="h-4 w-4 text-muted-foreground" />
           <div className="flex items-center gap-1">
             <span className="text-sm font-semibold">주제별 채팅</span>
@@ -76,23 +87,27 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
             variant="ghost"
             size="icon"
             className="ml-auto h-6 w-6"
-            onClick={onCreateProject}
+            onClick={(e) => {
+              e.stopPropagation()
+              onCreateProject()
+            }}
             title="새 주제 만들기"
           >
             <Plus className="h-3 w-3" />
           </Button>
-        </div>
+        </button>
 
-        {/* 프로젝트 목록 */}
-        <div className="mt-1 space-y-1">
-          {projects.length === 0 ? (
-            <div className="px-4 py-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                주제별 채팅이 없습니다
-              </p>
-            </div>
-          ) : (
-          projects.map((project) => {
+        {/* 프로젝트 목록 - 섹션 펼쳤을 때만 표시 */}
+        {isSectionExpanded && (
+          <div className="mt-1 space-y-1">
+            {projects.length === 0 ? (
+              <div className="px-4 py-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  주제별 채팅이 없습니다
+                </p>
+              </div>
+            ) : (
+              projects.map((project) => {
             const projectSessions = getProjectSessions(project.id)
             const isExpanded = expandedProjectIds.has(project.id)
 
@@ -184,8 +199,9 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
               </div>
             )
           })
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </TooltipProvider>
   )

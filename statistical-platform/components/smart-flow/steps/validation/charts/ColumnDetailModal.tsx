@@ -56,8 +56,8 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
                       } as Data]}
                       layout={getModalLayout({
                         title: { text: '' },
-                        xaxis: { title: column.name },
-                        yaxis: { title: '빈도' },
+                        xaxis: { title: { text: column.name } },
+                        yaxis: { title: { text: '빈도' } },
                         height: 380,
                         showlegend: false,
                         margin: { l: 50, r: 30, t: 20, b: 50 }
@@ -84,7 +84,7 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
                       } as Data]}
                       layout={getModalLayout({
                         title: { text: '' },
-                        yaxis: { title: column.name },
+                        yaxis: { title: { text: column.name } },
                         height: 380,
                         showlegend: false,
                         margin: { l: 60, r: 30, t: 20, b: 40 }

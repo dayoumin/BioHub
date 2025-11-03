@@ -553,7 +553,7 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
                       layout={{
                         ...getModalLayout({
                           title: { text: '' },
-                          xaxis: { title: '' },
+                          xaxis: { title: { text: '' } },
                           height: 250,
                           showlegend: false
                         }),
@@ -593,8 +593,8 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
                         layout={{
                           ...getModalLayout({
                             title: { text: '' },
-                            xaxis: { title: '' },
-                            yaxis: { title: '빈도' },
+                            xaxis: { title: { text: '' } },
+                            yaxis: { title: { text: '빈도' } },
                             height: 250,
                             showlegend: false
                           }),
@@ -811,8 +811,8 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
                           } as Data]}
                           layout={getModalLayout({
                             title: { text: '' },
-                            xaxis: { title: selectedColumn.name },
-                            yaxis: { title: '빈도' },
+                            xaxis: { title: { text: selectedColumn.name } },
+                            yaxis: { title: { text: '빈도' } },
                             height: 380,
                             showlegend: false,
                             margin: { l: 50, r: 30, t: 20, b: 50 }
@@ -839,7 +839,7 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
                           } as Data]}
                           layout={getModalLayout({
                             title: { text: '' },
-                            yaxis: { title: selectedColumn.name },
+                            yaxis: { title: { text: selectedColumn.name } },
                             height: 380,
                             showlegend: false,
                             margin: { l: 60, r: 30, t: 20, b: 40 }
