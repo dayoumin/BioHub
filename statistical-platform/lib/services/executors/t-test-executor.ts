@@ -97,9 +97,9 @@ export class TTestExecutor extends BaseExecutor {
         },
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pValue,
+          pvalue: result.pvalue,
           df: result.df,
-          interpretation: `${this.interpretPValue(result.pValue)}. 그룹 1 평균(${stats1.mean.toFixed(2)})과 그룹 2 평균(${stats2.mean.toFixed(2)}) 간 차이`,
+          interpretation: `${this.interpretPValue(result.pvalue)}. 그룹 1 평균(${stats1.mean.toFixed(2)})과 그룹 2 평균(${stats2.mean.toFixed(2)}) 간 차이`,
           confidenceInterval: result.confidenceInterval
         },
         additionalInfo: {
@@ -158,9 +158,9 @@ export class TTestExecutor extends BaseExecutor {
         metadata: this.createMetadata('대응표본 t-검정', before.length, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pValue,
+          pvalue: result.pvalue,
           df: result.df,
-          interpretation: `${this.interpretPValue(result.pValue)}. 평균 차이: ${diffStats.mean.toFixed(2)}`,
+          interpretation: `${this.interpretPValue(result.pvalue)}. 평균 차이: ${diffStats.mean.toFixed(2)}`,
           confidenceInterval: result.confidenceInterval
         },
         additionalInfo: {

@@ -27,19 +27,28 @@ import {
   ChevronUp,
   Copy,
   Check,
-  Edit2,
   Trash2,
+  Sparkles,
 } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 import { queryRAG } from '@/lib/rag/rag-service'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import type { ChatSession, ChatMessage } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
 
+interface QuickPrompt {
+  icon: string
+  title: string
+  prompt: string
+}
+
 interface RAGChatInterfaceProps {
   sessionId: string
   onSessionUpdate?: (session: ChatSession) => void
   className?: string
+  quickPrompts?: QuickPrompt[]
+  onQuickPrompt?: (prompt: string) => void
 }
 
 interface ExtendedChatMessage extends ChatMessage {
@@ -50,6 +59,8 @@ export function RAGChatInterface({
   sessionId,
   onSessionUpdate,
   className = '',
+  quickPrompts,
+  onQuickPrompt,
 }: RAGChatInterfaceProps) {
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -452,6 +463,46 @@ export function RAGChatInterface({
                   <XCircle className="h-4 w-4" />
                   <span>{error}</span>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* 빈 상태: 웰컴 문구 + 퀵 프롬프트 */}
+          {messages.length === 0 && quickPrompts && quickPrompts.length > 0 && (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                  <Sparkles className="h-8 w-8 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">
+                  무엇을 도와드릴까요?
+                </h2>
+                <p className="text-muted-foreground">
+                  통계 분석에 대해 궁금한 점을 물어보세요
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 max-w-2xl w-full">
+                {quickPrompts.map((prompt, idx) => (
+                  <Card
+                    key={idx}
+                    className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => {
+                      setQuery(prompt.prompt)
+                      onQuickPrompt?.(prompt.prompt)
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">{prompt.icon}</div>
+                      <div>
+                        <div className="font-medium mb-1">{prompt.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {prompt.prompt}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </div>
             </div>
           )}

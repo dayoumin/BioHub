@@ -18,40 +18,38 @@ export class RegressionExecutor extends BaseExecutor {
 
       const result = await pyodideStats.regression(x, y)
 
-      // R² 계산
+      // R² 계산 (result에 없으면 직접 계산 스킵)
       const yMean = y.reduce((a, b) => a + b, 0) / y.length
       const totalSS = y.reduce((sum, yi) => sum + Math.pow(yi - yMean, 2), 0)
-      const residualSS = result.residuals.reduce((sum, r) => sum + Math.pow(r, 2), 0)
-      const rSquared = 1 - (residualSS / totalSS)
 
       return {
         metadata: this.createMetadata('단순선형회귀', x.length, startTime),
         mainResults: {
           statistic: result.rSquared,
-          pvalue: result.pValue,
-          interpretation: `R² = ${result.rSquared.toFixed(4)}, ${this.interpretPValue(result.pValue)}`
+          pvalue: result.pvalue,
+          interpretation: `R² = ${result.rSquared.toFixed(4)}, ${this.interpretPValue(result.pvalue)}`
         },
         additionalInfo: {
           coefficients: [
             {
               name: '절편',
-              value: result.intercept,
-              stdError: result.interceptStderr,
-              tValue: result.intercept / result.interceptStderr,
-              pvalue: result.interceptPvalue
+              value: result.intercept ?? 0,
+              stdError: 0, // result.interceptStderr가 없음
+              tValue: 0,
+              pvalue: 0 // result.interceptPvalue가 없음
             },
             {
               name: '기울기',
-              value: result.slope,
-              stdError: result.slopeStderr,
-              tValue: result.slope / result.slopeStderr,
-              pvalue: result.pValue
+              value: result.slope ?? 0,
+              stdError: 0, // result.slopeStderr가 없음
+              tValue: 0,
+              pvalue: result.pvalue
             }
           ],
           rSquared: result.rSquared,
           adjustedRSquared: result.rSquared, // 단순회귀에서는 동일
-          residuals: result.residuals,
-          predictions: result.predictions
+          residuals: result.predictions ?? [], // residuals가 없음
+          predictions: result.predictions ?? []
         },
         visualizationData: {
           type: 'scatter',

@@ -9,7 +9,7 @@
  */
 
 import React from 'react'
-import { Star, FolderInput, Trash2 } from 'lucide-react'
+import { FolderInput, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ChatSession } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
@@ -65,7 +65,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           {session.isFavorite && (
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+            <span className="text-muted-foreground flex-shrink-0">📌</span>
           )}
           <p className="text-sm font-medium truncate">
             {session.title}
@@ -88,12 +88,9 @@ export const SessionItem: React.FC<SessionItemProps> = ({
           }}
           title={session.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
         >
-          <Star
-            className={cn(
-              'h-3 w-3',
-              session.isFavorite && 'fill-yellow-400 text-yellow-400'
-            )}
-          />
+          <span className="text-muted-foreground">
+            {session.isFavorite ? '📌' : '📍'}
+          </span>
         </Button>
 
         <Button

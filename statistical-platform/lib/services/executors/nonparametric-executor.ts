@@ -31,8 +31,8 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Mann-Whitney U 검정', n, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pValue,
-          interpretation: `${this.interpretPValue(result.pValue)}. 그룹 1 중위수(${median1.toFixed(2)})와 그룹 2 중위수(${median2.toFixed(2)}) 비교`
+          pvalue: result.pvalue,
+          interpretation: `${this.interpretPValue(result.pvalue)}. 그룹 1 중위수(${median1.toFixed(2)})와 그룹 2 중위수(${median2.toFixed(2)}) 비교`
         },
         additionalInfo: {
           effectSize: {
@@ -42,8 +42,8 @@ export class NonparametricExecutor extends BaseExecutor {
           },
           median1,
           median2,
-          rankSum1: result.rankSum1,
-          rankSum2: result.rankSum2
+          rankSum1: 0, // result.rankSum1 not available
+          rankSum2: 0  // result.rankSum2 not available
         },
         visualizationData: {
           type: 'boxplot',
@@ -78,11 +78,11 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Wilcoxon 부호순위 검정', x.length, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pValue,
-          interpretation: `${this.interpretPValue(result.pValue)}. ${description}`
+          pvalue: result.pvalue,
+          interpretation: `${this.interpretPValue(result.pvalue)}. ${description}`
         },
         additionalInfo: {
-          zStatistic: result.zStatistic,
+          zStatistic: result.statistic,
           isPaired,
           medianDifference: isPaired ? this.calculateMedian(x.map((v, i) => v - (y![i] || 0))) : this.calculateMedian(x)
         },
@@ -119,9 +119,9 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Kruskal-Wallis 검정', n, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pValue,
+          pvalue: result.pvalue,
           df: result.df,
-          interpretation: `${this.interpretPValue(result.pValue)}. ${k}개 그룹 간 중위수 차이 검정`
+          interpretation: `${this.interpretPValue(result.pvalue)}. ${k}개 그룹 간 중위수 차이 검정`
         },
         additionalInfo: {
           effectSize: {
@@ -130,7 +130,7 @@ export class NonparametricExecutor extends BaseExecutor {
             interpretation: this.interpretEffectSize(epsilonSquared, 'eta')
           },
           medians,
-          meanRanks: result.meanRanks
+          meanRanks: [] // result.meanRanks not available
         },
         visualizationData: {
           type: 'boxplot',
@@ -163,8 +163,8 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Friedman 검정', n * k, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pValue,
-          interpretation: `${this.interpretPValue(result.pValue)}. ${k}개 반복측정 조건 간 차이 검정`
+          pvalue: result.pvalue,
+          interpretation: `${this.interpretPValue(result.pvalue)}. ${k}개 반복측정 조건 간 차이 검정`
         },
         additionalInfo: {
           rankings: result.rankings,

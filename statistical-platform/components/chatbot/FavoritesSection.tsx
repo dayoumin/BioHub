@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from 'react'
-import { Star, ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { SessionItem } from './SessionItem'
 import { Badge } from '@/components/ui/badge'
 import type { ChatSession } from '@/lib/types/chat'
@@ -49,7 +49,7 @@ export const FavoritesSection: React.FC<FavoritesSectionProps> = ({
         ) : (
           <ChevronRight className="h-4 w-4 text-muted-foreground" />
         )}
-        <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+        <span className="text-muted-foreground">📌</span>
         <span className="text-sm font-semibold">즐겨찾기</span>
         <Badge variant="secondary" className="ml-auto">
           {sessions.length}

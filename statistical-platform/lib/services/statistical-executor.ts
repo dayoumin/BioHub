@@ -324,7 +324,7 @@ export class StatisticalExecutor {
 
     // 유의한 경우 사후검정
     let postHoc = null
-    if (result.pvalue < 0.05 && groups.length > 2) {
+    if (result.pValue < 0.05 && groups.length > 2) {
       postHoc = await pyodideStats.tukeyHSD(groups)
     }
 
@@ -342,10 +342,10 @@ export class StatisticalExecutor {
       },
       mainResults: {
         statistic: result.fStatistic,
-        pvalue: result.pvalue,
+        pvalue: result.pValue,
         df: result.df,
-        significant: result.pvalue < 0.05,
-        interpretation: result.pvalue < 0.05 ?
+        significant: result.pValue < 0.05,
+        interpretation: result.pValue < 0.05 ?
           `그룹 간 유의한 차이가 있습니다 (F=${result.fStatistic.toFixed(2)})` :
           '그룹 간 유의한 차이가 없습니다'
       },
@@ -453,13 +453,15 @@ export class StatisticalExecutor {
         }
       },
       mainResults: {
-        statistic: result.correlation,
-        pvalue: result.pvalue,
-        significant: result.pvalue < 0.05,
-        interpretation: `상관계수 = ${result.correlation.toFixed(3)} (${this.interpretCorrelation(result.correlation)})`
+        statistic: result.pearson.r,
+        pvalue: result.pearson.pValue,
+        significant: result.pearson.pValue < 0.05,
+        interpretation: `상관계수 = ${result.pearson.r.toFixed(3)} (${this.interpretCorrelation(result.pearson.r)})`
       },
       additionalInfo: {
-        confidenceInterval: result.confidenceInterval
+        pearson: result.pearson,
+        spearman: result.spearman,
+        kendall: result.kendall
       },
       visualizationData: {
         type: 'scatter',
@@ -616,9 +618,9 @@ export class StatisticalExecutor {
         }
       },
       mainResults: {
-        statistic: result.trend || 0,
-        pvalue: result.pvalue || 1,
-        significant: result.pvalue < 0.05,
+        statistic: Array.isArray(result.trend) ? result.trend[0] : (result.trend || 0),
+        pvalue: 1, // Time series doesn't have p-value
+        significant: false,
         interpretation: '시계열 분석 완료'
       },
       additionalInfo: {},
