@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, Star, Sparkles } from 'lucide-react'
+import { Plus, Sparkles, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
@@ -61,6 +61,13 @@ export default function ChatbotPage() {
 
   // 프로젝트 상태
   const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(new Set())
+
+  // 사이드바 상태
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // 세션 이름 변경 상태
+  const [isRenamingSessionId, setIsRenamingSessionId] = useState<string | null>(null)
+  const [renamingText, setRenamingText] = useState('')
 
   // 모달 상태 (Phase 4에서 구현)
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
@@ -166,6 +173,30 @@ export default function ChatbotPage() {
     setIsMoveDialogOpen(true)
   }, [])
 
+  // 세션 이름 변경
+  const handleRenameSession = useCallback((sessionId: string) => {
+    const session = ChatStorage.loadSession(sessionId)
+    if (session) {
+      setIsRenamingSessionId(sessionId)
+      setRenamingText(session.title)
+    }
+  }, [])
+
+  // 세션 이름 저장
+  const handleSaveRename = useCallback((sessionId: string) => {
+    if (renamingText.trim()) {
+      const session = ChatStorage.loadSession(sessionId)
+      if (session) {
+        session.title = renamingText.trim()
+        session.updatedAt = Date.now()
+        ChatStorage.saveSession(session)
+        triggerUpdate()
+      }
+    }
+    setIsRenamingSessionId(null)
+    setRenamingText('')
+  }, [renamingText, triggerUpdate])
+
   // 프로젝트 토글
   const handleToggleProject = useCallback((projectId: string) => {
     setExpandedProjectIds((prev) => {
@@ -248,9 +279,9 @@ export default function ChatbotPage() {
   return (
     <div className="flex h-[calc(100vh-64px)]">
       {/* Grok 스타일 사이드바 */}
-      <aside className="w-64 border-r bg-muted/10 flex flex-col">
+      <aside className={`${sidebarCollapsed ? 'w-0' : 'w-64'} border-r bg-muted/10 flex flex-col transition-all duration-300 overflow-hidden`}>
         {/* 헤더 */}
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex-shrink-0">
           <h2 className="text-lg font-semibold mb-3">대화 목록</h2>
           <Button onClick={handleNewChat} className="w-full bg-slate-700 hover:bg-slate-800 text-white" size="sm">
             <Plus className="mr-2 h-4 w-4" />
@@ -259,7 +290,7 @@ export default function ChatbotPage() {
         </div>
 
         {/* 검색 */}
-        <div className="px-4 py-3">
+        <div className="px-4 py-3 flex-shrink-0">
           <SidebarSearch
             value={searchQuery}
             onChange={setSearchQuery}
@@ -307,11 +338,28 @@ export default function ChatbotPage() {
         </ScrollArea>
 
         {/* 푸터 */}
-        <div className="p-4 border-t text-xs text-muted-foreground">
+        <div className="p-4 border-t text-xs text-muted-foreground flex-shrink-0">
           <kbd className="px-1.5 py-0.5 text-xs bg-muted rounded">Ctrl+N</kbd>{' '}
           새 대화
         </div>
       </aside>
+
+      {/* 사이드바 토글 버튼 */}
+      <div className="w-8 bg-muted/5 border-r flex items-center justify-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          title={sidebarCollapsed ? '사이드바 열기' : '사이드바 닫기'}
+        >
+          {sidebarCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
 
       {/* 메인 채팅 영역 */}
       <main className="flex-1 flex flex-col">
@@ -319,13 +367,47 @@ export default function ChatbotPage() {
           <>
             {/* 헤더 */}
             <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-semibold">{currentSession.title}</h1>
-                {currentSession.isFavorite && (
-                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                {isRenamingSessionId === currentSession.id ? (
+                  <input
+                    type="text"
+                    value={renamingText}
+                    onChange={(e) => setRenamingText(e.target.value)}
+                    onBlur={() => handleSaveRename(currentSession.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleSaveRename(currentSession.id)
+                      } else if (e.key === 'Escape') {
+                        setIsRenamingSessionId(null)
+                      }
+                    }}
+                    className="flex-1 px-2 py-1 text-lg font-semibold border rounded bg-background"
+                    autoFocus
+                  />
+                ) : (
+                  <>
+                    <h1 className="text-lg font-semibold truncate">{currentSession.title}</h1>
+                    {currentSession.isFavorite && (
+                      <span className="text-muted-foreground flex-shrink-0">📌</span>
+                    )}
+                  </>
                 )}
               </div>
-              <Badge variant="outline">
+
+              {/* 제목 변경 버튼 */}
+              {isRenamingSessionId !== currentSession.id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 ml-2"
+                  onClick={() => handleRenameSession(currentSession.id)}
+                  title="제목 변경"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
+
+              <Badge variant="outline" className="ml-auto flex-shrink-0">
                 {currentSession.messages.length}개 메시지
               </Badge>
             </div>
