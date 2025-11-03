@@ -67,7 +67,9 @@ export class NonparametricExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.wilcoxon(x, y)
+      // y가 없으면 기본값 사용 (모두 0과의 비교)
+      const group2 = y || new Array(x.length).fill(0)
+      const result = await pyodideStats.wilcoxon(x, group2)
 
       const isPaired = y !== undefined
       const description = isPaired
@@ -193,7 +195,10 @@ export class NonparametricExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.dunnTest(groups)
+      // 그룹 이름 생성
+      const groupNames = groups.map((_, i) => `Group ${i + 1}`)
+
+      const result = await pyodideStats.dunnTest(groups, groupNames)
 
       return {
         metadata: this.createMetadata("Dunn's 사후검정", groups.flat().length, startTime),

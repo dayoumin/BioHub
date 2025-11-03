@@ -51,7 +51,7 @@ export class AnovaExecutor extends BaseExecutor {
         mainResults: {
           statistic: anovaResult.fStatistic,
           pvalue: anovaResult.pValue,
-          df: anovaResult.df,
+          df: Array.isArray(anovaResult.df) ? anovaResult.df[0] : anovaResult.df,
           interpretation: `${this.interpretPValue(anovaResult.pValue)}. ${groups.length}개 그룹 간 평균 차이 검정`
         },
         additionalInfo: {
@@ -143,7 +143,13 @@ export class AnovaExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.repeatedMeasuresAnova(data)
+      // 피험자 ID와 시간 레이블 생성
+      const nSubjects = data.length
+      const nTimePoints = data[0]?.length || 0
+      const subjectIds = Array.from({ length: nSubjects }, (_, i) => `S${i + 1}`)
+      const timeLabels = Array.from({ length: nTimePoints }, (_, i) => `T${i + 1}`)
+
+      const result = await pyodideStats.repeatedMeasuresAnova(data, subjectIds, timeLabels)
 
       return {
         metadata: this.createMetadata('반복측정 분산분석', data.length * data[0].length, startTime),
@@ -217,7 +223,10 @@ export class AnovaExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
-      const result = await pyodideStats.gamesHowellTest(groups)
+      // 그룹 이름 생성
+      const groupNames = groups.map((_, i) => `Group ${i + 1}`)
+
+      const result = await pyodideStats.gamesHowellTest(groups, groupNames)
 
       return {
         metadata: this.createMetadata('Games-Howell 사후검정', groups.flat().length, startTime),

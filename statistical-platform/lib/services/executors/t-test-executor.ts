@@ -29,7 +29,11 @@ export class TTestExecutor extends BaseExecutor {
           pvalue: result.pValue,
           df: result.df,
           interpretation: `${this.interpretPValue(result.pValue)}. 표본 평균(${stats.mean.toFixed(2)})과 모집단 평균(${populationMean}) 간 차이 검정`,
-          confidenceInterval: result.confidenceInterval
+          confidenceInterval: result.confidenceInterval ? {
+            lower: result.confidenceInterval.lower,
+            upper: result.confidenceInterval.upper,
+            level: 0.95
+          } : undefined
         },
         additionalInfo: {
           effectSize: {
@@ -100,7 +104,11 @@ export class TTestExecutor extends BaseExecutor {
           pvalue: result.pvalue,
           df: result.df,
           interpretation: `${this.interpretPValue(result.pvalue)}. 그룹 1 평균(${stats1.mean.toFixed(2)})과 그룹 2 평균(${stats2.mean.toFixed(2)}) 간 차이`,
-          confidenceInterval: result.confidenceInterval
+          confidenceInterval: result.confidenceInterval ? {
+            lower: result.confidenceInterval.lower,
+            upper: result.confidenceInterval.upper,
+            level: 0.95
+          } : undefined
         },
         additionalInfo: {
           effectSize: {
@@ -161,7 +169,11 @@ export class TTestExecutor extends BaseExecutor {
           pvalue: result.pvalue,
           df: result.df,
           interpretation: `${this.interpretPValue(result.pvalue)}. 평균 차이: ${diffStats.mean.toFixed(2)}`,
-          confidenceInterval: result.confidenceInterval
+          confidenceInterval: result.confidenceInterval ? {
+            lower: result.confidenceInterval.lower,
+            upper: result.confidenceInterval.upper,
+            level: 0.95
+          } : undefined
         },
         additionalInfo: {
           effectSize: {

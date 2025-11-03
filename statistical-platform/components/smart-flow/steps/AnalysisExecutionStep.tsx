@@ -134,7 +134,7 @@ export function AnalysisExecutionStep({
       const result = await executor.executeMethod(
         selectedMethod,
         uploadedData,
-        variableMapping || {}
+        (variableMapping as Record<string, unknown>) || {}
       )
 
       if (isCancelled) return

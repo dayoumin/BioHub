@@ -211,11 +211,11 @@ export class SmartRecommender {
     }
     if (heteroscedastic) {
       methods.unshift({ id: 'welchAnova', name: 'Welch ANOVA', description: '등분산 가정 완화', category: 'anova' })
-      methods.unshift({ id: 'gamesHowell', name: 'Games-Howell', description: '사후검정(이분산)', category: 'posthoc' })
+      methods.unshift({ id: 'gamesHowell', name: 'Games-Howell', description: '사후검정(이분산)', category: 'anova' })
       matchScore += 0.2
     }
     if (smallSample) {
-      methods.unshift({ id: 'permutation', name: 'Permutation Test', description: '표본이 작을 때 견고', category: 'resampling' })
+      methods.unshift({ id: 'permutation', name: 'Permutation Test', description: '표본이 작을 때 견고', category: 'advanced' })
       matchScore += 0.1
     }
 
