@@ -4,7 +4,8 @@ import {
   ValidationResults,
   StatisticalMethod,
   AnalysisResult,
-  DataRow
+  DataRow,
+  StatisticalAssumptions
 } from '@/types/smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
@@ -34,26 +35,6 @@ export interface AnalysisHistory {
     analysisPurpose: string
     selectedMethod: StatisticalMethod | null
     results: AnalysisResult | null
-  }
-}
-
-// 통계적 가정 검정 결과
-export interface StatisticalAssumptions {
-  normality?: {
-    shapiroWilk?: { statistic: number; pValue: number; isNormal: boolean }
-    kolmogorovSmirnov?: { statistic: number; pValue: number; isNormal: boolean }
-  }
-  homogeneity?: {
-    levene?: { statistic: number; pValue: number; equalVariance: boolean }
-    bartlett?: { statistic: number; pValue: number; equalVariance: boolean }
-  }
-  independence?: {
-    durbinWatson?: { statistic: number; interpretation: string; isIndependent: boolean }
-  }
-  summary?: {
-    canUseParametric: boolean
-    reasons: string[]
-    recommendations: string[]
   }
 }
 

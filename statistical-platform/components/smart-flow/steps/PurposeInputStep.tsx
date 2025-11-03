@@ -158,6 +158,14 @@ export function PurposeInputStep({
     return () => clearTimeout(timer)
   }, [purpose, validationResults, data, assumptionResults])
 
+  // 두 추천 소스를 병합 (id 기준으로 중복 제거, Smart 우선 노출)
+  const mergedRecommendations = useMemo(() => {
+    const map = new Map<string, StatisticalMethod>()
+    for (const m of smartMethods) map.set(m.id, m)
+    for (const m of recommendedMethods) if (!map.has(m.id)) map.set(m.id, m)
+    return Array.from(map.values())
+  }, [smartMethods, recommendedMethods])
+
   // UX 개선: 3단계 진입 시 기본 탭 자동 선택(차이/비교) 및 추천 패널 자동 펼침
   useEffect(() => {
     if (!selectedQuestionType) {
@@ -167,14 +175,6 @@ export function PurposeInputStep({
       setShowRecommendations(true)
     }
   }, [selectedQuestionType, mergedRecommendations.length, showRecommendations])
-
-  // 두 추천 소스를 병합 (id 기준으로 중복 제거, Smart 우선 노출)
-  const mergedRecommendations = useMemo(() => {
-    const map = new Map<string, StatisticalMethod>()
-    for (const m of smartMethods) map.set(m.id, m)
-    for (const m of recommendedMethods) if (!map.has(m.id)) map.set(m.id, m)
-    return Array.from(map.values())
-  }, [smartMethods, recommendedMethods])
 
   // 선택된 질문 유형에 따른 방법들
   const filteredMethods = useMemo(() => {

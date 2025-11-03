@@ -25,12 +25,6 @@ export function FloatingChatbot() {
   const [isMinimized, setIsMinimized] = useState(false)
   const [isEnabled, setIsEnabled] = useState(true)
 
-  // /chatbot 페이지 또는 /chatbot로 시작하는 모든 경로에서는 플로팅 버튼 숨기기
-  const isChatbotPage = pathname === '/chatbot' || pathname.startsWith('/chatbot/')
-  if (isChatbotPage) {
-    return null
-  }
-
   // 설정 로드
   useEffect(() => {
     const settings = ChatStorage.loadSettings()
@@ -59,6 +53,12 @@ export function FloatingChatbot() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
+
+  // /chatbot 페이지 또는 /chatbot로 시작하는 모든 경로에서는 플로팅 버튼 숨기기
+  const isChatbotPage = pathname === '/chatbot' || pathname.startsWith('/chatbot/')
+  if (isChatbotPage) {
+    return null
+  }
 
   const handleToggle = useCallback(() => {
     setIsOpen((prev) => !prev)
