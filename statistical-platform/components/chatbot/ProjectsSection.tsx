@@ -100,9 +100,16 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
               <div key={project.id}>
                 {/* 프로젝트 헤더 */}
                 <div className="group px-2">
-                  <button
+                  <div
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent rounded-md transition-colors cursor-pointer"
                     onClick={() => onToggleProject(project.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent rounded-md transition-colors"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        onToggleProject(project.id)
+                      }
+                    }}
                   >
                     {isExpanded ? (
                       <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -124,10 +131,9 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                       className="hidden group-hover:flex items-center gap-1 flex-shrink-0"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-6 w-6 hover:bg-accent"
                         onClick={(e) => {
                           e.stopPropagation()
                           onEditProject(project.id)
@@ -135,11 +141,10 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                         title="편집"
                       >
                         <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive hover:text-destructive"
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-6 w-6 text-destructive hover:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation()
                           onDeleteProject(project.id)
@@ -147,9 +152,9 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                         title="삭제"
                       >
                         <Trash2 className="h-3 w-3" />
-                      </Button>
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 </div>
 
                 {/* 하위 세션 목록 (펼쳤을 때) */}
