@@ -25,6 +25,9 @@ import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
 import { FavoritesSection } from '@/components/chatbot/FavoritesSection'
 import { ProjectsSection } from '@/components/chatbot/ProjectsSection'
 import { HistorySection } from '@/components/chatbot/HistorySection'
+import { ProjectDialog } from '@/components/chatbot/ProjectDialog'
+import { MoveSessionDialog } from '@/components/chatbot/MoveSessionDialog'
+import { DeleteConfirmDialog } from '@/components/chatbot/DeleteConfirmDialog'
 
 const QUICK_PROMPTS = [
   {
@@ -182,6 +185,25 @@ export default function ChatbotPage() {
     setDeleteTarget({ type: 'project', id: projectId })
     setIsDeleteDialogOpen(true)
   }, [])
+
+  // 삭제 확인
+  const handleConfirmDelete = useCallback(() => {
+    if (!deleteTarget) return
+
+    if (deleteTarget.type === 'session') {
+      ChatStorage.deleteSession(deleteTarget.id)
+      // 삭제한 세션이 현재 세션이면 새 세션 생성
+      if (currentSessionId === deleteTarget.id) {
+        handleNewChat()
+      }
+    } else {
+      ChatStorage.deleteProject(deleteTarget.id)
+    }
+
+    setIsDeleteDialogOpen(false)
+    setDeleteTarget(null)
+    triggerUpdate()
+  }, [deleteTarget, currentSessionId, handleNewChat, triggerUpdate])
 
   // 키보드 단축키 (Ctrl+N: 새 대화)
   useEffect(() => {
@@ -344,10 +366,27 @@ export default function ChatbotPage() {
         )}
       </main>
 
-      {/* TODO: Phase 4 - 모달 구현 */}
-      {/* <ProjectDialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen} projectId={editingProjectId} /> */}
-      {/* <MoveSessionDialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen} sessionId={moveDialogSessionId} /> */}
-      {/* <DeleteConfirmDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen} target={deleteTarget} onConfirm={handleConfirmDelete} /> */}
+      {/* 모달들 */}
+      <ProjectDialog
+        open={isProjectDialogOpen}
+        onOpenChange={setIsProjectDialogOpen}
+        projectId={editingProjectId}
+        onComplete={triggerUpdate}
+      />
+
+      <MoveSessionDialog
+        open={isMoveDialogOpen}
+        onOpenChange={setIsMoveDialogOpen}
+        sessionId={moveDialogSessionId}
+        onComplete={triggerUpdate}
+      />
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        target={deleteTarget}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }
