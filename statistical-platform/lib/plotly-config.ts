@@ -67,7 +67,7 @@ export const getDefaultLayout = (customLayout?: Partial<Layout>): Partial<Layout
       showgrid: true,
       gridwidth: 1,
       griddash: 'dot'
-    },
+    } as any,
     yaxis: {
       gridcolor: '#E0E0E0',
       zerolinecolor: '#808080',
@@ -78,7 +78,7 @@ export const getDefaultLayout = (customLayout?: Partial<Layout>): Partial<Layout
       showgrid: true,
       gridwidth: 1,
       griddash: 'dot'
-    },
+    } as any,
     hoverlabel: {
       font: { ...DEFAULT_FONT, color: '#FFFFFF' },
       bgcolor: 'rgba(0, 0, 0, 0.8)',

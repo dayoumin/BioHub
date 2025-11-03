@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import * as viz from '@/lib/pyodide-visualizations'
-import { PyodideStatusCard } from '@/components/analysis/pyodide-status-card'
+// import { PyodideStatusCard } from '@/components/analysis/pyodide-status-card'
 import { 
   subscribeToPyodide, 
   getPyodideState,
@@ -88,7 +88,7 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           }
           
           const data = (dataset.data ?? [])
-            .map(row => parseFloat(row[selectedColumns[0]]))
+            .map(row => parseFloat(String(row[selectedColumns[0]])))
             .filter(val => !isNaN(val))
           
           imageData = await viz.createHistogram(
@@ -106,9 +106,9 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           }
           
           const groups = new Map<string, number[]>()
-          dataset.data.forEach(row => {
-            const group = row[groupColumn]
-            const value = parseFloat(row[selectedColumns[0]])
+          ;(dataset.data ?? []).forEach(row => {
+            const group = String(row[groupColumn])
+            const value = parseFloat(String(row[selectedColumns[0]]))
             
             if (!isNaN(value)) {
               if (!groups.has(group)) {
@@ -162,7 +162,7 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           }
           
           const data = (dataset.data ?? [])
-            .map(row => parseFloat(row[selectedColumns[0]]))
+            .map(row => parseFloat(String(row[selectedColumns[0]])))
             .filter(val => !isNaN(val))
           
           imageData = await viz.createQQPlot(
@@ -178,9 +178,9 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           }
           
           const groups = new Map<string, number[]>()
-          dataset.data.forEach(row => {
-            const group = row[groupColumn]
-            const value = parseFloat(row[selectedColumns[0]])
+          ;(dataset.data ?? []).forEach(row => {
+            const group = String(row[groupColumn])
+            const value = parseFloat(String(row[selectedColumns[0]]))
             
             if (!isNaN(value)) {
               if (!groups.has(group)) {
