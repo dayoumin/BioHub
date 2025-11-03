@@ -11,6 +11,7 @@ import { VariableSelectorPremium } from '@/components/variable-selection/Variabl
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 import { VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
 interface VariableSelectionStepProps {
   onComplete?: () => void

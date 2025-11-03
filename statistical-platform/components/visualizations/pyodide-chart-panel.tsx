@@ -32,7 +32,7 @@ interface PyodideChartPanelProps {
 export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
   const { datasets } = useAppStore()
   const [pyodideState, setPyodideState] = useState<PyodideState>(getPyodideState())
-  const [chartType, setChartType] = useState<string>('histogram')
+  const [chartType, setChartType] = useState<'histogram' | 'boxplot' | 'scatter'>('histogram')
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
   const [groupColumn, setGroupColumn] = useState<string>('')
   const [chartImage, setChartImage] = useState<string | null>(null)
@@ -136,9 +136,9 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           const xData: number[] = []
           const yData: number[] = []
 
-          (dataset.data ?? []).forEach(row => {
-            const x = parseFloat(row[selectedColumns[0]])
-            const y = parseFloat(row[selectedColumns[1]])
+          (dataset.data ?? []).forEach((row: Record<string, unknown>) => {
+            const x = parseFloat(String(row[selectedColumns[0]]))
+            const y = parseFloat(String(row[selectedColumns[1]]))
             
             if (!isNaN(x) && !isNaN(y)) {
               xData.push(x)
@@ -234,11 +234,11 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
   
   return (
     <div className="space-y-4">
-      {/* Pyodide 상태 카드 */}
-      <PyodideStatusCard 
+      {/* Pyodide 상태 카드 - PyodideStatusCard는 아직 구현되지 않음 */}
+      {/* <PyodideStatusCard
         pyodideState={pyodideState}
         onStartLoading={loadPyodideRuntime}
-      />
+      /> */}
       
       {/* Chart Controls */}
       <Card>

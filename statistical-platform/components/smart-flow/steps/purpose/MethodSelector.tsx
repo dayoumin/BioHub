@@ -2,7 +2,7 @@
 
 import { Check } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { StatisticalMethod } from '@/lib/statistics/method-mapping'
+import type { StatisticalMethod } from '@/types/smart-flow'
 
 interface MethodSelectorProps {
   methods: StatisticalMethod[]

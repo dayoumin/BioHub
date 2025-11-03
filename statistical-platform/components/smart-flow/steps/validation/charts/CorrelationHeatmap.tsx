@@ -31,9 +31,9 @@ export const CorrelationHeatmap = memo(function CorrelationHeatmap({
         texttemplate: '%{text}',
         textfont: { size: 10, color: '#000' },
         hovertemplate: '%{x} vs %{y}: %{z:.2f}<extra></extra>'
-      } as Data]}
+      } as unknown as Data]}
       layout={getHeatmapLayout({
-        title: '변수 간 상관관계',
+        title: { text: '변수 간 상관관계' },
         height: height
       })}
       config={{

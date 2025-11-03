@@ -57,13 +57,31 @@ function createPCAHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '데이터 행렬을 제공하세요' }
     }
 
-    const result = await context.pyodideCore.pca(dataMatrix)
+    // Convert dataMatrix to numeric 2D array
+    const numericData = (dataMatrix as unknown[]).map(row => {
+      if (Array.isArray(row)) {
+        return row.map(v =>
+          typeof v === 'number' ? v :
+          typeof v === 'string' ? parseFloat(v) : NaN
+        )
+      }
+      return [NaN]
+    }) as number[][]
+
+    const nComponentsNum = typeof nComponents === 'number' ? nComponents : 2
+    const result = await context.pyodideCore.pca(numericData, nComponentsNum)
+
+    // Get components and totalExplainedVariance from result safely
+    const components = (result as Record<string, unknown>)['components']
+    const componentCount = Array.isArray(components) ? components.length : 0
+    const totalExplainedVariance = context.pyodideCore.getStatisticValue(result, 'totalExplainedVariance')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: '주성분 개수', value: result.components.length },
-          { name: '누적 설명 분산', value: (result.totalExplainedVariance * 100).toFixed(2) + '%' }
+          { name: '주성분 개수', value: componentCount },
+          { name: '누적 설명 분산', value: (totalExplainedVariance * 100).toFixed(2) + '%' }
         ],
         interpretation: `주성분 분석 결과`
       }
@@ -85,14 +103,29 @@ function createFactorAnalysisHandler(context: CalculatorContext): MethodHandler 
       return { success: false, error: '데이터 행렬을 제공하세요' }
     }
 
-    const nFactorsNum = typeof nFactors === 'number' ? nFactors : 2
+    // Convert dataMatrix to numeric 2D array
+    const numericData = (dataMatrix as unknown[]).map(row => {
+      if (Array.isArray(row)) {
+        return row.map(v =>
+          typeof v === 'number' ? v :
+          typeof v === 'string' ? parseFloat(v) : NaN
+        )
+      }
+      return [NaN]
+    }) as number[][]
 
-    const result = await context.pyodideCore.factorAnalysis(dataMatrix, { nFactors: nFactorsNum })
+    const nFactorsNum = typeof nFactors === 'number' ? nFactors : 2
+    const result = await context.pyodideCore.factorAnalysis(numericData, nFactorsNum)
+
+    // Get loadings from result safely
+    const loadings = (result as Record<string, unknown>)['loadings']
+    const loadingCount = Array.isArray(loadings) ? loadings.length : 0
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: '요인 개수', value: result.loadings.length }
+          { name: '요인 개수', value: loadingCount }
         ],
         interpretation: `요인분석 결과`
       }
@@ -114,15 +147,31 @@ function createClusterAnalysisHandler(context: CalculatorContext): MethodHandler
       return { success: false, error: '데이터 행렬을 제공하세요' }
     }
 
-    const nClustersNum = typeof nClusters === 'number' ? nClusters : 3
+    // Convert dataMatrix to numeric 2D array
+    const numericData = (dataMatrix as unknown[]).map(row => {
+      if (Array.isArray(row)) {
+        return row.map(v =>
+          typeof v === 'number' ? v :
+          typeof v === 'string' ? parseFloat(v) : NaN
+        )
+      }
+      return [NaN]
+    }) as number[][]
 
-    const result = await context.pyodideCore.clusterAnalysis(dataMatrix, { nClusters: nClustersNum })
+    const nClustersNum = typeof nClusters === 'number' ? nClusters : 3
+    const result = await context.pyodideCore.clusterAnalysis(numericData, nClustersNum)
+
+    // Get clusters from result safely
+    const clusters = (result as Record<string, unknown>)['clusters']
+    const uniqueClusters = Array.isArray(clusters) ? new Set(clusters).size : 0
+    const silhouetteScore = context.pyodideCore.getStatisticValue(result, 'silhouetteScore')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: '군집 개수', value: new Set(result.clusters).size },
-          { name: 'Silhouette Score', value: result.silhouetteScore.toFixed(4) }
+          { name: '군집 개수', value: uniqueClusters },
+          { name: 'Silhouette Score', value: silhouetteScore.toFixed(4) }
         ],
         interpretation: `군집분석 결과`
       }

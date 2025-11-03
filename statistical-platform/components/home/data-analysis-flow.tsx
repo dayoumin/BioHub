@@ -26,9 +26,26 @@ interface DataAnalysisFlowProps {
   onAnalysisComplete?: () => void
 }
 
+interface ColumnInfo {
+  name: string
+  type: string
+}
+
+interface ValidationResult {
+  warnings?: string[]
+  errors?: string[]
+}
+
+interface DatasetInfo {
+  name: string
+  rowCount: number
+  columns: ColumnInfo[]
+  validation?: ValidationResult
+}
+
 // 규칙 기반 통계 방법 추천 (AI 없이)
-function recommendStatisticalMethod(purpose: string, dataInfo: any) {
-  const recommendations = []
+function recommendStatisticalMethod(purpose: string, dataInfo: { columns: ColumnInfo[]; rowCount: number }) {
+  const recommendations: Array<{ method: string; reason: string; icon: any }> = []
   
   // 키워드 기반 추천
   const purposeLower = purpose.toLowerCase()
@@ -86,8 +103,8 @@ function recommendStatisticalMethod(purpose: string, dataInfo: any) {
 }
 
 export function DataAnalysisFlow({ datasetId, onAnalysisComplete }: DataAnalysisFlowProps) {
-  const { getDataset } = useAppStore() as { getDataset?: (id: string) => unknown }
-  const dataset = getDataset?.(datasetId)
+  const { getDataset } = useAppStore() as { getDataset?: (id: string) => DatasetInfo | unknown }
+  const dataset = getDataset?.(datasetId) as DatasetInfo | undefined
   const [step, setStep] = useState(2) // Step 1은 이미 완료 (파일 업로드)
   const [purpose, setPurpose] = useState("")
   const [dataType, setDataType] = useState("")

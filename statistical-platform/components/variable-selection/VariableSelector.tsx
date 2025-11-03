@@ -301,8 +301,8 @@ export function VariableSelector({
           const depVar = assignments['dependent']
           if (depVar && typeof depVar === 'string') {
             const column = dataAnalysis.columns.find(c => c.name === depVar)
-            if (column && column.skewness && Math.abs(column.skewness) > 2) {
-              warns.push(`${depVar}의 분포가 정규성을 만족하지 않을 수 있습니다 (왜도: ${column.skewness.toFixed(2)})`)
+            if (column && column.statistics?.skewness && Math.abs(column.statistics.skewness) > 2) {
+              warns.push(`${depVar}의 분포가 정규성을 만족하지 않을 수 있습니다 (왜도: ${column.statistics.skewness.toFixed(2)})`)
             }
           }
         }
@@ -485,7 +485,7 @@ export function VariableSelector({
 
                               {column.type === 'continuous' && (
                                 <div className="text-xs text-muted-foreground">
-                                  범위: {column.min?.toFixed(2)} ~ {column.max?.toFixed(2)}
+                                  범위: {column.statistics?.min?.toFixed(2)} ~ {column.statistics?.max?.toFixed(2)}
                                 </div>
                               )}
 

@@ -63,7 +63,8 @@
       "Bash(xargs taskkill:*)",
       "Bash(xargs:*)",
       "Bash(rm:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(dir /s /b *rag*)"
     ],
     "deny": [],
     "ask": []

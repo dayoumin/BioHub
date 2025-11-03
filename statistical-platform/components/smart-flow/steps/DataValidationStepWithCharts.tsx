@@ -508,7 +508,7 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
                         text: correlationMatrix.matrix.map(row => row.map(val => val.toFixed(2))),
                         texttemplate: '%{text}',
                         textfont: { size: 10 }
-                      } as Data]}
+                      } as unknown as Data]}
                       layout={getHeatmapLayout({
                         title: { text: 'Pearson 상관계수' },
                         height: 400

@@ -13,8 +13,7 @@ import {
   STATISTICAL_METHODS,
   getMethodsByQuestionType,
   recommendMethods,
-  checkMethodRequirements,
-  type StatisticalMethod
+  checkMethodRequirements
 } from '@/lib/statistics/method-mapping'
 import {
   autoMapVariables,
@@ -24,6 +23,7 @@ import {
   type ColumnInfo
 } from '@/lib/statistics/variable-mapping'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
+import type { StatisticalMethod } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { SmartRecommender } from '@/lib/services/smart-recommender'
@@ -162,7 +162,16 @@ export function PurposeInputStep({
   const mergedRecommendations = useMemo(() => {
     const map = new Map<string, StatisticalMethod>()
     for (const m of smartMethods) map.set(m.id, m)
-    for (const m of recommendedMethods) if (!map.has(m.id)) map.set(m.id, m)
+    for (const m of recommendedMethods) {
+      if (!map.has(m.id)) {
+        // method-mapping.StatisticalMethod를 smart-flow.StatisticalMethod로 캐스팅
+        const smartFlowMethod: StatisticalMethod = {
+          ...m,
+          category: m.category as 'descriptive' | 't-test' | 'anova' | 'regression' | 'nonparametric' | 'advanced'
+        }
+        map.set(m.id, smartFlowMethod)
+      }
+    }
     return Array.from(map.values())
   }, [smartMethods, recommendedMethods])
 
@@ -179,7 +188,12 @@ export function PurposeInputStep({
   // 선택된 질문 유형에 따른 방법들
   const filteredMethods = useMemo(() => {
     if (!selectedQuestionType) return []
-    return getMethodsByQuestionType(selectedQuestionType)
+    const methods = getMethodsByQuestionType(selectedQuestionType)
+    // method-mapping.StatisticalMethod를 smart-flow.StatisticalMethod로 변환
+    return methods.map((m: any) => ({
+      ...m,
+      category: m.category as 'descriptive' | 't-test' | 'anova' | 'regression' | 'nonparametric' | 'advanced'
+    })) as StatisticalMethod[]
   }, [selectedQuestionType])
 
   // 방법 선택 시 요구사항 체크

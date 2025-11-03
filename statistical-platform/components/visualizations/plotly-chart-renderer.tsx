@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react'
+// @ts-expect-error - plotly.js-basic-dist types not available
 import Plotly from 'plotly.js-basic-dist'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'

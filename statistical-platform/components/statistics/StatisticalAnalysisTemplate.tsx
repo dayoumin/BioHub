@@ -13,8 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { StatisticalTest } from '@/lib/statistics/ui-config'
 
 // 덩치 큰 모듈을 동적으로 import
-let Papa: typeof import('papaparse').default | null = null
-let StatisticalCalculator: any | null = null
+let Papa: any = null
+let StatisticalCalculator: any = null
 
 // Preload 함수들
 const preloadPapa = async () => {
@@ -122,12 +122,15 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
       complete: (result: { data: unknown[] }) => {
         if (result.data && result.data.length > 0) {
           // 빈 행 제거
-          const cleanData = result.data.filter((row: any) =>
-            Object.values(row).some(val => val !== null && val !== undefined && val !== '')
-          )
+          const cleanData = (result.data as unknown[]).filter((row: unknown) => {
+            if (typeof row !== 'object' || row === null) return false
+            return Object.values(row).some(val => val !== null && val !== undefined && val !== '')
+          })
 
           setUploadedData(cleanData)
-          setColumns(Object.keys(cleanData[0]))
+          if (cleanData.length > 0 && typeof cleanData[0] === 'object' && cleanData[0] !== null) {
+            setColumns(Object.keys(cleanData[0]))
+          }
           setActiveTab('parameters')
           showNotification('success', `데이터 업로드 완료: ${cleanData.length}개 행`)
         }

@@ -19,7 +19,7 @@ import {
 import { useAppStore } from '@/lib/store'
 import * as plotlyViz from '@/lib/pyodide-plotly-visualizations'
 import { PlotlyChartRenderer } from './plotly-chart-renderer'
-import { PyodideStatusCard } from '@/components/analysis/pyodide-status-card'
+// import { PyodideStatusCard } from '@/components/analysis/pyodide-status-card' // 아직 구현되지 않음
 import { 
   subscribeToPyodide, 
   getPyodideState,
@@ -34,7 +34,7 @@ interface PyodidePlotlyChartPanelProps {
 export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelProps) {
   const { datasets } = useAppStore()
   const [pyodideState, setPyodideState] = useState<PyodideState>(getPyodideState())
-  const [chartType, setChartType] = useState<string>('histogram')
+  const [chartType, setChartType] = useState<'histogram' | 'boxplot' | 'scatter'>('histogram')
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
   const [groupColumn, setGroupColumn] = useState<string>('')
   const [chartData, setChartData] = useState<any>(null)
@@ -163,11 +163,12 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           
           const xData: number[] = []
           const yData: number[] = []
-          
-          dataset.data.forEach(row => {
-            const x = parseFloat(String(row[selectedColumns[0]]))
-            const y = parseFloat(String(row[selectedColumns[1]]))
-            
+
+          (dataset.data ?? []).forEach((row: unknown) => {
+            if (typeof row !== 'object' || row === null) return
+            const x = parseFloat(String((row as Record<string, unknown>)[selectedColumns[0]]))
+            const y = parseFloat(String((row as Record<string, unknown>)[selectedColumns[1]]))
+
             if (!isNaN(x) && !isNaN(y)) {
               xData.push(x)
               yData.push(y)
@@ -192,8 +193,9 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           const xData: number[] = []
           const yData: number[] = []
           const zData: number[] = []
-          
-          dataset.data.forEach(row => {
+
+          (dataset.data ?? []).forEach((row: unknown) => {
+            if (typeof row !== 'object' || row === null) return
             const x = parseFloat(String(row[selectedColumns[0]]))
             const y = parseFloat(String(row[selectedColumns[1]]))
             const z = parseFloat(String(row[selectedColumns[2]]))
@@ -281,11 +283,11 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
   
   return (
     <div className="space-y-4">
-      {/* Pyodide 상태 카드 */}
-      <PyodideStatusCard 
+      {/* Pyodide 상태 카드 - 아직 구현되지 않음 */}
+      {/* <PyodideStatusCard
         pyodideState={pyodideState}
         onStartLoading={loadPyodideRuntime}
-      />
+      /> */}
       
       {/* Chart Controls */}
       <Card>

@@ -2,8 +2,8 @@
 
 import { Check, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { StatisticalMethod } from '@/lib/statistics/method-mapping'
 import { QUESTION_TYPES } from '@/lib/statistics/method-mapping'
+import type { StatisticalMethod } from '@/types/smart-flow'
 
 interface RecommendedMethodsProps {
   methods: StatisticalMethod[]

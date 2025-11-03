@@ -9,7 +9,6 @@
 
 export { VariableSelector } from './VariableSelector'
 export { VariableSelectorSimple } from './VariableSelectorSimple'
-export { VariableSelectorPremium } from './VariableSelectorPremium'
-export { ProfessionalVariableSelector } from './ProfessionalVariableSelector'
+// export { VariableSelectorPremium } from './VariableSelectorPremium' // 아직 UI 컴포넌트 구현 필요
 
 export type { VariableAssignment } from './VariableSelector'

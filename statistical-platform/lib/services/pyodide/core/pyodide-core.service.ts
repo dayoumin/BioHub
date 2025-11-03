@@ -133,6 +133,34 @@ export interface StatisticsResult {
   sValue?: number  // S-statistic
   qValue?: number  // Q-statistic (Cochran)
 
+  // 기술통계 관련
+  mean?: number
+  median?: number
+  mode?: number
+  std?: number
+  variance?: number
+  min?: number
+  max?: number
+  range?: number
+  q1?: number
+  q3?: number
+  iqr?: number
+  skewness?: number
+  kurtosis?: number
+
+  // 이상치 탐지 관련
+  outlierIndices?: number[]
+  outlierValues?: number[]
+
+  // 비율 검정 관련
+  sampleProportion?: number
+  nullProportion?: number
+  pValueExact?: number
+  significant?: boolean
+
+  // 신뢰도 분석 관련
+  alpha?: number  // Cronbach's alpha
+
   // 일반 결과
   interpretation?: string
   success?: boolean

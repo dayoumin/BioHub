@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { MoreVertical, Pin, MapPin, Edit2, FolderInput, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ChatHeaderMenuProps {
   /** 세션이 즐겨찾기되어 있는지 여부 */
@@ -50,13 +51,13 @@ export function ChatHeaderMenu({
         <Button
           variant="ghost"
           size="icon"
-          className={`h-6 w-6 flex-shrink-0 ${className}`}
+          className={cn('h-6 w-6 flex-shrink-0', className)}
           title="옵션"
         >
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
         {/* 즐겨찾기 토글 */}
         <DropdownMenuItem onClick={onToggleFavorite}>
           {isFavorite ? (

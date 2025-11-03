@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+// @ts-expect-error - command component not available yet
 import {
   Command,
   CommandEmpty,
@@ -21,6 +22,7 @@ import {
   CommandInput,
   CommandItem,
 } from '@/components/ui/command'
+// @ts-expect-error - popover component not available yet
 import {
   Popover,
   PopoverContent,

@@ -80,14 +80,20 @@ function createMeanHandler(context: CalculatorContext): MethodHandler {
     // Pyodide descriptiveStats 호출하여 평균 추출
     const result = await context.pyodideCore.descriptiveStats(values)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['mean'])) {
+      return { success: false, error: '평균 계산에 실패했습니다' }
+    }
+
+    const mean = context.pyodideCore.getStatisticValue(result, 'mean')
+
     return {
       success: true,
       data: {
         metrics: [
           { name: '표본 크기', value: values.length },
-          { name: '평균', value: result.mean.toFixed(4) }
+          { name: '평균', value: mean.toFixed(4) }
         ],
-        interpretation: `${column}의 평균은 ${result.mean.toFixed(2)}입니다.`
+        interpretation: `${column}의 평균은 ${mean.toFixed(2)}입니다.`
       }
     }
   }
@@ -117,14 +123,20 @@ function createMedianHandler(context: CalculatorContext): MethodHandler {
     // Pyodide descriptiveStats 호출하여 중앙값 추출
     const result = await context.pyodideCore.descriptiveStats(values)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['median'])) {
+      return { success: false, error: '중앙값 계산에 실패했습니다' }
+    }
+
+    const median = context.pyodideCore.getStatisticValue(result, 'median')
+
     return {
       success: true,
       data: {
         metrics: [
           { name: '표본 크기', value: values.length },
-          { name: '중앙값', value: result.median.toFixed(4) }
+          { name: '중앙값', value: median.toFixed(4) }
         ],
-        interpretation: `${column}의 중앙값은 ${result.median.toFixed(2)}입니다.`
+        interpretation: `${column}의 중앙값은 ${median.toFixed(2)}입니다.`
       }
     }
   }
@@ -156,7 +168,7 @@ function createModeHandler(context: CalculatorContext): MethodHandler {
 
     // SciPy의 mode 값 사용 (JavaScript 계산 제거)
     // descriptiveStats에서 이미 SciPy로 계산된 mode 반환
-    const modeValue = result.mean // TODO: descriptiveStats 타입에 mode 추가 필요
+    const modeValue = context.pyodideCore.getStatisticValue(result, 'mode')
 
     return {
       success: true,
@@ -200,33 +212,57 @@ function createDescriptiveStatsHandler(context: CalculatorContext): MethodHandle
 
     const result = await context.pyodideCore.descriptiveStats(values)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['mean', 'median', 'std', 'min', 'max'])) {
+      return { success: false, error: '기술통계 계산에 실패했습니다' }
+    }
+
+    const mean = context.pyodideCore.getStatisticValue(result, 'mean')
+    const median = context.pyodideCore.getStatisticValue(result, 'median')
+    const std = context.pyodideCore.getStatisticValue(result, 'std')
+    const min = context.pyodideCore.getStatisticValue(result, 'min')
+    const max = context.pyodideCore.getStatisticValue(result, 'max')
+    const skewness = context.pyodideCore.getStatisticValue(result, 'skewness')
+    const kurtosis = context.pyodideCore.getStatisticValue(result, 'kurtosis')
+    const q1 = context.pyodideCore.getStatisticValue(result, 'q1')
+    const q3 = context.pyodideCore.getStatisticValue(result, 'q3')
+
     return {
       success: true,
       data: {
         metrics: [
           { name: '표본 크기', value: values.length },
-          { name: '평균', value: result.mean.toFixed(4) },
-          { name: '중앙값', value: result.median.toFixed(4) },
-          { name: '표준편차', value: result.std.toFixed(4) },
-          { name: '최솟값', value: result.min.toFixed(4) },
-          { name: '최댓값', value: result.max.toFixed(4) }
+          { name: '평균', value: mean.toFixed(4) },
+          { name: '중앙값', value: median.toFixed(4) },
+          { name: '표준편차', value: std.toFixed(4) },
+          { name: '최솟값', value: min.toFixed(4) },
+          { name: '최댓값', value: max.toFixed(4) }
         ],
         tables: [{
           name: '기술통계량 상세',
           data: [
-            { 통계량: '평균 (Mean)', 값: result.mean.toFixed(4) },
-            { 통계량: '중앙값 (Median)', 값: result.median.toFixed(4) },
-            { 통계량: '표준편차 (SD)', 값: result.std.toFixed(4) },
-            { 통계량: '분산 (Variance)', 값: (result.std * result.std).toFixed(4) },
-            { 통계량: '왜도 (Skewness)', 값: result.skewness.toFixed(4) },
-            { 통계량: '첨도 (Kurtosis)', 값: result.kurtosis.toFixed(4) },
-            { 통계량: '범위 (Range)', 값: (result.max - result.min).toFixed(4) },
-            { 통계량: 'Q1 (25%)', 값: result.q1.toFixed(4) },
-            { 통계량: 'Q3 (75%)', 값: result.q3.toFixed(4) },
-            { 통계량: 'IQR', 값: (result.q3 - result.q1).toFixed(4) }
+            { 통계량: '평균 (Mean)', 값: mean.toFixed(4) },
+            { 통계량: '중앙값 (Median)', 값: median.toFixed(4) },
+            { 통계량: '표준편차 (SD)', 값: std.toFixed(4) },
+            { 통계량: '분산 (Variance)', 값: (std * std).toFixed(4) },
+            { 통계량: '왜도 (Skewness)', 값: skewness.toFixed(4) },
+            { 통계량: '첨도 (Kurtosis)', 값: kurtosis.toFixed(4) },
+            { 통계량: '범위 (Range)', 값: (max - min).toFixed(4) },
+            { 통계량: 'Q1 (25%)', 값: q1.toFixed(4) },
+            { 통계량: 'Q3 (75%)', 값: q3.toFixed(4) },
+            { 통계량: 'IQR', 값: (q3 - q1).toFixed(4) }
           ]
         }],
-        interpretation: interpretDescriptiveStats(result)
+        interpretation: interpretDescriptiveStats({
+          mean,
+          median,
+          std,
+          min,
+          max,
+          skewness,
+          kurtosis,
+          q1,
+          q3
+        })
       }
     }
   }
@@ -261,14 +297,21 @@ function createNormalityHandler(context: CalculatorContext): MethodHandler {
     const alphaVal = paramsObj.alpha
     const alpha = typeof alphaVal === 'number' ? alphaVal : 0.05
     const result = await context.pyodideCore.shapiroWilkTest(values)
-    const isNormal = result.pValue > alpha
+
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue'])) {
+      return { success: false, error: '정규성 검정에 실패했습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+    const isNormal = pValue > alpha
 
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'Shapiro-Wilk 통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) },
+          { name: 'Shapiro-Wilk 통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) },
           { name: '유의수준', value: alpha }
         ],
         tables: [{
@@ -276,13 +319,13 @@ function createNormalityHandler(context: CalculatorContext): MethodHandler {
           data: [
             { 항목: '검정 방법', 값: 'Shapiro-Wilk Test' },
             { 항목: '표본 크기', 값: values.length },
-            { 항목: '검정통계량', 값: result.statistic.toFixed(4) },
-            { 항목: 'p-value', 값: result.pValue.toFixed(4) },
+            { 항목: '검정통계량', 값: statistic.toFixed(4) },
+            { 항목: 'p-value', 값: pValue.toFixed(4) },
             { 항목: '유의수준 (α)', 값: alpha },
             { 항목: '정규성 여부', 값: isNormal ? '정규분포를 따름' : '정규분포를 따르지 않음' }
           ]
         }],
-        interpretation: `p-value (${result.pValue.toFixed(4)})가 유의수준 (${alpha})${
+        interpretation: `p-value (${pValue.toFixed(4)})가 유의수준 (${alpha})${
           isNormal ? '보다 크므로' : '보다 작으므로'
         } 데이터가 정규분포를 ${isNormal ? '따른다고' : '따르지 않는다고'} 볼 수 있습니다.`
       }
@@ -322,22 +365,29 @@ function createOutliersHandler(context: CalculatorContext): MethodHandler {
       : 'iqr' as const
     const result = await context.pyodideCore.outlierDetection(values, method)
 
+    // Get outlierIndices from result safely
+    const outlierIndices = (result as Record<string, unknown>)['outlierIndices']
+    const indices = Array.isArray(outlierIndices) ? outlierIndices : []
+
     return {
       success: true,
       data: {
         metrics: [
           { name: '전체 데이터 수', value: values.length },
-          { name: '이상치 개수', value: result.outlierIndices.length },
-          { name: '이상치 비율', value: ((result.outlierIndices.length / values.length) * 100).toFixed(2) + '%' }
+          { name: '이상치 개수', value: indices.length },
+          { name: '이상치 비율', value: ((indices.length / values.length) * 100).toFixed(2) + '%' }
         ],
         tables: [{
           name: '이상치 목록',
-          data: result.outlierIndices.map((idx: number) => ({
-            인덱스: idx,
-            값: values[idx].toFixed(4)
-          }))
+          data: indices.map((idx: unknown) => {
+            const idxNum = typeof idx === 'number' ? idx : 0
+            return {
+              인덱스: idxNum,
+              값: values[idxNum]?.toFixed(4) ?? '?'
+            }
+          })
         }],
-        interpretation: `${method.toUpperCase()} 방법으로 ${result.outlierIndices.length}개의 이상치를 발견했습니다.`
+        interpretation: `${method.toUpperCase()} 방법으로 ${indices.length}개의 이상치를 발견했습니다.`
       }
     }
   }
@@ -535,21 +585,27 @@ function createProportionTestHandler(context: CalculatorContext): MethodHandler 
     const result = await context.pyodideCore.oneSampleProportionTest(
       successCount,
       totalCount,
-      nullProportion,
-      alternative,
-      alpha
+      nullProportion
     )
+
+    if (!context.pyodideCore.hasStatisticFields(result, ['sampleProportion', 'pValueExact'])) {
+      return { success: false, error: '비율 검정에 실패했습니다' }
+    }
+
+    const sampleProportion = context.pyodideCore.getStatisticValue(result, 'sampleProportion')
+    const pValueExact = context.pyodideCore.getStatisticValue(result, 'pValueExact')
+    const significant = (result as Record<string, unknown>)['significant'] === true
 
     return {
       success: true,
       data: {
         metrics: [
-          { name: '표본 비율', value: (result.sampleProportion * 100).toFixed(2) + '%' },
-          { name: '귀무가설 비율', value: (result.nullProportion * 100).toFixed(2) + '%' },
-          { name: 'p-value', value: result.pValueExact.toFixed(4) }
+          { name: '표본 비율', value: (sampleProportion * 100).toFixed(2) + '%' },
+          { name: '귀무가설 비율', value: (nullProportion * 100).toFixed(2) + '%' },
+          { name: 'p-value', value: pValueExact.toFixed(4) }
         ],
-        interpretation: `표본 비율 ${(result.sampleProportion * 100).toFixed(1)}%는 ${
-          result.significant ? '유의하게 다릅니다' : '유의한 차이가 없습니다'
+        interpretation: `표본 비율 ${(sampleProportion * 100).toFixed(1)}%는 ${
+          significant ? '유의하게 다릅니다' : '유의한 차이가 없습니다'
         }.`
       }
     }
@@ -604,25 +660,31 @@ function createReliabilityHandler(context: CalculatorContext): MethodHandler {
     }
 
     const result = await context.pyodideCore.cronbachAlpha(itemsMatrix)
-    const interpretation = interpretCronbachAlpha(result.alpha)
+
+    if (!context.pyodideCore.hasStatisticFields(result, ['alpha'])) {
+      return { success: false, error: '신뢰도 분석에 실패했습니다' }
+    }
+
+    const alpha = context.pyodideCore.getStatisticValue(result, 'alpha')
+    const interpretation = interpretCronbachAlpha(alpha)
 
     return {
       success: true,
       data: {
         metrics: [
-          { name: "Cronbach's α", value: result.alpha.toFixed(4) },
+          { name: "Cronbach's α", value: alpha.toFixed(4) },
           { name: '항목 수', value: columns.length },
           { name: '응답자 수', value: itemsMatrix.length }
         ],
         tables: [{
           name: '신뢰도 통계',
           data: [
-            { 항목: "Cronbach's α", 값: result.alpha.toFixed(4) },
+            { 항목: "Cronbach's α", 값: alpha.toFixed(4) },
             { 항목: '신뢰도 수준', 값: interpretation.level },
             { 항목: '평가', 값: interpretation.assessment }
           ]
         }],
-        interpretation: `Cronbach's α는 ${result.alpha.toFixed(4)}로 ${interpretation.level} 수준의 신뢰도를 보입니다.`
+        interpretation: `Cronbach's α는 ${alpha.toFixed(4)}로 ${interpretation.level} 수준의 신뢰도를 보입니다.`
       }
     }
   }
@@ -632,13 +694,18 @@ function createReliabilityHandler(context: CalculatorContext): MethodHandler {
 // 유틸리티 함수 (로컬)
 // ============================================================================
 
-function interpretDescriptiveStats(result: any): string {
-  const skewInterpret = Math.abs(result.skewness) < 0.5 ? '대칭적' :
-    result.skewness < -0.5 ? '왼쪽으로 치우친' : '오른쪽으로 치우친'
-  const kurtosisInterpret = Math.abs(result.kurtosis - 3) < 0.5 ? '정규분포와 유사한' :
-    result.kurtosis > 3.5 ? '뾰족한' : '평평한'
+function interpretDescriptiveStats(result: Record<string, number>): string {
+  const skewness = result.skewness ?? 0
+  const kurtosis = result.kurtosis ?? 3
+  const mean = result.mean ?? 0
+  const median = result.median ?? 0
 
-  return `데이터는 평균 ${result.mean.toFixed(2)}, 중앙값 ${result.median.toFixed(2)}의 중심 경향성을 보입니다. ` +
+  const skewInterpret = Math.abs(skewness) < 0.5 ? '대칭적' :
+    skewness < -0.5 ? '왼쪽으로 치우친' : '오른쪽으로 치우친'
+  const kurtosisInterpret = Math.abs(kurtosis - 3) < 0.5 ? '정규분포와 유사한' :
+    kurtosis > 3.5 ? '뾰족한' : '평평한'
+
+  return `데이터는 평균 ${mean.toFixed(2)}, 중앙값 ${median.toFixed(2)}의 중심 경향성을 보입니다. ` +
     `분포는 ${skewInterpret} 형태이며, ${kurtosisInterpret} 첨도를 가집니다.`
 }
 
