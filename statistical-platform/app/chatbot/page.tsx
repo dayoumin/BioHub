@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, Sparkles, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react'
+import { Plus, Sparkles, ChevronLeft, ChevronRight, Edit2, Pin } from 'lucide-react'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
@@ -388,7 +388,7 @@ export default function ChatbotPage() {
                   <>
                     <h1 className="text-lg font-semibold truncate">{currentSession.title}</h1>
                     {currentSession.isFavorite && (
-                      <span className="text-muted-foreground flex-shrink-0">📌</span>
+                      <Pin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     )}
                   </>
                 )}

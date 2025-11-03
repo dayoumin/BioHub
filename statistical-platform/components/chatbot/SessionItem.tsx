@@ -9,7 +9,7 @@
  */
 
 import React from 'react'
-import { FolderInput, Trash2 } from 'lucide-react'
+import { FolderInput, Trash2, Pin, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ChatSession } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
@@ -65,15 +65,13 @@ export const SessionItem: React.FC<SessionItemProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           {session.isFavorite && (
-            <span className="text-muted-foreground flex-shrink-0">📌</span>
+            <Pin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
           )}
           <p className="text-sm font-medium truncate">
             {session.title}
           </p>
         </div>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {formatRelativeTime(session.updatedAt)}
-        </p>
+
       </div>
 
       {/* 호버 시 액션 버튼 */}
@@ -88,9 +86,11 @@ export const SessionItem: React.FC<SessionItemProps> = ({
           }}
           title={session.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
         >
-          <span className="text-muted-foreground">
-            {session.isFavorite ? '📌' : '📍'}
-          </span>
+          {session.isFavorite ? (
+            <Pin className="h-3 w-3 text-muted-foreground" />
+          ) : (
+            <MapPin className="h-3 w-3 text-muted-foreground" />
+          )}
         </Button>
 
         <Button
