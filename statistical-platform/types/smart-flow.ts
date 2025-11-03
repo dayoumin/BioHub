@@ -56,6 +56,11 @@ export interface StatisticalMethod {
   name: string
   description: string
   category: 'descriptive' | 't-test' | 'anova' | 'regression' | 'nonparametric' | 'advanced'
+  requirements?: {
+    minSampleSize?: number
+    variableTypes?: string[]
+    assumptions?: string[]
+  }
 }
 
 /**
@@ -125,6 +130,10 @@ export interface StatisticalAssumptions {
   summary?: {
     meetsAssumptions: boolean
     recommendation: string
+    canUseParametric: boolean
+    reasons: string[]
+    recommendations: string[]
+    violations?: string[]
   }
 }
 

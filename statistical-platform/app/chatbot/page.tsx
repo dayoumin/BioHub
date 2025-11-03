@@ -12,10 +12,12 @@
 
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
@@ -62,6 +64,10 @@ export default function ChatbotPage() {
 
   // 사이드바 상태
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // 제목 편집 상태
+  const [isRenamingSessionId, setIsRenamingSessionId] = useState<string | null>(null)
+  const [renamingText, setRenamingText] = useState('')
 
   // 모달 상태 (Phase 4에서 구현)
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
@@ -166,6 +172,30 @@ export default function ChatbotPage() {
     setMoveDialogSessionId(sessionId)
     setIsMoveDialogOpen(true)
   }, [])
+
+  // 세션 제목 변경 시작
+  const handleRenameSession = useCallback((sessionId: string) => {
+    const session = ChatStorage.loadSession(sessionId)
+    if (session) {
+      setIsRenamingSessionId(sessionId)
+      setRenamingText(session.title)
+    }
+  }, [])
+
+  // 세션 제목 저장
+  const handleSaveRename = useCallback((sessionId: string) => {
+    if (renamingText.trim()) {
+      const session = ChatStorage.loadSession(sessionId)
+      if (session) {
+        session.title = renamingText.trim()
+        session.updatedAt = Date.now()
+        ChatStorage.saveSession(session)
+        triggerUpdate()
+      }
+    }
+    setIsRenamingSessionId(null)
+    setRenamingText('')
+  }, [renamingText, triggerUpdate])
 
   // 프로젝트 토글
   const handleToggleProject = useCallback((projectId: string) => {
@@ -329,8 +359,39 @@ export default function ChatbotPage() {
         {currentSession ? (
           <>
             {/* 헤더 - 현재 대화 제목 */}
-            <div className="px-4 py-3 border-b text-sm text-muted-foreground">
-              {currentSession.title}
+            <div className="px-4 py-3 border-b flex items-center justify-between gap-3">
+              {isRenamingSessionId === currentSession.id ? (
+                <input
+                  type="text"
+                  value={renamingText}
+                  onChange={(e) => setRenamingText(e.target.value)}
+                  onBlur={() => handleSaveRename(currentSession.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveRename(currentSession.id)
+                    } else if (e.key === 'Escape') {
+                      setIsRenamingSessionId(null)
+                    }
+                  }}
+                  className="flex-1 px-2 py-1 text-sm border rounded bg-background"
+                  autoFocus
+                />
+              ) : (
+                <>
+                  <span className="text-sm text-muted-foreground flex-1 truncate">
+                    {currentSession.title}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 flex-shrink-0"
+                    onClick={() => handleRenameSession(currentSession.id)}
+                    title="제목 변경"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* 채팅 인터페이스 - 항상 표시, 빈 상태에서만 웰컴 문구 위에 퀵프롬프트 추가 표시 */}

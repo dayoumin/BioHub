@@ -89,7 +89,7 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
             throw new Error('Please select exactly one column for histogram')
           }
           
-          const data = dataset.data
+          const data = (dataset.data ?? [])
             .map(row => parseFloat(String(row[selectedColumns[0]])))
             .filter(val => !isNaN(val))
           
@@ -222,7 +222,7 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
             throw new Error('Please select exactly one column for Q-Q plot')
           }
           
-          const data = dataset.data
+          const data = (dataset.data ?? [])
             .map(row => parseFloat(String(row[selectedColumns[0]])))
             .filter(val => !isNaN(val))
           
@@ -240,8 +240,8 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           
           // 상관계수 행렬 계산을 위한 데이터 준비
           const dataMatrix: number[][] = selectedColumns.map(col => 
-            dataset.data
-              .map(row => parseFloat(String(row[col])))
+            (dataset.data ?? [])
+          .map(row => parseFloat(String(row[col])))
               .filter(val => !isNaN(val))
           )
           

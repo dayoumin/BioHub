@@ -87,7 +87,7 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
             throw new Error('Please select exactly one column for histogram')
           }
           
-          const data = dataset.data
+          const data = (dataset.data ?? [])
             .map(row => parseFloat(row[selectedColumns[0]]))
             .filter(val => !isNaN(val))
           
@@ -161,7 +161,7 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
             throw new Error('Please select exactly one column for Q-Q plot')
           }
           
-          const data = dataset.data
+          const data = (dataset.data ?? [])
             .map(row => parseFloat(row[selectedColumns[0]]))
             .filter(val => !isNaN(val))
           
