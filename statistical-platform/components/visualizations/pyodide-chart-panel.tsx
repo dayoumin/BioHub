@@ -135,8 +135,8 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           
           const xData: number[] = []
           const yData: number[] = []
-          
-          dataset.data.forEach(row => {
+
+          (dataset.data ?? []).forEach(row => {
             const x = parseFloat(row[selectedColumns[0]])
             const y = parseFloat(row[selectedColumns[1]])
             

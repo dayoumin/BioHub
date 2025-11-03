@@ -90,6 +90,7 @@ describe('RAGService with Mocked Network', () => {
         await service.initialize({
           vectorStoreId: 'qwen3-embedding-0.6b',
         })
+        // @ts-expect-error Jest fail method
         expect.fail('should throw error')
       } catch (error) {
         expect(error).toBeInstanceOf(Error)
@@ -303,6 +304,7 @@ describe('RAGService with Mocked Network', () => {
         await service.initialize({
           vectorStoreId: 'qwen3-embedding-0.6b',
         })
+        // @ts-expect-error Jest fail method
         expect.fail('should throw error')
       } catch (error) {
         expect(error).toBeInstanceOf(Error)
@@ -325,6 +327,7 @@ describe('RAGService with Mocked Network', () => {
         await service.initialize({
           vectorStoreId: 'qwen3-embedding-0.6b',
         })
+        // @ts-expect-error Jest fail method
         expect.fail('should throw error')
       } catch (error) {
         expect(error).toBeInstanceOf(Error)
@@ -344,6 +347,7 @@ describe('RAGService with Mocked Network', () => {
         await service.initialize({
           vectorStoreId: 'qwen3-embedding-0.6b',
         })
+        // @ts-expect-error Jest fail method
         expect.fail('should throw error')
       } catch (error) {
         expect(error).toBeInstanceOf(Error)

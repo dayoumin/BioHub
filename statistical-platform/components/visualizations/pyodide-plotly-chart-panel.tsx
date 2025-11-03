@@ -108,7 +108,7 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           }
           
           const groups = new Map<string, number[]>()
-          dataset.data.forEach(row => {
+          ;(dataset.data ?? []).forEach(row => {
             const group = String(row[groupColumn])
             const value = parseFloat(String(row[selectedColumns[0]]))
             
@@ -135,7 +135,7 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           }
           
           const groups = new Map<string, number[]>()
-          dataset.data.forEach(row => {
+          ;(dataset.data ?? []).forEach(row => {
             const group = String(row[groupColumn])
             const value = parseFloat(String(row[selectedColumns[0]]))
             

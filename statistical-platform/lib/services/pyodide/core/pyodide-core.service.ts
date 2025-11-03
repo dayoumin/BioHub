@@ -60,6 +60,13 @@ export interface PythonErrorResponse {
   error: string
 }
 
+/**
+ * 통계 분석 결과의 기본 인터페이스
+ */
+export interface StatisticsResult {
+  [key: string]: unknown
+}
+
 // ========================================
 // 상수
 // ========================================
@@ -511,5 +518,195 @@ json.dumps(result)
 
     // 이미 객체인 경우 그대로 반환
     return result as T
+  }
+
+  // ========================================
+  // Convenience Methods for Statistics
+  // ========================================
+
+  /**
+   * Two Sample T-Test
+   */
+  async twoSampleTTest(
+    group1: number[],
+    group2: number[],
+    equalVar: boolean
+  ): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'two_sample_ttest', {
+      group1,
+      group2,
+      equal_var: equalVar
+    })
+  }
+
+  /**
+   * Paired T-Test
+   */
+  async pairedTTest(group1: number[], group2: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'paired_ttest', { group1, group2 })
+  }
+
+  /**
+   * One Sample T-Test
+   */
+  async oneSampleTTest(data: number[], testValue: number): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'one_sample_ttest', { data, test_value: testValue })
+  }
+
+  /**
+   * Z-Test
+   */
+  async zTestWorker(data: number[], testValue: number, populationStd: number): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'z_test', {
+      data,
+      test_value: testValue,
+      population_std: populationStd
+    })
+  }
+
+  /**
+   * Chi-Square Test
+   */
+  async chiSquareTest(observed: number[], expected: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'chi_square_test', { observed, expected })
+  }
+
+  /**
+   * Binomial Test
+   */
+  async binomialTestWorker(
+    successes: number,
+    trials: number,
+    probability: number
+  ): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'binomial_test', { successes, trials, probability })
+  }
+
+  /**
+   * Correlation Test (Pearson)
+   */
+  async correlationTest(x: number[], y: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'correlation_test', { x, y })
+  }
+
+  /**
+   * Partial Correlation Test
+   */
+  async partialCorrelationWorker(
+    x: number[],
+    y: number[],
+    controlVars: number[][]
+  ): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'partial_correlation', {
+      x,
+      y,
+      control_vars: controlVars
+    })
+  }
+
+  /**
+   * Mann-Whitney U Test
+   */
+  async mannWhitneyTestWorker(group1: number[], group2: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'mann_whitney_test', { group1, group2 })
+  }
+
+  /**
+   * Wilcoxon Test
+   */
+  async wilcoxonTestWorker(group1: number[], group2: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'wilcoxon_test', { group1, group2 })
+  }
+
+  /**
+   * Kruskal-Wallis Test
+   */
+  async kruskalWallisTestWorker(groups: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'kruskal_wallis_test', { groups })
+  }
+
+  /**
+   * Friedman Test
+   */
+  async friedmanTestWorker(data: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'friedman_test', { data })
+  }
+
+  /**
+   * Sign Test
+   */
+  async signTestWorker(group1: number[], group2: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'sign_test', { group1, group2 })
+  }
+
+  /**
+   * Runs Test
+   */
+  async runsTestWorker(data: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'runs_test', { data })
+  }
+
+  /**
+   * McNemar Test
+   */
+  async mcnemarTestWorker(
+    tableCells: number[][]
+  ): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'mcnemar_test', { table_cells: tableCells })
+  }
+
+  /**
+   * Cochran Q Test
+   */
+  async cochranQTestWorker(data: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'cochran_q_test', { data })
+  }
+
+  /**
+   * Mood Median Test
+   */
+  async moodMedianTestWorker(groups: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'mood_median_test', { groups })
+  }
+
+  /**
+   * Simple Linear Regression
+   */
+  async simpleLinearRegression(x: number[], y: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'simple_linear_regression', { x, y })
+  }
+
+  /**
+   * Multiple Regression
+   */
+  async multipleRegression(y: number[], x: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'multiple_regression', { y, x })
+  }
+
+  /**
+   * Logistic Regression
+   */
+  async logisticRegression(y: number[], x: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'logistic_regression', { y, x })
   }
 }

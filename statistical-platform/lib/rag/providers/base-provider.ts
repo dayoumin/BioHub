@@ -46,6 +46,8 @@ export interface RAGContext {
   }>
   /** 검색 모드 (Ollama Provider 전용) */
   searchMode?: SearchMode
+  /** 검색 모드 (대체 이름) */
+  mode?: SearchMode
 }
 
 export interface RAGResponse {
