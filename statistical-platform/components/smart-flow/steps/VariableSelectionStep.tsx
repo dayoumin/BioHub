@@ -51,7 +51,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       weight: assignment.weight as string | undefined
     }
 
-    setVariableMapping(mapping)
+    setVariableMapping(mapping as VariableMapping)
     setIsValid(true)
     setValidationErrors([])
 
@@ -145,7 +145,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
               methodId={selectedMethod.id}
               data={uploadedData}
               onVariablesSelected={handleVariablesSelected}
-              onValidation={handleValidation}
             />
           </TabsContent>
 

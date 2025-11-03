@@ -86,8 +86,8 @@ function recommendStatisticalMethod(purpose: string, dataInfo: any) {
 }
 
 export function DataAnalysisFlow({ datasetId, onAnalysisComplete }: DataAnalysisFlowProps) {
-  const { getDataset } = useAppStore()
-  const dataset = getDataset(datasetId)
+  const { getDataset } = useAppStore() as { getDataset?: (id: string) => unknown }
+  const dataset = getDataset?.(datasetId)
   const [step, setStep] = useState(2) // Step 1은 이미 완료 (파일 업로드)
   const [purpose, setPurpose] = useState("")
   const [dataType, setDataType] = useState("")

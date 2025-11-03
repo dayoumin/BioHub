@@ -87,7 +87,7 @@ export const DataValidationStep = memo(function DataValidationStep({
   totalSteps
 }: DataValidationStepProps) {
   const [autoProgress, setAutoProgress] = useState(false)
-  const [countdown, setCountdown] = useState(VALIDATION_CONSTANTS.AUTO_PROGRESS_COUNTDOWN)
+  const [countdown, setCountdown] = useState<number>(VALIDATION_CONSTANTS.AUTO_PROGRESS_COUNTDOWN)
   const [isPaused, setIsPaused] = useState(false)
   const [normalityTests, setNormalityTests] = useState<Record<string, any>>({})
   const [isCalculating, setIsCalculating] = useState(false)
@@ -249,7 +249,8 @@ export const DataValidationStep = memo(function DataValidationStep({
           }
 
           // 통계 가정 검정 실행
-          const assumptions = await pyodideService.checkAllAssumptions(testData, {
+          const assumptions = await pyodideService.checkAllAssumptions({
+            ...testData,
             alpha,
             normalityRule
           }) as StatisticalAssumptions
@@ -1277,7 +1278,7 @@ export const DataValidationStep = memo(function DataValidationStep({
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* 정규성 위반 대응 */}
-                {((assumptionResults.summary as any)?.violations ?? []).includes('정규성 위반') && (
+                {assumptionResults && ((assumptionResults.summary as any)?.violations ?? []).includes('정규성 위반') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <BarChart3 className="h-4 w-4" />
@@ -1314,7 +1315,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 등분산성 위반 대응 */}
-                {((assumptionResults.summary as any)?.violations ?? []).includes('등분산성 위반') && (
+                {assumptionResults && ((assumptionResults.summary as any)?.violations ?? []).includes('등분산성 위반') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <Activity className="h-4 w-4" />
@@ -1330,7 +1331,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 이상치 과다 대응 */}
-                {((assumptionResults.summary as any)?.violations ?? []).includes('이상치 과다') && (
+                {assumptionResults && ((assumptionResults.summary as any)?.violations ?? []).includes('이상치 과다') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
@@ -1346,7 +1347,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 표본 크기 부족 대응 */}
-                {((assumptionResults.summary as any)?.violations ?? []).includes('표본 크기 부족') && (
+                {assumptionResults && ((assumptionResults.summary as any)?.violations ?? []).includes('표본 크기 부족') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <Info className="h-4 w-4" />
@@ -1694,7 +1695,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                       <div className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-3">
                           <h4 className="font-medium">Durbin-Watson 검정</h4>
-                          <Badge variant="info" className="text-xs">
+                          <Badge variant="default" className="text-xs">
                             시계열/회귀 잔차
                           </Badge>
                         </div>
@@ -2156,7 +2157,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                           ticktext: ['-1', '-0.5', '0', '0.5', '1'],
                           len: 0.8
                         }
-                      }]}
+                      } as unknown as Data]}
                       layout={{
                         ...getModalLayout({
                           title: { text: '' },

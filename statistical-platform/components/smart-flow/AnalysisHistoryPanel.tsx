@@ -133,7 +133,7 @@ export function AnalysisHistoryPanel() {
               {uniqueMethods.map(methodId => (
                 <DropdownMenuItem 
                   key={methodId}
-                  onClick={() => setFilterMethod(methodId)}
+                  onClick={() => setFilterMethod(methodId || null)}
                 >
                   {methodId}
                 </DropdownMenuItem>

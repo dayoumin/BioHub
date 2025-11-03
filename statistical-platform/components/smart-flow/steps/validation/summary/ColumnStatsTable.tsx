@@ -45,7 +45,7 @@ export const ColumnStatsTable = memo(function ColumnStatsTable({
               </td>
               <td className="p-2">
                 <span className={stat.missingCount > 0 ? 'text-yellow-600' : ''}>
-                  {stat.missingCount} ({((stat.missingCount / (stat.count + stat.missingCount)) * 100).toFixed(1)}%)
+                  {stat.missingCount} ({stat.count ? ((stat.missingCount / (stat.count + stat.missingCount)) * 100).toFixed(1) : 'N/A'}%)
                 </span>
               </td>
               <td className="p-2">{stat.uniqueValues}</td>
