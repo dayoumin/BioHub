@@ -80,7 +80,7 @@ function createTTestHandler(context: CalculatorContext): MethodHandler {
     const equalVarVal = paramsObj.equal_var
     const equalVar = typeof equalVarVal === 'boolean' ? equalVarVal : true
 
-    const result = await context.pyodideService.twoSampleTTest(group1, group2, equalVar)
+    const result = await context.pyodideCore.twoSampleTTest(group1, group2, equalVar)
 
     return {
       success: true,
@@ -138,7 +138,7 @@ function createPairedTTestHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2쌍의 데이터가 필요합니다' }
     }
 
-    const result = await context.pyodideService.pairedTTest(values1, values2)
+    const result = await context.pyodideCore.pairedTTest(values1, values2)
 
     return {
       success: true,
@@ -185,7 +185,7 @@ function createOneSampleTTestHandler(context: CalculatorContext): MethodHandler 
       return { success: false, error: '최소 2개 이상의 데이터가 필요합니다' }
     }
 
-    const result = await context.pyodideService.oneSampleTTest(values, popmean)
+    const result = await context.pyodideCore.oneSampleTTest(values, popmean)
 
     return {
       success: true,
@@ -233,7 +233,7 @@ function createZTestHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: 'Z-검정은 최소 30개 이상의 데이터가 권장됩니다' }
     }
 
-    const result = await context.pyodideService.zTestWorker(values, popmean, popstd)
+    const result = await context.pyodideCore.zTestWorker(values, popmean, popstd)
 
     return {
       success: true,
@@ -264,7 +264,7 @@ function createChiSquareHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '관측 빈도 행렬을 제공하세요' }
     }
 
-    const result = await context.pyodideService.chiSquareTest(observedMatrix, false)
+    const result = await context.pyodideCore.chiSquareTest(observedMatrix, false)
 
     return {
       success: true,
@@ -299,7 +299,7 @@ function createBinomialTestHandler(context: CalculatorContext): MethodHandler {
     }
 
     const probability = typeof probabilityVal === 'number' ? probabilityVal : 0.5
-    const result = await context.pyodideService.binomialTestWorker(successCount, totalCount, probability)
+    const result = await context.pyodideCore.binomialTestWorker(successCount, totalCount, probability)
 
     return {
       success: true,
@@ -356,7 +356,7 @@ function createCorrelationHandler(context: CalculatorContext): MethodHandler {
       ? method
       : 'pearson'
 
-    const result = await context.pyodideService.correlationTest(values1, values2, correlationMethod as 'pearson' | 'spearman' | 'kendall')
+    const result = await context.pyodideCore.correlationTest(values1, values2, correlationMethod as 'pearson' | 'spearman' | 'kendall')
 
     return {
       success: true,
@@ -428,7 +428,7 @@ function createPartialCorrelationHandler(context: CalculatorContext): MethodHand
     }
 
     const controlIndices = Array.from({ length: stringControlVars.length }, (_, i) => i + 2)
-    const result = await context.pyodideService.partialCorrelationWorker(transposedMatrix, 0, 1, controlIndices)
+    const result = await context.pyodideCore.partialCorrelationWorker(transposedMatrix, 0, 1, controlIndices)
 
     return {
       success: true,

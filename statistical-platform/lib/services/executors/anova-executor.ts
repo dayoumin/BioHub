@@ -18,7 +18,7 @@ export class AnovaExecutor extends BaseExecutor {
 
       // 등분산 검정
       const leveneResult = await pyodideStats.leveneTest(groups)
-      const equalVar = leveneResult.pvalue > 0.05
+      const equalVar = leveneResult.pValue > 0.05
 
       // ANOVA 수행
       const anovaResult = await pyodideStats.anova(groups)
@@ -43,16 +43,16 @@ export class AnovaExecutor extends BaseExecutor {
               passed: equalVar,
               test: "Levene's test",
               statistic: leveneResult.statistic,
-              pvalue: leveneResult.pvalue
+              pvalue: leveneResult.pValue
             },
             independence: { passed: true }
           }
         },
         mainResults: {
           statistic: anovaResult.statistic,
-          pvalue: anovaResult.pvalue,
+          pvalue: anovaResult.pValue,
           df: anovaResult.df,
-          interpretation: `${this.interpretPValue(anovaResult.pvalue)}. ${groups.length}개 그룹 간 평균 차이 검정`
+          interpretation: `${this.interpretPValue(anovaResult.pValue)}. ${groups.length}개 그룹 간 평균 차이 검정`
         },
         additionalInfo: {
           effectSize: {
@@ -151,9 +151,9 @@ export class AnovaExecutor extends BaseExecutor {
         metadata: this.createMetadata('반복측정 분산분석', data.length * data[0].length, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
+          pvalue: result.pValue,
           df: result.df,
-          interpretation: `${this.interpretPValue(result.pvalue)}. ${data[0].length}개 시점 간 평균 차이 검정`
+          interpretation: `${this.interpretPValue(result.pValue)}. ${data[0].length}개 시점 간 평균 차이 검정`
         },
         additionalInfo: {
           sphericity: result.sphericity,
@@ -190,7 +190,7 @@ export class AnovaExecutor extends BaseExecutor {
         metadata: this.createMetadata('Tukey HSD 사후검정', groups.flat().length, startTime),
         mainResults: {
           statistic: result.comparisons.length,
-          pvalue: Math.min(...result.comparisons.map(c => c.pvalue)),
+          pvalue: Math.min(...result.comparisons.map(c => c.pValue)),
           interpretation: `${result.comparisons.filter(c => c.reject).length}개 쌍에서 유의한 차이 발견`
         },
         additionalInfo: {
@@ -198,7 +198,7 @@ export class AnovaExecutor extends BaseExecutor {
             group1: comp.group1,
             group2: comp.group2,
             meanDiff: comp.meanDiff,
-            pvalue: comp.pvalue,
+            pvalue: comp.pValue,
             significant: comp.reject
           }))
         },
@@ -227,7 +227,7 @@ export class AnovaExecutor extends BaseExecutor {
         metadata: this.createMetadata('Games-Howell 사후검정', groups.flat().length, startTime),
         mainResults: {
           statistic: result.comparisons.length,
-          pvalue: Math.min(...result.comparisons.map(c => c.pvalue)),
+          pvalue: Math.min(...result.comparisons.map(c => c.pValue)),
           interpretation: `이분산 가정 하에서 ${result.comparisons.filter(c => c.reject).length}개 쌍에서 유의한 차이 발견`
         },
         additionalInfo: {
@@ -235,7 +235,7 @@ export class AnovaExecutor extends BaseExecutor {
             group1: comp.group1,
             group2: comp.group2,
             meanDiff: comp.meanDiff,
-            pvalue: comp.pvalue,
+            pvalue: comp.pValue,
             significant: comp.reject
           }))
         },

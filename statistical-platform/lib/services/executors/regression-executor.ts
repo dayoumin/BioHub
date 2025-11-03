@@ -28,8 +28,8 @@ export class RegressionExecutor extends BaseExecutor {
         metadata: this.createMetadata('단순선형회귀', x.length, startTime),
         mainResults: {
           statistic: result.rSquared,
-          pvalue: result.pvalue,
-          interpretation: `R² = ${result.rSquared.toFixed(4)}, ${this.interpretPValue(result.pvalue)}`
+          pvalue: result.pValue,
+          interpretation: `R² = ${result.rSquared.toFixed(4)}, ${this.interpretPValue(result.pValue)}`
         },
         additionalInfo: {
           coefficients: [
@@ -45,7 +45,7 @@ export class RegressionExecutor extends BaseExecutor {
               value: result.slope,
               stdError: result.slopeStderr,
               tValue: result.slope / result.slopeStderr,
-              pvalue: result.pvalue
+              pvalue: result.pValue
             }
           ],
           rSquared: result.rSquared,
@@ -90,8 +90,8 @@ export class RegressionExecutor extends BaseExecutor {
         metadata: this.createMetadata('다중회귀분석', y.length, startTime),
         mainResults: {
           statistic: result.fStatistic,
-          pvalue: result.pvalue,
-          interpretation: `R² = ${result.rSquared.toFixed(4)}, Adj. R² = ${adjustedRSquared.toFixed(4)}, ${this.interpretPValue(result.pvalue)}`
+          pvalue: result.pValue,
+          interpretation: `R² = ${result.rSquared.toFixed(4)}, Adj. R² = ${adjustedRSquared.toFixed(4)}, ${this.interpretPValue(result.pValue)}`
         },
         additionalInfo: {
           coefficients: result.coefficients.map((coef: any, i: number) => ({
@@ -99,7 +99,7 @@ export class RegressionExecutor extends BaseExecutor {
             value: coef.value,
             stdError: coef.stdError,
             tValue: coef.tValue,
-            pvalue: coef.pvalue
+            pvalue: coef.pValue
           })),
           rSquared: result.rSquared,
           adjustedRSquared,
@@ -134,8 +134,8 @@ export class RegressionExecutor extends BaseExecutor {
         metadata: this.createMetadata('로지스틱 회귀', y.length, startTime),
         mainResults: {
           statistic: result.accuracy,
-          pvalue: result.pvalue,
-          interpretation: `정확도: ${(result.accuracy * 100).toFixed(1)}%, ${this.interpretPValue(result.pvalue)}`
+          pvalue: result.pValue,
+          interpretation: `정확도: ${(result.accuracy * 100).toFixed(1)}%, ${this.interpretPValue(result.pValue)}`
         },
         additionalInfo: {
           coefficients: result.coefficients,
@@ -184,7 +184,7 @@ export class RegressionExecutor extends BaseExecutor {
         metadata: this.createMetadata(`${degree}차 다항회귀`, x.length, startTime),
         mainResults: {
           statistic: result.rSquared,
-          pvalue: result.pvalue,
+          pvalue: result.pValue,
           interpretation: `R² = ${result.rSquared.toFixed(4)}, ${degree}차 다항식 적합`
         },
         additionalInfo: {

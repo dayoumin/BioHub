@@ -160,7 +160,7 @@ export class StatisticalRegistry {
   private getContext(): CalculatorContext {
     // TODO: StatisticalCalculator와 통합 시 실제 CalculatorContext 전달
     return {
-      pyodideService: null as any, // 실제 서비스가 주입될 때까지 null로 둡니다.
+      pyodideCore: null as unknown as any, // 실제 서비스가 주입될 때까지 null로 둡니다.
     }
   }
 

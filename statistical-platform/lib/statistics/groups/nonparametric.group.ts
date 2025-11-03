@@ -74,7 +74,7 @@ function createMannWhitneyHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '정확히 2개의 그룹이 필요합니다' }
     }
 
-    const result = await context.pyodideService.mannWhitneyTestWorker(groups[groupNames[0]], groups[groupNames[1]])
+    const result = await context.pyodideCore.mannWhitneyTestWorker(groups[groupNames[0]], groups[groupNames[1]])
 
     return {
       success: true,
@@ -124,7 +124,7 @@ function createWilcoxonHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2쌍의 데이터가 필요합니다' }
     }
 
-    const result = await context.pyodideService.wilcoxonTestWorker(values1, values2)
+    const result = await context.pyodideCore.wilcoxonTestWorker(values1, values2)
 
     return {
       success: true,
@@ -171,7 +171,7 @@ function createKruskalWallisHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2개 이상의 그룹이 필요합니다' }
     }
 
-    const result = await context.pyodideService.kruskalWallisTestWorker(groupArrays)
+    const result = await context.pyodideCore.kruskalWallisTestWorker(groupArrays)
 
     return {
       success: true,
@@ -204,7 +204,7 @@ function createFriedmanHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2x2 숫자 행렬이 필요합니다 (NaN 제거됨)' }
     }
 
-    const result = await context.pyodideService.friedmanTestWorker(validatedMatrix)
+    const result = await context.pyodideCore.friedmanTestWorker(validatedMatrix)
 
     return {
       success: true,
@@ -244,7 +244,7 @@ function createSignTestHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: 'before와 after의 길이가 같아야 합니다' }
     }
 
-    const result = await context.pyodideService.signTestWorker(validatedBefore, validatedAfter)
+    const result = await context.pyodideCore.signTestWorker(validatedBefore, validatedAfter)
 
     return {
       success: true,
@@ -281,7 +281,7 @@ function createRunsTestHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '유효한 시퀀스 데이터가 부족합니다' }
     }
 
-    const result = await context.pyodideService.runsTestWorker(validSequence as (number | string)[])
+    const result = await context.pyodideCore.runsTestWorker(validSequence as (number | string)[])
 
     return {
       success: true,
@@ -314,7 +314,7 @@ function createMcNemarHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '2x2 분할표가 필요합니다' }
     }
 
-    const result = await context.pyodideService.mcnemarTestWorker(validatedTable)
+    const result = await context.pyodideCore.mcnemarTestWorker(validatedTable)
 
     return {
       success: true,
@@ -356,7 +356,7 @@ function createCochranQHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: 'Cochran Q 검정은 이진 데이터 (0 또는 1)가 필요합니다' }
     }
 
-    const result = await context.pyodideService.cochranQTestWorker(validatedMatrix)
+    const result = await context.pyodideCore.cochranQTestWorker(validatedMatrix)
 
     return {
       success: true,
@@ -389,7 +389,7 @@ function createMoodMedianHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2개의 그룹이 필요합니다' }
     }
 
-    const result = await context.pyodideService.moodMedianTestWorker(validatedGroups)
+    const result = await context.pyodideCore.moodMedianTestWorker(validatedGroups)
 
     return {
       success: true,

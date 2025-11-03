@@ -31,8 +31,8 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Mann-Whitney U 검정', n, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
-          interpretation: `${this.interpretPValue(result.pvalue)}. 그룹 1 중위수(${median1.toFixed(2)})와 그룹 2 중위수(${median2.toFixed(2)}) 비교`
+          pvalue: result.pValue,
+          interpretation: `${this.interpretPValue(result.pValue)}. 그룹 1 중위수(${median1.toFixed(2)})와 그룹 2 중위수(${median2.toFixed(2)}) 비교`
         },
         additionalInfo: {
           effectSize: {
@@ -78,8 +78,8 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Wilcoxon 부호순위 검정', x.length, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
-          interpretation: `${this.interpretPValue(result.pvalue)}. ${description}`
+          pvalue: result.pValue,
+          interpretation: `${this.interpretPValue(result.pValue)}. ${description}`
         },
         additionalInfo: {
           zStatistic: result.zStatistic,
@@ -119,9 +119,9 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Kruskal-Wallis 검정', n, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
+          pvalue: result.pValue,
           df: result.df,
-          interpretation: `${this.interpretPValue(result.pvalue)}. ${k}개 그룹 간 중위수 차이 검정`
+          interpretation: `${this.interpretPValue(result.pValue)}. ${k}개 그룹 간 중위수 차이 검정`
         },
         additionalInfo: {
           effectSize: {
@@ -163,8 +163,8 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata('Friedman 검정', n * k, startTime),
         mainResults: {
           statistic: result.statistic,
-          pvalue: result.pvalue,
-          interpretation: `${this.interpretPValue(result.pvalue)}. ${k}개 반복측정 조건 간 차이 검정`
+          pvalue: result.pValue,
+          interpretation: `${this.interpretPValue(result.pValue)}. ${k}개 반복측정 조건 간 차이 검정`
         },
         additionalInfo: {
           rankings: result.rankings,
@@ -199,17 +199,17 @@ export class NonparametricExecutor extends BaseExecutor {
         metadata: this.createMetadata("Dunn's 사후검정", groups.flat().length, startTime),
         mainResults: {
           statistic: result.comparisons.length,
-          pvalue: Math.min(...result.comparisons.map(c => c.pvalueAdj)),
-          interpretation: `Bonferroni 보정 후 ${result.comparisons.filter(c => c.pvalueAdj < 0.05).length}개 쌍에서 유의한 차이`
+          pvalue: Math.min(...result.comparisons.map(c => c.pValueAdj)),
+          interpretation: `Bonferroni 보정 후 ${result.comparisons.filter(c => c.pValueAdj < 0.05).length}개 쌍에서 유의한 차이`
         },
         additionalInfo: {
           postHoc: result.comparisons.map(comp => ({
             group1: comp.group1,
             group2: comp.group2,
             zStatistic: comp.zStatistic,
-            pvalue: comp.pvalue,
-            pvalueAdjusted: comp.pvalueAdj,
-            significant: comp.pvalueAdj < 0.05
+            pvalue: comp.pValue,
+            pvalueAdjusted: comp.pValueAdj,
+            significant: comp.pValueAdj < 0.05
           }))
         },
         visualizationData: {

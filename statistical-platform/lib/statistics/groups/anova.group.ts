@@ -70,7 +70,7 @@ function createOneWayAnovaHandler(context: CalculatorContext): MethodHandler {
     })
 
     const groupArrays = Object.values(groups)
-    const result = await context.pyodideService.oneWayANOVA(groupArrays)
+    const result = await context.pyodideCore.oneWayANOVA(groupArrays)
 
     return {
       success: true,
@@ -112,7 +112,7 @@ function createTwoWayAnovaHandler(context: CalculatorContext): MethodHandler {
       value: typeof val === 'number' ? val : NaN
     })).filter(d => !isNaN(d.value))
 
-    const result = await context.pyodideService.twoWayAnova(convertedData)
+    const result = await context.pyodideCore.twoWayAnova(convertedData)
     return {
       success: true,
       data: {
@@ -144,7 +144,7 @@ function createRepeatedMeasuresHandler(context: CalculatorContext): MethodHandle
     const subjectIds = Array.from({ length: dataMatrix.length }, (_, i) => i)
     const timeLabels = Array.from({ length: (dataMatrix[0] as number[])?.length || 0 }, (_, i) => i)
 
-    const result = await context.pyodideService.repeatedMeasuresAnovaWorker(
+    const result = await context.pyodideCore.repeatedMeasuresAnovaWorker(
       dataMatrix as number[][],
       subjectIds,
       timeLabels
@@ -220,7 +220,7 @@ function createAncovaHandler(context: CalculatorContext): MethodHandler {
       covariates.push(covariateMatrix.map(row => row[i]))
     }
 
-    const result = await context.pyodideService.ancovaWorker(yValues, groupValues, covariates)
+    const result = await context.pyodideCore.ancovaWorker(yValues, groupValues, covariates)
     return {
       success: true,
       data: {
@@ -285,7 +285,7 @@ function createManovaHandler(context: CalculatorContext): MethodHandler {
       typeof col === 'string' ? col : `Var${i + 1}`
     )
 
-    const result = await context.pyodideService.manovaWorker(dataMatrix, groupValues, varNames)
+    const result = await context.pyodideCore.manovaWorker(dataMatrix, groupValues, varNames)
     return {
       success: true,
       data: {
@@ -312,7 +312,7 @@ function createTukeyHSDHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '그룹 배열을 제공하세요' }
     }
 
-    const result = await context.pyodideService.tukeyHSD(groups)
+    const result = await context.pyodideCore.tukeyHSD(groups)
     return {
       success: true,
       data: {
@@ -347,7 +347,7 @@ function createScheffeTestHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2개의 그룹이 필요합니다' }
     }
 
-    const result = await context.pyodideService.scheffeTestWorker(groups)
+    const result = await context.pyodideCore.scheffeTestWorker(groups)
     return {
       success: true,
       data: {
@@ -386,7 +386,7 @@ function createBonferroniHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2개의 그룹이 필요합니다' }
     }
 
-    const result = await context.pyodideService.performBonferroni(groups, groupNames, alpha)
+    const result = await context.pyodideCore.performBonferroni(groups, groupNames, alpha)
     return {
       success: true,
       data: {
@@ -427,7 +427,7 @@ function createGamesHowellHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2개의 그룹이 필요합니다' }
     }
 
-    const result = await context.pyodideService.gamesHowellTest(groups, groupNames, alpha)
+    const result = await context.pyodideCore.gamesHowellTest(groups, groupNames, alpha)
     return {
       success: true,
       data: {

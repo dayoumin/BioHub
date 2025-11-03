@@ -57,7 +57,7 @@ function createPCAHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '데이터 행렬을 제공하세요' }
     }
 
-    const result = await context.pyodideService.pca(dataMatrix)
+    const result = await context.pyodideCore.pca(dataMatrix)
     return {
       success: true,
       data: {
@@ -87,7 +87,7 @@ function createFactorAnalysisHandler(context: CalculatorContext): MethodHandler 
 
     const nFactorsNum = typeof nFactors === 'number' ? nFactors : 2
 
-    const result = await context.pyodideService.factorAnalysis(dataMatrix, { nFactors: nFactorsNum })
+    const result = await context.pyodideCore.factorAnalysis(dataMatrix, { nFactors: nFactorsNum })
     return {
       success: true,
       data: {
@@ -116,7 +116,7 @@ function createClusterAnalysisHandler(context: CalculatorContext): MethodHandler
 
     const nClustersNum = typeof nClusters === 'number' ? nClusters : 3
 
-    const result = await context.pyodideService.clusterAnalysis(dataMatrix, { nClusters: nClustersNum })
+    const result = await context.pyodideCore.clusterAnalysis(dataMatrix, { nClusters: nClustersNum })
     return {
       success: true,
       data: {
@@ -149,7 +149,7 @@ function createDiscriminantAnalysisHandler(context: CalculatorContext): MethodHa
     }
 
     // Note: discriminantAnalysis method will be added to PyodideService later
-    const result = await (context.pyodideService as any).discriminantAnalysis(X, y)
+    const result = await (context.pyodideCore as any).discriminantAnalysis(X, y)
     return {
       success: true,
       data: {
@@ -181,7 +181,7 @@ function createCanonicalCorrelationHandler(context: CalculatorContext): MethodHa
     }
 
     // Note: canonicalCorrelation method will be added to PyodideService later
-    const result = await (context.pyodideService as any).canonicalCorrelation(X, Y)
+    const result = await (context.pyodideCore as any).canonicalCorrelation(X, Y)
     return {
       success: true,
       data: {
@@ -213,7 +213,7 @@ function createSurvivalAnalysisHandler(context: CalculatorContext): MethodHandle
     }
 
     // Note: survivalAnalysis method will be added to PyodideService later
-    const result = await (context.pyodideService as any).survivalAnalysis(times, events)
+    const result = await (context.pyodideCore as any).survivalAnalysis(times, events)
     return {
       success: true,
       data: {
@@ -241,7 +241,7 @@ function createTimeSeriesHandler(context: CalculatorContext): MethodHandler {
     }
 
     // Note: timeSeries method will be added to PyodideService later
-    const result = await (context.pyodideService as any).timeSeries(timeSeriesData, order)
+    const result = await (context.pyodideCore as any).timeSeries(timeSeriesData, order)
     return {
       success: true,
       data: {
@@ -273,7 +273,7 @@ function createMetaAnalysisHandler(context: CalculatorContext): MethodHandler {
     }
 
     // Note: metaAnalysis method will be added to PyodideService later
-    const result = await (context.pyodideService as any).metaAnalysis(effectSizes, variances)
+    const result = await (context.pyodideCore as any).metaAnalysis(effectSizes, variances)
     return {
       success: true,
       data: {
@@ -305,7 +305,7 @@ function createSEMHandler(context: CalculatorContext): MethodHandler {
     }
 
     // Note: sem method will be added to PyodideService later
-    const result = await (context.pyodideService as any).sem(model, semData)
+    const result = await (context.pyodideCore as any).sem(model, semData)
     return {
       success: true,
       data: {
@@ -338,7 +338,7 @@ function createMultilevelModelHandler(context: CalculatorContext): MethodHandler
     }
 
     // Note: multilevelModel method will be added to PyodideService later
-    const result = await (context.pyodideService as any).multilevelModel(multilevelData, formula)
+    const result = await (context.pyodideCore as any).multilevelModel(multilevelData, formula)
     return {
       success: true,
       data: {
@@ -375,7 +375,7 @@ function createMediationHandler(context: CalculatorContext): MethodHandler {
     }
 
     // Note: mediation method will be added to PyodideService later
-    const result = await (context.pyodideService as any).mediation(X, M, Y)
+    const result = await (context.pyodideCore as any).mediation(X, M, Y)
     return {
       success: true,
       data: {
@@ -413,7 +413,7 @@ function createModerationHandler(context: CalculatorContext): MethodHandler {
     }
 
     // Note: moderation method will be added to PyodideService later
-    const result = await (context.pyodideService as any).moderation(X, M, Y)
+    const result = await (context.pyodideCore as any).moderation(X, M, Y)
     return {
       success: true,
       data: {

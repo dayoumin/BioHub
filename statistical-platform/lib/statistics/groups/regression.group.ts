@@ -68,7 +68,7 @@ function createLinearRegressionHandler(context: CalculatorContext): MethodHandle
       }
     })
 
-    const result = await context.pyodideService.simpleLinearRegression(xValues, yValues)
+    const result = await context.pyodideCore.simpleLinearRegression(xValues, yValues)
 
     return {
       success: true,
@@ -99,7 +99,7 @@ function createMultipleRegressionHandler(context: CalculatorContext): MethodHand
       return { success: false, error: 'X와 Y 데이터를 제공하세요' }
     }
 
-    const result = await context.pyodideService.multipleRegression(X, y)
+    const result = await context.pyodideCore.multipleRegression(X, y)
     return {
       success: true,
       data: {
@@ -128,7 +128,7 @@ function createLogisticRegressionHandler(context: CalculatorContext): MethodHand
       return { success: false, error: 'X와 Y 데이터를 제공하세요' }
     }
 
-    const result = await context.pyodideService.logisticRegression(X, y)
+    const result = await context.pyodideCore.logisticRegression(X, y)
     return {
       success: true,
       data: {
@@ -159,7 +159,7 @@ function createCurveEstimationHandler(context: CalculatorContext): MethodHandler
 
     // curveEstimation method will be added to PyodideService later
     // For now, keep the call as is (will cause type error until method is added)
-    const result = await (context.pyodideService as any).curveEstimation(x, y, model)
+    const result = await (context.pyodideCore as any).curveEstimation(x, y, model)
     return {
       success: true,
       data: {
@@ -188,7 +188,7 @@ function createNonlinearRegressionHandler(context: CalculatorContext): MethodHan
     }
 
     // nonlinearRegression method will be added to PyodideService later
-    const result = await (context.pyodideService as any).nonlinearRegression(x, y, func)
+    const result = await (context.pyodideCore as any).nonlinearRegression(x, y, func)
     return {
       success: true,
       data: {
@@ -216,7 +216,7 @@ function createStepwiseRegressionHandler(context: CalculatorContext): MethodHand
     }
 
     // stepwiseRegression method will be added to PyodideService later
-    const result = await (context.pyodideService as any).stepwiseRegression(X, y)
+    const result = await (context.pyodideCore as any).stepwiseRegression(X, y)
     return {
       success: true,
       data: {
@@ -245,7 +245,7 @@ function createBinaryLogisticHandler(context: CalculatorContext): MethodHandler 
     }
 
     // binaryLogistic method will be added to PyodideService later
-    const result = await (context.pyodideService as any).binaryLogistic(X, y)
+    const result = await (context.pyodideCore as any).binaryLogistic(X, y)
     return {
       success: true,
       data: {
@@ -273,7 +273,7 @@ function createMultinomialLogisticHandler(context: CalculatorContext): MethodHan
     }
 
     // multinomialLogistic method will be added to PyodideService later
-    const result = await (context.pyodideService as any).multinomialLogistic(X, y)
+    const result = await (context.pyodideCore as any).multinomialLogistic(X, y)
     return {
       success: true,
       data: {
@@ -301,7 +301,7 @@ function createOrdinalLogisticHandler(context: CalculatorContext): MethodHandler
     }
 
     // ordinalLogistic method will be added to PyodideService later
-    const result = await (context.pyodideService as any).ordinalLogistic(X, y)
+    const result = await (context.pyodideCore as any).ordinalLogistic(X, y)
     return {
       success: true,
       data: {
@@ -329,7 +329,7 @@ function createProbitRegressionHandler(context: CalculatorContext): MethodHandle
     }
 
     // probitRegression method will be added to PyodideService later
-    const result = await (context.pyodideService as any).probitRegression(X, y)
+    const result = await (context.pyodideCore as any).probitRegression(X, y)
     return {
       success: true,
       data: {
@@ -357,7 +357,7 @@ function createPoissonRegressionHandler(context: CalculatorContext): MethodHandl
     }
 
     // poissonRegression method will be added to PyodideService later
-    const result = await (context.pyodideService as any).poissonRegression(X, y)
+    const result = await (context.pyodideCore as any).poissonRegression(X, y)
     return {
       success: true,
       data: {
@@ -385,7 +385,7 @@ function createNegativeBinomialHandler(context: CalculatorContext): MethodHandle
     }
 
     // negativeBinomial method will be added to PyodideService later
-    const result = await (context.pyodideService as any).negativeBinomial(X, y)
+    const result = await (context.pyodideCore as any).negativeBinomial(X, y)
     return {
       success: true,
       data: {

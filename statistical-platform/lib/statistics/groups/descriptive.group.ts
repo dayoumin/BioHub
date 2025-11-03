@@ -78,7 +78,7 @@ function createMeanHandler(context: CalculatorContext): MethodHandler {
     }
 
     // Pyodide descriptiveStats 호출하여 평균 추출
-    const result = await context.pyodideService.descriptiveStats(values)
+    const result = await context.pyodideCore.descriptiveStats(values)
 
     return {
       success: true,
@@ -115,7 +115,7 @@ function createMedianHandler(context: CalculatorContext): MethodHandler {
     }
 
     // Pyodide descriptiveStats 호출하여 중앙값 추출
-    const result = await context.pyodideService.descriptiveStats(values)
+    const result = await context.pyodideCore.descriptiveStats(values)
 
     return {
       success: true,
@@ -152,7 +152,7 @@ function createModeHandler(context: CalculatorContext): MethodHandler {
     }
 
     // Pyodide descriptiveStats 호출 (SciPy mode 포함)
-    const result = await context.pyodideService.descriptiveStats(values)
+    const result = await context.pyodideCore.descriptiveStats(values)
 
     // SciPy의 mode 값 사용 (JavaScript 계산 제거)
     // descriptiveStats에서 이미 SciPy로 계산된 mode 반환
@@ -198,7 +198,7 @@ function createDescriptiveStatsHandler(context: CalculatorContext): MethodHandle
       return { success: false, error: '유효한 숫자 데이터가 없습니다' }
     }
 
-    const result = await context.pyodideService.descriptiveStats(values)
+    const result = await context.pyodideCore.descriptiveStats(values)
 
     return {
       success: true,
@@ -260,7 +260,7 @@ function createNormalityHandler(context: CalculatorContext): MethodHandler {
 
     const alphaVal = paramsObj.alpha
     const alpha = typeof alphaVal === 'number' ? alphaVal : 0.05
-    const result = await context.pyodideService.shapiroWilkTest(values)
+    const result = await context.pyodideCore.shapiroWilkTest(values)
     const isNormal = result.pValue > alpha
 
     return {
@@ -320,7 +320,7 @@ function createOutliersHandler(context: CalculatorContext): MethodHandler {
     const method = (typeof methodVal === 'string' && (methodVal === 'iqr' || methodVal === 'zscore'))
       ? methodVal
       : 'iqr' as const
-    const result = await context.pyodideService.outlierDetection(values, method)
+    const result = await context.pyodideCore.outlierDetection(values, method)
 
     return {
       success: true,
@@ -532,7 +532,7 @@ function createProportionTestHandler(context: CalculatorContext): MethodHandler 
     const successCount = values.filter(val => val === successValue).length
     const totalCount = values.length
 
-    const result = await context.pyodideService.oneSampleProportionTest(
+    const result = await context.pyodideCore.oneSampleProportionTest(
       successCount,
       totalCount,
       nullProportion,
@@ -603,7 +603,7 @@ function createReliabilityHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2명 이상의 응답자가 필요합니다' }
     }
 
-    const result = await context.pyodideService.cronbachAlpha(itemsMatrix)
+    const result = await context.pyodideCore.cronbachAlpha(itemsMatrix)
     const interpretation = interpretCronbachAlpha(result.alpha)
 
     return {

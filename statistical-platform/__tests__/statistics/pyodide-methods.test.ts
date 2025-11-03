@@ -109,9 +109,9 @@ describe('Pyodide 통계 서비스 - 26개 메서드 테스트', () => {
       expect(typeof pyodideService.correlation).toBe('function')
     })
 
-    test('11. partialCorrelation - 편상관분석', () => {
-      expect(pyodideService.partialCorrelation).toBeDefined()
-      expect(typeof pyodideService.partialCorrelation).toBe('function')
+    test('11. partialCorrelationWorker - 편상관분석', () => {
+      expect(pyodideService.partialCorrelationWorker).toBeDefined()
+      expect(typeof pyodideService.partialCorrelationWorker).toBe('function')
     })
   })
 
@@ -126,9 +126,9 @@ describe('Pyodide 통계 서비스 - 26개 메서드 테스트', () => {
       expect(typeof pyodideService.twoWayANOVA).toBe('function')
     })
 
-    test('14. repeatedMeasuresANOVA - 반복측정분산분석', () => {
-      expect(pyodideService.repeatedMeasuresANOVA).toBeDefined()
-      expect(typeof pyodideService.repeatedMeasuresANOVA).toBe('function')
+    test('14. repeatedMeasuresAnova - 반복측정분산분석', () => {
+      expect(pyodideService.repeatedMeasuresAnova).toBeDefined()
+      expect(typeof pyodideService.repeatedMeasuresAnova).toBe('function')
     })
   })
 
@@ -155,9 +155,9 @@ describe('Pyodide 통계 서비스 - 26개 메서드 테스트', () => {
       expect(typeof pyodideService.mannWhitneyU).toBe('function')
     })
 
-    test('19. wilcoxonSignedRank - Wilcoxon 부호순위 검정', () => {
-      expect(pyodideService.wilcoxonSignedRank).toBeDefined()
-      expect(typeof pyodideService.wilcoxonSignedRank).toBe('function')
+    test('19. wilcoxonSignedRankTest - Wilcoxon 부호순위 검정', () => {
+      expect(pyodideService.wilcoxonSignedRankTest).toBeDefined()
+      expect(typeof pyodideService.wilcoxonSignedRankTest).toBe('function')
     })
 
     test('20. kruskalWallis - Kruskal-Wallis 검정', () => {
@@ -165,16 +165,16 @@ describe('Pyodide 통계 서비스 - 26개 메서드 테스트', () => {
       expect(typeof pyodideService.kruskalWallis).toBe('function')
     })
 
-    test('21. friedmanTest - Friedman 검정', () => {
-      expect(pyodideService.friedmanTest).toBeDefined()
-      expect(typeof pyodideService.friedmanTest).toBe('function')
+    test('21. friedman - Friedman 검정', () => {
+      expect(pyodideService.friedman).toBeDefined()
+      expect(typeof pyodideService.friedman).toBe('function')
     })
   })
 
   describe('회귀분석 (Regression) - 3개', () => {
-    test('22. simpleRegression - 단순회귀분석', () => {
-      expect(pyodideService.simpleRegression).toBeDefined()
-      expect(typeof pyodideService.simpleRegression).toBe('function')
+    test('22. multipleRegression - 단순회귀분석', () => {
+      expect(pyodideService.multipleRegression).toBeDefined()
+      expect(typeof pyodideService.multipleRegression).toBe('function')
     })
 
     test('23. multipleRegression - 다중회귀분석', () => {
@@ -221,7 +221,7 @@ describe('Pyodide 통계 서비스 - 26개 메서드 테스트', () => {
       // ANOVA (3개)
       'oneWayANOVA',
       'twoWayANOVA',
-      'repeatedMeasuresANOVA',
+      'repeatedMeasuresAnova',
 
       // 사후검정 (3개)
       'tukeyHSD',
@@ -230,12 +230,12 @@ describe('Pyodide 통계 서비스 - 26개 메서드 테스트', () => {
 
       // 비모수 (4개)
       'mannWhitneyU',
-      'wilcoxonSignedRank',
+      'wilcoxonSignedRankTest',
       'kruskalWallis',
-      'friedmanTest',
+      'friedman',
 
       // 회귀분석 (3개)
-      'simpleRegression',
+      'multipleRegression',
       'multipleRegression',
       'logisticRegression',
 
@@ -282,7 +282,7 @@ describe('Pyodide 통계 서비스 - 코드 리뷰', () => {
     expect(service.oneWayANOVA).toBeDefined()
     expect(service.tukeyHSD).toBeDefined()
     expect(service.mannWhitneyU).toBeDefined()
-    expect(service.simpleRegression).toBeDefined()
+    expect(service.multipleRegression).toBeDefined()
   })
 
   test('별칭 메서드 호환성 검증', () => {
