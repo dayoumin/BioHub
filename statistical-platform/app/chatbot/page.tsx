@@ -345,11 +345,11 @@ export default function ChatbotPage() {
       </aside>
 
       {/* 사이드바 토글 버튼 */}
-      <div className="w-8 bg-muted/5 border-r flex items-center justify-center">
+      <div className="w-8 flex items-center justify-center group hover:bg-muted/10 transition-colors">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-8 w-8 opacity-60 group-hover:opacity-100 transition-opacity"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           title={sidebarCollapsed ? '사이드바 열기' : '사이드바 닫기'}
         >
