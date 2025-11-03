@@ -60,7 +60,7 @@ export function formatCorrelation(value: number, showStrength = false): string {
 export function formatConfidenceInterval(
   lower: number | null | undefined,
   upper: number | null | undefined,
-  precision = PRECISION.STATISTIC
+  precision: number = PRECISION.STATISTIC
 ): string {
   if (lower === null || lower === undefined || upper === null || upper === undefined) {
     return '[N/A, N/A]'
@@ -187,7 +187,7 @@ export function formatStatisticalResult(
  */
 export function interpretEffectSize(
   value: number,
-  type: 'cohen_d' | 'eta_squared' | 'r' = 'cohen_d'
+  type: 'cohen_d' | 'eta_squared' | 'omega_squared' | 'r' | 'phi' | 'cramers_v' = 'cohen_d'
 ): string {
   const absValue = Math.abs(value)
 
@@ -199,11 +199,18 @@ export function interpretEffectSize(
       if (absValue < EFFECT_SIZE.VERY_LARGE) return '큼'
       return '매우 큼'
     case 'eta_squared':
+    case 'omega_squared':
       if (absValue < 0.01) return '매우 작음'
       if (absValue < 0.06) return '작음'
       if (absValue < 0.14) return '중간'
       return '큼'
     case 'r':
+      if (absValue < 0.1) return '무시할 수준'
+      if (absValue < 0.3) return '작음'
+      if (absValue < 0.5) return '중간'
+      return '큼'
+    case 'phi':
+    case 'cramers_v':
       if (absValue < 0.1) return '무시할 수준'
       if (absValue < 0.3) return '작음'
       if (absValue < 0.5) return '중간'

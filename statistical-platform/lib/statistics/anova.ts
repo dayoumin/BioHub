@@ -2,7 +2,7 @@
  * 분산분석(ANOVA) 및 사후검정 모듈
  */
 
-import { ensurePyodideReady, validateNumericMatrix, interpretPValue, interpretEffectSize } from './utils'
+import { ensurePyodideReady, validateNumericArray, validateNumericMatrix, interpretPValue, interpretEffectSize } from './utils'
 import { ANOVAResult, PostHocResult, StatisticalResult } from './types'
 
 /**

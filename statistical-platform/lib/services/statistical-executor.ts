@@ -179,11 +179,13 @@ export class StatisticalExecutor {
       groups.forEach(group => {
         prepared.arrays.byGroup[group] = data
           .filter(row => row[variables.group] === group)
-          .map(row => variables.dependent ?
-            Number(row[variables.dependent[0]]) :
-            Object.values(row).find(v => !isNaN(Number(v)))
-          )
-          .filter(v => !isNaN(v))
+          .map(row => {
+            const val = variables.dependent ?
+              Number(row[variables.dependent[0]]) :
+              Object.values(row).find(v => !isNaN(Number(v)))
+            return typeof val === 'number' ? val : Number(val)
+          })
+          .filter((v: number) => !isNaN(v))
       })
     }
 
@@ -292,7 +294,10 @@ export class StatisticalExecutor {
           value: cohensD,
           interpretation: this.interpretCohensD(cohensD)
         },
-        confidenceInterval: result.confidenceInterval
+        confidenceInterval: result.confidenceInterval ? {
+          ...result.confidenceInterval,
+          level: 95
+        } : undefined
       },
       visualizationData: {
         type: 'boxplot',
@@ -343,7 +348,7 @@ export class StatisticalExecutor {
       mainResults: {
         statistic: result.fStatistic,
         pvalue: result.pValue,
-        df: result.df,
+        df: Array.isArray(result.df) ? result.df[0] : result.df,
         significant: result.pValue < 0.05,
         interpretation: result.pValue < 0.05 ?
           `그룹 간 유의한 차이가 있습니다 (F=${result.fStatistic.toFixed(2)})` :
@@ -398,7 +403,7 @@ export class StatisticalExecutor {
         }
       },
       mainResults: {
-        statistic: result.fStatistic || result.tStatistic,
+        statistic: result.fStatistic ?? result.tStatistic ?? 0,
         pvalue: result.pvalue,
         df: result.df,
         significant: result.pvalue < 0.05,
@@ -437,9 +442,9 @@ export class StatisticalExecutor {
       throw new Error('상관분석을 위한 두 변수가 필요합니다')
     }
 
-    const result = await pyodideStats.correlation(var1, var2, {
-      method: method.id === 'spearman' ? 'spearman' : 'pearson'
-    })
+    const result = await pyodideStats.correlation(var1, var2)
+    const methodType = method.id === 'spearman' ? 'spearman' : 'pearson'
+    const selectedResult = result[methodType as keyof typeof result]
 
     return {
       metadata: {
@@ -453,15 +458,17 @@ export class StatisticalExecutor {
         }
       },
       mainResults: {
-        statistic: result.pearson.r,
-        pvalue: result.pearson.pValue,
-        significant: result.pearson.pValue < 0.05,
-        interpretation: `상관계수 = ${result.pearson.r.toFixed(3)} (${this.interpretCorrelation(result.pearson.r)})`
+        statistic: selectedResult.r,
+        pvalue: selectedResult.pValue,
+        significant: selectedResult.pValue < 0.05,
+        interpretation: `상관계수 = ${selectedResult.r.toFixed(3)} (${this.interpretCorrelation(selectedResult.r)})`
       },
       additionalInfo: {
-        pearson: result.pearson,
-        spearman: result.spearman,
-        kendall: result.kendall
+        postHoc: {
+          pearson: result.pearson,
+          spearman: result.spearman,
+          kendall: result.kendall
+        }
       },
       visualizationData: {
         type: 'scatter',

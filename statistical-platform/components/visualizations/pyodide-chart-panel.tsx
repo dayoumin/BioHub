@@ -86,9 +86,9 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           if (selectedColumns.length !== 1) {
             throw new Error('Please select exactly one column for histogram')
           }
-          
-          const data = (dataset.data ?? [])
-            .map(row => parseFloat(String(row[selectedColumns[0]])))
+
+          const data = ((dataset.data as Record<string, unknown>[]) ?? [])
+            .map((row: Record<string, unknown>) => parseFloat(String(row[selectedColumns[0]])))
             .filter(val => !isNaN(val))
           
           imageData = await viz.createHistogram(
@@ -104,12 +104,12 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           if (selectedColumns.length !== 1 || !groupColumn) {
             throw new Error('Please select one value column and one group column')
           }
-          
+
           const groups = new Map<string, number[]>()
-          ;(dataset.data ?? []).forEach(row => {
+          ;((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
             const group = String(row[groupColumn])
             const value = parseFloat(String(row[selectedColumns[0]]))
-            
+
             if (!isNaN(value)) {
               if (!groups.has(group)) {
                 groups.set(group, [])
@@ -176,12 +176,12 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           if (!groupColumn || selectedColumns.length !== 1) {
             throw new Error('Please select one value column and one group column')
           }
-          
+
           const groups = new Map<string, number[]>()
-          ;(dataset.data ?? []).forEach(row => {
+          ;((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
             const group = String(row[groupColumn])
             const value = parseFloat(String(row[selectedColumns[0]]))
-            
+
             if (!isNaN(value)) {
               if (!groups.has(group)) {
                 groups.set(group, [])

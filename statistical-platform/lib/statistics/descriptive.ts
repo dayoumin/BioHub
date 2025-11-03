@@ -2,7 +2,7 @@
  * 기술통계 분석 모듈
  */
 
-import { ensurePyodideReady, validateNumericArray } from './utils'
+import { ensurePyodideReady, validateNumericArray, validateNumericMatrix } from './utils'
 import { DescriptiveStats } from './types'
 
 /**
