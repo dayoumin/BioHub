@@ -49,4 +49,6 @@ export interface ChatSession {
 export interface ChatSettings {
   floatingButtonEnabled: boolean
   theme: 'light' | 'dark' | 'system'
+  /** Ollama 추론 모델 (자동으로 추천됨, 사용자가 변경 가능) */
+  inferenceModel?: string
 }

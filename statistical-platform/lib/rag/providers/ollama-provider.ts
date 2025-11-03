@@ -232,8 +232,34 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         throw new Error('Ollama 서버에 연결할 수 없습니다')
       }
 
-      const data = (await response.json()) as { models: Array<{ name: string }> }
-      const models = data.models || []
+      const data = (await response.json()) as unknown
+
+      // 타입 가드: models 배열 추출
+      if (typeof data !== 'object' || data === null) {
+        throw new Error('Ollama API 응답이 유효하지 않습니다')
+      }
+
+      const record = data as Record<string, unknown>
+      if (!Array.isArray(record.models)) {
+        throw new Error('Ollama API에서 모델 목록을 찾을 수 없습니다')
+      }
+
+      // 모델 목록을 안전하게 추출
+      const models: Array<{ name: string }> = record.models
+        .map((m: unknown) => {
+          if (typeof m === 'object' && m !== null) {
+            const modelRecord = m as Record<string, unknown>
+            if (typeof modelRecord.name === 'string') {
+              return { name: modelRecord.name }
+            }
+          }
+          return null
+        })
+        .filter((m): m is { name: string } => m !== null)
+
+      if (models.length === 0) {
+        throw new Error('Ollama에 설치된 모델이 없습니다')
+      }
 
       // 2. 임베딩 모델 자동 감지 또는 확인
       if (!this.embeddingModel) {
@@ -263,41 +289,55 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
       // 3. 추론 모델 자동 감지 또는 확인
       if (!this.inferenceModel) {
-        // 모델이 지정되지 않았으면 자동 감지 (임베딩 모델 제외, 우선순위: qwen > gemma > gpt > 기타)
-        const nonEmbeddingModels = models.filter(
-          (m) =>
-            !m.name.toLowerCase().includes('embed') &&
-            !m.name.toLowerCase().includes('embedding')
-        )
+        // 동적 모델 추천 시스템 사용 (GPU RAM 기반)
+        try {
+          // dynamic import를 사용하여 순환 의존성 방지
+          const { getRecommendedModel } = await import('@/lib/rag/utils/model-recommender')
+          const recommendedModel = await getRecommendedModel(this.ollamaEndpoint)
 
-        // 우선순위별로 정렬: 1순위(qwen), 2순위(gemma), 3순위(gpt), 4순위(기타)
-        const inferenceModel = nonEmbeddingModels.sort((a, b) => {
-          const getPriority = (name: string): number => {
-            const lower = name.toLowerCase()
-            if (lower.includes('qwen')) return 0  // 1순위
-            if (lower.includes('gemma')) return 1 // 2순위
-            if (lower.includes('gpt')) return 2   // 3순위
-            return 3                               // 4순위 (기타)
+          if (recommendedModel) {
+            this.inferenceModel = recommendedModel
+            console.log(`[OllamaProvider] 추천 모델 사용: ${this.inferenceModel}`)
+          } else {
+            throw new Error('추천할 추론 모델을 찾을 수 없습니다')
           }
-          return getPriority(a.name) - getPriority(b.name)
-        })[0]
+        } catch (error) {
+          console.warn('[OllamaProvider] 동적 모델 추천 실패, 폴백 로직 사용:', error)
 
-        if (!inferenceModel) {
-          // 설치된 모델 목록을 에러 메시지에 포함 (embedding 모델만 존재하는 경우)
-          const allModelNames = models.map((m) => m.name).join(', ')
-
-          throw new Error(
-            '추론 가능한 모델을 찾을 수 없습니다. embedding 모델만 설치되어 있습니다.\n' +
-            `설치된 모델: ${allModelNames || '없음'}\n` +
-            '다음 중 하나를 설치하세요:\n' +
-            '  ollama pull qwen2.5\n' +
-            '  ollama pull gemma\n' +
-            '  ollama pull mistral\n' +
-            '  또는 다른 대형 언어 모델'
+          // 폴백: 기존 우선순위 기반 선택
+          const nonEmbeddingModels = models.filter(
+            (m) =>
+              !m.name.toLowerCase().includes('embed') &&
+              !m.name.toLowerCase().includes('embedding')
           )
+
+          const inferenceModel = nonEmbeddingModels.sort((a, b) => {
+            const getPriority = (name: string): number => {
+              const lower = name.toLowerCase()
+              if (lower.includes('qwen')) return 0
+              if (lower.includes('gemma')) return 1
+              if (lower.includes('deepseek')) return 2
+              if (lower.includes('llama')) return 3
+              return 4
+            }
+            return getPriority(a.name) - getPriority(b.name)
+          })[0]
+
+          if (!inferenceModel) {
+            const allModelNames = models.map((m) => m.name).join(', ')
+            throw new Error(
+              '추론 가능한 모델을 찾을 수 없습니다.\n' +
+              `설치된 모델: ${allModelNames || '없음'}\n` +
+              '다음 중 하나를 설치하세요:\n' +
+              '  ollama pull qwen3\n' +
+              '  ollama pull gemma3\n' +
+              '  ollama pull llama3.2\n' +
+              '  또는 다른 대형 언어 모델'
+            )
+          }
+          this.inferenceModel = inferenceModel.name
+          console.log(`[OllamaProvider] 폴백 모델 사용: ${this.inferenceModel}`)
         }
-        this.inferenceModel = inferenceModel.name
-        console.log(`[OllamaProvider] 추론 모델 자동 감지: ${this.inferenceModel}`)
       } else {
         // 지정된 모델이 설치되어 있는지 확인
         const hasInferenceModel = models.some((m) => m.name.includes(this.inferenceModel))
