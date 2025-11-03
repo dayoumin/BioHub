@@ -113,8 +113,9 @@ export const getComponentStyles = <T extends ComponentName>(
   theme: ThemeName,
   component: T,
   variant: ComponentVariant<T> = 'default' as ComponentVariant<T>
-) => {
-  return themes[theme].components[component][variant as keyof typeof themes[typeof theme]['components'][T]]
+): string => {
+  const themeObj = themes[theme] as { components: Record<string, Record<string, string>> }
+  return (themeObj.components[component as string][variant as string] as string) || ''
 }
 
 export const getCurrentTheme = () => themes.perplexity // Default theme

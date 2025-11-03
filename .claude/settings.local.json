@@ -75,5 +75,5 @@
     "git",
     "memory"
   ],
-  "outputStyle": "Explanatory"
+  "outputStyle": "default"
 }

@@ -57,7 +57,7 @@ export function ThemeProvider({
     theme,
     setTheme,
     getStyles,
-    currentTheme: themes[theme]
+    currentTheme: themes[theme] as typeof themes.perplexity
   }
 
   return (

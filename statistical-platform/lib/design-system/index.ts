@@ -9,6 +9,11 @@
 export { designTokens, themes, getCurrentTheme, getComponentStyles } from './tokens'
 export type { ThemeName, ComponentName, ComponentVariant } from './tokens'
 
+// Import types and functions needed internally in this file
+import { getComponentStyles, getCurrentTheme } from './tokens'
+import type { ThemeName, ComponentName } from './tokens'
+import { themes } from './tokens'
+
 // Theme provider and hooks
 export { ThemeProvider, useTheme, useComponentStyles, withTheme } from './theme-provider'
 

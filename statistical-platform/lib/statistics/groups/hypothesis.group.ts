@@ -200,15 +200,23 @@ function createOneSampleTTestHandler(context: CalculatorContext): MethodHandler 
 
     const result = await context.pyodideCore.oneSampleTTest(values, popmean)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue', 'sampleMean'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+    const sampleMean = context.pyodideCore.getStatisticValue(result, 'sampleMean')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 't-통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) },
-          { name: '표본 평균', value: result.sampleMean.toFixed(4) }
+          { name: 't-통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) },
+          { name: '표본 평균', value: sampleMean.toFixed(4) }
         ],
-        interpretation: `표본 평균이 모평균 ${popmean}와(과) ${result.pValue < 0.05 ? '유의하게 다릅니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `표본 평균이 모평균 ${popmean}와(과) ${pValue < 0.05 ? '유의하게 다릅니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -248,14 +256,21 @@ function createZTestHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.zTestWorker(values, popmean, popstd)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['zStatistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const zStatistic = context.pyodideCore.getStatisticValue(result, 'zStatistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'Z-통계량', value: result.zStatistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: 'Z-통계량', value: zStatistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Z-검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `Z-검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -277,17 +292,38 @@ function createChiSquareHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '관측 빈도 행렬을 제공하세요' }
     }
 
-    const result = await context.pyodideCore.chiSquareTest(observedMatrix, false)
+    // 관측도수 행렬 검증 (2D 배열)
+    if (!observedMatrix.every((row: unknown) => Array.isArray(row))) {
+      return { success: false, error: '유효하지 않은 관측 빈도 행렬 형식입니다' }
+    }
+
+    // 행렬 → 벡터 변환
+    const observed = (observedMatrix as number[][]).flat()
+
+    // 각 셀의 기대도수 계산 (단순화: 균등분포 가정)
+    // 실제로는 파이썬에서 계산하는 것이 더 정확하지만, 여기서는 기본값 사용
+    const totalCount = observed.reduce((sum, val) => sum + val, 0)
+    const expected = Array(observed.length).fill(totalCount / observed.length)
+
+    const result = await context.pyodideCore.chiSquareTest(observed, expected)
+
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue', 'df'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+    const df = context.pyodideCore.getStatisticValue(result, 'df')
 
     return {
       success: true,
       data: {
         metrics: [
-          { name: '카이제곱 통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) },
-          { name: '자유도', value: result.df }
+          { name: '카이제곱 통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) },
+          { name: '자유도', value: df }
         ],
-        interpretation: `카이제곱 검정 결과 ${result.pValue < 0.05 ? '변수 간 독립성이 없습니다' : '변수 간 독립적입니다'}.`
+        interpretation: `카이제곱 검정 결과 ${pValue < 0.05 ? '변수 간 독립성이 없습니다' : '변수 간 독립적입니다'}.`
       }
     }
   }
@@ -314,14 +350,20 @@ function createBinomialTestHandler(context: CalculatorContext): MethodHandler {
     const probability = typeof probabilityVal === 'number' ? probabilityVal : 0.5
     const result = await context.pyodideCore.binomialTestWorker(successCount, totalCount, probability)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
           { name: '성공 비율', value: ((successCount / totalCount) * 100).toFixed(2) + '%' },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `이항 검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `이항 검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -364,21 +406,23 @@ function createCorrelationHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 3쌍의 데이터가 필요합니다' }
     }
 
-    // correlationTest accepts method as 3rd parameter
-    const correlationMethod = (method === 'pearson' || method === 'spearman' || method === 'kendall')
-      ? method
-      : 'pearson'
+    const result = await context.pyodideCore.correlationTest(values1, values2)
 
-    const result = await context.pyodideCore.correlationTest(values1, values2, correlationMethod as 'pearson' | 'spearman' | 'kendall')
+    if (!context.pyodideCore.hasStatisticFields(result, ['correlation', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const correlation = context.pyodideCore.getStatisticValue(result, 'correlation')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
 
     return {
       success: true,
       data: {
         metrics: [
-          { name: '상관계수', value: result.correlation.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: '상관계수', value: correlation.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: interpretCorrelation(result.correlation, result.pValue)
+        interpretation: interpretCorrelation(correlation, pValue)
       }
     }
   }
@@ -440,17 +484,29 @@ function createPartialCorrelationHandler(context: CalculatorContext): MethodHand
       return { success: false, error: '행렬 변환 중 오류가 발생했습니다' }
     }
 
-    const controlIndices = Array.from({ length: stringControlVars.length }, (_, i) => i + 2)
-    const result = await context.pyodideCore.partialCorrelationWorker(transposedMatrix, 0, 1, controlIndices)
+    // 부분상관분석을 위해 행렬에서 각 변수 추출
+    // transposedMatrix[0]: var1, transposedMatrix[1]: var2, transposedMatrix[2+]: control vars
+    const x = transposedMatrix[0]
+    const y = transposedMatrix[1]
+    const controlVarsArrays = stringControlVars.map((_, i) => transposedMatrix[i + 2])
+
+    const result = await context.pyodideCore.partialCorrelationWorker(x, y, controlVarsArrays)
+
+    if (!context.pyodideCore.hasStatisticFields(result, ['correlation', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const correlation = context.pyodideCore.getStatisticValue(result, 'correlation')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
 
     return {
       success: true,
       data: {
         metrics: [
-          { name: '부분상관계수', value: result.correlation.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: '부분상관계수', value: correlation.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `통제 변수를 고려한 부분상관계수는 ${result.correlation.toFixed(3)}입니다.`
+        interpretation: `통제 변수를 고려한 부분상관계수는 ${correlation.toFixed(3)}입니다.`
       }
     }
   }

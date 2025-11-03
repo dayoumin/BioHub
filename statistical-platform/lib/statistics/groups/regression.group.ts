@@ -70,16 +70,25 @@ function createLinearRegressionHandler(context: CalculatorContext): MethodHandle
 
     const result = await context.pyodideCore.simpleLinearRegression(xValues, yValues)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['slope', 'intercept', 'rSquared', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const slope = context.pyodideCore.getStatisticValue(result, 'slope')
+    const intercept = context.pyodideCore.getStatisticValue(result, 'intercept')
+    const rSquared = context.pyodideCore.getStatisticValue(result, 'rSquared')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: '기울기 (Slope)', value: result.slope.toFixed(4) },
-          { name: '절편 (Intercept)', value: result.intercept.toFixed(4) },
-          { name: 'R²', value: result.rSquared.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: '기울기 (Slope)', value: slope.toFixed(4) },
+          { name: '절편 (Intercept)', value: intercept.toFixed(4) },
+          { name: 'R²', value: rSquared.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `회귀식: Y = ${result.slope.toFixed(3)}X + ${result.intercept.toFixed(3)}, R² = ${result.rSquared.toFixed(3)}`
+        interpretation: `회귀식: Y = ${slope.toFixed(3)}X + ${intercept.toFixed(3)}, R² = ${rSquared.toFixed(3)}`
       }
     }
   }
@@ -100,15 +109,24 @@ function createMultipleRegressionHandler(context: CalculatorContext): MethodHand
     }
 
     const result = await context.pyodideCore.multipleRegression(X, y)
+
+    if (!context.pyodideCore.hasStatisticFields(result, ['rSquared', 'adjRSquared', 'fStatistic'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const rSquared = context.pyodideCore.getStatisticValue(result, 'rSquared')
+    const adjRSquared = context.pyodideCore.getStatisticValue(result, 'adjRSquared')
+    const fStatistic = context.pyodideCore.getStatisticValue(result, 'fStatistic')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'R²', value: result.rSquared.toFixed(4) },
-          { name: '조정된 R²', value: result.adjRSquared.toFixed(4) },
-          { name: 'F-통계량', value: result.fStatistic.toFixed(4) }
+          { name: 'R²', value: rSquared.toFixed(4) },
+          { name: '조정된 R²', value: adjRSquared.toFixed(4) },
+          { name: 'F-통계량', value: fStatistic.toFixed(4) }
         ],
-        interpretation: `다중회귀분석 결과 R² = ${result.rSquared.toFixed(3)}`
+        interpretation: `다중회귀분석 결과 R² = ${rSquared.toFixed(3)}`
       }
     }
   }
@@ -129,14 +147,22 @@ function createLogisticRegressionHandler(context: CalculatorContext): MethodHand
     }
 
     const result = await context.pyodideCore.logisticRegression(X, y)
+
+    if (!context.pyodideCore.hasStatisticFields(result, ['accuracy', 'auc'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const accuracy = context.pyodideCore.getStatisticValue(result, 'accuracy')
+    const auc = context.pyodideCore.getStatisticValue(result, 'auc')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: '정확도', value: (result.accuracy * 100).toFixed(2) + '%' },
-          { name: 'AUC', value: result.auc.toFixed(4) }
+          { name: '정확도', value: (accuracy * 100).toFixed(2) + '%' },
+          { name: 'AUC', value: auc.toFixed(4) }
         ],
-        interpretation: `로지스틱 회귀 모델 정확도 ${(result.accuracy * 100).toFixed(1)}%`
+        interpretation: `로지스틱 회귀 모델 정확도 ${(accuracy * 100).toFixed(1)}%`
       }
     }
   }

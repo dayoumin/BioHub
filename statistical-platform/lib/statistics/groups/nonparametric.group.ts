@@ -76,14 +76,21 @@ function createMannWhitneyHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.mannWhitneyTestWorker(groups[groupNames[0]], groups[groupNames[1]])
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'U-통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: 'U-통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Mann-Whitney U 검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `Mann-Whitney U 검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -126,14 +133,21 @@ function createWilcoxonHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.wilcoxonTestWorker(values1, values2)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'W-통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: 'W-통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Wilcoxon 검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `Wilcoxon 검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -173,14 +187,21 @@ function createKruskalWallisHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.kruskalWallisTestWorker(groupArrays)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'H-통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: 'H-통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Kruskal-Wallis 검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `Kruskal-Wallis 검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -206,14 +227,21 @@ function createFriedmanHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.friedmanTestWorker(validatedMatrix)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: '카이제곱 통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: '카이제곱 통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Friedman 검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `Friedman 검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -246,13 +274,19 @@ function createSignTestHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.signTestWorker(validatedBefore, validatedAfter)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Sign 검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `Sign 검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -274,23 +308,33 @@ function createRunsTestHandler(context: CalculatorContext): MethodHandler {
       return { success: false, error: '최소 2개 이상의 시퀀스 데이터가 필요합니다' }
     }
 
-    // Filter out null/undefined values
-    const validSequence = sequence.filter(v => v !== null && v !== undefined)
+    // Filter out null/undefined values and convert to numbers
+    const validSequence = sequence
+      .filter((v): v is number | string => v !== null && v !== undefined)
+      .map(v => typeof v === 'number' ? v : typeof v === 'string' ? parseFloat(v) : NaN)
+      .filter(v => !isNaN(v))
 
     if (validSequence.length < 2) {
       return { success: false, error: '유효한 시퀀스 데이터가 부족합니다' }
     }
 
-    const result = await context.pyodideCore.runsTestWorker(validSequence as (number | string)[])
+    const result = await context.pyodideCore.runsTestWorker(validSequence)
+
+    if (!context.pyodideCore.hasStatisticFields(result, ['zStatistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const zStatistic = context.pyodideCore.getStatisticValue(result, 'zStatistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
 
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'Z-통계량', value: result.zStatistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: 'Z-통계량', value: zStatistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Runs 검정 결과 ${result.pValue < 0.05 ? '무작위성이 없습니다' : '무작위성이 있습니다'}.`
+        interpretation: `Runs 검정 결과 ${pValue < 0.05 ? '무작위성이 없습니다' : '무작위성이 있습니다'}.`
       }
     }
   }
@@ -316,14 +360,21 @@ function createMcNemarHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.mcnemarTestWorker(validatedTable)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: '카이제곱 통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: '카이제곱 통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `McNemar 검정 결과 ${result.pValue < 0.05 ? '유의한 변화가 있습니다' : '유의한 변화가 없습니다'}.`
+        interpretation: `McNemar 검정 결과 ${pValue < 0.05 ? '유의한 변화가 있습니다' : '유의한 변화가 없습니다'}.`
       }
     }
   }
@@ -358,14 +409,21 @@ function createCochranQHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.cochranQTestWorker(validatedMatrix)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['qStatistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const qStatistic = context.pyodideCore.getStatisticValue(result, 'qStatistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 'Q-통계량', value: result.qStatistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: 'Q-통계량', value: qStatistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Cochran Q 검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `Cochran Q 검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }
@@ -391,14 +449,21 @@ function createMoodMedianHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.moodMedianTestWorker(validatedGroups)
 
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: '카이제곱 통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) }
+          { name: '카이제곱 통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) }
         ],
-        interpretation: `Mood Median 검정 결과 ${result.pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
+        interpretation: `Mood Median 검정 결과 ${pValue < 0.05 ? '유의한 차이가 있습니다' : '유의한 차이가 없습니다'}.`
       }
     }
   }

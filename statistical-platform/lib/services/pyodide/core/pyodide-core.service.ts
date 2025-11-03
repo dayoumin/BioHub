@@ -816,4 +816,159 @@ json.dumps(result)
     await this.ensureWorker4Loaded()
     return this.callWorkerMethod<StatisticsResult>(4, 'logistic_regression', { y, x })
   }
+
+  // ============================================================================
+  // ANOVA Methods (Worker 3 & 4)
+  // ============================================================================
+
+  /**
+   * One-Way ANOVA
+   */
+  async oneWayANOVA(groups: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'one_way_anova', { groups })
+  }
+
+  /**
+   * Two-Way ANOVA
+   */
+  async twoWayAnova(data: number[][], factorA: string[], factorB: string[]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'two_way_anova', { data, factor_a: factorA, factor_b: factorB })
+  }
+
+  /**
+   * Repeated Measures ANOVA
+   */
+  async repeatedMeasuresAnovaWorker(data: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'repeated_measures_anova', { data })
+  }
+
+  /**
+   * ANCOVA (Analysis of Covariance)
+   */
+  async ancovaWorker(y: number[], x: number[][], covariate: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'ancova', { y, x, covariate })
+  }
+
+  /**
+   * MANOVA (Multivariate ANOVA)
+   */
+  async manovaWorker(y: number[][], x: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'manova', { y, x })
+  }
+
+  /**
+   * Tukey HSD (Honestly Significant Difference) Post-Hoc Test
+   */
+  async tukeyHSD(groups: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'tukey_hsd', { groups })
+  }
+
+  /**
+   * Scheffe Test Post-Hoc
+   */
+  async scheffeTestWorker(groups: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'scheffe_test', { groups })
+  }
+
+  /**
+   * Bonferroni Correction
+   */
+  async performBonferroni(pValues: number[], alpha?: number): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'bonferroni_correction', { p_values: pValues, alpha: alpha ?? 0.05 })
+  }
+
+  /**
+   * Games-Howell Test (non-parametric alternative to Tukey HSD)
+   */
+  async gamesHowellTest(groups: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'games_howell_test', { groups })
+  }
+
+  // ============================================================================
+  // Descriptive Statistics Methods
+  // ============================================================================
+
+  /**
+   * Descriptive Statistics (Mean, Median, Std, etc.)
+   */
+  async descriptiveStats(data: number[], groupBy?: string[]): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'descriptive_stats', {
+      data,
+      group_by: groupBy ?? []
+    })
+  }
+
+  /**
+   * Shapiro-Wilk Test for Normality
+   */
+  async shapiroWilkTest(data: number[]): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'shapiro_wilk_test', { data })
+  }
+
+  /**
+   * Outlier Detection
+   */
+  async outlierDetection(data: number[], method?: 'iqr' | 'zscore' | 'isolation'): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'outlier_detection', { data, method: method ?? 'iqr' })
+  }
+
+  /**
+   * One Sample Proportion Test
+   */
+  async oneSampleProportionTest(successes: number, trials: number, hypothesizedProp?: number): Promise<StatisticsResult> {
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'one_sample_proportion_test', {
+      successes,
+      trials,
+      hypothesized_prop: hypothesizedProp ?? 0.5
+    })
+  }
+
+  /**
+   * Cronbach's Alpha (Internal Consistency)
+   */
+  async cronbachAlpha(data: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'cronbach_alpha', { data })
+  }
+
+  // ============================================================================
+  // Advanced Methods
+  // ============================================================================
+
+  /**
+   * Principal Component Analysis (PCA)
+   */
+  async pca(data: number[][], nComponents?: number): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'pca', { data, n_components: nComponents ?? 2 })
+  }
+
+  /**
+   * Factor Analysis
+   */
+  async factorAnalysis(data: number[][], nFactors?: number): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'factor_analysis', { data, n_factors: nFactors ?? 2 })
+  }
+
+  /**
+   * Cluster Analysis (K-Means)
+   */
+  async clusterAnalysis(data: number[][], nClusters?: number): Promise<StatisticsResult> {
+    await this.ensureWorker4Loaded()
+    return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, n_clusters: nClusters ?? 3 })
+  }
 }
