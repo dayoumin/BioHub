@@ -1,0 +1,177 @@
+/**
+ * ProjectsSection - 프로젝트 폴더 섹션
+ *
+ * 기능:
+ * - 프로젝트 목록 표시 (접기/펼치기)
+ * - 각 프로젝트 헤더: 이모지 + 이름 + 세션 카운트 + 액션 버튼
+ * - 펼쳤을 때: 하위 세션 목록
+ * - 세션 없으면 안내 메시지
+ */
+
+import React from 'react'
+import { Folder, Plus, ChevronDown, ChevronRight, Edit, Trash2 } from 'lucide-react'
+import { SessionItem } from './SessionItem'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import type { ChatProject, ChatSession } from '@/lib/types/chat'
+
+interface ProjectsSectionProps {
+  projects: ChatProject[]
+  sessions: ChatSession[]
+  activeSessionId: string | null
+  expandedProjectIds: Set<string>
+  onToggleProject: (projectId: string) => void
+  onSelectSession: (sessionId: string) => void
+  onToggleFavorite: (sessionId: string) => void
+  onDeleteSession: (sessionId: string) => void
+  onMoveSession: (sessionId: string) => void
+  onEditProject: (projectId: string) => void
+  onDeleteProject: (projectId: string) => void
+  onCreateProject: () => void
+}
+
+export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
+  projects,
+  sessions,
+  activeSessionId,
+  expandedProjectIds,
+  onToggleProject,
+  onSelectSession,
+  onToggleFavorite,
+  onDeleteSession,
+  onMoveSession,
+  onEditProject,
+  onDeleteProject,
+  onCreateProject,
+}) => {
+  // 프로젝트별 세션 그룹화
+  const getProjectSessions = (projectId: string): ChatSession[] => {
+    return sessions.filter((s) => s.projectId === projectId)
+  }
+
+  return (
+    <div className="border-b py-2">
+      {/* 섹션 헤더 */}
+      <div className="flex items-center gap-2 px-4 py-2">
+        <Folder className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-semibold">프로젝트</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="ml-auto h-6 w-6"
+          onClick={onCreateProject}
+          title="새 프로젝트"
+        >
+          <Plus className="h-3 w-3" />
+        </Button>
+      </div>
+
+      {/* 프로젝트 목록 */}
+      <div className="mt-1 space-y-1">
+        {projects.length === 0 ? (
+          <div className="px-4 py-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              프로젝트가 없습니다
+            </p>
+            <Button
+              variant="link"
+              size="sm"
+              onClick={onCreateProject}
+              className="mt-2"
+            >
+              첫 프로젝트 만들기
+            </Button>
+          </div>
+        ) : (
+          projects.map((project) => {
+            const projectSessions = getProjectSessions(project.id)
+            const isExpanded = expandedProjectIds.has(project.id)
+
+            return (
+              <div key={project.id}>
+                {/* 프로젝트 헤더 */}
+                <div className="group px-2">
+                  <button
+                    onClick={() => onToggleProject(project.id)}
+                    className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent rounded-md transition-colors"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    )}
+                    <span className="text-lg flex-shrink-0">
+                      {project.emoji || '📁'}
+                    </span>
+                    <span className="text-sm font-medium truncate flex-1 text-left">
+                      {project.name}
+                    </span>
+                    <Badge variant="secondary" className="flex-shrink-0">
+                      {projectSessions.length}
+                    </Badge>
+
+                    {/* 호버 시 액션 버튼 */}
+                    <div
+                      className="hidden group-hover:flex items-center gap-1 flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onEditProject(project.id)
+                        }}
+                        title="편집"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteProject(project.id)
+                        }}
+                        title="삭제"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </button>
+                </div>
+
+                {/* 하위 세션 목록 (펼쳤을 때) */}
+                {isExpanded && (
+                  <div className="ml-6 mr-2 mt-1 space-y-1">
+                    {projectSessions.length === 0 ? (
+                      <div className="px-3 py-4 text-center">
+                        <p className="text-xs text-muted-foreground">
+                          대화가 없습니다
+                        </p>
+                      </div>
+                    ) : (
+                      projectSessions.map((session) => (
+                        <SessionItem
+                          key={session.id}
+                          session={session}
+                          isActive={session.id === activeSessionId}
+                          onSelect={onSelectSession}
+                          onToggleFavorite={onToggleFavorite}
+                          onDelete={onDeleteSession}
+                          onMove={onMoveSession}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}

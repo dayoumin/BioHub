@@ -86,7 +86,7 @@ describe('ChatStorage - Projects', () => {
       expect(projects).toHaveLength(0)
     })
 
-    it('프로젝트 삭제 시 하위 세션 projectId 제거', () => {
+    it('프로젝트 삭제 시 하위 세션도 함께 삭제', () => {
       const project = ChatStorage.createProject('Test Project')
       const session = ChatStorage.createNewSession()
       ChatStorage.moveSessionToProject(session.id, project.id)
@@ -98,9 +98,9 @@ describe('ChatStorage - Projects', () => {
       // 프로젝트 삭제
       ChatStorage.deleteProject(project.id)
 
-      // 세션의 projectId가 제거됨
+      // 세션이 완전히 삭제됨
       loadedSession = ChatStorage.loadSession(session.id)
-      expect(loadedSession?.projectId).toBeUndefined()
+      expect(loadedSession).toBeNull()
     })
   })
 
@@ -287,6 +287,59 @@ describe('ChatStorage - Projects', () => {
 
       expect(favorites).toHaveLength(1)
       expect(favorites[0].id).toBe(session1.id)
+    })
+  })
+
+  describe('프로젝트 삭제', () => {
+    it('프로젝트 삭제 시 하위 세션도 함께 삭제', () => {
+      const project = ChatStorage.createProject('Test Project')
+      const session1 = ChatStorage.createNewSession()
+      const session2 = ChatStorage.createNewSession()
+      const session3 = ChatStorage.createNewSession()
+
+      ChatStorage.renameSession(session1.id, 'Session in project')
+      ChatStorage.renameSession(session2.id, 'Another session in project')
+      ChatStorage.renameSession(session3.id, 'Session outside project')
+
+      ChatStorage.moveSessionToProject(session1.id, project.id)
+      ChatStorage.moveSessionToProject(session2.id, project.id)
+
+      // 삭제 전 확인
+      expect(ChatStorage.getSessionsByProject(project.id)).toHaveLength(2)
+      const allSessions = ChatStorage.loadSessions()
+      expect(allSessions).toHaveLength(3)
+
+      // 프로젝트 삭제
+      ChatStorage.deleteProject(project.id)
+
+      // 확인: 프로젝트 삭제됨
+      expect(ChatStorage.getProjects()).toHaveLength(0)
+
+      // 확인: 프로젝트 내 세션도 삭제됨 (session1, session2 제거)
+      const remaining = ChatStorage.loadSessions()
+      expect(remaining).toHaveLength(1)
+      expect(remaining[0].id).toBe(session3.id)
+
+      // 확인: 프로젝트 내 세션 조회는 0개
+      expect(ChatStorage.getSessionsByProject(project.id)).toHaveLength(0)
+    })
+
+    it('프로젝트 삭제 시 다른 프로젝트 세션은 영향 없음', () => {
+      const project1 = ChatStorage.createProject('Project 1')
+      const project2 = ChatStorage.createProject('Project 2')
+      const session1 = ChatStorage.createNewSession()
+      const session2 = ChatStorage.createNewSession()
+
+      ChatStorage.moveSessionToProject(session1.id, project1.id)
+      ChatStorage.moveSessionToProject(session2.id, project2.id)
+
+      // Project 1 삭제
+      ChatStorage.deleteProject(project1.id)
+
+      // 확인: Project 1 세션은 삭제, Project 2 세션은 유지
+      expect(ChatStorage.getSessionsByProject(project1.id)).toHaveLength(0)
+      expect(ChatStorage.getSessionsByProject(project2.id)).toHaveLength(1)
+      expect(ChatStorage.getSessionsByProject(project2.id)[0].id).toBe(session2.id)
     })
   })
 

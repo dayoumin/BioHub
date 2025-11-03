@@ -473,11 +473,9 @@ export class ChatStorage {
       const filtered = projects.filter(p => p.id !== projectId)
       this.saveAllProjects(filtered)
 
-      // 2. 해당 프로젝트의 세션들 projectId 제거 (root로 이동)
+      // 2. 해당 프로젝트의 세션들도 함께 삭제
       const sessions = this.loadAllSessions()
-      const updated = sessions.map(s =>
-        s.projectId === projectId ? { ...s, projectId: undefined } : s
-      )
+      const updated = sessions.filter(s => s.projectId !== projectId)
       this.saveAllSessions(updated)
     } catch (error) {
       console.error('Failed to delete project:', error)

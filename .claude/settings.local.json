@@ -61,7 +61,9 @@
       "Bash(curl:*)",
       "Bash(netstat:*)",
       "Bash(xargs taskkill:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(rm:*)",
+      "Bash(sed:*)"
     ],
     "deny": [],
     "ask": []
