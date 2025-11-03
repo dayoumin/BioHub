@@ -32,7 +32,7 @@ interface PyodideChartPanelProps {
 export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
   const { datasets } = useAppStore()
   const [pyodideState, setPyodideState] = useState<PyodideState>(getPyodideState())
-  const [chartType, setChartType] = useState<'histogram' | 'boxplot' | 'scatter'>('histogram')
+  const [chartType, setChartType] = useState<string>('histogram')
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
   const [groupColumn, setGroupColumn] = useState<string>('')
   const [chartImage, setChartImage] = useState<string | null>(null)
@@ -136,7 +136,7 @@ export function PyodideChartPanel({ datasetId }: PyodideChartPanelProps) {
           const xData: number[] = []
           const yData: number[] = []
 
-          (dataset.data ?? []).forEach((row: Record<string, unknown>) => {
+          ((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
             const x = parseFloat(String(row[selectedColumns[0]]))
             const y = parseFloat(String(row[selectedColumns[1]]))
             

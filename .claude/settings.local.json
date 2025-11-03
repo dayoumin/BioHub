@@ -64,7 +64,8 @@
       "Bash(xargs:*)",
       "Bash(rm:*)",
       "Bash(sed:*)",
-      "Bash(dir /s /b *rag*)"
+      "Bash(dir /s /b *rag*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

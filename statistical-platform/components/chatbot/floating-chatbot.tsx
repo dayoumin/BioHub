@@ -14,8 +14,9 @@ import { useState, useCallback, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MessageCircle, X, Minus } from 'lucide-react'
+import { MessageCircle, X, Minus, Settings } from 'lucide-react'
 import { RAGAssistant } from '@/components/rag/rag-assistant'
+import { ChatbotSettings } from '@/components/chatbot/chatbot-settings'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +26,7 @@ export function FloatingChatbot() {
   const [isMinimized, setIsMinimized] = useState(false)
   const [isEnabled, setIsEnabled] = useState(true)
   const [hasNewMessage, setHasNewMessage] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   // 설정 로드
   useEffect(() => {
@@ -81,6 +83,10 @@ export function FloatingChatbot() {
 
   const handleMinimize = useCallback(() => {
     setIsMinimized((prev) => !prev)
+  }, [])
+
+  const handleOpenSettings = useCallback(() => {
+    setShowSettings(true)
   }, [])
 
   // 설정에서 비활성화된 경우 또는 /chatbot 페이지에서는 렌더링하지 않음
@@ -156,6 +162,15 @@ export function FloatingChatbot() {
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
+                onClick={handleOpenSettings}
+                aria-label="설정"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-primary-foreground hover:bg-primary-foreground/20"
                 onClick={handleMinimize}
                 aria-label="최소화"
               >
@@ -227,6 +242,9 @@ export function FloatingChatbot() {
           </span>
         </div>
       )}
+
+      {/* 설정 팝업 */}
+      <ChatbotSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </>
   )
 }

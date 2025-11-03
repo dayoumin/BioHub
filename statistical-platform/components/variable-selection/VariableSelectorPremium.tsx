@@ -14,20 +14,30 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-// @ts-expect-error - command component not available yet
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command'
-// @ts-expect-error - popover component not available yet
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+// UI 컴포넌트 구현 필요: Command와 Popover는 아직 shadcn/ui에서 설치되지 않음
+// TODO: npm install를 통해 설치 후 import 활성화 필요
+// import {
+//   Command,
+//   CommandEmpty,
+//   CommandGroup,
+//   CommandInput,
+//   CommandItem,
+// } from '@/components/ui/command'
+// import {
+//   Popover,
+//   PopoverContent,
+//   PopoverTrigger,
+// } from '@/components/ui/popover'
+
+// 임시: 타입 정의 (실제 구현 필요)
+type Command = any
+type CommandEmpty = any
+type CommandGroup = any
+type CommandInput = any
+type CommandItem = any
+type Popover = any
+type PopoverContent = any
+type PopoverTrigger = any
 import {
   AlertCircle,
   CheckCircle2,

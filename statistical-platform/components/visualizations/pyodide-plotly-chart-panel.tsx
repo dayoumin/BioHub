@@ -34,7 +34,7 @@ interface PyodidePlotlyChartPanelProps {
 export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelProps) {
   const { datasets } = useAppStore()
   const [pyodideState, setPyodideState] = useState<PyodideState>(getPyodideState())
-  const [chartType, setChartType] = useState<'histogram' | 'boxplot' | 'scatter'>('histogram')
+  const [chartType, setChartType] = useState<string>('histogram')
   const [selectedColumns, setSelectedColumns] = useState<string[]>([])
   const [groupColumn, setGroupColumn] = useState<string>('')
   const [chartData, setChartData] = useState<any>(null)
@@ -164,10 +164,9 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           const xData: number[] = []
           const yData: number[] = []
 
-          (dataset.data ?? []).forEach((row: unknown) => {
-            if (typeof row !== 'object' || row === null) return
-            const x = parseFloat(String((row as Record<string, unknown>)[selectedColumns[0]]))
-            const y = parseFloat(String((row as Record<string, unknown>)[selectedColumns[1]]))
+          ((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
+            const x = parseFloat(String(row[selectedColumns[0]]))
+            const y = parseFloat(String(row[selectedColumns[1]]))
 
             if (!isNaN(x) && !isNaN(y)) {
               xData.push(x)
@@ -194,8 +193,7 @@ export function PyodidePlotlyChartPanel({ datasetId }: PyodidePlotlyChartPanelPr
           const yData: number[] = []
           const zData: number[] = []
 
-          (dataset.data ?? []).forEach((row: unknown) => {
-            if (typeof row !== 'object' || row === null) return
+          ((dataset.data as Record<string, unknown>[]) ?? []).forEach((row: Record<string, unknown>) => {
             const x = parseFloat(String(row[selectedColumns[0]]))
             const y = parseFloat(String(row[selectedColumns[1]]))
             const z = parseFloat(String(row[selectedColumns[2]]))
