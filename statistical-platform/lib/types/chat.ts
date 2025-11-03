@@ -23,10 +23,23 @@ export interface ChatMessage {
   }
 }
 
+export interface ChatProject {
+  id: string
+  name: string
+  description?: string
+  emoji?: string
+  color?: string
+  createdAt: number
+  updatedAt: number
+  isArchived: boolean
+  isFavorite?: boolean
+}
+
 export interface ChatSession {
   id: string
   title: string
   messages: ChatMessage[]
+  projectId?: string  // 🆕 프로젝트 참조 (선택)
   createdAt: number
   updatedAt: number
   isFavorite: boolean

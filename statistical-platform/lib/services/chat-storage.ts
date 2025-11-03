@@ -8,11 +8,13 @@
  * - 자동 제목 생성
  */
 
-import type { ChatSession, ChatMessage, ChatSettings } from '@/lib/types/chat'
+import type { ChatSession, ChatMessage, ChatSettings, ChatProject } from '@/lib/types/chat'
 
 export class ChatStorage {
   private static readonly SESSIONS_KEY = 'rag-chat-sessions'
+  private static readonly PROJECTS_KEY = 'rag-chat-projects'
   private static readonly SETTINGS_KEY = 'rag-chat-settings'
+  private static readonly MIGRATION_KEY = 'rag-chat-migrated-v2'
   private static readonly MAX_SIZE = 4_500_000 // 4.5MB (5MB 여유분)
   private static readonly MAX_SESSIONS = 20
 
@@ -385,10 +387,367 @@ export class ChatStorage {
   static clearAll(): void {
     try {
       localStorage.removeItem(this.SESSIONS_KEY)
+      localStorage.removeItem(this.PROJECTS_KEY)
       localStorage.removeItem(this.SETTINGS_KEY)
+      localStorage.removeItem(this.MIGRATION_KEY)
       console.log('All chat data cleared')
     } catch (error) {
       console.error('Failed to clear data:', error)
+    }
+  }
+
+  // ==================== 프로젝트 관리 ====================
+
+  /**
+   * 프로젝트 생성
+   */
+  static createProject(
+    name: string,
+    options?: { description?: string; emoji?: string; color?: string }
+  ): ChatProject {
+    const newProject: ChatProject = {
+      id: this.generateId(),
+      name: name.trim() || '새 프로젝트',
+      description: options?.description,
+      emoji: options?.emoji,
+      color: options?.color,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      isArchived: false,
+      isFavorite: false,
+    }
+
+    const projects = this.loadAllProjects()
+    projects.push(newProject)
+    this.saveAllProjects(projects)
+
+    return newProject
+  }
+
+  /**
+   * 모든 프로젝트 조회 (보관된 것 제외)
+   */
+  static getProjects(): ChatProject[] {
+    try {
+      const projects = this.loadAllProjects()
+      return projects.filter(p => !p.isArchived).sort((a, b) => b.updatedAt - a.updatedAt)
+    } catch (error) {
+      console.error('Failed to load projects:', error)
+      return []
+    }
+  }
+
+  /**
+   * 프로젝트 수정
+   */
+  static updateProject(
+    projectId: string,
+    updates: Partial<Omit<ChatProject, 'id' | 'createdAt'>>
+  ): ChatProject | null {
+    try {
+      const projects = this.loadAllProjects()
+      const project = projects.find(p => p.id === projectId)
+
+      if (!project) {
+        console.error('Project not found:', projectId)
+        return null
+      }
+
+      Object.assign(project, updates, { updatedAt: Date.now() })
+      this.saveAllProjects(projects)
+
+      return project
+    } catch (error) {
+      console.error('Failed to update project:', error)
+      return null
+    }
+  }
+
+  /**
+   * 프로젝트 삭제 (하위 세션들은 projectId 제거)
+   */
+  static deleteProject(projectId: string): void {
+    try {
+      // 1. 프로젝트 삭제
+      const projects = this.loadAllProjects()
+      const filtered = projects.filter(p => p.id !== projectId)
+      this.saveAllProjects(filtered)
+
+      // 2. 해당 프로젝트의 세션들 projectId 제거 (root로 이동)
+      const sessions = this.loadAllSessions()
+      const updated = sessions.map(s =>
+        s.projectId === projectId ? { ...s, projectId: undefined } : s
+      )
+      this.saveAllSessions(updated)
+    } catch (error) {
+      console.error('Failed to delete project:', error)
+      throw new Error('프로젝트 삭제에 실패했습니다.')
+    }
+  }
+
+  /**
+   * 프로젝트 보관/복구
+   */
+  static toggleProjectArchive(projectId: string): void {
+    try {
+      const projects = this.loadAllProjects()
+      const project = projects.find(p => p.id === projectId)
+
+      if (!project) {
+        throw new Error('Project not found')
+      }
+
+      project.isArchived = !project.isArchived
+      project.updatedAt = Date.now()
+      this.saveAllProjects(projects)
+    } catch (error) {
+      console.error('Failed to toggle project archive:', error)
+      throw new Error('프로젝트 보관 설정에 실패했습니다.')
+    }
+  }
+
+  /**
+   * 프로젝트 즐겨찾기 토글
+   */
+  static toggleProjectFavorite(projectId: string): void {
+    try {
+      const projects = this.loadAllProjects()
+      const project = projects.find(p => p.id === projectId)
+
+      if (!project) {
+        throw new Error('Project not found')
+      }
+
+      project.isFavorite = !project.isFavorite
+      project.updatedAt = Date.now()
+      this.saveAllProjects(projects)
+    } catch (error) {
+      console.error('Failed to toggle project favorite:', error)
+      throw new Error('프로젝트 즐겨찾기 설정에 실패했습니다.')
+    }
+  }
+
+  /**
+   * 세션을 프로젝트로 이동
+   */
+  static moveSessionToProject(sessionId: string, projectId: string | null): ChatSession | null {
+    try {
+      const sessions = this.loadAllSessions()
+      const session = sessions.find(s => s.id === sessionId)
+
+      if (!session) {
+        console.error('Session not found:', sessionId)
+        return null
+      }
+
+      // projectId가 null이 아닌 경우, 프로젝트 존재 여부 확인
+      if (projectId !== null) {
+        const projects = this.loadAllProjects()
+        const projectExists = projects.some(p => p.id === projectId)
+
+        if (!projectExists) {
+          console.error('Project not found:', projectId)
+          return null
+        }
+      }
+
+      session.projectId = projectId ?? undefined
+      session.updatedAt = Date.now()
+      this.saveAllSessions(sessions)
+
+      return session
+    } catch (error) {
+      console.error('Failed to move session:', error)
+      return null
+    }
+  }
+
+  /**
+   * 특정 프로젝트의 세션 조회
+   */
+  static getSessionsByProject(projectId: string, sortBy: 'recent' | 'oldest' = 'recent'): ChatSession[] {
+    try {
+      const sessions = this.loadSessions()
+      const filtered = sessions.filter(s => s.projectId === projectId)
+
+      return sortBy === 'recent'
+        ? filtered.sort((a, b) => b.updatedAt - a.updatedAt)
+        : filtered.sort((a, b) => a.updatedAt - b.updatedAt)
+    } catch (error) {
+      console.error('Failed to get sessions by project:', error)
+      return []
+    }
+  }
+
+  /**
+   * 프로젝트 미속 세션 조회 (root)
+   */
+  static getUnorganizedSessions(): ChatSession[] {
+    try {
+      const sessions = this.loadSessions()
+      return sessions.filter(s => !s.projectId).sort((a, b) => b.updatedAt - a.updatedAt)
+    } catch (error) {
+      console.error('Failed to get unorganized sessions:', error)
+      return []
+    }
+  }
+
+  /**
+   * 즐겨찾기 세션 조회
+   */
+  static getFavoriteSessions(): ChatSession[] {
+    try {
+      const sessions = this.loadSessions()
+      return sessions.filter(s => s.isFavorite).sort((a, b) => b.updatedAt - a.updatedAt)
+    } catch (error) {
+      console.error('Failed to get favorite sessions:', error)
+      return []
+    }
+  }
+
+  /**
+   * 즐겨찾기 프로젝트 조회
+   */
+  static getFavoriteProjects(): ChatProject[] {
+    try {
+      const projects = this.loadAllProjects()
+      return projects.filter(p => p.isFavorite && !p.isArchived).sort((a, b) => b.updatedAt - a.updatedAt)
+    } catch (error) {
+      console.error('Failed to get favorite projects:', error)
+      return []
+    }
+  }
+
+  /**
+   * 세션 검색
+   */
+  static searchSessions(query: string, options?: { projectId?: string; limit?: number }): ChatSession[] {
+    try {
+      const sessions = this.loadSessions()
+      const lowerQuery = query.toLowerCase().trim()
+
+      // 쿼리 필터링 (빈 쿼리면 전체 세션)
+      let filtered = lowerQuery
+        ? sessions.filter(s => s.title.toLowerCase().includes(lowerQuery))
+        : sessions
+
+      // 프로젝트 필터
+      if (options?.projectId) {
+        filtered = filtered.filter(s => s.projectId === options.projectId)
+      }
+
+      // 최신순 정렬
+      filtered.sort((a, b) => b.updatedAt - a.updatedAt)
+
+      // 제한
+      if (options?.limit && options.limit > 0) {
+        filtered = filtered.slice(0, options.limit)
+      }
+
+      return filtered
+    } catch (error) {
+      console.error('Failed to search sessions:', error)
+      return []
+    }
+  }
+
+  /**
+   * 프로젝트 검색
+   */
+  static searchProjects(query: string): ChatProject[] {
+    try {
+      const projects = this.getProjects()
+      const lowerQuery = query.toLowerCase().trim()
+
+      if (!lowerQuery) return projects
+
+      return projects.filter(p =>
+        p.name.toLowerCase().includes(lowerQuery) ||
+        (p.description && p.description.toLowerCase().includes(lowerQuery))
+      ).sort((a, b) => b.updatedAt - a.updatedAt)
+    } catch (error) {
+      console.error('Failed to search projects:', error)
+      return []
+    }
+  }
+
+  /**
+   * 통합 검색
+   */
+  static globalSearch(query: string): { projects: ChatProject[]; sessions: ChatSession[] } {
+    return {
+      projects: this.searchProjects(query),
+      sessions: this.searchSessions(query),
+    }
+  }
+
+  /**
+   * 마이그레이션 (기존 데이터 → 새 구조)
+   */
+  static migrateToNewStructure(): void {
+    try {
+      // 1. 마이그레이션 완료 여부 확인
+      const isMigrated = localStorage.getItem(this.MIGRATION_KEY) === 'true'
+      if (isMigrated) {
+        console.log('[ChatStorage] Already migrated to v2')
+        return
+      }
+
+      console.log('[ChatStorage] Starting migration to v2...')
+
+      // 2. 기존 세션 로드
+      const sessions = this.loadAllSessions()
+
+      // 3. projectId 초기화 (이미 undefined이면 그대로)
+      let migrated = 0
+      sessions.forEach(session => {
+        if (!('projectId' in session)) {
+          session.projectId = undefined
+          migrated++
+        }
+      })
+
+      // 4. 저장
+      if (migrated > 0) {
+        this.saveAllSessions(sessions)
+        console.log(`[ChatStorage] Migrated ${migrated} sessions`)
+      }
+
+      // 5. 마이그레이션 완료 표시
+      localStorage.setItem(this.MIGRATION_KEY, 'true')
+      console.log('[ChatStorage] Migration complete')
+    } catch (error) {
+      console.error('Failed to migrate:', error)
+    }
+  }
+
+  // ==================== Private 헬퍼 메서드 ====================
+
+  /**
+   * 모든 프로젝트 로드 (보관함 포함)
+   */
+  private static loadAllProjects(): ChatProject[] {
+    try {
+      const data = localStorage.getItem(this.PROJECTS_KEY)
+      if (!data) return []
+
+      return JSON.parse(data) as ChatProject[]
+    } catch (error) {
+      console.error('Failed to load all projects:', error)
+      return []
+    }
+  }
+
+  /**
+   * 모든 프로젝트 저장
+   */
+  private static saveAllProjects(projects: ChatProject[]): void {
+    try {
+      const data = JSON.stringify(projects)
+      localStorage.setItem(this.PROJECTS_KEY, data)
+    } catch (error) {
+      console.error('Failed to save all projects:', error)
+      throw new Error('프로젝트 저장에 실패했습니다.')
     }
   }
 }
