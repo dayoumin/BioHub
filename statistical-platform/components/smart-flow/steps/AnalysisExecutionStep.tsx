@@ -77,7 +77,7 @@ export function AnalysisExecutionStep({
    */
   const runAnalysis = useCallback(async () => {
     if (!uploadedData || !selectedMethod) {
-      actions.setError('분석에 필요한 데이터나 방법이 선택되지 않았습니다.')
+      setError('분석에 필요한 데이터나 방법이 선택되지 않았습니다.')
       return
     }
 
@@ -164,7 +164,7 @@ export function AnalysisExecutionStep({
 
       setCompletedStages(prev => [...prev, 'finalize'])
       setProgress(100)
-      actions.setResults(result)
+      setAnalysisResult(result)
 
       // 결과 전달
       if (onAnalysisComplete) {
@@ -178,7 +178,7 @@ export function AnalysisExecutionStep({
 
     } catch (err) {
       logger.error('분석 실행 오류', err)
-      actions.setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다')
+      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다')
       addLog(`❌ 오류: ${err instanceof Error ? err.message : '알 수 없는 오류'}`)
     }
   }, [uploadedData, selectedMethod, variableMapping, isCancelled, updateStage, addLog, onAnalysisComplete, onNext])

@@ -49,7 +49,7 @@ export function useStatisticsWorker(
 
     setIsCalculating(true)
     setProgress(0)
-    actions.setError(null)
+    setError(null)
 
     try {
       const validData = data.filter(v => !isNaN(v) && isFinite(v))
@@ -70,7 +70,7 @@ export function useStatisticsWorker(
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('통계 계산 실패')
-      actions.setError(error)
+      setError(error)
       onError?.(error)
     } finally {
       setIsCalculating(false)
@@ -116,7 +116,7 @@ export function useCorrelationMatrix(
 
     setIsCalculating(true)
     setProgress(0)
-    actions.setError(null)
+    setError(null)
 
     try {
       if (shouldUseWorker(data.length)) {
@@ -135,7 +135,7 @@ export function useCorrelationMatrix(
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('상관계수 계산 실패')
-      actions.setError(error)
+      setError(error)
       onError?.(error)
     } finally {
       setIsCalculating(false)
@@ -185,7 +185,7 @@ export function useHistogramData(
 
     setIsCalculating(true)
     setProgress(0)
-    actions.setError(null)
+    setError(null)
 
     try {
       const validData = data.filter(v => !isNaN(v) && isFinite(v))
@@ -205,7 +205,7 @@ export function useHistogramData(
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('히스토그램 계산 실패')
-      actions.setError(error)
+      setError(error)
       onError?.(error)
     } finally {
       setIsCalculating(false)

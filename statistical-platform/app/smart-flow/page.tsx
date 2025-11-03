@@ -90,7 +90,7 @@ export default function SmartFlowPage() {
   const handleUploadComplete = useCallback((file: File, data: DataRow[]) => {
     try {
       setUploadedFile(file)
-      actions.setUploadedData(data)
+      setUploadedData(data)
 
       // 향상된 데이터 검증
       const validation = performDataValidation(data)
@@ -101,7 +101,7 @@ export default function SmartFlowPage() {
         goToNextStep()
       }
     } catch (err) {
-      actions.setError('데이터 업로드 중 오류가 발생했습니다: ' + (err as Error).message)
+      setError('데이터 업로드 중 오류가 발생했습니다: ' + (err as Error).message)
     }
   }, [setUploadedFile, setUploadedData, setValidationResults, goToNextStep, setError])
 
