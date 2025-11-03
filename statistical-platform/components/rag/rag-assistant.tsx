@@ -32,6 +32,7 @@ import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import type { ChatSession } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
+import { ChatHeaderMenu } from './chat-header-menu'
 
 interface RAGAssistantProps {
   /** 현재 통계 메서드 (예: 'tTest', 'anova') */
@@ -253,39 +254,24 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
                         })}
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="옵션"
-                        >
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleToggleFavorite(session.id, e as unknown as React.MouseEvent)
-                          }}
-                        >
-                          <Pin className="h-4 w-4 mr-2" />
-                          {session.isFavorite ? '고정 해제' : '고정'}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteSession(session.id, e as unknown as React.MouseEvent)
-                          }}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          삭제
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <ChatHeaderMenu
+                      isFavorite={session.isFavorite}
+                      onToggleFavorite={() => {
+                        handleToggleFavorite(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
+                      }}
+                      onRename={() => {
+                        // TODO: 사이드바에서 이름 변경 기능 추가
+                        console.log('Rename not implemented in sidebar')
+                      }}
+                      onMove={() => {
+                        // TODO: 사이드바에서 프로젝트 이동 기능 추가
+                        console.log('Move not implemented in sidebar')
+                      }}
+                      onDelete={() => {
+                        handleDeleteSession(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
                   </div>
                 </div>
               ))
