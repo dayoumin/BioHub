@@ -20,7 +20,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, XCircle, Send, ChevronDown, ChevronUp, Star, Trash2, Plus, Menu, X as CloseIcon } from 'lucide-react'
+import { Loader2, XCircle, Send, ChevronDown, ChevronUp, Star, Trash2, Plus, Menu, X as CloseIcon, MoreVertical, Pin } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { queryRAG } from '@/lib/rag/rag-service'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import { ChatStorage } from '@/lib/services/chat-storage'
@@ -235,7 +241,7 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">
+                      <div className="text-sm font-medium truncate max-w-[160px]">
                         {session.title}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -247,31 +253,39 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
                         })}
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 flex-shrink-0"
-                        onClick={(e) => handleToggleFavorite(session.id, e)}
-                        title={session.isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
-                      >
-                        <Star
-                          className={cn(
-                            'h-3.5 w-3.5',
-                            session.isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
-                          )}
-                        />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 flex-shrink-0 hover:bg-destructive/10"
-                        onClick={(e) => handleDeleteSession(session.id, e)}
-                        title="삭제"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="옵션"
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleToggleFavorite(session.id, e as unknown as React.MouseEvent)
+                          }}
+                        >
+                          <Pin className="h-4 w-4 mr-2" />
+                          {session.isFavorite ? '고정 해제' : '고정'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteSession(session.id, e as unknown as React.MouseEvent)
+                          }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          삭제
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))
@@ -388,9 +402,22 @@ export function RAGAssistant({ method, className = '' }: RAGAssistantProps) {
 
             {/* 에러 메시지 */}
             {error && (
-              <div className="flex items-center gap-2 text-destructive text-sm">
-                <XCircle className="h-4 w-4" />
-                <span>{error}</span>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-start gap-2 text-destructive text-sm">
+                  <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span className="flex-1">{error}</span>
+                </div>
+                {/* 모델 부재 시 설정 링크 표시 */}
+                {error.includes('not found') && (
+                  <div className="flex gap-2 ml-6">
+                    <a
+                      href="/chatbot?tab=settings"
+                      className="text-primary hover:underline text-xs font-medium"
+                    >
+                      → 설정에서 모델 선택
+                    </a>
+                  </div>
+                )}
               </div>
             )}
           </div>

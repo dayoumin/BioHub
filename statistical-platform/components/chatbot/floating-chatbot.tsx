@@ -13,30 +13,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MessageCircle, X, Minus } from 'lucide-react'
 import { RAGAssistant } from '@/components/rag/rag-assistant'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { cn } from '@/lib/utils'
-
-const QUICK_PROMPTS = [
-  {
-    icon: '📊',
-    title: 't-test 사용법',
-    prompt: 't-test는 언제 사용하나요?',
-  },
-  {
-    icon: '📈',
-    title: 'ANOVA vs Regression',
-    prompt: 'ANOVA와 회귀분석의 차이점은?',
-  },
-  {
-    icon: '🔍',
-    title: '정규성 검정',
-    prompt: '정규성 검정은 왜 필요한가요?',
-  },
-]
 
 export function FloatingChatbot() {
   const pathname = usePathname()
@@ -44,8 +25,9 @@ export function FloatingChatbot() {
   const [isMinimized, setIsMinimized] = useState(false)
   const [isEnabled, setIsEnabled] = useState(true)
 
-  // /chatbot 페이지에서는 플로팅 버튼 숨기기
-  if (pathname === '/chatbot') {
+  // /chatbot 페이지 또는 /chatbot로 시작하는 모든 경로에서는 플로팅 버튼 숨기기
+  const isChatbotPage = pathname === '/chatbot' || pathname.startsWith('/chatbot/')
+  if (isChatbotPage) {
     return null
   }
 

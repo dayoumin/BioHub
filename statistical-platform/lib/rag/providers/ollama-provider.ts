@@ -328,6 +328,55 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     return this.isInitialized
   }
 
+  /**
+   * 사용 가능한 모든 Ollama 모델 목록 반환
+   * (전체 모델 목록 - 임베딩/추론 구분 없음)
+   */
+  async getAllAvailableModels(): Promise<Array<{ name: string }>> {
+    try {
+      const response = await fetch(`${this.ollamaEndpoint}/api/tags`)
+      if (!response.ok) {
+        console.warn('[OllamaProvider] 모델 목록 조회 실패:', response.statusText)
+        return []
+      }
+
+      const data = (await response.json()) as { models: Array<{ name: string }> }
+      return data.models || []
+    } catch (error) {
+      console.warn('[OllamaProvider] 모델 목록 조회 중 오류:', error)
+      return []
+    }
+  }
+
+  /**
+   * 사용 가능한 임베딩 모델 목록 반환
+   * (embedding/embedding 포함된 모델만)
+   */
+  async getAvailableEmbeddingModels(): Promise<string[]> {
+    const allModels = await this.getAllAvailableModels()
+    return allModels
+      .filter((m) =>
+        m.name.toLowerCase().includes('embed') ||
+        m.name.toLowerCase().includes('embedding')
+      )
+      .map((m) => m.name)
+  }
+
+  /**
+   * 사용 가능한 추론 모델 목록 반환
+   * (embedding/embedding 제외된 모델만)
+   */
+  async getAvailableInferenceModels(): Promise<string[]> {
+    const allModels = await this.getAllAvailableModels()
+    return allModels
+      .filter(
+        (m) =>
+          !m.name.toLowerCase().includes('embed') &&
+          !m.name.toLowerCase().includes('embedding')
+      )
+      .map((m) => m.name)
+  }
+
   async cleanup(): Promise<void> {
     // SQLite DB 연결 정리
     if (this.db) {
@@ -613,24 +662,50 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     this.ensureInitialized()
 
     const startTime = Date.now()
-    const searchMode = context.searchMode || 'hybrid' // 기본값: hybrid
+    let searchMode = context.searchMode || 'hybrid' // 기본값: hybrid
+    let usedFallback = false
 
     try {
       let searchResults: SearchResult[] = []
 
-      // 검색 모드에 따라 다른 검색 수행
+      // 검색 모드에 따라 다른 검색 수행 (with Graceful Degradation)
       if (searchMode === 'fts5') {
         // 1. FTS5 키워드 검색 (기존 방식)
         console.log('[OllamaProvider] FTS5 키워드 검색 중...')
         searchResults = this.searchByKeyword(context.query)
       } else if (searchMode === 'vector') {
-        // 2. Vector 검색 (임베딩 기반)
+        // 2. Vector 검색 (임베딩 기반) → 실패 시 FTS5로 자동 전환
         console.log('[OllamaProvider] Vector 검색 중...')
-        searchResults = await this.searchByVector(context.query)
+        try {
+          searchResults = await this.searchByVector(context.query)
+
+          // Vector 검색 실패 감지: 결과 없음 + 임베딩 모델 문제
+          if (searchResults.length === 0) {
+            const hasEmbeddedDocs = this.documents.some((doc) => doc.embedding !== null)
+            if (!hasEmbeddedDocs) {
+              console.warn('[OllamaProvider] ⚠️ 임베딩된 문서가 없습니다. FTS5로 자동 전환...')
+              searchMode = 'fts5'
+              usedFallback = true
+              searchResults = this.searchByKeyword(context.query)
+            }
+          }
+        } catch (error) {
+          console.warn('[OllamaProvider] ⚠️ Vector 검색 오류, FTS5로 자동 전환:', error)
+          searchMode = 'fts5'
+          usedFallback = true
+          searchResults = this.searchByKeyword(context.query)
+        }
       } else if (searchMode === 'hybrid') {
-        // 3. Hybrid 검색 (FTS5 + Vector 결합)
+        // 3. Hybrid 검색 (FTS5 + Vector 결합) → Vector 실패 시 FTS5만 사용
         console.log('[OllamaProvider] Hybrid 검색 중 (FTS5 + Vector)...')
-        searchResults = await this.searchHybrid(context.query)
+        try {
+          searchResults = await this.searchHybrid(context.query)
+        } catch (error) {
+          console.warn('[OllamaProvider] ⚠️ Hybrid 검색 오류, FTS5로 자동 전환:', error)
+          searchMode = 'fts5'
+          usedFallback = true
+          searchResults = this.searchByKeyword(context.query)
+        }
       }
 
       // 검색 결과가 없으면 모든 문서에서 상위 K개 반환 (Fallback)
@@ -663,7 +738,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           score: result.score
         })),
         model: {
-          provider: `Ollama (Local - ${searchMode.toUpperCase()})`,
+          provider: `Ollama (Local - ${searchMode.toUpperCase()}${usedFallback ? ' [Fallback]' : ''})`,
           embedding: this.embeddingModel,
           inference: this.inferenceModel
         },
