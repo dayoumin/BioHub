@@ -396,7 +396,116 @@ export function recommendModel(
 }
 
 /**
- * 종합 함수: GPU 정보 조회 → 모델 조회 → 모델 추천
+ * 임베딩 모델 추천 (RAM 기반)
+ *
+ * 임베딩 모델은 추론 모델보다 가볍고 빠르므로 작은 RAM에서도 실행 가능
+ * - nomic-embed-text: 가벼움, 우수한 성능 (권장)
+ * - 기타 embed 모델들: 크기별로 자동 선택
+ *
+ * @param models - Ollama에 설치된 모든 모델
+ * @param availableGpuMemoryGB - 사용 가능한 메모리 (GB)
+ * @returns 추천 임베딩 모델명 또는 null
+ */
+export function recommendEmbeddingModel(
+  models: OllamaModel[],
+  availableGpuMemoryGB: number
+): string | null {
+  // 1. embedding 모델만 필터링
+  const embeddingModels = models.filter(
+    (m) =>
+      m.name.toLowerCase().includes('embed') ||
+      m.name.toLowerCase().includes('embedding')
+  )
+
+  if (embeddingModels.length === 0) {
+    return null
+  }
+
+  // 2. 임베딩 모델 우선순위 (크기 기반 + 성능)
+  const embeddingPriorities: Record<string, number> = {
+    'nomic-embed-text': 1,           // 가장 권장 (가볍고 성능 좋음)
+    'mxbai-embed-large': 2,          // 중간 크기
+    'all-minilm': 3,                 // 작은 크기
+    'snowflake-arctic-embed': 4,     // 큰 모델
+    'qwen3-embedding': 5,            // Qwen 임베딩
+    'llama2': 6,                     // 기타 임베딩 모델
+  }
+
+  function getEmbeddingPriority(modelName: string): number {
+    const lowerName = modelName.toLowerCase()
+
+    // 정확한 우선순위 매칭
+    for (const [family, priority] of Object.entries(embeddingPriorities)) {
+      if (lowerName.includes(family)) {
+        return priority
+      }
+    }
+
+    // 파라미터 크기로 선택 (작을수록 우선)
+    const vram = calculateModelVram({
+      name: modelName,
+      size: undefined,
+      details: undefined
+    })
+
+    // 크기 기반 가중치
+    if (vram <= 1) return 10      // < 1GB: 매우 권장
+    if (vram <= 2) return 20      // 1-2GB: 권장
+    if (vram <= 4) return 30      // 2-4GB: 중간
+    return 100                     // > 4GB: 무거움
+  }
+
+  // 3. 각 임베딩 모델의 VRAM 계산
+  const embeddingModelsWithVram = embeddingModels.map((model) => ({
+    model,
+    vram: calculateModelVram(model),
+    priority: getEmbeddingPriority(model.name),
+  }))
+
+  console.log('[ModelRecommender] 사용 가능한 임베딩 모델:')
+  embeddingModelsWithVram.forEach((m) => {
+    console.log(`  - ${m.model.name} (필요: ${m.vram}GB, 우선순위: ${m.priority})`)
+  })
+
+  // 4. 안전 마진 적용 (메모리의 50% 사용 - 임베딩은 가벼우므로 여유있음)
+  const safeMemory = availableGpuMemoryGB * 0.5
+
+  // 5. 실행 가능한 모델 필터링 (VRAM <= safeMemory)
+  const viableModels = embeddingModelsWithVram
+    .filter((m) => m.vram <= safeMemory)
+    .sort((a, b) => {
+      // 우선순위 정렬
+      if (a.priority !== b.priority) {
+        return a.priority - b.priority
+      }
+      // 같은 우선순위면 VRAM 작은 모델 우선 (빠름)
+      return a.vram - b.vram
+    })
+
+  if (viableModels.length === 0) {
+    // 폴백: 가장 작은 임베딩 모델 선택
+    const smallestModel = embeddingModelsWithVram.sort((a, b) => a.vram - b.vram)[0]
+
+    if (smallestModel) {
+      console.warn(
+        `[ModelRecommender] ⚠️ 임베딩 메모리 부족: ${smallestModel.model.name} (필요: ${smallestModel.vram}GB)는 ${safeMemory.toFixed(2)}GB 메모리에서 제대로 작동하지 않을 수 있습니다`
+      )
+      return smallestModel.model.name
+    }
+
+    return null
+  }
+
+  const recommended = viableModels[0]
+  console.log(
+    `[ModelRecommender] ✓ 추천 임베딩 모델: ${recommended.model.name} (필요: ${recommended.vram}GB, 사용 가능: ${safeMemory.toFixed(2)}GB)`
+  )
+
+  return recommended.model.name
+}
+
+/**
+ * 종합 함수: GPU 정보 조회 → 모델 조회 → 모델 추천 (추론 모델)
  *
  * 이 함수 하나만 호출하면 됨!
  */
@@ -421,6 +530,34 @@ export async function getRecommendedModel(
     return recommended
   } catch (error) {
     console.error('[ModelRecommender] 모델 추천 중 오류:', error)
+    return null
+  }
+}
+
+/**
+ * 종합 함수: GPU 정보 조회 → 모델 조회 → 임베딩 모델 추천
+ */
+export async function getRecommendedEmbeddingModel(
+  ollamaEndpoint: string = 'http://localhost:11434'
+): Promise<string | null> {
+  try {
+    // 1. 사용 가능한 GPU 메모리 조회
+    const gpuMemory = await getAvailableGpuMemoryGB(ollamaEndpoint)
+
+    // 2. 설치된 모든 모델 조회
+    const models = await getInstalledModels(ollamaEndpoint)
+
+    if (models.length === 0) {
+      console.warn('[ModelRecommender] 설치된 모델이 없습니다')
+      return null
+    }
+
+    // 3. 임베딩 모델 중에서 최적 모델 추천
+    const recommended = recommendEmbeddingModel(models, gpuMemory)
+
+    return recommended
+  } catch (error) {
+    console.error('[ModelRecommender] 임베딩 모델 추천 중 오류:', error)
     return null
   }
 }

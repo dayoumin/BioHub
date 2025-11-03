@@ -263,19 +263,44 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
       // 2. 임베딩 모델 자동 감지 또는 확인
       if (!this.embeddingModel) {
-        // 모델이 지정되지 않았으면 자동 감지
-        const embeddingModel = models.find((m) =>
-          m.name.toLowerCase().includes('embed') ||
-          m.name.toLowerCase().includes('embedding')
-        )
-        if (!embeddingModel) {
-          throw new Error(
-            '임베딩 모델을 찾을 수 없습니다.\n' +
-            '다음 명령어로 설치하세요: ollama pull nomic-embed-text'
-          )
+        // 모델이 지정되지 않았으면 RAM 기반 동적 추천
+        try {
+          // dynamic import를 사용하여 순환 의존성 방지
+          const { getRecommendedEmbeddingModel } = await import('@/lib/rag/utils/model-recommender')
+          const recommendedEmbeddingModel = await getRecommendedEmbeddingModel(this.ollamaEndpoint)
+
+          if (recommendedEmbeddingModel) {
+            this.embeddingModel = recommendedEmbeddingModel
+            console.log(`[OllamaProvider] 추천 임베딩 모델 사용: ${this.embeddingModel}`)
+          } else {
+            throw new Error('추천할 임베딩 모델을 찾을 수 없습니다')
+          }
+        } catch (error) {
+          console.warn('[OllamaProvider] 동적 임베딩 모델 추천 실패, 폴백 로직 사용:', error)
+
+          // 폴백: 간단한 필터링으로 선택 (이전 방식)
+          const embeddingModel = models.find((m) => {
+            const lower = m.name.toLowerCase()
+            return lower.includes('nomic-embed')
+          }) || models.find((m) => {
+            const lower = m.name.toLowerCase()
+            return lower.includes('embed') && lower.includes('text')
+          }) || models.find((m) => {
+            const lower = m.name.toLowerCase()
+            return lower.includes('embed') || lower.includes('embedding')
+          })
+
+          if (!embeddingModel) {
+            const availableModels = models.map((m) => m.name).join(', ')
+            throw new Error(
+              '임베딩 모델을 찾을 수 없습니다.\n' +
+              `사용 가능한 모델: ${availableModels || '없음'}\n` +
+              '다음 명령어로 설치하세요: ollama pull nomic-embed-text'
+            )
+          }
+          this.embeddingModel = embeddingModel.name
+          console.log(`[OllamaProvider] 폴백 임베딩 모델 사용: ${this.embeddingModel}`)
         }
-        this.embeddingModel = embeddingModel.name
-        console.log(`[OllamaProvider] 임베딩 모델 자동 감지: ${this.embeddingModel}`)
       } else {
         // 지정된 모델이 설치되어 있는지 확인
         const hasEmbeddingModel = models.some((m) => m.name.includes(this.embeddingModel))
