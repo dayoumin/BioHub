@@ -19,7 +19,6 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Plus, Star, Sparkles } from 'lucide-react'
 import { ChatStorage } from '@/lib/services/chat-storage'
-import type { ChatSession } from '@/lib/types/chat'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
 import { FavoritesSection } from '@/components/chatbot/FavoritesSection'
@@ -70,19 +69,6 @@ export default function ChatbotPage() {
   const [moveDialogSessionId, setMoveDialogSessionId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'session' | 'project'; id: string } | null>(null)
-
-  // 세션 로드
-  useEffect(() => {
-    const loadedSessions = ChatStorage.loadSessions()
-
-    // 첫 세션 자동 선택 또는 새 세션 생성
-    if (loadedSessions.length > 0) {
-      setCurrentSessionId(loadedSessions[0].id)
-    } else {
-      const newSession = ChatStorage.createNewSession()
-      setCurrentSessionId(newSession.id)
-    }
-  }, [])
 
   // 데이터 로드 (useMemo로 성능 최적화)
   const { searchedProjects, searchedSessions } = useMemo(() => {
@@ -138,6 +124,21 @@ export default function ChatbotPage() {
     setCurrentSessionId(newSession.id)
     triggerUpdate()
   }, [triggerUpdate])
+
+  // 세션 로드 후 초기 업데이트
+  useEffect(() => {
+    const loadedSessions = ChatStorage.loadSessions()
+
+    // 첫 세션 자동 선택 또는 새 세션 생성
+    if (loadedSessions.length > 0) {
+      setCurrentSessionId(loadedSessions[0].id)
+    } else {
+      const newSession = ChatStorage.createNewSession()
+      setCurrentSessionId(newSession.id)
+      // 새로운 세션 생성 후 sidebar 업데이트 강제 (메모 재계산)
+      setForceUpdate((prev) => prev + 1)
+    }
+  }, [])
 
   // 세션 선택
   const handleSelectSession = useCallback((sessionId: string) => {
