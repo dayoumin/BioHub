@@ -82,22 +82,35 @@ function createTTestHandler(context: CalculatorContext): MethodHandler {
 
     const result = await context.pyodideCore.twoSampleTTest(group1, group2, equalVar)
 
+    // 필수 필드 확인
+    if (!context.pyodideCore.hasStatisticFields(result, ['statistic', 'pValue', 'cohensD', 'mean1', 'mean2', 'std1', 'std2'])) {
+      return { success: false, error: '필수 통계량이 누락되었습니다' }
+    }
+
+    const statistic = context.pyodideCore.getStatisticValue(result, 'statistic')
+    const pValue = context.pyodideCore.getStatisticValue(result, 'pValue')
+    const cohensD = context.pyodideCore.getStatisticValue(result, 'cohensD')
+    const mean1 = context.pyodideCore.getStatisticValue(result, 'mean1')
+    const mean2 = context.pyodideCore.getStatisticValue(result, 'mean2')
+    const std1 = context.pyodideCore.getStatisticValue(result, 'std1')
+    const std2 = context.pyodideCore.getStatisticValue(result, 'std2')
+
     return {
       success: true,
       data: {
         metrics: [
-          { name: 't-통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) },
-          { name: "Cohen's d", value: result.cohensD.toFixed(4) }
+          { name: 't-통계량', value: statistic.toFixed(4) },
+          { name: 'p-value', value: pValue.toFixed(4) },
+          { name: "Cohen's d", value: cohensD.toFixed(4) }
         ],
         tables: [{
           name: '그룹별 통계',
           data: [
-            { 그룹: groupNames[0], 표본수: group1.length, 평균: result.mean1.toFixed(4), 표준편차: result.std1.toFixed(4) },
-            { 그룹: groupNames[1], 표본수: group2.length, 평균: result.mean2.toFixed(4), 표준편차: result.std2.toFixed(4) }
+            { 그룹: groupNames[0], 표본수: group1.length, 평균: mean1.toFixed(4), 표준편차: std1.toFixed(4) },
+            { 그룹: groupNames[1], 표본수: group2.length, 평균: mean2.toFixed(4), 표준편차: std2.toFixed(4) }
           ]
         }],
-        interpretation: `두 그룹 간 평균 차이는 ${result.pValue < 0.05 ? '통계적으로 유의합니다' : '통계적으로 유의하지 않습니다'}.`
+        interpretation: `두 그룹 간 평균 차이는 ${pValue < 0.05 ? '통계적으로 유의합니다' : '통계적으로 유의하지 않습니다'}.`
       }
     }
   }
@@ -144,11 +157,11 @@ function createPairedTTestHandler(context: CalculatorContext): MethodHandler {
       success: true,
       data: {
         metrics: [
-          { name: 't-통계량', value: result.statistic.toFixed(4) },
-          { name: 'p-value', value: result.pValue.toFixed(4) },
-          { name: '평균 차이', value: result.meanDiff.toFixed(4) }
+          { name: 't-통계량', value: context.pyodideCore.getStatisticValue(result, 'statistic').toFixed(4) },
+          { name: 'p-value', value: context.pyodideCore.getStatisticValue(result, 'pValue').toFixed(4) },
+          { name: '평균 차이', value: context.pyodideCore.getStatisticValue(result, 'meanDiff').toFixed(4) }
         ],
-        interpretation: `대응 표본 간 평균 차이는 ${result.pValue < 0.05 ? '통계적으로 유의합니다' : '통계적으로 유의하지 않습니다'}.`
+        interpretation: `대응 표본 간 평균 차이는 ${context.pyodideCore.getStatisticValue(result, 'pValue') < 0.05 ? '통계적으로 유의합니다' : '통계적으로 유의하지 않습니다'}.`
       }
     }
   }

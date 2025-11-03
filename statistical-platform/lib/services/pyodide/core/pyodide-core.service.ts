@@ -62,8 +62,83 @@ export interface PythonErrorResponse {
 
 /**
  * 통계 분석 결과의 기본 인터페이스
+ *
+ * 모든 통계 분석 메서드의 반환 타입으로 사용
+ * 구체적인 필드는 선택사항이므로 다양한 결과 형태를 지원
  */
 export interface StatisticsResult {
+  // 기본 통계량
+  statistic?: number
+  pValue?: number
+  testStatistic?: number
+
+  // T-test 관련
+  tStatistic?: number
+  cohensD?: number
+  mean1?: number
+  mean2?: number
+  std1?: number
+  std2?: number
+  se1?: number
+  se2?: number
+  df?: number
+
+  // 상관계수 관련
+  correlation?: number
+  rValue?: number
+  pearsonR?: number
+  spearmanRho?: number
+  kendallTau?: number
+
+  // 카이제곱 관련
+  chiSquare?: number
+  cramersV?: number
+
+  // 효과크기
+  effectSize?: number
+  eta?: number
+  etaSquared?: number
+  omegaSquared?: number
+
+  // 신뢰구간
+  confidenceInterval?: {
+    lower: number
+    upper: number
+  }
+
+  // 회귀 관련
+  slope?: number
+  intercept?: number
+  rSquared?: number
+  adjustedRSquared?: number
+  rmse?: number
+
+  // 회귀 관련 추가
+  adjRSquared?: number
+  fStatistic?: number
+  accuracy?: number
+  auc?: number
+
+  // 기타 통계량
+  meanDiff?: number
+  sampleMean?: number
+  zStatistic?: number
+  qStatistic?: number
+  hStatistic?: number
+  wStatistic?: number
+  uStatistic?: number
+  tValue?: number
+  fValue?: number
+  chiSquareValue?: number
+  sValue?: number  // S-statistic
+  qValue?: number  // Q-statistic (Cochran)
+
+  // 일반 결과
+  interpretation?: string
+  success?: boolean
+  error?: string
+
+  // 추가 메타데이터
   [key: string]: unknown
 }
 
@@ -363,6 +438,38 @@ json.dumps(result)
       'error' in obj &&
       typeof (obj as Record<string, unknown>).error === 'string'
     )
+  }
+
+  /**
+   * 통계 결과 필드 존재 여부 확인
+   *
+   * @param result 결과 객체
+   * @param fields 확인할 필드명들
+   * @returns 모든 필드가 존재하고 number 타입인지 여부
+   */
+  hasStatisticFields(result: StatisticsResult, fields: string[]): boolean {
+    return fields.every(
+      (field) =>
+        field in result &&
+        typeof (result as Record<string, unknown>)[field] === 'number'
+    )
+  }
+
+  /**
+   * 통계 결과에서 안전하게 숫자 필드 추출
+   *
+   * @param result 결과 객체
+   * @param fieldName 필드명
+   * @param defaultValue 기본값 (필드가 없을 때)
+   * @returns 추출된 숫자 또는 기본값
+   */
+  getStatisticValue(
+    result: StatisticsResult,
+    fieldName: string,
+    defaultValue: number = 0
+  ): number {
+    const value = (result as Record<string, unknown>)[fieldName]
+    return typeof value === 'number' ? value : defaultValue
   }
 
   // ========================================
