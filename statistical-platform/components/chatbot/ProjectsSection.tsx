@@ -62,40 +62,41 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
     <TooltipProvider>
       <div className="border-b py-2">
         {/* 섹션 헤더 - 축소/펼침 가능 */}
-        <button
-          onClick={() => setIsSectionExpanded(!isSectionExpanded)}
-          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-accent rounded-md transition-colors"
-        >
-          {isSectionExpanded ? (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          )}
-          <Folder className="h-4 w-4 text-muted-foreground" />
-          <div className="flex items-center gap-1">
-            <span className="text-sm font-semibold">주제별 채팅</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>특정 주제에 대한 채팅 내역을 모아서 관리할 수 있습니다.</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+        <div className="flex items-center gap-2 px-4 py-2 hover:bg-accent rounded-md transition-colors">
+          <button
+            onClick={() => setIsSectionExpanded(!isSectionExpanded)}
+            className="flex items-center gap-2 flex-1"
+            type="button"
+          >
+            {isSectionExpanded ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+            <Folder className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-semibold">주제별 채팅</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>특정 주제에 대한 채팅 내역을 모아서 관리할 수 있습니다.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </button>
+
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto h-6 w-6"
-            onClick={(e) => {
-              e.stopPropagation()
-              onCreateProject()
-            }}
+            className="h-6 w-6 flex-shrink-0"
+            onClick={onCreateProject}
             title="새 주제 만들기"
           >
             <Plus className="h-3 w-3" />
           </Button>
-        </button>
+        </div>
 
         {/* 프로젝트 목록 - 섹션 펼쳤을 때만 표시 */}
         {isSectionExpanded && (
