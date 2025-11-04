@@ -88,7 +88,7 @@ export default function PartialCorrelationPage() {
   ]
 
   const runPartialCorrelationAnalysis = useCallback(async (variables: VariableAssignment) => {
-    if (!uploadedData) return
+    if (!uploadedData || !actions) return
 
     actions.startAnalysis()
 
@@ -219,40 +219,51 @@ json.dumps(results)
     }
   }, [uploadedData, actions])
 
-  const handleDataUpload = createDataUploadHandler(
-    actions.setUploadedData,
-    () => {
-      actions.setCurrentStep(1)
-    },
-    'partial-correlation'
+  const handleDataUpload = useCallback(
+    createDataUploadHandler(
+      actions?.setUploadedData,
+      () => {
+        if (!actions) return
+        actions.setCurrentStep(1)
+      },
+      'partial-correlation'
+    ),
+    [actions]
   )
 
-  const handleVariablesSelected = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
-    (variables) => {
-      actions.setCurrentStep(3)
-      runPartialCorrelationAnalysis(variables)
-    },
-    'partial-correlation'
+  const handleVariablesSelected = useCallback(
+    createVariableSelectionHandler<VariableAssignment>(
+      actions?.setSelectedVariables,
+      (variables) => {
+        if (!actions) return
+        actions.setCurrentStep(3)
+        runPartialCorrelationAnalysis(variables)
+      },
+      'partial-correlation'
+    ),
+    [actions, runPartialCorrelationAnalysis]
   )
 
-  const getCorrelationStrength = (corr: number) => {
+  const getCorrelationStrength = useCallback((corr: number) => {
     const abs = Math.abs(corr)
     if (abs >= 0.7) return { level: '강함', color: 'text-muted-foreground', bgColor: 'bg-muted' }
     if (abs >= 0.5) return { level: '중간', color: 'text-muted-foreground', bgColor: 'bg-muted' }
     if (abs >= 0.3) return { level: '약함', color: 'text-muted-foreground', bgColor: 'bg-muted' }
     return { level: '매우 약함', color: 'text-gray-600', bgColor: 'bg-gray-50' }
-  }
+  }, [])
 
   const handleIntroductionNext = useCallback(() => {
+    if (!actions) return
     actions.setCurrentStep(1)
   }, [actions])
 
   const handleDataUploadBack = useCallback(() => {
+    if (!actions) return
     actions.setCurrentStep(0)
   }, [actions])
 
   const handleVariablesBack = useCallback(() => {
+    if (!actions) return
     actions.setCurrentStep(1)
   }, [actions])
 
