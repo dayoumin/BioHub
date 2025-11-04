@@ -15,6 +15,18 @@ export const metadata: Metadata = {
   },
   description: "전문가급 통계 분석 도구 - SPSS와 R Studio의 강력함을 웹에서",
   keywords: ["통계", "분석", "SPSS", "R", "데이터", "과학", "연구"],
+  manifest: "/manifest.json",
+  themeColor: "#2563eb",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "통계분석"
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1
+  }
 }
 
 export default function RootLayout({

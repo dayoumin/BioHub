@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
-import { StatisticsPageLayout, StepCard } from '@/components/statistics/StatisticsPageLayout'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'

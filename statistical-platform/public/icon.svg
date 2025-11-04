@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#2563eb" rx="64"/>
+
+  <!-- Bar Chart Icon -->
+  <g transform="translate(128, 128)">
+    <!-- Bar 1 (shortest) -->
+    <rect x="20" y="156" width="56" height="100" fill="#ffffff" rx="8"/>
+
+    <!-- Bar 2 (medium) -->
+    <rect x="100" y="96" width="56" height="160" fill="#ffffff" rx="8"/>
+
+    <!-- Bar 3 (tallest) -->
+    <rect x="180" y="36" width="56" height="220" fill="#ffffff" rx="8"/>
+
+    <!-- Axis lines -->
+    <line x1="10" y1="266" x2="246" y2="266" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+    <line x1="10" y1="20" x2="10" y2="266" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

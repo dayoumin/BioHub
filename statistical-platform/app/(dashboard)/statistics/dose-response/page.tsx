@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
 import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info } from 'lucide-react'
-import { StatisticsPageLayout, StepCard } from '@/components/statistics/StatisticsPageLayout'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -654,9 +654,34 @@ export default function DoseResponsePage() {
     withUploadedData: true,
     withError: true
   })
-  const { currentStep, uploadedData, error } = state
+  const { currentStep, uploadedData, error, results } = state
 
   const [selectedModel, setSelectedModel] = useState('logistic4')
+
+  // 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'upload-data',
+      number: 1,
+      title: '데이터 업로드',
+      description: 'CSV 또는 Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
+      id: 'model-selection',
+      number: 2,
+      title: '모델 선택',
+      description: '용량-반응 모델 선택',
+      status: currentStep >= 2 ? 'current' : 'pending'
+    },
+    {
+      id: 'view-results',
+      number: 3,
+      title: '결과 확인',
+      description: '모델 적합 결과 및 매개변수',
+      status: results ? 'completed' : 'pending'
+    }
+  ]
 
   // Event handlers
   // 데이터 업로드 핸들러 (공통 유틸 사용 + 커스텀 에러 처리)
@@ -675,6 +700,8 @@ export default function DoseResponsePage() {
     <StatisticsPageLayout
       title="용량-반응 분석"
       description="용량과 생물학적 반응 간의 관계를 수학적 모델로 분석하여 EC50, IC50 등 핵심 매개변수를 추정합니다"
+      steps={steps}
+      currentStep={currentStep}
     >
       {currentStep === 0 && (
         <div className="space-y-6">

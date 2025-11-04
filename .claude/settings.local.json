@@ -72,7 +72,17 @@
       "Bash(node scripts/test-statistics-pages.js:*)",
       "Bash(timeout 10 tail:*)",
       "Bash(node scripts/validate-statistics.js:*)",
-      "Bash(bash scripts/validate-statistics.sh:*)"
+      "Bash(bash scripts/validate-statistics.sh:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(do if [ -f \"$dir/page.tsx\" ])",
+      "Bash(then if ! grep -q \"steps:\\s*StatisticsStep\" \"$dir/page.tsx\")",
+      "Bash(then echo \"$dir\")",
+      "Bash(fi)",
+      "Bash(npx serve:*)",
+      "Bash(node scripts/generate-icons.js:*)",
+      "Bash(timeout /t 2 /nobreak)",
+      "Bash(npx serve@latest:*)",
+      "Bash(timeout /t 3 /nobreak)"
     ],
     "deny": [],
     "ask": []

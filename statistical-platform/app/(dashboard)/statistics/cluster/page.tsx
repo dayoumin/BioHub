@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle, XCircle, Users, Target, Zap, BarChart3, Activity } from 'lucide-react'
-import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
@@ -57,6 +57,39 @@ export default function ClusterAnalysisPage() {
   const [autoOptimalK, setAutoOptimalK] = useState<boolean>(true)
   const [linkageMethod, setLinkageMethod] = useState<'ward' | 'complete' | 'average' | 'single'>('ward')
   const [distanceMetric, setDistanceMetric] = useState<'euclidean' | 'manhattan' | 'cosine'>('euclidean')
+
+  // 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'upload-data',
+      number: 1,
+      title: '데이터 업로드',
+      description: 'CSV 또는 Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
+      id: 'select-variables',
+      number: 2,
+      title: '변수 선택',
+      description: '군집화할 변수 선택',
+      status: selectedVariables && selectedVariables.length > 0 ? 'completed'
+              : uploadedData ? 'current' : 'pending'
+    },
+    {
+      id: 'configure-options',
+      number: 3,
+      title: '옵션 설정',
+      description: '군집 방법 및 파라미터 설정',
+      status: currentStep >= 3 ? 'current' : 'pending'
+    },
+    {
+      id: 'view-results',
+      number: 4,
+      title: '결과 확인',
+      description: '군집분석 결과 및 시각화',
+      status: results ? 'completed' : 'pending'
+    }
+  ]
 
   // 데이터 업로드 핸들러
   const handleDataUpload = createDataUploadHandler(
@@ -803,6 +836,7 @@ export default function ClusterAnalysisPage() {
     <StatisticsPageLayout
       title="군집분석"
       description="유사한 특성을 가진 개체들을 그룹화하는 비지도 학습 분석"
+      steps={steps}
       currentStep={currentStep}
       onDataUpload={handleDataUpload}
       variableSelectionStep={variableSelectionStep}

@@ -150,31 +150,38 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
       {
         id: 'anova',
         href: '/statistics/anova',
-        title: 'ANOVA',
-        subtitle: '일원, 이원, 반복측정',
+        title: 'ANOVA (통합)',
+        subtitle: '일원, 이원, 삼원, 반복측정',
+        category: 'glm',
+        icon: GitBranch,
+        implemented: true
+      },
+      {
+        id: 'one-way-anova',
+        href: '/statistics/anova',
+        title: '일원 분산분석',
+        subtitle: '1개 요인 집단 간 평균 비교',
         category: 'glm',
         icon: GitBranch,
         implemented: true
       },
       {
         id: 'two-way-anova',
-        href: '/statistics/two-way-anova',
-        title: '이원분산분석',
+        href: '/statistics/anova',
+        title: '이원 분산분석',
         subtitle: '2개 요인 주효과와 상호작용',
         category: 'glm',
         icon: GitBranch,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'three-way-anova',
-        href: '/statistics/three-way-anova',
-        title: '삼원분산분석',
+        href: '/statistics/anova',
+        title: '삼원 분산분석',
         subtitle: '3개 요인 효과 분석',
         category: 'glm',
         icon: GitBranch,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'ancova',
@@ -187,13 +194,12 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
       },
       {
         id: 'repeated-measures',
-        href: '/statistics/repeated-measures',
+        href: '/statistics/anova',
         title: '반복측정 ANOVA',
         subtitle: '동일 대상 반복 측정',
         category: 'glm',
         icon: Activity,
-        implemented: false,
-        comingSoon: true
+        implemented: true
       },
       {
         id: 'manova',
