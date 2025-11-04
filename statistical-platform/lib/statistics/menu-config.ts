@@ -33,8 +33,61 @@ export interface StatisticsCategory {
   items: StatisticsMenuItem[]
 }
 
-// 통계 메서드를 카테고리별로 구성 (기술통계는 내부적으로만 사용)
+// 통계 메서드를 카테고리별로 구성
 export const STATISTICS_MENU: StatisticsCategory[] = [
+  {
+    id: 'descriptive',
+    title: '기초 분석',
+    description: '데이터 탐색 및 기술통계',
+    icon: FileText,
+    items: [
+      {
+        id: 'explore-data',
+        href: '/statistics/explore-data',
+        title: '데이터 탐색',
+        subtitle: '데이터 개요 및 시각화',
+        category: 'descriptive',
+        icon: FileText,
+        implemented: true
+      },
+      {
+        id: 'descriptive',
+        href: '/statistics/descriptive',
+        title: '기술통계',
+        subtitle: '평균, 표준편차, 분포',
+        category: 'descriptive',
+        icon: Calculator,
+        implemented: true
+      },
+      {
+        id: 'frequency-table',
+        href: '/statistics/frequency-table',
+        title: '빈도표',
+        subtitle: '범주형 데이터 빈도 분석',
+        category: 'descriptive',
+        icon: Grid3X3,
+        implemented: true
+      },
+      {
+        id: 'cross-tabulation',
+        href: '/statistics/cross-tabulation',
+        title: '교차표',
+        subtitle: '두 범주형 변수 교차 분석',
+        category: 'descriptive',
+        icon: Grid3X3,
+        implemented: true
+      },
+      {
+        id: 'reliability',
+        href: '/statistics/reliability',
+        title: '신뢰도 분석',
+        subtitle: 'Cronbach Alpha 등',
+        category: 'descriptive',
+        icon: CheckCircle2,
+        implemented: true
+      }
+    ]
+  },
   {
     id: 'compare',
     title: '평균 비교',
@@ -259,8 +312,44 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
       {
         id: 'non-parametric',
         href: '/statistics/non-parametric',
-        title: '비모수 검정',
+        title: '비모수 검정 (통합)',
         subtitle: 'Mann-Whitney, Wilcoxon, Kruskal-Wallis',
+        category: 'nonparametric',
+        icon: Shuffle,
+        implemented: true
+      },
+      {
+        id: 'mann-whitney',
+        href: '/statistics/mann-whitney',
+        title: 'Mann-Whitney U 검정',
+        subtitle: '독립 2집단 비모수 검정',
+        category: 'nonparametric',
+        icon: Shuffle,
+        implemented: true
+      },
+      {
+        id: 'wilcoxon',
+        href: '/statistics/wilcoxon',
+        title: 'Wilcoxon 검정',
+        subtitle: '대응 표본 비모수 검정',
+        category: 'nonparametric',
+        icon: Shuffle,
+        implemented: true
+      },
+      {
+        id: 'kruskal-wallis',
+        href: '/statistics/kruskal-wallis',
+        title: 'Kruskal-Wallis 검정',
+        subtitle: '3개 이상 집단 비모수 검정',
+        category: 'nonparametric',
+        icon: Shuffle,
+        implemented: true
+      },
+      {
+        id: 'friedman',
+        href: '/statistics/friedman',
+        title: 'Friedman 검정',
+        subtitle: '반복측정 비모수 검정',
         category: 'nonparametric',
         icon: Shuffle,
         implemented: true
