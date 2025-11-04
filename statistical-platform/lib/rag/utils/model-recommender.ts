@@ -352,6 +352,8 @@ export function recommendModel(
   }
 
   // 2. 안전 마진 적용 (사용 가능한 메모리의 80%)
+  // 추론 모델은 계산 과정에서 추가 메모리를 사용하므로 80% 마진이 필요
+  // 예: 8GB 메모리 → 6.4GB만 사용 가능
   const safeMemory = availableGpuMemoryGB * 0.8
 
   // 3. 각 모델의 VRAM 계산
@@ -374,12 +376,13 @@ export function recommendModel(
     })
 
   if (viableModels.length === 0) {
-    // 폴백: 가장 작은 모델 선택
+    // 폴백: 가장 작은 모델 선택 (메모리 부족 시에도 최소한의 모델 제공)
+    // 이 경우 사용자에게 경고를 보내지만 앱이 완전히 실패하지 않도록 함
     const smallestModel = modelsWithVram.sort((a, b) => a.vram - b.vram)[0]
 
     if (smallestModel) {
       console.warn(
-        `[ModelRecommender] ⚠️ 메모리 부족 경고: ${smallestModel.model.name} (필요: ${smallestModel.vram}GB)는 ${safeMemory.toFixed(2)}GB 메모리에서 제대로 작동하지 않을 수 있습니다`
+        `[ModelRecommender] ⚠️ 메모리 부족 경고: ${smallestModel.model.name} (필요: ${smallestModel.vram}GB)는 ${safeMemory.toFixed(2)}GB 메모리에서 제대로 작동하지 않을 수 있습니다. 더 많은 메모리가 필요합니다.`
       )
       return smallestModel.model.name
     }
@@ -467,7 +470,7 @@ export function recommendEmbeddingModel(
     console.log(`  - ${m.model.name} (필요: ${m.vram}GB, 우선순위: ${m.priority})`)
   })
 
-  // 4. 안전 마진 적용 (메모리의 50% 사용 - 임베딩은 가벼우므로 여유있음)
+  // 4. 안전 마진 적용 (메모리의 50% 사용 - 임베딩은 추론보다 가벼우므로 더 적극적으로 활용)
   const safeMemory = availableGpuMemoryGB * 0.5
 
   // 5. 실행 가능한 모델 필터링 (VRAM <= safeMemory)
