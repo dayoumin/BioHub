@@ -19,6 +19,9 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(react-markdown|remark-gfm|remark-breaks|remark-math|rehype-katex|micromark|mdast-util-|ccount|escape-string-regexp|markdown-table|character-entities|unified|unist-util-)/)',
+  ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
     'lib/**/*.{ts,tsx}',

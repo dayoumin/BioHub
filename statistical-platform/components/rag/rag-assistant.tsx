@@ -20,13 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, XCircle, Send, ChevronDown, ChevronUp, Star, Trash2, Plus, Menu, X as CloseIcon, MoreVertical, Pin } from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { Loader2, XCircle, Send, ChevronDown, ChevronUp, Star, Plus, Menu, X as CloseIcon } from 'lucide-react'
 import { queryRAG } from '@/lib/rag/rag-service'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
@@ -60,7 +54,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
 
-  // 세션 로드
+  // 세션 로드 (초기화 시에만 실행)
   useEffect(() => {
     const loadSessions = async () => {
       try {
@@ -81,7 +75,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
     }
 
     void loadSessions()
-  }, [currentSessionId])
+  }, [])
 
   // 세션 관리 함수들
   const handleNewSession = useCallback(async () => {
@@ -139,8 +133,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
     }
   }, [currentSessionId, handleNewSession])
 
-  const handleToggleFavorite = useCallback(async (sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleToggleFavorite = useCallback(async (sessionId: string) => {
     try {
       await ChatStorageIndexedDB.toggleFavorite(sessionId)
       setSessions((prev) =>
@@ -291,7 +284,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
                     <ChatHeaderMenu
                       isFavorite={session.isFavorite}
                       onToggleFavorite={() => {
-                        void handleToggleFavorite(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
+                        void handleToggleFavorite(session.id)
                       }}
                       onRename={() => {
                         // TODO: 사이드바에서 이름 변경 기능 추가
@@ -302,7 +295,8 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
                         console.log('Move not implemented in sidebar')
                       }}
                       onDelete={() => {
-                        void handleDeleteSession(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
+                        const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+                        void handleDeleteSession(session.id, event as unknown as React.MouseEvent)
                       }}
                       className={cn(
                         'opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto'
