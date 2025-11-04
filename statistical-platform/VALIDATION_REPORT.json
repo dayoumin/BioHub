@@ -1,0 +1,124 @@
+{
+  "timestamp": "2025-11-04T22:21:18.964Z",
+  "summary": {
+    "total": 11,
+    "passed": 0,
+    "percentage": 0
+  },
+  "groups": {
+    "Group 1: Quick Wins": {
+      "total": 6,
+      "passed": 0,
+      "details": [
+        "❌ ANOVA (분산 분석) (fetch is not a function)",
+        "❌ t-test (독립표본 t 검정) (fetch is not a function)",
+        "❌ One-Sample t-test (fetch is not a function)",
+        "❌ Normality Test (정규성 검정) (fetch is not a function)",
+        "❌ Means Plot (평균 플롯) (fetch is not a function)",
+        "❌ KS Test (Kolmogorov-Smirnov) (fetch is not a function)"
+      ]
+    },
+    "Group 2: Medium Complexity": {
+      "total": 2,
+      "passed": 0,
+      "details": [
+        "❌ Friedman Test (fetch is not a function)",
+        "❌ Kruskal-Wallis Test (fetch is not a function)"
+      ]
+    },
+    "Group 3: Complex Analysis": {
+      "total": 2,
+      "passed": 0,
+      "details": [
+        "❌ Mann-Kendall Trend Test (fetch is not a function)",
+        "❌ Reliability (Cronbach's Alpha) (fetch is not a function)"
+      ]
+    },
+    "Group 4: Critical Complexity": {
+      "total": 1,
+      "passed": 0,
+      "details": [
+        "❌ Regression (선형/로지스틱 회귀) (fetch is not a function)"
+      ]
+    }
+  },
+  "details": {
+    "anova": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "t-test": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "one-sample-t": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "normality-test": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "means-plot": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "ks-test": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "friedman": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "kruskal-wallis": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "mann-kendall": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "reliability": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    },
+    "regression": {
+      "L1": {
+        "passed": false,
+        "type": "L1",
+        "error": "fetch is not a function"
+      }
+    }
+  }
+}

@@ -355,6 +355,30 @@ export default function RegressionPage() {
   const renderVariableSelection = () => {
     if (!uploadedData) return null
 
+    // regressionType 검증
+    if (!regressionType) {
+      return (
+        <StepCard
+          title="회귀 유형 미선택"
+          description="먼저 회귀분석 유형을 선택해주세요"
+          icon={<Users className="w-5 h-5 text-primary" />}
+        >
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>회귀 유형을 선택해주세요</AlertTitle>
+            <AlertDescription>
+              Step 1에서 단순 회귀, 다중 회귀, 또는 로지스틱 회귀 중 하나를 선택해야 합니다.
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 flex justify-start">
+            <Button variant="outline" onClick={() => actions.setCurrentStep?.(0)}>
+              이전: 회귀 유형 선택
+            </Button>
+          </div>
+        </StepCard>
+      )
+    }
+
     // 변수 타입 자동 감지 (Helper 함수 사용)
     const columns = Object.keys(uploadedData.data[0] || {})
     const variables = columns.map(col => ({

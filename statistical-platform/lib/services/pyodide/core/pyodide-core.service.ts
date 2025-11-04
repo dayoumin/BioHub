@@ -550,7 +550,7 @@ json.dumps(result)
   }
 
   /**
-   * Worker별 추가 패키지 로드 (Lazy Loading)
+   * Worker별 추가 패키지 로드 (Lazy Loading with Retry & Timeout)
    *
    * @param workerNumber Worker 번호
    */
@@ -565,10 +565,58 @@ json.dumps(result)
       throw new Error('Pyodide가 초기화되지 않았습니다')
     }
 
-    // 백그라운드 로딩 (에러는 로그만 출력)
-    this.pyodide.loadPackage([...packages]).catch((error) => {
-      console.error(`Worker ${workerNumber} 패키지 로드 실패:`, error)
-    })
+    const MAX_RETRIES = 3
+    const TIMEOUT_MS = 30000 // 30초
+
+    for (let i = 0; i < packages.length; i++) {
+      const pkg = packages[i]
+      let retryCount = 0
+
+      while (retryCount < MAX_RETRIES) {
+        try {
+          console.log(`📦 Worker ${workerNumber}: ${pkg} 로딩 중... (${i + 1}/${packages.length})`)
+
+          // 타임아웃과 함께 패키지 로드
+          await Promise.race([
+            this.pyodide.loadPackage([pkg]),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS)
+            )
+          ])
+
+          console.log(`✅ Worker ${workerNumber}: ${pkg} 로드 완료`)
+          break // 성공 시 다음 패키지로
+
+        } catch (error) {
+          retryCount++
+          const errorMessage = error instanceof Error ? error.message : String(error)
+
+          if (retryCount >= MAX_RETRIES) {
+            // 최대 재시도 횟수 초과
+            console.error(
+              `❌ Worker ${workerNumber}: ${pkg} 로드 실패 (${MAX_RETRIES}회 시도)\n` +
+              `   에러: ${errorMessage}`
+            )
+            // 사용자 알림 (선택사항 - 토스트 등으로 확장 가능)
+            if (typeof window !== 'undefined') {
+              // TODO: 토스트 알림 추가
+              console.warn(`⚠️ ${pkg} 패키지를 로드하지 못했습니다. 일부 기능이 제한될 수 있습니다.`)
+            }
+            break // 실패해도 다음 패키지 시도
+          }
+
+          // 재시도 전 대기 (지수 백오프)
+          const waitTime = 1000 * retryCount
+          console.warn(
+            `⏳ Worker ${workerNumber}: ${pkg} 재시도 중... (${retryCount}/${MAX_RETRIES}), ` +
+            `${waitTime}ms 후 재시도`
+          )
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+        }
+      }
+    }
+
+    console.log(`🎉 Worker ${workerNumber}: 모든 패키지 로드 완료`)
   }
 
   /**

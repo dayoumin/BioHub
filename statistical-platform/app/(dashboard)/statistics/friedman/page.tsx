@@ -178,12 +178,18 @@ export default function FriedmanPage() {
     try {
       // Extract data columns for Friedman test
       const conditionData = dependentVars.map((varName: string) => {
-        return uploadedData.data.map(row => {
+        return uploadedData.data.map((row, rowIndex) => {
           const value = row[varName]
           if (typeof value === 'number') return value
           if (typeof value === 'string') {
             const num = parseFloat(value)
-            return isNaN(num) ? 0 : num
+            if (isNaN(num)) {
+              throw new Error(`변수 "${varName}"의 ${rowIndex + 1}번째 행에 숫자가 아닌 값("${value}")이 포함되어 있습니다.`)
+            }
+            return num
+          }
+          if (value === null || value === undefined) {
+            throw new Error(`변수 "${varName}"의 ${rowIndex + 1}번째 행에 값이 없습니다.`)
           }
           return 0
         })
