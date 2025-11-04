@@ -58,7 +58,8 @@ export class MultiTabDetector {
       // 페이지 나갈 때 정리
       window.addEventListener('beforeunload', () => this.destroy())
 
-      if (process.env.NODE_ENV === 'development') {
+      // 개발 환경에서만 로그 출력 (typeof 가드로 process 미정의 환경 대응)
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
         console.log(`[MultiTabDetector] Initialized with tabId: ${this.tabId}`)
       }
     } catch (error) {
