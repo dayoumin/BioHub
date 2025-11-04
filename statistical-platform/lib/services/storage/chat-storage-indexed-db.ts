@@ -183,7 +183,7 @@ export class ChatStorageIndexedDB {
   }
 
   /**
-   * 메시지 추가
+   * 메시지 추가 (트랜잭션 기반 - Race Condition 방지)
    */
   static async addMessage(
     sessionId: string,
@@ -192,20 +192,25 @@ export class ChatStorageIndexedDB {
     try {
       if (!this.initialized) await this.initialize()
 
-      const session = await this.loadSession(sessionId)
-      if (!session) {
-        throw new Error('Session not found')
-      }
+      // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
+      await this.manager?.updateInTransaction<ChatSession>(
+        'sessions',
+        sessionId,
+        (session) => {
+          session.messages.push(message)
+          session.updatedAt = Date.now()
 
-      session.messages.push(message)
-      session.updatedAt = Date.now()
+          // 첫 메시지면 제목 자동 생성
+          if (session.messages.length === 1) {
+            session.title = this.generateTitle(message.content)
+          }
 
-      // 첫 메시지면 제목 자동 생성
-      if (session.messages.length === 1) {
-        session.title = this.generateTitle(message.content)
-      }
+          return session
+        }
+      )
 
-      await this.saveSession(session)
+      // 다중 탭 동기화
+      this.broadcastChange('session', 'save', sessionId)
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to add message:', error)
       throw new Error('메시지 추가에 실패했습니다.')
@@ -213,21 +218,24 @@ export class ChatStorageIndexedDB {
   }
 
   /**
-   * 메시지 삭제
+   * 메시지 삭제 (트랜잭션 기반 - Race Condition 방지)
    */
   static async deleteMessage(sessionId: string, messageId: string): Promise<void> {
     try {
       if (!this.initialized) await this.initialize()
 
-      const session = await this.loadSession(sessionId)
-      if (!session) {
-        throw new Error('Session not found')
-      }
+      // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
+      await this.manager?.updateInTransaction<ChatSession>(
+        'sessions',
+        sessionId,
+        (session) => {
+          session.messages = session.messages.filter((m) => m.id !== messageId)
+          session.updatedAt = Date.now()
+          return session
+        }
+      )
 
-      session.messages = session.messages.filter(m => m.id !== messageId)
-      session.updatedAt = Date.now()
-
-      await this.saveSession(session)
+      this.broadcastChange('session', 'save', sessionId)
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to delete message:', error)
       throw new Error('메시지 삭제에 실패했습니다.')
@@ -250,21 +258,24 @@ export class ChatStorageIndexedDB {
   }
 
   /**
-   * 즐겨찾기 토글
+   * 즐겨찾기 토글 (트랜잭션 기반 - Race Condition 방지)
    */
   static async toggleFavorite(id: string): Promise<void> {
     try {
       if (!this.initialized) await this.initialize()
 
-      const session = await this.loadSession(id)
-      if (!session) {
-        throw new Error('Session not found')
-      }
+      // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
+      await this.manager?.updateInTransaction<ChatSession>(
+        'sessions',
+        id,
+        (session) => {
+          session.isFavorite = !session.isFavorite
+          session.updatedAt = Date.now()
+          return session
+        }
+      )
 
-      session.isFavorite = !session.isFavorite
-      session.updatedAt = Date.now()
-
-      await this.saveSession(session)
+      this.broadcastChange('session', 'save', id)
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to toggle favorite:', error)
       throw new Error('즐겨찾기 설정에 실패했습니다.')
@@ -272,21 +283,24 @@ export class ChatStorageIndexedDB {
   }
 
   /**
-   * 세션 이름 변경
+   * 세션 이름 변경 (트랜잭션 기반 - Race Condition 방지)
    */
   static async renameSession(id: string, newTitle: string): Promise<void> {
     try {
       if (!this.initialized) await this.initialize()
 
-      const session = await this.loadSession(id)
-      if (!session) {
-        throw new Error('Session not found')
-      }
+      // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
+      await this.manager?.updateInTransaction<ChatSession>(
+        'sessions',
+        id,
+        (session) => {
+          session.title = newTitle.trim() || '제목 없음'
+          session.updatedAt = Date.now()
+          return session
+        }
+      )
 
-      session.title = newTitle.trim() || '제목 없음'
-      session.updatedAt = Date.now()
-
-      await this.saveSession(session)
+      this.broadcastChange('session', 'save', id)
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to rename session:', error)
       throw new Error('세션 이름 변경에 실패했습니다.')
@@ -294,21 +308,24 @@ export class ChatStorageIndexedDB {
   }
 
   /**
-   * 세션 보관 토글
+   * 세션 보관 토글 (트랜잭션 기반 - Race Condition 방지)
    */
   static async toggleArchive(id: string): Promise<void> {
     try {
       if (!this.initialized) await this.initialize()
 
-      const session = await this.loadSession(id)
-      if (!session) {
-        throw new Error('Session not found')
-      }
+      // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
+      await this.manager?.updateInTransaction<ChatSession>(
+        'sessions',
+        id,
+        (session) => {
+          session.isArchived = !session.isArchived
+          session.updatedAt = Date.now()
+          return session
+        }
+      )
 
-      session.isArchived = !session.isArchived
-      session.updatedAt = Date.now()
-
-      await this.saveSession(session)
+      this.broadcastChange('session', 'save', id)
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to toggle archive:', error)
       throw new Error('보관 설정에 실패했습니다.')

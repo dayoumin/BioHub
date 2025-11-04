@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { queryRAG } from '@/lib/rag/rag-service'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
-import { ChatStorage } from '@/lib/services/chat-storage'
+import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import type { ChatSession } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
 import { ChatHeaderMenu } from './chat-header-menu'
@@ -62,71 +62,95 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
 
   // 세션 로드
   useEffect(() => {
-    const loadedSessions = ChatStorage.loadSessions()
-    setSessions(loadedSessions)
+    const loadSessions = async () => {
+      try {
+        const loadedSessions = await ChatStorageIndexedDB.loadSessions()
+        setSessions(loadedSessions)
 
-    // 현재 세션이 없으면 새로 생성
-    if (!currentSessionId && loadedSessions.length === 0) {
-      const newSession = ChatStorage.createNewSession()
-      setCurrentSessionId(newSession.id)
-      setSessions([newSession])
-    } else if (!currentSessionId && loadedSessions.length > 0) {
-      setCurrentSessionId(loadedSessions[0].id)
+        // 현재 세션이 없으면 새로 생성
+        if (!currentSessionId && loadedSessions.length === 0) {
+          const newSession = await ChatStorageIndexedDB.createNewSession()
+          setCurrentSessionId(newSession.id)
+          setSessions([newSession])
+        } else if (!currentSessionId && loadedSessions.length > 0) {
+          setCurrentSessionId(loadedSessions[0].id)
+        }
+      } catch (err) {
+        console.error('Failed to load sessions:', err)
+      }
     }
+
+    void loadSessions()
   }, [currentSessionId])
 
   // 세션 관리 함수들
-  const handleNewSession = useCallback(() => {
-    const newSession = ChatStorage.createNewSession()
-    setCurrentSessionId(newSession.id)
-    setSessions((prev) => [newSession, ...prev])
-    setMessages([])
-  }, [])
-
-  const handleSelectSession = useCallback((sessionId: string) => {
-    const session = ChatStorage.loadSession(sessionId)
-    if (session) {
-      setCurrentSessionId(sessionId)
-      // ChatMessage 형식으로 변환
-      const convertedMessages: ChatMessage[] = []
-      for (let i = 0; i < session.messages.length; i += 2) {
-        const userMsg = session.messages[i]
-        const assistantMsg = session.messages[i + 1]
-        if (userMsg && assistantMsg && userMsg.role === 'user') {
-          // ✅ assistantMsg에서 sources와 model 메타데이터 복원
-          convertedMessages.push({
-            query: userMsg.content,
-            response: {
-              answer: assistantMsg.content,
-              sources: assistantMsg.sources || [],
-              model: assistantMsg.model || { provider: 'unknown' },
-            },
-            timestamp: userMsg.timestamp
-          })
-        }
-      }
-      setMessages(convertedMessages)
-      setShowSidebar(false)
+  const handleNewSession = useCallback(async () => {
+    try {
+      const newSession = await ChatStorageIndexedDB.createNewSession()
+      setCurrentSessionId(newSession.id)
+      setSessions((prev) => [newSession, ...prev])
+      setMessages([])
+    } catch (err) {
+      console.error('Failed to create new session:', err)
     }
   }, [])
 
-  const handleDeleteSession = useCallback((sessionId: string, e: React.MouseEvent) => {
+  const handleSelectSession = useCallback(async (sessionId: string) => {
+    try {
+      const session = await ChatStorageIndexedDB.loadSession(sessionId)
+      if (session) {
+        setCurrentSessionId(sessionId)
+        // ChatMessage 형식으로 변환
+        const convertedMessages: ChatMessage[] = []
+        for (let i = 0; i < session.messages.length; i += 2) {
+          const userMsg = session.messages[i]
+          const assistantMsg = session.messages[i + 1]
+          if (userMsg && assistantMsg && userMsg.role === 'user') {
+            // ✅ assistantMsg에서 sources와 model 메타데이터 복원
+            convertedMessages.push({
+              query: userMsg.content,
+              response: {
+                answer: assistantMsg.content,
+                sources: assistantMsg.sources || [],
+                model: assistantMsg.model || { provider: 'unknown' },
+              },
+              timestamp: userMsg.timestamp
+            })
+          }
+        }
+        setMessages(convertedMessages)
+        setShowSidebar(false)
+      }
+    } catch (err) {
+      console.error('Failed to load session:', err)
+    }
+  }, [])
+
+  const handleDeleteSession = useCallback(async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    ChatStorage.deleteSession(sessionId)
-    setSessions((prev) => prev.filter((s) => s.id !== sessionId))
-    if (currentSessionId === sessionId) {
-      handleNewSession()
+    try {
+      await ChatStorageIndexedDB.deleteSession(sessionId)
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId))
+      if (currentSessionId === sessionId) {
+        await handleNewSession()
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err)
     }
   }, [currentSessionId, handleNewSession])
 
-  const handleToggleFavorite = useCallback((sessionId: string, e: React.MouseEvent) => {
+  const handleToggleFavorite = useCallback(async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    ChatStorage.toggleFavorite(sessionId)
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === sessionId ? { ...s, isFavorite: !s.isFavorite } : s
+    try {
+      await ChatStorageIndexedDB.toggleFavorite(sessionId)
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId ? { ...s, isFavorite: !s.isFavorite } : s
+        )
       )
-    )
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err)
+    }
   }, [])
 
   // 질문 전송
@@ -150,23 +174,26 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
 
       setMessages((prev) => [...prev, newMessage])
 
-      // ChatStorage에 저장
-      ChatStorage.addMessage(currentSessionId, {
+      // ChatStorageIndexedDB에 저장
+      await ChatStorageIndexedDB.addMessage(currentSessionId, {
         id: `${Date.now()}-user`,
         role: 'user',
         content: query.trim(),
         timestamp: Date.now()
       })
 
-      ChatStorage.addMessage(currentSessionId, {
+      await ChatStorageIndexedDB.addMessage(currentSessionId, {
         id: `${Date.now()}-assistant`,
         role: 'assistant',
         content: response.answer,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        sources: response.sources,
+        model: response.model
       })
 
       // 세션 목록 업데이트
-      setSessions(ChatStorage.loadSessions())
+      const updatedSessions = await ChatStorageIndexedDB.loadSessions()
+      setSessions(updatedSessions)
 
       // 새 메시지 콜백 호출 (FloatingChatbot 알림용)
       if (onNewMessage) {
@@ -217,7 +244,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
               size="sm"
               variant="default"
               className="w-full"
-              onClick={handleNewSession}
+              onClick={() => void handleNewSession()}
             >
               <Plus className="h-4 w-4 mr-2" />
               새 대화
@@ -241,7 +268,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
               filteredSessions.map((session) => (
                 <div
                   key={session.id}
-                  onClick={() => handleSelectSession(session.id)}
+                  onClick={() => void handleSelectSession(session.id)}
                   className={cn(
                     'group relative p-2 rounded cursor-pointer hover:bg-muted transition-colors',
                     currentSessionId === session.id && 'bg-muted'
@@ -264,7 +291,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
                     <ChatHeaderMenu
                       isFavorite={session.isFavorite}
                       onToggleFavorite={() => {
-                        handleToggleFavorite(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
+                        void handleToggleFavorite(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
                       }}
                       onRename={() => {
                         // TODO: 사이드바에서 이름 변경 기능 추가
@@ -275,7 +302,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
                         console.log('Move not implemented in sidebar')
                       }}
                       onDelete={() => {
-                        handleDeleteSession(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
+                        void handleDeleteSession(session.id, new MouseEvent('click') as unknown as React.MouseEvent)
                       }}
                       className={cn(
                         'opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto'
@@ -429,7 +456,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
                 className="resize-none w-full"
               />
               <Button
-                onClick={handleSubmit}
+                onClick={() => void handleSubmit()}
                 disabled={isLoading || !query.trim()}
                 className="w-full"
                 size="sm"

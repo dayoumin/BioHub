@@ -2,7 +2,7 @@
  * RAG 채팅 인터페이스 (세션 저장 기능 포함)
  *
  * RAGAssistant와 유사하지만 세션 관리 기능이 통합됨
- * - ChatStorage를 통한 메시지 자동 저장
+ * - ChatStorageIndexedDB를 통한 메시지 자동 저장
  * - 세션 업데이트 콜백
  * - 메시지 복사 기능
  */
@@ -33,7 +33,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { queryRAG } from '@/lib/rag/rag-service'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
-import { ChatStorage } from '@/lib/services/chat-storage'
+import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import type { ChatSession, ChatMessage } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
 
@@ -66,6 +66,7 @@ export function RAGChatInterface({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [messages, setMessages] = useState<ExtendedChatMessage[]>([])
+  const [isLoadingSession, setIsLoadingSession] = useState(true)
   const [expandedSources, setExpandedSources] = useState<number | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
@@ -74,10 +75,21 @@ export function RAGChatInterface({
 
   // 세션 로드
   useEffect(() => {
-    const session = ChatStorage.loadSession(sessionId)
-    if (session) {
-      setMessages(session.messages as ExtendedChatMessage[])
+    const loadSession = async () => {
+      setIsLoadingSession(true)
+      try {
+        const session = await ChatStorageIndexedDB.loadSession(sessionId)
+        if (session) {
+          setMessages(session.messages as ExtendedChatMessage[])
+        }
+      } catch (err) {
+        console.error('Failed to load session:', err)
+        setError('세션 로드 실패')
+      } finally {
+        setIsLoadingSession(false)
+      }
     }
+    loadSession()
   }, [sessionId])
 
   // 스크롤을 맨 아래로
@@ -114,7 +126,12 @@ export function RAGChatInterface({
     setError(null)
 
     // ✅ 사용자 메시지 즉시 저장 (네트워크 오류 시 복구 가능)
-    ChatStorage.addMessage(sessionId, userMessage)
+    try {
+      await ChatStorageIndexedDB.addMessage(sessionId, userMessage)
+    } catch (err) {
+      console.error('Failed to save user message:', err)
+      setError('메시지 저장 실패')
+    }
 
     try {
       // RAG 쿼리 (초기 응답으로 메타데이터 가져오기)
@@ -248,20 +265,28 @@ export function RAGChatInterface({
       }
 
       // ✅ 응답 메시지 저장 (finalContent 직접 사용, messages 스냅샷 사용 안 함)
-      ChatStorage.addMessage(sessionId, {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: finalContent,
-        timestamp: Date.now(),
-        // ✅ Citation 정보 및 모델 메타데이터 저장
-        sources: initialResponse.sources,
-        model: initialResponse.model,
-      })
+      try {
+        await ChatStorageIndexedDB.addMessage(sessionId, {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: finalContent,
+          timestamp: Date.now(),
+          // ✅ Citation 정보 및 모델 메타데이터 저장
+          sources: initialResponse.sources,
+          model: initialResponse.model,
+        })
+      } catch (saveErr) {
+        console.error('Failed to save assistant message:', saveErr)
+      }
 
       // 세션 업데이트 콜백
-      const updatedSession = ChatStorage.loadSession(sessionId)
-      if (updatedSession && onSessionUpdate) {
-        onSessionUpdate(updatedSession)
+      try {
+        const updatedSession = await ChatStorageIndexedDB.loadSession(sessionId)
+        if (updatedSession && onSessionUpdate) {
+          onSessionUpdate(updatedSession)
+        }
+      } catch (err) {
+        console.error('Failed to load updated session:', err)
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
@@ -275,17 +300,26 @@ export function RAGChatInterface({
         timestamp: Date.now(),
       }
       setMessages((prev) => [...prev, errorChatMessage])
-      ChatStorage.addMessage(sessionId, errorChatMessage)
+
+      try {
+        await ChatStorageIndexedDB.addMessage(sessionId, errorChatMessage)
+      } catch (saveErr) {
+        console.error('Failed to save error message:', saveErr)
+      }
 
       // 세션 업데이트 콜백
-      const updatedSession = ChatStorage.loadSession(sessionId)
-      if (updatedSession && onSessionUpdate) {
-        onSessionUpdate(updatedSession)
+      try {
+        const updatedSession = await ChatStorageIndexedDB.loadSession(sessionId)
+        if (updatedSession && onSessionUpdate) {
+          onSessionUpdate(updatedSession)
+        }
+      } catch (err) {
+        console.error('Failed to load updated session:', err)
       }
     } finally {
       setIsLoading(false)
     }
-  }, [query, isLoading, sessionId, onSessionUpdate, messages])
+  }, [query, isLoading, sessionId, onSessionUpdate])
 
   // Enter 키로 전송
   const handleKeyDown = useCallback(
@@ -317,13 +351,19 @@ export function RAGChatInterface({
   }, [])
 
   // 메시지 삭제
-  const handleDeleteMessage = useCallback((messageId: string) => {
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
     setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
-    ChatStorage.deleteMessage(sessionId, messageId)
 
-    const updatedSession = ChatStorage.loadSession(sessionId)
-    if (updatedSession) {
-      setMessages(updatedSession.messages as ExtendedChatMessage[])
+    try {
+      await ChatStorageIndexedDB.deleteMessage(sessionId, messageId)
+
+      const updatedSession = await ChatStorageIndexedDB.loadSession(sessionId)
+      if (updatedSession) {
+        setMessages(updatedSession.messages as ExtendedChatMessage[])
+      }
+    } catch (err) {
+      console.error('Failed to delete message:', err)
+      setError('메시지 삭제 실패')
     }
   }, [sessionId])
 
@@ -332,6 +372,16 @@ export function RAGChatInterface({
     setEditingMessageId(null)
     setEditingContent('')
   }, [])
+
+  // 로딩 중 UI
+  if (isLoadingSession) {
+    return (
+      <div className={cn('flex flex-col h-full bg-muted/5 items-center justify-center', className)}>
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mb-2" />
+        <span className="text-muted-foreground">메시지를 불러오는 중...</span>
+      </div>
+    )
+  }
 
   return (
     <div className={cn('flex flex-col h-full bg-muted/5', className)}>
