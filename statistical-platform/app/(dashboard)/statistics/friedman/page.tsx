@@ -191,7 +191,8 @@ export default function FriedmanPage() {
           if (value === null || value === undefined) {
             throw new Error(`변수 "${varName}"의 ${rowIndex + 1}번째 행에 값이 없습니다.`)
           }
-          return 0
+          // Unexpected type
+          throw new Error(`변수 "${varName}"의 ${rowIndex + 1}번째 행에 예상치 못한 타입(${typeof value})이 포함되어 있습니다.`)
         })
       })
 

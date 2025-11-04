@@ -199,15 +199,15 @@ export default function TTestPage() {
   // 분석 실행
   const runAnalysis = async (variables: VariableAssignment) => {
     if (!pyodide) {
-      actions.setError('통계 엔진이 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.')
+      actions.setError?.('통계 엔진이 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.')
       return
     }
     if (!uploadedData) {
-      actions.setError('데이터를 먼저 업로드해주세요.')
+      actions.setError?.('데이터를 먼저 업로드해주세요.')
       return
     }
 
-    actions.startAnalysis()
+    actions.startAnalysis?.()
 
     try {
       // 모의 결과 생성 (실제로는 Pyodide 사용)
