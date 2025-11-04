@@ -69,10 +69,15 @@ describe('MultiTabDetector', () => {
       const warnSpy = jest.spyOn(console, 'warn')
       const originalBroadcastChannel = global.BroadcastChannel
 
+      // 기존 인스턴스 제거
+      detector.destroy()
+
       // BroadcastChannel 미지원 시뮬레이션
       ;(global as any).BroadcastChannel = undefined
 
+      warnSpy.mockClear()
       const newDetector = MultiTabDetector.getInstance()
+
       expect(warnSpy).toHaveBeenCalledWith(
         expect.stringContaining('BroadcastChannel not supported')
       )
@@ -80,6 +85,66 @@ describe('MultiTabDetector', () => {
       newDetector.destroy()
       ;(global as any).BroadcastChannel = originalBroadcastChannel
       warnSpy.mockRestore()
+    })
+  })
+
+  describe('상태 변화 감지 (성능 최적화)', () => {
+    it('탭 개수가 변경될 때만 리스너가 호출되어야 함', () => {
+      const callback = jest.fn()
+      detector.onTabCountChange(callback)
+
+      // 초기 호출: 0개 탭
+      expect(callback).toHaveBeenCalledTimes(1)
+      expect(callback).toHaveBeenCalledWith(0, expect.any(String))
+
+      callback.mockClear()
+
+      // 같은 탭 ID로 여러 번 메시지 수신 → 콜백 호출 안 됨
+      detector['handleMessage']({
+        type: 'heartbeat',
+        tabId: 'other-tab-1',
+        timestamp: Date.now(),
+      })
+      detector['handleMessage']({
+        type: 'heartbeat',
+        tabId: 'other-tab-1',
+        timestamp: Date.now(),
+      })
+
+      // 첫 번째만 호출됨 (상태 변화 감지)
+      expect(callback).toHaveBeenCalledTimes(1)
+      expect(callback).toHaveBeenCalledWith(1, expect.any(String))
+
+      callback.mockClear()
+
+      // 새로운 탭 감지
+      detector['handleMessage']({
+        type: 'heartbeat',
+        tabId: 'other-tab-2',
+        timestamp: Date.now(),
+      })
+
+      // 탭 개수 증가 → 콜백 호출
+      expect(callback).toHaveBeenCalledTimes(1)
+      expect(callback).toHaveBeenCalledWith(2, expect.any(String))
+    })
+
+    it('자신의 탭 ID에서는 메시지를 무시해야 함', () => {
+      const callback = jest.fn()
+      detector.onTabCountChange(callback)
+      callback.mockClear()
+
+      const ownTabId = detector.getTabId()
+
+      // 자신의 탭 ID로 메시지 전송 (무시되어야 함)
+      detector['handleMessage']({
+        type: 'heartbeat',
+        tabId: ownTabId,
+        timestamp: Date.now(),
+      })
+
+      expect(callback).not.toHaveBeenCalled()
+      expect(detector.getOtherTabsCount()).toBe(0)
     })
   })
 

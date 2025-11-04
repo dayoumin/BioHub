@@ -16,8 +16,9 @@ export class MultiTabDetector {
   private readonly CHANNEL_NAME = 'multi-tab-detector'
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null
   private cleanupInterval: ReturnType<typeof setInterval> | null = null
-  private readonly HEARTBEAT_INTERVAL = 500 // 500ms
-  private readonly HEARTBEAT_TIMEOUT = 2000 // 2초 이상 신호 없으면 탭 제거
+  private readonly HEARTBEAT_INTERVAL = 2000 // 2000ms (최적화: 500ms → 2000ms)
+  private readonly HEARTBEAT_TIMEOUT = 5000 // 5초 이상 신호 없으면 탭 제거
+  private lastNotifiedCount: number = -1 // 마지막 알림한 탭 개수
 
   private constructor() {
     this.tabId = this.generateTabId()
@@ -57,7 +58,9 @@ export class MultiTabDetector {
       // 페이지 나갈 때 정리
       window.addEventListener('beforeunload', () => this.destroy())
 
-      console.log(`[MultiTabDetector] Initialized with tabId: ${this.tabId}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[MultiTabDetector] Initialized with tabId: ${this.tabId}`)
+      }
     } catch (error) {
       console.error('[MultiTabDetector] Failed to initialize:', error)
     }
@@ -79,7 +82,7 @@ export class MultiTabDetector {
   }
 
   /**
-   * 타임아웃된 탭 정리
+   * 타임아웃된 탭 정리 (최적화: 1000ms → 5000ms)
    */
   private startCleanup(): void {
     this.cleanupInterval = setInterval(() => {
@@ -99,7 +102,7 @@ export class MultiTabDetector {
         }
         this.notifyListeners()
       }
-    }, 1000)
+    }, 5000)
   }
 
   /**
@@ -132,7 +135,10 @@ export class MultiTabDetector {
   onTabCountChange(callback: MultiTabDetectorCallback): void {
     this.listeners.add(callback)
     // 등록 시 현재 상태 즉시 알림
-    callback(this.otherTabs.size, this.tabId)
+    const currentCount = this.otherTabs.size
+    callback(currentCount, this.tabId)
+    // 초기 호출 후 상태 동기화
+    this.lastNotifiedCount = currentCount
   }
 
   /**
@@ -143,13 +149,18 @@ export class MultiTabDetector {
   }
 
   /**
-   * 모든 리스너에 알림
+   * 모든 리스너에 알림 (상태 변화 시에만)
    */
   private notifyListeners(): void {
     const count = this.otherTabs.size
-    this.listeners.forEach((callback) => {
-      callback(count, this.tabId)
-    })
+
+    // 탭 개수가 변경되었을 때만 리스너 호출
+    if (count !== this.lastNotifiedCount) {
+      this.lastNotifiedCount = count
+      this.listeners.forEach((callback) => {
+        callback(count, this.tabId)
+      })
+    }
   }
 
   /**
