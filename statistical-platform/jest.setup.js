@@ -22,6 +22,11 @@ process.env.NODE_ENV = 'test'
 
 // PyodideStatisticsService mock
 jest.mock('@/lib/services/pyodide-statistics', () => ({
+  pyodideStats: {
+    initialize: jest.fn().mockResolvedValue(undefined),
+    dispose: jest.fn(),
+    isInitialized: true,
+  },
   PyodideStatisticsService: {
     getInstance: () => ({
       initialize: jest.fn().mockResolvedValue(undefined),
@@ -119,6 +124,49 @@ jest.mock('@/lib/services/pyodide-statistics', () => ({
       })
     })
   }
+}))
+
+// react-markdown mock (ESM 이슈 해결)
+jest.mock('react-markdown', () => {
+  return function ReactMarkdown({ children }) {
+    return require('react').createElement('div', null, children)
+  }
+})
+
+// usePyodideService hook mock (통계 페이지용)
+jest.mock('@/hooks/use-pyodide-service', () => ({
+  usePyodideService: () => ({
+    pyodideService: {
+      isReady: true,
+      initialize: jest.fn().mockResolvedValue(undefined),
+      calculateDescriptiveStatistics: jest.fn().mockResolvedValue({
+        mean: 10,
+        median: 10,
+        std: 2,
+        min: 5,
+        max: 15
+      }),
+      tTest: jest.fn().mockResolvedValue({
+        statistic: 2.5,
+        pValue: 0.02,
+        df: 8
+      }),
+      performANOVA: jest.fn().mockResolvedValue({
+        fStatistic: 5.0,
+        pValue: 0.01,
+        df: [2, 27]
+      })
+    },
+    runPython: jest.fn().mockResolvedValue({
+      trend: 'increasing',
+      pvalue: 0.02,
+      slope: 4.2,
+      intercept: -2.1
+    }),
+    isInitialized: true,
+    isLoading: false,
+    error: null
+  })
 }))
 
 // console 경고 무시 (선택적)

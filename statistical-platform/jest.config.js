@@ -20,7 +20,7 @@ module.exports = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(react-markdown|remark-gfm|remark-breaks|remark-math|rehype-katex|micromark|mdast-util-|ccount|escape-string-regexp|markdown-table|character-entities|unified|unist-util-)/)',
+    'node_modules/(?!(react-markdown|remark-gfm|remark-breaks|remark-math|rehype-katex|micromark|mdast-util-|ccount|escape-string-regexp|markdown-table|character-entities|unified|unist-util-|hast-util-|hastscript|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|html-void-elements|rehype-raw|vfile|vfile-message|trim-lines)/)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   collectCoverageFrom: [
@@ -41,6 +41,8 @@ module.exports = {
     '<rootDir>/__tests__/statistics/nist-validation.test.ts',
     '<rootDir>/__tests__/statistics/python-direct-test.test.ts',
     '<rootDir>/lib/statistics/__tests__/method-mapping.test.ts',
-    '<rootDir>/__tests__/statistics/statistical-validation.test.ts'
+    '<rootDir>/__tests__/statistics/statistical-validation.test.ts',
+    '<rootDir>/__tests__/rag/math-rendering.test.tsx',
+    '<rootDir>/components/rag/__tests__/rag-assistant.test.tsx'
   ],
 }
