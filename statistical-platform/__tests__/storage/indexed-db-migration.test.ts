@@ -9,6 +9,44 @@
  */
 
 describe('IndexedDBManager - Migration Logic Verification', () => {
+  describe('순차적 버전 마이그레이션', () => {
+    test('should run migrations sequentially based on version', () => {
+      /**
+       * 순차적 마이그레이션 로직:
+       * if (oldVersion < 1) → v0 → v1 실행
+       * if (oldVersion < 2) → v1 → v2 실행
+       * if (oldVersion < 3) → v2 → v3 실행
+       */
+      let migrations: string[] = []
+
+      const runMigrations = (oldVersion: number) => {
+        if (oldVersion < 1) {
+          migrations.push('v0 → v1: initial setup')
+        }
+        if (oldVersion < 2) {
+          migrations.push('v1 → v2: index synchronization')
+        }
+        // if (oldVersion < 3) {
+        //   migrations.push('v2 → v3: future schema change')
+        // }
+      }
+
+      // 시나리오 1: v0에서 v2로 업그레이드
+      runMigrations(0)
+      expect(migrations).toEqual(['v0 → v1: initial setup', 'v1 → v2: index synchronization'])
+
+      // 시나리오 2: v1에서 v2로 업그레이드 (v0 → v1은 건너뜀)
+      migrations = []
+      runMigrations(1)
+      expect(migrations).toEqual(['v1 → v2: index synchronization'])
+
+      // 시나리오 3: v2 이상 (마이그레이션 없음)
+      migrations = []
+      runMigrations(2)
+      expect(migrations).toEqual([])
+    })
+  })
+
   describe('마이그레이션 전략 검증', () => {
     test('v0 → v1: 초기 생성 - 모든 저장소 생성', () => {
       /**
@@ -81,6 +119,26 @@ describe('IndexedDBManager - Migration Logic Verification', () => {
       expect(preservedStores).toEqual(['sessions'])
       expect(createdStores).toEqual(['projects'])
       expect(createdStores.length + preservedStores.length).toBe(2)
+    })
+
+    test('인덱스 동기화: 누락된 인덱스 검출', () => {
+      /**
+       * synchronizeIndexes 로직:
+       * 1. 기존 저장소의 인덱스 목록 읽기
+       * 2. 선언된 인덱스와 비교
+       * 3. 누락된 인덱스 검출
+       * 4. 로그 출력 (recreate 필요 안내)
+       */
+      const existingIndexes = new Set(['projectId', 'isFavorite'])
+      const requiredIndexes = new Set(['projectId', 'isFavorite', 'createdAt'])
+
+      // 누락된 인덱스 검출
+      const missingIndexes = Array.from(requiredIndexes).filter(
+        (idx) => !existingIndexes.has(idx)
+      )
+
+      expect(missingIndexes).toEqual(['createdAt'])
+      expect(missingIndexes.length).toBe(1)
     })
 
     test('deleteObjectStore 호출 안 됨 - 데이터 손실 방지', () => {

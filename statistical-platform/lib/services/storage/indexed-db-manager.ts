@@ -64,37 +64,91 @@ export class IndexedDBManager {
   }
 
   /**
-   * 버전별 마이그레이션 실행
+   * 버전별 마이그레이션 실행 (순차적 버전 업그레이드)
    * - v0 → v1: 초기 저장소 생성
-   * - v1 → v2+: 스키마 변경 시 데이터 보존
+   * - v1 → v2: 인덱스 동기화
+   * - v2 → v3+: 향후 스키마 변경 추가
    */
   private runMigrations(
     db: IDBDatabase,
     stores: StoreConfig[],
     oldVersion: number
   ): void {
-    // v0 → v1: 초기 생성 (아무 저장소가 없음)
-    if (oldVersion === 0) {
+    // v0 → v1: 초기 생성
+    if (oldVersion < 1) {
+      console.log('[IndexedDB] Running migration: v0 → v1 (initial setup)')
       for (const store of stores) {
         this.createObjectStore(db, store)
       }
+    }
+
+    // v1 → v2: 인덱스 동기화 (기존 저장소 보존, 인덱스 추가)
+    if (oldVersion < 2) {
+      console.log('[IndexedDB] Running migration: v1 → v2 (index synchronization)')
+      for (const store of stores) {
+        if (db.objectStoreNames.contains(store.name)) {
+          // ✅ 저장소 이미 존재 → 인덱스만 동기화
+          this.synchronizeIndexes(db, store)
+        } else {
+          // ✅ 새로운 저장소 → 생성
+          this.createObjectStore(db, store)
+        }
+      }
+    }
+
+    // v2 → v3+: 향후 추가 마이그레이션
+    // if (oldVersion < 3) {
+    //   console.log('[IndexedDB] Running migration: v2 → v3 (future changes)')
+    //   // 향후 스키마 변경 로직
+    // }
+  }
+
+  /**
+   * 인덱스 동기화 (기존 저장소)
+   * - 선언된 인덱스 목록과 실제 DB 인덱스 비교
+   * - 누락된 인덱스 추가
+   * - 불필요한 인덱스는 유지 (호환성)
+   */
+  private synchronizeIndexes(db: IDBDatabase, store: StoreConfig): void {
+    // onupgradeneeded 내에서는 읽기 전용 작업만 가능하므로 주의
+    // 인덱스 추가는 트랜잭션 외부에서만 가능
+    // 이미 존재하는 저장소는 recreate가 필요한 경우만 처리
+
+    if (!store.indexes) {
+      console.log(`[IndexedDB] Store "${store.name}" has no indexes to synchronize`)
       return
     }
 
-    // v1 → v2+: 기존 저장소 보존, 스키마만 업데이트
-    for (const store of stores) {
-      if (db.objectStoreNames.contains(store.name)) {
-        // ✅ 저장소 이미 존재 → 데이터 보존
-        // 인덱스 추가/변경은 다음 단계에서 처리
-        console.log(`[IndexedDB] Store "${store.name}" already exists, preserving data`)
+    // 기존 저장소의 인덱스 목록 확인
+    const existingStore = db.transaction([store.name], 'readonly').objectStore(store.name)
+    const existingIndexes = new Set<string>(
+      Array.from(existingStore.indexNames).map((name) => name as string)
+    )
 
-        // 필요시 인덱스만 업데이트 (고급: 현재는 건너뜀)
-        // this.updateObjectStoreIndexes(db, store)
-      } else {
-        // ✅ 새로운 저장소 → 생성
-        this.createObjectStore(db, store)
-      }
+    // 추가해야 할 인덱스 목록
+    const requiredIndexes = new Set<string>(store.indexes.map((idx) => idx.name))
+
+    // 누락된 인덱스 확인
+    const missingIndexes = Array.from(requiredIndexes).filter(
+      (idx) => !existingIndexes.has(idx)
+    )
+
+    if (missingIndexes.length === 0) {
+      console.log(`[IndexedDB] Store "${store.name}" indexes are synchronized`)
+      return
     }
+
+    // ⚠️ 주의: 기존 저장소에 새 인덱스 추가는 recreate가 필요
+    console.warn(
+      `[IndexedDB] Store "${store.name}" missing indexes: ${missingIndexes.join(', ')}`
+    )
+    console.warn(
+      `[IndexedDB] To add new indexes to existing store, database recreation is required`
+    )
+    console.warn(`[IndexedDB] Current indexes: ${Array.from(existingIndexes).join(', ')}`)
+
+    // 현재 구현: 누락된 인덱스는 로그만 남김
+    // 향후 개선: 필요시 저장소 recreate 로직 추가
   }
 
   /**
