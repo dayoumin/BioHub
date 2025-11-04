@@ -21,6 +21,22 @@ export interface ChatMessage {
     embedding?: string
     inference?: string
   }
+  // 🆕 RAG 응답 메타데이터 (ExtendedChatMessage 통합)
+  response?: {
+    answer: string
+    sources?: ChatSource[]
+    model: {
+      provider: string
+      embedding?: string
+      inference?: string
+    }
+  }
+  // 🆕 메시지 메타데이터 (확장성)
+  metadata?: {
+    method?: string       // 통계 메서드 컨텍스트
+    isEdited?: boolean    // 편집 여부
+    editedAt?: number     // 편집 시각
+  }
 }
 
 export interface ChatProject {

@@ -11,10 +11,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import remarkMath from 'remark-math'
-import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,8 +19,6 @@ import {
   Loader2,
   XCircle,
   Send,
-  ChevronDown,
-  ChevronUp,
   Copy,
   Check,
   Trash2,
@@ -32,9 +26,12 @@ import {
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { queryRAG } from '@/lib/rag/rag-service'
-import type { RAGResponse } from '@/lib/rag/providers/base-provider'
+import { MARKDOWN_CONFIG, RAG_UI_CONFIG } from '@/lib/rag/config'
+import { handleRAGError } from '@/lib/rag/utils/error-handler'
+import { ChatSourcesDisplay } from './chat-sources-display'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import type { ChatSession, ChatMessage } from '@/lib/types/chat'
+import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import { cn } from '@/lib/utils'
 
 interface QuickPrompt {
@@ -51,10 +48,6 @@ interface RAGChatInterfaceProps {
   onQuickPrompt?: (prompt: string) => void
 }
 
-interface ExtendedChatMessage extends ChatMessage {
-  response?: RAGResponse
-}
-
 export function RAGChatInterface({
   sessionId,
   onSessionUpdate,
@@ -65,9 +58,8 @@ export function RAGChatInterface({
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [messages, setMessages] = useState<ExtendedChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoadingSession, setIsLoadingSession] = useState(true)
-  const [expandedSources, setExpandedSources] = useState<number | null>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState('')
@@ -80,7 +72,7 @@ export function RAGChatInterface({
       try {
         const session = await ChatStorageIndexedDB.loadSession(sessionId)
         if (session) {
-          setMessages(session.messages as ExtendedChatMessage[])
+          setMessages(session.messages as ChatMessage[])
         }
       } catch (err) {
         console.error('Failed to load session:', err)
@@ -113,7 +105,7 @@ export function RAGChatInterface({
   const handleSubmit = useCallback(async () => {
     if (!query.trim() || isLoading) return
 
-    const userMessage: ExtendedChatMessage = {
+    const userMessage: ChatMessage = {
       id: `${Date.now()}-user`,
       role: 'user',
       content: query.trim(),
@@ -143,12 +135,13 @@ export function RAGChatInterface({
       const assistantMessageId = `${Date.now()}-assistant`
       let finalContent = '' // ✅ finalContent로 정답 추적
 
-      const assistantMessage: ExtendedChatMessage = {
+      const assistantMessage: ChatMessage = {
         id: assistantMessageId,
         role: 'assistant',
         content: '',
         timestamp: Date.now(),
-        response: initialResponse,
+        sources: initialResponse.sources,
+        model: initialResponse.model,
       }
 
       // UI에 즉시 추가 (스트리밍 시작 신호)
@@ -289,14 +282,14 @@ export function RAGChatInterface({
         console.error('Failed to load updated session:', err)
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
-      setError(errorMessage)
+      const errorResult = handleRAGError(err, 'RAGChatInterface.handleSubmit')
+      setError(errorResult.message)
 
       // 에러 메시지도 저장 (userMessage는 이미 저장됨)
-      const errorChatMessage: ExtendedChatMessage = {
+      const errorChatMessage: ChatMessage = {
         id: `${Date.now()}-error`,
         role: 'assistant',
-        content: `오류가 발생했습니다: ${errorMessage}`,
+        content: `오류가 발생했습니다: ${errorResult.message}`,
         timestamp: Date.now(),
       }
       setMessages((prev) => [...prev, errorChatMessage])
@@ -359,7 +352,7 @@ export function RAGChatInterface({
 
       const updatedSession = await ChatStorageIndexedDB.loadSession(sessionId)
       if (updatedSession) {
-        setMessages(updatedSession.messages as ExtendedChatMessage[])
+        setMessages(updatedSession.messages as ChatMessage[])
       }
     } catch (err) {
       console.error('Failed to delete message:', err)
@@ -410,8 +403,8 @@ export function RAGChatInterface({
                 ) : (
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
-                      rehypePlugins={[rehypeKatex]}
+                      remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
+                      rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
                     >
                       {msg.content}
                     </ReactMarkdown>
@@ -432,63 +425,13 @@ export function RAGChatInterface({
                   )}
                 </Button>
 
-                {/* 참조 문서 (Assistant 메시지만) - 확장 기본값 true */}
-                {msg.role === 'assistant' && (() => {
-                  const sources = msg.response?.sources || msg.sources
-                  return sources && sources.length > 0 ? (
-                    <div className="mt-4 pt-3 border-t border-border/50">
-                      <button
-                        onClick={() =>
-                          setExpandedSources(expandedSources === idx ? null : idx)
-                        }
-                        className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-primary transition-colors"
-                      >
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-full">
-                          📚 참조 문서
-                          <span className="font-bold">({(msg.response?.sources || msg.sources)?.length || 0})</span>
-                        </span>
-                        {expandedSources === idx ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </button>
-
-                      {/* 기본값: expandedSources가 설정되지 않으면 true (첫 로드 시 열림) */}
-                      {(expandedSources === idx || (expandedSources === null && idx === 0)) && (
-                        <div className="mt-3 space-y-2">
-                          {(msg.response?.sources || msg.sources)?.map((source, sourceIdx) => (
-                            <div
-                              key={sourceIdx}
-                              className="text-xs bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20"
-                            >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="font-semibold text-foreground">{source.title}</div>
-                                  <div className="text-muted-foreground mt-1.5 leading-relaxed">
-                                    {source.content}
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/10">
-                                <span className="text-muted-foreground">관련도:</span>
-                                <div className="flex-1 h-1.5 bg-primary/20 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-primary transition-all"
-                                    style={{ width: `${source.score * 100}%` }}
-                                  />
-                                </div>
-                                <span className="font-semibold text-primary">
-                                  {(source.score * 100).toFixed(0)}%
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : null
-                })()}
+                {/* 참조 문서 (Assistant 메시지만) - ChatSourcesDisplay 컴포넌트 사용 */}
+                {msg.role === 'assistant' && (msg.sources || msg.response?.sources) && (
+                  <ChatSourcesDisplay
+                    sources={(msg.sources || msg.response?.sources) || []}
+                    defaultExpanded={false}
+                  />
+                )}
               </div>
             </div>
           ))}
@@ -525,10 +468,10 @@ export function RAGChatInterface({
                   <Sparkles className="h-8 w-8 text-primary" />
                 </div>
                 <h2 className="text-2xl font-bold mb-2">
-                  무엇을 도와드릴까요?
+                  {RAG_UI_CONFIG.titles.chatInterface}
                 </h2>
                 <p className="text-muted-foreground">
-                  통계 분석에 대해 궁금한 점을 물어보세요
+                  {RAG_UI_CONFIG.messages.welcomeSubtext}
                 </p>
               </div>
 
@@ -567,7 +510,7 @@ export function RAGChatInterface({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="질문을 입력하세요"
+              placeholder={RAG_UI_CONFIG.placeholders.query}
               rows={3}
               disabled={isLoading}
               className="resize-none border-0 bg-background w-full"
@@ -641,12 +584,12 @@ export function RAGChatInterface({
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  생각 중...
+                  {RAG_UI_CONFIG.messages.thinking}
                 </>
               ) : (
                 <>
                   <Send className="mr-2 h-4 w-4" />
-                  전송
+                  {RAG_UI_CONFIG.buttons.send}
                 </>
               )}
             </Button>

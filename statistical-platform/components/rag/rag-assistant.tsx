@@ -11,20 +11,19 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import remarkMath from 'remark-math'
-import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, XCircle, Send, ChevronDown, ChevronUp, Star, Plus, Menu, X as CloseIcon } from 'lucide-react'
+import { Loader2, XCircle, Send, Star, Plus, Menu, X as CloseIcon } from 'lucide-react'
 import { queryRAG } from '@/lib/rag/rag-service'
-import type { RAGResponse } from '@/lib/rag/providers/base-provider'
+import { MARKDOWN_CONFIG, RAG_UI_CONFIG } from '@/lib/rag/config'
+import { handleRAGError } from '@/lib/rag/utils/error-handler'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
+import { ChatSourcesDisplay } from './chat-sources-display'
 import type { ChatSession } from '@/lib/types/chat'
+import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import { cn } from '@/lib/utils'
 import { ChatHeaderMenu } from './chat-header-menu'
 
@@ -94,24 +93,23 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
       const session = await ChatStorageIndexedDB.loadSession(sessionId)
       if (session) {
         setCurrentSessionId(sessionId)
-        // ChatMessage 형식으로 변환
-        const convertedMessages: ChatMessage[] = []
-        for (let i = 0; i < session.messages.length; i += 2) {
-          const userMsg = session.messages[i]
-          const assistantMsg = session.messages[i + 1]
-          if (userMsg && assistantMsg && userMsg.role === 'user') {
-            // ✅ assistantMsg에서 sources와 model 메타데이터 복원
-            convertedMessages.push({
-              query: userMsg.content,
+        // ✅ reduce 패턴으로 메시지 변환 (홀수 메시지 안전 처리)
+        const convertedMessages = session.messages.reduce<ChatMessage[]>((acc, msg, idx, arr) => {
+          // user-assistant 쌍만 변환
+          if (msg.role === 'user' && idx + 1 < arr.length && arr[idx + 1].role === 'assistant') {
+            const assistantMsg = arr[idx + 1]
+            acc.push({
+              query: msg.content,
               response: {
                 answer: assistantMsg.content,
                 sources: assistantMsg.sources || [],
                 model: assistantMsg.model || { provider: 'unknown' },
               },
-              timestamp: userMsg.timestamp
+              timestamp: msg.timestamp,
             })
           }
-        }
+          return acc
+        }, [])
         setMessages(convertedMessages)
         setShowSidebar(false)
       }
@@ -195,7 +193,8 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
 
       setQuery('') // 입력 초기화
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류')
+      const errorResult = handleRAGError(err, 'RAGAssistant.handleSubmit')
+      setError(errorResult.message)
     } finally {
       setIsLoading(false)
     }
@@ -323,7 +322,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
               >
                 <Menu className="h-4 w-4" />
               </Button>
-              💬 RAG 도우미
+              {RAG_UI_CONFIG.titles.assistant}
               {method && (
                 <Badge variant="outline" className="text-xs">
                   {method}
@@ -331,7 +330,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
               )}
             </CardTitle>
             <p className="text-xs text-muted-foreground">
-              통계 분석에 대해 궁금한 점을 물어보세요
+              {RAG_UI_CONFIG.messages.welcomeSubtext}
             </p>
           </CardHeader>
 
@@ -359,49 +358,22 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
                       <p className="text-sm font-medium mb-2">답변:</p>
                       <div className="prose prose-sm max-w-none dark:prose-invert">
                         <ReactMarkdown
-                          remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
-                          rehypePlugins={[rehypeKatex]}
+                          remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
+                          rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
                         >
                           {msg.response.answer}
                         </ReactMarkdown>
                       </div>
 
-                      {/* 참조 문서 */}
+                      {/* 참조 문서 - ChatSourcesDisplay 컴포넌트로 통합 */}
                       {msg.response.sources && msg.response.sources.length > 0 && (
-                        <div className="mt-3 pt-3 border-t">
-                          <button
-                            onClick={() =>
-                              setExpandedSources(expandedSources === idx ? null : idx)
-                            }
-                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            <span>참조 문서 ({msg.response.sources.length}개)</span>
-                            {expandedSources === idx ? (
-                              <ChevronUp className="h-3 w-3" />
-                            ) : (
-                              <ChevronDown className="h-3 w-3" />
-                            )}
-                          </button>
-
-                          {expandedSources === idx && (
-                            <div className="mt-2 space-y-1">
-                              {msg.response.sources.map((source, sourceIdx) => (
-                                <div
-                                  key={sourceIdx}
-                                  className="text-xs bg-muted/50 rounded p-2"
-                                >
-                                  <div className="font-medium">{source.title}</div>
-                                  <div className="text-muted-foreground mt-1 line-clamp-2">
-                                    {source.content}
-                                  </div>
-                                  <div className="text-muted-foreground mt-1">
-                                    관련도: {(source.score * 100).toFixed(0)}%
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <ChatSourcesDisplay
+                          sources={msg.response.sources}
+                          defaultExpanded={false}
+                          onExpandChange={(expanded) =>
+                            setExpandedSources(expanded ? idx : null)
+                          }
+                        />
                       )}
                     </div>
                   </div>
@@ -444,7 +416,7 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="질문을 입력하세요."
+                placeholder={RAG_UI_CONFIG.placeholders.query}
                 rows={3}
                 disabled={isLoading}
                 className="resize-none w-full"
