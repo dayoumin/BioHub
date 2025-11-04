@@ -1,0 +1,816 @@
+{
+  "timestamp": "2025-11-04T08:49:48.985Z",
+  "summary": {
+    "total": 40,
+    "passed": 0,
+    "warnings": 1,
+    "failed": 39,
+    "avgScore": "4.27"
+  },
+  "reports": [
+    {
+      "name": "anova",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 3개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "t-test",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 1개 사용",
+        "✅ 옵셔널 체이닝 9개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "one-sample-t",
+      "exists": true,
+      "bugs": [
+        "⚠️ useCallback 없음 (이벤트 핸들러에 사용 권장)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ 옵셔널 체이닝 1개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.8
+    },
+    {
+      "name": "normality-test",
+      "exists": true,
+      "bugs": [
+        "⚠️ useCallback 없음 (이벤트 핸들러에 사용 권장)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ 옵셔널 체이닝 1개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.8
+    },
+    {
+      "name": "means-plot",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 4개 사용",
+        "✅ 옵셔널 체이닝 3개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "ks-test",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 7개 사용",
+        "✅ 옵셔널 체이닝 3개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "friedman",
+      "exists": true,
+      "bugs": [
+        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 2개 사용",
+        "✅ 옵셔널 체이닝 6개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.9
+    },
+    {
+      "name": "kruskal-wallis",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 1개 사용",
+        "✅ 옵셔널 체이닝 13개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "mann-kendall",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 7개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "reliability",
+      "exists": true,
+      "bugs": [
+        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 3개 사용",
+        "✅ 옵셔널 체이닝 14개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.9
+    },
+    {
+      "name": "regression",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 3개 사용",
+        "✅ 옵셔널 체이닝 7개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "ancova",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 2개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "chi-square",
+      "exists": true,
+      "bugs": [],
+      "typeErrors": [
+        "⚠️ 타입 정의 없음 (interface/type 권장)"
+      ],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 8개 사용",
+        "⚠️ 타입 정의 없음 (interface/type 권장)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.6
+    },
+    {
+      "name": "chi-square-goodness",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 8개 사용",
+        "✅ 옵셔널 체이닝 16개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "chi-square-independence",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 7개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "cluster",
+      "exists": true,
+      "bugs": [
+        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 7개 사용",
+        "✅ 옵셔널 체이닝 7개 사용",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.8
+    },
+    {
+      "name": "correlation",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 5개 사용",
+        "✅ 옵셔널 체이닝 9개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "cross-tabulation",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 2개 사용",
+        "✅ 옵셔널 체이닝 10개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "descriptive",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 4개 사용",
+        "✅ 옵셔널 체이닝 1개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "discriminant",
+      "exists": true,
+      "bugs": [
+        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 7개 사용",
+        "✅ 옵셔널 체이닝 3개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.9
+    },
+    {
+      "name": "dose-response",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 2개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "explore-data",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 4개 사용",
+        "✅ 옵셔널 체이닝 2개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "factor-analysis",
+      "exists": true,
+      "bugs": [
+        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 7개 사용",
+        "✅ 옵셔널 체이닝 3개 사용",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.8
+    },
+    {
+      "name": "frequency-table",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 4개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "manova",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 2개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "mcnemar",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 5개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "mixed-model",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 5개 사용",
+        "✅ 옵셔널 체이닝 16개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "non-parametric",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 2개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "ordinal-regression",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 8개 사용",
+        "✅ 옵셔널 체이닝 2개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)"
+      ],
+      "score": 4.5
+    },
+    {
+      "name": "partial-correlation",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 10개 사용",
+        "✅ 옵셔널 체이닝 4개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "pca",
+      "exists": true,
+      "bugs": [
+        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 9개 사용",
+        "✅ 옵셔널 체이닝 1개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.9
+    },
+    {
+      "name": "poisson",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 9개 사용",
+        "✅ 옵셔널 체이닝 2개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)"
+      ],
+      "score": 4.5
+    },
+    {
+      "name": "power-analysis",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 10개 사용",
+        "✅ 옵셔널 체이닝 4개 사용",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "proportion-test",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 4개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "response-surface",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 3개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "runs-test",
+      "exists": true,
+      "bugs": [
+        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 5개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 3.9
+    },
+    {
+      "name": "sign-test",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 9개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)"
+      ],
+      "score": 4.5
+    },
+    {
+      "name": "stepwise",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 3개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용"
+      ],
+      "score": 4.4
+    },
+    {
+      "name": "welch-t",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 4개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ StepCard 컴포넌트 미사용",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.3
+    },
+    {
+      "name": "wilcoxon",
+      "exists": true,
+      "bugs": [
+        "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
+      ],
+      "typeErrors": [],
+      "structureIssues": [
+        "⚠️ steps 배열 미정의"
+      ],
+      "warnings": [
+        "✅ useStatisticsPage hook 사용",
+        "✅ useCallback 2개 사용",
+        "✅ DataUploadStep 사용 (최신 표준)",
+        "✅ VariableSelector 사용 (최신 표준)",
+        "⚠️ steps 배열 미정의"
+      ],
+      "score": 4.4
+    }
+  ]
+}

@@ -85,9 +85,15 @@ interface TTestResult {
   }
 }
 
+interface TTestVariables {
+  group?: string | string[]
+  value?: string | string[]
+  [key: string]: string | string[] | undefined
+}
+
 export default function TTestPage() {
   // Custom hook: common state management
-  const { state, actions } = useStatisticsPage<TTestResult>({
+  const { state, actions } = useStatisticsPage<TTestResult, TTestVariables>({
     withUploadedData: true,
     withError: true
   })

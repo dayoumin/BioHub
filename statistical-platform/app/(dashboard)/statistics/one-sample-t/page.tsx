@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -58,8 +58,13 @@ interface OneSampleTResults {
   }
 }
 
+interface OneSampleTVariables {
+  variable?: string | string[]
+  [key: string]: string | string[] | undefined
+}
+
 export default function OneSampleTPage() {
-  const { state, actions } = useStatisticsPage<OneSampleTResults>({
+  const { state, actions } = useStatisticsPage<OneSampleTResults, OneSampleTVariables>({
     withUploadedData: true,
     withError: false
   })

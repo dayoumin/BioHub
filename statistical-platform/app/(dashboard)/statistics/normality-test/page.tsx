@@ -54,8 +54,13 @@ interface NormalityResults {
   }
 }
 
+interface NormalityTestVariables {
+  variable?: string | string[]
+  [key: string]: string | string[] | undefined
+}
+
 export default function NormalityTestPage() {
-  const { state, actions } = useStatisticsPage<NormalityResults>({
+  const { state, actions } = useStatisticsPage<NormalityResults, NormalityTestVariables>({
     withUploadedData: true,
     withError: false
   })

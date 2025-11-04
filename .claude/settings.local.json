@@ -68,7 +68,9 @@
       "Bash(dir:*)",
       "Bash(where:*)",
       "Bash(reg query \"HKEY_CURRENT_USER\\Software\\Ollama\" 2)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(node scripts/test-statistics-pages.js:*)",
+      "Bash(timeout 10 tail:*)"
     ],
     "deny": [],
     "ask": []
