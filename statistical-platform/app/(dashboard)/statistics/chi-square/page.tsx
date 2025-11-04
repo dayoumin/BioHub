@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Info, CheckCircle2, AlertCircle, Calculator } from 'lucide-react'
-import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -292,6 +292,24 @@ export default function FisherExactTestPage() {
     </Card>
   )
 
+  // 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'input-table',
+      number: 1,
+      title: '분할표 입력',
+      description: '2×2 분할표 데이터 입력',
+      status: 'current'
+    },
+    {
+      id: 'view-results',
+      number: 2,
+      title: '결과 확인',
+      description: 'Fisher 정확 검정 결과',
+      status: results ? 'completed' : 'pending'
+    }
+  ]
+
   const renderResults = () => {
     if (!results) return null
 
@@ -445,6 +463,8 @@ export default function FisherExactTestPage() {
     <StatisticsPageLayout
       title="Fisher 정확 검정"
       description="작은 표본의 2×2 분할표를 정확하게 검정합니다"
+      steps={steps}
+      currentStep={1}
     >
       <div className="space-y-6">
         {renderMethodology()}

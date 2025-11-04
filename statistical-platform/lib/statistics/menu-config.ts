@@ -110,7 +110,8 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '2개 요인 주효과와 상호작용',
         category: 'glm',
         icon: GitBranch,
-        implemented: true
+        implemented: false,
+        comingSoon: true
       },
       {
         id: 'three-way-anova',
@@ -119,7 +120,8 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '3개 요인 효과 분석',
         category: 'glm',
         icon: GitBranch,
-        implemented: true
+        implemented: false,
+        comingSoon: true
       },
       {
         id: 'ancova',
@@ -137,7 +139,8 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '동일 대상 반복 측정',
         category: 'glm',
         icon: Activity,
-        implemented: true
+        implemented: false,
+        comingSoon: true
       },
       {
         id: 'manova',
@@ -439,10 +442,10 @@ export function getMenuItemByPath(path: string): StatisticsMenuItem | undefined 
 
 // 통계 정보 요약
 export const STATISTICS_SUMMARY = {
-  totalMethods: 46,
+  totalMethods: getAllMenuItems().length,  // 동적 계산 (하드코딩 제거)
   implementedMethods: getImplementedMenuItems().length,
   categories: STATISTICS_MENU.length,
-  completionRate: Math.round((getImplementedMenuItems().length / 46) * 100)
+  completionRate: Math.round((getImplementedMenuItems().length / getAllMenuItems().length) * 100)
 }
 
 // 고급 방식으로 구현된 페이지들

@@ -28,7 +28,7 @@ import {
   Shuffle,
   FileSpreadsheet
 } from 'lucide-react'
-import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
@@ -131,7 +131,7 @@ export default function NonParametricTestPage() {
     withUploadedData: true,
     withError: true
   })
-  const { uploadedData, selectedVariables, results: result, isAnalyzing, error } = state
+  const { uploadedData, selectedVariables, results: result, isAnalyzing, error, currentStep } = state
   const [selectedTest, setSelectedTest] = useState<NonParametricTest>('mann-whitney')
   const [activeTab, setActiveTab] = useState('setup')
   const [alpha, setAlpha] = useState('0.05')
@@ -140,6 +140,32 @@ export default function NonParametricTestPage() {
   const { pyodideService, isLoading: isPyodideLoading, error: pyodideError } = usePyodideService()
 
   const currentTest = testDescriptions[selectedTest]
+
+  // 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'upload-data',
+      number: 1,
+      title: '데이터 업로드',
+      description: 'CSV 또는 Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
+      id: 'select-variables',
+      number: 2,
+      title: '변수 선택',
+      description: '분석할 변수 선택',
+      status: selectedVariables && Object.keys(selectedVariables).length > 0 ? 'completed'
+              : uploadedData ? 'current' : 'pending'
+    },
+    {
+      id: 'run-analysis',
+      number: 3,
+      title: '분석 실행',
+      description: '비모수 검정 수행',
+      status: result ? 'completed' : currentStep >= 3 ? 'current' : 'pending'
+    }
+  ]
 
   // 데이터 업로드 핸들러 (표준 패턴)
   const handleDataUpload = createDataUploadHandler(
@@ -284,6 +310,8 @@ export default function NonParametricTestPage() {
       title="비모수 검정"
       description="정규성 가정이 필요 없는 순위 기반 통계 검정"
       icon={<BarChart3 className="w-8 h-8" />}
+      steps={steps}
+      currentStep={currentStep}
     >
       <div className="space-y-6">
         {/* 검정 방법 선택 */}
