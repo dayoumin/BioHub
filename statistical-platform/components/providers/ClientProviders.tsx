@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { MultiTabWarning } from '@/components/multi-tab-warning'
 
 interface ClientProvidersProps {
   children: ReactNode
@@ -15,6 +16,7 @@ export function ClientProviders({ children }: ClientProvidersProps) {
       enableSystem
       disableTransitionOnChange
     >
+      <MultiTabWarning />
       {children}
     </NextThemesProvider>
   )

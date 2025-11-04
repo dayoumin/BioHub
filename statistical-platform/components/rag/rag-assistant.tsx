@@ -315,139 +315,139 @@ export function RAGAssistant({ method, className = '', onNewMessage }: RAGAssist
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col gap-3 overflow-hidden">
-          {/* 대화 내역 */}
-          <div className="flex-1 overflow-y-auto space-y-3">
-            {messages.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                <p>질문을 입력해주세요.</p>
-                <p className="text-xs mt-2">
-                  예: "t-test의 가정은 무엇인가요?"
-                </p>
-              </div>
-            ) : (
-              messages.map((msg, idx) => (
-                <div key={idx} className="space-y-2">
-                  {/* 사용자 질문 */}
-                  <div className="bg-muted/50 rounded-lg p-3">
-                    <p className="text-sm font-medium">질문:</p>
-                    <p className="text-sm mt-1">{msg.query}</p>
-                  </div>
-
-                  {/* AI 답변 */}
-                  <div className="bg-primary/5 rounded-lg p-3">
-                    <p className="text-sm font-medium mb-2">답변:</p>
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
-                      >
-                        {msg.response.answer}
-                      </ReactMarkdown>
+            {/* 대화 내역 */}
+            <div className="flex-1 overflow-y-auto space-y-3">
+              {messages.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <p>질문을 입력해주세요.</p>
+                  <p className="text-xs mt-2">
+                    예: "t-test의 가정은 무엇인가요?"
+                  </p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => (
+                  <div key={idx} className="space-y-2">
+                    {/* 사용자 질문 */}
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-sm font-medium">질문:</p>
+                      <p className="text-sm mt-1">{msg.query}</p>
                     </div>
 
-                    {/* 참조 문서 */}
-                    {msg.response.sources && msg.response.sources.length > 0 && (
-                      <div className="mt-3 pt-3 border-t">
-                        <button
-                          onClick={() =>
-                            setExpandedSources(expandedSources === idx ? null : idx)
-                          }
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    {/* AI 답변 */}
+                    <div className="bg-primary/5 rounded-lg p-3">
+                      <p className="text-sm font-medium mb-2">답변:</p>
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkBreaks, remarkMath]}
+                          rehypePlugins={[rehypeKatex]}
                         >
-                          <span>참조 문서 ({msg.response.sources.length}개)</span>
-                          {expandedSources === idx ? (
-                            <ChevronUp className="h-3 w-3" />
-                          ) : (
-                            <ChevronDown className="h-3 w-3" />
-                          )}
-                        </button>
-
-                        {expandedSources === idx && (
-                          <div className="mt-2 space-y-1">
-                            {msg.response.sources.map((source, sourceIdx) => (
-                              <div
-                                key={sourceIdx}
-                                className="text-xs bg-muted/50 rounded p-2"
-                              >
-                                <div className="font-medium">{source.title}</div>
-                                <div className="text-muted-foreground mt-1 line-clamp-2">
-                                  {source.content}
-                                </div>
-                                <div className="text-muted-foreground mt-1">
-                                  관련도: {(source.score * 100).toFixed(0)}%
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                          {msg.response.answer}
+                        </ReactMarkdown>
                       </div>
-                    )}
+
+                      {/* 참조 문서 */}
+                      {msg.response.sources && msg.response.sources.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <button
+                            onClick={() =>
+                              setExpandedSources(expandedSources === idx ? null : idx)
+                            }
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <span>참조 문서 ({msg.response.sources.length}개)</span>
+                            {expandedSources === idx ? (
+                              <ChevronUp className="h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3" />
+                            )}
+                          </button>
+
+                          {expandedSources === idx && (
+                            <div className="mt-2 space-y-1">
+                              {msg.response.sources.map((source, sourceIdx) => (
+                                <div
+                                  key={sourceIdx}
+                                  className="text-xs bg-muted/50 rounded p-2"
+                                >
+                                  <div className="font-medium">{source.title}</div>
+                                  <div className="text-muted-foreground mt-1 line-clamp-2">
+                                    {source.content}
+                                  </div>
+                                  <div className="text-muted-foreground mt-1">
+                                    관련도: {(source.score * 100).toFixed(0)}%
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
-
-            {/* 로딩 중 */}
-            {isLoading && (
-              <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>생각 중...</span>
-              </div>
-            )}
-
-            {/* 에러 메시지 */}
-            {error && (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-start gap-2 text-destructive text-sm">
-                  <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  <span className="flex-1">{error}</span>
-                </div>
-                {/* 모델 부재 시 설정 링크 표시 */}
-                {error.includes('not found') && (
-                  <div className="flex gap-2 ml-6">
-                    <a
-                      href="/chatbot?tab=settings"
-                      className="text-primary hover:underline text-xs font-medium"
-                    >
-                      → 설정에서 모델 선택
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* 입력 영역 */}
-          <div className="space-y-2">
-            <Textarea
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="질문을 입력하세요... (Shift+Enter: 줄바꿈)"
-              rows={3}
-              disabled={isLoading}
-              className="resize-none"
-            />
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading || !query.trim()}
-              className="w-full"
-              size="sm"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  생각 중...
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  전송
-                </>
+                ))
               )}
-            </Button>
-          </div>
-        </CardContent>
+
+              {/* 로딩 중 */}
+              {isLoading && (
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>생각 중...</span>
+                </div>
+              )}
+
+              {/* 에러 메시지 */}
+              {error && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-start gap-2 text-destructive text-sm">
+                    <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                    <span className="flex-1">{error}</span>
+                  </div>
+                  {/* 모델 부재 시 설정 링크 표시 */}
+                  {error.includes('not found') && (
+                    <div className="flex gap-2 ml-6">
+                      <a
+                        href="/chatbot?tab=settings"
+                        className="text-primary hover:underline text-xs font-medium"
+                      >
+                        → 설정에서 모델 선택
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 입력 영역 */}
+            <div className="space-y-2">
+              <Textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="질문을 입력하세요."
+                rows={3}
+                disabled={isLoading}
+                className="resize-none w-full"
+              />
+              <Button
+                onClick={handleSubmit}
+                disabled={isLoading || !query.trim()}
+                className="w-full"
+                size="sm"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    생각 중...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    전송
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>

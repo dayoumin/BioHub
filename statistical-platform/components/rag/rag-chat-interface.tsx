@@ -517,10 +517,10 @@ export function RAGChatInterface({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="질문을 입력하세요... (Enter: 전송, Shift+Enter: 줄바꿈)"
+              placeholder="질문을 입력하세요"
               rows={3}
               disabled={isLoading}
-              className="resize-none border-0 bg-background"
+              className="resize-none border-0 bg-background w-full"
             />
             {/* 입력 영역 위 우측 버튼 그룹 */}
             {query.trim() && !isLoading && (
