@@ -122,7 +122,7 @@ export default function ChiSquareIndependencePage() {
       isMounted = false
       abortController.abort()
     }
-  }, [])
+  }, [actions])
 
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
@@ -169,12 +169,15 @@ export default function ChiSquareIndependencePage() {
   }), [])
 
   // Event handlers
-  const handleDataUploadComplete = createDataUploadHandler(
-    actions.setUploadedData,
-    () => {
-      actions.setCurrentStep(2)
-    },
-    'chi-square-independence'
+  const handleDataUploadComplete = useCallback(
+    createDataUploadHandler(
+      actions.setUploadedData,
+      () => {
+        actions.setCurrentStep(2)
+      },
+      'chi-square-independence'
+    ),
+    [actions]
   )
 
   const runAnalysis = useCallback(async (variables: VariableAssignment) => {
@@ -297,35 +300,38 @@ export default function ChiSquareIndependencePage() {
     } finally {
       // isAnalyzing managed by hook
     }
-  }, [uploadedData, pyodide])
+  }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
-    (variables) => {
-      if (variables.independent && variables.dependent &&
-          variables.independent.length === 1 && variables.dependent.length === 1) {
-        runAnalysis(variables)
-      }
-    },
-    'chi-square-independence'
+  const handleVariableSelection = useCallback(
+    createVariableSelectionHandler<VariableAssignment>(
+      actions.setSelectedVariables,
+      (variables) => {
+        if (variables.independent && variables.dependent &&
+            variables.independent.length === 1 && variables.dependent.length === 1) {
+          runAnalysis(variables)
+        }
+      },
+      'chi-square-independence'
+    ),
+    [actions, runAnalysis]
   )
 
-  const getCramersVInterpretation = (v: number) => {
+  const getCramersVInterpretation = useCallback((v: number) => {
     if (v >= 0.5) return { level: '강한 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
     if (v >= 0.3) return { level: '중간 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
     if (v >= 0.1) return { level: '약한 연관성', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '연관성 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
-  }
+  }, [])
 
-  const getRowCategories = () => {
+  const getRowCategories = useCallback(() => {
     if (!analysisResult) return []
     return [...new Set(analysisResult.crosstab.flat().map(cell => cell.row))]
-  }
+  }, [analysisResult])
 
-  const getColumnCategories = () => {
+  const getColumnCategories = useCallback(() => {
     if (!analysisResult) return []
     return [...new Set(analysisResult.crosstab.flat().map(cell => cell.column))]
-  }
+  }, [analysisResult])
 
   return (
     <StatisticsPageLayout
@@ -449,7 +455,7 @@ export default function ChiSquareIndependencePage() {
         >
           <VariableSelector
             methodId="chi_square_independence"
-            data={uploadedData?.data || []}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />

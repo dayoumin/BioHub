@@ -25,12 +25,9 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
-import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
 interface UploadedData {
@@ -84,7 +81,7 @@ interface PartialCorrelationResult {
   interpretation: string
 }
 
-interface results {
+interface CorrelationResults {
   correlationMatrix: CorrelationResult[]
   pairwiseCorrelations: PairwiseCorrelation[]
   scatterPlots: ScatterPlotData[]
@@ -104,11 +101,11 @@ interface results {
 
 export default function CorrelationPage() {
   // Custom hook: common state management
-  const { state, actions } = useStatisticsPage<results, VariableSelection>({
+  const { state, actions } = useStatisticsPage<CorrelationResults, VariableSelection>({
     withUploadedData: true,
-    withError: false
+    withError: true
   })
-  const { currentStep, uploadedData, selectedVariables, results: results, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
   // Page-specific state
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
@@ -191,29 +188,18 @@ export default function CorrelationPage() {
 
   const handleMethodSelect = useCallback((type: 'pearson' | 'spearman' | 'kendall' | 'partial') => {
     setCorrelationType(type)
-    actions.setCurrentStep(1)
+    actions.setCurrentStep?.(1)
   }, [actions])
 
-  const handleDataUpload = createDataUploadHandler(
-    actions.setUploadedData,
-    () => {
-      actions.setCurrentStep(2)
-    },
-    'correlation'
-  )
-
-  const handleVariableSelection = createVariableSelectionHandler<VariableSelection>(
-    actions.setSelectedVariables,
-    (variables) => {
-      // 자동으로 분석 실행
-      handleAnalysis(variables)
-    },
-    'correlation'
-  )
+  const handleDataUpload = useCallback((file: File, data: Record<string, unknown>[]) => {
+    const columns = data.length > 0 ? Object.keys(data[0]) : []
+    actions.setUploadedData?.({ fileName: file.name, data, columns })
+    actions.setCurrentStep?.(2)
+  }, [actions])
 
   const handleAnalysis = useCallback(async (_variables: VariableSelection) => {
     try {
-      actions.startAnalysis()
+      actions.startAnalysis?.()
 
       // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
       // 상관 행렬 생성
@@ -232,7 +218,7 @@ export default function CorrelationPage() {
         [0.145, 0.234, 0.008, 0.000]
       ]
 
-      const mockResults: results = {
+      const mockResults: CorrelationResults = {
         correlationMatrix: variables.map((v1, i) =>
           variables.map((v2, j) => ({
             var1: v1,
@@ -313,11 +299,18 @@ export default function CorrelationPage() {
         } : null
       }
 
-      actions.completeAnalysis(mockResults, 3)
+      actions.completeAnalysis?.(mockResults, 3)
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
+      const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
+      actions.setError?.(errorMessage)
     }
   }, [actions, correlationType])
+
+  const handleVariableSelection = useCallback((variables: VariableSelection) => {
+    actions.setSelectedVariables?.(variables)
+    // 자동으로 분석 실행
+    void handleAnalysis(variables)
+  }, [actions, handleAnalysis])
 
   const renderMethodSelection = () => (
     <StepCard
@@ -418,7 +411,6 @@ export default function CorrelationPage() {
       icon={<Upload className="w-5 h-5 text-primary" />}
     >
       <DataUploadStep
-        onNext={() => {}}
         onUploadComplete={handleDataUpload}
       />
     </StepCard>
@@ -426,26 +418,6 @@ export default function CorrelationPage() {
 
   const renderVariableSelection = () => {
     if (!uploadedData) return null
-
-    const requirements = getVariableRequirements(
-      correlationType === 'partial' ? 'partialCorrelation' : 'correlationAnalysis'
-    )
-
-    // 변수 타입 자동 감지
-    const columns = Object.keys(uploadedData.data[0] || {})
-    const variables = columns.map(col => ({
-      name: col,
-      type: detectVariableType(
-        uploadedData.data.map((row) => row[col]),
-        col
-      ),
-      stats: {
-        missing: 0,
-        unique: [...new Set(uploadedData.data.map((row) => row[col]))].length,
-        min: Math.min(...uploadedData.data.map((row) => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map((row) => Number(row[col]) || 0))
-      }
-    }))
 
     return (
       <StepCard
@@ -463,7 +435,6 @@ export default function CorrelationPage() {
             })
           }}
         />
-
       </StepCard>
     )
   }
@@ -750,10 +721,14 @@ export default function CorrelationPage() {
       }}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={actions.setCurrentStep}
-      onRun={() => selectedVariables && handleAnalysis(selectedVariables)}
+      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
+      onRun={() => {
+        if (selectedVariables) {
+          void handleAnalysis(selectedVariables)
+        }
+      }}
       onReset={() => {
-        actions.reset()
+        actions.reset?.()
         setCorrelationType('')
       }}
       isRunning={isAnalyzing}

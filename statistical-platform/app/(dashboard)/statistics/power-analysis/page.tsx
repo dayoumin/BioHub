@@ -25,7 +25,6 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 interface PowerAnalysisResult {
@@ -51,6 +50,16 @@ interface PowerAnalysisResult {
   }>
 }
 
+interface PowerAnalysisConfig {
+  testType: string
+  analysisType: 'post-hoc' | 'a-priori' | 'compromise' | 'criterion'
+  alpha: string
+  power: string
+  effectSize: string
+  sampleSize: string
+  sides: string
+}
+
 export default function PowerAnalysisPage() {
   // Hook for state management
   const { state, actions } = useStatisticsPage<PowerAnalysisResult, never>({
@@ -59,18 +68,25 @@ export default function PowerAnalysisPage() {
   })
   const { currentStep, results, isAnalyzing, error } = state
 
-  const [activeTab, setActiveTab] = useState('summary')
+  // Page-specific state
+  const [activeTab, setActiveTab] = useState<string>('summary')
+  const [config, setConfig] = useState<PowerAnalysisConfig>({
+    testType: 't-test',
+    analysisType: 'a-priori',
+    alpha: '0.05',
+    power: '0.80',
+    effectSize: '0.5',
+    sampleSize: '30',
+    sides: 'two-sided'
+  })
 
-  // 분석 설정
-  const [testType, setTestType] = useState('t-test')
-  const [analysisType, setAnalysisType] = useState<'post-hoc' | 'a-priori' | 'compromise' | 'criterion'>('a-priori')
-  const [alpha, setAlpha] = useState('0.05')
-  const [power, setPower] = useState('0.80')
-  const [effectSize, setEffectSize] = useState('0.5')
-  const [sampleSize, setSampleSize] = useState('30')
-  const [sides, setSides] = useState('two-sided')
-
-  const { pyodideService: _pyodideService } = usePyodideService()
+  // Config update handlers with useCallback
+  const updateConfig = useCallback(<K extends keyof PowerAnalysisConfig>(
+    key: K,
+    value: PowerAnalysisConfig[K]
+  ): void => {
+    setConfig((prev) => ({ ...prev, [key]: value }))
+  }, [])
 
   // 단계 정의
   const steps: StatisticsStep[] = [
@@ -79,14 +95,14 @@ export default function PowerAnalysisPage() {
       number: 1,
       title: '검정 선택',
       description: '검정력 분석할 통계 검정 선택',
-      status: testType ? 'completed' : 'current'
+      status: config.testType ? 'completed' : 'current'
     },
     {
       id: 'set-parameters',
       number: 2,
       title: '모수 설정',
       description: '유의수준, 검정력, 효과크기 설정',
-      status: testType ? 'current' : 'pending'
+      status: config.testType ? 'current' : 'pending'
     },
     {
       id: 'run-analysis',
@@ -105,117 +121,139 @@ export default function PowerAnalysisPage() {
   ]
 
   // 분석 실행
-  const handleAnalysis = useCallback(() => {
+  const handleAnalysis = useCallback((): void => {
+    if (!actions) {
+      return
+    }
+
     try {
       actions.startAnalysis()
 
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-        const alphaValue = parseFloat(alpha)
-        const powerValue = parseFloat(power)
-        const effectValue = parseFloat(effectSize)
-        const sampleValue = parseInt(sampleSize)
+      // TODO: Replace with actual Pyodide service call using validated statistical libraries (statsmodels.stats.power)
+      // Currently using mock calculations for demonstration
+      const alphaValue = parseFloat(config.alpha)
+      const powerValue = parseFloat(config.power)
+      const effectValue = parseFloat(config.effectSize)
+      const sampleValue = parseInt(config.sampleSize, 10)
 
-        let mockResults: PowerAnalysisResult
+      let mockResults: PowerAnalysisResult
 
-        if (analysisType === 'a-priori') {
-          // 사전 검정력 분석 (표본크기 계산)
-          mockResults = {
-            testType,
-            analysisType,
-            inputParameters: {
-              alpha: alphaValue,
-              power: powerValue,
-              effectSize: effectValue
-            },
-            results: {
-              sampleSize: Math.ceil(16 / (effectValue * effectValue) *
-                (sides === 'two-sided' ? 1.96 + 0.84 : 1.64 + 0.84) ** 2)
-            },
-            interpretation: `원하는 검정력 ${(powerValue * 100).toFixed(0)}%를 달성하려면 각 그룹당 최소 ${Math.ceil(16 / (effectValue * effectValue) * (sides === 'two-sided' ? 1.96 + 0.84 : 1.64 + 0.84) ** 2)}개의 표본이 필요합니다`,
-            recommendations: [
-              '계산된 표본크기보다 10-20% 더 많이 수집하여 탈락을 대비하세요',
-              '파일럿 연구로 효과크기를 더 정확히 추정해보세요',
-              '연구 비용과 시간을 고려하여 실현 가능성을 검토하세요'
-            ],
-            powerCurve: Array.from({ length: 20 }, (_, i) => ({
-              sampleSize: 10 + i * 5,
-              power: Math.min(0.99, 1 - Math.exp(-0.05 * (10 + i * 5) * effectValue * effectValue))
-            }))
-          }
-        } else if (analysisType === 'post-hoc') {
-          // 사후 검정력 분석 (검정력 계산)
-          const calculatedPower = Math.min(0.99, 1 - Math.exp(-0.05 * sampleValue * effectValue * effectValue))
-          mockResults = {
-            testType,
-            analysisType,
-            inputParameters: {
-              alpha: alphaValue,
-              effectSize: effectValue,
-              sampleSize: sampleValue
-            },
-            results: {
-              power: calculatedPower
-            },
-            interpretation: `현재 설정에서 실제 검정력은 ${(calculatedPower * 100).toFixed(1)}%입니다`,
-            recommendations: calculatedPower < 0.8 ? [
-              '검정력이 권장 수준(80%) 미만입니다',
-              '표본크기를 늘리거나 더 큰 효과크기를 가진 연구를 고려하세요',
-              'Type II 오류 위험이 높습니다'
-            ] : [
-              '충분한 검정력을 확보했습니다',
-              '통계적으로 유의한 결과를 얻을 가능성이 높습니다'
-            ]
-          }
-        } else {
-          // 절충 분석 (검정력과 표본크기의 균형점 찾기)
-          const balancedSample = 25
-          const balancedPower = 0.75
-          mockResults = {
-            testType,
-            analysisType,
-            inputParameters: {
-              alpha: alphaValue,
-              effectSize: effectValue
-            },
-            results: {
-              sampleSize: balancedSample,
-              power: balancedPower
-            },
-            interpretation: `검정력과 표본크기의 균형점: 각 그룹당 ${balancedSample}개 표본으로 ${(balancedPower * 100).toFixed(0)}% 검정력 달성`,
-            recommendations: [
-              '실용적인 절충안입니다',
-              '연구 제약사항을 고려한 현실적 선택',
-              '결과 해석 시 검정력 한계를 명시하세요'
-            ]
-          }
+      if (config.analysisType === 'a-priori') {
+        // A-priori power analysis (sample size calculation)
+        // Formula approximation: n ≈ 16 / d² * (Z_α + Z_β)²
+        const zValue = config.sides === 'two-sided' ? 1.96 + 0.84 : 1.64 + 0.84
+        const calculatedSample = Math.ceil(16 / (effectValue * effectValue) * (zValue ** 2))
+
+        mockResults = {
+          testType: config.testType,
+          analysisType: config.analysisType,
+          inputParameters: {
+            alpha: alphaValue,
+            power: powerValue,
+            effectSize: effectValue
+          },
+          results: {
+            sampleSize: calculatedSample
+          },
+          interpretation: `원하는 검정력 ${(powerValue * 100).toFixed(0)}%를 달성하려면 각 그룹당 최소 ${calculatedSample}개의 표본이 필요합니다`,
+          recommendations: [
+            '계산된 표본크기보다 10-20% 더 많이 수집하여 탈락을 대비하세요',
+            '파일럿 연구로 효과크기를 더 정확히 추정해보세요',
+            '연구 비용과 시간을 고려하여 실현 가능성을 검토하세요'
+          ],
+          powerCurve: Array.from({ length: 20 }, (_, i) => ({
+            sampleSize: 10 + i * 5,
+            power: Math.min(0.99, 1 - Math.exp(-0.05 * (10 + i * 5) * effectValue * effectValue))
+          }))
         }
+      } else if (config.analysisType === 'post-hoc') {
+        // Post-hoc power analysis (power calculation)
+        const calculatedPower = Math.min(0.99, 1 - Math.exp(-0.05 * sampleValue * effectValue * effectValue))
+        mockResults = {
+          testType: config.testType,
+          analysisType: config.analysisType,
+          inputParameters: {
+            alpha: alphaValue,
+            effectSize: effectValue,
+            sampleSize: sampleValue
+          },
+          results: {
+            power: calculatedPower
+          },
+          interpretation: `현재 설정에서 실제 검정력은 ${(calculatedPower * 100).toFixed(1)}%입니다`,
+          recommendations: calculatedPower < 0.8 ? [
+            '검정력이 권장 수준(80%) 미만입니다',
+            '표본크기를 늘리거나 더 큰 효과크기를 가진 연구를 고려하세요',
+            'Type II 오류 위험이 높습니다'
+          ] : [
+            '충분한 검정력을 확보했습니다',
+            '통계적으로 유의한 결과를 얻을 가능성이 높습니다'
+          ]
+        }
+      } else {
+        // Compromise analysis (finding balance between power and sample size)
+        const balancedSample = 25
+        const balancedPower = 0.75
+        mockResults = {
+          testType: config.testType,
+          analysisType: config.analysisType,
+          inputParameters: {
+            alpha: alphaValue,
+            effectSize: effectValue
+          },
+          results: {
+            sampleSize: balancedSample,
+            power: balancedPower
+          },
+          interpretation: `검정력과 표본크기의 균형점: 각 그룹당 ${balancedSample}개 표본으로 ${(balancedPower * 100).toFixed(0)}% 검정력 달성`,
+          recommendations: [
+            '실용적인 절충안입니다',
+            '연구 제약사항을 고려한 현실적 선택',
+            '결과 해석 시 검정력 한계를 명시하세요'
+          ]
+        }
+      }
 
-        actions.completeAnalysis(mockResults, 3)
-        setActiveTab('summary')
-      } catch (error) {
-        console.error('검정력 분석 중 오류:', error)
+      actions.completeAnalysis(mockResults, 3)
+      setActiveTab('summary')
+    } catch (error: unknown) {
+      console.error('검정력 분석 중 오류:', error)
+      if (actions) {
         actions.setError('분석 중 오류가 발생했습니다.')
+      }
     }
-  }, [alpha, power, effectSize, sampleSize, analysisType, testType, sides, actions])
+  }, [config, actions])
 
   // 단계 변경 처리
-  const handleStepChange = (step: number) => {
+  const handleStepChange = useCallback((step: number): void => {
+    if (!actions) {
+      return
+    }
     if (step <= currentStep + 1) {
       actions.setCurrentStep(step)
     }
-  }
+  }, [actions, currentStep])
 
   // 초기화
-  const handleReset = () => {
+  const handleReset = useCallback((): void => {
+    if (!actions) {
+      return
+    }
     actions.reset()
     setActiveTab('summary')
-  }
+  }, [actions])
 
   // 검정력 분석 결과 테이블
-  const renderResultsTable = () => {
+  const renderResultsTable = useCallback((): React.ReactNode => {
     if (!results) return null
 
-    const data = [
+    interface ResultRow {
+      parameter: string
+      input: string
+      result: string
+    }
+
+    const data: ResultRow[] = [
       {
         parameter: '검정 유형',
         input: results.testType,
@@ -238,12 +276,13 @@ export default function PowerAnalysisPage() {
     }
 
     if (results.inputParameters.effectSize) {
+      const es = results.inputParameters.effectSize
       data.push({
         parameter: '효과크기',
-        input: results.inputParameters.effectSize.toString(),
-        result: results.inputParameters.effectSize < 0.2 ? '작은 효과' :
-               results.inputParameters.effectSize < 0.5 ? '중간 효과' :
-               results.inputParameters.effectSize < 0.8 ? '큰 효과' : '매우 큰 효과'
+        input: es.toString(),
+        result: es < 0.2 ? '작은 효과' :
+               es < 0.5 ? '중간 효과' :
+               es < 0.8 ? '큰 효과' : '매우 큰 효과'
       })
     }
 
@@ -276,10 +315,10 @@ export default function PowerAnalysisPage() {
         title="검정력 분석 결과"
       />
     )
-  }
+  }, [results])
 
   // 검정력 곡선 테이블
-  const renderPowerCurveTable = () => {
+  const renderPowerCurveTable = useCallback((): React.ReactNode => {
     if (!results?.powerCurve) return null
 
     const columns = [
@@ -294,11 +333,23 @@ export default function PowerAnalysisPage() {
         title="표본크기별 검정력"
       />
     )
-  }
+  }, [results])
 
   // 요약 카드들
-  const renderSummaryCards = () => {
+  const renderSummaryCards = useCallback((): React.ReactNode => {
     if (!results) return null
+
+    const powerDisplay = results.results.power
+      ? `${(results.results.power * 100).toFixed(0)}%`
+      : results.inputParameters.power
+      ? `${(results.inputParameters.power * 100).toFixed(0)}%`
+      : 'N/A'
+
+    const sampleDisplay = results.results.sampleSize
+      ? results.results.sampleSize.toString()
+      : results.inputParameters.sampleSize
+      ? results.inputParameters.sampleSize.toString()
+      : 'N/A'
 
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -320,7 +371,7 @@ export default function PowerAnalysisPage() {
               <div>
                 <p className="text-sm text-muted-foreground">효과크기</p>
                 <p className="text-2xl font-bold">
-                  {results.inputParameters.effectSize?.toFixed(2) || 'N/A'}
+                  {results.inputParameters.effectSize?.toFixed(2) ?? 'N/A'}
                 </p>
               </div>
               <TrendingUp className="w-8 h-8 text-muted-foreground/20" />
@@ -333,10 +384,7 @@ export default function PowerAnalysisPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">검정력</p>
-                <p className="text-2xl font-bold">
-                  {results.results.power ? `${(results.results.power * 100).toFixed(0)}%` :
-                   results.inputParameters.power ? `${(results.inputParameters.power * 100).toFixed(0)}%` : 'N/A'}
-                </p>
+                <p className="text-2xl font-bold">{powerDisplay}</p>
               </div>
               <Zap className="w-8 h-8 text-muted-foreground/20" />
             </div>
@@ -348,9 +396,7 @@ export default function PowerAnalysisPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">표본크기</p>
-                <p className="text-2xl font-bold">
-                  {results.results.sampleSize || results.inputParameters.sampleSize || 'N/A'}
-                </p>
+                <p className="text-2xl font-bold">{sampleDisplay}</p>
               </div>
               <BarChart3 className="w-8 h-8 text-muted-foreground/20" />
             </div>
@@ -358,10 +404,10 @@ export default function PowerAnalysisPage() {
         </Card>
       </div>
     )
-  }
+  }, [results])
 
   // 효과크기 가이드
-  const renderEffectSizeGuide = () => {
+  const renderEffectSizeGuide = useCallback((): React.ReactNode => {
     return (
       <Card>
         <CardHeader>
@@ -402,7 +448,7 @@ export default function PowerAnalysisPage() {
         </CardContent>
       </Card>
     )
-  }
+  }, [])
 
   return (
     <StatisticsPageLayout
@@ -438,7 +484,10 @@ export default function PowerAnalysisPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label>검정 유형</Label>
-                <Select value={testType} onValueChange={setTestType}>
+                <Select
+                  value={config.testType}
+                  onValueChange={(value) => updateConfig('testType', value)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -455,12 +504,12 @@ export default function PowerAnalysisPage() {
               <div>
                 <Label>분석 유형</Label>
                 <Select
-                  value={analysisType}
+                  value={config.analysisType}
                   onValueChange={(value) => {
-                    // 타입 가드: 허용된 값만 설정
+                    // Type guard: only allow valid analysis types
                     if (value === 'a-priori' || value === 'post-hoc' ||
                         value === 'compromise' || value === 'criterion') {
-                      setAnalysisType(value)
+                      updateConfig('analysisType', value)
                     }
                   }}
                 >
@@ -477,7 +526,7 @@ export default function PowerAnalysisPage() {
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={() => actions.setCurrentStep(1)}>
+                <Button onClick={() => actions?.setCurrentStep(1)}>
                   다음 단계
                 </Button>
               </div>
@@ -501,7 +550,10 @@ export default function PowerAnalysisPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="alpha">유의수준 (α)</Label>
-                  <Select value={alpha} onValueChange={setAlpha}>
+                  <Select
+                    value={config.alpha}
+                    onValueChange={(value) => updateConfig('alpha', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -515,7 +567,10 @@ export default function PowerAnalysisPage() {
 
                 <div>
                   <Label>검정 방향</Label>
-                  <Select value={sides} onValueChange={setSides}>
+                  <Select
+                    value={config.sides}
+                    onValueChange={(value) => updateConfig('sides', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -527,7 +582,7 @@ export default function PowerAnalysisPage() {
                 </div>
               </div>
 
-              {analysisType !== 'criterion' && (
+              {config.analysisType !== 'criterion' && (
                 <div>
                   <Label htmlFor="effect-size">효과크기</Label>
                   <Input
@@ -536,17 +591,20 @@ export default function PowerAnalysisPage() {
                     step="0.1"
                     min="0.1"
                     max="2.0"
-                    value={effectSize}
-                    onChange={(e) => setEffectSize(e.target.value)}
+                    value={config.effectSize}
+                    onChange={(e) => updateConfig('effectSize', e.target.value)}
                     placeholder="예: 0.5"
                   />
                 </div>
               )}
 
-              {analysisType === 'a-priori' && (
+              {config.analysisType === 'a-priori' && (
                 <div>
                   <Label htmlFor="power">목표 검정력 (1-β)</Label>
-                  <Select value={power} onValueChange={setPower}>
+                  <Select
+                    value={config.power}
+                    onValueChange={(value) => updateConfig('power', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -560,7 +618,7 @@ export default function PowerAnalysisPage() {
                 </div>
               )}
 
-              {analysisType === 'post-hoc' && (
+              {config.analysisType === 'post-hoc' && (
                 <div>
                   <Label htmlFor="sample-size">표본크기 (각 그룹)</Label>
                   <Input
@@ -568,8 +626,8 @@ export default function PowerAnalysisPage() {
                     type="number"
                     min="5"
                     max="1000"
-                    value={sampleSize}
-                    onChange={(e) => setSampleSize(e.target.value)}
+                    value={config.sampleSize}
+                    onChange={(e) => updateConfig('sampleSize', e.target.value)}
                     placeholder="예: 30"
                   />
                 </div>
@@ -578,18 +636,18 @@ export default function PowerAnalysisPage() {
               <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
                 <h4 className="font-semibold mb-2">분석 설정 요약</h4>
                 <p className="text-sm">
-                  <strong>검정:</strong> {testType}<br />
-                  <strong>유형:</strong> {analysisType === 'a-priori' ? '사전 분석' :
-                                      analysisType === 'post-hoc' ? '사후 분석' : '절충 분석'}<br />
-                  <strong>유의수준:</strong> {alpha}<br />
-                  {analysisType !== 'criterion' && <><strong>효과크기:</strong> {effectSize}<br /></>}
-                  {analysisType === 'a-priori' && <><strong>목표 검정력:</strong> {power}</>}
-                  {analysisType === 'post-hoc' && <><strong>표본크기:</strong> {sampleSize}</>}
+                  <strong>검정:</strong> {config.testType}<br />
+                  <strong>유형:</strong> {config.analysisType === 'a-priori' ? '사전 분석' :
+                                      config.analysisType === 'post-hoc' ? '사후 분석' : '절충 분석'}<br />
+                  <strong>유의수준:</strong> {config.alpha}<br />
+                  {config.analysisType !== 'criterion' && <><strong>효과크기:</strong> {config.effectSize}<br /></>}
+                  {config.analysisType === 'a-priori' && <><strong>목표 검정력:</strong> {config.power}</>}
+                  {config.analysisType === 'post-hoc' && <><strong>표본크기:</strong> {config.sampleSize}</>}
                 </p>
               </div>
 
               <div className="flex justify-end">
-                <Button onClick={() => actions.setCurrentStep(2)}>
+                <Button onClick={() => actions?.setCurrentStep(2)}>
                   다음 단계
                 </Button>
               </div>

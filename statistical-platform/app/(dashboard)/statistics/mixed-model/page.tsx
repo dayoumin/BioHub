@@ -139,7 +139,9 @@ export default function MixedModelPage() {
       } catch (err) {
         if (isMounted && !abortController.signal.aborted) {
           console.error('Pyodide 초기화 실패:', err)
-          actions.setError('통계 엔진을 초기화할 수 없습니다.')
+          if (actions?.setError) {
+            actions.setError('통계 엔진을 초기화할 수 없습니다.')
+          }
         }
       }
     }
@@ -150,7 +152,7 @@ export default function MixedModelPage() {
       isMounted = false
       abortController.abort()
     }
-  }, [])
+  }, [actions])
 
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
@@ -209,22 +211,31 @@ export default function MixedModelPage() {
     ]
   }), [])
 
-  const handleDataUpload = createDataUploadHandler(
-    actions.setUploadedData,
-    () => {
-      actions.setCurrentStep(2)
-    },
-    'mixed-model'
+  const handleDataUpload = useCallback(
+    createDataUploadHandler(
+      actions?.setUploadedData,
+      () => {
+        if (actions?.setCurrentStep) {
+          actions.setCurrentStep(2)
+        }
+      },
+      'mixed-model'
+    ),
+    [actions]
   )
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
     if (!pyodide || !uploadedData) {
-      actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
+      if (actions?.setError) {
+        actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
+      }
       return
     }
 
-    actions.startAnalysis()
-    if (actions.setError) {
+    if (actions?.startAnalysis) {
+      actions.startAnalysis()
+    }
+    if (actions?.setError) {
       actions.setError('')
     }
 
@@ -343,40 +354,39 @@ export default function MixedModelPage() {
         }
       }
 
-      actions.completeAnalysis(mockResult, 3)
+      if (actions?.completeAnalysis) {
+        actions.completeAnalysis(mockResult, 3)
+      }
     } catch (err) {
       console.error('Mixed Model 분석 실패:', err)
-      actions.setError('선형 혼합 모형 분석 중 오류가 발생했습니다.')
+      if (actions?.setError) {
+        actions.setError('선형 혼합 모형 분석 중 오류가 발생했습니다.')
+      }
     } finally {
       // isAnalyzing managed by hook
     }
-  }, [uploadedData, pyodide])
+  }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
-    (variables) => {
-      if (variables.dependent && variables.independent &&
-          variables.dependent.length === 1 && variables.independent.length >= 1) {
-        runAnalysis(variables)
-      }
-    },
-    'mixed-model'
+  const handleVariableSelection = useCallback(
+    createVariableSelectionHandler<VariableAssignment>(
+      actions?.setSelectedVariables,
+      (variables) => {
+        if (variables?.dependent && variables?.independent &&
+            variables.dependent.length === 1 && variables.independent.length >= 1) {
+          runAnalysis(variables)
+        }
+      },
+      'mixed-model'
+    ),
+    [actions, runAnalysis]
   )
 
-  const getSignificanceColor = (pValue: number) => {
+  const getSignificanceColor = useCallback((pValue: number): string => {
     if (pValue < 0.001) return 'text-muted-foreground bg-muted'
     if (pValue < 0.01) return 'text-muted-foreground bg-muted'
     if (pValue < 0.05) return 'text-muted-foreground bg-muted'
     return 'text-gray-600 bg-gray-50'
-  }
-
-  const _getCohensInterpretation = (d: number) => {
-    const absD = Math.abs(d)
-    if (absD >= 0.8) return '큰 효과'
-    if (absD >= 0.5) return '중간 효과'
-    if (absD >= 0.2) return '작은 효과'
-    return '효과 없음'
-  }
+  }, [])
 
   return (
     <StatisticsPageLayout
@@ -386,7 +396,7 @@ export default function MixedModelPage() {
       icon={<Network className="w-6 h-6" />}
       steps={steps}
       currentStep={currentStep}
-      onStepChange={actions.setCurrentStep}
+      onStepChange={actions?.setCurrentStep}
       methodInfo={methodInfo}
     >
       {/* Step 1: 방법론 소개 */}
@@ -466,7 +476,7 @@ export default function MixedModelPage() {
             </div>
 
             <div className="flex justify-end">
-              <Button onClick={() => actions.setCurrentStep(1)}>
+              <Button onClick={() => actions?.setCurrentStep && actions.setCurrentStep(1)}>
                 다음: 데이터 업로드
               </Button>
             </div>
@@ -521,7 +531,7 @@ export default function MixedModelPage() {
           </div>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
+            <Button variant="outline" onClick={() => actions?.setCurrentStep && actions.setCurrentStep(0)}>
               이전
             </Button>
           </div>
@@ -539,7 +549,7 @@ export default function MixedModelPage() {
             methodId="mixed-model"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
-            onBack={() => actions.setCurrentStep(1)}
+            onBack={() => actions?.setCurrentStep && actions.setCurrentStep(1)}
           />
 
           <Alert className="mt-4">
@@ -1113,7 +1123,7 @@ export default function MixedModelPage() {
           </Tabs>
 
           <div className="flex justify-between mt-6">
-            <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
+            <Button variant="outline" onClick={() => actions?.setCurrentStep && actions.setCurrentStep(2)}>
               다시 분석
             </Button>
             <Button>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -29,8 +29,8 @@ export default function FisherExactTestPage() {
   })
   const { results, isAnalyzing, error } = state
 
-  // Pyodide Core Service
-  const pyodideCore = PyodideCoreService.getInstance()
+  // Pyodide Core Service (singleton - stable across renders)
+  const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 
   // 2x2 분할표 상태
   const [table, setTable] = useState<number[][]>([
@@ -41,13 +41,21 @@ export default function FisherExactTestPage() {
   const [alphaInput, setAlphaInput] = useState<string>('0.05') // UI 입력 상태 (문자열)
   const [alternative, setAlternative] = useState<'two-sided' | 'less' | 'greater'>('two-sided')
 
-  // 셀 값 변경
-  const updateCell = (row: number, col: number, value: string) => {
-    const newTable = table.map((r, i) =>
-      i === row ? r.map((c, j) => (j === col ? parseInt(value) || 0 : c)) : r
+  // 셀 값 변경 (useCallback 적용)
+  const updateCell = useCallback((row: number, col: number, value: string) => {
+    setTable(prevTable =>
+      prevTable.map((r, i) =>
+        i === row ? r.map((c, j) => (j === col ? parseInt(value, 10) || 0 : c)) : r
+      )
     )
-    setTable(newTable)
-  }
+  }, [])
+
+  // Alternative 변경 (useCallback 적용)
+  const handleAlternativeChange = useCallback((value: string) => {
+    if (value === 'two-sided' || value === 'less' || value === 'greater') {
+      setAlternative(value)
+    }
+  }, [])
 
   // Alpha 입력 핸들러
   const handleAlphaChange = useCallback((value: string) => {
@@ -73,18 +81,23 @@ export default function FisherExactTestPage() {
 
   // 실제 분석 실행
   const runAnalysis = useCallback(async () => {
+    if (!actions.startAnalysis || !actions.setError || !actions.completeAnalysis) {
+      console.error('[fisher-exact] Required actions not available')
+      return
+    }
+
     try {
-      actions.startAnalysis?.()
+      actions.startAnalysis()
 
       // Validation
       if (table.some(row => row.some(cell => cell < 0))) {
-        actions.setError?.('모든 값은 0 이상이어야 합니다.')
+        actions.setError('모든 값은 0 이상이어야 합니다.')
         return
       }
 
       const total = table.flat().reduce((sum, val) => sum + val, 0)
       if (total === 0) {
-        actions.setError?.('모든 값이 0일 수 없습니다.')
+        actions.setError('모든 값이 0일 수 없습니다.')
         return
       }
 
@@ -99,12 +112,12 @@ export default function FisherExactTestPage() {
         }
       )
 
-      actions.completeAnalysis?.(result, 3)
-    } catch (err) {
+      actions.completeAnalysis(result, 3)
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
-      actions.setError?.(errorMessage)
+      actions.setError(errorMessage)
     }
-  }, [table, alternative, alpha, actions])
+  }, [table, alternative, alpha, actions, pyodideCore])
 
   const renderMethodology = () => (
     <Card>
@@ -255,7 +268,7 @@ export default function FisherExactTestPage() {
             <select
               id="alternative"
               value={alternative}
-              onChange={(e) => setAlternative(e.target.value as 'two-sided' | 'less' | 'greater')}
+              onChange={(e) => handleAlternativeChange(e.target.value)}
               className="w-full border rounded px-3 py-2"
             >
               <option value="two-sided">양측 검정 (Two-sided)</option>
