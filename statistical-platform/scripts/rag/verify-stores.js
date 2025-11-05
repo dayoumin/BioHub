@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 
-const RAG_DATA_DIR = path.join(__dirname, '../rag-system/data');
+const RAG_DATA_DIR = path.join(__dirname, '../../rag-system/data');
 
 console.log('='.repeat(60));
 console.log('Vector Store 검증 시작');

@@ -1,0 +1,452 @@
+{
+  "timestamp": "2025-11-05T12:02:00.653Z",
+  "summary": {
+    "total": 40,
+    "passed": 0,
+    "warnings": 0,
+    "failed": 40,
+    "avgScore": "0.00"
+  },
+  "reports": [
+    {
+      "name": "anova",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "t-test",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "one-sample-t",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "normality-test",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "means-plot",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "ks-test",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "friedman",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "kruskal-wallis",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "mann-kendall",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "reliability",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "regression",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "ancova",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "chi-square",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "chi-square-goodness",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "chi-square-independence",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "cluster",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "correlation",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "cross-tabulation",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "descriptive",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "discriminant",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "dose-response",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "explore-data",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "factor-analysis",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "frequency-table",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "manova",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "mcnemar",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "mixed-model",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "non-parametric",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "ordinal-regression",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "partial-correlation",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "pca",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "poisson",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "power-analysis",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "proportion-test",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "response-surface",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "runs-test",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "sign-test",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "stepwise",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "welch-t",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    },
+    {
+      "name": "wilcoxon",
+      "exists": false,
+      "bugs": [
+        "파일을 찾을 수 없음"
+      ],
+      "typeErrors": [],
+      "structureIssues": [],
+      "warnings": [],
+      "score": 0
+    }
+  ]
+}

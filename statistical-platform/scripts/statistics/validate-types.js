@@ -60,7 +60,7 @@ const statisticsPages = [
 function readPageFile(pageName) {
   const filePath = path.join(
     __dirname,
-    `../app/(dashboard)/statistics/${pageName}/page.tsx`
+    `../../app/(dashboard)/statistics/${pageName}/page.tsx`
   );
 
   try {
@@ -322,7 +322,7 @@ function main() {
   console.log(`\n평균 점수: ${avgScore}/5.0`);
 
   // 결과 JSON 저장
-  const reportPath = path.join(__dirname, '../__tests__/reports/statistics-pages-validation.json');
+  const reportPath = path.join(__dirname, '../../__tests__/reports/statistics-pages-validation.json');
   const reportDir = path.dirname(reportPath);
 
   if (!fs.existsSync(reportDir)) {

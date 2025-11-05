@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "next dev --turbo",
-    "prebuild": "node scripts/copy-rag-db.js && node scripts/generate-vector-store-metadata.js",
+    "prebuild": "node scripts/rag/copy-db.js && node scripts/rag/generate-metadata.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -18,13 +18,13 @@
     "verify:worker": "echo 'Web Worker 환경 검증: http://localhost:3000/verify-worker.html 페이지를 브라우저에서 열어서 실행하세요.'",
     "test:performance": "jest __tests__/performance/pyodide-regression.test.ts --verbose",
     "test:performance:watch": "jest __tests__/performance/pyodide-regression.test.ts --watch",
-    "generate:vector-stores": "node scripts/generate-vector-store-metadata.js",
-    "validate:statistics": "node scripts/validate-statistics.js",
-    "validate:types": "node scripts/test-statistics-pages.js",
-    "analyze:metadata": "bash scripts/analyze-statistics-metadata.sh",
-    "analyze:steps": "node scripts/analyze-step-patterns.js",
-    "verify:rag": "node scripts/verify-vector-stores.js",
-    "setup:sql-wasm": "node scripts/download-sql-wasm.js"
+    "generate:vector-stores": "node scripts/rag/generate-metadata.js",
+    "validate:statistics": "node scripts/statistics/validate-ui.js",
+    "validate:types": "node scripts/statistics/validate-types.js",
+    "analyze:metadata": "bash scripts/statistics/analyze-metadata.sh",
+    "analyze:steps": "node scripts/statistics/analyze-step-patterns.js",
+    "verify:rag": "node scripts/rag/verify-stores.js",
+    "setup:sql-wasm": "node scripts/build/download-sql-wasm.js"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

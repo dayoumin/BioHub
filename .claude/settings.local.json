@@ -84,7 +84,9 @@
       "Bash(npx serve@latest:*)",
       "Bash(timeout /t 3 /nobreak)",
       "Bash(mkdir:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(npm run analyze:metadata:*)",
+      "Bash(npm run validate:types:*)"
     ],
     "deny": [],
     "ask": []
