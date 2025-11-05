@@ -353,19 +353,19 @@ lib/
       <h2>📊 현재 상태</h2>
 
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 1.5rem;">
-        <div style="background: #ebf8ff; padding: 1.5rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 2.5rem; font-weight: 700; color: #2c5282;">41</div>
-          <div style="color: #2d5a7b; margin-top: 0.5rem;">통계 페이지</div>
+        <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 2.5rem; font-weight: 700; color: #1a1a1a;">41</div>
+          <div style="color: #525252; margin-top: 0.5rem;">통계 페이지</div>
           <div style="margin-top: 0.5rem;"><span class="badge success">100%</span></div>
         </div>
-        <div style="background: #f0fff4; padding: 1.5rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 2.5rem; font-weight: 700; color: #22543d;">208</div>
-          <div style="color: #22543d; margin-top: 0.5rem;">테스트 통과</div>
+        <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 2.5rem; font-weight: 700; color: #1a1a1a;">208</div>
+          <div style="color: #1a1a1a; margin-top: 0.5rem;">테스트 통과</div>
           <div style="margin-top: 0.5rem;"><span class="badge success">All Pass</span></div>
         </div>
-        <div style="background: #fffaf0; padding: 1.5rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 2.5rem; font-weight: 700; color: #7c2d12;">0</div>
-          <div style="color: #7c2d12; margin-top: 0.5rem;">TypeScript 에러</div>
+        <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 2.5rem; font-weight: 700; color: #525252;">0</div>
+          <div style="color: #525252; margin-top: 0.5rem;">TypeScript 에러</div>
           <div style="margin-top: 0.5rem;"><span class="badge success">Clean</span></div>
         </div>
       </div>
@@ -376,19 +376,19 @@ lib/
 
       <h3>색상 Variant</h3>
       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1rem;">
-        <div style="background: linear-gradient(135deg, #f7fafc 0%, #e2e8f0 100%); padding: 1.5rem; border-radius: 8px;">
+        <div style="background: #fafafa; padding: 1.5rem; border-radius: 8px;">
           <strong>gray</strong> (기본값)
           <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #4a5568;">그레이 그래디언트</div>
         </div>
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 1.5rem; border-radius: 8px;">
+        <div style="background: #1a1a1a; color: white; padding: 1.5rem; border-radius: 8px;">
           <strong>blue-purple</strong>
           <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.9;">파랑-보라 그래디언트</div>
         </div>
-        <div style="background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: white; padding: 1.5rem; border-radius: 8px;">
+        <div style="background: #525252; color: white; padding: 1.5rem; border-radius: 8px;">
           <strong>emerald-cyan</strong>
           <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.9;">에메랄드-청록 그래디언트</div>
         </div>
-        <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 1.5rem; border-radius: 8px;">
+        <div style="background: #404040; color: white; padding: 1.5rem; border-radius: 8px;">
           <strong>custom</strong>
           <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.9;">테마 기반 색상</div>
         </div>
@@ -488,26 +488,26 @@ function generateStepIndicatorPage() {
         <div style="display: flex; gap: 1rem; align-items: center;">
           <!-- Step 1 (Completed) -->
           <div style="flex: 1; text-align: center;">
-            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto;">✓</div>
-            <div style="margin-top: 0.5rem; font-weight: 600; color: #10b981;">데이터 업로드</div>
+            <div style="width: 48px; height: 48px; background: #525252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto;">✓</div>
+            <div style="margin-top: 0.5rem; font-weight: 600; color: #525252;">데이터 업로드</div>
           </div>
 
           <!-- Connector -->
-          <div style="flex: 1; height: 2px; background: #e2e8f0; margin-bottom: 2rem;"></div>
+          <div style="flex: 1; height: 2px; background: #e5e5e5; margin-bottom: 2rem;"></div>
 
           <!-- Step 2 (Current) -->
           <div style="flex: 1; text-align: center;">
-            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);">2</div>
-            <div style="margin-top: 0.5rem; font-weight: 600; color: #667eea;">변수 선택</div>
+            <div style="width: 48px; height: 48px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);">2</div>
+            <div style="margin-top: 0.5rem; font-weight: 600; color: #1a1a1a;">변수 선택</div>
           </div>
 
           <!-- Connector -->
-          <div style="flex: 1; height: 2px; background: #e2e8f0; margin-bottom: 2rem;"></div>
+          <div style="flex: 1; height: 2px; background: #e5e5e5; margin-bottom: 2rem;"></div>
 
           <!-- Step 3 (Pending) -->
           <div style="flex: 1; text-align: center;">
-            <div style="width: 48px; height: 48px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; border: 2px solid #e2e8f0;">3</div>
-            <div style="margin-top: 0.5rem; color: #a0aec0;">분석 실행</div>
+            <div style="width: 48px; height: 48px; background: #fafafa; color: #a3a3a3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; border: 2px solid #e5e5e5;">3</div>
+            <div style="margin-top: 0.5rem; color: #a3a3a3;">분석 실행</div>
           </div>
         </div>
       </div>
@@ -526,34 +526,34 @@ function generateStepIndicatorPage() {
         <div style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 400px;">
           <!-- Step 1 -->
           <div style="display: flex; gap: 1rem; align-items: flex-start;">
-            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">✓</div>
+            <div style="width: 48px; height: 48px; background: #525252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">✓</div>
             <div style="flex: 1;">
-              <div style="font-weight: 600; color: #10b981; margin-bottom: 0.25rem;">데이터 업로드</div>
+              <div style="font-weight: 600; color: #525252; margin-bottom: 0.25rem;">데이터 업로드</div>
               <div style="font-size: 0.9rem; color: #718096;">CSV 또는 Excel 파일을 업로드하세요</div>
             </div>
           </div>
 
           <!-- Vertical Connector -->
-          <div style="width: 2px; height: 24px; background: #e2e8f0; margin-left: 23px;"></div>
+          <div style="width: 2px; height: 24px; background: #e5e5e5; margin-left: 23px;"></div>
 
           <!-- Step 2 -->
           <div style="display: flex; gap: 1rem; align-items: flex-start;">
-            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);">2</div>
+            <div style="width: 48px; height: 48px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05);">2</div>
             <div style="flex: 1;">
-              <div style="font-weight: 600; color: #667eea; margin-bottom: 0.25rem;">변수 선택</div>
+              <div style="font-weight: 600; color: #1a1a1a; margin-bottom: 0.25rem;">변수 선택</div>
               <div style="font-size: 0.9rem; color: #718096;">분석에 사용할 변수를 선택하세요</div>
             </div>
           </div>
 
           <!-- Vertical Connector -->
-          <div style="width: 2px; height: 24px; background: #e2e8f0; margin-left: 23px;"></div>
+          <div style="width: 2px; height: 24px; background: #e5e5e5; margin-left: 23px;"></div>
 
           <!-- Step 3 -->
           <div style="display: flex; gap: 1rem; align-items: flex-start;">
-            <div style="width: 48px; height: 48px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; border: 2px solid #e2e8f0;">3</div>
+            <div style="width: 48px; height: 48px; background: #fafafa; color: #a3a3a3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; border: 2px solid #e5e5e5;">3</div>
             <div style="flex: 1;">
-              <div style="font-weight: 600; color: #a0aec0; margin-bottom: 0.25rem;">분석 실행</div>
-              <div style="font-size: 0.9rem; color: #a0aec0;">통계 분석을 실행하세요</div>
+              <div style="font-weight: 600; color: #a3a3a3; margin-bottom: 0.25rem;">분석 실행</div>
+              <div style="font-size: 0.9rem; color: #a3a3a3;">통계 분석을 실행하세요</div>
             </div>
           </div>
         </div>
@@ -571,11 +571,11 @@ function generateStepIndicatorPage() {
 
       <div class="preview">
         <div style="display: flex; gap: 0.5rem; align-items: center; justify-content: center;">
-          <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700;">✓</div>
-          <div style="width: 48px; height: 2px; background: #10b981;"></div>
-          <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);">2</div>
-          <div style="width: 48px; height: 2px; background: #e2e8f0;"></div>
-          <div style="width: 32px; height: 32px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; border: 2px solid #e2e8f0;">3</div>
+          <div style="width: 32px; height: 32px; background: #525252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700;">✓</div>
+          <div style="width: 48px; height: 2px; background: #525252;"></div>
+          <div style="width: 32px; height: 32px; background: #525252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);">2</div>
+          <div style="width: 48px; height: 2px; background: #e5e5e5;"></div>
+          <div style="width: 32px; height: 32px; background: #fafafa; color: #a3a3a3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; border: 2px solid #e5e5e5;">3</div>
         </div>
       </div>
     </div>
@@ -620,11 +620,11 @@ function generateStepIndicatorPage() {
       <h2>💡 특징</h2>
 
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>3가지 레이아웃</strong>: Horizontal, Vertical, Compact</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>4가지 색상 Variant</strong>: 상황에 맞는 색상 선택</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>클릭 가능</strong>: onStepClick으로 단계 이동</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>상태 표시</strong>: pending, current, completed, error</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>아이콘 지원</strong>: Lucide 아이콘 또는 커스텀 ReactNode</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>3가지 레이아웃</strong>: Horizontal, Vertical, Compact</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>4가지 색상 Variant</strong>: 상황에 맞는 색상 선택</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>클릭 가능</strong>: onStepClick으로 단계 이동</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>상태 표시</strong>: pending, current, completed, error</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>아이콘 지원</strong>: Lucide 아이콘 또는 커스텀 ReactNode</li>
         <li style="padding: 0.5rem 0;">✅ <strong>반응형</strong>: 모바일/태블릿/데스크탑 대응</li>
       </ul>
     </div>
@@ -757,59 +757,59 @@ function generateProgressStepperPage() {
         <div style="display: flex; gap: 0.5rem; align-items: center; overflow-x: auto; padding: 1rem;">
           <!-- Step 1 (Completed) -->
           <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
-            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem;">✓</div>
-            <div style="margin-top: 0.75rem; font-weight: 600; color: #10b981; font-size: 0.9rem;">데이터 업로드</div>
+            <div style="width: 56px; height: 56px; background: #525252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem;">✓</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #525252; font-size: 0.9rem;">데이터 업로드</div>
             <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #718096;">CSV/Excel</div>
           </div>
 
           <!-- Connector -->
-          <div style="flex: 1; height: 3px; background: linear-gradient(90deg, #10b981 0%, #667eea 100%); margin-bottom: 3rem; min-width: 40px;"></div>
+          <div style="flex: 1; height: 3px; background: #525252; margin-bottom: 3rem; min-width: 40px;"></div>
 
           <!-- Step 2 (Completed) -->
           <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
-            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem;">✓</div>
-            <div style="margin-top: 0.75rem; font-weight: 600; color: #10b981; font-size: 0.9rem;">데이터 검증</div>
+            <div style="width: 56px; height: 56px; background: #525252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem;">✓</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #525252; font-size: 0.9rem;">데이터 검증</div>
             <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #718096;">정규성 검정</div>
           </div>
 
           <!-- Connector -->
-          <div style="flex: 1; height: 3px; background: linear-gradient(90deg, #10b981 0%, #667eea 100%); margin-bottom: 3rem; min-width: 40px;"></div>
+          <div style="flex: 1; height: 3px; background: #525252; margin-bottom: 3rem; min-width: 40px;"></div>
 
           <!-- Step 3 (Current) -->
           <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
-            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3); animation: pulse 2s infinite;">3</div>
-            <div style="margin-top: 0.75rem; font-weight: 600; color: #667eea; font-size: 0.9rem;">목적 입력</div>
+            <div style="width: 56px; height: 56px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08); animation: pulse 2s infinite;">3</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #1a1a1a; font-size: 0.9rem;">목적 입력</div>
             <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #718096;">AI 추천</div>
           </div>
 
           <!-- Connector -->
-          <div style="flex: 1; height: 3px; background: #e2e8f0; margin-bottom: 3rem; min-width: 40px;"></div>
+          <div style="flex: 1; height: 3px; background: #e5e5e5; margin-bottom: 3rem; min-width: 40px;"></div>
 
           <!-- Step 4 (Pending) -->
           <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
-            <div style="width: 56px; height: 56px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e2e8f0;">4</div>
-            <div style="margin-top: 0.75rem; font-weight: 600; color: #a0aec0; font-size: 0.9rem;">변수 선택</div>
-            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #cbd5e0;">분석 변수</div>
+            <div style="width: 56px; height: 56px; background: #fafafa; color: #a3a3a3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e5e5e5;">4</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #a3a3a3; font-size: 0.9rem;">변수 선택</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #e5e5e5;">분석 변수</div>
           </div>
 
           <!-- Connector -->
-          <div style="flex: 1; height: 3px; background: #e2e8f0; margin-bottom: 3rem; min-width: 40px;"></div>
+          <div style="flex: 1; height: 3px; background: #e5e5e5; margin-bottom: 3rem; min-width: 40px;"></div>
 
           <!-- Step 5 (Pending) -->
           <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
-            <div style="width: 56px; height: 56px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e2e8f0;">5</div>
-            <div style="margin-top: 0.75rem; font-weight: 600; color: #a0aec0; font-size: 0.9rem;">분석 실행</div>
-            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #cbd5e0;">통계 분석</div>
+            <div style="width: 56px; height: 56px; background: #fafafa; color: #a3a3a3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e5e5e5;">5</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #a3a3a3; font-size: 0.9rem;">분석 실행</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #e5e5e5;">통계 분석</div>
           </div>
 
           <!-- Connector -->
-          <div style="flex: 1; height: 3px; background: #e2e8f0; margin-bottom: 3rem; min-width: 40px;"></div>
+          <div style="flex: 1; height: 3px; background: #e5e5e5; margin-bottom: 3rem; min-width: 40px;"></div>
 
           <!-- Step 6 (Pending) -->
           <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
-            <div style="width: 56px; height: 56px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e2e8f0;">6</div>
-            <div style="margin-top: 0.75rem; font-weight: 600; color: #a0aec0; font-size: 0.9rem;">결과 확인</div>
-            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #cbd5e0;">내보내기</div>
+            <div style="width: 56px; height: 56px; background: #fafafa; color: #a3a3a3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e5e5e5;">6</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #a3a3a3; font-size: 0.9rem;">결과 확인</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #e5e5e5;">내보내기</div>
           </div>
         </div>
       </div>
@@ -817,7 +817,7 @@ function generateProgressStepperPage() {
       <style>
         @keyframes pulse {
           0%, 100% {
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.08);
           }
           50% {
             box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.1);
@@ -830,11 +830,11 @@ function generateProgressStepperPage() {
       <h2>💡 특징</h2>
 
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>고정 6단계</strong>: 스마트 플로우 전용</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>그래디언트 연결선</strong>: 진행 상황 시각화</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>Pulse 애니메이션</strong>: 현재 단계 강조</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>Horizontal Only</strong>: 가로 레이아웃만 지원</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>Lucide 아이콘</strong>: 각 단계별 아이콘</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>고정 6단계</strong>: 스마트 플로우 전용</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>그래디언트 연결선</strong>: 진행 상황 시각화</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>Pulse 애니메이션</strong>: 현재 단계 강조</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>Horizontal Only</strong>: 가로 레이아웃만 지원</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>Lucide 아이콘</strong>: 각 단계별 아이콘</li>
         <li style="padding: 0.5rem 0;">✅ <strong>반응형 Scroll</strong>: 모바일에서 좌우 스크롤</li>
       </ul>
     </div>
@@ -985,49 +985,49 @@ function generateStatisticsPageLayoutPage() {
       <div class="preview">
         <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
           <!-- 헤더 -->
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem;">
+          <div style="background: #1a1a1a; color: white; padding: 2rem;">
             <h2 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">기술통계</h2>
             <p style="opacity: 0.9;">데이터의 기본적인 통계량을 분석합니다</p>
           </div>
 
           <!-- StepIndicator -->
-          <div style="padding: 2rem; border-bottom: 1px solid #e2e8f0;">
+          <div style="padding: 2rem; border-bottom: 1px solid #e5e5e5;">
             <div style="display: flex; gap: 1rem; align-items: center;">
               <!-- Step 1 (Completed) -->
               <div style="flex: 1; text-align: center;">
-                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem;">✓</div>
-                <div style="margin-top: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #10b981;">업로드</div>
+                <div style="width: 40px; height: 40px; background: #525252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem;">✓</div>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #525252;">업로드</div>
               </div>
 
-              <div style="flex: 1; height: 2px; background: #10b981; margin-bottom: 1.75rem;"></div>
+              <div style="flex: 1; height: 2px; background: #525252; margin-bottom: 1.75rem;"></div>
 
               <!-- Step 2 (Current) -->
               <div style="flex: 1; text-align: center;">
-                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);">2</div>
-                <div style="margin-top: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #667eea;">변수 선택</div>
+                <div style="width: 40px; height: 40px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);">2</div>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #1a1a1a;">변수 선택</div>
               </div>
 
-              <div style="flex: 1; height: 2px; background: #e2e8f0; margin-bottom: 1.75rem;"></div>
+              <div style="flex: 1; height: 2px; background: #e5e5e5; margin-bottom: 1.75rem;"></div>
 
               <!-- Step 3 (Pending) -->
               <div style="flex: 1; text-align: center;">
-                <div style="width: 40px; height: 40px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; border: 2px solid #e2e8f0;">3</div>
-                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #a0aec0;">분석</div>
+                <div style="width: 40px; height: 40px; background: #fafafa; color: #a3a3a3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; border: 2px solid #e5e5e5;">3</div>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #a3a3a3;">분석</div>
               </div>
 
-              <div style="flex: 1; height: 2px; background: #e2e8f0; margin-bottom: 1.75rem;"></div>
+              <div style="flex: 1; height: 2px; background: #e5e5e5; margin-bottom: 1.75rem;"></div>
 
               <!-- Step 4 (Pending) -->
               <div style="flex: 1; text-align: center;">
-                <div style="width: 40px; height: 40px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; border: 2px solid #e2e8f0;">4</div>
-                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #a0aec0;">결과</div>
+                <div style="width: 40px; height: 40px; background: #fafafa; color: #a3a3a3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; border: 2px solid #e5e5e5;">4</div>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #a3a3a3;">결과</div>
               </div>
             </div>
           </div>
 
           <!-- 컨텐츠 영역 -->
           <div style="padding: 2rem;">
-            <div style="background: #f7fafc; padding: 3rem; border-radius: 8px; text-align: center; border: 2px dashed #cbd5e0;">
+            <div style="background: #fafafa; padding: 3rem; border-radius: 8px; text-align: center; border: 2px dashed #e5e5e5;">
               <div style="font-size: 1.1rem; color: #4a5568; font-weight: 600; margin-bottom: 0.5rem;">현재 단계 컨텐츠</div>
               <div style="color: #718096;">단계별 컴포넌트가 여기에 렌더링됩니다</div>
             </div>
@@ -1075,11 +1075,11 @@ function generateStatisticsPageLayoutPage() {
       <h2>💡 특징</h2>
 
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>일관된 UI</strong>: 41개 통계 페이지 동일한 레이아웃</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>StepIndicator 통합</strong>: 자동 단계 표시</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>로딩 오버레이</strong>: isAnalyzing 중 UI 차단</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>반응형</strong>: 모바일/태블릿/데스크탑 대응</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>에러 처리</strong>: 에러 상태 표시 지원</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>일관된 UI</strong>: 41개 통계 페이지 동일한 레이아웃</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>StepIndicator 통합</strong>: 자동 단계 표시</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>로딩 오버레이</strong>: isAnalyzing 중 UI 차단</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>반응형</strong>: 모바일/태블릿/데스크탑 대응</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ <strong>에러 처리</strong>: 에러 상태 표시 지원</li>
         <li style="padding: 0.5rem 0;">✅ <strong>접근성</strong>: ARIA 라벨, 키보드 네비게이션</li>
       </ul>
     </div>
@@ -1088,14 +1088,14 @@ function generateStatisticsPageLayoutPage() {
       <h2>📊 사용 통계</h2>
 
       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1.5rem;">
-        <div style="background: #ebf8ff; padding: 1.5rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 2.5rem; font-weight: 700; color: #2c5282;">41</div>
-          <div style="color: #2d5a7b; margin-top: 0.5rem;">통계 페이지</div>
+        <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 2.5rem; font-weight: 700; color: #1a1a1a;">41</div>
+          <div style="color: #525252; margin-top: 0.5rem;">통계 페이지</div>
           <div style="margin-top: 0.5rem;"><span class="badge info">100% 적용</span></div>
         </div>
-        <div style="background: #f0fff4; padding: 1.5rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 2.5rem; font-weight: 700; color: #22543d;">0</div>
-          <div style="color: #22543d; margin-top: 0.5rem;">TypeScript 에러</div>
+        <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 2.5rem; font-weight: 700; color: #1a1a1a;">0</div>
+          <div style="color: #1a1a1a; margin-top: 0.5rem;">TypeScript 에러</div>
           <div style="margin-top: 0.5rem;"><span class="badge success">Clean</span></div>
         </div>
       </div>
@@ -1182,8 +1182,8 @@ function generateVariableSelectorPage() {
       <div class="preview">
         <div style="max-width: 600px; margin: 0 auto;">
           <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #2d3748;">종속 변수</label>
-            <select style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #fafafa;">종속 변수</label>
+            <select style="width: 100%; padding: 0.75rem; border: 2px solid #e5e5e5; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer;">
               <option>변수를 선택하세요</option>
               <option>수온 (Temperature)</option>
               <option>염분 (Salinity)</option>
@@ -1192,8 +1192,8 @@ function generateVariableSelectorPage() {
           </div>
 
           <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #2d3748;">독립 변수</label>
-            <select style="width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer;">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #fafafa;">독립 변수</label>
+            <select style="width: 100%; padding: 0.75rem; border: 2px solid #e5e5e5; border-radius: 8px; font-size: 1rem; background: white; cursor: pointer;">
               <option>변수를 선택하세요</option>
               <option>깊이 (Depth)</option>
               <option>시간 (Time)</option>
@@ -1201,7 +1201,7 @@ function generateVariableSelectorPage() {
             </select>
           </div>
 
-          <button style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
+          <button style="width: 100%; padding: 1rem; background: #1a1a1a; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;">
             다음 단계
           </button>
         </div>
@@ -1209,9 +1209,9 @@ function generateVariableSelectorPage() {
 
       <h3>특징</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 드롭다운 선택 UI</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 모바일 친화적</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 간단한 인터페이스</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 드롭다운 선택 UI</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 모바일 친화적</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 간단한 인터페이스</li>
         <li style="padding: 0.5rem 0;">✅ 초보자 추천</li>
       </ul>
     </div>
@@ -1246,18 +1246,18 @@ function generateVariableSelectorPage() {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
           <!-- 사용 가능한 변수 -->
           <div>
-            <h4 style="margin-bottom: 1rem; color: #2d3748; font-weight: 600;">사용 가능한 변수</h4>
-            <div style="border: 2px dashed #cbd5e0; border-radius: 8px; padding: 1rem; background: #f7fafc; min-height: 200px;">
-              <div style="background: white; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; cursor: move; border: 1px solid #e2e8f0; transition: all 0.2s;">
+            <h4 style="margin-bottom: 1rem; color: #fafafa; font-weight: 600;">사용 가능한 변수</h4>
+            <div style="border: 2px dashed #e5e5e5; border-radius: 8px; padding: 1rem; background: #fafafa; min-height: 200px;">
+              <div style="background: white; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; cursor: move; border: 1px solid #e5e5e5; transition: all 0.2s;">
                 수온 (Temperature)
               </div>
-              <div style="background: white; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; cursor: move; border: 1px solid #e2e8f0;">
+              <div style="background: white; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; cursor: move; border: 1px solid #e5e5e5;">
                 염분 (Salinity)
               </div>
-              <div style="background: white; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; cursor: move; border: 1px solid #e2e8f0;">
+              <div style="background: white; padding: 0.75rem; border-radius: 6px; margin-bottom: 0.5rem; cursor: move; border: 1px solid #e5e5e5;">
                 DO (Dissolved Oxygen)
               </div>
-              <div style="background: white; padding: 0.75rem; border-radius: 6px; cursor: move; border: 1px solid #e2e8f0;">
+              <div style="background: white; padding: 0.75rem; border-radius: 6px; cursor: move; border: 1px solid #e5e5e5;">
                 pH
               </div>
             </div>
@@ -1265,8 +1265,8 @@ function generateVariableSelectorPage() {
 
           <!-- 선택된 변수 -->
           <div>
-            <h4 style="margin-bottom: 1rem; color: #2d3748; font-weight: 600;">종속 변수</h4>
-            <div style="border: 2px dashed #667eea; border-radius: 8px; padding: 1rem; background: #ebf8ff; min-height: 200px;">
+            <h4 style="margin-bottom: 1rem; color: #fafafa; font-weight: 600;">종속 변수</h4>
+            <div style="border: 2px dashed #e5e5e5; border-radius: 8px; padding: 1rem; background: #f5f5f5; min-height: 200px;">
               <div style="text-align: center; color: #4a5568; padding: 2rem;">
                 변수를 드래그하세요
               </div>
@@ -1277,9 +1277,9 @@ function generateVariableSelectorPage() {
 
       <h3>특징</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 드래그 앤 드롭</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 시각적 피드백</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 다중 선택 지원</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 드래그 앤 드롭</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 시각적 피드백</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 다중 선택 지원</li>
         <li style="padding: 0.5rem 0;">✅ 직관적 UX</li>
       </ul>
     </div>
@@ -1309,9 +1309,9 @@ function generateVariableSelectorPage() {
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
           <!-- 변수 선택 영역 -->
           <div>
-            <h4 style="margin-bottom: 1rem; color: #2d3748; font-weight: 600;">변수 선택</h4>
-            <div style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 1rem; background: white;">
-              <div style="background: linear-gradient(135deg, #f7fafc 0%, #ebf8ff 100%); padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem; cursor: move; border: 1px solid #cbd5e0;">
+            <h4 style="margin-bottom: 1rem; color: #fafafa; font-weight: 600;">변수 선택</h4>
+            <div style="border: 2px solid #e5e5e5; border-radius: 8px; padding: 1rem; background: white;">
+              <div style="background: #fafafa; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem; cursor: move; border: 1px solid #e5e5e5;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <strong>수온 (Temperature)</strong>
@@ -1320,11 +1320,11 @@ function generateVariableSelectorPage() {
                       <span style="margin-left: 0.5rem;">평균: 25.3°C</span>
                     </div>
                   </div>
-                  <div style="font-size: 1.5rem; color: #cbd5e0;">⋮⋮</div>
+                  <div style="font-size: 1.5rem; color: #e5e5e5;">⋮⋮</div>
                 </div>
               </div>
 
-              <div style="background: linear-gradient(135deg, #f7fafc 0%, #ebf8ff 100%); padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem; cursor: move; border: 1px solid #cbd5e0;">
+              <div style="background: #fafafa; padding: 1rem; border-radius: 6px; margin-bottom: 0.75rem; cursor: move; border: 1px solid #e5e5e5;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <div>
                     <strong>염분 (Salinity)</strong>
@@ -1333,7 +1333,7 @@ function generateVariableSelectorPage() {
                       <span style="margin-left: 0.5rem;">평균: 33.5 ppt</span>
                     </div>
                   </div>
-                  <div style="font-size: 1.5rem; color: #cbd5e0;">⋮⋮</div>
+                  <div style="font-size: 1.5rem; color: #e5e5e5;">⋮⋮</div>
                 </div>
               </div>
             </div>
@@ -1341,11 +1341,11 @@ function generateVariableSelectorPage() {
 
           <!-- 데이터 미리보기 -->
           <div>
-            <h4 style="margin-bottom: 1rem; color: #2d3748; font-weight: 600;">데이터 미리보기</h4>
-            <div style="border: 2px solid #e2e8f0; border-radius: 8px; padding: 1rem; background: #f7fafc;">
+            <h4 style="margin-bottom: 1rem; color: #fafafa; font-weight: 600;">데이터 미리보기</h4>
+            <div style="border: 2px solid #e5e5e5; border-radius: 8px; padding: 1rem; background: #fafafa;">
               <table style="width: 100%; font-size: 0.85rem;">
                 <thead>
-                  <tr style="border-bottom: 1px solid #cbd5e0;">
+                  <tr style="border-bottom: 1px solid #e5e5e5;">
                     <th style="padding: 0.5rem; text-align: left;">수온</th>
                   </tr>
                 </thead>
@@ -1353,7 +1353,7 @@ function generateVariableSelectorPage() {
                   <tr><td style="padding: 0.5rem;">25.3</td></tr>
                   <tr><td style="padding: 0.5rem;">24.8</td></tr>
                   <tr><td style="padding: 0.5rem;">26.1</td></tr>
-                  <tr><td style="padding: 0.5rem; color: #a0aec0;">...</td></tr>
+                  <tr><td style="padding: 0.5rem; color: #a3a3a3;">...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1363,10 +1363,10 @@ function generateVariableSelectorPage() {
 
       <h3>특징</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 변수 타입 표시</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 통계량 미리보기</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 데이터 미리보기</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 고급 드래그앤드롭</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 변수 타입 표시</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 통계량 미리보기</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 데이터 미리보기</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 고급 드래그앤드롭</li>
         <li style="padding: 0.5rem 0;">✅ 전문가 추천</li>
       </ul>
     </div>
@@ -1496,10 +1496,10 @@ function generateSmartFlowStepsPage() {
 
       <h3>주요 기능</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ CSV/Excel 파일 업로드</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 대용량 파일 청크 처리</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 드래그 앤 드롭 지원</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 파일 검증 (형식, 크기)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ CSV/Excel 파일 업로드</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 대용량 파일 청크 처리</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 드래그 앤 드롭 지원</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 파일 검증 (형식, 크기)</li>
         <li style="padding: 0.5rem 0;">✅ 업로드 진행률 표시</li>
       </ul>
 
@@ -1522,10 +1522,10 @@ function generateSmartFlowStepsPage() {
 
       <h3>주요 기능</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 정규성 검정 (Shapiro-Wilk)</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 이분산성 검정 (Levene)</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ Q-Q Plot 시각화</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 히스토그램 + 정규분포 곡선</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 정규성 검정 (Shapiro-Wilk)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 이분산성 검정 (Levene)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ Q-Q Plot 시각화</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 히스토그램 + 정규분포 곡선</li>
         <li style="padding: 0.5rem 0;">✅ 검정 결과 해석</li>
       </ul>
 
@@ -1548,10 +1548,10 @@ function generateSmartFlowStepsPage() {
 
       <h3>주요 기능</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 자연어 분석 목적 입력</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ AI 기반 통계 방법 추천</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 추천 이유 설명</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 대안 방법 제시</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 자연어 분석 목적 입력</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ AI 기반 통계 방법 추천</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 추천 이유 설명</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 대안 방법 제시</li>
         <li style="padding: 0.5rem 0;">✅ 추천 신뢰도 표시</li>
       </ul>
 
@@ -1570,29 +1570,29 @@ function generateSmartFlowStepsPage() {
 
       <h3>AI 추천 예시</h3>
       <div class="preview">
-        <div style="background: linear-gradient(135deg, #ebf8ff 0%, #f0fff4 100%); padding: 1.5rem; border-radius: 8px; border: 2px solid #10b981;">
+        <div style="background: #ffffff; padding: 1.5rem; border-radius: 8px; border: 2px solid #525252;">
           <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🤖</div>
+            <div style="width: 48px; height: 48px; background: #525252; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🤖</div>
             <div>
-              <div style="font-weight: 700; font-size: 1.1rem; color: #065f46;">AI 추천 결과</div>
-              <div style="font-size: 0.9rem; color: #047857;">신뢰도: 95%</div>
+              <div style="font-weight: 700; font-size: 1.1rem; color: #1a1a1a;">AI 추천 결과</div>
+              <div style="font-size: 0.9rem; color: #525252;">신뢰도: 95%</div>
             </div>
           </div>
 
           <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
-            <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem;">추천 방법: <span style="color: #10b981;">독립표본 t-검정</span></div>
+            <div style="font-weight: 600; color: #fafafa; margin-bottom: 0.5rem;">추천 방법: <span style="color: #525252;">독립표본 t-검정</span></div>
             <div style="color: #4a5568; font-size: 0.95rem; line-height: 1.6;">
               두 그룹 간 평균 비교를 목적으로 하고, 데이터가 정규성을 만족하므로 독립표본 t-검정이 적합합니다.
             </div>
           </div>
 
-          <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.75rem;">대안 방법:</div>
+          <div style="font-weight: 600; color: #fafafa; margin-bottom: 0.75rem;">대안 방법:</div>
           <div style="display: flex; gap: 0.75rem;">
-            <div style="background: white; padding: 1rem; border-radius: 6px; flex: 1; border: 1px solid #e2e8f0;">
+            <div style="background: white; padding: 1rem; border-radius: 6px; flex: 1; border: 1px solid #e5e5e5;">
               <div style="font-weight: 600; font-size: 0.9rem; color: #4a5568;">Mann-Whitney U</div>
               <div style="font-size: 0.8rem; color: #718096; margin-top: 0.25rem;">비모수 대안</div>
             </div>
-            <div style="background: white; padding: 1rem; border-radius: 6px; flex: 1; border: 1px solid #e2e8f0;">
+            <div style="background: white; padding: 1rem; border-radius: 6px; flex: 1; border: 1px solid #e5e5e5;">
               <div style="font-weight: 600; font-size: 0.9rem; color: #4a5568;">Welch's t-test</div>
               <div style="font-size: 0.8rem; color: #718096; margin-top: 0.25rem;">이분산 허용</div>
             </div>
@@ -1606,10 +1606,10 @@ function generateSmartFlowStepsPage() {
 
       <h3>주요 기능</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 3가지 UI 모드 전환</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ AI 추천 기반 변수 자동 매핑</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 변수 타입 자동 감지</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 필수/선택 변수 표시</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 3가지 UI 모드 전환</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ AI 추천 기반 변수 자동 매핑</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 변수 타입 자동 감지</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 필수/선택 변수 표시</li>
         <li style="padding: 0.5rem 0;">✅ 검증 및 에러 메시지</li>
       </ul>
 
@@ -1633,38 +1633,38 @@ function generateSmartFlowStepsPage() {
 
       <h3>주요 기능</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 분석 실행 버튼</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 진행 상황 표시 (Progress Bar)</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 단계별 로그 출력</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 에러 처리 및 재시도</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 분석 실행 버튼</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 진행 상황 표시 (Progress Bar)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 단계별 로그 출력</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 에러 처리 및 재시도</li>
         <li style="padding: 0.5rem 0;">✅ 완료 시 자동 다음 단계</li>
       </ul>
 
       <div class="preview">
         <div style="max-width: 600px; margin: 0 auto; text-align: center;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 12px; color: white; margin-bottom: 1.5rem;">
+          <div style="background: #1a1a1a; padding: 2rem; border-radius: 12px; color: white; margin-bottom: 1.5rem;">
             <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚡</div>
             <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">분석 실행 중...</div>
             <div style="opacity: 0.9;">독립표본 t-검정을 수행하고 있습니다</div>
           </div>
 
           <!-- Progress Bar -->
-          <div style="background: #f7fafc; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+          <div style="background: #fafafa; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-              <span style="font-weight: 600; color: #2d3748;">진행률</span>
-              <span style="font-weight: 600; color: #667eea;">65%</span>
+              <span style="font-weight: 600; color: #fafafa;">진행률</span>
+              <span style="font-weight: 600; color: #1a1a1a;">65%</span>
             </div>
-            <div style="background: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden;">
-              <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 65%; height: 100%; transition: width 0.3s;"></div>
+            <div style="background: #e5e5e5; height: 12px; border-radius: 6px; overflow: hidden;">
+              <div style="background: #737373; width: 65%; height: 100%; transition: width 0.3s;"></div>
             </div>
           </div>
 
           <!-- 로그 -->
-          <div style="background: #2d3748; color: #e2e8f0; padding: 1.5rem; border-radius: 8px; text-align: left; font-family: monospace; font-size: 0.85rem;">
-            <div style="color: #10b981; margin-bottom: 0.5rem;">✓ 데이터 로드 완료</div>
-            <div style="color: #10b981; margin-bottom: 0.5rem;">✓ 변수 검증 완료</div>
-            <div style="color: #667eea; margin-bottom: 0.5rem;">▶ t-검정 실행 중...</div>
-            <div style="color: #a0aec0;">⏳ 결과 생성 대기...</div>
+          <div style="background: #fafafa; color: #e5e5e5; padding: 1.5rem; border-radius: 8px; text-align: left; font-family: monospace; font-size: 0.85rem;">
+            <div style="color: #525252; margin-bottom: 0.5rem;">✓ 데이터 로드 완료</div>
+            <div style="color: #525252; margin-bottom: 0.5rem;">✓ 변수 검증 완료</div>
+            <div style="color: #1a1a1a; margin-bottom: 0.5rem;">▶ t-검정 실행 중...</div>
+            <div style="color: #a3a3a3;">⏳ 결과 생성 대기...</div>
           </div>
         </div>
       </div>
@@ -1675,48 +1675,48 @@ function generateSmartFlowStepsPage() {
 
       <h3>주요 기능</h3>
       <ul style="list-style: none; padding-left: 0;">
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 분석 결과 시각화 (표, 차트)</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 통계량 해석</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ PDF/Excel 내보내기</li>
-        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 결과 공유 (링크 복사)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 분석 결과 시각화 (표, 차트)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 통계량 해석</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ PDF/Excel 내보내기</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e5e5e5;">✅ 결과 공유 (링크 복사)</li>
         <li style="padding: 0.5rem 0;">✅ 새 분석 시작</li>
       </ul>
 
       <div class="preview">
-        <div style="background: linear-gradient(135deg, #f0fff4 0%, #ebf8ff 100%); padding: 2rem; border-radius: 12px;">
+        <div style="background: #ffffff; padding: 2rem; border-radius: 12px;">
           <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">✓</div>
+            <div style="width: 56px; height: 56px; background: #525252; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">✓</div>
             <div>
-              <div style="font-size: 1.5rem; font-weight: 700; color: #065f46;">분석 완료!</div>
-              <div style="color: #047857;">독립표본 t-검정 결과</div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: #1a1a1a;">분석 완료!</div>
+              <div style="color: #525252;">독립표본 t-검정 결과</div>
             </div>
           </div>
 
           <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
             <table style="width: 100%; font-size: 0.95rem;">
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 0.75rem; font-weight: 600; color: #2d3748;">t 통계량</td>
+              <tr style="border-bottom: 1px solid #e5e5e5;">
+                <td style="padding: 0.75rem; font-weight: 600; color: #fafafa;">t 통계량</td>
                 <td style="padding: 0.75rem; text-align: right;">-2.345</td>
               </tr>
-              <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 0.75rem; font-weight: 600; color: #2d3748;">p-value</td>
-                <td style="padding: 0.75rem; text-align: right; color: #10b981; font-weight: 700;">0.023</td>
+              <tr style="border-bottom: 1px solid #e5e5e5;">
+                <td style="padding: 0.75rem; font-weight: 600; color: #fafafa;">p-value</td>
+                <td style="padding: 0.75rem; text-align: right; color: #525252; font-weight: 700;">0.023</td>
               </tr>
               <tr>
-                <td style="padding: 0.75rem; font-weight: 600; color: #2d3748;">결론</td>
-                <td style="padding: 0.75rem; text-align: right; color: #10b981;">통계적으로 유의함 ✓</td>
+                <td style="padding: 0.75rem; font-weight: 600; color: #fafafa;">결론</td>
+                <td style="padding: 0.75rem; text-align: right; color: #525252;">통계적으로 유의함 ✓</td>
               </tr>
             </table>
           </div>
 
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-            <button style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            <button style="padding: 1rem; background: #1a1a1a; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
               PDF 내보내기
             </button>
-            <button style="padding: 1rem; background: white; color: #667eea; border: 2px solid #667eea; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            <button style="padding: 1rem; background: white; color: #1a1a1a; border: 2px solid #1a1a1a; border-radius: 8px; font-weight: 600; cursor: pointer;">
               Excel 내보내기
             </button>
-            <button style="padding: 1rem; background: white; color: #667eea; border: 2px solid #667eea; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            <button style="padding: 1rem; background: white; color: #1a1a1a; border: 2px solid #1a1a1a; border-radius: 8px; font-weight: 600; cursor: pointer;">
               공유하기
             </button>
           </div>
@@ -1727,55 +1727,55 @@ function generateSmartFlowStepsPage() {
     <div class="section">
       <h2>🔄 플로우 요약</h2>
 
-      <div style="background: linear-gradient(135deg, #f7fafc 0%, #ebf8ff 100%); padding: 2rem; border-radius: 12px;">
+      <div style="background: #fafafa; padding: 2rem; border-radius: 12px;">
         <div style="display: flex; flex-direction: column; gap: 1rem;">
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">1</div>
+            <div style="width: 40px; height: 40px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">1</div>
             <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
               <strong>데이터 업로드</strong> → CSV/Excel 파일
             </div>
           </div>
 
-          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+          <div style="width: 2px; height: 24px; background: #e5e5e5; margin-left: 19px;"></div>
 
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">2</div>
+            <div style="width: 40px; height: 40px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">2</div>
             <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
               <strong>데이터 검증</strong> → 정규성/이분산성 검정
             </div>
           </div>
 
-          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+          <div style="width: 2px; height: 24px; background: #e5e5e5; margin-left: 19px;"></div>
 
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">3</div>
+            <div style="width: 40px; height: 40px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">3</div>
             <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
               <strong>목적 입력</strong> → AI 통계 방법 추천
             </div>
           </div>
 
-          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+          <div style="width: 2px; height: 24px; background: #e5e5e5; margin-left: 19px;"></div>
 
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">4</div>
+            <div style="width: 40px; height: 40px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">4</div>
             <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
               <strong>변수 선택</strong> → 드래그앤드롭 or 드롭다운
             </div>
           </div>
 
-          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+          <div style="width: 2px; height: 24px; background: #e5e5e5; margin-left: 19px;"></div>
 
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">5</div>
+            <div style="width: 40px; height: 40px; background: #1a1a1a; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">5</div>
             <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
               <strong>분석 실행</strong> → 진행률 표시
             </div>
           </div>
 
-          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+          <div style="width: 2px; height: 24px; background: #e5e5e5; margin-left: 19px;"></div>
 
           <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">6</div>
+            <div style="width: 40px; height: 40px; background: #525252; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">6</div>
             <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
               <strong>결과 확인</strong> → 내보내기, 공유
             </div>
