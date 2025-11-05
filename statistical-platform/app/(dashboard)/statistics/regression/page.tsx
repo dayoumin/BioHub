@@ -63,10 +63,7 @@ type LogisticRegressionResults = {
 
 type RegressionResults = LinearRegressionResults | LogisticRegressionResults
 
-type RegressionVariables = {
-  dependent: string
-  independent: string[]
-}
+// 로컬 타입 제거: types/statistics.ts의 RegressionVariables 사용
 
 export default function RegressionPage() {
   // Custom hook: common state management

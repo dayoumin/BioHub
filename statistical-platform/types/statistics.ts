@@ -102,6 +102,7 @@ export interface CorrelationVariables {
 
 export interface PartialCorrelationVariables {
   all: string[] // 2개 이상 (독립변수 + 통제변수)
+  covariate?: string[] // 통제변수 (선택적)
   location?: {
     column: string
     row: string
