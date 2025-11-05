@@ -1,6 +1,7 @@
 # Step Flow 표준화 분석 및 개선 방안
 
 **작성일**: 2025-11-05
+**최종 업데이트**: 2025-11-05 (수치 정정)
 **작성자**: Claude Code
 **목적**: 통계 페이지의 다단계 UI 일관성 확보 및 표준화 방안 수립
 
@@ -14,7 +15,7 @@
 |------|------|------|
 | 통계 기능 페이지 | **41개** | statistics/page.tsx 제외 |
 | 전체 page.tsx 파일 | **42개** | statistics/page.tsx 포함 |
-| menu-config.ts 등록 메서드 | **35개** | `implemented: true` (동적 계산) |
+| menu-config.ts 등록 메서드 | **41개** | `implemented: true` (동적 계산) |
 | Steps 구현 페이지 | **41개/41개** | ✅ 100% 완료 |
 | completeAnalysis 버그 수정 | **2개** | cluster, factor-analysis (인덱스 4→3) |
 
@@ -46,8 +47,8 @@
 ```typescript
 // 현재 (statistical-platform/lib/statistics/menu-config.ts:442)
 export const STATISTICS_SUMMARY = {
-  totalMethods: getAllMenuItems().length,  // ✅ 동적 계산 (35개)
-  implementedMethods: getImplementedMenuItems().length,  // 35개
+  totalMethods: getAllMenuItems().length,  // ✅ 동적 계산 (41개)
+  implementedMethods: getImplementedMenuItems().length,  // 41개
   categories: STATISTICS_MENU.length,
   completionRate: Math.round(
     (getImplementedMenuItems().length / getAllMenuItems().length) * 100
@@ -57,20 +58,25 @@ export const STATISTICS_SUMMARY = {
 
 **현황**:
 - ✅ 하드코딩 제거 완료 (totalMethods 동적 계산)
-- ✅ 메뉴 등록 수: 35개 (모두 `implemented: true`)
-- ⚠️ 실제 페이지 수: 41개 (메뉴 미등록 6개 존재)
+- ✅ 메뉴 등록 수: 41개 (모두 `implemented: true`)
+- ✅ 실제 페이지 수: 41개 (메뉴 등록 100% 일치)
 - 📝 메뉴 완료율: 100% (등록된 메서드 기준)
-- 📝 페이지 완료율: 85% (35/41 페이지가 메뉴 등록)
+- 📝 페이지 완료율: 100% (41/41 페이지가 메뉴 등록)
 
-#### 3.2 실제 페이지와 메뉴 등록 불일치
+#### 3.2 페이지와 메뉴 등록 일치성
 
-**메뉴 미등록 페이지** (6개):
-1. `chi-square/` - Fisher 검정 (chi-square-goodness, chi-square-independence는 별도 등록)
-2. `cluster/` - 군집분석 (탐색적 데이터 분석 기능)
-3. `dose-response/` - 용량-반응 분석 (생물통계 고급 기능)
-4. `factor-analysis/` - 요인분석 (다변량 분석)
-5. `ordinal-regression/` - 순서형 회귀 (고급 회귀)
-6. `response-surface/` - 반응표면 분석 (실험설계)
+**✅ 모든 페이지 메뉴 등록 완료** (41/41):
+- 실제 페이지 수: 41개
+- menu-config.ts 등록: 41개
+- 일치율: 100%
+
+**과거 메뉴 미등록이었던 페이지** (현재는 모두 등록됨):
+1. `chi-square/` - Fisher 검정 ✅
+2. `cluster/` - 군집분석 ✅
+3. `dose-response/` - 용량-반응 분석 ✅
+4. `factor-analysis/` - 요인분석 ✅
+5. `ordinal-regression/` - 순서형 회귀 ✅
+6. `response-surface/` - 반응표면 분석 ✅
 
 ---
 
