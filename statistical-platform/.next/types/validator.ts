@@ -383,6 +383,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/test-pyodide-init">
 }
 
+// Validate ../../app/test-sw/page.tsx
+{
+  const handler = {} as typeof import("../../app/test-sw/page.js")
+  handler satisfies AppPageConfig<"/test-sw">
+}
+
 // Validate ../../app/api/rag/stream/route.ts
 {
   const handler = {} as typeof import("../../app/api/rag/stream/route.js")

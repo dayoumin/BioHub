@@ -18,7 +18,7 @@ import {
 import Link from 'next/link'
 
 // Lazy load 무거운 컴포넌트들
-const StepIndicator = lazy(() => import('@/components/common/StepIndicator').then(m => ({ default: m.StepIndicator })))
+const ProgressStepper = lazy(() => import('@/components/smart-flow/ProgressStepper').then(m => ({ default: m.ProgressStepper })))
 const DataUploadStep = lazy(() => import('@/components/smart-flow/steps/DataUploadStep').then(m => ({ default: m.DataUploadStep })))
 const DataValidationStep = lazy(() => import('@/components/smart-flow/steps/DataValidationStep').then(m => ({ default: m.DataValidationStep })))
 const PurposeInputStep = lazy(() => import('@/components/smart-flow/steps/PurposeInputStep').then(m => ({ default: m.PurposeInputStep })))
@@ -79,11 +79,10 @@ export default function SmartFlowPage() {
     canNavigateToStep
   } = useSmartFlowStore()
 
-  const handleStepClick = useCallback((stepId: string | number) => {
-    const numericStepId = typeof stepId === 'string' ? parseInt(stepId, 10) : stepId
-    if (canNavigateToStep(numericStepId)) {
+  const handleStepClick = useCallback((stepId: number) => {
+    if (canNavigateToStep(stepId)) {
       startTransition(() => {
-        navigateToStep(numericStepId)
+        navigateToStep(stepId)
       })
     }
   }, [canNavigateToStep, navigateToStep])
@@ -127,14 +126,6 @@ export default function SmartFlowPage() {
     if (!uploadedData) return null
     return DataValidationService.getDataInfo(uploadedData)
   }
-
-  // StepConfig를 Step 형식으로 변환
-  const convertedSteps = steps.map((step) => ({
-    id: step.id.toString(),
-    title: step.name,
-    description: step.description,
-    icon: step.icon,
-  }))
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -258,16 +249,13 @@ export default function SmartFlowPage() {
           </Card>
         )}
 
-        {/* Step Indicator (새로운 통합 컴포넌트) */}
+        {/* Progress Stepper */}
         <Suspense fallback={<SkeletonStepper />}>
-          <StepIndicator
-            steps={convertedSteps}
-            currentStep={currentStep - 1}
+          <ProgressStepper
+            steps={steps}
+            currentStep={currentStep}
             completedSteps={completedSteps}
-            variant="gray"
             onStepClick={handleStepClick}
-            showProgress={true}
-            showDescription={false}
           />
         </Suspense>
 
