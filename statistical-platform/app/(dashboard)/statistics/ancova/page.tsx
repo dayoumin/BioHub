@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { ANCOVAVariables } from '@/types/statistics'
+import { toANCOVAVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,7 +31,6 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -204,8 +204,8 @@ export default function ANCOVAPage() {
     'ancova'
   )
 
-  const runAnalysis = useCallback(async (variables: VariableAssignment) => {
-    if (!uploadedData || !pyodide || !variables.dependent || !variables.independent || !variables.covariates) {
+  const runAnalysis = useCallback(async (variables: ANCOVAVariables) => {
+    if (!uploadedData || !pyodide || !variables.dependent || !variables.independent?.length || !variables.covariates?.length) {
       actions.setError('분석을 실행할 수 없습니다. 종속변수, 요인, 공변량을 모두 선택해주세요.')
       return
     }
@@ -311,16 +311,21 @@ export default function ANCOVAPage() {
     }
   }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
-    (variables) => {
-      if (variables.dependent && variables.independent && variables.covariates &&
-          variables.dependent.length === 1 && variables.independent.length === 1 && variables.covariates.length >= 1) {
-        runAnalysis(variables)
-      }
-    },
-    'ancova'
-  )
+  const handleVariableSelection = useCallback((vars: VariableAssignment) => {
+    const typedVars = toANCOVAVariables(vars)
+
+    if (!actions.setSelectedVariables) {
+      console.error('[ancova] setSelectedVariables not available')
+      return
+    }
+
+    actions.setSelectedVariables(typedVars)
+
+    // 자동 분석 실행
+    if (typedVars.dependent && typedVars.independent?.length >= 1 && typedVars.covariates?.length >= 1) {
+      runAnalysis(typedVars)
+    }
+  }, [actions, runAnalysis])
 
   const getEffectSizeInterpretation = (etaSquared: number) => {
     if (etaSquared >= 0.14) return { level: '큰 효과', color: 'text-muted-foreground', bg: 'bg-muted' }

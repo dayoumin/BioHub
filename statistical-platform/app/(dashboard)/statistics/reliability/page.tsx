@@ -421,7 +421,7 @@ export default function ReliabilityAnalysisPage() {
           />
 
           {/* 분석 옵션 */}
-          {selectedVariables && selectedVariables.variables && selectedVariables.variables.length >= 2 && (
+          {selectedVariables && selectedVariables.items && selectedVariables.items.length >= 2 && (
             <div className="mt-6 p-4 border rounded-lg">
               <h4 className="font-medium mb-3">분석 옵션</h4>
               <div className="grid md:grid-cols-2 gap-4">

@@ -1,0 +1,36 @@
+# 모노크롬 색상 매핑 (Linear 스타일)
+
+# 그래디언트 → 모노크롬
+linear-gradient(135deg, #667eea 0%, #764ba2 100%) → #1a1a1a
+linear-gradient(135deg, #10b981 0%, #059669 100%) → #525252
+linear-gradient(135deg, #10b981 0%, #06b6d4 100%) → #525252
+linear-gradient(90deg, #10b981 0%, #667eea 100%) → #525252
+linear-gradient(90deg, #667eea 0%, #764ba2 100%) → #737373
+linear-gradient(135deg, #f7fafc 0%, #e2e8f0 100%) → #fafafa
+linear-gradient(135deg, #f7fafc 0%, #ebf8ff 100%) → #fafafa
+linear-gradient(135deg, #ebf8ff 0%, #f0fff4 100%) → #ffffff
+linear-gradient(135deg, #f0fff4 0%, #ebf8ff 100%) → #ffffff
+
+# 배경색
+#ebf8ff → #f5f5f5
+#f0fff4 → #f5f5f5
+#fffaf0 → #f5f5f5
+#f7fafc → #fafafa
+#cbd5e0 → #e5e5e5
+#e2e8f0 → #e5e5e5
+#2d3748 → #fafafa
+
+# 테두리
+#10b981 → #525252
+#667eea → #1a1a1a
+
+# 텍스트
+#2c5282 → #1a1a1a
+#4299e1 → #1a1a1a
+#a0aec0 → #a3a3a3
+
+# Shadow
+rgba(102, 126, 234, 0.2) → rgba(0, 0, 0, 0.05)
+rgba(102, 126, 234, 0.3) → rgba(0, 0, 0, 0.08)
+rgba(16, 185, 129, 0.2) → rgba(0, 0, 0, 0.05)
+shadow-blue-500/20 → rgba(0, 0, 0, 0.05)

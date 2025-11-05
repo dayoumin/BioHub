@@ -94,7 +94,8 @@
       "Bash(node scripts/statistics/fix-array-to-object-pattern.js:*)",
       "Bash(start:*)",
       "Bash(node scripts/statistics/fix-commented-interfaces.js:*)",
-      "Bash(node scripts/visualization/generate-component-html.js:*)"
+      "Bash(node scripts/visualization/generate-component-html.js:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

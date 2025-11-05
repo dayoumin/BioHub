@@ -113,11 +113,11 @@ export const createDataUploadHandler = (
  * const handleVariablesSelected = useCallback(handler, [actions])
  */
 export const createVariableSelectionHandler = <T = unknown>(
-  setSelectedVariables: ((mapping: T) => void) | undefined,
-  onVariablesSelected: (mapping: T) => void,
+  setSelectedVariables: ((mapping: T | null) => void) | undefined,
+  onVariablesSelected?: (mapping: T) => void,
   pageId?: string
-): ((mapping: T) => void) => {
-  return (mapping: T) => {
+): ((mapping: unknown) => void) => {
+  return (mapping: unknown) => {
     if (!mapping || typeof mapping !== 'object') {
       console.warn(`[${pageId || 'statistics-page'}] Invalid variable mapping`, mapping)
       return
@@ -128,8 +128,11 @@ export const createVariableSelectionHandler = <T = unknown>(
       return
     }
 
-    setSelectedVariables(mapping)
-    onVariablesSelected(mapping)
+    // VariableAssignment → specific type conversion
+    setSelectedVariables(mapping as T)
+    if (onVariablesSelected) {
+      onVariablesSelected(mapping as T)
+    }
   }
 }
 

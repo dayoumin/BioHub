@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import type { NormalityTestVariables } from '@/types/statistics'
+import { toNormalityTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -18,7 +19,7 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
@@ -477,8 +478,9 @@ export default function NormalityTestPage() {
                 methodId="normality-test"
                 data={uploadedData.data}
                 onVariablesSelected={(variables: VariableAssignment) => {
-                  actions.setSelectedVariables?.(variables)
-                  if (Object.keys(variables).length > 0) {
+                  const typedVars = toNormalityTestVariables(variables)
+                  actions.setSelectedVariables?.(typedVars)
+                  if (typedVars.all && typedVars.all.length > 0) {
                     actions.setCurrentStep(2)
                   }
                 }}

@@ -120,7 +120,8 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
 
   const handleAnalysis = useCallback(async (variables: VariableAssignment) => {
     const typedVariables: ResponseSurfaceVariables = {
-      dependent: Array.isArray(variables.dependent) ? variables.dependent : [variables.dependent as string],
+      dependent: Array.isArray(variables.dependent) ? variables.dependent[0] : variables.dependent as string,
+      independent: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string],
       factor: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string]
     }
     if (!uploadedData) {
@@ -137,7 +138,7 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
       return
     }
 
-    if (!typedVariables.dependent || typedVariables.dependent.length === 0) {
+    if (!typedVariables.dependent) {
       if (actions.setError) {
         actions.setError('반응변수를 선택해주세요.')
       }
@@ -151,10 +152,10 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
     try {
       const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'pandas', 'scipy'])
 
-      const predictorData = typedVariables.factor.map(factorName => {
+      const predictorData = (typedVariables.factor || typedVariables.independent).map((factorName: string) => {
         return uploadedData.data.map(row => row[factorName])
       })
-      const responseData = uploadedData.data.map(row => row[typedVariables.dependent[0]])
+      const responseData = uploadedData.data.map(row => row[typedVariables.dependent])
 
       const pythonCode = `
 import numpy as np

@@ -203,7 +203,7 @@ export default function ANOVAPage() {
     'anova'
   )
 
-  const handleVariableSelection = createVariableSelectionHandler<SelectedVariables>(
+  const handleVariableSelection = createVariableSelectionHandler<ANOVAVariables>(
     actions.setSelectedVariables,
     (variables) => {
       // 자동으로 분석 실행

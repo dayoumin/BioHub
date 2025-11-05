@@ -202,14 +202,15 @@ export default function RunsTestPage() {
     return prob
   }, [])
 
-  const runAnalysis = useCallback(async (variables: string[]) => {
-    if (!uploadedData || variables.length === 0) return
+  const runAnalysis = useCallback(async (variables: RunsTestVariables | string[]) => {
+    const varName = typeof variables === 'string' ? variables : Array.isArray(variables) ? variables[0] : variables.data
+    if (!uploadedData || !varName) return
 
     actions.startAnalysis()
 
     try {
       // 실제 계산 사용
-      const result = calculateRunsTest(uploadedData.data, variables[0])
+      const result = calculateRunsTest(uploadedData.data, varName)
 
       if (!actions.completeAnalysis) {
         console.error('[runs-test] completeAnalysis not available')
@@ -234,17 +235,18 @@ export default function RunsTestPage() {
 
     // Extract variable names from the selection object
     const variableSelection = variables as { variables: string[] }
-    const selectedVars = variableSelection.variables || []
+    const selectedVar = variableSelection.variables?.[0] || ''
 
     if (!actions.setSelectedVariables) {
       console.error('[runs-test] setSelectedVariables not available')
       return
     }
 
-    actions.setSelectedVariables(selectedVars)
+    const typedVariables: RunsTestVariables = { data: selectedVar }
+    actions.setSelectedVariables(typedVariables)
 
     // 자동으로 분석 실행
-    runAnalysis(selectedVars)
+    runAnalysis(typedVariables)
   }, [runAnalysis, actions])
 
   const renderMethodIntroduction = () => (

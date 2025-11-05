@@ -73,9 +73,7 @@ interface VariableSelectorProps {
   className?: string
 }
 
-export interface VariableAssignment {
-  [role: string]: string | string[]
-}
+export type { VariableAssignment } from '@/types/statistics-converters'
 
 // 통계 분석별 시각적 가이드
 const METHOD_VISUAL_GUIDES = {

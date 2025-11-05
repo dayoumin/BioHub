@@ -231,6 +231,7 @@ export interface DiscriminantVariables {
 export interface ResponseSurfaceVariables {
   dependent: string // 1개
   independent: string[] // 2개 이상
+  factor?: string[] // 예측변수 (independent와 동일, 호환성)
 }
 
 export interface DoseResponseVariables {

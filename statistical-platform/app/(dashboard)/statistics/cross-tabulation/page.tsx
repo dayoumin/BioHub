@@ -261,7 +261,7 @@ export default function CrossTabulationPage() {
   )
 
   // 변수 선택 핸들러
-  const handleVariablesSelected = createVariableSelectionHandler<SelectedVariables>(
+  const handleVariablesSelected = createVariableSelectionHandler<CrossTabulationVariables>(
     actions.setSelectedVariables,
     () => {
       actions.setCurrentStep(2)
