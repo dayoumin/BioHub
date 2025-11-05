@@ -212,7 +212,7 @@ export default function ANOVAPage() {
     'anova'
   )
 
-  const handleAnalysis = useCallback(async (_variables: SelectedVariables) => {
+  const handleAnalysis = useCallback(async (_variables: ANOVAVariables) => {
     try {
       actions.startAnalysis()
 
@@ -420,7 +420,7 @@ export default function ANOVAPage() {
           methodId={methodId}
           data={uploadedData.data}
           onVariablesSelected={(variables) => {
-            const selectedVars: SelectedVariables = {
+            const selectedVars: ANOVAVariables = {
               dependent: (variables.dependent as string) || '',
               independent: Array.isArray(variables.independent)
                 ? variables.independent as string[]

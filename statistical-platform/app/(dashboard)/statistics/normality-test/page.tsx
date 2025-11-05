@@ -55,10 +55,7 @@ interface NormalityResults {
   }
 }
 
-interface NormalityTestVariables {
-  variable?: string | string[]
-  [key: string]: string | string[] | undefined
-}
+// 로컬 인터페이스 제거: types/statistics.ts의 NormalityTestVariables 사용
 
 export default function NormalityTestPage() {
   const { state, actions } = useStatisticsPage<NormalityResults, NormalityTestVariables>({

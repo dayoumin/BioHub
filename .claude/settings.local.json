@@ -90,7 +90,10 @@
       "Bash(node scripts/statistics/analyze-step-patterns.js:*)",
       "Bash(node scripts/statistics/analyze-variable-requirements.js:*)",
       "Bash(node scripts/statistics/analyze-actual-usage-patterns.js:*)",
-      "Bash(node scripts/statistics/standardize-variable-types.js:*)"
+      "Bash(node scripts/statistics/standardize-variable-types.js:*)",
+      "Bash(node scripts/statistics/fix-array-to-object-pattern.js:*)",
+      "Bash(start:*)",
+      "Bash(node scripts/statistics/fix-commented-interfaces.js:*)"
     ],
     "deny": [],
     "ask": []

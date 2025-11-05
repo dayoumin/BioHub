@@ -99,7 +99,7 @@ export default function MeansPlotPage() {
     // Step 변경은 DataUploadStep의 onNext에서 처리 (중복 방지)
   }, [actions])
 
-  const runMeansPlotAnalysis = useCallback(async (variables: SelectedVariables) => {
+  const runMeansPlotAnalysis = useCallback(async (variables: MeansPlotVariables) => {
     if (!uploadedData) return
 
     try {
@@ -205,9 +205,9 @@ json.dumps(results)
   const handleVariablesSelected = useCallback((variables: unknown) => {
     if (!variables || typeof variables !== 'object') return
 
-    actions.setSelectedVariables?.(variables as SelectedVariables)
+    actions.setSelectedVariables?.(variables as MeansPlotVariables)
     actions.setCurrentStep?.(4)
-    runMeansPlotAnalysis(variables as SelectedVariables)
+    runMeansPlotAnalysis(variables as MeansPlotVariables)
   }, [actions, runMeansPlotAnalysis])
 
   const renderMethodIntroduction = () => (

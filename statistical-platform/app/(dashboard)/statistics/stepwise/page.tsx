@@ -145,13 +145,13 @@ export default function StepwiseRegressionPage() {
     }
 
     if (typeof variables === 'object' && variables !== null) {
-      actions.setSelectedVariables(variables as SelectedVariables)
+      actions.setSelectedVariables(variables as StepwiseVariables)
       actions.setCurrentStep(4)
-      runStepwiseAnalysis(variables as SelectedVariables)
+      runStepwiseAnalysis(variables as StepwiseVariables)
     }
   }, [actions])
 
-  const runStepwiseAnalysis = useCallback(async (variables: SelectedVariables) => {
+  const runStepwiseAnalysis = useCallback(async (variables: StepwiseVariables) => {
     actions.startAnalysis()
 
     try {

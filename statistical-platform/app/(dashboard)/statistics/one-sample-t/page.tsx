@@ -59,10 +59,7 @@ interface OneSampleTResults {
   }
 }
 
-interface OneSampleTVariables {
-  variable?: string | string[]
-  [key: string]: string | string[] | undefined
-}
+// 로컬 인터페이스 제거: types/statistics.ts의 OneSampleTVariables 사용
 
 export default function OneSampleTPage() {
   const { state, actions } = useStatisticsPage<OneSampleTResults, OneSampleTVariables>({

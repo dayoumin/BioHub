@@ -151,7 +151,7 @@ export default function ChiSquareGoodnessPage() {
   const handleVariableSelection = useCallback(
     (variables: Record<string, string | string[]>) => {
       // Convert to SelectedVariables type
-      const selectedVars: SelectedVariables = {
+      const selectedVars: ChiSquareGoodnessVariables = {
         dependent: Array.isArray(variables.dependent)
           ? variables.dependent as string[]
           : variables.dependent

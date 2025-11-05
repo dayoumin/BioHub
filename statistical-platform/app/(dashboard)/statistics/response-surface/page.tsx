@@ -119,7 +119,7 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
   const [result, setResult] = useState<ResponseSurfaceResult | null>(null)
 
   const handleAnalysis = useCallback(async (variables: VariableAssignment) => {
-    const typedVariables: SelectedVariables = {
+    const typedVariables: ResponseSurfaceVariables = {
       dependent: Array.isArray(variables.dependent) ? variables.dependent : [variables.dependent as string],
       factor: Array.isArray(variables.factor) ? variables.factor : [variables.factor as string]
     }
