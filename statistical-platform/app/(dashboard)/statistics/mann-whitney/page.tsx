@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import type { MannWhitneyVariables } from '@/types/statistics'
+import { toMannWhitneyVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,7 +31,6 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -146,18 +146,18 @@ export default function MannWhitneyPage() {
     'mann-whitney'
   )
 
-  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
+  const handleVariableSelection = createVariableSelectionHandler<MannWhitneyVariables>(
+    (vars) => actions.setSelectedVariables?.(vars ? toMannWhitneyVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
-      if (variables.dependent && variables.independent && variables.dependent.length === 1 && variables.independent.length === 1) {
+      if (variables.dependent && variables.groups && variables.groups.length >= 1) {
         runAnalysis(variables)
       }
     },
     'mann-whitney'
   )
 
-  const runAnalysis = async (variables: VariableAssignment) => {
-    if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.independent) {
+  const runAnalysis = async (variables: MannWhitneyVariables) => {
+    if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.groups || variables.groups.length === 0) {
       actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
@@ -166,8 +166,8 @@ export default function MannWhitneyPage() {
 
     try {
       const data = uploadedData.data as DataRow[]
-      const dependentVar = variables.dependent[0]
-      const groupVar = variables.independent[0]
+      const dependentVar = variables.dependent
+      const groupVar = variables.groups[0]
 
       // 그룹별로 데이터 분리
       const groups = new Map<string | number, number[]>()

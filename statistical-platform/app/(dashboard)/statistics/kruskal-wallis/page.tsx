@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { KruskalWallisVariables } from '@/types/statistics'
+import { toKruskalWallisVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +30,6 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -158,19 +158,18 @@ export default function KruskalWallisPage() {
     'kruskal-wallis'
   )
 
-  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
+  const handleVariableSelection = createVariableSelectionHandler<KruskalWallisVariables>(
+    (vars) => actions.setSelectedVariables?.(vars ? toKruskalWallisVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
-      if (variables.dependent && variables.independent &&
-          variables.dependent.length === 1 && variables.independent.length === 1) {
+      if (variables.dependent && variables.groups && variables.groups.length >= 1) {
         void runAnalysis(variables)
       }
     },
     'kruskal-wallis'
   )
 
-  const runAnalysis = async (variables: VariableAssignment) => {
-    if (!uploadedData || !pyodide || !variables.dependent || !variables.independent) {
+  const runAnalysis = async (variables: KruskalWallisVariables) => {
+    if (!uploadedData || !pyodide || !variables.dependent || !variables.groups || variables.groups.length === 0) {
       actions.setError?.('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
@@ -178,8 +177,8 @@ export default function KruskalWallisPage() {
     actions.startAnalysis?.()
 
     try {
-      const valueColumn = variables.dependent[0]
-      const groupColumn = variables.independent[0]
+      const valueColumn = variables.dependent
+      const groupColumn = variables.groups[0]
 
       // 그룹별 데이터 추출
       const groups: Record<string, number[]> = {}

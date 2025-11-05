@@ -95,7 +95,10 @@
       "Bash(start:*)",
       "Bash(node scripts/statistics/fix-commented-interfaces.js:*)",
       "Bash(node scripts/visualization/generate-component-html.js:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(node scripts/statistics/fix-remaining-handlers.js:*)",
+      "Bash(node scripts/statistics/analyze-field-naming-consistency.js:*)",
+      "Bash(node scripts/statistics/fix-type-casting.js:*)"
     ],
     "deny": [],
     "ask": []

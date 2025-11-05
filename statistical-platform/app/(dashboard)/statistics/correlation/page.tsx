@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import type { CorrelationVariables } from '@/types/statistics'
+import { toCorrelationVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,10 +38,11 @@ interface UploadedData {
   columns: string[]
 }
 
-interface VariableSelection {
-  variables: string[]
-  controlVariables?: string[]
-}
+// 로컬 인터페이스 제거: types/statistics.ts의 CorrelationVariables 사용
+// interface VariableSelection {
+//   variables: string[]
+//   controlVariables?: string[]
+// }
 
 interface CorrelationResult {
   var1: string
@@ -198,7 +200,7 @@ export default function CorrelationPage() {
     actions.setCurrentStep?.(2)
   }, [actions])
 
-  const handleAnalysis = useCallback(async (_variables: VariableSelection) => {
+  const handleAnalysis = useCallback(async (_variables: CorrelationVariables) => {
     try {
       actions.startAnalysis?.()
 
@@ -307,7 +309,7 @@ export default function CorrelationPage() {
     }
   }, [actions, correlationType])
 
-  const handleVariableSelection = useCallback((variables: VariableSelection) => {
+  const handleVariableSelection = useCallback((variables: CorrelationVariables) => {
     actions.setSelectedVariables?.(variables)
     // 자동으로 분석 실행
     void handleAnalysis(variables)
@@ -429,11 +431,9 @@ export default function CorrelationPage() {
         <VariableSelector
           methodId="correlation"
           data={uploadedData.data}
-          onVariablesSelected={(variables) => {
-            handleVariableSelection({
-              variables: Array.isArray(variables.independent) ? variables.independent as string[] : [variables.independent as string],
-              controlVariables: variables.controlVariables ? (Array.isArray(variables.controlVariables) ? variables.controlVariables as string[] : [variables.controlVariables as string]) : undefined
-            })
+          onVariablesSelected={(variables: VariableAssignment) => {
+            const typedVars = toCorrelationVariables(variables)
+            handleVariableSelection(typedVars)
           }}
         />
       </StepCard>

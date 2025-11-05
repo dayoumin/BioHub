@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import type { WilcoxonVariables } from '@/types/statistics'
+import { toWilcoxonVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +32,6 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 // Services & Types
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
@@ -154,7 +154,7 @@ export default function WilcoxonPage() {
     'wilcoxon'
   )
 
-  const runAnalysis = useCallback(async (variables: VariableAssignment) => {
+  const runAnalysis = useCallback(async (variables: WilcoxonVariables) => {
     if (!uploadedData || !variables.dependent || variables.dependent.length !== 2) {
       actions.setError('분석을 실행할 수 없습니다. 사전-사후 두 변수를 선택해주세요.')
       return
@@ -197,8 +197,8 @@ export default function WilcoxonPage() {
     }
   }, [uploadedData, actions])
 
-  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
+  const handleVariableSelection = createVariableSelectionHandler<WilcoxonVariables>(
+    (vars) => actions.setSelectedVariables?.(vars ? toWilcoxonVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
       if (variables.dependent && variables.dependent.length === 2) {
         runAnalysis(variables)

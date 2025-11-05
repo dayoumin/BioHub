@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import type { PCAVariables } from '@/types/statistics'
+import { toPCAVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -35,14 +36,10 @@ interface UploadedData {
   fileName: string
   columns: string[]
 }
-
-interface VariableAssignment {
-  [role: string]: string | string[]
-}
-
-interface VariableSelection {
-  variables: string[]
-}
+// 로컬 인터페이스 제거: types/statistics.ts의 PCAVariables 사용
+// interface VariableSelection {
+//   variables: string[]
+// }
 
 // PCA 관련 타입 정의
 interface PCAComponent {
@@ -342,7 +339,7 @@ export default function PCAPage() {
     }
   }, [calculateCovarianceMatrix, calculateEigenDecomposition, calculateKMO])
 
-  const runAnalysis = useCallback(async (variables: VariableSelection) => {
+  const runAnalysis = useCallback(async (variables: PCAVariables) => {
     if (!uploadedData) return
 
     if (!actions.startAnalysis) {
@@ -353,7 +350,7 @@ export default function PCAPage() {
     actions.startAnalysis()
 
     try {
-      const result = calculatePCA(uploadedData.data, variables.variables)
+      const result = calculatePCA(uploadedData.data, variables.all)
 
       if (!actions.completeAnalysis) {
         console.error('[pca] completeAnalysis not available')
@@ -379,10 +376,8 @@ export default function PCAPage() {
       return
     }
 
-    // Convert VariableAssignment to VariableSelection
-    const variables: VariableSelection = {
-      variables: assignment.variables as string[]
-    }
+    // Convert VariableAssignment to PCAVariables
+    const variables = toPCAVariables(assignment)
 
     actions.setSelectedVariables(variables)
     runAnalysis(variables)

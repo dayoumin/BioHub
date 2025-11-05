@@ -167,7 +167,7 @@ export interface KruskalWallisVariables {
 }
 
 export interface WilcoxonVariables {
-  dependent: string // 1개
+  dependent: string[] // 2개 (paired samples)
 }
 
 export interface FriedmanVariables {
@@ -189,7 +189,7 @@ export interface NormalityTestVariables {
 }
 
 export interface KSTestVariables {
-  data: string // 1개
+  variables: string[] // 1-2개 (1-sample or 2-sample KS test)
 }
 
 // power-analysis는 직접 입력이므로 변수 선택 없음

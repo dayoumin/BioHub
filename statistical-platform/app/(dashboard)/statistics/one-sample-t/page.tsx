@@ -392,7 +392,7 @@ export default function OneSampleTPage() {
                 onVariablesSelected={createVariableSelectionHandler(
                   actions.setSelectedVariables,
                   (variables) => {
-                    if (Object.keys(variables as Record<string, unknown>).length > 0) {
+                    if (Object.keys(variables as unknown as Record<string, unknown>).length > 0) {
                       actions.setCurrentStep?.(1)
                     }
                   },

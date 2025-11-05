@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import type { KSTestVariables } from '@/types/statistics'
+import { toKSTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,9 +35,10 @@ interface UploadedData {
   columns: string[]
 }
 
-interface VariableSelection {
-  variables: string[]
-}
+// 로컬 인터페이스 제거: types/statistics.ts의 KSTestVariables 사용
+// interface VariableSelection {
+//   variables: string[]
+// }
 
 // K-S 검정 타입 정의
 interface KSTestResult {
@@ -277,7 +279,7 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
     }
   }, [calculateOneSampleKS, calculateTwoSampleKS])
 
-  const runAnalysis = useCallback(async (variables: VariableSelection) => {
+  const runAnalysis = useCallback(async (variables: KSTestVariables) => {
     if (!uploadedData) return
 
     try {
@@ -297,7 +299,7 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
     }
   }, [uploadedData, calculateKSTest, actions])
 
-  const handleVariableSelection = useCallback((variables: VariableSelection) => {
+  const handleVariableSelection = useCallback((variables: KSTestVariables) => {
     actions.setSelectedVariables?.(variables)
     runAnalysis(variables)
   }, [runAnalysis, actions])

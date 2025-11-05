@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { FriedmanVariables } from '@/types/statistics'
+import { toFriedmanVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +32,6 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
@@ -158,16 +158,14 @@ export default function FriedmanPage() {
     'friedman'
   )
 
-  const runAnalysis = useCallback(async (variables: VariableAssignment) => {
+  const runAnalysis = useCallback(async (variables: FriedmanVariables) => {
     if (!uploadedData || !pyodide || !variables.dependent) {
       actions.setError?.('분석을 실행할 수 없습니다.')
       return
     }
 
-    // Handle both string and string[] types for dependent
-    const dependentVars = Array.isArray(variables.dependent)
-      ? variables.dependent
-      : [variables.dependent]
+    // dependent is string (single)
+    const dependentVars = variables.conditions || []
 
     if (dependentVars.length < 3) {
       actions.setError?.('최소 3개 이상의 조건 변수가 필요합니다.')
@@ -268,8 +266,8 @@ export default function FriedmanPage() {
     }
   }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
+  const handleVariableSelection = createVariableSelectionHandler<FriedmanVariables>(
+    (vars) => actions.setSelectedVariables?.(vars ? toFriedmanVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
       // Handle both string and string[] types
       const dependentCount = Array.isArray(variables.dependent)

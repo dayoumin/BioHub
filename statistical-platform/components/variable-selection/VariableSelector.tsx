@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import type { VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -200,7 +201,7 @@ export function VariableSelector({
 
   // 변수 할당
   const assignVariable = useCallback((role: string, variable: string, isMultiple: boolean = false) => {
-    setAssignments(prev => {
+    setAssignments((prev: VariableAssignment) => {
       const newAssignments = { ...prev }
       if (isMultiple) {
         const current = prev[role] || []

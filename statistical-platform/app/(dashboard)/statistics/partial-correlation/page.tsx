@@ -2,10 +2,10 @@
 
 import { useCallback } from 'react'
 import type { PartialCorrelationVariables } from '@/types/statistics'
+import { toPartialCorrelationVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -233,12 +233,12 @@ json.dumps(results)
   )
 
   const handleVariablesSelected = useCallback(
-    createVariableSelectionHandler<VariableAssignment>(
-      actions?.setSelectedVariables,
+    createVariableSelectionHandler<PartialCorrelationVariables>(
+      (vars) => actions?.setSelectedVariables?.(vars ? toPartialCorrelationVariables(vars as unknown as VariableAssignment) : null),
       (variables) => {
         if (!actions) return
         actions.setCurrentStep(3)
-        runPartialCorrelationAnalysis(variables)
+        runPartialCorrelationAnalysis(variables as unknown as VariableAssignment)
       },
       'partial-correlation'
     ),

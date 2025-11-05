@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { MixedModelVariables } from '@/types/statistics'
+import { toMixedModelVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +32,6 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
@@ -369,12 +369,11 @@ export default function MixedModelPage() {
   }, [uploadedData, pyodide, actions])
 
   const handleVariableSelection = useCallback(
-    createVariableSelectionHandler<VariableAssignment>(
-      actions?.setSelectedVariables,
+    createVariableSelectionHandler<MixedModelVariables>(
+      (vars) => actions?.setSelectedVariables?.(vars ? toMixedModelVariables(vars as unknown as VariableAssignment) : null),
       (variables) => {
-        if (variables?.dependent && variables?.independent &&
-            variables.dependent.length === 1 && variables.independent.length >= 1) {
-          runAnalysis(variables)
+        if (variables?.dependent && variables?.independent && variables.independent.length >= 1) {
+          runAnalysis(variables as unknown as VariableAssignment)
         }
       },
       'mixed-model'

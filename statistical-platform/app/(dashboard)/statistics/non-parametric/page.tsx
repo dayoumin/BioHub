@@ -2,6 +2,7 @@
 
 import React from 'react'
 import type { NonParametricVariables } from '@/types/statistics'
+import { toNonParametricVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -187,7 +188,8 @@ export default function NonParametricTestPage() {
       return
     }
 
-    actions.setSelectedVariables(variables as VariableMapping)
+    const typedVars = toNonParametricVariables(variables as VariableAssignment)
+    actions.setSelectedVariables(typedVars as any)
     actions.setCurrentStep?.(2)
     setActiveTab('setup')  // ✅ 'analysis' → 'setup' (정의된 탭으로 유지)
   }, [actions])

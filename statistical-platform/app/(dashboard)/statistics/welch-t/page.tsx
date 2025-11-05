@@ -193,7 +193,7 @@ export default function WelchTPage() {
   const handleVariablesSelected = createVariableSelectionHandler(
     actions.setSelectedVariables,
     (mapping) => {
-      if (Object.keys(mapping as VariableMapping).length >= 2) {
+      if (Object.keys(mapping as unknown as VariableMapping).length >= 2) {
         actions.setCurrentStep(1)
       }
     },

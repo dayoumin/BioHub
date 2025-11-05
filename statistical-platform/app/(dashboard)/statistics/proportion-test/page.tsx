@@ -159,7 +159,7 @@ export default function ProportionTestPage() {
   const handleVariablesSelected = createVariableSelectionHandler(
     actions.setSelectedVariables,
     (mapping) => {
-      if (Object.keys(mapping as VariableMapping).length > 0) {
+      if (Object.keys(mapping as unknown as VariableMapping).length > 0) {
         actions.setCurrentStep(1)
       }
     },

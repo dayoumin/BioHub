@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import type { ReliabilityVariables } from '@/types/statistics'
+import { toReliabilityVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,7 +33,6 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 
@@ -175,8 +175,9 @@ export default function ReliabilityAnalysisPage() {
   }, [actions])
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
-    actions.setSelectedVariables?.(variables)
-    if (variables.variables && variables.variables.length >= 2) {
+    const typedVars = toReliabilityVariables(variables)
+    actions.setSelectedVariables?.(typedVars)
+    if (typedVars.items && typedVars.items.length >= 2) {
       runAnalysis(variables)
     }
   }, [actions])

@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { ChiSquareIndependenceVariables } from '@/types/statistics'
+import { toChiSquareIndependenceVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,7 +31,6 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -181,8 +181,8 @@ export default function ChiSquareIndependencePage() {
     [actions]
   )
 
-  const runAnalysis = useCallback(async (variables: VariableAssignment) => {
-    if (!uploadedData || !pyodide || !variables.independent || !variables.dependent) {
+  const runAnalysis = useCallback(async (variables: ChiSquareIndependenceVariables) => {
+    if (!uploadedData || !pyodide || !variables.row || !variables.column) {
       actions.setError('분석을 실행할 수 없습니다. 두 개의 범주형 변수를 선택해주세요.')
       return
     }
@@ -191,8 +191,8 @@ export default function ChiSquareIndependencePage() {
 
     try {
       // Convert DataRow[] to contingency table (number[][])
-      const rowVar = variables.dependent[0]
-      const colVar = variables.independent[0]
+      const rowVar = variables.row
+      const colVar = variables.column
 
       // Get unique values for each variable
       const rowValues = [...new Set(uploadedData.data.map(row => String(row[rowVar])))]
@@ -304,11 +304,10 @@ export default function ChiSquareIndependencePage() {
   }, [uploadedData, pyodide, actions])
 
   const handleVariableSelection = useCallback(
-    createVariableSelectionHandler<VariableAssignment>(
-      actions.setSelectedVariables,
+    createVariableSelectionHandler<ChiSquareIndependenceVariables>(
+    (vars) => actions.setSelectedVariables?.(vars ? toChiSquareIndependenceVariables(vars as unknown as VariableAssignment) : null),
       (variables) => {
-        if (variables.independent && variables.dependent &&
-            variables.independent.length === 1 && variables.dependent.length === 1) {
+        if (variables.row && variables.column) {
           runAnalysis(variables)
         }
       },

@@ -116,7 +116,7 @@ export function toKruskalWallisVariables(vars: VariableAssignment): KruskalWalli
 
 export function toKSTestVariables(vars: VariableAssignment): KSTestVariables {
   return {
-    data: toSingleString(vars.data || vars.variable)
+    variables: toStringArray(vars.variables || vars.data || vars.variable)
   }
 }
 
@@ -216,7 +216,7 @@ export function toWelchTVariables(vars: VariableAssignment): WelchTVariables {
 
 export function toWilcoxonVariables(vars: VariableAssignment): WilcoxonVariables {
   return {
-    dependent: toSingleString(vars.dependent || vars.variable)
+    dependent: toStringArray(vars.dependent || vars.variable || vars.variables)
   }
 }
 

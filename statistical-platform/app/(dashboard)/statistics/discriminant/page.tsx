@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import type { DiscriminantVariables } from '@/types/statistics'
+import { toDiscriminantVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,10 +30,11 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
 // 데이터 인터페이스
-interface VariableSelection {
-  dependentVariable: string
-  independentVariables: string[]
-}
+// 로컬 인터페이스 제거: types/statistics.ts의 DiscriminantVariables 사용
+// interface VariableSelection {
+//   dependentVariable: string
+//   independentVariables: string[]
+// }
 
 // 판별분석 관련 타입 정의
 interface DiscriminantFunction {
@@ -341,7 +343,7 @@ export default function DiscriminantPage() {
     }
   }, [calculateGroupMeans, calculateMean])
 
-  const runAnalysis = useCallback(async (variables: VariableSelection) => {
+  const runAnalysis = useCallback(async (variables: DiscriminantVariables) => {
     if (!uploadedData) return
 
     actions.startAnalysis()
@@ -349,8 +351,8 @@ export default function DiscriminantPage() {
     try {
       const result = calculateDiscriminantAnalysis(
         uploadedData.data,
-        variables.dependentVariable,
-        variables.independentVariables
+        variables.dependent,
+        variables.independent
       )
       actions.completeAnalysis(result, 3)
     } catch (error) {
@@ -359,8 +361,8 @@ export default function DiscriminantPage() {
     }
   }, [uploadedData, calculateDiscriminantAnalysis, actions])
 
-  const handleVariableSelection = useCallback((variables: unknown) => {
-    const typedVariables = variables as VariableSelection
+  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
+    const typedVariables = toDiscriminantVariables(variables)
 
     if (!actions.setSelectedVariables) {
       console.error('[discriminant] setSelectedVariables not available')

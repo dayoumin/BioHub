@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { MANOVAVariables } from '@/types/statistics'
+import { toMANOVAVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,7 +33,6 @@ import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-pag
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
@@ -242,7 +242,7 @@ export default function ManovaPage() {
     'manova'
   )
 
-  const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
+  const runAnalysis = useCallback(async (_variables: MANOVAVariables) => {
     if (!pyodide || !uploadedData) {
       actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
       return
@@ -370,8 +370,8 @@ export default function ManovaPage() {
     }
   }, [uploadedData, pyodide, actions])
 
-  const handleVariableSelection = createVariableSelectionHandler<VariableAssignment>(
-    actions.setSelectedVariables,
+  const handleVariableSelection = createVariableSelectionHandler<MANOVAVariables>(
+    (vars) => actions.setSelectedVariables?.(vars ? toMANOVAVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
       if (variables.dependent && variables.independent &&
           variables.dependent.length >= 2 && variables.independent.length >= 1) {

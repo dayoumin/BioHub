@@ -2,6 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react'
 import type { ChiSquareGoodnessVariables } from '@/types/statistics'
+import type { VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -149,7 +150,7 @@ export default function ChiSquareGoodnessPage() {
   )
 
   const handleVariableSelection = useCallback(
-    (variables: Record<string, string | string[]>) => {
+    (variables: VariableAssignment) => {
       // Convert to SelectedVariables type
       const selectedVars: ChiSquareGoodnessVariables = {
         dependent: Array.isArray(variables.dependent)
