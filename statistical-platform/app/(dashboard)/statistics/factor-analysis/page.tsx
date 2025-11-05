@@ -344,7 +344,7 @@ export default function FactorAnalysisPage() {
         throw new Error('확인적 요인분석(CFA)은 추후 구현 예정입니다.')
       }
 
-      actions.completeAnalysis(result, 4)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }

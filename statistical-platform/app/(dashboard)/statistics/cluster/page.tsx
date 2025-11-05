@@ -387,7 +387,7 @@ export default function ClusterAnalysisPage() {
         result.optimalK = { ...optimal, gap: optimal.elbow }
       }
 
-      actions.completeAnalysis(result, 4)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }

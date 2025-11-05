@@ -287,7 +287,7 @@ export function StatisticsPageLayout({
                 )}
                 {currentStep === 2 && variableSelectionStep}
                 {currentStep === 3 && variableSelectionStep}
-                {currentStep === 4 && resultsStep}
+                {steps && currentStep === steps.length - 1 && resultsStep}
               </>
             ) : (
               children
