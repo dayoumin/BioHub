@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useMemo, useState } from 'react'
+import type { ChiSquareGoodnessVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,10 +44,11 @@ interface UploadedData {
   columns: string[]
 }
 
-interface SelectedVariables {
-  dependent: string[]
-  [key: string]: string | string[] | undefined
-}
+// interface SelectedVariables {
+//   dependent: string[]
+//   [key: string]: string | string[] | undefined
+// }
+// → types/statistics.ts의 ChiSquareGoodnessVariables 사용
 
 interface CategoryData {
   category: string
@@ -77,7 +79,7 @@ interface ChiSquareGoodnessResult {
 
 export default function ChiSquareGoodnessPage() {
   // State management with useStatisticsPage hook
-  const { state, actions } = useStatisticsPage<ChiSquareGoodnessResult, SelectedVariables>({
+  const { state, actions } = useStatisticsPage<ChiSquareGoodnessResult, ChiSquareGoodnessVariables>({
     withUploadedData: true,
     withError: true
   })

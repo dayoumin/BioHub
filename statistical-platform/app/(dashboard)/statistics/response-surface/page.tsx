@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { ResponseSurfaceVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -57,10 +58,11 @@ interface ResponseSurfaceResult {
   }
 }
 
-interface SelectedVariables {
-  dependent: string[]
-  factor: string[]
-}
+// interface SelectedVariables {
+//   dependent: string[]
+//   factor: string[]
+// }
+// → types/statistics.ts의 ResponseSurfaceVariables 사용
 
 interface UploadedData {
   data: Record<string, unknown>[]
@@ -616,7 +618,7 @@ anova_table = {
 }
 
 export default function ResponseSurfacePage() {
-  const { state, actions } = useStatisticsPage<ResponseSurfaceResult, SelectedVariables>({
+  const { state, actions } = useStatisticsPage<ResponseSurfaceResult, ResponseSurfaceVariables>({
     withUploadedData: true,
     withError: true
   })

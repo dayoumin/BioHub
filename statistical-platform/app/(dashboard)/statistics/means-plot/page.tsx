@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import type { MeansPlotVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
@@ -19,11 +20,12 @@ import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, BarChart3, Target } from 'lucide-react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ErrorBar, LineChart, Line } from 'recharts'
 
-interface SelectedVariables {
-  dependent: string[]
-  factor: string[]
-  covariate?: string[]
-}
+// interface SelectedVariables {
+//   dependent: string[]
+//   factor: string[]
+//   covariate?: string[]
+// }
+// → types/statistics.ts의 MeansPlotVariables 사용
 
 interface MeansPlotResults {
   descriptives: {
@@ -51,7 +53,7 @@ interface MeansPlotResults {
 
 export default function MeansPlotPage() {
   // Hook for state management (Pattern A)
-  const { state, actions } = useStatisticsPage<MeansPlotResults, SelectedVariables>({
+  const { state, actions } = useStatisticsPage<MeansPlotResults, MeansPlotVariables>({
     withUploadedData: true,
     withError: true
   })

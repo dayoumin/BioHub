@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { PCAVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -77,7 +78,7 @@ interface PCAResult {
 
 export default function PCAPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<PCAResult, VariableSelection>({
+  const { state, actions } = useStatisticsPage<PCAResult, PCAVariables>({
     withUploadedData: true,
     withError: true
   })

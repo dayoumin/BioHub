@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import type { MixedModelVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -115,7 +116,7 @@ interface MixedModelResult {
 
 export default function MixedModelPage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<MixedModelResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<MixedModelResult, MixedModelVariables>({
     withUploadedData: true,
     withError: true
   })

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import type { FriedmanVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -81,7 +82,7 @@ interface FriedmanResult {
 
 export default function FriedmanPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<FriedmanResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<FriedmanResult, FriedmanVariables>({
     withUploadedData: true,
     withError: true
   })

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import type { WilcoxonVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -89,7 +90,7 @@ interface WilcoxonResult {
 
 export default function WilcoxonPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<WilcoxonResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<WilcoxonResult, WilcoxonVariables>({
     withUploadedData: true,
     withError: true
   })

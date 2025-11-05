@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import type { ChiSquareIndependenceVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -87,7 +88,7 @@ interface ChiSquareIndependenceResult {
 
 export default function ChiSquareIndependencePage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<ChiSquareIndependenceResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<ChiSquareIndependenceResult, ChiSquareIndependenceVariables>({
     withUploadedData: true,
     withError: true
   })

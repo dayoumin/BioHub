@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import type { MANOVAVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -140,7 +141,7 @@ interface ManovaResult {
 }
 
 export default function ManovaPage() {
-  const { state, actions } = useStatisticsPage<ManovaResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<ManovaResult, MANOVAVariables>({
     withUploadedData: true,
     withError: true
   })

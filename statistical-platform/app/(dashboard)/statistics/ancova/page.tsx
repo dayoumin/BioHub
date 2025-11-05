@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import type { ANCOVAVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -112,7 +113,7 @@ interface ANCOVAResult {
 
 export default function ANCOVAPage() {
   // Custom hook: common state management
-  const { state, actions } = useStatisticsPage<ANCOVAResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<ANCOVAResult, ANCOVAVariables>({
     withUploadedData: true,
     withError: true
   })

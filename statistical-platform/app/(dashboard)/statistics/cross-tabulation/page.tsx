@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { CrossTabulationVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -73,13 +74,14 @@ interface CrossTabResults {
   }
 }
 
-interface SelectedVariables {
-  dependent: string
-  independent: string
-}
+// interface SelectedVariables {
+//   dependent: string
+//   independent: string
+// }
+// → types/statistics.ts의 CrossTabulationVariables 사용
 
 export default function CrossTabulationPage() {
-  const { state, actions } = useStatisticsPage<CrossTabResults, SelectedVariables>({
+  const { state, actions } = useStatisticsPage<CrossTabResults, CrossTabulationVariables>({
     withUploadedData: true,
     withError: true
   })

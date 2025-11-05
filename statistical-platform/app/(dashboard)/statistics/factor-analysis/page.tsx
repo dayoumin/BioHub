@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useMemo } from 'react'
+import type { FactorAnalysisVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,7 +52,7 @@ interface FactorAnalysisResult {
 
 export default function FactorAnalysisPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<FactorAnalysisResult, string[]>({
+  const { state, actions } = useStatisticsPage<FactorAnalysisResult, FactorAnalysisVariables>({
     withUploadedData: true,
     withError: true
   })

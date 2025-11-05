@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import type { MannWhitneyVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -80,7 +81,7 @@ interface MannWhitneyResult {
 
 export default function MannWhitneyPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<MannWhitneyResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<MannWhitneyResult, MannWhitneyVariables>({
     withUploadedData: true,
     withError: true
   })

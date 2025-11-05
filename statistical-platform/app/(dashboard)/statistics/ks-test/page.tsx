@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { KSTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -63,7 +64,7 @@ interface KSTestResult {
 
 export default function KolmogorovSmirnovTestPage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<KSTestResult, VariableSelection>({
+  const { state, actions } = useStatisticsPage<KSTestResult, KSTestVariables>({
     withUploadedData: true,
     withError: true
   })

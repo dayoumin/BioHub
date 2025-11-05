@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StatisticsPageLayout - 통계 플랫폼 컴포넌트 시각화</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #1a202c;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem 3rem;
+      border-bottom: 4px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .nav {
+      background: #f7fafc;
+      padding: 1rem 3rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .nav a {
+      display: inline-block;
+      margin-right: 1.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      color: #667eea;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+
+    .nav a:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .content {
+      padding: 3rem;
+    }
+
+    .section {
+      margin-bottom: 3rem;
+    }
+
+    .section h2 {
+      font-size: 1.75rem;
+      color: #2d3748;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 3px solid #667eea;
+    }
+
+    .section h3 {
+      font-size: 1.25rem;
+      color: #4a5568;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .code-block {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .code-block .keyword {
+      color: #ff79c6;
+    }
+
+    .code-block .string {
+      color: #50fa7b;
+    }
+
+    .code-block .comment {
+      color: #6272a4;
+      font-style: italic;
+    }
+
+    .preview {
+      background: #f7fafc;
+      padding: 2rem;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      margin-bottom: 1.5rem;
+    }
+
+    .info-box {
+      background: #ebf8ff;
+      border-left: 4px solid #4299e1;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 4px;
+    }
+
+    .info-box strong {
+      color: #2c5282;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+    }
+
+    .table th,
+    .table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table th {
+      background: #f7fafc;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .table tr:hover {
+      background: #f7fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: #667eea;
+      color: white;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge.success {
+      background: #48bb78;
+    }
+
+    .badge.warning {
+      background: #ed8936;
+    }
+
+    .badge.info {
+      background: #4299e1;
+    }
+
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>StatisticsPageLayout</h1>
+      <p>통계 분석 플랫폼 - 컴포넌트 시각화 문서</p>
+    </div>
+    <div class="nav">
+      <a href="index.html">홈</a>
+      <a href="step-indicator.html">StepIndicator</a>
+      <a href="progress-stepper.html">ProgressStepper</a>
+      <a href="statistics-page-layout.html">StatisticsPageLayout</a>
+      <a href="variable-selector.html">VariableSelector</a>
+      <a href="smart-flow-steps.html">Smart Flow Steps</a>
+    </div>
+    <div class="content">
+      
+    <div class="section">
+      <h2>🎯 StatisticsPageLayout 컴포넌트</h2>
+      <p>41개 통계 페이지의 공통 레이아웃 컴포넌트입니다. 단계 관리, 진행률 표시, 일관된 UI를 제공합니다.</p>
+
+      <div class="info-box">
+        <strong>파일 위치:</strong> components/statistics/StatisticsPageLayout.tsx
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📝 Props 인터페이스</h2>
+
+      <div class="code-block">
+<span class="keyword">interface</span> StatisticsStep {
+  id: <span class="keyword">string</span>
+  number: <span class="keyword">number</span>
+  title: <span class="keyword">string</span>
+  description?: <span class="keyword">string</span>
+  icon?: ReactNode
+  status: <span class="string">'pending'</span> | <span class="string">'current'</span> | <span class="string">'completed'</span> | <span class="string">'error'</span>
+}
+
+<span class="keyword">interface</span> StatisticsPageLayoutProps {
+  title: <span class="keyword">string</span>
+  description?: <span class="keyword">string</span>
+  steps: StatisticsStep[]
+  currentStep: <span class="keyword">number</span>
+  children: ReactNode
+  onStepChange?: (step: <span class="keyword">number</span>) => <span class="keyword">void</span>
+  isAnalyzing?: <span class="keyword">boolean</span>
+  className?: <span class="keyword">string</span>
+}
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🎨 사용 예시</h2>
+
+      <div class="code-block">
+<span class="keyword">import</span> { StatisticsPageLayout } <span class="keyword">from</span> <span class="string">'@/components/statistics/StatisticsPageLayout'</span>
+<span class="keyword">import</span> { useStatisticsPage } <span class="keyword">from</span> <span class="string">'@/hooks/use-statistics-page'</span>
+
+<span class="keyword">export default function</span> <span class="keyword">DescriptivePage</span>() {
+  <span class="comment">// 1. useStatisticsPage Hook 사용</span>
+  <span class="keyword">const</span> { state, actions } = useStatisticsPage&lt;ResultType, VariableType&gt;({
+    withUploadedData: <span class="keyword">true</span>,
+    withError: <span class="keyword">true</span>
+  })
+
+  <span class="comment">// 2. 단계 정의</span>
+  <span class="keyword">const</span> steps: StatisticsStep[] = [
+    {
+      id: <span class="string">'upload-data'</span>,
+      number: 1,
+      title: <span class="string">'데이터 업로드'</span>,
+      description: <span class="string">'CSV 또는 Excel 파일을 업로드하세요'</span>,
+      status: state.currentStep === 0 ? <span class="string">'current'</span> :
+              state.currentStep > 0 ? <span class="string">'completed'</span> : <span class="string">'pending'</span>
+    },
+    {
+      id: <span class="string">'select-variables'</span>,
+      number: 2,
+      title: <span class="string">'변수 선택'</span>,
+      description: <span class="string">'분석할 변수를 선택하세요'</span>,
+      status: state.currentStep === 1 ? <span class="string">'current'</span> :
+              state.currentStep > 1 ? <span class="string">'completed'</span> : <span class="string">'pending'</span>
+    },
+    <span class="comment">// ... 나머지 단계</span>
+  ]
+
+  <span class="comment">// 3. 레이아웃으로 감싸기</span>
+  <span class="keyword">return</span> (
+    &lt;StatisticsPageLayout
+      title=<span class="string">"기술통계"</span>
+      description=<span class="string">"데이터의 기본적인 통계량을 분석합니다"</span>
+      steps={steps}
+      currentStep={state.currentStep}
+      onStepChange={actions.setCurrentStep}
+      isAnalyzing={state.isAnalyzing}
+    &gt;
+      {state.currentStep === 0 && &lt;DataUploadStep /&gt;}
+      {state.currentStep === 1 && &lt;VariableSelectionStep /&gt;}
+      {state.currentStep === 2 && &lt;AnalysisStep /&gt;}
+      {state.currentStep === 3 && &lt;ResultsStep /&gt;}
+    &lt;/StatisticsPageLayout&gt;
+  )
+}
+      </div>
+
+      <h3>시각적 미리보기</h3>
+      <div class="preview">
+        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <!-- 헤더 -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem;">
+            <h2 style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">기술통계</h2>
+            <p style="opacity: 0.9;">데이터의 기본적인 통계량을 분석합니다</p>
+          </div>
+
+          <!-- StepIndicator -->
+          <div style="padding: 2rem; border-bottom: 1px solid #e2e8f0;">
+            <div style="display: flex; gap: 1rem; align-items: center;">
+              <!-- Step 1 (Completed) -->
+              <div style="flex: 1; text-align: center;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem;">✓</div>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #10b981;">업로드</div>
+              </div>
+
+              <div style="flex: 1; height: 2px; background: #10b981; margin-bottom: 1.75rem;"></div>
+
+              <!-- Step 2 (Current) -->
+              <div style="flex: 1; text-align: center;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);">2</div>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #667eea;">변수 선택</div>
+              </div>
+
+              <div style="flex: 1; height: 2px; background: #e2e8f0; margin-bottom: 1.75rem;"></div>
+
+              <!-- Step 3 (Pending) -->
+              <div style="flex: 1; text-align: center;">
+                <div style="width: 40px; height: 40px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; border: 2px solid #e2e8f0;">3</div>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #a0aec0;">분석</div>
+              </div>
+
+              <div style="flex: 1; height: 2px; background: #e2e8f0; margin-bottom: 1.75rem;"></div>
+
+              <!-- Step 4 (Pending) -->
+              <div style="flex: 1; text-align: center;">
+                <div style="width: 40px; height: 40px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 0.9rem; border: 2px solid #e2e8f0;">4</div>
+                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #a0aec0;">결과</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 컨텐츠 영역 -->
+          <div style="padding: 2rem;">
+            <div style="background: #f7fafc; padding: 3rem; border-radius: 8px; text-align: center; border: 2px dashed #cbd5e0;">
+              <div style="font-size: 1.1rem; color: #4a5568; font-weight: 600; margin-bottom: 0.5rem;">현재 단계 컨텐츠</div>
+              <div style="color: #718096;">단계별 컴포넌트가 여기에 렌더링됩니다</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🏗️ 레이아웃 구조</h2>
+
+      <div class="code-block">
+&lt;div className=<span class="string">"statistics-page-layout"</span>&gt;
+  <span class="comment">{/* 헤더 */}</span>
+  &lt;header className=<span class="string">"page-header"</span>&gt;
+    &lt;h1&gt;{title}&lt;/h1&gt;
+    &lt;p&gt;{description}&lt;/p&gt;
+  &lt;/header&gt;
+
+  <span class="comment">{/* StepIndicator */}</span>
+  &lt;StepIndicator
+    steps={steps}
+    currentStep={currentStep}
+    onStepClick={onStepChange}
+    variant=<span class="string">"gray"</span>
+  /&gt;
+
+  <span class="comment">{/* 컨텐츠 영역 */}</span>
+  &lt;main className=<span class="string">"page-content"</span>&gt;
+    {children}
+  &lt;/main&gt;
+
+  <span class="comment">{/* 로딩 오버레이 (isAnalyzing=true일 때) */}</span>
+  {isAnalyzing && (
+    &lt;div className=<span class="string">"loading-overlay"</span>&gt;
+      &lt;Spinner /&gt;
+      &lt;p&gt;분석 중...&lt;/p&gt;
+    &lt;/div&gt;
+  )}
+&lt;/div&gt;
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>💡 특징</h2>
+
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>일관된 UI</strong>: 41개 통계 페이지 동일한 레이아웃</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>StepIndicator 통합</strong>: 자동 단계 표시</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>로딩 오버레이</strong>: isAnalyzing 중 UI 차단</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>반응형</strong>: 모바일/태블릿/데스크탑 대응</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>에러 처리</strong>: 에러 상태 표시 지원</li>
+        <li style="padding: 0.5rem 0;">✅ <strong>접근성</strong>: ARIA 라벨, 키보드 네비게이션</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>📊 사용 통계</h2>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1.5rem;">
+        <div style="background: #ebf8ff; padding: 1.5rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 2.5rem; font-weight: 700; color: #2c5282;">41</div>
+          <div style="color: #2d5a7b; margin-top: 0.5rem;">통계 페이지</div>
+          <div style="margin-top: 0.5rem;"><span class="badge info">100% 적용</span></div>
+        </div>
+        <div style="background: #f0fff4; padding: 1.5rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 2.5rem; font-weight: 700; color: #22543d;">0</div>
+          <div style="color: #22543d; margin-top: 0.5rem;">TypeScript 에러</div>
+          <div style="margin-top: 0.5rem;"><span class="badge success">Clean</span></div>
+        </div>
+      </div>
+    </div>
+  
+    </div>
+  </div>
+</body>
+</html>

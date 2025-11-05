@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Flow Steps - 통계 플랫폼 컴포넌트 시각화</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #1a202c;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem 3rem;
+      border-bottom: 4px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .nav {
+      background: #f7fafc;
+      padding: 1rem 3rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .nav a {
+      display: inline-block;
+      margin-right: 1.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      color: #667eea;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+
+    .nav a:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .content {
+      padding: 3rem;
+    }
+
+    .section {
+      margin-bottom: 3rem;
+    }
+
+    .section h2 {
+      font-size: 1.75rem;
+      color: #2d3748;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 3px solid #667eea;
+    }
+
+    .section h3 {
+      font-size: 1.25rem;
+      color: #4a5568;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .code-block {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .code-block .keyword {
+      color: #ff79c6;
+    }
+
+    .code-block .string {
+      color: #50fa7b;
+    }
+
+    .code-block .comment {
+      color: #6272a4;
+      font-style: italic;
+    }
+
+    .preview {
+      background: #f7fafc;
+      padding: 2rem;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      margin-bottom: 1.5rem;
+    }
+
+    .info-box {
+      background: #ebf8ff;
+      border-left: 4px solid #4299e1;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 4px;
+    }
+
+    .info-box strong {
+      color: #2c5282;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+    }
+
+    .table th,
+    .table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table th {
+      background: #f7fafc;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .table tr:hover {
+      background: #f7fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: #667eea;
+      color: white;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge.success {
+      background: #48bb78;
+    }
+
+    .badge.warning {
+      background: #ed8936;
+    }
+
+    .badge.info {
+      background: #4299e1;
+    }
+
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Smart Flow Steps</h1>
+      <p>통계 분석 플랫폼 - 컴포넌트 시각화 문서</p>
+    </div>
+    <div class="nav">
+      <a href="index.html">홈</a>
+      <a href="step-indicator.html">StepIndicator</a>
+      <a href="progress-stepper.html">ProgressStepper</a>
+      <a href="statistics-page-layout.html">StatisticsPageLayout</a>
+      <a href="variable-selector.html">VariableSelector</a>
+      <a href="smart-flow-steps.html">Smart Flow Steps</a>
+    </div>
+    <div class="content">
+      
+    <div class="section">
+      <h2>🎯 Smart Flow Steps</h2>
+      <p>스마트 통계 플로우의 6개 단계 컴포넌트입니다. AI 기반 통계 방법 추천과 자동화된 워크플로우를 제공합니다.</p>
+
+      <div class="info-box">
+        <strong>파일 위치:</strong> components/smart-flow/steps/
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📋 6단계 개요</h2>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>단계</th>
+            <th>컴포넌트</th>
+            <th>주요 기능</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge">1</span></td>
+            <td><strong>DataUploadStep</strong></td>
+            <td>CSV/Excel 파일 업로드, 대용량 청크 처리</td>
+          </tr>
+          <tr>
+            <td><span class="badge">2</span></td>
+            <td><strong>DataValidationStep</strong></td>
+            <td>정규성, 이분산성 검정 + 시각화</td>
+          </tr>
+          <tr>
+            <td><span class="badge">3</span></td>
+            <td><strong>PurposeInputStep</strong></td>
+            <td>분석 목적 입력 → AI 통계 방법 추천</td>
+          </tr>
+          <tr>
+            <td><span class="badge">4</span></td>
+            <td><strong>VariableSelectionStep</strong></td>
+            <td>3가지 UI 모드 (Simple/Advanced/Premium)</td>
+          </tr>
+          <tr>
+            <td><span class="badge">5</span></td>
+            <td><strong>AnalysisExecutionStep</strong></td>
+            <td>분석 실행 + 진행 상황 표시</td>
+          </tr>
+          <tr>
+            <td><span class="badge success">6</span></td>
+            <td><strong>ResultsActionStep</strong></td>
+            <td>결과 보기, 내보내기, 공유</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>🎨 1. DataUploadStep</h2>
+
+      <h3>주요 기능</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ CSV/Excel 파일 업로드</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 대용량 파일 청크 처리</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 드래그 앤 드롭 지원</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 파일 검증 (형식, 크기)</li>
+        <li style="padding: 0.5rem 0;">✅ 업로드 진행률 표시</li>
+      </ul>
+
+      <div class="code-block">
+<span class="keyword">import</span> { DataUploadStep } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/steps/DataUploadStep'</span>
+
+&lt;DataUploadStep
+  onDataUploaded={(data) => {
+    setUploadedData(data)
+    nextStep()
+  }}
+  maxFileSize={100 * 1024 * 1024}  <span class="comment">// 100MB</span>
+  acceptedFormats={[<span class="string">'.csv'</span>, <span class="string">'.xlsx'</span>, <span class="string">'.xls'</span>]}
+/&gt;
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>�� 2. DataValidationStep</h2>
+
+      <h3>주요 기능</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 정규성 검정 (Shapiro-Wilk)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 이분산성 검정 (Levene)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ Q-Q Plot 시각화</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 히스토그램 + 정규분포 곡선</li>
+        <li style="padding: 0.5rem 0;">✅ 검정 결과 해석</li>
+      </ul>
+
+      <div class="code-block">
+<span class="keyword">import</span> { DataValidationStepWithCharts } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/steps/DataValidationStepWithCharts'</span>
+
+&lt;DataValidationStepWithCharts
+  data={uploadedData}
+  onValidationComplete={(results) => {
+    setValidationResults(results)
+    nextStep()
+  }}
+  tests={[<span class="string">'normality'</span>, <span class="string">'homogeneity'</span>]}
+/&gt;
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🎨 3. PurposeInputStep (AI 추천)</h2>
+
+      <h3>주요 기능</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 자연어 분석 목적 입력</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ AI 기반 통계 방법 추천</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 추천 이유 설명</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 대안 방법 제시</li>
+        <li style="padding: 0.5rem 0;">✅ 추천 신뢰도 표시</li>
+      </ul>
+
+      <div class="code-block">
+<span class="keyword">import</span> { PurposeInputStep } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/steps/PurposeInputStep'</span>
+
+&lt;PurposeInputStep
+  data={uploadedData}
+  validationResults={validationResults}
+  onMethodSelected={(method) => {
+    setSelectedMethod(method)
+    nextStep()
+  }}
+/&gt;
+      </div>
+
+      <h3>AI 추천 예시</h3>
+      <div class="preview">
+        <div style="background: linear-gradient(135deg, #ebf8ff 0%, #f0fff4 100%); padding: 1.5rem; border-radius: 8px; border: 2px solid #10b981;">
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+            <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🤖</div>
+            <div>
+              <div style="font-weight: 700; font-size: 1.1rem; color: #065f46;">AI 추천 결과</div>
+              <div style="font-size: 0.9rem; color: #047857;">신뢰도: 95%</div>
+            </div>
+          </div>
+
+          <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem;">
+            <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.5rem;">추천 방법: <span style="color: #10b981;">독립표본 t-검정</span></div>
+            <div style="color: #4a5568; font-size: 0.95rem; line-height: 1.6;">
+              두 그룹 간 평균 비교를 목적으로 하고, 데이터가 정규성을 만족하므로 독립표본 t-검정이 적합합니다.
+            </div>
+          </div>
+
+          <div style="font-weight: 600; color: #2d3748; margin-bottom: 0.75rem;">대안 방법:</div>
+          <div style="display: flex; gap: 0.75rem;">
+            <div style="background: white; padding: 1rem; border-radius: 6px; flex: 1; border: 1px solid #e2e8f0;">
+              <div style="font-weight: 600; font-size: 0.9rem; color: #4a5568;">Mann-Whitney U</div>
+              <div style="font-size: 0.8rem; color: #718096; margin-top: 0.25rem;">비모수 대안</div>
+            </div>
+            <div style="background: white; padding: 1rem; border-radius: 6px; flex: 1; border: 1px solid #e2e8f0;">
+              <div style="font-weight: 600; font-size: 0.9rem; color: #4a5568;">Welch's t-test</div>
+              <div style="font-size: 0.8rem; color: #718096; margin-top: 0.25rem;">이분산 허용</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🎨 4. VariableSelectionStep</h2>
+
+      <h3>주요 기능</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 3가지 UI 모드 전환</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ AI 추천 기반 변수 자동 매핑</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 변수 타입 자동 감지</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 필수/선택 변수 표시</li>
+        <li style="padding: 0.5rem 0;">✅ 검증 및 에러 메시지</li>
+      </ul>
+
+      <div class="code-block">
+<span class="keyword">import</span> { VariableSelectionStep } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/steps/VariableSelectionStep'</span>
+
+&lt;VariableSelectionStep
+  data={uploadedData}
+  selectedMethod={selectedMethod}
+  mode={<span class="string">'advanced'</span>}  <span class="comment">// 'simple' | 'advanced' | 'premium'</span>
+  onVariablesSelected={(mapping) => {
+    setVariableMapping(mapping)
+    nextStep()
+  }}
+/&gt;
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🎨 5. AnalysisExecutionStep</h2>
+
+      <h3>주요 기능</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 분석 실행 버튼</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 진행 상황 표시 (Progress Bar)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 단계별 로그 출력</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 에러 처리 및 재시도</li>
+        <li style="padding: 0.5rem 0;">✅ 완료 시 자동 다음 단계</li>
+      </ul>
+
+      <div class="preview">
+        <div style="max-width: 600px; margin: 0 auto; text-align: center;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 12px; color: white; margin-bottom: 1.5rem;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚡</div>
+            <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem;">분석 실행 중...</div>
+            <div style="opacity: 0.9;">독립표본 t-검정을 수행하고 있습니다</div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div style="background: #f7fafc; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="font-weight: 600; color: #2d3748;">진행률</span>
+              <span style="font-weight: 600; color: #667eea;">65%</span>
+            </div>
+            <div style="background: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden;">
+              <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 65%; height: 100%; transition: width 0.3s;"></div>
+            </div>
+          </div>
+
+          <!-- 로그 -->
+          <div style="background: #2d3748; color: #e2e8f0; padding: 1.5rem; border-radius: 8px; text-align: left; font-family: monospace; font-size: 0.85rem;">
+            <div style="color: #10b981; margin-bottom: 0.5rem;">✓ 데이터 로드 완료</div>
+            <div style="color: #10b981; margin-bottom: 0.5rem;">✓ 변수 검증 완료</div>
+            <div style="color: #667eea; margin-bottom: 0.5rem;">▶ t-검정 실행 중...</div>
+            <div style="color: #a0aec0;">⏳ 결과 생성 대기...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🎨 6. ResultsActionStep</h2>
+
+      <h3>주요 기능</h3>
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 분석 결과 시각화 (표, 차트)</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 통계량 해석</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ PDF/Excel 내보내기</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ 결과 공유 (링크 복사)</li>
+        <li style="padding: 0.5rem 0;">✅ 새 분석 시작</li>
+      </ul>
+
+      <div class="preview">
+        <div style="background: linear-gradient(135deg, #f0fff4 0%, #ebf8ff 100%); padding: 2rem; border-radius: 12px;">
+          <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">✓</div>
+            <div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: #065f46;">분석 완료!</div>
+              <div style="color: #047857;">독립표본 t-검정 결과</div>
+            </div>
+          </div>
+
+          <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <table style="width: 100%; font-size: 0.95rem;">
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 0.75rem; font-weight: 600; color: #2d3748;">t 통계량</td>
+                <td style="padding: 0.75rem; text-align: right;">-2.345</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 0.75rem; font-weight: 600; color: #2d3748;">p-value</td>
+                <td style="padding: 0.75rem; text-align: right; color: #10b981; font-weight: 700;">0.023</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.75rem; font-weight: 600; color: #2d3748;">결론</td>
+                <td style="padding: 0.75rem; text-align: right; color: #10b981;">통계적으로 유의함 ✓</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <button style="padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              PDF 내보내기
+            </button>
+            <button style="padding: 1rem; background: white; color: #667eea; border: 2px solid #667eea; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              Excel 내보내기
+            </button>
+            <button style="padding: 1rem; background: white; color: #667eea; border: 2px solid #667eea; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              공유하기
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🔄 플로우 요약</h2>
+
+      <div style="background: linear-gradient(135deg, #f7fafc 0%, #ebf8ff 100%); padding: 2rem; border-radius: 12px;">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">1</div>
+            <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
+              <strong>데이터 업로드</strong> → CSV/Excel 파일
+            </div>
+          </div>
+
+          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">2</div>
+            <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
+              <strong>데이터 검증</strong> → 정규성/이분산성 검정
+            </div>
+          </div>
+
+          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">3</div>
+            <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
+              <strong>목적 입력</strong> → AI 통계 방법 추천
+            </div>
+          </div>
+
+          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">4</div>
+            <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
+              <strong>변수 선택</strong> → 드래그앤드롭 or 드롭다운
+            </div>
+          </div>
+
+          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">5</div>
+            <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
+              <strong>분석 실행</strong> → 진행률 표시
+            </div>
+          </div>
+
+          <div style="width: 2px; height: 24px; background: #cbd5e0; margin-left: 19px;"></div>
+
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0;">6</div>
+            <div style="flex: 1; background: white; padding: 1rem; border-radius: 8px;">
+              <strong>결과 확인</strong> → 내보내기, 공유
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    </div>
+  </div>
+</body>
+</html>

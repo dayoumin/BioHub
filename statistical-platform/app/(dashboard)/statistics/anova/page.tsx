@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { ANOVAVariables } from '@/types/statistics'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -38,12 +39,13 @@ interface UploadedData {
   columns: string[]
 }
 
-interface SelectedVariables {
-  dependent: string
-  independent: string[]
-  covariates?: string[]
-  [key: string]: string | string[] | undefined
-}
+// interface SelectedVariables {
+//   dependent: string
+//   independent: string[]
+//   covariates?: string[]
+//   [key: string]: string | string[] | undefined
+// }
+// → types/statistics.ts의 ANOVAVariables 사용
 
 interface GroupResult {
   name: string
@@ -107,7 +109,7 @@ interface ANOVAResults {
 
 export default function ANOVAPage() {
   // Custom hook: common state management
-  const { state, actions } = useStatisticsPage<ANOVAResults, SelectedVariables>({
+  const { state, actions } = useStatisticsPage<ANOVAResults, ANOVAVariables>({
     withUploadedData: true,
     withError: false
   })

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import type { PoissonVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'

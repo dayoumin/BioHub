@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { McNemarVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -60,7 +61,7 @@ interface McNemarTestResult {
 
 export default function McNemarTestPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<McNemarTestResult, string[]>({
+  const { state, actions } = useStatisticsPage<McNemarTestResult, McNemarVariables>({
     withUploadedData: true,
     withError: true
   })

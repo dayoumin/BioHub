@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import type { NonParametricVariables } from '@/types/statistics'
 import { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -127,7 +128,7 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
 }
 
 export default function NonParametricTestPage() {
-  const { state, actions } = useStatisticsPage<StatisticalResult, VariableMapping>({
+  const { state, actions } = useStatisticsPage<StatisticalResult, NonParametricVariables>({
     withUploadedData: true,
     withError: true
   })

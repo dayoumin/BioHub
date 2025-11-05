@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useMemo } from 'react'
+import type { ChiSquareVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -23,7 +24,7 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { FisherExactTestResult } from '@/types/pyodide-results'
 
 export default function FisherExactTestPage() {
-  const { state, actions } = useStatisticsPage<FisherExactTestResult, null>({
+  const { state, actions } = useStatisticsPage<FisherExactTestResult, ChiSquareVariables>({
     withUploadedData: false,
     withError: true
   })

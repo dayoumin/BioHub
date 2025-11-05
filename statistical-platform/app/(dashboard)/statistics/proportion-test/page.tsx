@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { ProportionTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -52,7 +53,7 @@ interface ProportionTestResults {
 }
 
 export default function ProportionTestPage() {
-  const { state, actions } = useStatisticsPage<ProportionTestResults, VariableMapping>({
+  const { state, actions } = useStatisticsPage<ProportionTestResults, ProportionTestVariables>({
     withUploadedData: true,
     withError: false
   })

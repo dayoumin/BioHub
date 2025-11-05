@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useMemo } from 'react'
+import type { ClusterVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,7 +46,7 @@ interface ClusterAnalysisResult {
 
 export default function ClusterAnalysisPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<ClusterAnalysisResult, string[]>({
+  const { state, actions } = useStatisticsPage<ClusterAnalysisResult, ClusterVariables>({
     withUploadedData: true,
     withError: true
   })
@@ -72,7 +73,7 @@ export default function ClusterAnalysisPage() {
       number: 2,
       title: '변수 선택',
       description: '군집화할 변수 선택',
-      status: selectedVariables && selectedVariables.length > 0 ? 'completed'
+      status: selectedVariables?.all && selectedVariables.all.length > 0 ? 'completed'
               : uploadedData ? 'current' : 'pending'
     },
     {
@@ -359,7 +360,7 @@ export default function ClusterAnalysisPage() {
 
   // 군집분석 실행
   const handleRunAnalysis = useCallback(async () => {
-    if (!uploadedData?.data.length || !(selectedVariables ?? []).length) {
+    if (!uploadedData?.data.length || !selectedVariables?.all || selectedVariables.all.length === 0) {
       actions.setError('데이터와 변수를 선택해주세요.')
       return
     }
@@ -369,21 +370,16 @@ export default function ClusterAnalysisPage() {
     try {
       let finalNumClusters = numClusters
 
-      if (!selectedVariables) {
-        actions.setError('변수를 선택해주세요.')
-        return
-      }
-
       // 최적 군집 수 자동 결정
       if (autoOptimalK) {
-        const optimal = findOptimalClusters(uploadedData.data, selectedVariables)
+        const optimal = findOptimalClusters(uploadedData.data, selectedVariables.all)
         finalNumClusters = optimal.silhouette
       }
 
-      const result = calculateKMeans(uploadedData.data, selectedVariables, finalNumClusters)
+      const result = calculateKMeans(uploadedData.data, selectedVariables.all, finalNumClusters)
 
       if (autoOptimalK) {
-        const optimal = findOptimalClusters(uploadedData.data, selectedVariables)
+        const optimal = findOptimalClusters(uploadedData.data, selectedVariables.all)
         result.optimalK = { ...optimal, gap: optimal.elbow }
       }
 
@@ -410,16 +406,16 @@ export default function ClusterAnalysisPage() {
               <input
                 type="checkbox"
                 id={column}
-                checked={(selectedVariables ?? []).includes(column)}
+                checked={(selectedVariables?.all ?? []).includes(column)}
                 onChange={(e) => {
                   if (!actions.setSelectedVariables) {
                     console.error('[cluster] setSelectedVariables not available')
                     return
                   }
                   if (e.target.checked) {
-                    actions.setSelectedVariables([...(selectedVariables ?? []), column])
+                    actions.setSelectedVariables({ all: [...(selectedVariables?.all ?? []), column] })
                   } else {
-                    actions.setSelectedVariables((selectedVariables ?? []).filter(v => v !== column))
+                    actions.setSelectedVariables({ all: (selectedVariables?.all ?? []).filter(v => v !== column) })
                   }
                 }}
                 className="rounded border-gray-300"
@@ -521,7 +517,7 @@ export default function ClusterAnalysisPage() {
         </Button>
         <Button
           onClick={handleRunAnalysis}
-          disabled={(selectedVariables ?? []).length < 2 || isAnalyzing}
+          disabled={(selectedVariables?.all ?? []).length < 2 || isAnalyzing}
         >
           {isAnalyzing ? '분석 중...' : '군집분석 실행'}
         </Button>
@@ -771,7 +767,7 @@ export default function ClusterAnalysisPage() {
                   <div className="text-sm space-y-1">
                     <p>• <strong>방법:</strong> K-means 군집분석</p>
                     <p>• <strong>군집 수:</strong> {results.numClusters}개</p>
-                    <p>• <strong>변수:</strong> {selectedVariables?.join(', ') ?? 'N/A'}</p>
+                    <p>• <strong>변수:</strong> {selectedVariables?.all?.join(', ') ?? 'N/A'}</p>
                     {results.optimalK && (
                       <p>• <strong>최적화:</strong> 엘보우 방법과 실루엣 분석을 통한 최적 군집 수 결정</p>
                     )}

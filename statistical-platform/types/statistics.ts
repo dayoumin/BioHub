@@ -50,33 +50,34 @@ export interface FrequencyTableVariables {
 
 // T-검정
 export interface TTestVariables {
-  dependent: [string] // 정확히 1개
-  groups: [string, string] // 정확히 2개
+  dependent: string // 1개
+  groups: string[] // 2개
 }
 
 export interface OneSampleTVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
 }
 
 export interface WelchTVariables {
-  dependent: [string] // 정확히 1개
-  groups: [string, string] // 정확히 2개
+  dependent: string // 1개
+  groups: string[] // 2개
 }
 
 // 분산분석
 export interface ANOVAVariables {
-  dependent: [string] // 정확히 1개
-  independent: [string] // 정확히 1개
+  dependent: string // 1개 (단일 값)
+  independent: string[] // 1개 이상
+  covariates?: string[] // 선택적
 }
 
 export interface TwoWayANOVAVariables {
-  dependent: [string] // 정확히 1개
-  independent: [string, string] // 정확히 2개
+  dependent: string // 1개
+  independent: string[] // 2개 (배열로 전달)
 }
 
 export interface ThreeWayANOVAVariables {
-  dependent: [string] // 정확히 1개
-  independent: [string, string, string] // 정확히 3개
+  dependent: string // 1개
+  independent: string[] // 3개 (배열로 전달)
 }
 
 export interface RepeatedMeasuresVariables {
@@ -84,14 +85,14 @@ export interface RepeatedMeasuresVariables {
 }
 
 export interface ANCOVAVariables {
-  dependent: [string] // 정확히 1개
-  independent: [string] // 정확히 1개
+  dependent: string // 1개
+  independent: string[] // 1개 이상
   covariates: string[] // 1개 이상
 }
 
 export interface MANOVAVariables {
   dependent: string[] // 2개 이상
-  independent: [string] // 정확히 1개
+  independent: string // 1개
 }
 
 // 상관분석
@@ -109,22 +110,23 @@ export interface PartialCorrelationVariables {
 
 // 회귀분석
 export interface RegressionVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
   independent: string[] // 1개 이상
 }
 
 export interface StepwiseVariables {
-  dependent: [string] // 정확히 1개
-  independent: string[] // 2개 이상
+  dependent: string[] // 배열 형태
+  factor: string[] // 요인 변수들
+  covariate?: string[] // 선택적 공변량
 }
 
 export interface OrdinalRegressionVariables {
-  dependent: [string] // 정확히 1개 (순서형)
+  dependent: string // 1개 (순서형)
   independent: string[] // 1개 이상
 }
 
 export interface MixedModelVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
   independent: string[] // 1개 이상
 }
 
@@ -135,49 +137,49 @@ export interface ChiSquareVariables {
 }
 
 export interface ChiSquareGoodnessVariables {
-  observed: [string] // 정확히 1개
+  dependent: string[] // 관찰 데이터
 }
 
 export interface ChiSquareIndependenceVariables {
-  row: [string] // 정확히 1개
-  column: [string] // 정확히 1개
+  row: string // 1개
+  column: string // 1개
 }
 
 export interface McNemarVariables {
-  groups: [string, string] // 정확히 2개
+  groups: string[] // 2개
 }
 
 // 비모수 검정
 export interface NonParametricVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
   groups: string[] // 2개 이상
 }
 
 export interface MannWhitneyVariables {
-  dependent: [string] // 정확히 1개
-  groups: [string, string] // 정확히 2개
+  dependent: string // 1개
+  groups: string[] // 2개
 }
 
 export interface KruskalWallisVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
   groups: string[] // 3개 이상
 }
 
 export interface WilcoxonVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
 }
 
 export interface FriedmanVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
   conditions: string[] // 3개 이상
 }
 
 export interface SignTestVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
 }
 
 export interface RunsTestVariables {
-  data: [string] // 정확히 1개 (이진 데이터)
+  data: string // 1개 (이진 데이터)
 }
 
 // 정규성 및 검정력
@@ -186,7 +188,7 @@ export interface NormalityTestVariables {
 }
 
 export interface KSTestVariables {
-  data: [string] // 정확히 1개
+  data: string // 1개
 }
 
 // power-analysis는 직접 입력이므로 변수 선택 없음
@@ -198,7 +200,7 @@ export interface ProportionTestVariables {
 
 // 생존분석
 export interface MannKendallVariables {
-  data: [string] // 정확히 1개 (시계열)
+  data: string // 1개 (시계열)
 }
 
 // 신뢰도/타당도
@@ -220,36 +222,37 @@ export interface ClusterVariables {
 }
 
 export interface DiscriminantVariables {
-  dependent: [string] // 정확히 1개 (범주형)
+  dependent: string // 1개 (범주형)
   independent: string[] // 2개 이상
 }
 
 // 실험설계
 export interface ResponseSurfaceVariables {
-  dependent: [string] // 정확히 1개
+  dependent: string // 1개
   independent: string[] // 2개 이상
 }
 
 export interface DoseResponseVariables {
-  dose: [string] // 정확히 1개
-  response: [string] // 정확히 1개
+  dose: string // 1개
+  response: string // 1개
 }
 
 export interface CrossTabulationVariables {
-  row: [string] // 정확히 1개
-  column: [string] // 정확히 1개
+  dependent: string // 1개 (행)
+  independent: string // 1개 (열)
 }
 
 // 회귀진단
 export interface PoissonVariables {
-  dependent: [string] // 정확히 1개 (count)
+  dependent: string // 1개 (count)
   independent: string[] // 1개 이상
 }
 
 // 시각화
 export interface MeansPlotVariables {
-  dependent: [string] // 정확히 1개
-  groups: string[] // 1개 이상
+  dependent: string[] // 배열
+  factor: string[] // 요인들
+  covariate?: string[] // 선택적
 }
 
 // ============================================================================

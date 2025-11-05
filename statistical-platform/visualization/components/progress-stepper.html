@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProgressStepper - 통계 플랫폼 컴포넌트 시각화</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #1a202c;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 2rem 3rem;
+      border-bottom: 4px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      font-size: 1rem;
+      opacity: 0.9;
+    }
+
+    .nav {
+      background: #f7fafc;
+      padding: 1rem 3rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .nav a {
+      display: inline-block;
+      margin-right: 1.5rem;
+      padding: 0.5rem 1rem;
+      background: white;
+      color: #667eea;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+    }
+
+    .nav a:hover {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .content {
+      padding: 3rem;
+    }
+
+    .section {
+      margin-bottom: 3rem;
+    }
+
+    .section h2 {
+      font-size: 1.75rem;
+      color: #2d3748;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 3px solid #667eea;
+    }
+
+    .section h3 {
+      font-size: 1.25rem;
+      color: #4a5568;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .code-block {
+      background: #2d3748;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-bottom: 1rem;
+    }
+
+    .code-block .keyword {
+      color: #ff79c6;
+    }
+
+    .code-block .string {
+      color: #50fa7b;
+    }
+
+    .code-block .comment {
+      color: #6272a4;
+      font-style: italic;
+    }
+
+    .preview {
+      background: #f7fafc;
+      padding: 2rem;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      margin-bottom: 1.5rem;
+    }
+
+    .info-box {
+      background: #ebf8ff;
+      border-left: 4px solid #4299e1;
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 4px;
+    }
+
+    .info-box strong {
+      color: #2c5282;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+    }
+
+    .table th,
+    .table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table th {
+      background: #f7fafc;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .table tr:hover {
+      background: #f7fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: #667eea;
+      color: white;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .badge.success {
+      background: #48bb78;
+    }
+
+    .badge.warning {
+      background: #ed8936;
+    }
+
+    .badge.info {
+      background: #4299e1;
+    }
+
+    
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>ProgressStepper</h1>
+      <p>통계 분석 플랫폼 - 컴포넌트 시각화 문서</p>
+    </div>
+    <div class="nav">
+      <a href="index.html">홈</a>
+      <a href="step-indicator.html">StepIndicator</a>
+      <a href="progress-stepper.html">ProgressStepper</a>
+      <a href="statistics-page-layout.html">StatisticsPageLayout</a>
+      <a href="variable-selector.html">VariableSelector</a>
+      <a href="smart-flow-steps.html">Smart Flow Steps</a>
+    </div>
+    <div class="content">
+      
+    <div class="section">
+      <h2>🎯 ProgressStepper 컴포넌트</h2>
+      <p>스마트 플로우 전용 단계 진행 표시 컴포넌트입니다. 6단계 플로우를 시각화합니다.</p>
+
+      <div class="info-box">
+        <strong>파일 위치:</strong> components/smart-flow/ProgressStepper.tsx
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📝 Props 인터페이스</h2>
+
+      <div class="code-block">
+<span class="keyword">interface</span> StepConfig {
+  id: <span class="keyword">number</span>
+  name: <span class="keyword">string</span>
+  description: <span class="keyword">string</span>
+  icon: LucideIcon
+}
+
+<span class="keyword">interface</span> ProgressStepperProps {
+  currentStep: <span class="keyword">number</span>
+  steps: StepConfig[]
+  onStepClick?: (step: <span class="keyword">number</span>) => <span class="keyword">void</span>
+}
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🎨 스마트 플로우 6단계</h2>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>단계</th>
+            <th>이름</th>
+            <th>설명</th>
+            <th>아이콘</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge">1</span></td>
+            <td><strong>데이터 업로드</strong></td>
+            <td>CSV/Excel 파일 업로드</td>
+            <td>📤 Upload</td>
+          </tr>
+          <tr>
+            <td><span class="badge">2</span></td>
+            <td><strong>데이터 검증</strong></td>
+            <td>정규성, 이분산성 검정</td>
+            <td>✓ CheckCircle</td>
+          </tr>
+          <tr>
+            <td><span class="badge">3</span></td>
+            <td><strong>목적 입력</strong></td>
+            <td>분석 목적 입력 → AI 추천</td>
+            <td>🎯 Target</td>
+          </tr>
+          <tr>
+            <td><span class="badge">4</span></td>
+            <td><strong>변수 선택</strong></td>
+            <td>분석 변수 선택</td>
+            <td>🔧 Settings</td>
+          </tr>
+          <tr>
+            <td><span class="badge">5</span></td>
+            <td><strong>분석 실행</strong></td>
+            <td>통계 분석 실행</td>
+            <td>▶ Play</td>
+          </tr>
+          <tr>
+            <td><span class="badge success">6</span></td>
+            <td><strong>결과 확인</strong></td>
+            <td>결과 보기, 내보내기, 공유</td>
+            <td>📊 BarChart</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>🎨 사용 예시</h2>
+
+      <div class="code-block">
+<span class="keyword">import</span> { ProgressStepper } <span class="keyword">from</span> <span class="string">'@/components/smart-flow/ProgressStepper'</span>
+<span class="keyword">import</span> { Upload, CheckCircle, Target, Settings, Play, BarChart } <span class="keyword">from</span> <span class="string">'lucide-react'</span>
+
+<span class="keyword">const</span> SMART_FLOW_STEPS: StepConfig[] = [
+  {
+    id: 1,
+    name: <span class="string">'데이터 업로드'</span>,
+    description: <span class="string">'CSV/Excel 파일 업로드'</span>,
+    icon: Upload
+  },
+  {
+    id: 2,
+    name: <span class="string">'데이터 검증'</span>,
+    description: <span class="string">'정규성, 이분산성 검정'</span>,
+    icon: CheckCircle
+  },
+  <span class="comment">// ... 나머지 단계</span>
+]
+
+&lt;ProgressStepper
+  currentStep={currentStep}
+  steps={SMART_FLOW_STEPS}
+  onStepClick={(step) => setCurrentStep(step)}
+/&gt;
+      </div>
+
+      <h3>시각적 미리보기</h3>
+      <div class="preview">
+        <div style="display: flex; gap: 0.5rem; align-items: center; overflow-x: auto; padding: 1rem;">
+          <!-- Step 1 (Completed) -->
+          <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
+            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem;">✓</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #10b981; font-size: 0.9rem;">데이터 업로드</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #718096;">CSV/Excel</div>
+          </div>
+
+          <!-- Connector -->
+          <div style="flex: 1; height: 3px; background: linear-gradient(90deg, #10b981 0%, #667eea 100%); margin-bottom: 3rem; min-width: 40px;"></div>
+
+          <!-- Step 2 (Completed) -->
+          <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
+            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem;">✓</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #10b981; font-size: 0.9rem;">데이터 검증</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #718096;">정규성 검정</div>
+          </div>
+
+          <!-- Connector -->
+          <div style="flex: 1; height: 3px; background: linear-gradient(90deg, #10b981 0%, #667eea 100%); margin-bottom: 3rem; min-width: 40px;"></div>
+
+          <!-- Step 3 (Current) -->
+          <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
+            <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3); animation: pulse 2s infinite;">3</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #667eea; font-size: 0.9rem;">목적 입력</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #718096;">AI 추천</div>
+          </div>
+
+          <!-- Connector -->
+          <div style="flex: 1; height: 3px; background: #e2e8f0; margin-bottom: 3rem; min-width: 40px;"></div>
+
+          <!-- Step 4 (Pending) -->
+          <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
+            <div style="width: 56px; height: 56px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e2e8f0;">4</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #a0aec0; font-size: 0.9rem;">변수 선택</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #cbd5e0;">분석 변수</div>
+          </div>
+
+          <!-- Connector -->
+          <div style="flex: 1; height: 3px; background: #e2e8f0; margin-bottom: 3rem; min-width: 40px;"></div>
+
+          <!-- Step 5 (Pending) -->
+          <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
+            <div style="width: 56px; height: 56px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e2e8f0;">5</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #a0aec0; font-size: 0.9rem;">분석 실행</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #cbd5e0;">통계 분석</div>
+          </div>
+
+          <!-- Connector -->
+          <div style="flex: 1; height: 3px; background: #e2e8f0; margin-bottom: 3rem; min-width: 40px;"></div>
+
+          <!-- Step 6 (Pending) -->
+          <div style="flex-shrink: 0; text-align: center; min-width: 120px;">
+            <div style="width: 56px; height: 56px; background: #f7fafc; color: #a0aec0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; margin: 0 auto; font-size: 1.25rem; border: 2px solid #e2e8f0;">6</div>
+            <div style="margin-top: 0.75rem; font-weight: 600; color: #a0aec0; font-size: 0.9rem;">결과 확인</div>
+            <div style="margin-top: 0.25rem; font-size: 0.75rem; color: #cbd5e0;">내보내기</div>
+          </div>
+        </div>
+      </div>
+
+      <style>
+        @keyframes pulse {
+          0%, 100% {
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.3);
+          }
+          50% {
+            box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.1);
+          }
+        }
+      </style>
+    </div>
+
+    <div class="section">
+      <h2>💡 특징</h2>
+
+      <ul style="list-style: none; padding-left: 0;">
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>고정 6단계</strong>: 스마트 플로우 전용</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>그래디언트 연결선</strong>: 진행 상황 시각화</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>Pulse 애니메이션</strong>: 현재 단계 강조</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>Horizontal Only</strong>: 가로 레이아웃만 지원</li>
+        <li style="padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">✅ <strong>Lucide 아이콘</strong>: 각 단계별 아이콘</li>
+        <li style="padding: 0.5rem 0;">✅ <strong>반응형 Scroll</strong>: 모바일에서 좌우 스크롤</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>🔍 StepIndicator와 차이점</h2>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>특징</th>
+            <th>ProgressStepper</th>
+            <th>StepIndicator</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>용도</strong></td>
+            <td>스마트 플로우 전용</td>
+            <td>범용 단계 표시</td>
+          </tr>
+          <tr>
+            <td><strong>단계 수</strong></td>
+            <td>고정 6단계</td>
+            <td>가변 (1~N단계)</td>
+          </tr>
+          <tr>
+            <td><strong>레이아웃</strong></td>
+            <td>Horizontal만</td>
+            <td>Horizontal/Vertical/Compact</td>
+          </tr>
+          <tr>
+            <td><strong>색상</strong></td>
+            <td>Blue-Purple 고정</td>
+            <td>4가지 variant</td>
+          </tr>
+          <tr>
+            <td><strong>애니메이션</strong></td>
+            <td>Pulse 효과</td>
+            <td>기본 전환</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  
+    </div>
+  </div>
+</body>
+</html>

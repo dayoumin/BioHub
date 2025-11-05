@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import type { PartialCorrelationVariables } from '@/types/statistics'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
@@ -49,7 +50,7 @@ interface PartialCorrelationResults {
 }
 
 export default function PartialCorrelationPage() {
-  const { state, actions } = useStatisticsPage<PartialCorrelationResults, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<PartialCorrelationResults, PartialCorrelationVariables>({
     withUploadedData: true,
     withError: true,
     initialStep: 0

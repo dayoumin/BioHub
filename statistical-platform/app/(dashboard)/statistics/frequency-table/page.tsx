@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { FrequencyTableVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -51,7 +52,7 @@ interface FrequencyResults {
 }
 
 export default function FrequencyTablePage() {
-  const { state, actions } = useStatisticsPage<FrequencyResults, VariableMapping>({
+  const { state, actions } = useStatisticsPage<FrequencyResults, FrequencyTableVariables>({
     withUploadedData: true,
     withError: true
   })

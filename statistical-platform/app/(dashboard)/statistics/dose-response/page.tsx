@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { DoseResponseVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -650,7 +651,7 @@ except Exception as e:
 
 export default function DoseResponsePage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<DoseResponseResult, never>({
+  const { state, actions } = useStatisticsPage<DoseResponseResult, DoseResponseVariables>({
     withUploadedData: true,
     withError: true
   })

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { CorrelationVariables } from '@/types/statistics'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -101,7 +102,7 @@ interface CorrelationResults {
 
 export default function CorrelationPage() {
   // Custom hook: common state management
-  const { state, actions } = useStatisticsPage<CorrelationResults, VariableSelection>({
+  const { state, actions } = useStatisticsPage<CorrelationResults, CorrelationVariables>({
     withUploadedData: true,
     withError: true
   })

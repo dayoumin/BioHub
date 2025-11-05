@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { WelchTVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -73,7 +74,7 @@ interface WelchTResults {
 
 export default function WelchTPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<WelchTResults, VariableMapping>({
+  const { state, actions } = useStatisticsPage<WelchTResults, WelchTVariables>({
     withUploadedData: true,
     withError: true
   })

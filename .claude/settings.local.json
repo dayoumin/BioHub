@@ -88,7 +88,9 @@
       "Bash(npm run analyze:metadata:*)",
       "Bash(npm run validate:types:*)",
       "Bash(node scripts/statistics/analyze-step-patterns.js:*)",
-      "Bash(node scripts/statistics/analyze-variable-requirements.js:*)"
+      "Bash(node scripts/statistics/analyze-variable-requirements.js:*)",
+      "Bash(node scripts/statistics/analyze-actual-usage-patterns.js:*)",
+      "Bash(node scripts/statistics/standardize-variable-types.js:*)"
     ],
     "deny": [],
     "ask": []

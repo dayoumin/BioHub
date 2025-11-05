@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
+import type { DiscriminantVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -80,7 +81,7 @@ interface DiscriminantResult {
 
 export default function DiscriminantPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<DiscriminantResult, VariableSelection>({
+  const { state, actions } = useStatisticsPage<DiscriminantResult, DiscriminantVariables>({
     withUploadedData: true,
     withError: true
   })

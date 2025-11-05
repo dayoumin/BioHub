@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import type { StepwiseVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -16,11 +17,12 @@ import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus } from 'lucide-react'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
-interface SelectedVariables {
-  dependent: string[]
-  factor: string[]
-  covariate?: string[]
-}
+// interface SelectedVariables {
+//   dependent: string[]
+//   factor: string[]
+//   covariate?: string[]
+// }
+// → types/statistics.ts의 StepwiseVariables 사용
 
 interface StepwiseResults {
   final_model: {
@@ -72,7 +74,7 @@ interface StepwiseResults {
 
 export default function StepwiseRegressionPage() {
   // Use statistics page hook
-  const { state, actions } = useStatisticsPage<StepwiseResults, SelectedVariables>({
+  const { state, actions } = useStatisticsPage<StepwiseResults, StepwiseVariables>({
     withUploadedData: true,
     withError: true,
     initialStep: 1

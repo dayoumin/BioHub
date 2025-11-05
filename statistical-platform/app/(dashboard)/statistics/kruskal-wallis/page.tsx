@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import type { KruskalWallisVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -81,7 +82,7 @@ interface KruskalWallisResult {
 
 export default function KruskalWallisPage() {
   // State (using hook)
-  const { state, actions } = useStatisticsPage<KruskalWallisResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<KruskalWallisResult, KruskalWallisVariables>({
     withUploadedData: true,
     withError: true
   })

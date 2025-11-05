@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import type { ReliabilityVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -78,7 +79,7 @@ interface ReliabilityResult {
 
 export default function ReliabilityAnalysisPage() {
   // Hook for state management
-  const { state, actions } = useStatisticsPage<ReliabilityResult, VariableAssignment>({
+  const { state, actions } = useStatisticsPage<ReliabilityResult, ReliabilityVariables>({
     withUploadedData: true,
     withError: true
   })
