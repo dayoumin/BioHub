@@ -163,7 +163,7 @@ export default function NonParametricTestPage() {
       number: 3,
       title: '분석 실행',
       description: '비모수 검정 수행',
-      status: result ? 'completed' : currentStep >= 3 ? 'current' : 'pending'
+      status: result ? 'completed' : currentStep >= 2 ? 'current' : 'pending'
     }
   ]
 
@@ -171,6 +171,7 @@ export default function NonParametricTestPage() {
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
     () => {
+      actions.setCurrentStep?.(1)
       setActiveTab('setup')
     },
     'non-parametric'
@@ -186,6 +187,7 @@ export default function NonParametricTestPage() {
     }
 
     actions.setSelectedVariables(variables as VariableMapping)
+    actions.setCurrentStep?.(2)
     setActiveTab('setup')  // ✅ 'analysis' → 'setup' (정의된 탭으로 유지)
   }, [actions])
 
@@ -255,7 +257,7 @@ export default function NonParametricTestPage() {
         variables: ['Variable1', 'GroupVar']
       }
 
-      actions.completeAnalysis(mockResult, 3)
+      actions.completeAnalysis(mockResult, 2)
       setActiveTab('results')
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')

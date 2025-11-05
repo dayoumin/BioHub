@@ -112,7 +112,7 @@ export default function FisherExactTestPage() {
         }
       )
 
-      actions.completeAnalysis(result, 3)
+      actions.completeAnalysis(result, 1)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       actions.setError(errorMessage)
@@ -292,21 +292,21 @@ export default function FisherExactTestPage() {
     </Card>
   )
 
-  // 단계 정의
+  // 단계 정의 (state.currentStep 기반 동적 계산)
   const steps: StatisticsStep[] = [
     {
       id: 'input-table',
       number: 1,
       title: '분할표 입력',
       description: '2×2 분할표 데이터 입력',
-      status: 'current'
+      status: state.currentStep >= 1 ? 'completed' : 'current'
     },
     {
       id: 'view-results',
       number: 2,
       title: '결과 확인',
       description: 'Fisher 정확 검정 결과',
-      status: results ? 'completed' : 'pending'
+      status: results ? 'completed' : state.currentStep >= 1 ? 'current' : 'pending'
     }
   ]
 
@@ -464,7 +464,7 @@ export default function FisherExactTestPage() {
       title="Fisher 정확 검정"
       description="작은 표본의 2×2 분할표를 정확하게 검정합니다"
       steps={steps}
-      currentStep={1}
+      currentStep={state.currentStep}
     >
       <div className="space-y-6">
         {renderMethodology()}
