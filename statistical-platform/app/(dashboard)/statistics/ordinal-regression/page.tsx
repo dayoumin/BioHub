@@ -128,6 +128,39 @@ export default function OrdinalRegressionPage() {
   const [selectedIndependent, setSelectedIndependent] = useState<string[]>([])
   const [pyodideReady, setPyodideReady] = useState(false)
 
+  // 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'introduction',
+      number: 1,
+      title: '소개',
+      description: '순서형 회귀 소개',
+      status: currentStep >= 1 ? 'completed' : 'current'
+    },
+    {
+      id: 'upload-data',
+      number: 2,
+      title: '데이터 업로드',
+      description: 'CSV 또는 Excel 파일 업로드',
+      status: uploadedData ? 'completed' : currentStep >= 1 ? 'current' : 'pending'
+    },
+    {
+      id: 'select-variables',
+      number: 3,
+      title: '변수 선택',
+      description: '종속/독립 변수 선택',
+      status: selectedVariables && Object.keys(selectedVariables).length > 0 ? 'completed'
+              : currentStep >= 2 ? 'current' : 'pending'
+    },
+    {
+      id: 'view-results',
+      number: 4,
+      title: '결과 확인',
+      description: '순서형 회귀 결과',
+      status: results ? 'completed' : currentStep >= 3 ? 'current' : 'pending'
+    }
+  ]
+
   useEffect(() => {
     let isMounted = true
 
@@ -1026,7 +1059,7 @@ export default function OrdinalRegressionPage() {
     )
   }, [results, isAnalyzing, pyodideReady, runOrdinalRegression])
 
-  const steps = [
+  const stepComponents = [
     { id: 'upload', title: '소개', component: renderIntroductionStep },
     { id: 'variables', title: '데이터 업로드', component: renderDataUploadStep },
     { id: 'analysis', title: '변수 선택', component: renderVariableSelectionStep },
@@ -1037,8 +1070,10 @@ export default function OrdinalRegressionPage() {
     <StatisticsPageLayout
       title="서열 회귀분석"
       subtitle="Ordinal Regression"
+      steps={steps}
+      currentStep={currentStep + 1}
     >
-      {steps[currentStep].component()}
+      {stepComponents[currentStep].component()}
     </StatisticsPageLayout>
   )
 }

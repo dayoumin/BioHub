@@ -33,7 +33,19 @@ export interface StatisticsCategory {
   items: StatisticsMenuItem[]
 }
 
-// 통계 메서드를 카테고리별로 구성
+/**
+ * 통계 메뉴 구성 원칙:
+ *
+ * 1. 통합 페이지: 유사한 메서드를 1개 페이지에서 선택 (예: ANOVA)
+ * 2. 개별 페이지: 독립적인 메서드는 개별 페이지 제공
+ * 3. 혼합 패턴: 통합 + 개별 모두 제공 (사용자 선택권)
+ *    - 비모수 검정: 통합 페이지 + 8개 개별 페이지
+ *    - 회귀분석: 기본 회귀 + 5개 고급 회귀
+ *
+ * 주의사항:
+ * - ID 중복: 카테고리 ID와 메뉴 항목 ID가 같을 수 있음 (의도된 설계)
+ * - href 중복: 피해야 함 (각 항목은 고유한 경로)
+ */
 export const STATISTICS_MENU: StatisticsCategory[] = [
   {
     id: 'descriptive',
@@ -282,11 +294,12 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
       {
         id: 'non-parametric',
         href: '/statistics/non-parametric',
-        title: '비모수 검정 (통합)',
+        title: '비모수 검정',
         subtitle: 'Mann-Whitney, Wilcoxon, Kruskal-Wallis',
         category: 'nonparametric',
         icon: Shuffle,
-        implemented: true
+        implemented: true,
+        badge: '통합'
       },
       {
         id: 'mann-whitney',

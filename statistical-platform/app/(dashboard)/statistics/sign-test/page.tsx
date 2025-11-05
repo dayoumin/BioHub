@@ -999,19 +999,54 @@ export default function SignTestPage() {
     )
   }, [results, isAnalyzing, pyodideReady, runSignTest])
 
-  const steps = [
+  const stepComponents = [
     { id: 'upload', title: '소개', component: renderIntroductionStep },
     { id: 'variables', title: '데이터 업로드', component: renderDataUploadStep },
     { id: 'analysis', title: '변수 선택', component: renderVariableSelectionStep },
     { id: 'results', title: '분석 결과', component: renderresults }
   ]
 
+  // StatisticsPageLayout용 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'introduction',
+      number: 1,
+      title: '소개',
+      description: '부호 검정 소개',
+      status: currentStep >= 1 ? 'completed' : 'current'
+    },
+    {
+      id: 'upload-data',
+      number: 2,
+      title: '데이터 업로드',
+      description: 'CSV 또는 Excel 파일 업로드',
+      status: uploadedData ? 'completed' : currentStep >= 1 ? 'current' : 'pending'
+    },
+    {
+      id: 'select-variables',
+      number: 3,
+      title: '변수 선택',
+      description: '대응 표본 변수 선택',
+      status: selectedVariables && Object.keys(selectedVariables).length > 0 ? 'completed'
+              : currentStep >= 2 ? 'current' : 'pending'
+    },
+    {
+      id: 'view-results',
+      number: 4,
+      title: '결과 확인',
+      description: '부호 검정 결과',
+      status: results ? 'completed' : currentStep >= 3 ? 'current' : 'pending'
+    }
+  ]
+
   return (
     <StatisticsPageLayout
       title="부호 검정"
       subtitle="Sign Test"
+      steps={steps}
+      currentStep={currentStep + 1}
     >
-      {steps[currentStep].component()}
+      {stepComponents[currentStep].component()}
     </StatisticsPageLayout>
   )
 }
