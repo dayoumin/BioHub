@@ -1,11 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useState, lazy, Suspense, useTransition } from 'react'
+import { useCallback, useEffect, useState, useTransition } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronRight, ChevronLeft, Upload, CheckCircle, BarChart3, FileText, Sparkles, HelpCircle, X, Clock, ArrowLeft } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { SkeletonStepper, SkeletonCard } from '@/components/ui/skeleton'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { DataValidationService } from '@/lib/services/data-validation-service'
 import {
@@ -16,15 +15,13 @@ import {
   DataRow
 } from '@/types/smart-flow'
 import Link from 'next/link'
-
-// Lazy load 무거운 컴포넌트들
-const StepIndicator = lazy(() => import('@/components/common/StepIndicator').then(m => ({ default: m.StepIndicator })))
-const DataUploadStep = lazy(() => import('@/components/smart-flow/steps/DataUploadStep').then(m => ({ default: m.DataUploadStep })))
-const DataValidationStep = lazy(() => import('@/components/smart-flow/steps/DataValidationStep').then(m => ({ default: m.DataValidationStep })))
-const PurposeInputStep = lazy(() => import('@/components/smart-flow/steps/PurposeInputStep').then(m => ({ default: m.PurposeInputStep })))
-const AnalysisExecutionStep = lazy(() => import('@/components/smart-flow/steps/AnalysisExecutionStep').then(m => ({ default: m.AnalysisExecutionStep })))
-const ResultsActionStep = lazy(() => import('@/components/smart-flow/steps/ResultsActionStep').then(m => ({ default: m.ResultsActionStep })))
-const AnalysisHistoryPanel = lazy(() => import('@/components/smart-flow/AnalysisHistoryPanel').then(m => ({ default: m.AnalysisHistoryPanel })))
+import { ProgressStepper } from '@/components/smart-flow/ProgressStepper'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { DataValidationStep } from '@/components/smart-flow/steps/DataValidationStep'
+import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
+import { AnalysisExecutionStep } from '@/components/smart-flow/steps/AnalysisExecutionStep'
+import { ResultsActionStep } from '@/components/smart-flow/steps/ResultsActionStep'
+import { AnalysisHistoryPanel } from '@/components/smart-flow/AnalysisHistoryPanel'
 
 const steps: StepConfig[] = [
   { id: 1, name: '데이터 업로드', icon: Upload, description: '' },
@@ -79,11 +76,10 @@ export default function SmartFlowPage() {
     canNavigateToStep
   } = useSmartFlowStore()
 
-  const handleStepClick = useCallback((stepId: string | number) => {
-    const numericStepId = typeof stepId === 'string' ? parseInt(stepId, 10) : stepId
-    if (canNavigateToStep(numericStepId)) {
+  const handleStepClick = useCallback((stepId: number) => {
+    if (canNavigateToStep(stepId)) {
       startTransition(() => {
-        navigateToStep(numericStepId)
+        navigateToStep(stepId)
       })
     }
   }, [canNavigateToStep, navigateToStep])
@@ -127,14 +123,6 @@ export default function SmartFlowPage() {
     if (!uploadedData) return null
     return DataValidationService.getDataInfo(uploadedData)
   }
-
-  // StepConfig를 Step 형식으로 변환
-  const convertedSteps = steps.map((step) => ({
-    id: step.id.toString(),
-    title: step.name,
-    description: step.description,
-    icon: step.icon,
-  }))
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -251,25 +239,18 @@ export default function SmartFlowPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Suspense fallback={<SkeletonCard />}>
-                <AnalysisHistoryPanel />
-              </Suspense>
+              <AnalysisHistoryPanel />
             </CardContent>
           </Card>
         )}
 
-        {/* Step Indicator (새로운 통합 컴포넌트) */}
-        <Suspense fallback={<SkeletonStepper />}>
-          <StepIndicator
-            steps={convertedSteps}
-            currentStep={currentStep - 1}
-            completedSteps={completedSteps}
-            variant="gray"
-            onStepClick={handleStepClick}
-            showProgress={true}
-            showDescription={false}
-          />
-        </Suspense>
+        {/* Progress Stepper */}
+        <ProgressStepper
+          steps={steps}
+          currentStep={currentStep}
+          completedSteps={completedSteps}
+          onStepClick={handleStepClick}
+        />
 
         {/* 에러 메시지 표시 */}
         {error && (
@@ -308,56 +289,46 @@ export default function SmartFlowPage() {
 
             {currentStep === 1 && (
               <div className="animate-in fade-in duration-500">
-                <Suspense fallback={<SkeletonCard />}>
-                  <DataUploadStep onUploadComplete={handleUploadComplete} />
-                </Suspense>
+                <DataUploadStep onUploadComplete={handleUploadComplete} />
               </div>
             )}
 
             {currentStep === 2 && (
               <div className="animate-in fade-in duration-500">
                 <ErrorBoundary>
-                  <Suspense fallback={<SkeletonCard />}>
-                    <DataValidationStep
-                      validationResults={validationResults}
-                      data={uploadedData}
-                    />
-                  </Suspense>
+                  <DataValidationStep
+                    validationResults={validationResults}
+                    data={uploadedData}
+                  />
                 </ErrorBoundary>
               </div>
             )}
 
             {currentStep === 3 && (
               <div className="animate-in fade-in duration-500">
-                <Suspense fallback={<SkeletonCard />}>
-                  <PurposeInputStep
-                    onPurposeSubmit={handlePurposeSubmit}
-                  />
-                </Suspense>
+                <PurposeInputStep
+                  onPurposeSubmit={handlePurposeSubmit}
+                />
               </div>
             )}
 
             {currentStep === 4 && (
               <div className="animate-in fade-in duration-500">
-                <Suspense fallback={<SkeletonCard />}>
-                  <AnalysisExecutionStep
-                    selectedMethod={selectedMethod}
-                    variableMapping={{}}
-                    onAnalysisComplete={handleAnalysisComplete}
-                    onNext={goToNextStep}
-                    onPrevious={goToPreviousStep}
-                    canGoNext={canProceedToNext()}
-                    canGoPrevious={currentStep > 1}
-                  />
-                </Suspense>
+                <AnalysisExecutionStep
+                  selectedMethod={selectedMethod}
+                  variableMapping={{}}
+                  onAnalysisComplete={handleAnalysisComplete}
+                  onNext={goToNextStep}
+                  onPrevious={goToPreviousStep}
+                  canGoNext={canProceedToNext()}
+                  canGoPrevious={currentStep > 1}
+                />
               </div>
             )}
 
             {currentStep === 5 && (
               <div className="animate-in fade-in duration-500">
-                <Suspense fallback={<SkeletonCard />}>
-                  <ResultsActionStep results={results} />
-                </Suspense>
+                <ResultsActionStep results={results} />
               </div>
             )}
           </CardContent>
