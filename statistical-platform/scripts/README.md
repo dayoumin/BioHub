@@ -185,7 +185,10 @@ powershell -ExecutionPolicy Bypass -File scripts/download-sql-wasm.ps1
 ### 4. `generate-icons.js`
 **용도**: PWA 아이콘 생성 (SVG → PNG)
 
-**의존성**: `sharp` (npm install sharp)
+**의존성**: `sharp` ⚠️ **선택 설치**
+```bash
+npm install --save-dev sharp
+```
 
 **사용법**:
 ```bash
@@ -196,14 +199,18 @@ node scripts/generate-icons.js
 - `public/icon-192x192.png`
 - `public/icon-512x512.png`
 
+**참고**: PWA 아이콘이 이미 생성되어 있으면 실행 불필요
+
 ---
 
-## 🧪 개발 도구
+## 📦 아카이브된 스크립트
 
-### 1. `test-helper-refactoring.ts`
-**용도**: 테스트 헬퍼 함수 리팩토링 (용도 불명확)
+더 이상 사용되지 않는 스크립트는 `archive/` 디렉터리로 이동되었습니다:
 
-**상태**: ⚠️ 문서화 필요 또는 삭제 검토
+- `validate-statistics.sh` - validate-statistics.js와 중복
+- `test-helper-refactoring.ts` - 용도 불명확
+
+자세한 내용: [archive/README.md](archive/README.md)
 
 ---
 

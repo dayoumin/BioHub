@@ -82,7 +82,9 @@
       "Bash(node scripts/generate-icons.js:*)",
       "Bash(timeout /t 2 /nobreak)",
       "Bash(npx serve@latest:*)",
-      "Bash(timeout /t 3 /nobreak)"
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(mkdir:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []
