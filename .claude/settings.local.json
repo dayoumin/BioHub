@@ -86,7 +86,8 @@
       "Bash(mkdir:*)",
       "Bash(git mv:*)",
       "Bash(npm run analyze:metadata:*)",
-      "Bash(npm run validate:types:*)"
+      "Bash(npm run validate:types:*)",
+      "Bash(node scripts/statistics/analyze-step-patterns.js:*)"
     ],
     "deny": [],
     "ask": []

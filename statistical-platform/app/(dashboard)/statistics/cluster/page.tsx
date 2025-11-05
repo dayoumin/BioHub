@@ -80,7 +80,7 @@ export default function ClusterAnalysisPage() {
       number: 3,
       title: '옵션 설정',
       description: '군집 방법 및 파라미터 설정',
-      status: currentStep >= 3 ? 'current' : 'pending'
+      status: currentStep >= 3 ? 'completed' : currentStep === 2 ? 'current' : 'pending'
     },
     {
       id: 'view-results',
@@ -817,7 +817,7 @@ export default function ClusterAnalysisPage() {
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => {
             if (actions.setCurrentStep) {
-              actions.setCurrentStep(3)
+              actions.setCurrentStep(2)
             }
           }}>
             이전

@@ -606,7 +606,61 @@ describe('Steps Consistency', () => {
 - ✅ cluster/factor-analysis completeAnalysis 인덱스 버그 수정 (4→3)
 - ✅ 문서 업데이트: 하드코딩 값 제거, 정확한 통계 반영
 
-**다음 작업** (Phase 3):
-- 🔜 createStandardSteps 유틸 구현 (중복 코드 제거)
+**다음 작업** (Phase 3 - 보류 결정):
+- ⏸️ **createStandardSteps 유틸 구현 보류** (이유: 아래 "Phase 3 보류 결정" 섹션 참조)
 - 🔜 테스트 품질 개선 (placeholder assertion → 실제 검증)
 - 🔜 메뉴 미등록 6개 페이지 등록 검토
+
+---
+
+## 🔍 Phase 3 보류 결정 (2025-11-05)
+
+### createStandardSteps 유틸 구현 보류 이유
+
+**결정**: Phase 3 (createStandardSteps 유틸 구현)을 **당분간 보류**합니다.
+
+**근거 분석**:
+
+1. **Step 패턴 다양성** (공통화 난이도 높음)
+   ```
+   41개 통계 페이지의 Step 구성:
+   - 2단계: 10개 페이지 (예: chi-square, Fisher 검정 등)
+   - 3단계: 21개 페이지 (예: non-parametric, t-test 등)
+   - 4단계: 10개 페이지 (예: cluster, factor-analysis 등)
+
+   각 단계의 구체적 구현:
+   - 업로드 단계: 일부 페이지는 직접 입력, 일부는 파일 업로드
+   - 변수 선택: VariableSelector 옵션이 페이지마다 다름 (dependent, independent, groups, all 등)
+   - 분석 옵션: 페이지마다 고유한 옵션 (alpha, alternative, method 등)
+   ```
+
+2. **프리셋 오버헤드**
+   - 4-5개 프리셋으로 41개 페이지를 커버하려면 각 페이지마다 customSteps 필요
+   - 결과적으로 코드가 오히려 복잡해질 수 있음 (추상화 비용 > 중복 제거 이득)
+
+3. **현재 상태 만족**
+   - Steps 구현률: **100% (41/41)** ✅
+   - TypeScript 에러: **0개** ✅
+   - completeAnalysis 버그: **0개** ✅
+   - 테스트 품질: 실제 검증으로 개선 완료
+
+4. **ROI 분석**
+   | 항목 | 현재 (Phase 2-3 완료) | Phase 3 구현 시 | ROI |
+   |------|---------------------|----------------|-----|
+   | Steps 구현률 | 100% | 100% | 0% |
+   | TypeScript 에러 | 0 | 0 | 0% |
+   | 신규 페이지 작성 시간 | ~2시간 | ~1.5시간 | -25% (미미) |
+   | 유틸 학습 비용 | 없음 | 1-2시간 (신규 개발자) | -50% |
+   | **구현 비용** | **0시간** | **9시간 (유틸+리팩토링+테스트)** | **-900%** |
+
+5. **향후 재검토 조건**
+   - 통계 페이지 개수가 60개 이상으로 증가 시
+   - Step 패턴이 3-4개로 수렴 시
+   - 신규 개발자 온보딩이 주요 병목이 될 시
+
+**대안 전략** (현재 적용):
+- 📚 [STATISTICS_PAGE_CODING_STANDARDS.md](./STATISTICS_PAGE_CODING_STANDARDS.md)에 Step 패턴 명확히 문서화
+- 🧪 [__tests__/statistics/__tests__/step-flow-fix.test.tsx](../../app/(dashboard)/statistics/__tests__/step-flow-fix.test.tsx)로 검증
+- 🔍 코드 리뷰 시 Step 흐름 중점 확인
+
+**결론**: 현재는 문서화 + 테스트 전략이 더 효율적이므로, createStandardSteps 유틸 구현을 보류합니다.

@@ -86,7 +86,7 @@ export default function FactorAnalysisPage() {
       number: 3,
       title: '옵션 설정',
       description: '요인 추출 방법 및 회전 설정',
-      status: currentStep >= 3 ? 'current' : 'pending'
+      status: currentStep >= 3 ? 'completed' : currentStep === 2 ? 'current' : 'pending'
     },
     {
       id: 'view-results',
@@ -861,7 +861,7 @@ export default function FactorAnalysisPage() {
         </Tabs>
 
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => actions.setCurrentStep(3)}>
+          <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
             이전
           </Button>
           <Button onClick={() => {
