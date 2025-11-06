@@ -33,13 +33,17 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   AlertCircle,
   CheckCircle2,
   RefreshCw,
   ArrowLeft,
   ArrowRight,
-  Eye
+  Eye,
+  Search,
+  X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -82,6 +86,10 @@ export function VariableSelectorModern({
 
   // 미리보기 모드
   const [showPreview, setShowPreview] = useState(false)
+
+  // 모달 내부 상태
+  const [searchQuery, setSearchQuery] = useState('')
+  const [tempSelection, setTempSelection] = useState<string[]>([])
 
   // ========================================
   // 2. 메타데이터 로드 (기존 시스템 재사용)
@@ -200,18 +208,70 @@ export function VariableSelectorModern({
 
   // 제출
   const handleSubmit = useCallback(() => {
-    console.log('[VariableSelectorModern] handleSubmit 호출')
-    console.log('[VariableSelectorModern] validation:', validation)
-    console.log('[VariableSelectorModern] assignments:', assignments)
+    if (!validation.isValid) return
+    onVariablesSelected(assignments)
+  }, [validation.isValid, assignments, onVariablesSelected])
 
-    if (!validation.isValid) {
-      console.log('[VariableSelectorModern] 검증 실패, 제출 중단')
-      return
+  // 모달 열기
+  const handleOpenModal = useCallback((role: VariableRole) => {
+    setActiveRole(role)
+    setSearchQuery('')
+
+    // 현재 할당된 변수로 초기화
+    const current = assignments[role]
+    if (current) {
+      setTempSelection(Array.isArray(current) ? current : [current])
+    } else {
+      setTempSelection([])
+    }
+  }, [assignments])
+
+  // 모달 닫기
+  const handleCloseModal = useCallback(() => {
+    setActiveRole(null)
+    setSearchQuery('')
+    setTempSelection([])
+  }, [])
+
+  // 모달에서 변수 토글 (다중 선택)
+  const handleToggleVariable = useCallback((varName: string) => {
+    setTempSelection(prev => {
+      if (prev.includes(varName)) {
+        return prev.filter(v => v !== varName)
+      } else {
+        return [...prev, varName]
+      }
+    })
+  }, [])
+
+  // 모달에서 변수 선택 (단일 선택)
+  const handleSelectSingleVariable = useCallback((varName: string) => {
+    setTempSelection([varName])
+  }, [])
+
+  // 모달에서 변수 선택 확정
+  const handleConfirmSelection = useCallback(() => {
+    if (!activeRole) return
+
+    const varReq = requirements?.variables.find(v => v.role === activeRole)
+    if (!varReq) return
+
+    if (tempSelection.length === 0) {
+      // 선택 해제
+      setAssignments(prev => {
+        const { [activeRole]: _, ...rest } = prev
+        return rest
+      })
+    } else if (varReq.multiple) {
+      // 다중 선택
+      handleVariableSelect(activeRole, tempSelection)
+    } else {
+      // 단일 선택
+      handleVariableSelect(activeRole, tempSelection[0])
     }
 
-    console.log('[VariableSelectorModern] onVariablesSelected 호출:', assignments)
-    onVariablesSelected(assignments)
-  }, [validation.isValid, validation, assignments, onVariablesSelected])
+    handleCloseModal()
+  }, [activeRole, tempSelection, requirements, handleVariableSelect, handleCloseModal])
 
   // ========================================
   // 5. 렌더링
@@ -282,7 +342,7 @@ export function VariableSelectorModern({
                   {varReq.required && <span className="text-red-500 ml-1">*</span>}
                 </label>
                 <Button
-                  onClick={() => setActiveRole(varReq.role as VariableRole)}
+                  onClick={() => handleOpenModal(varReq.role as VariableRole)}
                   variant="outline"
                   size="sm"
                   className="gap-2"
@@ -468,59 +528,189 @@ export function VariableSelectorModern({
       )}
 
       {/* ========================================
-          변수 선택 모달 (Phase 1.3에서 구현)
-          지금은 간단한 placeholder
+          변수 선택 모달 (Phase 1.3 완성)
           ======================================== */}
-      {activeRole && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-[600px] max-h-[80vh] overflow-auto">
-            <CardHeader>
-              <CardTitle>변수 선택 - {activeRole}</CardTitle>
-              <CardDescription>
-                Phase 1.3에서 모달 UI 구현 예정
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                사용 가능한 변수: {analysis.columns.length}개
-              </p>
-              <div className="space-y-2">
-                {analysis.columns.map(col => (
-                  <div
-                    key={col.name}
-                    className="p-2 border rounded hover:bg-muted cursor-pointer"
-                    onClick={() => {
-                      const varReq = requirements.variables.find(v => v.role === activeRole)
-                      if (!varReq) return
+      {activeRole && (() => {
+        const varReq = requirements.variables.find(v => v.role === activeRole)
+        if (!varReq) return null
 
-                      if (varReq.multiple) {
-                        const current = assignments[activeRole] || []
-                        const currentArray = Array.isArray(current) ? current : [current]
-                        handleVariableSelect(activeRole, [...currentArray, col.name])
-                      } else {
-                        handleVariableSelect(activeRole, col.name)
-                      }
-                      setActiveRole(null)
-                    }}
-                  >
-                    <span className="font-medium">{col.name}</span>
-                    <Badge variant="outline" className="ml-2">{col.type}</Badge>
+        // 검색 필터링
+        const filteredColumns = analysis.columns.filter(col => {
+          // 검색어 필터
+          if (searchQuery && !col.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+            return false
+          }
+
+          // 타입 필터 (요구사항과 매치)
+          if (varReq.types && varReq.types.length > 0) {
+            return varReq.types.includes(col.type)
+          }
+
+          return true
+        })
+
+        // 타입별 그룹화
+        const groupedByType = filteredColumns.reduce((acc, col) => {
+          if (!acc[col.type]) acc[col.type] = []
+          acc[col.type].push(col)
+          return acc
+        }, {} as Record<string, ColumnAnalysis[]>)
+
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-[700px] max-h-[85vh] flex flex-col">
+              {/* 헤더 */}
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">{varReq.label} 선택</CardTitle>
+                    <CardDescription className="mt-1">
+                      {varReq.description}
+                      {varReq.example && ` (예: ${varReq.example})`}
+                    </CardDescription>
                   </div>
-                ))}
+                  <Button
+                    onClick={handleCloseModal}
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* 검색바 */}
+                <div className="relative mt-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="변수명 검색..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </CardHeader>
+
+              {/* 내용 */}
+              <CardContent className="flex-1 overflow-y-auto">
+                <div className="space-y-4">
+                  {/* 안내 메시지 */}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>
+                      {varReq.multiple
+                        ? `다중 선택 가능${varReq.minCount ? ` (최소 ${varReq.minCount}개)` : ''}${varReq.maxCount ? ` (최대 ${varReq.maxCount}개)` : ''}`
+                        : '단일 선택'}
+                    </span>
+                    <Separator orientation="vertical" className="h-4" />
+                    <span>
+                      {tempSelection.length}개 선택됨
+                    </span>
+                  </div>
+
+                  {/* 변수 목록 (타입별 그룹화) */}
+                  {Object.entries(groupedByType).map(([type, columns]) => (
+                    <div key={type} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {type}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {columns.length}개
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        {columns.map(col => {
+                          const isSelected = tempSelection.includes(col.name)
+
+                          return (
+                            <div
+                              key={col.name}
+                              onClick={() => {
+                                if (varReq.multiple) {
+                                  handleToggleVariable(col.name)
+                                } else {
+                                  handleSelectSingleVariable(col.name)
+                                }
+                              }}
+                              className={cn(
+                                'flex items-center gap-3 p-3 border rounded-md cursor-pointer transition-colors',
+                                isSelected
+                                  ? 'bg-primary/10 border-primary'
+                                  : 'hover:bg-muted'
+                              )}
+                            >
+                              {/* 체크박스/라디오 */}
+                              {varReq.multiple ? (
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => handleToggleVariable(col.name)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              ) : (
+                                <div className={cn(
+                                  'w-4 h-4 rounded-full border-2 flex items-center justify-center',
+                                  isSelected ? 'border-primary' : 'border-muted-foreground'
+                                )}>
+                                  {isSelected && (
+                                    <div className="w-2 h-2 rounded-full bg-primary" />
+                                  )}
+                                </div>
+                              )}
+
+                              {/* 변수 정보 */}
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{col.name}</p>
+                                {col.statistics && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {col.dataType === 'number' && col.statistics.min !== undefined && col.statistics.max !== undefined
+                                      ? `범위: ${col.statistics.min.toFixed(2)} ~ ${col.statistics.max.toFixed(2)}`
+                                      : `고유값: ${col.uniqueCount}개`}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* 타입 뱃지 */}
+                              <Badge variant="outline" className="text-xs">
+                                {col.type}
+                              </Badge>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* 검색 결과 없음 */}
+                  {filteredColumns.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="text-sm">검색 결과가 없습니다</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+
+              {/* 하단 버튼 */}
+              <div className="p-4 border-t flex gap-2">
+                <Button
+                  onClick={handleCloseModal}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  취소
+                </Button>
+                <Button
+                  onClick={handleConfirmSelection}
+                  disabled={varReq.required && tempSelection.length === 0}
+                  className="flex-1"
+                >
+                  확인 ({tempSelection.length}개 선택)
+                </Button>
               </div>
-            </CardContent>
-            <div className="p-4 border-t">
-              <Button
-                onClick={() => setActiveRole(null)}
-                variant="outline"
-                className="w-full"
-              >
-                닫기
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+            </Card>
+          </div>
+        )
+      })()}
     </div>
   )
 }
