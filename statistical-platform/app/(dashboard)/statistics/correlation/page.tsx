@@ -30,14 +30,9 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // Data interfaces
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
-
 // 로컬 인터페이스 제거: types/statistics.ts의 CorrelationVariables 사용
 // interface VariableSelection {
 //   variables: string[]

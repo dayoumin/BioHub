@@ -33,11 +33,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { cn } from '@/lib/utils'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // interface SelectedVariables {
 //   dependent: string
@@ -394,10 +390,10 @@ export default function ANOVAPage() {
       )
     }
 
-    const methodId = currentAnovaType === 'oneWay' ? 'oneWayANOVA' :
-      currentAnovaType === 'twoWay' ? 'twoWayANOVA' :
-      currentAnovaType === 'threeWay' ? 'threeWayANOVA' :
-      'repeatedMeasuresANOVA'
+    const methodId = currentAnovaType === 'oneWay' ? 'one-way-anova' :
+      currentAnovaType === 'twoWay' ? 'two-way-anova' :
+      currentAnovaType === 'threeWay' ? 'three-way-anova' :
+      'repeated-measures-anova'
 
     return (
       <StepCard

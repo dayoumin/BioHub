@@ -27,14 +27,9 @@ import { VariableSelector } from '@/components/variable-selection/VariableSelect
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // 데이터 인터페이스
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
-
 interface VariableSelection {
   variables: string[]
 }

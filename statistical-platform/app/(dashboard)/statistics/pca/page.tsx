@@ -8,6 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
+import { detectVariableType } from '@/lib/services/variable-type-detector'
+import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import {
   Zap,
   Upload,
@@ -23,19 +28,9 @@ import {
 } from 'lucide-react'
 
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { useStatisticsPage, type UploadedData as HookUploadedData } from '@/hooks/use-statistics-page'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
-import { detectVariableType } from '@/lib/services/variable-type-detector'
-import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
 // 데이터 인터페이스
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
 // 로컬 인터페이스 제거: types/statistics.ts의 PCAVariables 사용
 // interface VariableSelection {
 //   variables: string[]

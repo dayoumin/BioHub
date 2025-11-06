@@ -14,7 +14,7 @@ import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info, Target } f
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage , type UploadedData } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 
@@ -63,12 +63,6 @@ interface ResponseSurfaceResult {
 //   factor: string[]
 // }
 // → types/statistics.ts의 ResponseSurfaceVariables 사용
-
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
 
 interface ResponseSurfaceAnalysisProps {
   selectedModel: string
@@ -166,6 +160,7 @@ from sklearn.metrics import r2_score
 from scipy import stats
 import itertools
 import warnings
+import { type UploadedData } from '@/hooks/use-statistics-page'
 warnings.filterwarnings('ignore')
 
 # 데이터 준비

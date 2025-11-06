@@ -33,14 +33,9 @@ import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import type { VariableAssignment } from '@/components/variable-selection/VariableSelector'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // Data interfaces
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
-
 interface DataRow {
   [key: string]: string | number | null | undefined
 }

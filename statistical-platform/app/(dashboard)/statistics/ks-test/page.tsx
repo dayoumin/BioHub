@@ -24,17 +24,11 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 
 // 데이터 인터페이스
-interface UploadedData {
-  data: Record<string, unknown>[]
-  fileName: string
-  columns: string[]
-}
-
 // 로컬 인터페이스 제거: types/statistics.ts의 KSTestVariables 사용
 // interface VariableSelection {
 //   variables: string[]
@@ -201,6 +195,7 @@ critical_value = 1.36 / np.sqrt(n)
     const result = await pyodide.runPythonAsync(`
 from scipy import stats
 import numpy as np
+import { type UploadedData } from '@/hooks/use-statistics-page'
 
 values1 = np.array(js_values1)
 values2 = np.array(js_values2)

@@ -34,17 +34,12 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Hooks & Utils
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // Services
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 
 // Type definitions
-interface UploadedData {
-  file: File
-  data: Record<string, unknown>[]
-  columns: string[]
-}
-
 // interface SelectedVariables {
 //   dependent: string[]
 //   [key: string]: string | string[] | undefined
