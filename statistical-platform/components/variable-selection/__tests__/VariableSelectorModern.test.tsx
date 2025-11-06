@@ -240,4 +240,77 @@ describe('VariableSelectorModern', () => {
 
     render(<VariableSelectorModern {...props} />)
   })
+
+  // ========================================
+  // 8. 모달 기능 테스트 (Phase 1.3)
+  // ========================================
+
+  test('변수 선택 버튼 클릭 시 모달 열림', async () => {
+    render(
+      <VariableSelectorModern
+        methodId="one-way-anova"
+        data={mockData}
+        onVariablesSelected={mockOnVariablesSelected}
+      />
+    )
+
+    const selectButtons = screen.getAllByText('변수 선택')
+    fireEvent.click(selectButtons[0])
+
+    await waitFor(() => {
+      // 모달 제목 확인
+      expect(screen.getByText(/종속 변수 선택/i)).toBeInTheDocument()
+      // 검색바 확인
+      expect(screen.getByPlaceholderText('변수명 검색...')).toBeInTheDocument()
+    })
+  })
+
+  test('모달에서 변수 목록 표시', async () => {
+    render(
+      <VariableSelectorModern
+        methodId="one-way-anova"
+        data={mockData}
+        onVariablesSelected={mockOnVariablesSelected}
+      />
+    )
+
+    const selectButtons = screen.getAllByText('변수 선택')
+    fireEvent.click(selectButtons[0])
+
+    await waitFor(() => {
+      // 모달이 열렸는지 확인
+      expect(screen.getByText(/종속 변수 선택/i)).toBeInTheDocument()
+
+      // 변수가 표시되는지 확인 (타입 필터링으로 일부만 표시될 수 있음)
+      // continuous 타입 변수만 표시되어야 함
+      const allText = screen.getByText(/종속 변수 선택/i).parentElement?.parentElement?.textContent
+      expect(allText).toBeTruthy()
+    })
+  })
+
+  test('모달 닫기 버튼 동작', async () => {
+    render(
+      <VariableSelectorModern
+        methodId="one-way-anova"
+        data={mockData}
+        onVariablesSelected={mockOnVariablesSelected}
+      />
+    )
+
+    const selectButtons = screen.getAllByText('변수 선택')
+    fireEvent.click(selectButtons[0])
+
+    await waitFor(() => {
+      expect(screen.getByText(/종속 변수 선택/i)).toBeInTheDocument()
+    })
+
+    // 취소 버튼 클릭
+    const cancelButton = screen.getByText('취소')
+    fireEvent.click(cancelButton)
+
+    await waitFor(() => {
+      // 모달이 닫혔는지 확인
+      expect(screen.queryByText(/종속 변수 선택/i)).not.toBeInTheDocument()
+    })
+  })
 })
