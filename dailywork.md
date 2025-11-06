@@ -1,3 +1,104 @@
+## 2025-11-06 (수)
+
+### ✅ methodId 표준화 및 Critical 버그 수정
+
+**배경**: ANOVA 페이지에서 "데이터를 불러올 수 없습니다" 에러 발견 → methodId 불일치 원인 → 전체 통계 페이지 점검
+
+#### 1. ANOVA 페이지 버그 수정 (45분)
+
+**문제 발견**:
+- ANOVA 페이지에서 변수 선택 단계에 데이터 로드 실패
+- 콘솔 확인: `uploadedData`는 정상, 하지만 VariableSelector 에러
+
+**원인 분석**:
+1. UploadedData 타입 shadowing (10개 페이지)
+   - 로컬 interface가 hook의 타입 재정의
+2. **methodId 불일치** (Critical)
+   - `methodId="oneWayANOVA"` 사용
+   - 올바른 ID: `"one-way-anova"` (variable-requirements.ts)
+
+**수정 사항**:
+- ANOVA: methodId camelCase → kebab-case 수정
+- 9개 페이지: UploadedData interface 제거, import 추가
+- app/layout.tsx: Next.js 15 viewport 분리
+
+**검증**:
+- TypeScript: 0 errors ✓
+- 브라우저 테스트: 변수 선택 UI 정상 로드 ✓
+
+**커밋**: `bc170af` - fix: resolve 'Cannot load data' error in statistics pages
+
+#### 2. 전체 통계 페이지 methodId 표준화 (90분)
+
+**작업 범위**: 41개 통계 페이지 중 14개 추가 수정 필요 확인
+
+**문제 패턴 발견**:
+1. **Underscore 형식**: `chi_square_goodness` (6개)
+2. **camelCase 형식**: `kolmogorovSmirnov` (2개)
+3. **불완전한 ID**: `correlation` → `pearson-correlation` (6개)
+
+**수정 페이지 (14개)**:
+1. chi-square-goodness: `chi_square_goodness` → `chi-square-goodness`
+2. chi-square-independence: `chi_square_independence` → `chi-square-independence`
+3. correlation: `correlation` → `pearson-correlation`
+4. descriptive: `descriptive` → `descriptive-stats`
+5. discriminant: `discriminant` → `discriminant-analysis`
+6. explore-data: `explore_data` → `explore-data`
+7. kruskal-wallis: `kruskal_wallis` → `kruskal-wallis`
+8. ks-test: `kolmogorovSmirnov` → `kolmogorov-smirnov`
+9. mann-whitney: `mann_whitney` → `mann-whitney`
+10. poisson: `poisson` → `poisson-regression`
+11. proportion-test: `proportion-test` → `one-sample-proportion`
+12. runs-test: `runsTest` → `runs-test`
+13. stepwise: `stepwise` → `stepwise-regression`
+14. wilcoxon: `wilcoxon_signed_rank` → `wilcoxon-signed-rank`
+
+**문서 업데이트**:
+- [STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md:140-219)에 methodId 명명 규칙 섹션 추가 (85줄)
+  - Critical 규칙: methodId는 반드시 kebab-case 사용
+  - 14개 페이지 매핑 테이블
+  - 검증 방법 및 디버깅 가이드
+  - 체크리스트 항목 추가
+
+**테스트 코드 작성**:
+- [methodId-validation.test.ts](statistical-platform/__tests__/pages/methodId-validation.test.ts) 생성
+  - 4개 테스트 케이스 (모두 통과 ✓)
+  - kebab-case 형식 검증
+  - variable-requirements.ts 일치 확인
+  - 잘못된 형식(underscore, camelCase) 검출
+  - 페이지 디렉토리 일관성 검증
+
+**검증 결과**:
+- TypeScript 컴파일: 0 errors (production 코드) ✓
+- Jest 테스트: 4/4 tests passed ✓
+- Git diff: 16 files (14 pages + 1 doc + 1 test)
+
+**영향 분석**:
+- VariableSelector methodId 정확도: **100%** 달성
+- "데이터를 불러올 수 없습니다" 에러 방지 (14개 페이지)
+- ANOVA와 동일한 버그 원인 제거
+
+**커밋**: `cd7d118` - fix: standardize methodId format across 14 statistics pages
+
+#### 3. 작업 시간 및 성과
+
+**총 작업 시간**: ~2.5시간
+
+**성과**:
+- ✅ Critical 버그 수정: 15개 페이지 (ANOVA + 14개)
+- ✅ 코딩 표준 문서화: methodId 명명 규칙 추가
+- ✅ 테스트 자동화: Jest 테스트로 재발 방지
+- ✅ TypeScript: 0 errors 유지
+- ✅ 품질 보증: 코드 리뷰 + 자동 테스트
+
+**학습 사항**:
+1. **타입 시스템 신뢰**: TypeScript 컴파일만으로 런타임 버그 못 잡음
+2. **실제 동작 테스트 필수**: 브라우저/Jest 테스트로 검증 필요
+3. **패턴 분석의 중요성**: 1개 버그 발견 → 14개 추가 발견
+4. **문서화**: 재발 방지를 위한 규칙 명시화
+
+---
+
 ## 2025-11-05 (화)
 
 ### ✅ 문서 정확성 개선 및 Phase 3 결정 사항 문서화
