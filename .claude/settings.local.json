@@ -98,7 +98,9 @@
       "Bash(node:*)",
       "Bash(node scripts/statistics/fix-remaining-handlers.js:*)",
       "Bash(node scripts/statistics/analyze-field-naming-consistency.js:*)",
-      "Bash(node scripts/statistics/fix-type-casting.js:*)"
+      "Bash(node scripts/statistics/fix-type-casting.js:*)",
+      "Bash(timeout 2 tail:*)",
+      "Bash(timeout 3 tail:*)"
     ],
     "deny": [],
     "ask": []

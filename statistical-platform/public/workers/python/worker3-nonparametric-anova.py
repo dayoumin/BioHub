@@ -132,6 +132,116 @@ def friedman_test(groups):
 
 
 
+def get_t_critical(df, alpha=0.05):
+    """
+    Calculate t-critical value for confidence intervals
+
+    Args:
+        df: degrees of freedom
+        alpha: significance level (default 0.05 for 95% CI)
+
+    Returns:
+        t-critical value (two-tailed)
+    """
+    from scipy.stats import t as t_dist
+
+    if df < 1:
+        raise ValueError(f"Degrees of freedom must be >= 1, got {df}")
+
+    # Two-tailed test
+    t_critical = t_dist.ppf(1 - alpha/2, df)
+
+    return float(t_critical)
+
+
+def calculate_statistical_power(f_statistic, df1, df2, alpha=0.05):
+    """
+    Calculate observed statistical power for ANOVA
+
+    Args:
+        f_statistic: F-statistic from ANOVA
+        df1: between-groups degrees of freedom
+        df2: within-groups degrees of freedom
+        alpha: significance level (default 0.05)
+
+    Returns:
+        observed power (0-1)
+    """
+    from scipy.stats import f as f_dist, ncf
+
+    if f_statistic < 0:
+        raise ValueError(f"F-statistic must be >= 0, got {f_statistic}")
+
+    # Critical F value
+    f_critical = f_dist.ppf(1 - alpha, df1, df2)
+
+    # Non-centrality parameter
+    ncp = f_statistic * df1
+
+    # Calculate power using non-central F distribution
+    power = 1 - ncf.cdf(f_critical, df1, df2, ncp)
+
+    return float(max(0.0, min(1.0, power)))  # Clamp to [0, 1]
+
+
+def test_assumptions(groups):
+    """
+    Test ANOVA assumptions: normality (Shapiro-Wilk) and homogeneity (Levene)
+
+    Args:
+        groups: list of arrays for each group
+
+    Returns:
+        dict with normality and homogeneity test results
+    """
+    clean_groups = clean_groups_helper(groups)
+
+    # Shapiro-Wilk test for normality (test each group)
+    normality_results = []
+    all_passed_normality = True
+
+    for i, group in enumerate(clean_groups):
+        if len(group) >= 3:  # Shapiro-Wilk requires at least 3 samples
+            stat, p = stats.shapiro(group)
+            passed = p > 0.05
+            normality_results.append({
+                'group': i,
+                'statistic': float(stat),
+                'pValue': float(p),
+                'passed': bool(passed)
+            })
+            if not passed:
+                all_passed_normality = False
+        else:
+            normality_results.append({
+                'group': i,
+                'statistic': None,
+                'pValue': None,
+                'passed': None,
+                'warning': f'Sample size too small ({len(group)})'
+            })
+
+    # Levene's test for homogeneity of variances
+    levene_stat, levene_p = stats.levene(*clean_groups, center='median')
+    levene_passed = levene_p > 0.05
+
+    return {
+        'normality': {
+            'shapiroWilk': normality_results,
+            'passed': bool(all_passed_normality),
+            'interpretation': '정규성 가정 만족' if all_passed_normality else '정규성 가정 위반 (비모수 검정 고려)'
+        },
+        'homogeneity': {
+            'levene': {
+                'statistic': float(levene_stat),
+                'pValue': float(levene_p)
+            },
+            'passed': bool(levene_passed),
+            'interpretation': '등분산성 가정 만족' if levene_passed else '등분산성 가정 위반 (Welch ANOVA 고려)'
+        }
+    }
+
+
 def one_way_anova(groups):
     clean_groups = clean_groups_helper(groups)
 
@@ -140,7 +250,7 @@ def one_way_anova(groups):
             raise ValueError(f"Group {i} must have at least 2 observations")
 
     f_statistic, p_value = stats.f_oneway(*clean_groups)
-    
+
     return {
         'fStatistic': float(f_statistic),
         'pValue': float(p_value),

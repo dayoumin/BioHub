@@ -143,7 +143,7 @@ export class LargeFileProcessor {
           }
         },
         complete: (results) => {
-          if (results.errors.length > 0 && !shouldStop) {
+          if (results && results.errors && results.errors.length > 0 && !shouldStop) {
             reject(new Error(`CSV 파싱 오류: ${results.errors[0].message}`))
           } else {
             // 최종 진행률 업데이트

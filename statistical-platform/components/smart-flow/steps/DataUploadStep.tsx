@@ -275,24 +275,23 @@ export function DataUploadStep({
 
   return (
     <div className="space-y-6">
-      <div 
+      <div
         {...getRootProps()}
         className={cn(
-          "border-2 border-dashed rounded-lg p-12 text-center transition-colors cursor-pointer",
+          "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
           isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50",
           isUploading && "pointer-events-none opacity-50"
         )}
       >
         <input {...getInputProps()} />
-        <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-lg font-semibold mb-2">
+        <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+        <h3 className="text-base font-semibold mb-2">
           {isDragActive ? '파일을 놓으세요' : '파일을 드래그하거나 클릭하여 업로드'}
         </h3>
-        <div className="space-y-1 text-sm text-muted-foreground mb-4">
-          <p>CSV 최대 100MB, Excel 최대 20MB | 최대 100,000행</p>
-          <p>지원 형식: CSV (.csv), Excel (.xlsx, .xls)</p>
+        <div className="space-y-0.5 text-xs text-muted-foreground mb-3">
+          <p>최대 100,000행 | 지원 형식: CSV, Excel</p>
         </div>
-        <Button variant="outline" disabled={isUploading}>
+        <Button variant="outline" size="sm" disabled={isUploading}>
           {isUploading ? '업로드 중...' : '파일 선택'}
         </Button>
       </div>
@@ -398,9 +397,7 @@ export function DataUploadStep({
         <h4 className="font-medium mb-2">💡 도움말</h4>
         <ul className="text-sm text-muted-foreground space-y-1">
           <li>• 첫 번째 행은 변수명(헤더)이어야 합니다</li>
-          <li>• CSV: 최대 100MB | Excel: 최대 20MB</li>
           <li>• Excel 파일의 경우 여러 시트가 있으면 선택할 수 있습니다</li>
-          <li>• 대용량 파일은 자동으로 청크 단위로 처리됩니다</li>
           <li>• 결측값은 빈 셀로 표시해주세요</li>
         </ul>
       </div>

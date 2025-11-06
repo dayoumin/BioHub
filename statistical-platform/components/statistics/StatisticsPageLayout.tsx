@@ -1,12 +1,10 @@
 'use client'
 
-import React, { useState, ReactNode } from 'react'
+import React, { ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
   TooltipContent,
@@ -14,12 +12,10 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
-  ChevronRight,
-  Play,
   RotateCcw,
   CheckCircle2,
   XCircle,
-  Clock
+  ChevronLeft
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -45,6 +41,12 @@ interface StatisticsPageLayoutProps {
     assumptions?: string[]
     sampleSize?: string
     usage?: string
+  }
+
+  // 선택된 분석 방법 정보 (컨텍스트 바)
+  selectedMethod?: {
+    name: string
+    subtitle?: string
   }
 
   // 단계 관리 (옵션)
@@ -85,7 +87,7 @@ export function StatisticsPageLayout({
   subtitle,
   description,
   icon,
-  methodInfo,
+  selectedMethod,
   steps,
   currentStep = 0,
   onStepChange,
@@ -93,13 +95,9 @@ export function StatisticsPageLayout({
   onDataUpload,
   variableSelectionStep,
   resultsStep,
-  onRun,
   onReset,
-  onExport,
-  onHelp,
   isRunning = false,
   showProgress = true,
-  showTips = true,
   className
 }: StatisticsPageLayoutProps) {
 
@@ -109,198 +107,173 @@ export function StatisticsPageLayout({
   // 진행률 계산 (고급 모드에서만)
   const progress = isAdvancedMode ? ((currentStep + 1) / steps.length) * 100 : 0
 
-  // 현재 단계 정보 (고급 모드에서만)
-  const currentStepInfo = isAdvancedMode ? steps[currentStep] : null
-
 
   return (
-    <div className={cn("min-h-screen bg-gradient-to-br from-background via-background to-muted/20", className)}>
-      <div className="container mx-auto py-6 space-y-6">
-        {/* 헤더 섹션 */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative"
-        >
-          <Card className="border-2 shadow-xl">
-            <CardHeader className="pb-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  {/* 아이콘 */}
-                  {icon && (
-                    <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-xl">
-                      <div className="text-primary">
-                        {icon}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 제목 */}
-                  <div>
-                    <CardTitle className="text-2xl font-bold">
-                      {title}
-                    </CardTitle>
-                    {(subtitle || description) && (
-                      <CardDescription className="mt-1">
-                        {subtitle || description}
-                      </CardDescription>
-                    )}
-                  </div>
+    <div className={cn("min-h-screen bg-background", className)}>
+      {/* 미니멀 헤더 */}
+      <div className="border-b bg-card">
+        <div className="container mx-auto py-3 px-4">
+          <div className="flex items-center justify-between">
+            {/* 좌측: 제목 + 아이콘 */}
+            <div className="flex items-center gap-3">
+              {icon && (
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  {icon}
                 </div>
-
+              )}
+              <div>
+                <h1 className="text-lg font-semibold">{title}</h1>
+                {(subtitle || description) && (
+                  <p className="text-xs text-muted-foreground">
+                    {subtitle || description}
+                  </p>
+                )}
               </div>
-            </CardHeader>
+            </div>
 
-            {/* 진행 상태 바 (고급 모드에서만) */}
-            {showProgress && isAdvancedMode && (
-              <>
-                <Separator />
-                <CardContent className="pt-4 pb-3">
-                  <div className="space-y-3">
-                    {/* 단계 표시 */}
-                    <div className="flex items-center justify-between">
-                      {steps.map((step, idx) => (
-                        <React.Fragment key={step.id}>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => onStepChange?.(idx)}
-                                  disabled={idx > currentStep}
-                                  className={cn(
-                                    "flex items-center gap-2 px-3 py-2 rounded-lg transition-all",
-                                    idx === currentStep && "bg-primary/10 ring-2 ring-primary",
-                                    idx < currentStep && "bg-success/10 text-success",
-                                    idx > currentStep && "opacity-50 cursor-not-allowed"
-                                  )}
-                                >
-                                  <div className={cn(
-                                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
-                                    idx === currentStep && "bg-primary text-primary-foreground",
-                                    idx < currentStep && "bg-success text-success-foreground",
-                                    idx > currentStep && "bg-muted"
-                                  )}>
-                                    {step.status === 'completed' ? (
-                                      <CheckCircle2 className="w-4 h-4" />
-                                    ) : step.status === 'error' ? (
-                                      <XCircle className="w-4 h-4" />
-                                    ) : (
-                                      step.number
-                                    )}
-                                  </div>
-                                  <div className="hidden md:block text-left">
-                                    <p className="text-sm font-medium">{step.title}</p>
-                                    {step.description && (
-                                      <p className="text-xs text-muted-foreground">
-                                        {step.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{step.title}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          {idx < steps.length - 1 && (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground hidden md:block" />
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </div>
-
-                    {/* 진행률 바 */}
-                    <Progress value={progress} className="h-2" />
-
-                    {/* 현재 단계 정보 */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">
-                          단계 {currentStep + 1}/{steps.length}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {currentStepInfo?.title}
-                        </span>
-                      </div>
-
-                      {/* 실행/초기화 버튼 */}
-                      <div className="flex gap-2">
-                        {onReset && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={onReset}
-                            disabled={isRunning}
-                          >
-                            <RotateCcw className="w-4 h-4 mr-2" />
-                            초기화
-                          </Button>
-                        )}
-                        {onRun && currentStep === steps.length - 2 && (
-                          <Button
-                            size="sm"
-                            onClick={onRun}
-                            disabled={isRunning}
-                            className="bg-gradient-analysis"
-                          >
-                            {isRunning ? (
-                              <>
-                                <Clock className="w-4 h-4 mr-2 animate-spin" />
-                                분석 중...
-                              </>
-                            ) : (
-                              <>
-                                <Play className="w-4 h-4 mr-2" />
-                                분석 실행
-                              </>
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </>
+            {/* 우측: 액션 버튼 */}
+            {isAdvancedMode && (
+              <div className="flex gap-2">
+                {onReset && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onReset}
+                    disabled={isRunning}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-1" />
+                    초기화
+                  </Button>
+                )}
+              </div>
             )}
-          </Card>
+          </div>
+        </div>
+      </div>
 
-        </motion.div>
+      {/* 선택한 분석 방법 컨텍스트 바 */}
+      {selectedMethod && currentStep > 0 && (
+        <div className="border-b bg-muted/30">
+          <div className="container mx-auto py-2 px-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">선택된 방법:</span>
+              <span className="text-sm font-medium">{selectedMethod.name}</span>
+              {selectedMethod.subtitle && (
+                <span className="text-xs text-muted-foreground">({selectedMethod.subtitle})</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 메인 레이아웃: 사이드바 + 콘텐츠 */}
+      <div className="container mx-auto flex">
+        {/* 좌측 사이드바 (단계 표시) */}
+        {isAdvancedMode && showProgress && (
+          <aside className="w-48 border-r bg-card/50 min-h-[calc(100vh-64px)] p-4">
+            <div className="space-y-2 sticky top-4">
+              {steps.map((step, idx) => (
+                <TooltipProvider key={step.id}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => onStepChange?.(idx)}
+                        disabled={idx > currentStep}
+                        className={cn(
+                          "w-full flex items-start gap-2 p-2 rounded text-left transition-all",
+                          idx === currentStep && "bg-primary/10 text-primary",
+                          idx < currentStep && "text-muted-foreground hover:bg-muted",
+                          idx > currentStep && "opacity-40 cursor-not-allowed"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0",
+                          idx === currentStep && "bg-primary text-primary-foreground",
+                          idx < currentStep && "bg-muted-foreground/20",
+                          idx > currentStep && "bg-muted"
+                        )}>
+                          {step.status === 'completed' ? (
+                            <CheckCircle2 className="w-3 h-3" />
+                          ) : step.status === 'error' ? (
+                            <XCircle className="w-3 h-3" />
+                          ) : (
+                            step.number
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{step.title}</p>
+                        </div>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p className="text-sm">{step.title}</p>
+                      {step.description && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {step.description}
+                        </p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))}
+
+              {/* 이전 단계 버튼 */}
+              {currentStep > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onStepChange?.(currentStep - 1)}
+                  className="w-full mt-4"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  이전 단계
+                </Button>
+              )}
+
+              {/* 진행률 표시 */}
+              <div className="pt-4 mt-4 border-t">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-muted-foreground">진행률</span>
+                  <span className="text-xs font-medium">{Math.round(progress)}%</span>
+                </div>
+                <Progress value={progress} className="h-1" />
+              </div>
+            </div>
+          </aside>
+        )}
 
         {/* 메인 콘텐츠 영역 */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            variants={stepVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            transition={{ duration: 0.3 }}
-            className="mt-6"
-          >
-            {/* Multi-step workflow support (cluster, factor-analysis) */}
-            {(onDataUpload || variableSelectionStep || resultsStep) ? (
-              <>
-                {currentStep === 1 && onDataUpload && (
-                  <div>Data Upload Step</div>
-                )}
-                {currentStep === 2 && variableSelectionStep}
-                {currentStep === 3 && variableSelectionStep}
-                {steps && currentStep === steps.length - 1 && resultsStep}
-              </>
-            ) : (
-              children
-            )}
-          </motion.div>
-        </AnimatePresence>
-
+        <main className="flex-1 p-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              variants={stepVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              transition={{ duration: 0.2 }}
+            >
+              {(onDataUpload || variableSelectionStep || resultsStep) ? (
+                <>
+                  {currentStep === 1 && onDataUpload && (
+                    <div>Data Upload Step</div>
+                  )}
+                  {currentStep === 2 && variableSelectionStep}
+                  {currentStep === 3 && variableSelectionStep}
+                  {steps && currentStep === steps.length - 1 && resultsStep}
+                </>
+              ) : (
+                children
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   )
 }
 
-// 단계 카드 컴포넌트
+// 단계 카드 컴포넌트 (미니멀)
 export function StepCard({
   title,
   description,
@@ -315,23 +288,27 @@ export function StepCard({
   className?: string
 }) {
   return (
-    <Card className={cn("shadow-lg border-2", className)}>
+    <Card className={cn("border shadow-sm", className)}>
       {(title || description) && (
-        <CardHeader>
-          <div className="flex items-center gap-3">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
             {icon && (
-              <div className="p-2 bg-primary/10 rounded-lg">
+              <div className="p-1.5 bg-primary/10 rounded">
                 {icon}
               </div>
             )}
             <div>
-              {title && <CardTitle className="text-lg">{title}</CardTitle>}
-              {description && <CardDescription>{description}</CardDescription>}
+              {title && <CardTitle className="text-base">{title}</CardTitle>}
+              {description && (
+                <CardDescription className="text-xs mt-0.5">
+                  {description}
+                </CardDescription>
+              )}
             </div>
           </div>
         </CardHeader>
       )}
-      <CardContent>{children}</CardContent>
+      <CardContent className="pt-0">{children}</CardContent>
     </Card>
   )
 }
