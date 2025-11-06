@@ -121,7 +121,16 @@ export class ChatStorageIndexedDB {
     try {
       if (!this.initialized) await this.initialize()
 
-      const allSessions = await this.manager?.getAll<ChatSession>('sessions') ?? []
+      // IndexedDB 준비 완료 대기
+      if (!this.manager?.isReady) {
+        console.warn('[ChatStorageIndexedDB] Manager not ready, retrying...')
+        await new Promise(resolve => setTimeout(resolve, 100))
+        if (!this.manager?.isReady) {
+          throw new Error('IndexedDB manager failed to initialize')
+        }
+      }
+
+      const allSessions = await this.manager.getAll<ChatSession>('sessions')
       return allSessions
         .filter(s => !s.isArchived)
         .sort((a, b) => b.updatedAt - a.updatedAt)
@@ -138,7 +147,16 @@ export class ChatStorageIndexedDB {
     try {
       if (!this.initialized) await this.initialize()
 
-      const allSessions = await this.manager?.getAll<ChatSession>('sessions') ?? []
+      // IndexedDB 준비 완료 대기
+      if (!this.manager?.isReady) {
+        console.warn('[ChatStorageIndexedDB] Manager not ready, retrying...')
+        await new Promise(resolve => setTimeout(resolve, 100))
+        if (!this.manager?.isReady) {
+          throw new Error('IndexedDB manager failed to initialize')
+        }
+      }
+
+      const allSessions = await this.manager.getAll<ChatSession>('sessions')
       return allSessions
         .filter(s => s.isArchived)
         .sort((a, b) => b.updatedAt - a.updatedAt)

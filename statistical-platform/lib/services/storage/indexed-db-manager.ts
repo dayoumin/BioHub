@@ -30,6 +30,13 @@ export class IndexedDBManager {
   }
 
   /**
+   * 데이터베이스가 준비되었는지 확인
+   */
+  get isReady(): boolean {
+    return this.db !== null
+  }
+
+  /**
    * 데이터베이스 초기화
    * - 처음 열기: 저장소 생성
    * - 버전 업그레이드: 데이터 보존하며 마이그레이션
