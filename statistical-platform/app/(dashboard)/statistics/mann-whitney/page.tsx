@@ -165,7 +165,7 @@ export default function MannWhitneyPage() {
     actions.startAnalysis()
 
     try {
-      const data = uploadedData.data as DataRow[]
+      const data = uploadedData.data
       const dependentVar = variables.dependent
       const groupVar = variables.groups[0]
 
@@ -370,7 +370,7 @@ export default function MannWhitneyPage() {
         >
           <VariableSelector
             methodId="mann-whitney"
-            data={uploadedData.data as DataRow[]}
+            data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}
           />

@@ -6,6 +6,15 @@
  */
 
 import { VariableType } from '../statistics/variable-requirements'
+import {
+  isNumeric,
+  isString,
+  isBoolean,
+  isValidValue,
+  toNumber,
+  toString,
+  filterNumeric
+} from '@/lib/utils/type-guards'
 
 export interface ColumnAnalysis {
   name: string
@@ -15,13 +24,13 @@ export interface ColumnAnalysis {
   totalCount: number
   missingCount: number
   missingRate: number
-  samples: any[]
+  samples: unknown[]
   statistics?: {
     min?: number
     max?: number
     mean?: number
     median?: number
-    mode?: any
+    mode?: string | number | boolean
     skewness?: number
     kurtosis?: number
     std?: number
@@ -104,15 +113,13 @@ const THRESHOLDS = {
  * 단일 열의 변수 타입 감지
  */
 export function detectVariableType(
-  values: any[],
+  values: unknown[],
   columnName: string = ''
 ): VariableType {
   // 유효한 값만 필터링
-  const validValues = values.filter(v =>
-    v !== null &&
-    v !== undefined &&
-    v !== '' &&
-    (typeof v === 'string' ? v.trim() !== '' : true)
+  const validValues = values.filter((v): v is string | number | boolean =>
+    isValidValue(v) &&
+    (isString(v) ? v.trim() !== '' : true)
   )
 
   if (validValues.length === 0) {
@@ -139,13 +146,14 @@ export function detectVariableType(
 
   // 숫자 타입인지 확인
   const numericValues = validValues.filter(v => {
-    const num = Number(v)
-    return !isNaN(num) && isFinite(num)
+    const num = toNumber(v)
+    return num !== null
   })
 
   // 모든 값이 숫자인 경우
   if (numericValues.length === validValues.length) {
-    return classifyNumericVariable(numericValues.map(Number), validValues.length)
+    const numbers = filterNumeric(validValues)
+    return classifyNumericVariable(numbers, validValues.length)
   }
 
   // 문자열 기반 분류
@@ -228,7 +236,7 @@ function classifyNumericVariable(
 /**
  * 문자열 변수 세부 분류
  */
-function classifyStringVariable(values: any[]): VariableType {
+function classifyStringVariable(values: (string | number | boolean)[]): VariableType {
   const uniqueValues = new Set(values)
   const uniqueCount = uniqueValues.size
 
@@ -300,19 +308,17 @@ function classifyStringVariable(values: any[]): VariableType {
 /**
  * 날짜 열 감지
  */
-function isDateColumn(values: any[]): boolean {
+function isDateColumn(values: (string | number | boolean)[]): boolean {
   if (values.length === 0) return false
 
   // 샘플링 (최대 100개)
   const samples = values.slice(0, Math.min(100, values.length))
 
-  // Date 객체인지 확인
-  if (samples.every(v => v instanceof Date)) {
-    return true
-  }
+  // Date 객체인지 확인 - 날짜 타입은 문자열로 들어오므로 스킵
+  // (CSV 데이터에서는 Date 객체가 아닌 문자열로 들어옴)
 
   // 문자열 날짜 패턴 확인
-  const stringValues = samples.filter(v => typeof v === 'string')
+  const stringValues = samples.filter((v): v is string => isString(v))
   if (stringValues.length === 0) return false
 
   const dateMatches = stringValues.filter(v => {
@@ -345,7 +351,7 @@ function isDateColumn(values: any[]): boolean {
  * 전체 데이터셋 분석
  */
 export function analyzeDataset(
-  data: Record<string, any>[],
+  data: Record<string, unknown>[],
   options: {
     excludeColumns?: string[]
     includeOnlyColumns?: string[]
@@ -422,16 +428,14 @@ export function analyzeDataset(
  */
 export function analyzeColumn(
   columnName: string,
-  values: any[]
+  values: unknown[]
 ): ColumnAnalysis {
   const totalCount = values.length
 
   // NULL/빈값 처리
-  const validValues = values.filter(v =>
-    v !== null &&
-    v !== undefined &&
-    v !== '' &&
-    (typeof v === 'string' ? v.trim() !== '' : true)
+  const validValues = values.filter((v): v is string | number | boolean =>
+    isValidValue(v) &&
+    (isString(v) ? v.trim() !== '' : true)
   )
 
   const missingCount = totalCount - validValues.length
@@ -483,17 +487,17 @@ export function analyzeColumn(
  * 데이터 타입 판별
  */
 function determineDataType(
-  values: any[]
+  values: (string | number | boolean)[]
 ): 'number' | 'string' | 'boolean' | 'date' | 'mixed' {
   if (values.length === 0) return 'string'
 
   const types = new Set(values.map(v => {
-    if (v instanceof Date) return 'date'
-    if (typeof v === 'boolean') return 'boolean'
-    if (typeof v === 'number') return 'number'
-    if (typeof v === 'string') {
-      const num = Number(v)
-      if (!isNaN(num) && isFinite(num)) return 'number'
+    // CSV 데이터는 Date 객체가 아닌 문자열로 들어오므로 생략
+    if (isBoolean(v)) return 'boolean'
+    if (isNumeric(v)) return 'number'
+    if (isString(v)) {
+      const num = toNumber(v)
+      if (num !== null) return 'number'
       if (v.toLowerCase() === 'true' || v.toLowerCase() === 'false') return 'boolean'
       const date = new Date(v)
       if (!isNaN(date.getTime()) && (v.includes('-') || v.includes('/'))) return 'date'
@@ -502,14 +506,12 @@ function determineDataType(
   }))
 
   if (types.size === 1) {
-    return Array.from(types)[0] as any
+    const typeArray = Array.from(types)
+    return typeArray[0] as 'number' | 'string' | 'boolean' | 'date'
   }
 
   // 대부분이 숫자면 숫자로
-  const numericCount = values.filter(v => {
-    const num = Number(v)
-    return !isNaN(num) && isFinite(num)
-  }).length
+  const numericCount = values.filter(v => toNumber(v) !== null).length
 
   if (numericCount / values.length > 0.9) {
     return 'number'

@@ -48,7 +48,7 @@ import {
 
 interface VariableSelectorSimpleProps {
   methodId: string
-  data: Record<string, any>[]
+  data: Record<string, unknown>[]
   onVariablesSelected: (variables: VariableAssignment) => void
   onBack?: () => void
   className?: string
