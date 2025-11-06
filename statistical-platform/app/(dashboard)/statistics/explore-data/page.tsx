@@ -552,7 +552,7 @@ export default function ExploreDataPage() {
             </CardHeader>
             <CardContent>
               <VariableSelector
-                methodId="explore_data"
+                methodId="explore-data"
                 data={uploadedData.data}
                 onVariablesSelected={handleVariablesSelected}
               />

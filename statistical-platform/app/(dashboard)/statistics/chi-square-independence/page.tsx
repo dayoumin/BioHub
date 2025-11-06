@@ -454,7 +454,7 @@ export default function ChiSquareIndependencePage() {
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
           <VariableSelector
-            methodId="chi_square_independence"
+            methodId="chi-square-independence"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}

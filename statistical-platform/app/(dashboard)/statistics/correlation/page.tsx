@@ -424,7 +424,7 @@ export default function CorrelationPage() {
         icon={<Users className="w-5 h-5 text-primary" />}
       >
         <VariableSelector
-          methodId="correlation"
+          methodId="pearson-correlation"
           data={uploadedData.data}
           onVariablesSelected={(variables: VariableAssignment) => {
             const typedVars = toCorrelationVariables(variables)

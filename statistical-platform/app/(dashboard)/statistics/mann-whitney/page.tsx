@@ -369,7 +369,7 @@ export default function MannWhitneyPage() {
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
           <VariableSelector
-            methodId="mann_whitney"
+            methodId="mann-whitney"
             data={uploadedData.data as DataRow[]}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}

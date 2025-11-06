@@ -495,7 +495,7 @@ export default function DiscriminantPage() {
           </AlertDescription>
         </Alert>
         <VariableSelector
-          methodId="discriminant"
+          methodId="discriminant-analysis"
           data={uploadedData.data}
           onVariablesSelected={handleVariableSelection}
         />

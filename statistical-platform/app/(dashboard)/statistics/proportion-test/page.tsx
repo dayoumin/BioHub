@@ -425,7 +425,7 @@ export default function ProportionTestPage() {
             </CardHeader>
             <CardContent>
               <VariableSelector
-                methodId="proportion-test"
+                methodId="one-sample-proportion"
                 data={uploadedData.data}
                 onVariablesSelected={handleVariablesSelected}
                 onBack={() => actions.reset()}

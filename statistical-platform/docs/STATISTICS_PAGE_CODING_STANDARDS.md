@@ -133,7 +133,89 @@ const handleVariablesSelected = useCallback((variables: unknown) => {
 />
 ```
 
-**주의**: `onBack` 사용 (onPrevious 아님)
+**주의사항**:
+- `onBack` 사용 (onPrevious 아님)
+- **methodId는 반드시 kebab-case 형식 사용** (variable-requirements.ts의 ID와 정확히 일치)
+
+### methodId 명명 규칙 (Critical)
+
+**발견일**: 2025-11-06
+**심각도**: Critical - "데이터를 불러올 수 없습니다" 에러 발생
+
+#### 올바른 methodId 형식
+
+```typescript
+// ✅ 올바른 형식: kebab-case (variable-requirements.ts와 일치)
+<VariableSelector methodId="one-way-anova" ... />
+<VariableSelector methodId="chi-square-goodness" ... />
+<VariableSelector methodId="kolmogorov-smirnov" ... />
+<VariableSelector methodId="pearson-correlation" ... />
+<VariableSelector methodId="descriptive-stats" ... />
+<VariableSelector methodId="discriminant-analysis" ... />
+
+// ❌ 잘못된 형식: underscore, camelCase
+<VariableSelector methodId="chi_square_goodness" ... />  // 언더스코어
+<VariableSelector methodId="kolmogorovSmirnov" ... />    // camelCase
+<VariableSelector methodId="correlation" ... />          // 불완전한 ID
+```
+
+#### methodId 검증 방법
+
+1. **variable-requirements.ts 확인**
+   ```typescript
+   // lib/statistics/variable-requirements.ts
+   export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = [
+     { id: 'one-way-anova', ... },        // ← 이 ID를 사용
+     { id: 'chi-square-goodness', ... },  // ← 이 ID를 사용
+     // ...
+   ]
+   ```
+
+2. **VariableSelector는 이 ID로 요구사항을 조회**
+   ```typescript
+   const methodRequirements = getMethodRequirements(methodId)
+   if (!methodRequirements) {
+     // ❌ "데이터를 불러올 수 없습니다" 에러 발생!
+   }
+   ```
+
+#### 일반적인 매핑 예시
+
+| 페이지 디렉토리 | 올바른 methodId | 잘못된 예시 |
+|---------------|----------------|------------|
+| chi-square-goodness | `chi-square-goodness` | `chi_square_goodness` |
+| chi-square-independence | `chi-square-independence` | `chi_square_independence` |
+| ks-test | `kolmogorov-smirnov` | `kolmogorovSmirnov` |
+| correlation | `pearson-correlation` | `correlation` |
+| descriptive | `descriptive-stats` | `descriptive` |
+| discriminant | `discriminant-analysis` | `discriminant` |
+| explore-data | `explore-data` | `explore_data` |
+| kruskal-wallis | `kruskal-wallis` | `kruskal_wallis` |
+| mann-whitney | `mann-whitney` | `mann_whitney` |
+| poisson | `poisson-regression` | `poisson` |
+| proportion-test | `one-sample-proportion` | `proportion-test` |
+| runs-test | `runs-test` | `runsTest` |
+| stepwise | `stepwise-regression` | `stepwise` |
+| wilcoxon | `wilcoxon-signed-rank` | `wilcoxon_signed_rank` |
+
+#### 디버깅
+
+methodId 불일치로 인한 에러 발생 시:
+
+1. 브라우저 콘솔에서 확인:
+   ```javascript
+   // VariableSelector가 null을 반환하면 methodId 불일치
+   ```
+
+2. variable-requirements.ts에서 정확한 ID 확인:
+   ```bash
+   grep "id:" lib/statistics/variable-requirements.ts
+   ```
+
+3. 모든 페이지의 methodId 검색:
+   ```bash
+   grep -r "methodId=" app/(dashboard)/statistics/*/page.tsx
+   ```
 
 ---
 
@@ -502,6 +584,7 @@ const ERROR_MESSAGES = {
 ### 컴포넌트
 - [ ] DataUploadStep: onUploadComplete + onNext 분리
 - [ ] VariableSelector: `onBack` 사용
+- [ ] **VariableSelector: methodId는 variable-requirements.ts와 정확히 일치** (kebab-case)
 - [ ] Steps 배열: `id`는 string 타입
 - [ ] Helper 함수: 컴포넌트 외부 정의
 

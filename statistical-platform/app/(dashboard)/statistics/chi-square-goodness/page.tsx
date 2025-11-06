@@ -383,7 +383,7 @@ export default function ChiSquareGoodnessPage() {
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
           <VariableSelector
-            methodId="chi_square_goodness"
+            methodId="chi-square-goodness"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions?.setCurrentStep && actions.setCurrentStep(1)}

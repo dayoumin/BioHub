@@ -673,7 +673,7 @@ export default function PoissonRegressionPage() {
           <h4 className="font-medium mb-3">변수 선택 (종속변수 1개 + 독립변수 1개 이상)</h4>
           {uploadedData && (
             <VariableSelector
-              methodId="poisson"
+              methodId="poisson-regression"
               data={uploadedData.data}
               onVariablesSelected={handleVariablesSelected}
             />

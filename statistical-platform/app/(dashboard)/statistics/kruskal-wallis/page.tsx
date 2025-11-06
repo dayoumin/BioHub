@@ -388,7 +388,7 @@ export default function KruskalWallisPage() {
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
           <VariableSelector
-            methodId="kruskal_wallis"
+            methodId="kruskal-wallis"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep?.(1)}

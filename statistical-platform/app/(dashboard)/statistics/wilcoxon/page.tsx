@@ -335,7 +335,7 @@ export default function WilcoxonPage() {
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
           <VariableSelector
-            methodId="wilcoxon_signed_rank"
+            methodId="wilcoxon-signed-rank"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}
             onBack={() => actions.setCurrentStep(1)}

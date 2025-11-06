@@ -423,7 +423,7 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
           </AlertDescription>
         </Alert>
         <VariableSelector
-          methodId="kolmogorovSmirnov"
+          methodId="kolmogorov-smirnov"
           data={uploadedData.data}
           onVariablesSelected={(variables) => {
             // Convert VariableAssignment to VariableSelection

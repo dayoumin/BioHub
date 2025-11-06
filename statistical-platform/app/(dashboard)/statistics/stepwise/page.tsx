@@ -944,7 +944,7 @@ json.dumps(results)
       )}
       {currentStep === 3 && (
         <VariableSelector
-          methodId="stepwise"
+          methodId="stepwise-regression"
           data={data}
           onVariablesSelected={handleVariablesSelected}
           onBack={() => actions.setCurrentStep(2)}

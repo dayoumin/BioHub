@@ -425,7 +425,7 @@ export default function DescriptiveStatsPage() {
             </CardHeader>
             <CardContent>
               <VariableSelector
-                methodId="descriptive"
+                methodId="descriptive-stats"
                 data={uploadedData.data}
                 onVariablesSelected={handleVariableSelection}
                 onBack={() => actions.setCurrentStep(0)}

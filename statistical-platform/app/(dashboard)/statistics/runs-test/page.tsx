@@ -374,7 +374,7 @@ export default function RunsTestPage() {
         icon={<Users className="w-5 h-5 text-primary" />}
       >
         <VariableSelector
-          methodId="runsTest"
+          methodId="runs-test"
           data={uploadedData.data}
           onVariablesSelected={handleVariableSelection}
         />
