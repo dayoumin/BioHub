@@ -36,7 +36,6 @@ import { Separator } from '@/components/ui/separator'
 import {
   AlertCircle,
   CheckCircle2,
-  Sparkles,
   RefreshCw,
   ArrowLeft,
   ArrowRight,
@@ -189,56 +188,6 @@ export function VariableSelectorModern({
     }))
   }, [])
 
-  // AI 자동 추천
-  const handleAutoAssign = useCallback(() => {
-    if (!requirements || !analysis) return
-
-    const recommendations: VariableAssignment = {}
-
-    requirements.variables.forEach(varReq => {
-      // 타입 매칭 후보
-      const candidates = analysis.columns.filter(col =>
-        varReq.types.includes(col.type)
-      )
-
-      if (candidates.length === 0) return
-
-      // 휴리스틱 기반 추천
-      const colNameLower = (col: ColumnAnalysis) => col.name.toLowerCase()
-
-      if (varReq.role === 'dependent') {
-        // 종속변수: score, result, outcome, y, target
-        const best = candidates.find(col =>
-          /score|result|outcome|target|y_|dependent/.test(colNameLower(col))
-        )
-        if (best) {
-          recommendations[varReq.role] = best.name
-          return
-        }
-      }
-
-      if (varReq.role === 'independent' || varReq.role === 'factor') {
-        // 독립변수/요인: group, treatment, condition, x
-        const best = candidates.find(col =>
-          /group|treatment|condition|method|x_|independent|factor/.test(colNameLower(col))
-        )
-        if (best) {
-          recommendations[varReq.role] = best.name
-          return
-        }
-      }
-
-      // 기본: 첫 번째 후보
-      if (varReq.multiple) {
-        recommendations[varReq.role] = [candidates[0].name]
-      } else {
-        recommendations[varReq.role] = candidates[0].name
-      }
-    })
-
-    setAssignments(recommendations)
-  }, [requirements, analysis])
-
   // 초기화
   const handleReset = useCallback(() => {
     setAssignments({})
@@ -251,9 +200,18 @@ export function VariableSelectorModern({
 
   // 제출
   const handleSubmit = useCallback(() => {
-    if (!validation.isValid) return
+    console.log('[VariableSelectorModern] handleSubmit 호출')
+    console.log('[VariableSelectorModern] validation:', validation)
+    console.log('[VariableSelectorModern] assignments:', assignments)
+
+    if (!validation.isValid) {
+      console.log('[VariableSelectorModern] 검증 실패, 제출 중단')
+      return
+    }
+
+    console.log('[VariableSelectorModern] onVariablesSelected 호출:', assignments)
     onVariablesSelected(assignments)
-  }, [validation.isValid, assignments, onVariablesSelected])
+  }, [validation.isValid, validation, assignments, onVariablesSelected])
 
   // ========================================
   // 5. 렌더링
@@ -286,7 +244,7 @@ export function VariableSelectorModern({
   return (
     <div className={cn('space-y-6', className)}>
       {/* ========================================
-          헤더: 제목 + AI 자동 설정 + 초기화
+          헤더: 제목 + 초기화
           ======================================== */}
       <Card>
         <CardHeader className="pb-3">
@@ -297,26 +255,15 @@ export function VariableSelectorModern({
                 {requirements.description}
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleAutoAssign}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <Sparkles className="h-4 w-4" />
-                AI 자동 설정
-              </Button>
-              <Button
-                onClick={handleReset}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                초기화
-              </Button>
-            </div>
+            <Button
+              onClick={handleReset}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              초기화
+            </Button>
           </div>
         </CardHeader>
       </Card>

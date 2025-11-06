@@ -24,7 +24,7 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { MethodSelectionCard } from '@/components/statistics/MethodSelectionCard'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -46,11 +46,14 @@ interface GroupResult {
 }
 
 interface PostHocComparison {
-  group1: string
-  group2: string
-  diff: number
-  pValue: number
-  ci: [number, number]
+  group1: number
+  group2: number
+  meanDiff: number
+  pValue: number | null
+  lower?: number
+  upper?: number
+  ci_lower?: number
+  ci_upper?: number
   significant: boolean
 }
 
@@ -376,28 +379,20 @@ export default function ANOVAPage() {
       if (result.pValue < 0.05 && groups.length >= 3) {
         try {
           const tukeyResult = await pyodideCore.callWorkerMethod<{
-            statistic: number
-            pValue: number | null
-            confidenceInterval: number[][] | null
+            statistic: number | number[] | null
+            pvalue: number | number[] | null
+            confidence_interval: { lower: number[], upper: number[] } | null
+            comparisons: PostHocComparison[]
           }>(
             3,
             'tukey_hsd',
             { groups }
           )
 
-          // Tukey HSD 결과를 PostHocComparison 형식으로 변환
-          // 참고: scipy의 tukey_hsd는 모든 쌍 비교를 반환하지만,
-          // 여기서는 간단하게 전체 결과만 표시
+          // Worker가 반환한 comparisons 배열을 직접 사용
           postHocResult = {
             method: 'Tukey HSD',
-            comparisons: [{
-              group1: 'All Groups',
-              group2: 'Comparison',
-              diff: 0,
-              pValue: tukeyResult.pValue || 1.0,
-              significant: (tukeyResult.pValue || 1.0) < 0.05,
-              ci: tukeyResult.confidenceInterval?.[0] as [number, number] || [0, 0]
-            }],
+            comparisons: tukeyResult.comparisons || [],
             adjustedAlpha: 0.05
           }
         } catch (err) {
@@ -609,10 +604,12 @@ export default function ANOVAPage() {
         title="변수 선택"
         description="분산분석에 사용할 종속변수와 요인을 선택하세요"
       >
-        <VariableSelector
+        <VariableSelectorModern
           methodId={methodId}
           data={uploadedData.data}
           onVariablesSelected={(variables) => {
+            console.log('[ANOVA Page] onVariablesSelected 받은 데이터:', variables)
+
             const selectedVars: ANOVAVariables = {
               dependent: (variables.dependent as string) || '',
               independent: Array.isArray(variables.independent)
@@ -626,6 +623,8 @@ export default function ANOVAPage() {
                   : [variables.covariates as string]
                 : undefined
             }
+
+            console.log('[ANOVA Page] 변환된 selectedVars:', selectedVars)
             handleVariableSelection(selectedVars)
           }}
           onBack={() => actions.setCurrentStep(1)}
@@ -745,15 +744,17 @@ export default function ANOVAPage() {
                     <div key={idx} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                       <div className="flex-1">
                         <p className="font-medium text-sm">
-                          {comp.group1} vs {comp.group2}
+                          그룹 {comp.group1} vs 그룹 {comp.group2}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          평균 차이: {comp.diff.toFixed(2)} [{comp.ci[0].toFixed(2)}, {comp.ci[1].toFixed(2)}]
+                          평균 차이: {typeof comp.meanDiff === 'number' ? comp.meanDiff.toFixed(2) : 'N/A'}
+                          {comp.lower !== undefined && comp.upper !== undefined &&
+                            ` [${comp.lower.toFixed(2)}, ${comp.upper.toFixed(2)}]`}
                         </p>
                       </div>
                       <div className="text-right">
                         <Badge variant={comp.significant ? "default" : "secondary"}>
-                          p = {comp.pValue.toFixed(4)}
+                          p = {typeof comp.pValue === 'number' ? comp.pValue.toFixed(4) : 'N/A'}
                         </Badge>
                         <p className="text-xs mt-1">
                           {comp.significant ? "유의함 ✓" : "유의하지 않음"}
