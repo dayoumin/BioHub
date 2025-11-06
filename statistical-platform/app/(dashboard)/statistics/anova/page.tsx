@@ -18,7 +18,8 @@ import {
   Network,
   Sparkles,
   FileText,
-  Download
+  Download,
+  Activity
 } from 'lucide-react'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { MethodSelectionCard } from '@/components/statistics/MethodSelectionCard'
@@ -99,9 +100,9 @@ export default function ANOVAPage() {
   // Custom hook: common state management
   const { state, actions } = useStatisticsPage<ANOVAResults, ANOVAVariables>({
     withUploadedData: true,
-    withError: false
+    withError: true
   })
-  const { currentStep, uploadedData, selectedVariables, results: results, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results: results, isAnalyzing, error } = state
 
   // Page-specific state
   const [anovaType, setAnovaType] = useState<'oneWay' | 'twoWay' | 'threeWay' | 'repeated' | ''>('')
@@ -884,6 +885,32 @@ export default function ANOVAPage() {
       {currentStep === 1 && renderDataUpload()}
       {currentStep === 2 && renderVariableSelection()}
       {currentStep === 3 && renderResults()}
+
+      {/* 분석 중 로딩 모달 */}
+      {isAnalyzing && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <Card className="w-96">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center space-y-4">
+                <Activity className="w-8 h-8 animate-spin text-primary" />
+                <div className="text-center">
+                  <p className="font-medium">ANOVA 분산분석 실행 중...</p>
+                  <p className="text-sm text-muted-foreground">잠시만 기다려주세요</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 오류 표시 */}
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>오류</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
     </StatisticsPageLayout>
   )
 }

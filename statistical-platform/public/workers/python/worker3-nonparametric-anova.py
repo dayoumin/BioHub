@@ -4,11 +4,32 @@
 # - Estimated memory: ~140MB
 # - Cold start time: ~2.3s
 
+import sys
 from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
+from itertools import combinations
 from helpers import clean_array, clean_paired_arrays, clean_groups as clean_groups_helper
 
+def _to_float_list(data):
+    if data is None:
+        return []
+    try:
+        array = np.atleast_1d(np.array(data, dtype=float))
+        return array.tolist()
+    except Exception:
+        if isinstance(data, (list, tuple)):
+            result = []
+            for value in data:
+                try:
+                    result.append(float(value))
+                except Exception:
+                    continue
+            return result
+        try:
+            return [float(data)]
+        except Exception:
+            return []
 
 
 def mann_whitney_test(group1, group2):
@@ -314,26 +335,99 @@ def tukey_hsd(groups):
 
     clean_groups = clean_groups_helper(groups)
 
-    for i, group in enumerate(clean_groups):
+    for idx, group in enumerate(clean_groups):
         if len(group) == 0:
-            raise ValueError(f"Group {i} has no valid observations")
+            raise ValueError(f"Group {idx} has no valid observations")
 
     try:
         result = scipy_tukey(*clean_groups)
 
-        if hasattr(result, 'pvalue'):
-            p_value = float(result.pvalue)
-        else:
-            p_value = None
+        statistic_values = _to_float_list(getattr(result, 'statistic', None))
+        p_values = _to_float_list(getattr(result, 'pvalue', None))
+
+        ci_lower = []
+        ci_upper = []
+        confidence_level = None
+        if hasattr(result, 'confidence_interval'):
+            try:
+                ci_result = result.confidence_interval()
+            except Exception:
+                ci_result = None
+            if ci_result is not None:
+                ci_lower = _to_float_list(getattr(ci_result, 'low', None))
+                ci_upper = _to_float_list(getattr(ci_result, 'high', None))
+                conf_attr = getattr(ci_result, 'confidence_level', None)
+                if conf_attr is None:
+                    conf_attr = getattr(ci_result, 'confidencelevel', None)
+                if conf_attr is not None:
+                    try:
+                        confidence_level = float(conf_attr)
+                    except (TypeError, ValueError):
+                        confidence_level = None
+
+        alpha_threshold = 0.05
+        if confidence_level is not None:
+            try:
+                alpha_threshold = max(0.0, min(1.0, 1 - confidence_level))
+            except TypeError:
+                alpha_threshold = 0.05
+
+        comparisons = []
+        pairs = list(combinations(range(len(clean_groups)), 2))
+        for idx, (group_i, group_j) in enumerate(pairs):
+            mean_diff = float(np.mean(clean_groups[group_i]) - np.mean(clean_groups[group_j]))
+            comparison = {
+                'group1': int(group_i),
+                'group2': int(group_j),
+                'meanDiff': mean_diff
+            }
+
+            if idx < len(statistic_values):
+                comparison['statistic'] = float(statistic_values[idx])
+
+            if idx < len(p_values):
+                p_val = float(p_values[idx])
+                comparison['pValue'] = p_val
+                comparison['pAdjusted'] = p_val
+                comparison['significant'] = p_val < alpha_threshold
+            else:
+                comparison['pValue'] = None
+                comparison['significant'] = False
+
+            if idx < len(ci_lower) and idx < len(ci_upper):
+                lower_val = float(ci_lower[idx])
+                upper_val = float(ci_upper[idx])
+                comparison['ci_lower'] = lower_val
+                comparison['ci_upper'] = upper_val
+                comparison['lower'] = lower_val
+                comparison['upper'] = upper_val
+
+            comparisons.append(comparison)
+
+        aggregated_statistic = None
+        if statistic_values:
+            aggregated_statistic = statistic_values if len(statistic_values) > 1 else float(statistic_values[0])
+
+        aggregated_pvalue = None
+        if p_values:
+            aggregated_pvalue = p_values if len(p_values) > 1 else float(p_values[0])
+
+        confidence_interval = None
+        if ci_lower and ci_upper:
+            confidence_interval = {
+                'lower': ci_lower,
+                'upper': ci_upper,
+                'confidenceLevel': confidence_level
+            }
 
         return {
-            'statistic': float(result.statistic),
-            'pValue': p_value,
-            'confidenceInterval': result.confidence_interval().tolist() if hasattr(result, 'confidence_interval') else None
+            'comparisons': comparisons,
+            'statistic': aggregated_statistic,
+            'pValue': aggregated_pvalue,
+            'confidenceInterval': confidence_interval
         }
     except AttributeError as e:
         raise ValueError(f"SciPy version may not support tukey_hsd: {e}")
-
 
 # Priority 1 Methods (5 additional)
 

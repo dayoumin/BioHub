@@ -279,10 +279,28 @@ export class PyodideCoreService {
         // 기본 패키지 로드 (NumPy + SciPy만)
         await this.pyodide.loadPackage(['numpy', 'scipy'])
 
+        // helpers.py 로드 (모든 Worker가 공통으로 사용)
+        const helpersResponse = await fetch('/workers/python/helpers.py')
+        if (helpersResponse.ok) {
+          const helpersCode = await helpersResponse.text()
+          const registerHelpersModule = [
+            'import sys',
+            'import types',
+            'helpers_module = types.ModuleType("helpers")',
+            `helpers_code = ${JSON.stringify(helpersCode)}`,
+            'exec(helpers_code, helpers_module.__dict__)',
+            'sys.modules["helpers"] = helpers_module',
+            'globals()["helpers"] = helpers_module'
+          ].join('\n')
+
+          await this.pyodide.runPythonAsync(registerHelpersModule)
+          console.log('✅ helpers.py 로드 완료 (module registered)')
+        }
+
         this.packagesLoaded = true
         this.isLoading = false
 
-        console.log('✅ Pyodide 초기화 완료 (NumPy + SciPy)')
+        console.log('✅ Pyodide 초기화 완료 (NumPy + SciPy + helpers)')
       } catch (error) {
         this.isLoading = false
         const errorMessage = error instanceof Error ? error.message : String(error)
@@ -328,16 +346,13 @@ export class PyodideCoreService {
       throw new Error('Pyodide가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.')
     }
 
-    // 캐시 확인
-    const workerName = this.getWorkerFileName(workerNumber)
-    const checkCode = `'${workerName}' in sys.modules`
-    const isLoaded = await this.pyodide.runPythonAsync(checkCode)
-
-    if (isLoaded === 'True') {
+    // 내부 캐시 확인 (sys.modules 체크 제거 - sys import 의존성 제거)
+    if (this.loadedWorkers.has(workerNumber)) {
       return // 이미 로드됨
     }
 
     // Worker Python 파일 로드
+    const workerName = this.getWorkerFileName(workerNumber)
     const response = await fetch(`/workers/python/${workerName}.py`)
     if (!response.ok) {
       throw new Error(`Worker ${workerNumber} 파일 로드 실패: ${response.statusText}`)
@@ -1048,3 +1063,4 @@ json.dumps(result)
     return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, n_clusters: nClusters ?? 3 })
   }
 }
+
