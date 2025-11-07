@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import type { ANOVAVariables } from '@/types/statistics'
+import type { ANOVAVariables, PostHocComparison, PostHocResult } from '@/types/statistics'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,17 +45,8 @@ interface GroupResult {
   ci: [number, number]
 }
 
-interface PostHocComparison {
-  group1: number
-  group2: number
-  meanDiff: number
-  pValue: number | null
-  lower?: number
-  upper?: number
-  ci_lower?: number
-  ci_upper?: number
-  significant: boolean
-}
+// PostHocComparison 타입은 types/statistics.ts에서 import
+// (Section 18: 타입 중앙 정의 규칙)
 
 interface ANOVAResults {
   fStatistic: number
@@ -350,13 +341,13 @@ export default function ANOVAPage() {
         sum + g.reduce((gSum, v) => gSum + v, 0), 0
       ) / totalN
 
-      const ssBetween = groups.reduce((sum, g, idx) => {
-        const groupMean = groupStats[idx].mean
+      const ssBetween = groups.reduce((sum, g, i) => {
+        const groupMean = groupStats[i].mean
         return sum + g.length * Math.pow(groupMean - grandMean, 2)
       }, 0)
 
-      const ssWithin = groups.reduce((sum, g, idx) => {
-        const groupMean = groupStats[idx].mean
+      const ssWithin = groups.reduce((sum, g, i) => {
+        const groupMean = groupStats[i].mean
         return sum + g.reduce((gSum, v) => gSum + Math.pow(v - groupMean, 2), 0)
       }, 0)
 
@@ -776,8 +767,8 @@ export default function ANOVAPage() {
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           평균 차이: {typeof comp.meanDiff === 'number' ? comp.meanDiff.toFixed(2) : 'N/A'}
-                          {comp.lower !== undefined && comp.upper !== undefined &&
-                            ` [${comp.lower.toFixed(2)}, ${comp.upper.toFixed(2)}]`}
+                          {comp.ciLower !== undefined && comp.ciUpper !== undefined &&
+                            ` [${comp.ciLower.toFixed(2)}, ${comp.ciUpper.toFixed(2)}]`}
                         </p>
                       </div>
                       <div className="text-right">

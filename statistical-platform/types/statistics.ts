@@ -269,6 +269,45 @@ export interface MeansPlotVariables {
 }
 
 // ============================================================================
+// 분석 결과 타입
+// ============================================================================
+
+/**
+ * 사후검정 비교 결과 (ANOVA, Kruskal-Wallis, Friedman 등)
+ * - Section 18 규정: 타입 중앙 정의 (페이지별 재정의 금지)
+ */
+export interface PostHocComparison {
+  /** 첫 번째 그룹명 */
+  group1: string
+  /** 두 번째 그룹명 */
+  group2: string
+  /** 평균 차이 (또는 순위 차이) */
+  meanDiff: number
+  /** p-값 */
+  pValue: number
+  /** 신뢰구간 하한 (선택적) */
+  ciLower?: number
+  /** 신뢰구간 상한 (선택적) */
+  ciUpper?: number
+  /** 검정 통계량 (선택적) */
+  statistic?: number
+  /** 유의성 여부 */
+  significant: boolean
+}
+
+/**
+ * 사후검정 결과
+ */
+export interface PostHocResult {
+  /** 사후검정 방법명 (예: 'Tukey HSD', 'Dunn') */
+  method: string
+  /** 비교 결과 배열 */
+  comparisons: PostHocComparison[]
+  /** 조정된 유의수준 (선택적) */
+  adjustedAlpha?: number
+}
+
+// ============================================================================
 // 분석 옵션 타입
 // ============================================================================
 

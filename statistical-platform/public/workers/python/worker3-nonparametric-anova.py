@@ -409,10 +409,9 @@ def tukey_hsd(groups):
                     upper_val = upper_val[0] if len(upper_val) > 0 else 0.0
                 lower_val = float(lower_val)
                 upper_val = float(upper_val)
-                comparison['ci_lower'] = lower_val
-                comparison['ci_upper'] = upper_val
-                comparison['lower'] = lower_val
-                comparison['upper'] = upper_val
+                # Section 18: 필드명 규칙 - camelCase 사용
+                comparison['ciLower'] = lower_val
+                comparison['ciUpper'] = upper_val
 
             comparisons.append(comparison)
 
