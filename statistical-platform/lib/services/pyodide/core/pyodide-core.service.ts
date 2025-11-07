@@ -4,6 +4,18 @@
  * Pyodide 초기화, Worker 로딩, Helper 함수 제공
  * 모든 Worker 서비스의 기반 클래스
  *
+ * ⚠️ 중요: 현재 메인 스레드에서 직접 실행 (UI 블로킹 발생)
+ * - 11.8초 초기 로딩 시 UI 정지
+ * - 긴 분석 작업 시 UI 응답 없음
+ * - 개선 방안: pyodide-main-thread-bridge.ts 사용 (Web Worker 기반)
+ *
+ * ⚠️ 용어 주의: "worker"는 Python 모듈 파일(worker1-4.py)을 의미
+ * - 실제 Web Worker가 아님 (메인 스레드에서 실행)
+ * - Worker 1: Descriptive (10개 메서드)
+ * - Worker 2: Hypothesis (8개 메서드)
+ * - Worker 3: Nonparametric + ANOVA (18개 메서드)
+ * - Worker 4: Regression + Advanced (24개 메서드)
+ *
  * @module PyodideCoreService
  * @description
  * - Singleton 패턴으로 Pyodide 인스턴스 관리
@@ -337,6 +349,13 @@ export class PyodideCoreService {
 
   /**
    * Worker 파일 로드 (Lazy Loading)
+   *
+   * ⚠️ 용어 주의: "worker"는 Python 모듈 파일(worker1-4.py)을 의미
+   * - 실제 Web Worker가 아님 (메인 스레드에서 fetch + runPythonAsync)
+   * - Worker 1: Descriptive (10개 메서드)
+   * - Worker 2: Hypothesis (8개 메서드)
+   * - Worker 3: Nonparametric + ANOVA (18개 메서드)
+   * - Worker 4: Regression + Advanced (24개 메서드)
    *
    * @param workerNumber Worker 번호 (1-4)
    * @throws {Error} Pyodide가 초기화되지 않은 경우
