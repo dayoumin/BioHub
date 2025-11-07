@@ -1039,7 +1039,81 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       const embeddedDocsCount = this.documents.filter((d) => d.embedding !== null).length
       console.log(`[OllamaProvider] ✓ ${this.documents.length}개 원본 문서 로드됨 (임베딩: ${embeddedDocsCount}개)`)
 
-      // 5-1. DB에서 임베딩 모델 확인 및 자동 설정
+      // 5-1. embeddings 테이블에서 청크 임베딩 로드 (Phase 3)
+      const embeddingsResult = this.db.exec(`
+        SELECT doc_id, chunk_index, chunk_text, chunk_tokens, embedding, embedding_model, created_at
+        FROM embeddings
+        ORDER BY doc_id, chunk_index
+      `)
+
+      if (embeddingsResult.length > 0 && embeddingsResult[0].values.length > 0) {
+        const embCols = embeddingsResult[0].columns
+        const embValues = embeddingsResult[0].values
+
+        // IndexedDB에 청크 임베딩 저장
+        const storedEmbeddings: StoredEmbedding[] = []
+
+        for (const row of embValues) {
+          const embData: Record<string, unknown> = {}
+          embCols.forEach((col, index) => {
+            embData[col] = row[index]
+          })
+
+          // 타입 검증
+          if (
+            typeof embData.doc_id !== 'string' ||
+            typeof embData.chunk_index !== 'number' ||
+            typeof embData.chunk_text !== 'string' ||
+            typeof embData.chunk_tokens !== 'number' ||
+            typeof embData.embedding_model !== 'string' ||
+            typeof embData.created_at !== 'number'
+          ) {
+            console.warn('[OllamaProvider] ⚠️ embeddings 테이블 스키마 오류, 스킵')
+            continue
+          }
+
+          // BLOB 변환: Uint8Array → Float32Array → ArrayBuffer
+          let embeddingBuffer: ArrayBuffer | null = null
+          if (embData.embedding && embData.embedding instanceof Uint8Array) {
+            try {
+              const floatArray = blobToFloatArray(embData.embedding)
+              embeddingBuffer = new Float32Array(floatArray).buffer
+            } catch (error) {
+              console.warn(`[OllamaProvider] 임베딩 변환 실패 (${embData.doc_id} chunk ${embData.chunk_index}):`, error)
+              continue
+            }
+          }
+
+          if (!embeddingBuffer) {
+            console.warn(`[OllamaProvider] ⚠️ 임베딩 BLOB 없음 (${embData.doc_id} chunk ${embData.chunk_index})`)
+            continue
+          }
+
+          storedEmbeddings.push({
+            doc_id: embData.doc_id,
+            chunk_index: embData.chunk_index,
+            chunk_text: embData.chunk_text,
+            chunk_tokens: embData.chunk_tokens,
+            embedding: embeddingBuffer,
+            embedding_model: embData.embedding_model,
+            created_at: embData.created_at
+          })
+        }
+
+        // IndexedDB에 배치 저장 (브라우저 환경에서만)
+        if (typeof window !== 'undefined' && storedEmbeddings.length > 0) {
+          try {
+            await IndexedDBStorage.saveEmbeddingsBatch(storedEmbeddings)
+            console.log(`[OllamaProvider] ✓ ${storedEmbeddings.length}개 청크 임베딩 IndexedDB에 저장됨`)
+          } catch (error) {
+            console.warn('[OllamaProvider] ⚠️ 청크 임베딩 IndexedDB 저장 실패:', error)
+          }
+        }
+      } else {
+        console.log('[OllamaProvider] ℹ️ embeddings 테이블 비어있음 (청크 임베딩 없음)')
+      }
+
+      // 5-2. DB에서 임베딩 모델 확인 및 자동 설정
       const dbEmbeddingModel = this.documents.find((d) => d.embedding_model !== null)?.embedding_model
       if (dbEmbeddingModel) {
         if (this.embeddingModel && this.embeddingModel !== dbEmbeddingModel) {
