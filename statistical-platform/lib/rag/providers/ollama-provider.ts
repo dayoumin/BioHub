@@ -22,7 +22,7 @@ import {
   DocumentInput,
   Document
 } from './base-provider'
-import { IndexedDBStorage, type StoredDocument } from '../indexeddb-storage'
+import { IndexedDBStorage, type StoredDocument, type StoredEmbedding } from '../indexeddb-storage'
 import initSqlJs from 'sql.js'
 import {
   initSqlWithIndexedDB,
@@ -31,6 +31,8 @@ import {
   type SqlJsDatabase,
   type SqlJsExecResult
 } from '../utils/sql-indexeddb'
+import { chunkDocument, estimateTokens } from '../utils/chunking'
+import { vectorToBlob } from '../utils/blob-utils'
 
 /**
  * SQLite BLOB을 float 배열로 변환
@@ -407,7 +409,13 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   }
 
   /**
-   * 문서 추가 (SQLite 연동 또는 테스트 모드)
+   * 문서 추가 (청크 기반 임베딩 - Phase 3)
+   *
+   * 변경 사항:
+   * - 문서를 500 토큰 청크로 분할
+   * - 각 청크별 임베딩 생성
+   * - embeddings 테이블에 저장
+   * - IndexedDB embeddings 스토어에도 저장
    */
   async addDocument(document: DocumentInput): Promise<string> {
     this.ensureInitialized()
@@ -423,15 +431,16 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       library: document.library,
       category: document.category || null,
       summary: document.summary || null,
-      embedding: null,  // 새 문서는 임베딩 없음
+      embedding: null,  // Phase 3: 더 이상 단일 임베딩 사용 안 함
       embedding_model: null
     }
 
     this.documents.push(newDoc)
 
     const currentTime = Date.now()
+    const currentTimeSec = Math.floor(currentTime / 1000)
 
-    // IndexedDB에 저장 (영구 저장소 - 브라우저 환경에서만)
+    // IndexedDB에 문서 메타데이터 저장
     if (typeof window !== 'undefined' && !this.testMode) {
       const storedDoc: StoredDocument = {
         doc_id: docId,
@@ -445,12 +454,11 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       }
 
       await IndexedDBStorage.saveDocument(storedDoc)
-      console.log(`[OllamaProvider] ✓ IndexedDB 저장 완료: ${docId}`)
+      console.log(`[OllamaProvider] ✓ 문서 메타데이터 저장 완료: ${docId}`)
     }
 
-    // 프로덕션 모드: SQLite 메모리 DB에도 삽입 (검색 성능)
+    // SQLite documents 테이블에 문서 메타데이터 저장
     if (!this.testMode && this.db) {
-      const currentTimeSec = Math.floor(currentTime / 1000)
       const wordCount = document.content.split(/\s+/).length
 
       this.db.exec(`
@@ -470,14 +478,83 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           ${wordCount}
         )
       `)
+    }
 
-      // ✅ absurd-sql: 변경사항을 IndexedDB에 영구 저장
-      if (this.SQL) {
-        persistDB(this.SQL, this.db)
+    // ========== Phase 3: 청크 기반 임베딩 생성 ==========
+
+    // 1. 문서 청킹
+    const chunks = chunkDocument(document.content, {
+      maxTokens: 500,
+      overlapTokens: 50,
+      preserveBoundaries: true
+    })
+
+    // 빈 문서 처리 (청크 0개)
+    if (chunks.length === 0) {
+      console.log(`[OllamaProvider] ⚠️ 빈 문서 - 임베딩 생성 건너뜀: ${docId}`)
+      return docId
+    }
+
+    console.log(`[OllamaProvider] 문서 청킹 완료: ${chunks.length}개 청크 생성`)
+
+    // 2. 각 청크별 임베딩 생성 및 저장
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i]
+      const chunkTokens = estimateTokens(chunk)
+
+      try {
+        // 임베딩 생성
+        const embedding = await this.generateEmbedding(chunk)
+        const embeddingVector = new Float32Array(embedding)
+
+        // SQLite embeddings 테이블에 저장 (testMode가 아닐 때만)
+        if (!this.testMode && this.db) {
+          const hexBlob = vectorToBlob(embeddingVector)
+
+          this.db.exec(`
+            INSERT INTO embeddings (
+              doc_id, chunk_index, chunk_text, chunk_tokens,
+              embedding, embedding_model, created_at
+            ) VALUES (
+              '${this.escapeSQL(docId)}',
+              ${i},
+              '${this.escapeSQL(chunk)}',
+              ${chunkTokens},
+              X'${hexBlob}',
+              '${this.embeddingModel}',
+              ${currentTimeSec}
+            )
+          `)
+        }
+
+        // IndexedDB embeddings 스토어에 저장 (항상 실행)
+        const storedEmbedding: StoredEmbedding = {
+          doc_id: docId,
+          chunk_index: i,
+          chunk_text: chunk,
+          chunk_tokens: chunkTokens,
+          embedding: embeddingVector.buffer,
+          embedding_model: this.embeddingModel,
+          created_at: currentTime
+        }
+
+        await IndexedDBStorage.saveEmbedding(storedEmbedding)
+
+        console.log(`[OllamaProvider] 청크 ${i + 1}/${chunks.length} 임베딩 저장 완료`)
+      } catch (error) {
+        // 임베딩 생성 실패 시 에러 정보 포함하여 전파
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error(`[OllamaProvider] ❌ 청크 ${i + 1}/${chunks.length} 임베딩 생성 실패:`, errorMessage)
+        throw new Error(`문서 ${docId} 청크 ${i} 임베딩 생성 실패: ${errorMessage}`)
       }
     }
 
-    console.log(`[OllamaProvider] 문서 추가됨: ${docId}`)
+    // absurd-sql: 변경사항을 IndexedDB에 영구 저장
+    if (!this.testMode && this.SQL && this.db) {
+      persistDB(this.SQL, this.db)
+    }
+
+    console.log(`[OllamaProvider] ✅ 문서 추가 완료: ${docId} (${chunks.length}개 청크)`)
     return docId
   }
 
