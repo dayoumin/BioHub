@@ -214,14 +214,46 @@ export default function ANOVAPage() {
         throw new Error('업로드된 데이터가 없습니다. 먼저 데이터를 업로드해주세요.')
       }
 
-      // 3️⃣ 데이터 추출 및 가공 (One-Way ANOVA: 그룹별 데이터)
+      // 3️⃣ ANOVA 유형 검증 (CRITICAL FIX)
+      if (!anovaType) {
+        throw new Error('ANOVA 유형을 선택해주세요')
+      }
+
+      // 독립변수 개수 검증 (ANOVA 유형별 요구사항)
+      const requiredIndepCount = anovaType === 'oneWay' ? 1 :
+                                 anovaType === 'twoWay' ? 2 :
+                                 anovaType === 'threeWay' ? 3 : 1
+
+      if (variables.independent.length === 0) {
+        throw new Error('독립변수(요인)를 선택해주세요')
+      }
+
+      if (variables.independent.length < requiredIndepCount) {
+        const anovaTypeNames = {
+          oneWay: '일원분산분석',
+          twoWay: '이원분산분석',
+          threeWay: '삼원분산분석',
+          repeated: '반복측정분산분석'
+        }
+        throw new Error(
+          `${anovaTypeNames[anovaType]}은(는) ${requiredIndepCount}개의 독립변수가 필요합니다. ` +
+          `현재 ${variables.independent.length}개 선택됨`
+        )
+      }
+
+      // 4️⃣ 데이터 추출 및 가공
+      // TODO: Two-Way, Three-Way, Repeated Measures는 현재 미구현
+      if (anovaType !== 'oneWay') {
+        throw new Error(
+          `${anovaType} ANOVA는 아직 구현되지 않았습니다. ` +
+          '현재는 일원분산분석(One-Way ANOVA)만 지원됩니다.'
+        )
+      }
+
       const groups: number[][] = []
       const groupNames: string[] = []
 
       // One-Way ANOVA: 첫 번째 독립변수(요인)를 기준으로 그룹 분리
-      if (variables.independent.length === 0) {
-        throw new Error('독립변수(요인)를 선택해주세요')
-      }
 
       const factorVariable = variables.independent[0]
       const dependentVariable = variables.dependent
@@ -469,7 +501,7 @@ export default function ANOVAPage() {
       console.error('ANOVA Analysis Error:', err)
       actions.setError(errorMessage)
     }
-  }, [uploadedData, actions])
+  }, [uploadedData, actions, anovaType])
 
   const renderMethodSelection = () => (
     <StepCard
@@ -608,8 +640,6 @@ export default function ANOVAPage() {
           methodId={methodId}
           data={uploadedData.data}
           onVariablesSelected={(variables) => {
-            console.log('[ANOVA Page] onVariablesSelected 받은 데이터:', variables)
-
             const selectedVars: ANOVAVariables = {
               dependent: (variables.dependent as string) || '',
               independent: Array.isArray(variables.independent)
@@ -623,8 +653,6 @@ export default function ANOVAPage() {
                   : [variables.covariates as string]
                 : undefined
             }
-
-            console.log('[ANOVA Page] 변환된 selectedVars:', selectedVars)
             handleVariableSelection(selectedVars)
           }}
           onBack={() => actions.setCurrentStep(1)}

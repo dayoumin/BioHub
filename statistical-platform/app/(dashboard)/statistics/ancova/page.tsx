@@ -205,7 +205,7 @@ export default function ANCOVAPage() {
   )
 
   const runAnalysis = useCallback(async (variables: ANCOVAVariables) => {
-    if (!uploadedData || !pyodide || !variables.dependent || !variables.independent?.length || !variables.covariates?.length) {
+    if (!uploadedData || !pyodide || !variables.dependent || !variables.factor?.length || !variables.covariate?.length) {
       actions.setError('분석을 실행할 수 없습니다. 종속변수, 요인, 공변량을 모두 선택해주세요.')
       return
     }

@@ -6,7 +6,51 @@ Claude Code가 자동으로 코드를 생성할 때 따라야 할 상세 가이�
 1. [any → unknown 변환 패턴 10가지](#any--unknown-변환-패턴-10가지)
 2. [타입 가드 패턴 5가지](#타입-가드-패턴-5가지)
 3. [Pyodide 메서드 호출 규칙](#pyodide-메서드-호출-규칙)
-4. [컴파일 체크 자동화](#컴파일-체크-자동화)
+4. [테스트 프레임워크 규칙](#테스트-프레임워크-규칙)
+5. [컴파일 체크 자동화](#컴파일-체크-자동화)
+
+---
+
+## 테스트 프레임워크 규칙
+
+**이 프로젝트는 Jest를 사용합니다 (Vitest 아님!)**
+
+### ❌ 절대 금지
+```typescript
+// ❌ Vitest import 사용 금지
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+```
+
+### ✅ 올바른 방법
+```typescript
+// ✅ Jest 전역 함수 사용 (import 없이)
+describe('My Component', () => {
+  it('should work', () => {
+    expect(true).toBe(true)
+  })
+})
+
+// ✅ 또는 @jest/globals에서 import
+import { describe, it, expect } from '@jest/globals'
+```
+
+### Mock 함수
+```typescript
+// ❌ Vitest
+import { vi } from 'vitest'
+const mockFn = vi.fn()
+
+// ✅ Jest
+const mockFn = jest.fn()
+```
+
+### 테스트 실행
+```bash
+npm test              # 모든 테스트
+npm test anova        # 특정 키워드
+npm test:watch        # watch 모드
+npm test:coverage     # 커버리지
+```
 
 ---
 

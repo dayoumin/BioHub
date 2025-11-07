@@ -3,6 +3,16 @@
  *
  * 목적: Phase A-2-1 - unknown 타입 제거 및 타입 안전성 향상
  * 날짜: 2025-11-05
+ *
+ * 🚨 CRITICAL: 변수 role 명명 규칙 (SPSS/R/SAS 표준)
+ * - variable-requirements.ts의 role을 정확히 반영해야 함
+ * - factor → factor (❌ groups, independent)
+ * - within → within (❌ conditions)
+ * - covariate → covariate (❌ covariates)
+ * - blocking → blocking (❌ randomEffects)
+ *
+ * 📋 참고: CLAUDE.md - "현재 중요 규칙" 섹션
+ * 📋 참고: STATISTICS_PAGE_CODING_STANDARDS.md - Section 17
  */
 
 // ============================================================================
@@ -86,8 +96,8 @@ export interface RepeatedMeasuresVariables {
 
 export interface ANCOVAVariables {
   dependent: string // 1개
-  independent: string[] // 1개 이상
-  covariates: string[] // 1개 이상
+  factor: string[] // 1개 이상 (variable-requirements.ts: role: 'factor')
+  covariate: string[] // 1개 이상 (variable-requirements.ts: role: 'covariate')
 }
 
 export interface MANOVAVariables {
@@ -128,7 +138,8 @@ export interface OrdinalRegressionVariables {
 
 export interface MixedModelVariables {
   dependent: string // 1개
-  independent: string[] // 1개 이상
+  factor: string[] // 1개 이상 (variable-requirements.ts: role: 'factor' - 고정효과)
+  blocking?: string[] // 선택적 (variable-requirements.ts: role: 'blocking' - 무선효과)
 }
 
 // 카이제곱 검정
@@ -158,7 +169,7 @@ export interface NonParametricVariables {
 
 export interface MannWhitneyVariables {
   dependent: string // 1개
-  groups: string[] // 2개
+  factor: string[] // 2개 (variable-requirements.ts: role: 'factor')
 }
 
 export interface KruskalWallisVariables {
@@ -172,7 +183,7 @@ export interface WilcoxonVariables {
 
 export interface FriedmanVariables {
   dependent: string // 1개
-  conditions: string[] // 3개 이상
+  within: string[] // 3개 이상 (variable-requirements.ts: role: 'within')
 }
 
 export interface SignTestVariables {

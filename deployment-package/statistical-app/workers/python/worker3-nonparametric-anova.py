@@ -272,10 +272,16 @@ def tukey_hsd(groups):
             }
 
             if idx < len(statistic_values):
-                comparison['statistic'] = float(statistic_values[idx])
+                stat_val = statistic_values[idx]
+                if isinstance(stat_val, (list, tuple)):
+                    stat_val = stat_val[0] if len(stat_val) > 0 else 0.0
+                comparison['statistic'] = float(stat_val)
 
             if idx < len(p_values):
-                p_val = float(p_values[idx])
+                p_val = p_values[idx]
+                if isinstance(p_val, (list, tuple)):
+                    p_val = p_val[0] if len(p_val) > 0 else 1.0
+                p_val = float(p_val)
                 comparison['pValue'] = p_val
                 comparison['pAdjusted'] = p_val
                 comparison['significant'] = p_val < alpha_threshold
@@ -284,8 +290,14 @@ def tukey_hsd(groups):
                 comparison['significant'] = False
 
             if idx < len(ci_lower) and idx < len(ci_upper):
-                lower_val = float(ci_lower[idx])
-                upper_val = float(ci_upper[idx])
+                lower_val = ci_lower[idx]
+                upper_val = ci_upper[idx]
+                if isinstance(lower_val, (list, tuple)):
+                    lower_val = lower_val[0] if len(lower_val) > 0 else 0.0
+                if isinstance(upper_val, (list, tuple)):
+                    upper_val = upper_val[0] if len(upper_val) > 0 else 0.0
+                lower_val = float(lower_val)
+                upper_val = float(upper_val)
                 comparison['ci_lower'] = lower_val
                 comparison['ci_upper'] = upper_val
                 comparison['lower'] = lower_val

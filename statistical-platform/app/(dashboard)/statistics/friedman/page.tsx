@@ -165,10 +165,10 @@ export default function FriedmanPage() {
     }
 
     // dependent is string (single)
-    const dependentVars = variables.conditions || []
+    const dependentVars = variables.within || []
 
     if (dependentVars.length < 3) {
-      actions.setError?.('최소 3개 이상의 조건 변수가 필요합니다.')
+      actions.setError?.('최소 3개 이상의 반복측정 변수가 필요합니다.')
       return
     }
 

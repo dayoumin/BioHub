@@ -149,7 +149,7 @@ export default function MannWhitneyPage() {
   const handleVariableSelection = createVariableSelectionHandler<MannWhitneyVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toMannWhitneyVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
-      if (variables.dependent && variables.groups && variables.groups.length >= 1) {
+      if (variables.dependent && variables.factor && variables.factor.length >= 1) {
         runAnalysis(variables)
       }
     },
@@ -157,7 +157,7 @@ export default function MannWhitneyPage() {
   )
 
   const runAnalysis = async (variables: MannWhitneyVariables) => {
-    if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.groups || variables.groups.length === 0) {
+    if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.factor || variables.factor.length === 0) {
       actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
@@ -167,7 +167,7 @@ export default function MannWhitneyPage() {
     try {
       const data = uploadedData.data
       const dependentVar = variables.dependent
-      const groupVar = variables.groups[0]
+      const groupVar = variables.factor[0]
 
       // 그룹별로 데이터 분리
       const groups = new Map<string | number, number[]>()

@@ -2,6 +2,45 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 현재 중요 규칙 (2025-11-06 업데이트)
+
+**진행 중**: 변수 role 매핑 표준화 (Critical Issue)
+
+**발견된 문제**:
+- 🔴 **변수 role 불일치**: variable-requirements.ts ≠ types/statistics.ts (5개 통계 영향)
+- 🔴 **타입 파편화**: PostHocComparison 타입이 4곳에 서로 다르게 정의됨
+- 🟡 **공통 컴포넌트 미활용**: StatisticsTable 존재하지만 모든 페이지가 `<table>` 직접 구현
+
+**반드시 지킬 것** (CRITICAL):
+1. ✅ **변수 role 일치**: variable-requirements.ts의 `role`을 types/statistics.ts에 정확히 반영
+   ```typescript
+   // variable-requirements.ts: role: 'factor'
+   // types/statistics.ts: factor: string[]  ✅
+   // types/statistics.ts: groups: string[]  ❌ 금지!
+   ```
+
+2. ✅ **타입 단일 정의**: types/statistics.ts에만 정의 (페이지별 재정의 절대 금지)
+   ```typescript
+   // ❌ 금지: mann-whitney/page.tsx에서 interface PostHocComparison {...}
+   // ✅ 권장: import { PostHocComparison } from '@/types/statistics'
+   ```
+
+3. ✅ **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard 등 사용 (`<table>` 직접 사용 금지)
+
+**표준 Role 매핑** (SPSS/R/SAS 표준):
+| variable-requirements.ts | types/statistics.ts | ❌ 금지 |
+|-------------------------|---------------------|---------|
+| `role: 'factor'` | `factor: string[]` | `groups`, `independent` |
+| `role: 'within'` | `within: string[]` | `conditions` |
+| `role: 'covariate'` | `covariate: string[]` | `covariates` |
+| `role: 'blocking'` | `blocking?: string[]` | `randomEffects` |
+
+**필드명 규칙**: camelCase (pValue, ciLower, ciUpper) ✅ | snake_case (p_value, ci_lower) ❌
+
+**상세**: [STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md) - Section 17-19
+
+---
+
 ## 🎯 프로젝트 개요
 
 **전문가급 통계 분석 플랫폼** (PC웹 + 데스크탑 앱)
@@ -42,6 +81,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ✅ **await 패턴 사용** (setTimeout 사용 금지)
 - ✅ `any` 타입 절대 금지 (unknown + 타입 가드)
 - ✅ TypeScript 컴파일 에러 0개
+- ✅ **변수 role 매핑**: variable-requirements.ts와 types/statistics.ts 일치 (위 "현재 중요 규칙" 참조)
+- ✅ **타입 중앙 정의**: types/statistics.ts 단일 정의 (페이지별 재정의 금지)
+- ✅ **공통 컴포넌트 사용**: StatisticsTable, EffectSizeCard 등 활용
 
 **참고 문서**:
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방
@@ -88,6 +130,8 @@ npm test [파일명]
 - [ ] Null 체크: Optional chaining (`?.`) 사용
 - [ ] 일관성: 기존 코드 패턴 준수
 - [ ] 부작용: 다른 파일에 영향 없음
+- [ ] 변수 role 매핑: variable-requirements.ts와 일치
+- [ ] 타입 정의: types/statistics.ts에만 정의 (페이지 재정의 없음)
 
 **✅ 테스트 검증**:
 
@@ -105,20 +149,12 @@ npm run dev
 2. **기능 동작**
    - [ ] 버튼/드롭다운 클릭 시 정상 작동하는가?
    - [ ] 상태 변경이 UI에 반영되는가?
-   - [ ] localStorage 저장/로드가 정상인가?
 
 3. **에러 처리**
    - [ ] 잘못된 입력 시 에러 메시지가 표시되는가?
    - [ ] 콘솔에 에러가 없는가?
 
-**테스트 우선순위**:
-
-| 작업 유형 | 단위 테스트 | 통합 테스트 |
-|----------|----------|----------|
-| 신규 UI 컴포넌트 | 🟡 선택 | ✅ 필수 |
-| 신규 서비스 로직 | ✅ 필수 | ✅ 필수 |
-| 기존 코드 수정 | 🟡 선택 | ✅ 필수 |
-| 버그 수정 | ✅ 필수 | ✅ 필수 |
+---
 
 #### 📍 Step 4: Git 커밋 (검증 통과 후)
 
@@ -141,24 +177,50 @@ feat/fix/refactor: 작업 요약 (1줄)
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
+---
+
 #### 📍 Step 5: 푸시 (사용자 승인 필요)
 
 **❌ AI가 자동으로 푸시하지 않음**
 - 커밋 완료 후 사용자에게 보고
 - 사용자가 명시적으로 "푸시해" 요청 시에만 푸시
 
-#### 🎯 워크플로우 요약
 
-| 단계 | 필수/선택 | 명령어 | 시점 |
-|------|----------|--------|------|
-| Step 1: 코드 수정 | ✅ 필수 | Write/Edit | 항상 |
-| Step 2-1: 타입 체크 | ✅ 필수 | `npx tsc --noEmit` | 수정 후 즉시 |
-| Step 2-2: 빌드 | 🟡 선택 | `npm run build` | 10+ 파일 수정 |
-| Step 3: 리뷰+테스트 | ✅ 필수 | 브라우저 테스트 | 커밋 전 |
-| Step 4: 커밋 | ✅ 필수 | `git commit` | 검증 통과 후 |
-| Step 5: 푸시 | ⏸️ 대기 | `git push` | **사용자 승인 후** |
+### 5. 테스트 프레임워크 규칙 (CRITICAL)
 
-### 5. 코드 스타일
+**이 프로젝트는 Jest를 사용합니다 (Vitest 아님!)**
+
+**필수 규칙**:
+- ✅ **테스트 파일은 항상 Jest 문법 사용**
+- ❌ Vitest import 절대 금지 (`import { describe, it } from 'vitest'` ❌)
+- ✅ Jest import 사용 (`import { describe, it } from '@jest/globals'` 또는 전역 사용)
+
+**테스트 파일 작성 예시**:
+```typescript
+// ✅ 올바른 방법 (Jest)
+import { render, screen } from '@testing-library/react'
+
+describe('Component', () => {
+  it('should render', () => {
+    expect(screen.getByText('Hello')).toBeInTheDocument()
+  })
+})
+
+// ❌ 잘못된 방법 (Vitest)
+import { describe, it, expect, vi } from 'vitest'  // ❌ 금지!
+```
+
+**테스트 실행**:
+```bash
+npm test              # 모든 테스트
+npm test [파일명]     # 특정 파일
+npm test:watch        # watch 모드
+npm test:coverage     # 커버리지
+```
+
+---
+
+### 6. 코드 스타일
 
 - ❌ 식별자에 이모지 절대 금지 (변수명, 함수명, 클래스명)
 - ✅ Next.js 15 App Router 사용 (Pages Router 금지)
@@ -208,7 +270,7 @@ npx tsc --noEmit     # 타입 체크
 
 ## 📋 현재 작업 상태
 
-**최신 상태** (2025-10-31):
+**최신 상태** (2025-11-06):
 - ✅ Phase 6 완료: PyodideCore 직접 연결
   - ✅ 10개 handler 완전 변환 (39개 메서드, 100%)
   - ✅ TypeScript 컴파일 에러: **0개** (core groups/handlers)
@@ -219,6 +281,16 @@ npx tsc --noEmit     # 타입 체크
 - ✅ Phase 2-2 진행 중: 코드 품질 개선
   - ✅ 34/45 페이지 (76%) 완료
   - ✅ TypeScript 에러: 717 → 409 (-308, -42.9%)
+- 🔴 **발견된 Critical Issue** (2025-11-06):
+  - 🔴 변수 role 매핑 불일치 (5개 통계 영향: ANOVA, MANOVA, Mixed Model, Mann-Whitney, Friedman)
+  - 🔴 타입 파편화 문제 (PostHocComparison 등 4곳 중복 정의)
+  - 🟡 공통 컴포넌트 미활용 (UI 일관성 저하)
+
+**현재 작업**:
+- 🔜 **Phase A-3**: 변수 role 매핑 표준화 (CRITICAL)
+  - types/statistics.ts 수정 (4개 인터페이스)
+  - 5개 통계 페이지 수정
+  - STATISTICS_PAGE_CODING_STANDARDS.md 보강
 
 **다음 작업**:
 - 🔜 Phase 2-2 완료: 남은 11개 통계 페이지
@@ -250,4 +322,4 @@ npx tsc --noEmit     # 타입 체크
 
 ---
 
-**Updated**: 2025-11-01 | **Version**: Phase 6 Complete | **Next**: Phase 2-2 완료, Phase 7/8 계획
+**Updated**: 2025-11-06 | **Version**: Phase 6 Complete + Critical Issue 발견 | **Next**: Phase A-3 (변수 role 매핑 표준화)
