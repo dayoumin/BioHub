@@ -610,6 +610,80 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       }
     }
 
+    // ========== Phase 3: content 변경 시 임베딩 재생성 ==========
+    if (updates.content !== undefined) {
+      // 1. 기존 임베딩 삭제
+      await IndexedDBStorage.deleteEmbeddingsByDocId(docId)
+      console.log(`[OllamaProvider] ✓ 기존 임베딩 삭제 완료: ${docId}`)
+
+      if (!this.testMode && this.db) {
+        this.db.exec(`
+          DELETE FROM embeddings
+          WHERE doc_id = '${this.escapeSQL(docId)}'
+        `)
+      }
+
+      // 2. 새 임베딩 생성
+      const chunks = chunkDocument(updates.content, {
+        maxTokens: 500,
+        overlapTokens: 50,
+        preserveBoundaries: true
+      })
+
+      if (chunks.length > 0) {
+        console.log(`[OllamaProvider] 새 임베딩 생성 시작: ${chunks.length}개 청크`)
+
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i]
+          const chunkTokens = estimateTokens(chunk)
+
+          try {
+            const embedding = await this.generateEmbedding(chunk)
+            const embeddingVector = new Float32Array(embedding)
+            const currentTimeSec = Math.floor(currentTime / 1000)
+
+            // SQLite 저장
+            if (!this.testMode && this.db) {
+              const hexBlob = vectorToBlob(embeddingVector)
+              this.db.exec(`
+                INSERT INTO embeddings (
+                  doc_id, chunk_index, chunk_text, chunk_tokens,
+                  embedding, embedding_model, created_at
+                ) VALUES (
+                  '${this.escapeSQL(docId)}',
+                  ${i},
+                  '${this.escapeSQL(chunk)}',
+                  ${chunkTokens},
+                  X'${hexBlob}',
+                  '${this.embeddingModel}',
+                  ${currentTimeSec}
+                )
+              `)
+            }
+
+            // IndexedDB 저장
+            const storedEmbedding: StoredEmbedding = {
+              doc_id: docId,
+              chunk_index: i,
+              chunk_text: chunk,
+              chunk_tokens: chunkTokens,
+              embedding: embeddingVector.buffer,
+              embedding_model: this.embeddingModel,
+              created_at: currentTime
+            }
+
+            await IndexedDBStorage.saveEmbedding(storedEmbedding)
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error)
+            console.error(`[OllamaProvider] ❌ 청크 ${i + 1} 임베딩 생성 실패:`, errorMessage)
+            throw new Error(`문서 ${docId} 업데이트 중 청크 ${i} 임베딩 생성 실패: ${errorMessage}`)
+          }
+        }
+
+        console.log(`[OllamaProvider] ✓ 새 임베딩 생성 완료: ${chunks.length}개 청크`)
+      }
+    }
+
     // 프로덕션 모드: SQLite 메모리 DB도 업데이트
     if (!this.testMode && this.db) {
       const setClauses: string[] = []
@@ -667,16 +741,27 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     // 메모리 캐시에서 삭제
     this.documents.splice(docIndex, 1)
 
-    // IndexedDB에서 삭제 (영구 저장소)
+    // IndexedDB에서 문서 삭제 (영구 저장소)
     if (typeof window !== 'undefined' && !this.testMode) {
       await IndexedDBStorage.deleteDocument(docId)
-      console.log(`[OllamaProvider] ✓ IndexedDB 삭제 완료: ${docId}`)
+      console.log(`[OllamaProvider] ✓ IndexedDB 문서 삭제 완료: ${docId}`)
     }
+
+    // IndexedDB에서 임베딩 삭제 (Phase 3: 청크 기반 임베딩)
+    await IndexedDBStorage.deleteEmbeddingsByDocId(docId)
+    console.log(`[OllamaProvider] ✓ IndexedDB 임베딩 삭제 완료: ${docId}`)
 
     // 프로덕션 모드: SQLite 메모리 DB에서도 삭제
     if (!this.testMode && this.db) {
+      // documents 테이블 삭제
       this.db.exec(`
         DELETE FROM documents
+        WHERE doc_id = '${this.escapeSQL(docId)}'
+      `)
+
+      // embeddings 테이블 삭제 (Phase 3)
+      this.db.exec(`
+        DELETE FROM embeddings
         WHERE doc_id = '${this.escapeSQL(docId)}'
       `)
 

@@ -271,6 +271,157 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
     })
   })
 
+  describe('updateDocument 임베딩 재생성', () => {
+    it('content 변경 시 기존 임베딩 삭제 후 새로 생성', async () => {
+      // 1. 문서 추가
+      const document: DocumentInput = {
+        doc_id: 'update_test_doc',
+        title: 'Original Title',
+        content: Array(500).fill(0).map((_, i) => `original${i}`).join(' '),
+        library: 'test',
+      }
+
+      await provider.addDocument(document)
+
+      // 2. 초기 임베딩 확인
+      const embeddingsBefore = await IndexedDBStorage.getEmbeddingsByDocId('update_test_doc')
+      expect(embeddingsBefore.length).toBeGreaterThan(0)
+      const originalChunkCount = embeddingsBefore.length
+      const originalFirstChunk = embeddingsBefore.find((e) => e.chunk_index === 0)!
+      expect(originalFirstChunk.chunk_text).toContain('original0')
+
+      console.log(`  - 초기 임베딩: ${originalChunkCount}개 청크`)
+
+      // 3. content 업데이트 (다른 길이의 텍스트)
+      const updated = await provider.updateDocument('update_test_doc', {
+        content: Array(800).fill(0).map((_, i) => `updated${i}`).join(' '), // 다른 길이
+      })
+
+      expect(updated).toBe(true)
+
+      // 4. 새 임베딩 확인
+      const embeddingsAfter = await IndexedDBStorage.getEmbeddingsByDocId('update_test_doc')
+      expect(embeddingsAfter.length).toBeGreaterThan(0)
+      const newChunkCount = embeddingsAfter.length
+
+      // 텍스트 변경 확인
+      const newFirstChunk = embeddingsAfter.find((e) => e.chunk_index === 0)!
+      expect(newFirstChunk.chunk_text).toContain('updated0')
+      expect(newFirstChunk.chunk_text).not.toContain('original0')
+
+      console.log(`  - 새 임베딩: ${newChunkCount}개 청크`)
+      console.log(`✓ content 변경 시 임베딩 재생성 성공 (${originalChunkCount} → ${newChunkCount}개)`)
+    })
+
+    it('title만 변경 시 임베딩 유지', async () => {
+      // 1. 문서 추가
+      await provider.addDocument({
+        doc_id: 'title_update_doc',
+        title: 'Original Title',
+        content: Array(500).fill(0).map((_, i) => `word${i}`).join(' '),
+        library: 'test',
+      })
+
+      // 2. 초기 임베딩 확인
+      const embeddingsBefore = await IndexedDBStorage.getEmbeddingsByDocId('title_update_doc')
+      const originalCount = embeddingsBefore.length
+
+      // 3. title만 업데이트
+      await provider.updateDocument('title_update_doc', {
+        title: 'Updated Title',
+      })
+
+      // 4. 임베딩 개수 유지 확인
+      const embeddingsAfter = await IndexedDBStorage.getEmbeddingsByDocId('title_update_doc')
+      expect(embeddingsAfter.length).toBe(originalCount)
+
+      // 텍스트 내용 동일 확인
+      expect(embeddingsAfter[0].chunk_text).toBe(embeddingsBefore[0].chunk_text)
+
+      console.log(`✓ title만 변경 시 임베딩 ${originalCount}개 유지됨`)
+    })
+
+    it('존재하지 않는 문서 업데이트 시 false 반환', async () => {
+      const updated = await provider.updateDocument('non_existent_doc', {
+        title: 'New Title',
+      })
+
+      expect(updated).toBe(false)
+    })
+  })
+
+  describe('deleteDocument 임베딩 삭제', () => {
+    it('문서 삭제 시 관련 임베딩도 모두 삭제됨', async () => {
+      // 1. 문서 추가 (임베딩 생성)
+      const document: DocumentInput = {
+        doc_id: 'delete_test_doc',
+        title: 'Delete Test Document',
+        content: Array(1000).fill(0).map((_, i) => `word${i}`).join(' '), // 약 3-5개 청크
+        library: 'test',
+        category: 'unit-test',
+      }
+
+      await provider.addDocument(document)
+
+      // 2. 임베딩 생성 확인
+      const embeddingsBefore = await IndexedDBStorage.getEmbeddingsByDocId('delete_test_doc')
+      expect(embeddingsBefore.length).toBeGreaterThan(0)
+      const chunkCount = embeddingsBefore.length
+      console.log(`  - 생성된 임베딩: ${chunkCount}개`)
+
+      // 3. 문서 삭제
+      const deleted = await provider.deleteDocument('delete_test_doc')
+      expect(deleted).toBe(true)
+
+      // 4. 임베딩 삭제 확인
+      const embeddingsAfter = await IndexedDBStorage.getEmbeddingsByDocId('delete_test_doc')
+      expect(embeddingsAfter.length).toBe(0)
+
+      console.log(`✓ 문서 삭제 시 임베딩 ${chunkCount}개 모두 삭제됨`)
+    })
+
+    it('존재하지 않는 문서 삭제 시 false 반환', async () => {
+      const deleted = await provider.deleteDocument('non_existent_doc')
+      expect(deleted).toBe(false)
+    })
+
+    it('여러 문서 중 하나만 삭제 시 다른 문서 임베딩 유지', async () => {
+      // 2개 문서 추가
+      await provider.addDocument({
+        doc_id: 'doc_a',
+        title: 'Document A',
+        content: Array(500).fill(0).map((_, i) => `word${i}`).join(' '),
+        library: 'test',
+      })
+
+      await provider.addDocument({
+        doc_id: 'doc_b',
+        title: 'Document B',
+        content: Array(500).fill(0).map((_, i) => `word${i}`).join(' '),
+        library: 'test',
+      })
+
+      // 임베딩 확인
+      const docAEmbeddings = await IndexedDBStorage.getEmbeddingsByDocId('doc_a')
+      const docBEmbeddings = await IndexedDBStorage.getEmbeddingsByDocId('doc_b')
+      expect(docAEmbeddings.length).toBeGreaterThan(0)
+      expect(docBEmbeddings.length).toBeGreaterThan(0)
+
+      // doc_a만 삭제
+      await provider.deleteDocument('doc_a')
+
+      // doc_a 임베딩 삭제 확인
+      const docAAfter = await IndexedDBStorage.getEmbeddingsByDocId('doc_a')
+      expect(docAAfter.length).toBe(0)
+
+      // doc_b 임베딩 유지 확인
+      const docBAfter = await IndexedDBStorage.getEmbeddingsByDocId('doc_b')
+      expect(docBAfter.length).toBe(docBEmbeddings.length)
+
+      console.log('✓ 선택적 문서 삭제 시 다른 문서 임베딩 유지됨')
+    })
+  })
+
   describe('실제 시나리오', () => {
     it('논문 PDF 25쪽 시뮬레이션 (40-70 청크)', async () => {
       // 25쪽 PDF ≈ 12500 토큰 ≈ 16500 단어
