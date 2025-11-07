@@ -231,6 +231,11 @@ export interface RunsTestVariables {
   data: string // 1개 (이진 데이터)
 }
 
+export interface CochranQVariables {
+  subjects: string // 피험자 식별 변수
+  conditions: string[] // 3개 이상 이진 변수
+}
+
 // 정규성 및 검정력
 export interface NormalityTestVariables {
   all: string[] // 1개 이상

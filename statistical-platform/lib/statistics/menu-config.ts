@@ -372,6 +372,15 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         category: 'nonparametric',
         icon: Calculator,
         implemented: true
+      },
+      {
+        id: 'cochran-q',
+        href: '/statistics/cochran-q',
+        title: 'Cochran Q 검정',
+        subtitle: '반복측정 이진 자료',
+        category: 'nonparametric',
+        icon: Calculator,
+        implemented: true
       }
     ]
   },

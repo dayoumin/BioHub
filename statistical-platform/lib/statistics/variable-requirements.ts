@@ -1077,6 +1077,38 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
     ],
     notes: ['2x2 교차표 분석', '불일치 셀만 사용']
   },
+
+  {
+    id: 'cochran-q',
+    name: 'Cochran Q 검정',
+    category: 'nonparametric',
+    description: '반복측정 이진 데이터에서 3개 이상 조건의 성공률 비교',
+    minSampleSize: 2,
+    assumptions: ['반복측정 설계', '이진 자료', '최소 3개 조건'],
+    variables: [
+      {
+        role: 'independent',
+        label: '피험자 변수',
+        types: ['categorical'],
+        required: true,
+        multiple: false,
+        description: '피험자를 구분하는 식별 변수 (ID, 이름 등)',
+        example: 'SubjectID, ParticipantName'
+      },
+      {
+        role: 'dependent',
+        label: '조건 변수',
+        types: ['binary'],
+        required: true,
+        multiple: true,
+        minCount: 3,
+        description: '이진 데이터 (0/1) 조건 변수 3개 이상',
+        example: 'TreatmentA (0/1), TreatmentB (0/1), TreatmentC (0/1)'
+      }
+    ],
+    notes: ['Friedman 검정의 이진 데이터 버전', 'Chi-square 분포 사용']
+  },
+
   {
     id: 'mann-kendall-test',
     name: 'Mann-Kendall 추세 검정',
