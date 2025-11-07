@@ -1,0 +1,528 @@
+/**
+ * RAG 문서 관리 인터페이스
+ *
+ * 기능:
+ * - 문서 목록 조회 (원본 DB + IndexedDB)
+ * - 문서 추가/수정/삭제
+ * - Vector Store 재구축 트리거
+ *
+ * 변경 사항 (Phase 2-2):
+ * - API routes 제거 (Next.js static export 호환)
+ * - RAGService 직접 호출 (브라우저에서)
+ */
+
+'use client'
+
+import { useState, useCallback, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Card } from '@/components/ui/card'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  RefreshCw,
+  Save,
+  X,
+  FileText,
+  Database,
+} from 'lucide-react'
+import { RAGService } from '@/lib/rag/rag-service'
+import type { Document } from '@/lib/rag/providers/base-provider'
+import type { OllamaRAGProvider } from '@/lib/rag/providers/ollama-provider'
+
+interface DocumentWithSource extends Document {
+  source: 'original' | 'user' // 원본 DB vs 사용자 추가
+}
+
+export function DocumentManager() {
+  const [documents, setDocuments] = useState<DocumentWithSource[]>([])
+  const [selectedDoc, setSelectedDoc] = useState<DocumentWithSource | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRebuilding, setIsRebuilding] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // 폼 상태
+  const [formData, setFormData] = useState({
+    doc_id: '',
+    title: '',
+    library: '',
+    category: '',
+    content: '',
+    summary: '',
+  })
+
+  // 문서 목록 로드
+  const loadDocuments = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      console.log('[DocumentManager] RAGService 초기화 중...')
+      const ragService = RAGService.getInstance()
+      await ragService.initialize()
+
+      // OllamaRAGProvider에서 전체 문서 조회
+      const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
+      if (!provider) {
+        throw new Error('RAG Provider가 초기화되지 않았습니다')
+      }
+
+      const allDocs = provider.getAllDocuments()
+
+      // source 필드 추가 (doc_id로 판단)
+      const docsWithSource: DocumentWithSource[] = allDocs.map((doc) => ({
+        ...doc,
+        source: doc.doc_id.startsWith('user_') ? 'user' : 'original',
+      }))
+
+      setDocuments(docsWithSource)
+      console.log(`[DocumentManager] 문서 ${docsWithSource.length}개 로드 완료`)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
+      setError(errorMessage)
+      console.error('[DocumentManager] 문서 로드 실패:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadDocuments()
+  }, [loadDocuments])
+
+  // 새 문서 추가 모드
+  const handleNewDocument = useCallback(() => {
+    setSelectedDoc(null)
+    setIsEditing(true)
+    setFormData({
+      doc_id: '',
+      title: '',
+      library: '',
+      category: '',
+      content: '',
+      summary: '',
+    })
+  }, [])
+
+  // 문서 선택
+  const handleSelectDocument = useCallback((doc: DocumentWithSource) => {
+    setSelectedDoc(doc)
+    setIsEditing(false)
+    setFormData({
+      doc_id: doc.doc_id,
+      title: doc.title,
+      library: doc.library,
+      category: doc.category || '',
+      content: doc.content,
+      summary: doc.summary || '',
+    })
+  }, [])
+
+  // 편집 모드 진입
+  const handleEditMode = useCallback(() => {
+    setIsEditing(true)
+  }, [])
+
+  // 편집 취소
+  const handleCancelEdit = useCallback(() => {
+    if (selectedDoc) {
+      setFormData({
+        doc_id: selectedDoc.doc_id,
+        title: selectedDoc.title,
+        library: selectedDoc.library,
+        category: selectedDoc.category || '',
+        content: selectedDoc.content,
+        summary: selectedDoc.summary || '',
+      })
+      setIsEditing(false)
+    } else {
+      setSelectedDoc(null)
+      setIsEditing(false)
+    }
+  }, [selectedDoc])
+
+  // 문서 추가
+  const handleAddDocument = useCallback(async () => {
+    setError(null)
+
+    // 필수 필드 검증
+    if (!formData.doc_id || !formData.title || !formData.library || !formData.content) {
+      setError('필수 필드를 모두 입력해주세요 (문서 ID, 제목, 라이브러리, 내용)')
+      return
+    }
+
+    try {
+      console.log('[DocumentManager] 문서 추가 중:', formData.doc_id)
+
+      const ragService = RAGService.getInstance()
+      await ragService.initialize()
+
+      const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
+      if (!provider) {
+        throw new Error('RAG Provider가 초기화되지 않았습니다')
+      }
+
+      // 문서 추가 (addDocument는 Promise<string> 반환 - doc_id)
+      await provider.addDocument({
+        doc_id: formData.doc_id,
+        title: formData.title,
+        library: formData.library,
+        category: formData.category || undefined,
+        content: formData.content,
+        summary: formData.summary || undefined,
+      })
+
+      console.log('[DocumentManager] 문서 추가 완료:', formData.doc_id)
+
+      // 목록 새로고침
+      await loadDocuments()
+
+      // 상태 초기화
+      setIsEditing(false)
+      setFormData({
+        doc_id: '',
+        title: '',
+        library: '',
+        category: '',
+        content: '',
+        summary: '',
+      })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
+      setError(errorMessage)
+      console.error('[DocumentManager] 문서 추가 실패:', err)
+    }
+  }, [formData, loadDocuments])
+
+  // 문서 수정
+  const handleUpdateDocument = useCallback(async () => {
+    if (!selectedDoc) return
+
+    setError(null)
+
+    try {
+      console.log('[DocumentManager] 문서 수정 중:', selectedDoc.doc_id)
+
+      const ragService = RAGService.getInstance()
+      await ragService.initialize()
+
+      const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
+      if (!provider) {
+        throw new Error('RAG Provider가 초기화되지 않았습니다')
+      }
+
+      // 문서 수정 (updateDocument는 Promise<boolean> 반환)
+      const success = await provider.updateDocument(selectedDoc.doc_id, {
+        title: formData.title,
+        content: formData.content,
+        category: formData.category || undefined,
+        summary: formData.summary || undefined,
+      })
+
+      if (!success) {
+        throw new Error('문서 수정 실패')
+      }
+
+      console.log('[DocumentManager] 문서 수정 완료:', selectedDoc.doc_id)
+
+      // 목록 새로고침
+      await loadDocuments()
+
+      setIsEditing(false)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
+      setError(errorMessage)
+      console.error('[DocumentManager] 문서 수정 실패:', err)
+    }
+  }, [selectedDoc, formData, loadDocuments])
+
+  // 문서 삭제
+  const handleDeleteDocument = useCallback(
+    async (docId: string) => {
+      if (!confirm(`문서 "${docId}"를 삭제하시겠습니까?`)) {
+        return
+      }
+
+      setError(null)
+
+      try {
+        console.log('[DocumentManager] 문서 삭제 중:', docId)
+
+        const ragService = RAGService.getInstance()
+        await ragService.initialize()
+
+        const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
+        if (!provider) {
+          throw new Error('RAG Provider가 초기화되지 않았습니다')
+        }
+
+        // 문서 삭제 (deleteDocument는 Promise<boolean> 반환)
+        const success = await provider.deleteDocument(docId)
+
+        if (!success) {
+          throw new Error('문서 삭제 실패')
+        }
+
+        console.log('[DocumentManager] 문서 삭제 완료:', docId)
+
+        // 목록 새로고침
+        await loadDocuments()
+
+        // 선택 해제
+        if (selectedDoc?.doc_id === docId) {
+          setSelectedDoc(null)
+          setIsEditing(false)
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
+        setError(errorMessage)
+        console.error('[DocumentManager] 문서 삭제 실패:', err)
+      }
+    },
+    [selectedDoc, loadDocuments]
+  )
+
+  // Vector Store 재구축
+  const handleRebuildVectorStore = useCallback(async () => {
+    if (!confirm('Vector Store를 재구축하시겠습니까? (시간이 소요될 수 있습니다)')) {
+      return
+    }
+
+    setIsRebuilding(true)
+    setError(null)
+
+    try {
+      console.log('[DocumentManager] Vector Store 재구축 시작')
+
+      // TODO: OllamaRAGProvider에 rebuildVectorStore 메서드 추가 필요
+      // 현재는 문서 추가/수정/삭제 시 자동으로 persistDB가 호출되어
+      // IndexedDB에 저장되므로 별도 재구축이 필요하지 않음
+
+      alert('Vector Store는 문서 추가/수정/삭제 시 자동으로 업데이트됩니다.')
+      console.log('[DocumentManager] ⚠️ 재구축 기능은 추후 구현 예정')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
+      setError(errorMessage)
+      console.error('[DocumentManager] 재구축 실패:', err)
+    } finally {
+      setIsRebuilding(false)
+    }
+  }, [])
+
+  return (
+    <div className="flex h-screen bg-background">
+      {/* 좌측: 문서 목록 */}
+      <aside className="w-80 border-r bg-muted/5 flex flex-col">
+        <div className="p-4 border-b bg-background">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              문서 목록
+            </h2>
+            <Button size="sm" onClick={handleNewDocument} disabled={isLoading}>
+              <Plus className="h-4 w-4 mr-1" />
+              추가
+            </Button>
+          </div>
+
+          {error && (
+            <div className="bg-destructive/10 text-destructive text-sm p-2 rounded mb-2">
+              {error}
+            </div>
+          )}
+
+          <div className="text-xs text-muted-foreground">
+            총 {documents.length}개 문서
+          </div>
+        </div>
+
+        <ScrollArea className="flex-1">
+          {isLoading ? (
+            <div className="p-4 text-center text-muted-foreground">로딩 중...</div>
+          ) : documents.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground">문서가 없습니다</div>
+          ) : (
+            <div className="p-2">
+              {documents.map((doc) => (
+                <Card
+                  key={doc.doc_id}
+                  className={`p-3 mb-2 cursor-pointer transition-colors ${
+                    selectedDoc?.doc_id === doc.doc_id
+                      ? 'bg-primary/10 border-primary'
+                      : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => handleSelectDocument(doc)}
+                >
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate flex items-center gap-1">
+                        <FileText className="h-3 w-3 flex-shrink-0" />
+                        {doc.title}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {doc.library}
+                        {doc.category && ` | ${doc.category}`}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {doc.source === 'user' ? '🟢 사용자' : '⚪ 원본'}
+                      </div>
+                    </div>
+                    {doc.source === 'user' && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteDocument(doc.doc_id)
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+
+        {/* Vector Store 재구축 버튼 */}
+        <div className="p-4 border-t bg-background">
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={handleRebuildVectorStore}
+            disabled={isRebuilding}
+          >
+            {isRebuilding ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                재구축 중...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Vector Store 재구축
+              </>
+            )}
+          </Button>
+        </div>
+      </aside>
+
+      {/* 우측: 문서 상세/편집 */}
+      <main className="flex-1 p-6 overflow-auto">
+        {selectedDoc || isEditing ? (
+          <div className="max-w-4xl mx-auto space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">
+                {isEditing && !selectedDoc ? '새 문서 추가' : '문서 상세'}
+              </h2>
+              <div className="flex gap-2">
+                {isEditing ? (
+                  <>
+                    <Button onClick={selectedDoc ? handleUpdateDocument : handleAddDocument}>
+                      <Save className="h-4 w-4 mr-2" />
+                      {selectedDoc ? '수정' : '추가'}
+                    </Button>
+                    <Button variant="outline" onClick={handleCancelEdit}>
+                      <X className="h-4 w-4 mr-2" />
+                      취소
+                    </Button>
+                  </>
+                ) : (
+                  selectedDoc?.source === 'user' && (
+                    <Button variant="outline" onClick={handleEditMode}>
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      편집
+                    </Button>
+                  )
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">문서 ID</label>
+                <Input
+                  value={formData.doc_id}
+                  onChange={(e) => setFormData({ ...formData, doc_id: e.target.value })}
+                  disabled={!isEditing || !!selectedDoc}
+                  placeholder="예: scipy_ttest_ind"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">제목 *</label>
+                <Input
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="예: scipy.stats.ttest_ind"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">라이브러리 *</label>
+                  <Input
+                    value={formData.library}
+                    onChange={(e) => setFormData({ ...formData, library: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="예: scipy, numpy, statsmodels"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">카테고리</label>
+                  <Input
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="예: hypothesis, descriptive"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">요약</label>
+                <Textarea
+                  value={formData.summary}
+                  onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                  disabled={!isEditing}
+                  rows={3}
+                  placeholder="문서의 간단한 요약을 입력하세요"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">내용 *</label>
+                <Textarea
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  disabled={!isEditing}
+                  rows={20}
+                  placeholder="문서의 전체 내용을 입력하세요"
+                  className="font-mono text-sm"
+                />
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                * 필수 입력 필드
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+            <FileText className="h-16 w-16 mb-4 opacity-20" />
+            <p className="text-lg">좌측에서 문서를 선택하거나</p>
+            <p className="text-lg">새 문서를 추가하세요</p>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}

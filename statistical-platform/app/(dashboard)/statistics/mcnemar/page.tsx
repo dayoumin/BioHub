@@ -105,110 +105,8 @@ export default function McNemarTestPage() {
     'mcnemar'
   )
 
-  // 표준정규분포 CDF
-  const normalCDF = useCallback((z: number): number => {
-    const t = 1.0 / (1.0 + 0.2316419 * Math.abs(z))
-    const d = 0.3989423 * Math.exp(-z * z / 2)
-    let prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
-    if (z > 0) prob = 1 - prob
-    return prob
-  }, [])
-
-  // 카이제곱 분포 p-value 근사 계산
-  const chiSquarePValue = useCallback((chi2: number, df: number = 1): number => {
-    if (chi2 <= 0) return 1
-
-    // Gamma function 근사 (df=1일 때)
-    if (df === 1) {
-      return 2 * (1 - normalCDF(Math.sqrt(chi2)))
-    }
-
-    // 간단한 근사식
-    const p = Math.exp(-chi2 / 2)
-    return Math.min(p, 1)
-  }, [normalCDF])
-
-  // McNemar 검정 계산
-  const calculateMcNemarTest = useCallback((data: unknown[], variable1: string, variable2: string): McNemarTestResult => {
-    // 이진 데이터 추출 및 변환
-    const pairs = data.map(row => {
-      const val1 = (row as Record<string, unknown>)[variable1]
-      const val2 = (row as Record<string, unknown>)[variable2]
-
-      // 다양한 형태의 이진 데이터를 0/1로 변환
-      const binary1 = convertToBinary(val1)
-      const binary2 = convertToBinary(val2)
-
-      return { val1: binary1, val2: binary2 }
-    }).filter(pair => pair.val1 !== null && pair.val2 !== null) as Array<{val1: number, val2: number}>
-
-    // 2x2 분할표 생성
-    const both_positive = pairs.filter(p => p.val1 === 1 && p.val2 === 1).length
-    const first_positive_second_negative = pairs.filter(p => p.val1 === 1 && p.val2 === 0).length
-    const first_negative_second_positive = pairs.filter(p => p.val1 === 0 && p.val2 === 1).length
-    const both_negative = pairs.filter(p => p.val1 === 0 && p.val2 === 0).length
-
-    const contingencyTable = {
-      both_positive,
-      first_positive_second_negative,
-      first_negative_second_positive,
-      both_negative
-    }
-
-    // 불일치 쌍 (discordant pairs)
-    const b = first_positive_second_negative
-    const c = first_negative_second_positive
-    const discordantPairs = b + c
-
-    // McNemar 통계량 계산
-    let mcnemarStatistic: number
-    let continuityCorrection = false
-
-    if (discordantPairs < 25) {
-      // 작은 표본: 연속성 수정 적용
-      mcnemarStatistic = Math.pow(Math.abs(b - c) - 1, 2) / (b + c)
-      continuityCorrection = true
-    } else {
-      // 큰 표본: 기본 McNemar 검정
-      mcnemarStatistic = Math.pow(b - c, 2) / (b + c)
-      continuityCorrection = false
-    }
-
-    // p-value 계산 (카이제곱 분포 df=1)
-    const pValue = discordantPairs === 0 ? 1 : chiSquarePValue(mcnemarStatistic, 1)
-
-    const significant = pValue < 0.05
-
-    // 효과크기 계산 (Odds Ratio)
-    const effectSize = c === 0 ? (b === 0 ? 1 : Infinity) : b / c
-
-    // 해석
-    let interpretation: string
-    if (discordantPairs === 0) {
-      interpretation = '불일치 쌍이 없어 두 처리간 차이를 평가할 수 없습니다.'
-    } else if (significant) {
-      interpretation = `두 처리 간 유의한 차이가 있습니다 (p = ${pValue.toFixed(3)})`
-    } else {
-      interpretation = `두 처리 간 유의한 차이가 없습니다 (p = ${pValue.toFixed(3)})`
-    }
-
-    return {
-      variable1,
-      variable2,
-      contingencyTable,
-      mcnemarStatistic,
-      pValue,
-      significant,
-      interpretation,
-      sampleSize: pairs.length,
-      discordantPairs,
-      effectSize: isFinite(effectSize) ? effectSize : undefined,
-      continuityCorrection
-    }
-  }, [chiSquarePValue])
-
   // 다양한 형태의 값을 이진값으로 변환
-  const convertToBinary = (value: unknown): number | null => {
+  const convertToBinary = useCallback((value: unknown): number | null => {
     if (value === null || value === undefined) return null
 
     // 숫자형
@@ -229,7 +127,7 @@ export default function McNemarTestPage() {
     }
 
     return null
-  }
+  }, [])
 
   const runAnalysis = useCallback(async (variables: string[]) => {
     if (!uploadedData || variables.length < 2) return
@@ -237,11 +135,86 @@ export default function McNemarTestPage() {
     actions.startAnalysis()
 
     try {
-      const result = calculateMcNemarTest(
-        uploadedData.data,
-        variables[0],
-        variables[1]
+      const variable1 = variables[0]
+      const variable2 = variables[1]
+
+      // 1️⃣ 이진 데이터 추출 및 2x2 분할표 생성
+      const pairs = uploadedData.data.map(row => {
+        const val1 = (row as Record<string, unknown>)[variable1]
+        const val2 = (row as Record<string, unknown>)[variable2]
+
+        const binary1 = convertToBinary(val1)
+        const binary2 = convertToBinary(val2)
+
+        return { val1: binary1, val2: binary2 }
+      }).filter(pair => pair.val1 !== null && pair.val2 !== null) as Array<{val1: number, val2: number}>
+
+      // 2x2 contingency table
+      const both_positive = pairs.filter(p => p.val1 === 1 && p.val2 === 1).length
+      const first_positive_second_negative = pairs.filter(p => p.val1 === 1 && p.val2 === 0).length
+      const first_negative_second_positive = pairs.filter(p => p.val1 === 0 && p.val2 === 1).length
+      const both_negative = pairs.filter(p => p.val1 === 0 && p.val2 === 0).length
+
+      const contingencyTable = [
+        [both_positive, first_positive_second_negative],
+        [first_negative_second_positive, both_negative]
+      ]
+
+      // 2️⃣ PyodideCore 호출
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      const pythonResult = await pyodideCore.callWorkerMethod<{
+        statistic: number
+        pValue: number
+        continuityCorrection: boolean
+        discordantPairs: { b: number; c: number }
+      }>(
+        3, // worker3-nonparametric-anova.py
+        'mcnemar_test',
+        {
+          contingency_table: contingencyTable
+        }
       )
+
+      // 3️⃣ 결과 매핑 (Python → TypeScript)
+      const b = pythonResult.discordantPairs.b
+      const c = pythonResult.discordantPairs.c
+      const discordantPairs = b + c
+      const significant = pythonResult.pValue < 0.05
+
+      // 효과크기 계산 (Odds Ratio)
+      const effectSize = c === 0 ? (b === 0 ? 1 : Infinity) : b / c
+
+      // 해석
+      let interpretation: string
+      if (discordantPairs === 0) {
+        interpretation = '불일치 쌍이 없어 두 처리간 차이를 평가할 수 없습니다.'
+      } else if (significant) {
+        interpretation = `두 처리 간 유의한 차이가 있습니다 (p = ${pythonResult.pValue.toFixed(3)})`
+      } else {
+        interpretation = `두 처리 간 유의한 차이가 없습니다 (p = ${pythonResult.pValue.toFixed(3)})`
+      }
+
+      const result: McNemarTestResult = {
+        variable1,
+        variable2,
+        contingencyTable: {
+          both_positive,
+          first_positive_second_negative,
+          first_negative_second_positive,
+          both_negative
+        },
+        mcnemarStatistic: pythonResult.statistic,
+        pValue: pythonResult.pValue,
+        significant,
+        interpretation,
+        sampleSize: pairs.length,
+        discordantPairs,
+        effectSize: isFinite(effectSize) ? effectSize : undefined,
+        continuityCorrection: pythonResult.continuityCorrection
+      }
 
       if (!actions.completeAnalysis) {
         console.error('[mcnemar] completeAnalysis not available')
@@ -257,9 +230,10 @@ export default function McNemarTestPage() {
         return
       }
 
-      actions.setError('McNemar 검정 분석 중 오류가 발생했습니다.')
+      const errorMessage = error instanceof Error ? error.message : 'McNemar 검정 분석 중 오류가 발생했습니다.'
+      actions.setError(errorMessage)
     }
-  }, [uploadedData, calculateMcNemarTest, actions])
+  }, [uploadedData, convertToBinary, actions])
 
   const handleVariableSelection = createVariableSelectionHandler<unknown>(
     actions.setSelectedVariables as ((mapping: unknown) => void) | undefined,
