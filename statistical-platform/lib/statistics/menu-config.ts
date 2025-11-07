@@ -391,6 +391,15 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         category: 'nonparametric',
         icon: Target,
         implemented: true
+      },
+      {
+        id: 'binomial-test',
+        href: '/statistics/binomial-test',
+        title: '이항 검정',
+        subtitle: '이진 결과 확률 검정',
+        category: 'nonparametric',
+        icon: Calculator,
+        implemented: true
       }
     ]
   },

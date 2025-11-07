@@ -40,7 +40,7 @@ export interface StoredEmbedding {
 const DB_NAME = 'RAGSystemDB'
 const DOCUMENTS_STORE = 'userDocuments'
 const EMBEDDINGS_STORE = 'embeddings'
-const DB_VERSION = 2 // Version 2: embeddings 스토어 추가
+const DB_VERSION = 3 // Version 3: embedding_model 인덱스 추가
 
 /**
  * IndexedDB 초기화
@@ -85,6 +85,7 @@ function openDB(): Promise<IDBDatabase> {
           // 인덱스 생성
           embStore.createIndex('doc_id', 'doc_id', { unique: false })
           embStore.createIndex('doc_chunk', ['doc_id', 'chunk_index'], { unique: true })
+          embStore.createIndex('embedding_model', 'embedding_model', { unique: false })
           embStore.createIndex('created_at', 'created_at', { unique: false })
 
           console.log('[IndexedDB] embeddings 스토어 생성 완료')
@@ -336,6 +337,35 @@ export class IndexedDBStorage {
 
       request.onerror = () => {
         reject(new Error('임베딩 목록 조회 실패'))
+      }
+
+      transaction.oncomplete = () => {
+        db.close()
+      }
+    })
+  }
+
+  /**
+   * 특정 모델의 모든 임베딩 조회 (청크 기반 검색용)
+   */
+  static async getEmbeddingsByModel(embeddingModel: string): Promise<StoredEmbedding[]> {
+    const db = await openDB()
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([EMBEDDINGS_STORE], 'readonly')
+      const store = transaction.objectStore(EMBEDDINGS_STORE)
+      const index = store.index('embedding_model')
+
+      const request = index.getAll(embeddingModel)
+
+      request.onsuccess = () => {
+        const embeddings = request.result
+        console.log(`[IndexedDB] 모델 ${embeddingModel}: ${embeddings.length}개 임베딩 로드됨`)
+        resolve(embeddings)
+      }
+
+      request.onerror = () => {
+        reject(new Error(`임베딩 조회 실패 (모델: ${embeddingModel})`))
       }
 
       transaction.oncomplete = () => {

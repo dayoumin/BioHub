@@ -1140,6 +1140,27 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   },
 
   {
+    id: 'binomial-test',
+    name: '이항 검정',
+    category: 'nonparametric',
+    description: '이진 결과의 성공 확률 검정 (단일 비율 검정)',
+    minSampleSize: 1,
+    assumptions: ['독립 시행', '이진 결과 (성공/실패)', '일정한 성공 확률'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '이진 변수',
+        types: ['binary', 'categorical'],
+        required: true,
+        multiple: false,
+        description: '성공/실패를 나타내는 이진 변수',
+        example: 'Pass/Fail, Yes/No, 0/1, Defective/Good'
+      }
+    ],
+    notes: ['정확한 p-value 계산', '양측/단측 검정 지원', '귀무가설 확률(p₀) 설정 가능']
+  },
+
+  {
     id: 'mann-kendall-test',
     name: 'Mann-Kendall 추세 검정',
     category: 'nonparametric',

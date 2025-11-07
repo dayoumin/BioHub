@@ -1152,7 +1152,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
    * Vector 검색 (임베딩 기반 의미론적 검색)
    */
   private async searchByVector(query: string): Promise<SearchResult[]> {
-    console.log(`[OllamaProvider] Vector 검색: "${query}"`)
+    console.log(`[OllamaProvider] Vector 검색 (청크 기반): "${query}"`)
 
     try {
       // 1. 쿼리 임베딩 생성 (1개만 생성 - 빠름!)
@@ -1161,23 +1161,68 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       const embeddingTime = Date.now() - startTime
       console.log(`[OllamaProvider] 쿼리 임베딩 생성: ${embeddingTime}ms`)
 
-      // 2. 사전 생성된 임베딩이 있는 문서만 필터링
-      const docsWithEmbeddings = this.documents.filter((doc) => doc.embedding !== null)
+      // ========== Phase 3: 청크 기반 검색 ==========
+      // 2. IndexedDB에서 모든 청크 임베딩 로드
+      const allEmbeddings = await IndexedDBStorage.getEmbeddingsByModel(this.embeddingModel)
 
-      if (docsWithEmbeddings.length === 0) {
-        console.warn('[OllamaProvider] ⚠️ 임베딩이 있는 문서가 없습니다. Fallback to FTS5.')
+      if (allEmbeddings.length === 0) {
+        console.warn('[OllamaProvider] ⚠️ 임베딩이 있는 청크가 없습니다. Fallback to FTS5.')
         return []
       }
 
-      // 3. 사전 생성된 임베딩으로 코사인 유사도 계산 (매우 빠름!)
-      const results: SearchResult[] = []
+      console.log(`[OllamaProvider] ${allEmbeddings.length}개 청크 임베딩 로드됨`)
 
-      for (const doc of docsWithEmbeddings) {
-        // DB에서 로드한 사전 생성 임베딩 사용 (API 호출 없음!)
-        const docEmbedding = doc.embedding!
+      // 3. 각 청크와 쿼리 간 코사인 유사도 계산
+      interface ChunkScore {
+        doc_id: string
+        chunk_index: number
+        chunk_text: string
+        score: number
+      }
+
+      const chunkScores: ChunkScore[] = []
+
+      for (const embeddingData of allEmbeddings) {
+        // ArrayBuffer → Float32Array
+        const chunkEmbedding = new Float32Array(embeddingData.embedding)
+        const queryVector = new Float32Array(queryEmbedding)
 
         // 코사인 유사도 계산
-        const similarity = this.cosineSimilarity(queryEmbedding, docEmbedding)
+        const similarity = this.cosineSimilarity(queryVector, chunkEmbedding)
+
+        chunkScores.push({
+          doc_id: embeddingData.doc_id,
+          chunk_index: embeddingData.chunk_index,
+          chunk_text: embeddingData.chunk_text,
+          score: similarity
+        })
+      }
+
+      // 4. 유사도 순 정렬
+      chunkScores.sort((a, b) => b.score - a.score)
+
+      // 5. 문서별로 최고 점수 청크 집계 (Max Pooling)
+      const docScores = new Map<string, { maxScore: number; bestChunk: string }>()
+
+      for (const chunk of chunkScores) {
+        const existing = docScores.get(chunk.doc_id)
+        if (!existing || chunk.score > existing.maxScore) {
+          docScores.set(chunk.doc_id, {
+            maxScore: chunk.score,
+            bestChunk: chunk.chunk_text
+          })
+        }
+      }
+
+      // 6. 문서 정보와 매핑하여 SearchResult 생성
+      const results: SearchResult[] = []
+
+      for (const [doc_id, scoreData] of docScores.entries()) {
+        const doc = this.documents.find((d) => d.doc_id === doc_id)
+        if (!doc) {
+          console.warn(`[OllamaProvider] ⚠️ 문서를 찾을 수 없음: ${doc_id}`)
+          continue
+        }
 
         results.push({
           doc_id: doc.doc_id,
@@ -1185,14 +1230,16 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           content: doc.content,
           library: doc.library,
           category: doc.category,
-          score: similarity
+          score: scoreData.maxScore
         })
       }
 
-      // 유사도 순 정렬 후 Top-K
+      // 7. 점수 순 정렬 후 Top-K
       results.sort((a, b) => b.score - a.score)
       const totalTime = Date.now() - startTime
-      console.log(`[OllamaProvider] Vector 검색 완료: ${totalTime}ms (${docsWithEmbeddings.length}개 문서)`)
+      console.log(
+        `[OllamaProvider] Vector 검색 완료: ${totalTime}ms (${allEmbeddings.length}개 청크 → ${results.length}개 문서)`
+      )
 
       return results.slice(0, this.topK)
     } catch (error) {

@@ -422,6 +422,129 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
     })
   })
 
+  describe('searchVector 청크 기반 검색', () => {
+    it('query와 유사한 청크를 찾아 문서 반환', async () => {
+      // 3개 문서 추가 (각 문서는 서로 다른 주제)
+      await provider.addDocument({
+        doc_id: 'statistics_doc',
+        title: 'Statistics Documentation',
+        content:
+          'Statistical analysis methods include t-test, ANOVA, regression analysis. ' +
+          'These methods are used for hypothesis testing and finding relationships between variables.',
+        library: 'scipy',
+      })
+
+      await provider.addDocument({
+        doc_id: 'machine_learning_doc',
+        title: 'Machine Learning Documentation',
+        content:
+          'Machine learning algorithms include decision trees, random forests, neural networks. ' +
+          'These models are trained on data to make predictions.',
+        library: 'sklearn',
+      })
+
+      await provider.addDocument({
+        doc_id: 'data_visualization_doc',
+        title: 'Data Visualization Documentation',
+        content:
+          'Data visualization tools include matplotlib, seaborn, plotly. ' +
+          'These libraries create charts, graphs, and interactive visualizations.',
+        library: 'matplotlib',
+      })
+
+      // 임베딩 개수 확인 (디버깅)
+      const allEmbeddings = await IndexedDBStorage.getAllEmbeddings()
+      console.log(`[DEBUG] 전체 임베딩 개수: ${allEmbeddings.length}`)
+
+      // "hypothesis testing"으로 검색 (statistics_doc와 가장 유사해야 함)
+      const results = await provider['searchByVector']('hypothesis testing methods')
+
+      expect(results.length).toBeGreaterThan(0)
+      expect(results[0].doc_id).toBe('statistics_doc')
+      expect(results[0].score).toBeGreaterThan(0)
+
+      console.log(`✓ Vector 검색 결과: ${results.length}개 문서`)
+      console.log(`✓ 최고 점수 문서: ${results[0].title} (score: ${results[0].score.toFixed(4)})`)
+    })
+
+    it('문서별 최고 점수 청크로 랭킹 (Max Pooling)', async () => {
+      // 긴 문서 추가 (여러 청크로 나뉨)
+      const longContent = Array(10)
+        .fill(0)
+        .map(
+          (_, i) =>
+            `Section ${i + 1}: This section discusses statistical hypothesis testing. ` +
+            Array(100)
+              .fill(0)
+              .map((__, j) => `word${i * 100 + j}`)
+              .join(' ')
+        )
+        .join(' ')
+
+      await provider.addDocument({
+        doc_id: 'long_doc',
+        title: 'Long Statistics Document',
+        content: longContent,
+        library: 'scipy',
+      })
+
+      // 임베딩 확인
+      const embeddings = await IndexedDBStorage.getEmbeddingsByDocId('long_doc')
+      expect(embeddings.length).toBeGreaterThan(1) // 여러 청크로 나뉘어야 함
+
+      // 검색
+      const results = await provider['searchByVector']('hypothesis testing')
+
+      expect(results.length).toBeGreaterThan(0)
+      expect(results[0].doc_id).toBe('long_doc')
+
+      console.log(`✓ ${embeddings.length}개 청크 중 최고 점수로 문서 랭킹`)
+      console.log(`✓ 문서 점수: ${results[0].score.toFixed(4)}`)
+    })
+
+    it('임베딩 없는 경우 빈 배열 반환', async () => {
+      // 문서는 있지만 임베딩이 없는 상황 (테스트 모드에서는 수동 생성 필요)
+      await IndexedDBStorage.clearAllEmbeddings()
+
+      const results = await provider['searchByVector']('any query')
+
+      expect(results).toEqual([])
+      console.log('✓ 임베딩 없을 때 빈 배열 반환 확인')
+    })
+
+    it('Top-K 제한 동작 확인', async () => {
+      // topK = 3으로 설정된 provider 생성
+      const limitedProvider = new OllamaRAGProvider(
+        {
+          vectorDbPath: '/rag-data/test.db',
+          embeddingModel: 'qwen3-embedding:0.6b', // 테스트 모드에서 사용하는 동일한 모델
+          inferenceModel: 'qwen2.5:3b',
+          topK: 3, // 최대 3개만 반환
+        },
+        true // testMode
+      )
+
+      await limitedProvider.initialize()
+
+      // 5개 문서 추가
+      for (let i = 0; i < 5; i++) {
+        await limitedProvider.addDocument({
+          doc_id: `doc_${i}`,
+          title: `Document ${i}`,
+          content: `This is document ${i} about statistics and data analysis. ` + Array(50).fill(`word${i}`).join(' '),
+          library: 'test',
+        })
+      }
+
+      // 검색
+      const results = await limitedProvider['searchByVector']('statistics')
+
+      expect(results.length).toBeLessThanOrEqual(3)
+      expect(results.length).toBeGreaterThan(0)
+      console.log(`✓ Top-K 제한 동작 확인: ${results.length}개 문서 반환 (최대 3개)`)
+    })
+  })
+
   describe('실제 시나리오', () => {
     it('논문 PDF 25쪽 시뮬레이션 (40-70 청크)', async () => {
       // 25쪽 PDF ≈ 12500 토큰 ≈ 16500 단어

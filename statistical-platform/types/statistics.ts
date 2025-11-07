@@ -241,6 +241,10 @@ export interface MoodMedianVariables {
   test: string // 검정 변수 (연속형)
 }
 
+export interface BinomialTestVariables {
+  variable: string // 이진 변수 (0/1 또는 categorical)
+}
+
 // 정규성 및 검정력
 export interface NormalityTestVariables {
   all: string[] // 1개 이상
