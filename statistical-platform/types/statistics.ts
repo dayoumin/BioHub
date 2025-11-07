@@ -236,6 +236,11 @@ export interface CochranQVariables {
   conditions: string[] // 3개 이상 이진 변수
 }
 
+export interface MoodMedianVariables {
+  grouping: string // 그룹 변수 (범주형)
+  test: string // 검정 변수 (연속형)
+}
+
 // 정규성 및 검정력
 export interface NormalityTestVariables {
   all: string[] // 1개 이상

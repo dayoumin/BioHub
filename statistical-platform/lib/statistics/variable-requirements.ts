@@ -1110,6 +1110,36 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
   },
 
   {
+    id: 'mood-median',
+    name: 'Mood Median Test',
+    category: 'nonparametric',
+    description: '중앙값 기반 비모수 검정 (그룹 간 중앙값 비교)',
+    minSampleSize: 2,
+    assumptions: ['독립 표본', '순서형 이상 데이터', '정규성 가정 불필요'],
+    variables: [
+      {
+        role: 'factor',
+        label: '그룹 변수',
+        types: ['categorical'],
+        required: true,
+        multiple: false,
+        description: '그룹을 구분하는 범주형 변수 (2개 이상 그룹)',
+        example: 'Treatment (A/B/C), Region (East/West/North/South)'
+      },
+      {
+        role: 'dependent',
+        label: '검정 변수',
+        types: ['continuous', 'ordinal'],
+        required: true,
+        multiple: false,
+        description: '중앙값을 비교할 연속형 변수',
+        example: 'RecoveryTime, PollutionLevel, Income'
+      }
+    ],
+    notes: ['Kruskal-Wallis의 중앙값 기반 대안', '이상치에 강건', 'Chi-square 검정 사용']
+  },
+
+  {
     id: 'mann-kendall-test',
     name: 'Mann-Kendall 추세 검정',
     category: 'nonparametric',

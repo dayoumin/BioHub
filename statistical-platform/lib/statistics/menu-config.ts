@@ -10,7 +10,8 @@ import {
   Zap,
   Microscope,
   CheckCircle2,
-  Grid3X3
+  Grid3X3,
+  Target
 } from 'lucide-react'
 
 export interface StatisticsMenuItem {
@@ -380,6 +381,15 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '반복측정 이진 자료',
         category: 'nonparametric',
         icon: Calculator,
+        implemented: true
+      },
+      {
+        id: 'mood-median',
+        href: '/statistics/mood-median',
+        title: 'Mood Median Test',
+        subtitle: '중앙값 기반 검정',
+        category: 'nonparametric',
+        icon: Target,
         implemented: true
       }
     ]
