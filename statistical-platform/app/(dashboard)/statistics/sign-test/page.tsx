@@ -1,25 +1,20 @@
 'use client'
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import type { SignTestVariables } from '@/types/statistics'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Separator } from '@/components/ui/separator'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
+import { detectVariableType } from '@/lib/services/variable-type-detector'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import type { UploadedData } from '@/hooks/use-statistics-page'
 import {
   Tooltip,
   ResponsiveContainer,
@@ -27,17 +22,12 @@ import {
   Pie,
   Cell
 } from 'recharts'
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
-import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import {
   Calculator,
-  AlertTriangle,
   CheckCircle2,
-  ArrowRight,
   Info,
-  BarChart3,
-  TrendingUp,
-  Minus,
+  FileText,
+  Download,
   Plus,
   Scale
 } from 'lucide-react'
@@ -47,63 +37,16 @@ interface DataRow {
 }
 
 interface SignTestResult {
-  test_info: {
-    test_name: string
-    test_type: string
-    paired_samples: boolean
-    n_pairs: number
-    n_valid_pairs: number
-    n_ties: number
-  }
-  descriptive: {
-    differences: number[]
-    positive_differences: number
-    negative_differences: number
-    zero_differences: number
-    median_difference: number
-    mean_difference: number
-  }
-  test_statistics: {
-    s_positive: number
-    s_negative: number
-    test_statistic: number
-    expected_value: number
-    variance: number
-    z_score: number
-    continuity_correction: boolean
-  }
-  p_values: {
-    two_tailed: number
-    one_tailed_greater: number
-    one_tailed_less: number
-    exact_p_value: number
-    asymptotic_p_value: number
-  }
-  confidence_interval: {
-    median_diff_ci_lower: number
-    median_diff_ci_upper: number
-    confidence_level: number
-  }
-  effect_size: {
-    matched_pairs_rank_biserial: number
-    interpretation: string
-  }
-  assumptions: {
-    independence: {
-      assumption_met: boolean
-      note: string
-    }
-    symmetry: {
-      assumption_met: boolean
-      note: string
-    }
-  }
-  summary: {
-    conclusion: string
-    interpretation: string
-    practical_significance: string
-    recommendation: string
-  }
+  beforeVariable: string
+  afterVariable: string
+  nPositive: number
+  nNegative: number
+  nTies: number
+  nTotal: number
+  pValue: number
+  significant: boolean
+  interpretation: string
+  testType: 'two-tailed' | 'greater' | 'less'
 }
 
 export default function SignTestPage() {
@@ -118,29 +61,6 @@ export default function SignTestPage() {
   const [selectedBefore, setSelectedBefore] = useState<string>('')
   const [selectedAfter, setSelectedAfter] = useState<string>('')
   const [testType, setTestType] = useState<'two-tailed' | 'greater' | 'less'>('two-tailed')
-  const [pyodideReady, setPyodideReady] = useState(false)
-
-  useEffect(() => {
-    let isMounted = true
-
-    const initializePyodide = async () => {
-      try {
-        await pyodideStats.initialize()
-        if (isMounted) {
-          setPyodideReady(true)
-        }
-
-      } catch (error) {
-        console.error('Pyodide 초기화 실패:', error)
-      }
-    }
-
-    initializePyodide()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   const availableVariables = useMemo(() => {
     if (!uploadedData || uploadedData.data.length === 0) return []
@@ -188,70 +108,85 @@ export default function SignTestPage() {
   }, [selectedBefore, selectedAfter])
 
   const runSignTest = useCallback(async () => {
-    if (!canProceedToAnalysis || !uploadedData || !pyodideReady) return
+    if (!canProceedToAnalysis || !uploadedData) return
 
     actions.startAnalysis()
 
     try {
-      // Mock implementation - will be replaced with actual Pyodide + SciPy call
-      const mockResult: SignTestResult = {
-        test_info: {
-          test_name: 'Sign Test',
-          test_type: testType === 'two-tailed' ? '양측 검정' : testType === 'greater' ? '우측 검정' : '좌측 검정',
-          paired_samples: true,
-          n_pairs: 50,
-          n_valid_pairs: 47,
-          n_ties: 3
-        },
-        descriptive: {
-          differences: [0.5, -0.2, 1.3, 0.8, -0.1, 2.1, 0.3, -0.4, 1.2, 0.7],
-          positive_differences: 32,
-          negative_differences: 15,
-          zero_differences: 3,
-          median_difference: 0.45,
-          mean_difference: 0.52
-        },
-        test_statistics: {
-          s_positive: 32,
-          s_negative: 15,
-          test_statistic: 15,
-          expected_value: 23.5,
-          variance: 11.75,
-          z_score: -2.48,
-          continuity_correction: true
-        },
-        p_values: {
-          two_tailed: 0.013,
-          one_tailed_greater: 0.0065,
-          one_tailed_less: 0.9935,
-          exact_p_value: 0.0089,
-          asymptotic_p_value: 0.013
-        },
-        confidence_interval: {
-          median_diff_ci_lower: 0.12,
-          median_diff_ci_upper: 0.78,
-          confidence_level: 95
-        },
-        effect_size: {
-          matched_pairs_rank_biserial: 0.36,
-          interpretation: '중간 효과크기'
-        },
-        assumptions: {
-          independence: {
-            assumption_met: true,
-            note: '각 관측치는 독립적으로 수집되었다고 가정'
-          },
-          symmetry: {
-            assumption_met: true,
-            note: '차이점수의 분포가 0을 중심으로 대칭이라고 가정'
-          }
-        },
-        summary: {
-          conclusion: '유의한 차이가 있음 (p = 0.013 < 0.05)',
-          interpretation: '사전-사후 측정값 간에 통계적으로 유의한 차이가 있습니다. 양의 차이가 음의 차이보다 유의하게 많습니다.',
-          practical_significance: '중간 크기의 효과(r = 0.36)로 실질적 의미가 있습니다.',
-          recommendation: '결과는 통계적으로나 실질적으로 유의하므로 개입 효과가 있다고 결론지을 수 있습니다.'
+      // 1️⃣ before/after 데이터 추출
+      const beforeData: number[] = []
+      const afterData: number[] = []
+
+      for (const row of uploadedData.data) {
+        const beforeValue = (row as Record<string, unknown>)[selectedBefore]
+        const afterValue = (row as Record<string, unknown>)[selectedAfter]
+
+        if (
+          beforeValue !== null &&
+          beforeValue !== undefined &&
+          typeof beforeValue === 'number' &&
+          !isNaN(beforeValue) &&
+          afterValue !== null &&
+          afterValue !== undefined &&
+          typeof afterValue === 'number' &&
+          !isNaN(afterValue)
+        ) {
+          beforeData.push(beforeValue)
+          afterData.push(afterValue)
         }
+      }
+
+      if (beforeData.length < 5) {
+        throw new Error('부호 검정은 최소 5개 이상의 쌍이 필요합니다.')
+      }
+
+      // 2️⃣ PyodideCore 호출
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      const pythonResult = await pyodideCore.callWorkerMethod<{
+        nPositive: number
+        nNegative: number
+        nTies: number
+        pValue: number
+      }>(
+        3, // worker3-nonparametric-anova.py
+        'sign_test',
+        {
+          before: beforeData,
+          after: afterData
+        }
+      )
+
+      // 3️⃣ 결과 매핑 (Python → TypeScript)
+      const nTotal = pythonResult.nPositive + pythonResult.nNegative
+      const significant = pythonResult.pValue < 0.05
+
+      let interpretation: string
+      if (nTotal === 0) {
+        interpretation = '모든 쌍이 동점이어서 검정을 수행할 수 없습니다.'
+      } else if (significant) {
+        if (pythonResult.nPositive > pythonResult.nNegative) {
+          interpretation = `사후 측정값이 사전 측정값보다 유의하게 높습니다 (p = ${pythonResult.pValue.toFixed(3)})`
+        } else {
+          interpretation = `사후 측정값이 사전 측정값보다 유의하게 낮습니다 (p = ${pythonResult.pValue.toFixed(3)})`
+        }
+      } else {
+        interpretation = `사전-사후 측정값 간 유의한 차이가 없습니다 (p = ${pythonResult.pValue.toFixed(3)})`
+      }
+
+      const result: SignTestResult = {
+        beforeVariable: selectedBefore,
+        afterVariable: selectedAfter,
+        nPositive: pythonResult.nPositive,
+        nNegative: pythonResult.nNegative,
+        nTies: pythonResult.nTies,
+        nTotal,
+        pValue: pythonResult.pValue,
+        significant,
+        interpretation,
+        testType
       }
 
       if (!actions.completeAnalysis) {
@@ -259,18 +194,19 @@ export default function SignTestPage() {
         return
       }
 
-      actions.completeAnalysis(mockResult, 3)
+      actions.completeAnalysis(result, 3)
     } catch (error) {
-      console.error('분석 중 오류:', error)
+      console.error('부호 검정 분석 중 오류:', error)
 
       if (!actions.setError) {
         console.error('[sign-test] setError not available')
         return
       }
 
-      actions.setError('분석 중 오류가 발생했습니다.')
+      const errorMessage = error instanceof Error ? error.message : '부호 검정 분석 중 오류가 발생했습니다.'
+      actions.setError(errorMessage)
     }
-  }, [canProceedToAnalysis, uploadedData, pyodideReady, testType, actions])
+  }, [canProceedToAnalysis, uploadedData, selectedBefore, selectedAfter, testType, actions])
 
   const handleVariableSelection = useCallback(() => {
     if (canProceedToAnalysis) {
@@ -374,12 +310,12 @@ export default function SignTestPage() {
           <div className="bg-white p-4 rounded-lg border">
             <div className="grid md:grid-cols-3 gap-4 text-center">
               <div>
-                <TrendingUp className="w-8 h-8 mx-auto text-blue-500 mb-2" />
+                <Plus className="w-8 h-8 mx-auto text-blue-500 mb-2" />
                 <h4 className="font-medium">의학</h4>
                 <p className="text-xs text-gray-600">치료 전후 증상 점수, 혈압 변화, 체중 감소</p>
               </div>
               <div>
-                <BarChart3 className="w-8 h-8 mx-auto text-green-500 mb-2" />
+                <Scale className="w-8 h-8 mx-auto text-green-500 mb-2" />
                 <h4 className="font-medium">교육</h4>
                 <p className="text-xs text-gray-600">교육 전후 성적, 만족도, 이해도 변화</p>
               </div>
@@ -409,7 +345,7 @@ export default function SignTestPage() {
             actions.setCurrentStep(1)
           }} className="flex items-center space-x-2">
             <span>다음: 데이터 업로드</span>
-            <ArrowRight className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -562,7 +498,7 @@ export default function SignTestPage() {
           <div className="text-center py-8">
             <Button
               onClick={runSignTest}
-              disabled={isAnalyzing || !pyodideReady}
+              disabled={isAnalyzing}
               size="lg"
               className="flex items-center space-x-2"
             >
@@ -584,421 +520,148 @@ export default function SignTestPage() {
     }
 
     const pieData = [
-      { name: '양의 차이', value: results.descriptive.positive_differences, color: '#10b981' },
-      { name: '음의 차이', value: results.descriptive.negative_differences, color: '#ef4444' },
-      { name: '차이 없음', value: results.descriptive.zero_differences, color: '#6b7280' }
+      { name: '양의 차이', value: results.nPositive, color: '#10b981' },
+      { name: '음의 차이', value: results.nNegative, color: '#ef4444' },
+      { name: '차이 없음', value: results.nTies, color: '#6b7280' }
     ]
 
     return (
       <div className="space-y-6">
         <StepCard title="부호 검정 결과">
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="overview">개요</TabsTrigger>
-              <TabsTrigger value="descriptive">기술통계</TabsTrigger>
-              <TabsTrigger value="test">검정결과</TabsTrigger>
-              <TabsTrigger value="effect">효과크기</TabsTrigger>
-              <TabsTrigger value="assumptions">가정</TabsTrigger>
-              <TabsTrigger value="interpretation">해석</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">검정 정보</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">기본 정보</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">검정명:</span>
-                        <span className="text-sm font-medium">{results.test_info.test_name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">검정 유형:</span>
-                        <span className="text-sm font-medium">{results.test_info.test_type}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">전체 쌍:</span>
-                        <span className="text-sm font-medium">{results.test_info.n_pairs}개</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">유효 쌍:</span>
-                        <span className="text-sm font-medium">{results.test_info.n_valid_pairs}개</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">동점:</span>
-                        <span className="text-sm font-medium">{results.test_info.n_ties}개</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">검정 결과</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">p-value:</span>
-                        <PValueBadge value={results.p_values.two_tailed} />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">효과크기 (r):</span>
-                        <span className="text-sm font-medium">{results.effect_size.matched_pairs_rank_biserial.toFixed(3)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">중앙값 차이:</span>
-                        <span className="text-sm font-medium">{results.descriptive.median_difference.toFixed(3)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">95% CI:</span>
-                        <span className="text-sm font-medium">
-                          [{results.confidence_interval.median_diff_ci_lower.toFixed(3)}, {results.confidence_interval.median_diff_ci_upper.toFixed(3)}]
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+          <div className="space-y-6">
+            {/* 주요 결과 요약 */}
+            <Alert className={results.significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
+              {results.significant ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <Info className="h-4 w-4" />
+              )}
+              <AlertTitle>검정 결과</AlertTitle>
+              <AlertDescription>
+                <div className="mt-2 space-y-2">
+                  <p className="font-medium">
+                    p = {results.pValue.toFixed(3)}
+                  </p>
+                  <p>
+                    {results.significant
+                      ? "✅ 사전-사후 측정값 간 유의한 차이가 있습니다 (p < 0.05)"
+                      : "❌ 사전-사후 측정값 간 유의한 차이가 없습니다 (p ≥ 0.05)"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">{results.interpretation}</p>
                 </div>
-              </div>
+              </AlertDescription>
+            </Alert>
 
-              <div>
-                <h4 className="font-medium mb-3">결론</h4>
-                <Alert>
-                  {results.p_values.two_tailed < 0.05 ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : (
-                    <Info className="h-4 w-4" />
-                  )}
-                  <AlertDescription>
-                    <strong>{results.summary.conclusion}</strong>
-                    <br />
-                    {results.summary.interpretation}
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </TabsContent>
+            {/* 통계량 */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">부호별 빈도</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={80}
+                          dataKey="value"
+                          label={({name, value}) => `${name}: ${value}`}
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <TabsContent value="descriptive" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">차이값 분포</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">부호별 빈도</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-48">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={pieData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={40}
-                              outerRadius={80}
-                              dataKey="value"
-                              label={({name, value}) => `${name}: ${value}`}
-                            >
-                              {pieData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">기술통계량</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">양의 차이:</span>
-                        <span className="text-sm font-medium flex items-center">
-                          <Plus className="w-3 h-3 text-muted-foreground mr-1" />
-                          {results.descriptive.positive_differences}개
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">음의 차이:</span>
-                        <span className="text-sm font-medium flex items-center">
-                          <Minus className="w-3 h-3 text-muted-foreground mr-1" />
-                          {results.descriptive.negative_differences}개
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">차이 없음:</span>
-                        <span className="text-sm font-medium">
-                          {results.descriptive.zero_differences}개
-                        </span>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between">
-                        <span className="text-sm">중앙값 차이:</span>
-                        <span className="text-sm font-medium">{results.descriptive.median_difference.toFixed(3)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">평균 차이:</span>
-                        <span className="text-sm font-medium">{results.descriptive.mean_difference.toFixed(3)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="test" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">검정통계량</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>통계량</TableHead>
-                      <TableHead>값</TableHead>
-                      <TableHead>설명</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>S+</TableCell>
-                      <TableCell>{results.test_statistics.s_positive}</TableCell>
-                      <TableCell>양의 차이 개수</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>S-</TableCell>
-                      <TableCell>{results.test_statistics.s_negative}</TableCell>
-                      <TableCell>음의 차이 개수</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>검정통계량</TableCell>
-                      <TableCell>{results.test_statistics.test_statistic}</TableCell>
-                      <TableCell>min(S+, S-)</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>Z-점수</TableCell>
-                      <TableCell>{results.test_statistics.z_score.toFixed(3)}</TableCell>
-                      <TableCell>정규근사값</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-3">p-값</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">정확 p-값</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">양측 검정:</span>
-                        <PValueBadge value={results.p_values.exact_p_value} />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">우측 검정:</span>
-                        <PValueBadge value={results.p_values.one_tailed_greater} />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">좌측 검정:</span>
-                        <PValueBadge value={results.p_values.one_tailed_less} />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">근사 p-값</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">정규근사:</span>
-                        <PValueBadge value={results.p_values.asymptotic_p_value} />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">연속성 보정:</span>
-                        <span className="text-sm font-medium">
-                          {results.test_statistics.continuity_correction ? '적용됨' : '미적용'}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="effect" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">효과크기</h4>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h5 className="font-medium">대응표본 순위 이연상관 (r)</h5>
-                          <p className="text-sm text-gray-600">대응 표본에서의 효과크기 측정</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-semibold">
-                            {results.effect_size.matched_pairs_rank_biserial.toFixed(3)}
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {results.effect_size.interpretation}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      <div className="bg-muted p-3 rounded-lg">
-                        <h6 className="font-medium mb-2">효과크기 해석 기준</h6>
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium text-muted-foreground">작은 효과</span>
-                            <p className="text-muted-foreground">r ≈ 0.1</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-muted-foreground">중간 효과</span>
-                            <p className="text-muted-foreground">r ≈ 0.3</p>
-                          </div>
-                          <div>
-                            <span className="font-medium text-muted-foreground">큰 효과</span>
-                            <p className="text-muted-foreground">r ≈ 0.5</p>
-                          </div>
-                        </div>
-                      </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">기술통계량</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>양의 차이 (사후 &gt; 사전)</span>
+                      <Badge variant="default">{results.nPositive}</Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-3">신뢰구간</h4>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">중앙값 차이 95% CI:</span>
-                        <span className="text-sm font-medium">
-                          [{results.confidence_interval.median_diff_ci_lower.toFixed(3)}, {results.confidence_interval.median_diff_ci_upper.toFixed(3)}]
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600">
-                        모집단 중앙값 차이의 95% 신뢰구간입니다.
-                      </p>
+                    <div className="flex justify-between">
+                      <span>음의 차이 (사후 &lt; 사전)</span>
+                      <Badge variant="default">{results.nNegative}</Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+                    <div className="flex justify-between">
+                      <span>동점 (차이 없음)</span>
+                      <Badge variant="secondary">{results.nTies}</Badge>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span>유효 쌍 수</span>
+                      <Badge>{results.nTotal}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>p-value</span>
+                      <Badge variant={results.significant ? "destructive" : "secondary"}>
+                        {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-            <TabsContent value="assumptions" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">가정 검토</h4>
-                <div className="space-y-4">
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h5 className="font-medium">독립성</h5>
-                          <p className="text-sm text-gray-600">{results.assumptions.independence.note}</p>
-                        </div>
-                        <div className="text-right">
-                          {results.assumptions.independence.assumption_met ? (
-                            <CheckCircle2 className="w-6 h-6 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="w-6 h-6 text-amber-500" />
-                          )}
-                          <p className="text-xs text-gray-600">
-                            {results.assumptions.independence.assumption_met ? '만족' : '위반 가능성'}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h5 className="font-medium">대칭성 (선택적)</h5>
-                          <p className="text-sm text-gray-600">{results.assumptions.symmetry.note}</p>
-                        </div>
-                        <div className="text-right">
-                          {results.assumptions.symmetry.assumption_met ? (
-                            <CheckCircle2 className="w-6 h-6 text-green-500" />
-                          ) : (
-                            <AlertTriangle className="w-6 h-6 text-amber-500" />
-                          )}
-                          <p className="text-xs text-gray-600">
-                            {results.assumptions.symmetry.assumption_met ? '만족' : '위반 가능성'}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
+            {/* 해석 가이드 */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">결과 해석 가이드</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <Alert>
                   <Info className="h-4 w-4" />
+                  <AlertTitle>부호 검정이란?</AlertTitle>
                   <AlertDescription>
-                    부호 검정은 비모수 검정으로 <strong>정규성</strong>이나 <strong>등분산성</strong> 가정이 필요하지 않습니다.
-                    단, 관측치들의 <strong>독립성</strong>은 중요합니다.
+                    <div className="mt-2 space-y-2 text-sm">
+                      <p>대응 표본 간 차이의 부호(+/-)만을 사용하여 중앙값 차이를 검정하는 비모수 방법입니다.</p>
+                      <p><strong>귀무가설:</strong> 양의 차이와 음의 차이의 비율이 같다 (중앙값 차이 = 0)</p>
+                      <p><strong>대립가설:</strong> 양의 차이와 음의 차이의 비율이 다르다 (중앙값 차이 ≠ 0)</p>
+                    </div>
                   </AlertDescription>
                 </Alert>
-              </div>
-            </TabsContent>
 
-            <TabsContent value="interpretation" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">결과 해석</h4>
-                <div className="space-y-4">
-                  <Alert>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>통계적 유의성:</strong> {results.summary.conclusion}
-                      <br />
-                      {results.summary.interpretation}
-                    </AlertDescription>
-                  </Alert>
-
-                  <Alert>
-                    <BarChart3 className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>실질적 의미:</strong> {results.summary.practical_significance}
-                      <br />
-                      효과크기 r = {results.effect_size.matched_pairs_rank_biserial.toFixed(3)}는 {results.effect_size.interpretation}에 해당합니다.
-                    </AlertDescription>
-                  </Alert>
-
-                  <Alert>
-                    <TrendingUp className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>권장사항:</strong> {results.summary.recommendation}
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-3">추가 고려사항</h4>
                 <div className="bg-muted p-4 rounded-lg">
-                  <ul className="space-y-2 text-sm">
-                    <li>• <strong>대안 검정:</strong> Wilcoxon 부호순위 검정이 더 높은 검정력을 제공할 수 있습니다</li>
-                    <li>• <strong>표본크기:</strong> 소표본(n&lt;20)에서는 정확 p-값을 사용하는 것이 좋습니다</li>
-                    <li>• <strong>동점 처리:</strong> 차이가 0인 경우는 분석에서 제외됩니다</li>
-                    <li>• <strong>측정 척도:</strong> 순서형 이상의 데이터에서만 의미있는 결과</li>
+                  <h4 className="font-medium mb-2">주의사항</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• 차이가 0인 쌍(동점)은 분석에서 제외됩니다</li>
+                    <li>• 최소 5개 이상의 유효 쌍이 필요합니다</li>
+                    <li>• Wilcoxon 부호순위 검정이 더 높은 검정력을 제공할 수 있습니다</li>
+                    <li>• 비모수 검정으로 정규성 가정이 필요하지 않습니다</li>
                   </ul>
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* 액션 버튼 */}
+            <div className="flex gap-3 justify-center pt-4">
+              <Button variant="outline" onClick={() => {}}>
+                <FileText className="w-4 h-4 mr-2" />
+                보고서 생성
+              </Button>
+              <Button variant="outline" onClick={() => {}}>
+                <Download className="w-4 h-4 mr-2" />
+                결과 다운로드
+              </Button>
+            </div>
+          </div>
         </StepCard>
       </div>
     )
-  }, [results, isAnalyzing, pyodideReady, runSignTest])
+  }, [results, isAnalyzing, runSignTest])
 
   const stepComponents = [
     { id: 'upload', title: '소개', component: renderIntroductionStep },
