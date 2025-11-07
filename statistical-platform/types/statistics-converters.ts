@@ -61,8 +61,8 @@ function toStringArray(value: string | string[] | undefined): string[] {
 export function toANCOVAVariables(vars: VariableAssignment): ANCOVAVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    independent: toStringArray(vars.independent),
-    covariates: toStringArray(vars.covariates)
+    factor: toStringArray(vars.factor || vars.independent),
+    covariate: toStringArray(vars.covariate || vars.covariates)
   }
 }
 
@@ -103,7 +103,7 @@ export function toFrequencyTableVariables(vars: VariableAssignment): FrequencyTa
 export function toFriedmanVariables(vars: VariableAssignment): FriedmanVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    conditions: toStringArray(vars.conditions || vars.groups)
+    within: toStringArray(vars.within || vars.conditions || vars.groups)
   }
 }
 
@@ -123,7 +123,7 @@ export function toKSTestVariables(vars: VariableAssignment): KSTestVariables {
 export function toMannWhitneyVariables(vars: VariableAssignment): MannWhitneyVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    groups: toStringArray(vars.groups)
+    factor: toStringArray(vars.factor || vars.groups)
   }
 }
 
@@ -137,7 +137,8 @@ export function toMANOVAVariables(vars: VariableAssignment): MANOVAVariables {
 export function toMixedModelVariables(vars: VariableAssignment): MixedModelVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    independent: toStringArray(vars.independent)
+    factor: toStringArray(vars.factor || vars.independent),
+    blocking: toStringArray(vars.blocking)
   }
 }
 
@@ -229,8 +230,8 @@ export function isValidANCOVAVariables(vars: unknown): vars is ANCOVAVariables {
   const v = vars as Partial<ANCOVAVariables>
   return (
     typeof v.dependent === 'string' &&
-    Array.isArray(v.independent) &&
-    Array.isArray(v.covariates)
+    Array.isArray(v.factor) &&
+    Array.isArray(v.covariate)
   )
 }
 

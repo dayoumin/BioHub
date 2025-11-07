@@ -37,7 +37,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **필드명 규칙**: camelCase (pValue, ciLower, ciUpper) ✅ | snake_case (p_value, ci_lower) ❌
 
-**상세**: [STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md) - Section 17-19
+**상세**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - Section 17-19
 
 ---
 
@@ -73,7 +73,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **45개 통계 페이지 일관성 유지 필수!**
 
-⚠️ **상세 규칙**: [STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md)
+⚠️ **상세 규칙**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md)
 
 **핵심 원칙**:
 - ✅ `useStatisticsPage` hook 사용 (useState 금지)
@@ -312,7 +312,7 @@ npx tsc --noEmit     # 타입 체크
 
 ### statistical-platform/docs/ (구현 상세)
 - [AI-CODING-RULES.md](statistical-platform/docs/AI-CODING-RULES.md) - any → unknown 예제
-- [STATISTICS_PAGE_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_PAGE_CODING_STANDARDS.md) - 통계 페이지 코딩 표준 ⭐
+- [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - 통계 모듈 코딩 표준 ⭐
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방 🚨
 
 ### 문서 관리 규칙

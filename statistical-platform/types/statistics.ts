@@ -12,7 +12,7 @@
  * - blocking → blocking (❌ randomEffects)
  *
  * 📋 참고: CLAUDE.md - "현재 중요 규칙" 섹션
- * 📋 참고: STATISTICS_PAGE_CODING_STANDARDS.md - Section 17
+ * 📋 참고: STATISTICS_CODING_STANDARDS.md - Section 17
  */
 
 // ============================================================================

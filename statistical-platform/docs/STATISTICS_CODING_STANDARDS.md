@@ -1,8 +1,13 @@
-# Statistics Page Coding Standards
+# Statistics Coding Standards
 
-**목적**: 45개 통계 분석 페이지의 일관된 코드 품질 및 유지보수성 확보
+**목적**: 통계 모듈의 일관된 코드 품질 및 유지보수성 확보
 
-**적용 범위**: `app/(dashboard)/statistics/*/page.tsx` (모든 통계 분석 페이지)
+**적용 범위**:
+- 통계 페이지: `app/(dashboard)/statistics/*/page.tsx` (45개)
+- 타입 정의: `types/statistics.ts`
+- 타입 변환: `types/statistics-converters.ts`
+- 변수 요구사항: `lib/statistics/variable-requirements.ts`
+- 공통 컴포넌트: `components/statistics/common/`
 
 ---
 
@@ -658,3 +663,250 @@ describe('Method Name Page - Coding Standards Compliance', () => {
 - **ks-test**: `app/(dashboard)/statistics/ks-test/page.tsx`
 - **power-analysis**: `app/(dashboard)/statistics/power-analysis/page.tsx`
 - **means-plot**: `app/(dashboard)/statistics/means-plot/page.tsx`
+
+---
+
+## 17. 변수 Role 매핑 규칙 (CRITICAL) 🚨
+
+### 17.1 기본 원칙
+
+**단일 진실 소스**: `variable-requirements.ts`의 `role` 필드가 `types/statistics.ts`의 인터페이스 필드명과 **정확히 일치**해야 합니다.
+
+### 17.2 SPSS/R/SAS 표준 Role 매핑
+
+| variable-requirements.ts | types/statistics.ts | ❌ 절대 금지 |
+|-------------------------|---------------------|-------------|
+| `role: 'factor'` | `factor: string[]` | `groups`, `independent` |
+| `role: 'within'` | `within: string[]` | `conditions` |
+| `role: 'covariate'` | `covariate: string[]` | `covariates` (복수형 금지) |
+| `role: 'blocking'` | `blocking?: string[]` | `randomEffects` |
+
+### 17.3 잘못된 예 (Critical 버그 발생)
+
+```typescript
+// ❌ 잘못된 예: variable-requirements.ts와 불일치
+export interface MannWhitneyVariables {
+  dependent: string
+  groups: string[]  // ❌ variable-requirements.ts는 'factor'를 사용
+}
+
+export interface FriedmanVariables {
+  dependent: string
+  conditions: string[]  // ❌ variable-requirements.ts는 'within'을 사용
+}
+
+export interface ANCOVAVariables {
+  dependent: string
+  independent: string[]  // ❌ 'factor'를 사용해야 함
+  covariates: string[]   // ❌ 'covariate' (단수형)를 사용해야 함
+}
+```
+
+**문제점**:
+- VariableSelector가 `factor` 키에 변수를 저장하지만, 페이지는 `groups`를 읽어 빈 배열 에러 발생
+- Two-Way/Three-Way ANOVA에서 요인 변수를 읽지 못해 one-way로 강등됨
+
+### 17.4 올바른 예
+
+```typescript
+// ✅ 올바른 예: variable-requirements.ts와 일치
+export interface MannWhitneyVariables {
+  dependent: string
+  factor: string[]  // ✅ variable-requirements.ts의 role: 'factor'와 일치
+}
+
+export interface FriedmanVariables {
+  dependent: string
+  within: string[]  // ✅ variable-requirements.ts의 role: 'within'과 일치
+}
+
+export interface ANCOVAVariables {
+  dependent: string
+  factor: string[]      // ✅ role: 'factor'
+  covariate: string[]   // ✅ role: 'covariate' (단수형)
+}
+
+export interface MixedModelVariables {
+  dependent: string
+  factor: string[]      // ✅ role: 'factor' (고정효과)
+  blocking?: string[]   // ✅ role: 'blocking' (무선효과)
+}
+```
+
+### 17.5 페이지 구현 시 주의사항
+
+```typescript
+// ✅ 올바른 변수 접근
+const runAnalysis = useCallback(async (variables: MannWhitneyVariables) => {
+  if (!variables.dependent || !variables.factor || variables.factor.length < 2) {
+    actions.setError('최소 2개 그룹이 필요합니다.')
+    return
+  }
+
+  const groupVar = variables.factor[0]  // ✅ factor 사용
+  // ...
+}, [actions])
+
+// ❌ 잘못된 변수 접근
+const runAnalysis = useCallback(async (variables: MannWhitneyVariables) => {
+  const groupVar = variables.groups[0]  // ❌ groups는 존재하지 않음!
+}, [actions])
+```
+
+### 17.6 검증 체크리스트
+
+새 통계 페이지 추가 또는 수정 시:
+
+- [ ] `variable-requirements.ts`에서 해당 메서드의 `role` 값 확인
+- [ ] `types/statistics.ts`에서 인터페이스 필드명이 `role`과 정확히 일치하는지 확인
+- [ ] 페이지 코드에서 변수 접근 시 올바른 필드명 사용
+- [ ] TypeScript 컴파일 에러 없음
+- [ ] 브라우저 테스트: 변수 선택 → 분석 실행 → 결과 확인
+
+### 17.7 역사적 맥락
+
+**문제 발견일**: 2025-11-06
+
+**영향 범위**: 5개 통계 메서드
+- ANOVA (Two-Way/Three-Way)
+- MANOVA
+- Mixed Model
+- Mann-Whitney
+- Friedman
+
+**근본 원인**:
+1. `variable-requirements.ts`는 SPSS/R/SAS 표준 용어 사용
+2. `types/statistics.ts`는 일부 메서드에서 다른 용어 사용 (groups, conditions, covariates, independent)
+3. VariableSelector는 `variable-requirements.ts` 기준으로 데이터 저장
+4. 페이지는 `types/statistics.ts` 기준으로 데이터 읽기
+5. → **불일치로 인한 빈 배열 에러 및 분석 실패**
+
+---
+
+## 18. 타입 중앙 정의 규칙 (CRITICAL) 🚨
+
+### 18.1 기본 원칙
+
+**모든 타입은 `types/statistics.ts`에만 정의**하고, 페이지에서는 import만 사용합니다.
+
+### 18.2 잘못된 예
+
+```typescript
+// ❌ app/(dashboard)/statistics/mann-whitney/page.tsx
+interface PostHocComparison {  // ❌ 페이지별 재정의 금지!
+  group1: string
+  group2: string
+  pValue: number
+}
+
+// ❌ app/(dashboard)/statistics/anova/page.tsx
+interface PostHocComparison {  // ❌ 다른 정의 (타입 파편화)
+  comparison: string
+  p_value: number  // ❌ 필드명도 다름!
+}
+```
+
+**문제점**:
+- 타입 정의가 4곳에 분산되어 일관성 없음
+- 필드명 규칙 불일치 (camelCase vs snake_case)
+- 수정 시 모든 파일 동시 수정 필요 → 버그 유발
+
+### 18.3 올바른 예
+
+```typescript
+// ✅ types/statistics.ts (단일 정의)
+export interface PostHocComparison {
+  group1: string
+  group2: string
+  pValue: number      // ✅ camelCase 통일
+  meanDiff: number
+  ciLower: number
+  ciUpper: number
+}
+
+// ✅ app/(dashboard)/statistics/mann-whitney/page.tsx
+import type { PostHocComparison } from '@/types/statistics'
+
+// ✅ app/(dashboard)/statistics/anova/page.tsx
+import type { PostHocComparison } from '@/types/statistics'
+```
+
+### 18.4 검증 체크리스트
+
+- [ ] 페이지 파일에서 `interface`, `type` 키워드로 타입 정의하지 않음
+- [ ] `types/statistics.ts`에서 타입 import
+- [ ] 필드명은 camelCase 사용 (pValue, ciLower, ciUpper)
+- [ ] snake_case 절대 금지 (p_value, ci_lower ❌)
+
+---
+
+## 19. 공통 컴포넌트 사용 규칙
+
+### 19.1 기본 원칙
+
+통계 페이지에서 UI 일관성을 위해 **공통 컴포넌트를 우선 사용**합니다.
+
+### 19.2 사용 가능한 공통 컴포넌트
+
+| 컴포넌트 | 경로 | 용도 |
+|---------|------|------|
+| `StatisticsTable` | `components/statistics/common/StatisticsTable.tsx` | 결과 테이블 |
+| `EffectSizeCard` | `components/statistics/common/EffectSizeCard.tsx` | 효과 크기 표시 |
+| `StatisticalResultCard` | `components/statistics/common/StatisticalResultCard.tsx` | 통계 결과 카드 |
+| `AssumptionTestCard` | `components/statistics/common/AssumptionTestCard.tsx` | 가정 검정 결과 |
+| `ResultActionButtons` | `components/statistics/common/ResultActionButtons.tsx` | 결과 액션 버튼 |
+
+### 19.3 잘못된 예
+
+```typescript
+// ❌ 모든 페이지가 <table> 직접 구현 (중복 코드)
+<table className="min-w-full border">
+  <thead>
+    <tr>
+      <th>Group 1</th>
+      <th>Group 2</th>
+      <th>p-value</th>
+    </tr>
+  </thead>
+  <tbody>
+    {results.map(row => (
+      <tr key={row.id}>
+        <td>{row.group1}</td>
+        <td>{row.group2}</td>
+        <td>{row.pValue}</td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+```
+
+### 19.4 올바른 예
+
+```typescript
+// ✅ 공통 컴포넌트 사용
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+
+<StatisticsTable
+  columns={[
+    { key: 'group1', label: 'Group 1' },
+    { key: 'group2', label: 'Group 2' },
+    { key: 'pValue', label: 'p-value', format: (v) => v.toFixed(4) }
+  ]}
+  data={results}
+/>
+```
+
+### 19.5 장점
+
+- ✅ UI 일관성 자동 유지
+- ✅ 접근성 (ARIA) 자동 적용
+- ✅ 반응형 디자인 자동 적용
+- ✅ 코드 중복 제거
+- ✅ 버그 수정 시 한 번만 수정
+
+### 19.6 검증 체크리스트
+
+- [ ] `<table>` 직접 사용하지 않음 (StatisticsTable 사용)
+- [ ] 효과 크기 표시 시 EffectSizeCard 사용
+- [ ] 통계 결과 카드 시 StatisticalResultCard 사용
+- [ ] 필요한 공통 컴포넌트가 없을 경우 `components/statistics/common/`에 추가 후 재사용

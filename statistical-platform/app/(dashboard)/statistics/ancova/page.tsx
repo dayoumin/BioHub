@@ -322,7 +322,7 @@ export default function ANCOVAPage() {
     actions.setSelectedVariables(typedVars)
 
     // 자동 분석 실행
-    if (typedVars.dependent && typedVars.independent?.length >= 1 && typedVars.covariates?.length >= 1) {
+    if (typedVars.dependent && typedVars.factor?.length >= 1 && typedVars.covariate?.length >= 1) {
       runAnalysis(typedVars)
     }
   }, [actions, runAnalysis])
