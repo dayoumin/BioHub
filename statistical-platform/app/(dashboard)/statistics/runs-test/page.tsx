@@ -156,7 +156,11 @@ export default function RunsTestPage() {
       )
 
       // 3️⃣ 결과 매핑 및 런 시퀀스 재구성 (UI 표시용)
-      const median = [...sequence].sort((a, b) => a - b)[Math.floor(sequence.length / 2)]
+      // 중앙값 계산 (Python np.median()과 동일하게)
+      const sortedSequence = [...sequence].sort((a, b) => a - b)
+      const median = sortedSequence.length % 2 === 0
+        ? (sortedSequence[sortedSequence.length / 2 - 1] + sortedSequence[sortedSequence.length / 2]) / 2
+        : sortedSequence[Math.floor(sortedSequence.length / 2)]
       const binarySequence = sequence.map(val => val >= median ? 'A' : 'B')
 
       // 런 시퀀스 생성
