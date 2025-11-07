@@ -373,8 +373,8 @@ export default function ManovaPage() {
   const handleVariableSelection = createVariableSelectionHandler<MANOVAVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toMANOVAVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
-      if (variables.dependent && variables.independent &&
-          variables.dependent.length >= 2 && variables.independent.length >= 1) {
+      if (variables.dependent && variables.factor &&
+          variables.dependent.length >= 2 && variables.factor.length >= 1) {
         runAnalysis(variables)
       }
     },

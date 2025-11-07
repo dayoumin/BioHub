@@ -69,8 +69,8 @@ export function toANCOVAVariables(vars: VariableAssignment): ANCOVAVariables {
 export function toANOVAVariables(vars: VariableAssignment): ANOVAVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    independent: toStringArray(vars.independent),
-    covariates: toStringArray(vars.covariates)
+    factor: toStringArray(vars.factor || vars.independent),
+    covariate: toStringArray(vars.covariate || vars.covariates)
   }
 }
 
@@ -130,7 +130,7 @@ export function toMannWhitneyVariables(vars: VariableAssignment): MannWhitneyVar
 export function toMANOVAVariables(vars: VariableAssignment): MANOVAVariables {
   return {
     dependent: toStringArray(vars.dependent),
-    independent: toSingleString(vars.independent)
+    factor: toStringArray(vars.factor || vars.independent)
   }
 }
 

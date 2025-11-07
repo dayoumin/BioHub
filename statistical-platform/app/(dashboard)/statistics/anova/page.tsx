@@ -1,7 +1,14 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import type { ANOVAVariables, PostHocComparison, PostHocResult } from '@/types/statistics'
+import type {
+  ANOVAVariables,
+  PostHocComparison,
+  PostHocResult,
+  TwoWayANOVAResult,
+  ThreeWayANOVAResult,
+  RepeatedMeasuresANOVAResult
+} from '@/types/statistics'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -210,16 +217,16 @@ export default function ANOVAPage() {
         throw new Error('ANOVA 유형을 선택해주세요')
       }
 
-      // 독립변수 개수 검증 (ANOVA 유형별 요구사항)
-      const requiredIndepCount = anovaType === 'oneWay' ? 1 :
-                                 anovaType === 'twoWay' ? 2 :
-                                 anovaType === 'threeWay' ? 3 : 1
+      // 요인 변수 개수 검증 (ANOVA 유형별 요구사항)
+      const requiredFactorCount = anovaType === 'oneWay' ? 1 :
+                                   anovaType === 'twoWay' ? 2 :
+                                   anovaType === 'threeWay' ? 3 : 1
 
-      if (variables.independent.length === 0) {
-        throw new Error('독립변수(요인)를 선택해주세요')
+      if (!variables.factor || variables.factor.length === 0) {
+        throw new Error('요인(factor) 변수를 선택해주세요')
       }
 
-      if (variables.independent.length < requiredIndepCount) {
+      if (variables.factor.length < requiredFactorCount) {
         const anovaTypeNames = {
           oneWay: '일원분산분석',
           twoWay: '이원분산분석',
@@ -227,26 +234,27 @@ export default function ANOVAPage() {
           repeated: '반복측정분산분석'
         }
         throw new Error(
-          `${anovaTypeNames[anovaType]}은(는) ${requiredIndepCount}개의 독립변수가 필요합니다. ` +
-          `현재 ${variables.independent.length}개 선택됨`
+          `${anovaTypeNames[anovaType]}은(는) ${requiredFactorCount}개의 요인 변수가 필요합니다. ` +
+          `현재 ${variables.factor.length}개 선택됨`
         )
       }
 
-      // 4️⃣ 데이터 추출 및 가공
-      // TODO: Two-Way, Three-Way, Repeated Measures는 현재 미구현
-      if (anovaType !== 'oneWay') {
-        throw new Error(
-          `${anovaType} ANOVA는 아직 구현되지 않았습니다. ` +
-          '현재는 일원분산분석(One-Way ANOVA)만 지원됩니다.'
-        )
+      // 4️⃣ ANOVA 타입별 분석 실행
+      if (anovaType === 'twoWay') {
+        // ========== Two-Way ANOVA ==========
+        await runTwoWayANOVA(variables, uploadedData.data)
+        return
+      } else if (anovaType === 'threeWay') {
+        throw new Error('삼원분산분석(Three-Way ANOVA)은 아직 구현되지 않았습니다.')
+      } else if (anovaType === 'repeated') {
+        throw new Error('반복측정분산분석(Repeated Measures ANOVA)은 아직 구현되지 않았습니다.')
       }
 
+      // ========== One-Way ANOVA (기존 로직) ==========
       const groups: number[][] = []
       const groupNames: string[] = []
 
-      // One-Way ANOVA: 첫 번째 독립변수(요인)를 기준으로 그룹 분리
-
-      const factorVariable = variables.independent[0]
+      const factorVariable = variables.factor[0]
       const dependentVariable = variables.dependent
 
       // 그룹별로 데이터 분리
@@ -286,7 +294,7 @@ export default function ANOVAPage() {
         throw new Error(`ANOVA는 최소 2개 이상의 그룹이 필요합니다. 현재 그룹 수: ${groups.length}`)
       }
 
-      // 4️⃣ PyodideCore 초기화 및 호출
+      // 5️⃣ PyodideCore 초기화 및 호출
       const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
@@ -302,7 +310,7 @@ export default function ANOVAPage() {
         { groups }
       )
 
-      // 5️⃣ 그룹별 기술통계량 계산 (t-critical 값은 Python에서 계산)
+      // 6️⃣ 그룹별 기술통계량 계산 (t-critical 값은 Python에서 계산)
       const groupStatsPromises = groups.map(async (groupData, idx) => {
         const n = groupData.length
         const mean = groupData.reduce((sum, v) => sum + v, 0) / n
@@ -633,15 +641,15 @@ export default function ANOVAPage() {
           onVariablesSelected={(variables) => {
             const selectedVars: ANOVAVariables = {
               dependent: (variables.dependent as string) || '',
-              independent: Array.isArray(variables.independent)
-                ? variables.independent as string[]
-                : variables.independent
-                  ? [variables.independent as string]
+              factor: Array.isArray(variables.factor)
+                ? variables.factor as string[]
+                : variables.factor
+                  ? [variables.factor as string]
                   : [],
-              covariates: variables.covariates
-                ? Array.isArray(variables.covariates)
-                  ? variables.covariates as string[]
-                  : [variables.covariates as string]
+              covariate: variables.covariate
+                ? Array.isArray(variables.covariate)
+                  ? variables.covariate as string[]
+                  : [variables.covariate as string]
                 : undefined
             }
             handleVariableSelection(selectedVars)

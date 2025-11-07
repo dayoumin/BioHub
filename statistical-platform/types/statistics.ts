@@ -74,35 +74,72 @@ export interface WelchTVariables {
 }
 
 // 분산분석
+/**
+ * ANOVA (일원분산분석) 변수
+ * - Section 17 규정: variable-requirements.ts의 role과 정확히 일치
+ */
 export interface ANOVAVariables {
-  dependent: string // 1개 (단일 값)
-  independent: string[] // 1개 이상
-  covariates?: string[] // 선택적
+  /** 종속변수 */
+  dependent: string
+  /** 요인 변수 (variable-requirements.ts: role: 'factor') */
+  factor: string[]
+  /** 공변량 (variable-requirements.ts: role: 'covariate') */
+  covariate?: string[]
 }
 
+/**
+ * Two-Way ANOVA (이원분산분석) 변수
+ * - Section 17 규정: variable-requirements.ts의 role과 정확히 일치
+ */
 export interface TwoWayANOVAVariables {
-  dependent: string // 1개
-  independent: string[] // 2개 (배열로 전달)
+  /** 종속변수 */
+  dependent: string
+  /** 요인 변수 2개 (variable-requirements.ts: role: 'factor') */
+  factor: string[] // 2개
 }
 
+/**
+ * Three-Way ANOVA (삼원분산분석) 변수
+ * - Section 17 규정: variable-requirements.ts의 role과 정확히 일치
+ */
 export interface ThreeWayANOVAVariables {
-  dependent: string // 1개
-  independent: string[] // 3개 (배열로 전달)
+  /** 종속변수 */
+  dependent: string
+  /** 요인 변수 3개 (variable-requirements.ts: role: 'factor') */
+  factor: string[] // 3개
 }
 
+/**
+ * Repeated Measures ANOVA (반복측정 분산분석) 변수
+ * - Section 17 규정: variable-requirements.ts의 role과 정확히 일치
+ */
 export interface RepeatedMeasuresVariables {
+  /** 종속변수 (반복 측정값 2개 이상) */
   dependent: string[] // 2개 이상
 }
 
+/**
+ * ANCOVA (공분산분석) 변수
+ * - Section 17 규정: variable-requirements.ts의 role과 정확히 일치
+ */
 export interface ANCOVAVariables {
-  dependent: string // 1개
-  factor: string[] // 1개 이상 (variable-requirements.ts: role: 'factor')
-  covariate: string[] // 1개 이상 (variable-requirements.ts: role: 'covariate')
+  /** 종속변수 */
+  dependent: string
+  /** 요인 변수 (variable-requirements.ts: role: 'factor') */
+  factor: string[]
+  /** 공변량 (variable-requirements.ts: role: 'covariate') */
+  covariate: string[]
 }
 
+/**
+ * MANOVA (다변량 분산분석) 변수
+ * - Section 17 규정: variable-requirements.ts의 role과 정확히 일치
+ */
 export interface MANOVAVariables {
-  dependent: string[] // 2개 이상
-  independent: string // 1개
+  /** 종속변수 (2개 이상) */
+  dependent: string[]
+  /** 요인 변수 (variable-requirements.ts: role: 'factor') */
+  factor: string[]
 }
 
 // 상관분석
@@ -305,6 +342,83 @@ export interface PostHocResult {
   comparisons: PostHocComparison[]
   /** 조정된 유의수준 (선택적) */
   adjustedAlpha?: number
+}
+
+/**
+ * Two-Way ANOVA 요인 효과 (Factor Effect)
+ */
+export interface FactorEffect {
+  /** F-통계량 */
+  fStatistic: number
+  /** p-값 */
+  pValue: number
+  /** 자유도 */
+  df: number
+}
+
+/**
+ * Two-Way ANOVA 분석 결과
+ * - Python Worker: worker3-nonparametric-anova.py - two_way_anova()
+ */
+export interface TwoWayANOVAResult {
+  /** Factor 1 주효과 */
+  factor1: FactorEffect
+  /** Factor 2 주효과 */
+  factor2: FactorEffect
+  /** 상호작용 효과 */
+  interaction: FactorEffect
+  /** 잔차 자유도 */
+  residual: {
+    df: number
+  }
+  /** ANOVA Table (statsmodels 원본) */
+  anovaTable: Record<string, unknown>
+}
+
+/**
+ * Three-Way ANOVA 분석 결과
+ */
+export interface ThreeWayANOVAResult {
+  /** Factor 1 주효과 */
+  factor1: FactorEffect
+  /** Factor 2 주효과 */
+  factor2: FactorEffect
+  /** Factor 3 주효과 */
+  factor3: FactorEffect
+  /** Factor 1 x Factor 2 상호작용 */
+  interaction12: FactorEffect
+  /** Factor 1 x Factor 3 상호작용 */
+  interaction13: FactorEffect
+  /** Factor 2 x Factor 3 상호작용 */
+  interaction23: FactorEffect
+  /** Factor 1 x Factor 2 x Factor 3 상호작용 */
+  interaction123: FactorEffect
+  /** 잔차 자유도 */
+  residual: {
+    df: number
+  }
+  /** ANOVA Table */
+  anovaTable: Record<string, unknown>
+}
+
+/**
+ * Repeated Measures ANOVA 분석 결과
+ * - Python Worker: worker3-nonparametric-anova.py - repeated_measures_anova()
+ */
+export interface RepeatedMeasuresANOVAResult {
+  /** F-통계량 */
+  fStatistic: number
+  /** p-값 */
+  pValue: number
+  /** 자유도 */
+  df: {
+    numerator: number
+    denominator: number
+  }
+  /** 구형성 보정 계수 (Epsilon) */
+  sphericityEpsilon: number
+  /** ANOVA Table */
+  anovaTable: Record<string, unknown>
 }
 
 // ============================================================================
