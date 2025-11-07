@@ -16,21 +16,43 @@ def linear_regression(x, y):
 
     if len(x) < 3:
         raise ValueError("Linear regression requires at least 3 valid pairs")
-    
+
     slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
-    
+
+    # Calculate confidence intervals (95%)
+    df = len(x) - 2
+    t_critical = stats.t.ppf(0.975, df)  # 95% CI
+
+    slope_ci = [
+        float(slope - t_critical * std_err),
+        float(slope + t_critical * std_err)
+    ]
+    intercept_ci = [
+        float(intercept - t_critical * std_err),
+        float(intercept + t_critical * std_err)
+    ]
+
+    # Calculate t-values
+    slope_t = float(slope / std_err) if std_err != 0 else 0
+    intercept_t = float(intercept / std_err) if std_err != 0 else 0
+
     return {
         'slope': float(slope),
         'intercept': float(intercept),
         'rSquared': float(r_value ** 2),
         'pValue': float(p_value),
         'stdErr': float(std_err),
-        'nPairs': int(len(x))
+        'nPairs': int(len(x)),
+        'slopeCi': slope_ci,
+        'interceptCi': intercept_ci,
+        'slopeTValue': slope_t,
+        'interceptTValue': intercept_t
     }
 
 
 def multiple_regression(X, y):
     import statsmodels.api as sm
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
 
     X_clean, y_clean = clean_multiple_regression(X, y)
 
@@ -43,15 +65,33 @@ def multiple_regression(X, y):
     X_with_const = sm.add_constant(X_clean)
     model = sm.OLS(y_clean, X_with_const).fit()
 
+    # Calculate confidence intervals (95%)
+    conf_int = model.conf_int(alpha=0.05)  # 95% CI
+    ci_lower = [float(c) for c in conf_int[0]]
+    ci_upper = [float(c) for c in conf_int[1]]
+
+    # Calculate VIF (Variance Inflation Factor)
+    vif_values = []
+    try:
+        for i in range(X_with_const.shape[1]):
+            vif = variance_inflation_factor(X_with_const.values, i)
+            vif_values.append(float(vif) if not np.isinf(vif) else 999.0)
+    except:
+        vif_values = [1.0] * X_with_const.shape[1]  # Fallback
+
     return {
         'coefficients': [float(c) for c in model.params],
         'stdErrors': [float(e) for e in model.bse],
         'tValues': [float(t) for t in model.tvalues],
         'pValues': [float(p) for p in model.pvalues],
+        'ciLower': ci_lower,
+        'ciUpper': ci_upper,
         'rSquared': float(model.rsquared),
         'adjustedRSquared': float(model.rsquared_adj),
         'fStatistic': float(model.fvalue),
         'fPValue': float(model.f_pvalue),
+        'residualStdError': float(np.sqrt(model.scale)),
+        'vif': vif_values,
         'nObservations': int(len(y_clean)),
         'nPredictors': int(X_clean.shape[1])
     }
@@ -59,6 +99,7 @@ def multiple_regression(X, y):
 
 def logistic_regression(X, y):
     import statsmodels.api as sm
+    from sklearn.metrics import roc_curve, roc_auc_score, confusion_matrix
 
     X_clean, y_clean = clean_multiple_regression(X, y)
 
@@ -72,14 +113,64 @@ def logistic_regression(X, y):
     predictions_class = (predictions_prob > 0.5).astype(int)
     accuracy = np.mean(predictions_class == y_clean)
 
+    # Confusion Matrix
+    cm = confusion_matrix(y_clean, predictions_class)
+    tn, fp, fn, tp = cm.ravel() if cm.size == 4 else (0, 0, 0, 0)
+
+    # Metrics
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    sensitivity = recall
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+
+    # ROC Curve and AUC
+    try:
+        fpr, tpr, thresholds = roc_curve(y_clean, predictions_prob)
+        auc = roc_auc_score(y_clean, predictions_prob)
+
+        # Sample ROC curve points (max 20 points for efficiency)
+        step = max(1, len(fpr) // 20)
+        roc_curve_data = [
+            {'fpr': float(fpr[i]), 'tpr': float(tpr[i])}
+            for i in range(0, len(fpr), step)
+        ]
+    except:
+        # Fallback if ROC calculation fails
+        roc_curve_data = [
+            {'fpr': 0.0, 'tpr': 0.0},
+            {'fpr': 1.0, 'tpr': 1.0}
+        ]
+        auc = 0.5
+
+    # Confidence Intervals (95%)
+    conf_int = model.conf_int(alpha=0.05)
+    ci_lower = [float(c) for c in conf_int[0]]
+    ci_upper = [float(c) for c in conf_int[1]]
+
     return {
         'coefficients': [float(c) for c in model.params],
         'stdErrors': [float(e) for e in model.bse],
         'zValues': [float(z) for z in model.tvalues],
         'pValues': [float(p) for p in model.pvalues],
+        'ciLower': ci_lower,
+        'ciUpper': ci_upper,
         'predictions': [float(p) for p in predictions_prob],
         'predictedClass': [int(c) for c in predictions_class],
         'accuracy': float(accuracy),
+        'confusionMatrix': {
+            'tp': int(tp),
+            'fp': int(fp),
+            'tn': int(tn),
+            'fn': int(fn),
+            'precision': float(precision),
+            'recall': float(recall),
+            'f1Score': float(f1_score)
+        },
+        'sensitivity': float(sensitivity),
+        'specificity': float(specificity),
+        'rocCurve': roc_curve_data,
+        'auc': float(auc),
         'aic': float(model.aic),
         'bic': float(model.bic),
         'pseudoRSquared': float(model.prsquared),

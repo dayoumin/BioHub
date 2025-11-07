@@ -147,6 +147,315 @@ export default function RegressionPage() {
     return undefined
   }
 
+  // Helper function: Simple Linear Regression
+  const handleSimpleRegression = useCallback(async (
+    pyodideCore: unknown,
+    vars: RegressionVariables,
+    data: UploadedData
+  ): Promise<LinearRegressionResults> => {
+    // 1️⃣ 데이터 추출
+    const xVariable = vars.independent[0]
+    const yVariable = vars.dependent
+
+    const xData: number[] = []
+    const yData: number[] = []
+
+    for (const row of data.data) {
+      const xVal = extractRowValue(row, xVariable)
+      const yVal = extractRowValue(row, yVariable)
+
+      if (
+        xVal !== null && xVal !== undefined && typeof xVal === 'number' && !isNaN(xVal) &&
+        yVal !== null && yVal !== undefined && typeof yVal === 'number' && !isNaN(yVal)
+      ) {
+        xData.push(xVal)
+        yData.push(yVal)
+      }
+    }
+
+    if (xData.length < 3) {
+      throw new Error('단순 선형 회귀는 최소 3개 이상의 유효한 데이터 쌍이 필요합니다.')
+    }
+
+    // 2️⃣ PyodideCore 호출
+    const core = pyodideCore as { callWorkerMethod: <T>(workerNum: number, methodName: string, params: unknown) => Promise<T> }
+    const pythonResult = await core.callWorkerMethod<{
+      slope: number
+      intercept: number
+      rSquared: number
+      pValue: number
+      stdErr: number
+      nPairs: number
+      slopeCi: number[]
+      interceptCi: number[]
+      slopeTValue: number
+      interceptTValue: number
+    }>(4, 'linear_regression', { x: xData, y: yData })
+
+    // 3️⃣ 결과 매핑
+    const df = pythonResult.nPairs - 2
+
+    const coefficients = [
+      {
+        name: '(Intercept)',
+        estimate: pythonResult.intercept,
+        stdError: pythonResult.stdErr,
+        tValue: pythonResult.interceptTValue,
+        pValue: pythonResult.pValue,
+        ci: pythonResult.interceptCi
+      },
+      {
+        name: xVariable,
+        estimate: pythonResult.slope,
+        stdError: pythonResult.stdErr,
+        tValue: pythonResult.slopeTValue,
+        pValue: pythonResult.pValue,
+        ci: pythonResult.slopeCi
+      }
+    ]
+
+    // Scatter data 생성 (실제 데이터 + predicted line)
+    const scatterData = xData.map((x, i) => ({
+      x,
+      y: yData[i],
+      predicted: pythonResult.intercept + pythonResult.slope * x
+    }))
+
+    // Residual plot 생성
+    const residualPlot = xData.map((x, i) => {
+      const fitted = pythonResult.intercept + pythonResult.slope * x
+      const residual = yData[i] - fitted
+      const standardized = residual / pythonResult.stdErr // 간단한 근사
+      return { fitted, residual, standardized }
+    })
+
+    // F-statistic 계산 (R² 기반)
+    const fStatistic = (pythonResult.rSquared / (1 - pythonResult.rSquared)) * df
+    const adjustedRSquared = 1 - (1 - pythonResult.rSquared) * ((pythonResult.nPairs - 1) / df)
+
+    return {
+      coefficients,
+      rSquared: pythonResult.rSquared,
+      adjustedRSquared,
+      fStatistic,
+      fPValue: pythonResult.pValue,
+      residualStdError: pythonResult.stdErr,
+      scatterData,
+      residualPlot,
+      vif: null
+    }
+  }, [extractRowValue])
+
+  // Helper function: Multiple Regression
+  const handleMultipleRegression = useCallback(async (
+    pyodideCore: unknown,
+    vars: RegressionVariables,
+    data: UploadedData
+  ): Promise<LinearRegressionResults> => {
+    // 1️⃣ 데이터 추출
+    const yVariable = vars.dependent
+    const xVariables = vars.independent
+
+    const yData: number[] = []
+    const XData: number[][] = []
+
+    for (const row of data.data) {
+      const yVal = extractRowValue(row, yVariable)
+      const xVals: number[] = []
+
+      let validRow = true
+      if (yVal === null || yVal === undefined || typeof yVal !== 'number' || isNaN(yVal)) {
+        validRow = false
+      }
+
+      for (const xVar of xVariables) {
+        const xVal = extractRowValue(row, xVar)
+        if (xVal !== null && xVal !== undefined && typeof xVal === 'number' && !isNaN(xVal)) {
+          xVals.push(xVal)
+        } else {
+          validRow = false
+          break
+        }
+      }
+
+      if (validRow && xVals.length === xVariables.length && typeof yVal === 'number') {
+        yData.push(yVal)
+        XData.push(xVals)
+      }
+    }
+
+    const minRequired = xVariables.length + 1
+    if (yData.length < minRequired) {
+      throw new Error(`다중 회귀는 최소 ${minRequired}개 이상의 유효한 데이터가 필요합니다.`)
+    }
+
+    // 2️⃣ PyodideCore 호출
+    const core = pyodideCore as { callWorkerMethod: <T>(workerNum: number, methodName: string, params: unknown) => Promise<T> }
+    const pythonResult = await core.callWorkerMethod<{
+      coefficients: number[]
+      stdErrors: number[]
+      tValues: number[]
+      pValues: number[]
+      ciLower: number[]
+      ciUpper: number[]
+      rSquared: number
+      adjustedRSquared: number
+      fStatistic: number
+      fPValue: number
+      residualStdError: number
+      vif: number[]
+      nObservations: number
+      nPredictors: number
+    }>(4, 'multiple_regression', { X: XData, y: yData })
+
+    // 3️⃣ 결과 매핑
+    const coefficientNames = ['(Intercept)', ...xVariables]
+
+    const coefficients = pythonResult.coefficients.map((coef, i) => ({
+      name: coefficientNames[i],
+      estimate: coef,
+      stdError: pythonResult.stdErrors[i],
+      tValue: pythonResult.tValues[i],
+      pValue: pythonResult.pValues[i],
+      ci: [pythonResult.ciLower[i], pythonResult.ciUpper[i]]
+    }))
+
+    // Residual plot 생성 (첫 번째 독립변수 기준)
+    const residualPlot = yData.map((y, i) => {
+      // Predicted value 계산
+      let predicted = pythonResult.coefficients[0] // intercept
+      for (let j = 0; j < pythonResult.nPredictors; j++) {
+        predicted += pythonResult.coefficients[j + 1] * XData[i][j]
+      }
+      const residual = y - predicted
+      return {
+        fitted: predicted,
+        residual,
+        standardized: residual / pythonResult.residualStdError
+      }
+    })
+
+    // VIF 결과 매핑 (Intercept 제외)
+    const vifResults = xVariables.map((varName, i) => ({
+      variable: varName,
+      vif: pythonResult.vif[i + 1] // Skip intercept (index 0)
+    }))
+
+    return {
+      coefficients,
+      rSquared: pythonResult.rSquared,
+      adjustedRSquared: pythonResult.adjustedRSquared,
+      fStatistic: pythonResult.fStatistic,
+      fPValue: pythonResult.fPValue,
+      residualStdError: pythonResult.residualStdError,
+      scatterData: [],
+      residualPlot,
+      vif: vifResults
+    }
+  }, [extractRowValue])
+
+  // Helper function: Logistic Regression
+  const handleLogisticRegression = useCallback(async (
+    pyodideCore: unknown,
+    vars: RegressionVariables,
+    data: UploadedData
+  ): Promise<LogisticRegressionResults> => {
+    // 1️⃣ 데이터 추출
+    const yVariable = vars.dependent
+    const xVariables = vars.independent
+
+    const yData: number[] = []
+    const XData: number[][] = []
+
+    for (const row of data.data) {
+      const yVal = extractRowValue(row, yVariable)
+      const xVals: number[] = []
+
+      let validRow = true
+      if (yVal === null || yVal === undefined || typeof yVal !== 'number' || isNaN(yVal)) {
+        validRow = false
+      }
+
+      for (const xVar of xVariables) {
+        const xVal = extractRowValue(row, xVar)
+        if (xVal !== null && xVal !== undefined && typeof xVal === 'number' && !isNaN(xVal)) {
+          xVals.push(xVal)
+        } else {
+          validRow = false
+          break
+        }
+      }
+
+      if (validRow && xVals.length === xVariables.length && typeof yVal === 'number') {
+        yData.push(yVal)
+        XData.push(xVals)
+      }
+    }
+
+    if (yData.length < 2) {
+      throw new Error('로지스틱 회귀는 최소 2개 이상의 유효한 데이터가 필요합니다.')
+    }
+
+    // 2️⃣ PyodideCore 호출
+    const core = pyodideCore as { callWorkerMethod: <T>(workerNum: number, methodName: string, params: unknown) => Promise<T> }
+    const pythonResult = await core.callWorkerMethod<{
+      coefficients: number[]
+      stdErrors: number[]
+      zValues: number[]
+      pValues: number[]
+      ciLower: number[]
+      ciUpper: number[]
+      predictions: number[]
+      predictedClass: number[]
+      accuracy: number
+      confusionMatrix: {
+        tp: number
+        fp: number
+        tn: number
+        fn: number
+        precision: number
+        recall: number
+        f1Score: number
+      }
+      sensitivity: number
+      specificity: number
+      rocCurve: Array<{ fpr: number; tpr: number }>
+      auc: number
+      aic: number
+      bic: number
+      pseudoRSquared: number
+      nObservations: number
+      nPredictors: number
+    }>(4, 'logistic_regression', { X: XData, y: yData })
+
+    // 3️⃣ 결과 매핑
+    const coefficientNames = ['(Intercept)', ...xVariables]
+
+    const coefficients = pythonResult.coefficients.map((coef, i) => ({
+      name: coefficientNames[i],
+      estimate: coef,
+      stdError: pythonResult.stdErrors[i],
+      zValue: pythonResult.zValues[i],
+      pValue: pythonResult.pValues[i],
+      oddsRatio: Math.exp(coef)
+    }))
+
+    return {
+      coefficients,
+      modelFit: {
+        aic: pythonResult.aic,
+        bic: pythonResult.bic,
+        mcFaddenR2: pythonResult.pseudoRSquared,
+        accuracy: pythonResult.accuracy,
+        sensitivity: pythonResult.sensitivity,
+        specificity: pythonResult.specificity,
+        auc: pythonResult.auc
+      },
+      confusionMatrix: pythonResult.confusionMatrix,
+      rocCurve: pythonResult.rocCurve
+    }
+  }, [extractRowValue])
+
   const handleMethodSelect = useCallback((type: 'simple' | 'multiple' | 'logistic') => {
     setRegressionType(type)
     actions.setCurrentStep?.(1)
@@ -175,76 +484,40 @@ export default function RegressionPage() {
       return
     }
 
+    if (!regressionType) {
+      actions.setError?.('회귀 유형을 선택해주세요.')
+      return
+    }
+
     try {
       actions.startAnalysis?.()
 
-      // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
-      const mockResults = regressionType === 'logistic' ? {
-        // 로지스틱 회귀 결과
-        coefficients: [
-          { name: '(Intercept)', estimate: -3.45, stdError: 0.87, zValue: -3.97, pValue: 0.00007, oddsRatio: 0.032 },
-          { name: 'Age', estimate: 0.042, stdError: 0.012, zValue: 3.50, pValue: 0.0005, oddsRatio: 1.043 },
-          { name: 'BMI', estimate: 0.089, stdError: 0.025, zValue: 3.56, pValue: 0.0004, oddsRatio: 1.093 }
-        ],
-        modelFit: {
-          aic: 234.5,
-          bic: 245.7,
-          mcFaddenR2: 0.342,
-          accuracy: 0.843,
-          sensitivity: 0.812,
-          specificity: 0.871,
-          auc: 0.892
-        },
-        confusionMatrix: {
-          tp: 65, fp: 10, tn: 68, fn: 15,
-          precision: 0.867,
-          recall: 0.812,
-          f1Score: 0.838
-        },
-        rocCurve: [
-          { fpr: 0, tpr: 0 },
-          { fpr: 0.1, tpr: 0.65 },
-          { fpr: 0.2, tpr: 0.78 },
-          { fpr: 0.3, tpr: 0.85 },
-          { fpr: 0.5, tpr: 0.92 },
-          { fpr: 0.7, tpr: 0.96 },
-          { fpr: 1, tpr: 1 }
-        ]
-      } : {
-        // 선형 회귀 결과
-        coefficients: regressionType === 'simple' ? [
-          { name: '(Intercept)', estimate: 12.34, stdError: 2.45, tValue: 5.04, pValue: 0.00001, ci: [7.5, 17.2] },
-          { name: 'StudyHours', estimate: 8.75, stdError: 1.23, tValue: 7.11, pValue: 0.000001, ci: [6.3, 11.2] }
-        ] : [
-          { name: '(Intercept)', estimate: 5.67, stdError: 3.21, tValue: 1.77, pValue: 0.082, ci: [-0.7, 12.0] },
-          { name: 'Experience', estimate: 2.34, stdError: 0.45, tValue: 5.20, pValue: 0.00001, ci: [1.5, 3.2] },
-          { name: 'Education', estimate: 4.56, stdError: 0.78, tValue: 5.85, pValue: 0.000001, ci: [3.0, 6.1] },
-          { name: 'Age', estimate: 0.89, stdError: 0.32, tValue: 2.78, pValue: 0.007, ci: [0.3, 1.5] }
-        ],
-        rSquared: regressionType === 'simple' ? 0.623 : 0.784,
-        adjustedRSquared: regressionType === 'simple' ? 0.619 : 0.773,
-        fStatistic: regressionType === 'simple' ? 50.52 : 36.78,
-        fPValue: 0.000001,
-        residualStdError: 8.92,
-        durbinWatson: 1.98,
-        vif: regressionType === 'multiple' ? [
-          { variable: 'Experience', vif: 1.23 },
-          { variable: 'Education', vif: 1.45 },
-          { variable: 'Age', vif: 2.01 }
-        ] : null,
-        scatterData: Array.from({ length: 50 }, (_, i) => {
-          const x = Math.random() * 10
-          const y = 12.34 + 8.75 * x + (Math.random() - 0.5) * 10
-          return { x, y, predicted: 12.34 + 8.75 * x }
-        }),
-        residualPlot: Array.from({ length: 50 }, (_, i) => ({
-          fitted: i * 2,
-          residual: (Math.random() - 0.5) * 10,
-          standardized: (Math.random() - 0.5) * 3
-        }))
+      // Type guard for RegressionVariables
+      if (!variables || typeof variables !== 'object') {
+        throw new Error('변수 선택이 올바르지 않습니다.')
       }
 
-      actions.completeAnalysis?.(mockResults, 3)
+      const vars = variables as RegressionVariables
+
+      // PyodideCore 초기화
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      let result: RegressionResults
+
+      if (regressionType === 'simple') {
+        // Simple Linear Regression
+        result = await handleSimpleRegression(pyodideCore, vars, uploadedData)
+      } else if (regressionType === 'multiple') {
+        // Multiple Regression
+        result = await handleMultipleRegression(pyodideCore, vars, uploadedData)
+      } else {
+        // Logistic Regression
+        result = await handleLogisticRegression(pyodideCore, vars, uploadedData)
+      }
+
+      actions.completeAnalysis?.(result, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       console.error('Analysis error:', err)
