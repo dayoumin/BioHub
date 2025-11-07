@@ -1,6 +1,13 @@
 {
-  "buildCommand": "cd statistical-platform && npm install && npm run build",
+  "version": 2,
+  "buildCommand": "cd statistical-platform && npm ci && npm run build",
   "outputDirectory": "statistical-platform/out",
+  "installCommand": "cd statistical-platform && npm ci",
   "framework": null,
-  "installCommand": "cd statistical-platform && npm install"
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
