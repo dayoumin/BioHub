@@ -10,6 +10,52 @@ try {
 
 // performance는 jsdom 환경에서 기본 제공됨
 
+// structuredClone polyfill for fake-indexeddb
+// Node.js 22 has structuredClone, but we provide a global reference for jsdom
+if (typeof global.structuredClone !== 'function') {
+  // Proper structuredClone for ArrayBuffer/TypedArray
+  global.structuredClone = (obj) => {
+    // Handle ArrayBuffer
+    if (obj instanceof ArrayBuffer) {
+      const copy = new ArrayBuffer(obj.byteLength)
+      new Uint8Array(copy).set(new Uint8Array(obj))
+      return copy
+    }
+
+    // Handle TypedArray
+    if (ArrayBuffer.isView(obj)) {
+      return obj.slice()
+    }
+
+    // Handle objects with ArrayBuffer properties
+    if (typeof obj === 'object' && obj !== null) {
+      const clone = Array.isArray(obj) ? [] : {}
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          if (obj[key] instanceof ArrayBuffer) {
+            const copy = new ArrayBuffer(obj[key].byteLength)
+            new Uint8Array(copy).set(new Uint8Array(obj[key]))
+            clone[key] = copy
+          } else if (typeof obj[key] === 'object') {
+            clone[key] = global.structuredClone(obj[key])
+          } else {
+            clone[key] = obj[key]
+          }
+        }
+      }
+      return clone
+    }
+
+    // Primitive values
+    return obj
+  }
+} else {
+  // Ensure globalThis also has structuredClone
+  if (typeof globalThis !== 'undefined' && typeof globalThis.structuredClone !== 'function') {
+    globalThis.structuredClone = global.structuredClone
+  }
+}
+
 // ResizeObserver 모킹
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
