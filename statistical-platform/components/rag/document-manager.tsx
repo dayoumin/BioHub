@@ -45,6 +45,14 @@ export function DocumentManager() {
   const [isRebuilding, setIsRebuilding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Progress UI 상태
+  const [rebuildProgress, setRebuildProgress] = useState({
+    current: 0,
+    total: 0,
+    percentage: 0,
+    currentDocTitle: '',
+  })
+
   // 폼 상태
   const [formData, setFormData] = useState({
     doc_id: '',
@@ -294,22 +302,46 @@ export function DocumentManager() {
 
     setIsRebuilding(true)
     setError(null)
+    setRebuildProgress({ current: 0, total: 0, percentage: 0, currentDocTitle: '' })
 
     try {
       console.log('[DocumentManager] Vector Store 재구축 시작')
 
-      // TODO: OllamaRAGProvider에 rebuildVectorStore 메서드 추가 필요
-      // 현재는 문서 추가/수정/삭제 시 자동으로 persistDB가 호출되어
-      // IndexedDB에 저장되므로 별도 재구축이 필요하지 않음
+      // RAGService에서 provider 가져오기
+      const ragService = RAGService.getInstance()
+      await ragService.initialize()
 
-      alert('Vector Store는 문서 추가/수정/삭제 시 자동으로 업데이트됩니다.')
-      console.log('[DocumentManager] ⚠️ 재구축 기능은 추후 구현 예정')
+      const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
+      if (!provider) {
+        throw new Error('RAG Provider가 초기화되지 않았습니다')
+      }
+
+      const result = await provider.rebuildVectorStore({
+        onProgress: (percentage: number, current: number, total: number, docTitle: string) => {
+          setRebuildProgress({
+            current,
+            total,
+            percentage,
+            currentDocTitle: docTitle,
+          })
+        },
+      })
+
+      console.log('[DocumentManager] ✓ Vector Store 재구축 완료:', result)
+      alert(
+        `재구축 완료!\n\n` +
+          `- 처리 문서: ${result.processedDocs}/${result.totalDocs}\n` +
+          `- 생성 청크: ${result.totalChunks}개\n` +
+          `- 성공: ${result.successDocs}개\n` +
+          `- 실패: ${result.failedDocs}개`
+      )
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
       setError(errorMessage)
       console.error('[DocumentManager] 재구축 실패:', err)
     } finally {
       setIsRebuilding(false)
+      setRebuildProgress({ current: 0, total: 0, percentage: 0, currentDocTitle: '' })
     }
   }, [])
 
@@ -392,7 +424,7 @@ export function DocumentManager() {
         </ScrollArea>
 
         {/* Vector Store 재구축 버튼 */}
-        <div className="p-4 border-t bg-background">
+        <div className="p-4 border-t bg-background space-y-3">
           <Button
             className="w-full"
             variant="outline"
@@ -411,6 +443,32 @@ export function DocumentManager() {
               </>
             )}
           </Button>
+
+          {/* Progress UI */}
+          {isRebuilding && rebuildProgress.total > 0 && (
+            <div className="space-y-2">
+              {/* Progress Bar */}
+              <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${rebuildProgress.percentage}%` }}
+                />
+              </div>
+
+              {/* Progress Text */}
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div className="flex justify-between">
+                  <span>진행률: {rebuildProgress.percentage.toFixed(1)}%</span>
+                  <span>
+                    {rebuildProgress.current}/{rebuildProgress.total}
+                  </span>
+                </div>
+                {rebuildProgress.currentDocTitle && (
+                  <div className="truncate">처리 중: {rebuildProgress.currentDocTitle}</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 

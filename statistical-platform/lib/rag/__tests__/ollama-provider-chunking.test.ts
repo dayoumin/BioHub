@@ -513,9 +513,31 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
       console.log('✓ 임베딩 없을 때 빈 배열 반환 확인')
     })
 
-    it.skip('Top-K 제한 동작 확인 (별도 provider 초기화 문제)', async () => {
-      // Skip: 별도 provider 인스턴스 생성 시 SQL.js 초기화 문제 발생
-      // 기존 provider의 topK는 기본값(5)으로 이미 테스트되고 있음
+    it('Top-K 제한 동작 확인 (기본값 5개)', async () => {
+      // 10개 문서 추가
+      for (let i = 0; i < 10; i++) {
+        await provider.addDocument({
+          doc_id: `topk_test_${i}`,
+          title: `Top-K Test Document ${i}`,
+          content: `This is test document number ${i}. It contains some statistical analysis content.`,
+          library: 'test',
+          category: 'topk',
+        })
+      }
+
+      // vector 검색 (topK = 5가 기본값)
+      const results = await provider['searchByVector']('statistical analysis')
+
+      // 결과가 최대 5개 이하인지 확인
+      expect(results.length).toBeLessThanOrEqual(5)
+
+      // 점수 내림차순 정렬 확인
+      for (let i = 0; i < results.length - 1; i++) {
+        expect(results[i].score).toBeGreaterThanOrEqual(results[i + 1].score)
+      }
+
+      console.log(`✓ Top-K 제한 확인: ${results.length}개 문서 반환 (최대 5개)`)
+      console.log(`✓ 점수 범위: ${results[0]?.score.toFixed(4)} ~ ${results[results.length - 1]?.score.toFixed(4)}`)
     })
   })
 
