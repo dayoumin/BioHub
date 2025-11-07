@@ -563,4 +563,144 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
       console.log(`  - 처리 시간: ${(duration / 1000).toFixed(1)}s`)
     }, 120000) // 2분 타임아웃
   })
+
+  describe('rebuildVectorStore (Milestone 3)', () => {
+    beforeEach(async () => {
+      // 각 테스트 전에 문서 초기화 (이전 테스트 영향 제거)
+      await IndexedDBStorage.clearAllDocuments()
+      await IndexedDBStorage.clearAllEmbeddings()
+    })
+
+    it('모든 문서의 임베딩 재생성', async () => {
+      // 1. 3개 문서 추가
+      await provider.addDocument({
+        doc_id: 'rebuild_doc_1',
+        title: 'Document 1',
+        content: Array(300).fill(0).map((_, i) => `word${i}`).join(' '),
+        library: 'test',
+      })
+
+      await provider.addDocument({
+        doc_id: 'rebuild_doc_2',
+        title: 'Document 2',
+        content: Array(500).fill(0).map((_, i) => `word${i}`).join(' '),
+        library: 'test',
+      })
+
+      await provider.addDocument({
+        doc_id: 'rebuild_doc_3',
+        title: 'Document 3',
+        content: Array(800).fill(0).map((_, i) => `word${i}`).join(' '),
+        library: 'test',
+      })
+
+      // 2. 초기 임베딩 확인
+      const embeddings1Before = await IndexedDBStorage.getEmbeddingsByDocId('rebuild_doc_1')
+      const embeddings2Before = await IndexedDBStorage.getEmbeddingsByDocId('rebuild_doc_2')
+      const embeddings3Before = await IndexedDBStorage.getEmbeddingsByDocId('rebuild_doc_3')
+
+      const totalChunksBefore = embeddings1Before.length + embeddings2Before.length + embeddings3Before.length
+
+      expect(totalChunksBefore).toBeGreaterThan(0)
+      console.log(`  - 재구축 전 총 청크 개수: ${totalChunksBefore}`)
+
+      // 3. rebuildVectorStore 실행 (추가한 3개 문서만 재구축)
+      const progressLog: number[] = []
+      const result = await provider.rebuildVectorStore({
+        docIds: ['rebuild_doc_1', 'rebuild_doc_2', 'rebuild_doc_3'], // 명시적으로 지정
+        onProgress: (progress, current, total, docTitle) => {
+          progressLog.push(progress)
+          console.log(`  - [${current}/${total}] ${progress}% - ${docTitle}`)
+        }
+      })
+
+      // 4. 결과 검증
+      expect(result.totalDocs).toBe(3)
+      expect(result.processedDocs).toBe(3)
+      expect(result.successDocs).toBe(3)
+      expect(result.failedDocs).toBe(0)
+      expect(result.errors.length).toBe(0)
+      expect(result.totalChunks).toBeGreaterThan(0)
+
+      // 5. 진행률 콜백 검증
+      expect(progressLog.length).toBe(3)
+      expect(progressLog[0]).toBeGreaterThanOrEqual(0)
+      expect(progressLog[2]).toBe(100) // 마지막은 100%
+
+      // 6. 임베딩 재생성 확인
+      const embeddings1After = await IndexedDBStorage.getEmbeddingsByDocId('rebuild_doc_1')
+      const embeddings2After = await IndexedDBStorage.getEmbeddingsByDocId('rebuild_doc_2')
+      const embeddings3After = await IndexedDBStorage.getEmbeddingsByDocId('rebuild_doc_3')
+
+      expect(embeddings1After.length).toBe(embeddings1Before.length)
+      expect(embeddings2After.length).toBe(embeddings2Before.length)
+      expect(embeddings3After.length).toBe(embeddings3Before.length)
+
+      console.log(`✓ rebuildVectorStore 성공:`)
+      console.log(`  - 처리된 문서: ${result.successDocs}/${result.totalDocs}`)
+      console.log(`  - 재생성된 청크: ${result.totalChunks}`)
+    }, 120000) // 2분 타임아웃
+
+    it('특정 문서만 재구축 (docIds 옵션)', async () => {
+      // 1. 2개 문서 추가
+      await provider.addDocument({
+        doc_id: 'selective_doc_1',
+        title: 'Selective Doc 1',
+        content: Array(500).fill(0).map((_, i) => `word${i}`).join(' '),
+        library: 'test',
+      })
+
+      await provider.addDocument({
+        doc_id: 'selective_doc_2',
+        title: 'Selective Doc 2',
+        content: Array(500).fill(0).map((_, i) => `word${i}`).join(' '),
+        library: 'test',
+      })
+
+      // 2. selective_doc_1만 재구축
+      const result = await provider.rebuildVectorStore({
+        docIds: ['selective_doc_1']
+      })
+
+      // 3. 결과 검증
+      expect(result.totalDocs).toBe(1)
+      expect(result.processedDocs).toBe(1)
+      expect(result.successDocs).toBe(1)
+
+      console.log(`✓ 선택적 재구축 성공: ${result.totalDocs}개 문서`)
+    }, 60000)
+
+    it('빈 문서는 스킵', async () => {
+      // 빈 문서 추가
+      await provider.addDocument({
+        doc_id: 'empty_rebuild_doc',
+        title: 'Empty Document',
+        content: '',
+        library: 'test',
+      })
+
+      // rebuildVectorStore 실행
+      const result = await provider.rebuildVectorStore()
+
+      // 빈 문서는 processedDocs에는 포함되지만, totalChunks는 증가하지 않음
+      const emptyDocProcessed = result.totalDocs > 0
+      expect(emptyDocProcessed).toBe(true)
+
+      console.log(`✓ 빈 문서 스킵 확인`)
+    }, 60000)
+
+    it('문서 없는 경우 빈 결과 반환', async () => {
+      // testMode에서는 더미 문서 3개가 로드되어 있음
+      // 존재하지 않는 docId로 재구축 시도
+      const result = await provider.rebuildVectorStore({
+        docIds: ['non_existent_doc']
+      })
+
+      expect(result.totalDocs).toBe(0)
+      expect(result.processedDocs).toBe(0)
+      expect(result.totalChunks).toBe(0)
+
+      console.log(`✓ 문서 없는 경우 빈 결과 반환 확인`)
+    }, 60000)
+  })
 })

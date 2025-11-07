@@ -1735,4 +1735,169 @@ ${contextText}
       reader.releaseLock()
     }
   }
+
+  /**
+   * Vector Store 재구축 (모든 문서의 임베딩 재생성)
+   *
+   * 사용 사례:
+   * - 임베딩 모델 변경 시
+   * - 청킹 파라미터 변경 시
+   * - 임베딩 손상 시 복구
+   *
+   * @param options 재구축 옵션
+   * @returns 재구축 결과 통계
+   */
+  async rebuildVectorStore(options?: {
+    /** 진행률 콜백 (0-100) */
+    onProgress?: (progress: number, current: number, total: number, docTitle: string) => void
+    /** 특정 문서만 재구축 (docId 배열) */
+    docIds?: string[]
+  }): Promise<{
+    totalDocs: number
+    processedDocs: number
+    totalChunks: number
+    successDocs: number
+    failedDocs: number
+    errors: Array<{ docId: string; error: string }>
+  }> {
+    this.ensureInitialized()
+
+    const allDocs = this.getAllDocuments()
+    const targetDocs = options?.docIds
+      ? allDocs.filter(doc => options.docIds!.includes(doc.doc_id))
+      : allDocs
+
+    if (targetDocs.length === 0) {
+      console.warn('[rebuildVectorStore] 재구축할 문서 없음')
+      return {
+        totalDocs: 0,
+        processedDocs: 0,
+        totalChunks: 0,
+        successDocs: 0,
+        failedDocs: 0,
+        errors: []
+      }
+    }
+
+    console.log(`[rebuildVectorStore] 시작: ${targetDocs.length}개 문서 재구축`)
+
+    const stats = {
+      totalDocs: targetDocs.length,
+      processedDocs: 0,
+      totalChunks: 0,
+      successDocs: 0,
+      failedDocs: 0,
+      errors: [] as Array<{ docId: string; error: string }>
+    }
+
+    for (let i = 0; i < targetDocs.length; i++) {
+      const doc = targetDocs[i]
+      const progress = Math.floor(((i + 1) / targetDocs.length) * 100)
+
+      try {
+        // 진행률 콜백 호출
+        if (options?.onProgress) {
+          options.onProgress(progress, i + 1, targetDocs.length, doc.title)
+        }
+
+        console.log(`[rebuildVectorStore] [${i + 1}/${targetDocs.length}] ${doc.title}`)
+
+        // 1. 기존 임베딩 삭제
+        await IndexedDBStorage.deleteEmbeddingsByDocId(doc.doc_id)
+
+        if (!this.testMode && this.db) {
+          this.db.exec(`
+            DELETE FROM embeddings
+            WHERE doc_id = '${this.escapeSQL(doc.doc_id)}'
+          `)
+        }
+
+        // 2. 문서 청킹
+        const chunks = chunkDocument(doc.content, {
+          maxTokens: 500,
+          overlapTokens: 50,
+          preserveBoundaries: true
+        })
+
+        if (chunks.length === 0) {
+          console.warn(`[rebuildVectorStore] ⚠️ 빈 문서 스킵: ${doc.doc_id}`)
+          stats.processedDocs++
+          continue
+        }
+
+        // 3. 각 청크 임베딩 생성 및 저장
+        for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+          const chunk = chunks[chunkIdx]
+          const chunkTokens = estimateTokens(chunk)
+
+          const embedding = await this.generateEmbedding(chunk)
+          const embeddingVector = new Float32Array(embedding)
+          const currentTime = Date.now()
+          const currentTimeSec = Math.floor(currentTime / 1000)
+
+          // SQLite 저장
+          if (!this.testMode && this.db) {
+            const hexBlob = vectorToBlob(embeddingVector)
+            this.db.exec(`
+              INSERT INTO embeddings (
+                doc_id, chunk_index, chunk_text, chunk_tokens,
+                embedding, embedding_model, created_at
+              ) VALUES (
+                '${this.escapeSQL(doc.doc_id)}',
+                ${chunkIdx},
+                '${this.escapeSQL(chunk)}',
+                ${chunkTokens},
+                X'${hexBlob}',
+                '${this.embeddingModel}',
+                ${currentTimeSec}
+              )
+            `)
+          }
+
+          // IndexedDB 저장
+          const storedEmbedding: StoredEmbedding = {
+            doc_id: doc.doc_id,
+            chunk_index: chunkIdx,
+            chunk_text: chunk,
+            chunk_tokens: chunkTokens,
+            embedding: embeddingVector.buffer,
+            embedding_model: this.embeddingModel,
+            created_at: currentTime
+          }
+
+          await IndexedDBStorage.saveEmbedding(storedEmbedding)
+          stats.totalChunks++
+        }
+
+        console.log(`[rebuildVectorStore] ✓ ${doc.title}: ${chunks.length}개 청크 재생성`)
+        stats.successDocs++
+        stats.processedDocs++
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error(`[rebuildVectorStore] ❌ ${doc.title} 실패:`, errorMessage)
+
+        stats.failedDocs++
+        stats.processedDocs++
+        stats.errors.push({
+          docId: doc.doc_id,
+          error: errorMessage
+        })
+      }
+    }
+
+    // SQLite 영구 저장 (프로덕션 모드)
+    if (!this.testMode && this.db && this.SQL) {
+      try {
+        persistDB(this.SQL, this.db)
+        console.log(`[rebuildVectorStore] ✓ SQLite DB 영구 저장 완료`)
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error(`[rebuildVectorStore] ⚠️ SQLite DB 저장 실패:`, errorMessage)
+      }
+    }
+
+    console.log(`[rebuildVectorStore] 완료:`, stats)
+    return stats
+  }
 }
