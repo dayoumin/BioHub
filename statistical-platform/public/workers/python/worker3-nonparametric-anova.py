@@ -876,3 +876,96 @@ def games_howell_test(groups):
         'nComparisons': len(comparisons)
     }
 
+
+def three_way_anova(data_values, factor1_values, factor2_values, factor3_values):
+    """
+    Three-Way ANOVA using statsmodels
+
+    Parameters:
+    - data_values: dependent variable values
+    - factor1_values: first factor levels
+    - factor2_values: second factor levels
+    - factor3_values: third factor levels
+
+    Returns:
+    - Dictionary with main effects and interaction effects
+    """
+    import statsmodels.api as sm
+    from statsmodels.formula.api import ols
+    import pandas as pd
+
+    # Input validation
+    if len(data_values) != len(factor1_values) or \
+       len(data_values) != len(factor2_values) or \
+       len(data_values) != len(factor3_values):
+        raise ValueError(
+            f"All inputs must have same length: data({len(data_values)}), "
+            f"factor1({len(factor1_values)}), factor2({len(factor2_values)}), "
+            f"factor3({len(factor3_values)})"
+        )
+
+    n_samples = len(data_values)
+    if n_samples < 8:
+        raise ValueError(f"Three-way ANOVA requires at least 8 observations, got {n_samples}")
+
+    # Create DataFrame
+    df = pd.DataFrame({
+        'value': data_values,
+        'factor1': factor1_values,
+        'factor2': factor2_values,
+        'factor3': factor3_values
+    })
+
+    # Build formula with all main effects and interactions
+    formula = 'value ~ C(factor1) + C(factor2) + C(factor3) + ' + \
+              'C(factor1):C(factor2) + C(factor1):C(factor3) + C(factor2):C(factor3) + ' + \
+              'C(factor1):C(factor2):C(factor3)'
+
+    model = ols(formula, data=df).fit()
+    anova_table = sm.stats.anova_lm(model, typ=2)
+
+    # Extract results
+    result = {
+        'factor1': {
+            'fStatistic': float(anova_table.loc['C(factor1)', 'F']),
+            'pValue': float(anova_table.loc['C(factor1)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor1)', 'df'])
+        },
+        'factor2': {
+            'fStatistic': float(anova_table.loc['C(factor2)', 'F']),
+            'pValue': float(anova_table.loc['C(factor2)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor2)', 'df'])
+        },
+        'factor3': {
+            'fStatistic': float(anova_table.loc['C(factor3)', 'F']),
+            'pValue': float(anova_table.loc['C(factor3)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor3)', 'df'])
+        },
+        'interaction12': {
+            'fStatistic': float(anova_table.loc['C(factor1):C(factor2)', 'F']),
+            'pValue': float(anova_table.loc['C(factor1):C(factor2)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor1):C(factor2)', 'df'])
+        },
+        'interaction13': {
+            'fStatistic': float(anova_table.loc['C(factor1):C(factor3)', 'F']),
+            'pValue': float(anova_table.loc['C(factor1):C(factor3)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor1):C(factor3)', 'df'])
+        },
+        'interaction23': {
+            'fStatistic': float(anova_table.loc['C(factor2):C(factor3)', 'F']),
+            'pValue': float(anova_table.loc['C(factor2):C(factor3)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor2):C(factor3)', 'df'])
+        },
+        'interaction123': {
+            'fStatistic': float(anova_table.loc['C(factor1):C(factor2):C(factor3)', 'F']),
+            'pValue': float(anova_table.loc['C(factor1):C(factor2):C(factor3)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor1):C(factor2):C(factor3)', 'df'])
+        },
+        'residual': {
+            'df': float(anova_table.loc['Residual', 'df'])
+        },
+        'anovaTable': anova_table.to_dict()
+    }
+
+    return result
+
