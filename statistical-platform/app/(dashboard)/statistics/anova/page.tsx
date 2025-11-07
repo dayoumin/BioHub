@@ -279,6 +279,85 @@ export default function ANOVAPage() {
     }
   }, [actions])
 
+  /**
+   * Repeated Measures ANOVA 실행
+   * - Python Worker: repeated_measures_anova(data_matrix, subject_ids, time_labels)
+   * - 타입: RepeatedMeasuresANOVAResult (types/statistics.ts)
+   */
+  const runRepeatedMeasuresANOVA = useCallback(async (
+    variables: ANOVAVariables,
+    data: Array<Record<string, string | number | null | undefined>>
+  ) => {
+    try {
+      // 1️⃣ 변수 검증 (종속변수가 배열이어야 함)
+      if (!variables.dependent || !Array.isArray(variables.dependent)) {
+        throw new Error('반복측정 ANOVA는 종속변수가 배열이어야 합니다')
+      }
+
+      const dependentVars = variables.dependent as unknown as string[]
+
+      if (dependentVars.length < 2) {
+        throw new Error(`반복측정 ANOVA는 최소 2개의 측정 시점이 필요합니다. 현재: ${dependentVars.length}개`)
+      }
+
+      // 2️⃣ 데이터 추출 - 2D 매트릭스 구성
+      const dataMatrix: number[][] = []
+      const subjectIds: number[] = []
+      const timeLabels: string[] = dependentVars.map((v, i) => `T${i + 1}`)
+
+      for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
+        const row = data[rowIdx]
+        const rowData: number[] = []
+        let hasValidData = true
+
+        for (const depVar of dependentVars) {
+          const value = row[depVar]
+
+          if (value !== null && value !== undefined && typeof value === 'number' && !isNaN(value)) {
+            rowData.push(value)
+          } else {
+            hasValidData = false
+            break
+          }
+        }
+
+        if (hasValidData && rowData.length === dependentVars.length) {
+          dataMatrix.push(rowData)
+          subjectIds.push(rowIdx + 1)
+        }
+      }
+
+      // 3️⃣ 최소 데이터 검증
+      if (dataMatrix.length < 2) {
+        throw new Error(`반복측정 ANOVA는 최소 2명의 피험자가 필요합니다. 현재: ${dataMatrix.length}명`)
+      }
+
+      // 4️⃣ PyodideCore 호출
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      const result = await pyodideCore.callWorkerMethod<RepeatedMeasuresANOVAResult>(
+        3, // worker3-nonparametric-anova.py
+        'repeated_measures_anova',
+        {
+          data_matrix: dataMatrix,
+          subject_ids: subjectIds,
+          time_labels: timeLabels
+        }
+      )
+
+      // 5️⃣ 결과 저장 및 다음 단계로 이동
+      actions.setResults(result as unknown as ANOVAResults)
+      actions.setCurrentStep(3)
+
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Repeated Measures ANOVA 분석 중 오류가 발생했습니다'
+      actions.setError(errorMessage)
+      throw err
+    }
+  }, [actions])
+
   const handleAnalysis = useCallback(async (variables: ANOVAVariables) => {
     try {
       // 1️⃣ 분석 시작
@@ -327,7 +406,12 @@ export default function ANOVAPage() {
       } else if (anovaType === 'threeWay') {
         throw new Error('삼원분산분석(Three-Way ANOVA)은 아직 구현되지 않았습니다.')
       } else if (anovaType === 'repeated') {
-        throw new Error('반복측정분산분석(Repeated Measures ANOVA)은 아직 구현되지 않았습니다.')
+        // ========== Repeated Measures ANOVA ==========
+        await runRepeatedMeasuresANOVA(
+          variables,
+          uploadedData.data as Array<Record<string, string | number | null | undefined>>
+        )
+        return
       }
 
       // ========== One-Way ANOVA (기존 로직) ==========
