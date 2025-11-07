@@ -115,88 +115,6 @@ export default function RunsTestPage() {
     'runs-test'
   )
 
-  // 실제 런 검정 계산 로직 (간단 구현)
-  const calculateRunsTest = useCallback((data: unknown[], variable: string): RunsTestResult => {
-    const values = data.map(row => (row as Record<string, unknown>)[variable])
-      .filter(val => val != null)
-
-    // 중앙값 계산 (이분화를 위해)
-    const numericValues = values.filter(val => typeof val === 'number') as number[]
-    const median = numericValues.length > 0
-      ? [...numericValues].sort((a, b) => a - b)[Math.floor(numericValues.length / 2)]
-      : 0
-
-    // 이분화: 중앙값 이상/미만
-    const binarySequence = numericValues.map(val => val >= median ? 'A' : 'B')
-
-    // 런 계산
-    const runs: RunSequenceItem[] = []
-    let currentRun = 1
-    let currentValue = binarySequence[0]
-    let runLength = 1
-
-    for (let i = 1; i < binarySequence.length; i++) {
-      if (binarySequence[i] === currentValue) {
-        runLength++
-      } else {
-        runs.push({ value: currentValue, run: currentRun, runLength })
-        currentRun++
-        currentValue = binarySequence[i]
-        runLength = 1
-      }
-    }
-    runs.push({ value: currentValue, run: currentRun, runLength })
-
-    // 통계량 계산
-    const n1 = binarySequence.filter(v => v === 'A').length
-    const n2 = binarySequence.filter(v => v === 'B').length
-    const totalN = n1 + n2
-    const totalRuns = runs.length
-
-    // 기댓값과 분산 계산
-    const expectedRuns = (2 * n1 * n2) / totalN + 1
-    const variance = (2 * n1 * n2 * (2 * n1 * n2 - totalN)) / (totalN * totalN * (totalN - 1))
-
-    // Z-통계량 계산 (연속성 보정 적용)
-    const zStatistic = totalRuns > expectedRuns
-      ? (totalRuns - 0.5 - expectedRuns) / Math.sqrt(variance)
-      : (totalRuns + 0.5 - expectedRuns) / Math.sqrt(variance)
-
-    // p-value 계산 (양측 검정)
-    const pValue = 2 * (1 - normalCDF(Math.abs(zStatistic)))
-
-    const significant = pValue < 0.05
-
-    return {
-      variable,
-      totalRuns,
-      expectedRuns,
-      variance,
-      zStatistic,
-      pValue,
-      significant,
-      interpretation: significant
-        ? '데이터가 무작위 패턴을 따르지 않는 것으로 보임'
-        : '데이터가 무작위 패턴을 따르는 것으로 보임',
-      runSequence: runs,
-      statistics: {
-        n1,
-        n2,
-        totalN,
-        cutPoint: median
-      }
-    }
-  }, [])
-
-  // 표준정규분포 CDF 근사 (Abramowitz and Stegun approximation)
-  const normalCDF = useCallback((z: number): number => {
-    const t = 1.0 / (1.0 + 0.2316419 * Math.abs(z))
-    const d = 0.3989423 * Math.exp(-z * z / 2)
-    let prob = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))))
-    if (z > 0) prob = 1 - prob
-    return prob
-  }, [])
-
   const runAnalysis = useCallback(async (variables: RunsTestVariables | string[]) => {
     const varName = typeof variables === 'string' ? variables : Array.isArray(variables) ? variables[0] : variables.data
     if (!uploadedData || !varName) return
@@ -204,8 +122,87 @@ export default function RunsTestPage() {
     actions.startAnalysis()
 
     try {
-      // 실제 계산 사용
-      const result = calculateRunsTest(uploadedData.data, varName)
+      // 1️⃣ 데이터 추출 (숫자형 데이터만)
+      const sequence: number[] = []
+      for (const row of uploadedData.data) {
+        const value = (row as Record<string, unknown>)[varName]
+        if (value !== null && value !== undefined && typeof value === 'number' && !isNaN(value)) {
+          sequence.push(value)
+        }
+      }
+
+      if (sequence.length < 10) {
+        throw new Error('런 검정은 최소 10개 이상의 관측값이 필요합니다.')
+      }
+
+      // 2️⃣ PyodideCore 호출
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      const pythonResult = await pyodideCore.callWorkerMethod<{
+        nRuns: number
+        expectedRuns: number
+        n1: number
+        n2: number
+        zStatistic: number
+        pValue: number
+      }>(
+        3, // worker3-nonparametric-anova.py
+        'runs_test',
+        {
+          sequence: sequence
+        }
+      )
+
+      // 3️⃣ 결과 매핑 및 런 시퀀스 재구성 (UI 표시용)
+      const median = [...sequence].sort((a, b) => a - b)[Math.floor(sequence.length / 2)]
+      const binarySequence = sequence.map(val => val >= median ? 'A' : 'B')
+
+      // 런 시퀀스 생성
+      const runs: RunSequenceItem[] = []
+      let currentRun = 1
+      let currentValue = binarySequence[0]
+      let runLength = 1
+
+      for (let i = 1; i < binarySequence.length; i++) {
+        if (binarySequence[i] === currentValue) {
+          runLength++
+        } else {
+          runs.push({ value: currentValue, run: currentRun, runLength })
+          currentRun++
+          currentValue = binarySequence[i]
+          runLength = 1
+        }
+      }
+      runs.push({ value: currentValue, run: currentRun, runLength })
+
+      // 분산 계산 (UI 표시용)
+      const totalN = pythonResult.n1 + pythonResult.n2
+      const variance = (2 * pythonResult.n1 * pythonResult.n2 * (2 * pythonResult.n1 * pythonResult.n2 - totalN)) /
+                      (totalN * totalN * (totalN - 1))
+
+      const significant = pythonResult.pValue < 0.05
+
+      const result: RunsTestResult = {
+        variable: varName,
+        totalRuns: pythonResult.nRuns,
+        expectedRuns: pythonResult.expectedRuns,
+        variance,
+        zStatistic: pythonResult.zStatistic,
+        pValue: pythonResult.pValue,
+        significant,
+        interpretation: significant
+          ? '데이터가 무작위 패턴을 따르지 않는 것으로 보임'
+          : '데이터가 무작위 패턴을 따르는 것으로 보임',
+        runSequence: runs,
+        statistics: {
+          n1: pythonResult.n1,
+          n2: pythonResult.n2,
+          totalN,
+          cutPoint: median
+        }
+      }
 
       if (!actions.completeAnalysis) {
         console.error('[runs-test] completeAnalysis not available')
@@ -221,9 +218,10 @@ export default function RunsTestPage() {
         return
       }
 
-      actions.setError('런 검정 분석 중 오류가 발생했습니다.')
+      const errorMessage = error instanceof Error ? error.message : '런 검정 분석 중 오류가 발생했습니다.'
+      actions.setError(errorMessage)
     }
-  }, [uploadedData, calculateRunsTest, actions])
+  }, [uploadedData, actions])
 
   const handleVariableSelection = useCallback((variables: unknown) => {
     if (!variables || typeof variables !== 'object') return
