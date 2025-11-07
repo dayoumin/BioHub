@@ -103,7 +103,9 @@
       "Bash(timeout 3 tail:*)",
       "Bash(chcp 65001)",
       "Bash(timeout 5 npm run dev:*)",
-      "Bash(timeout 3 sleep:*)"
+      "Bash(timeout 3 sleep:*)",
+      "Bash(do if grep -q \": any\" \"$file\")",
+      "Bash(then echo \"$file\")"
     ],
     "deny": [],
     "ask": []

@@ -11,6 +11,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
+import type { PluggableList } from 'unified'
 import 'katex/dist/katex.min.css'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,6 +24,7 @@ import {
   Check,
   Trash2,
   Sparkles,
+  Edit2,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { queryRAG } from '@/lib/rag/rag-service'
@@ -236,6 +238,16 @@ export function RAGChatInterface({
         } catch (streamError) {
           // 스트리밍 실패 시 폴백: 이미 받은 initialResponse 사용
           console.warn('[handleSubmit] 스트리밍 실패, 기존 응답 사용:', streamError)
+
+          // 에러 타입별 처리
+          if (streamError instanceof TypeError) {
+            console.error('[handleSubmit] 네트워크 에러 또는 타입 에러:', streamError.message)
+          } else if (streamError instanceof SyntaxError) {
+            console.error('[handleSubmit] JSON 파싱 에러:', streamError.message)
+          } else if (streamError instanceof Error) {
+            console.error('[handleSubmit] 일반 에러:', streamError.message)
+          }
+
           finalContent = initialResponse.answer
           setMessages((prev) =>
             prev.map((msg) =>
@@ -403,27 +415,55 @@ export function RAGChatInterface({
                 ) : (
                   <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown
-                      remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
-                      rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                      remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins] as PluggableList}
+                      rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as PluggableList}
                     >
                       {msg.content}
                     </ReactMarkdown>
                   </div>
                 )}
 
-                {/* 복사 버튼 */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => handleCopyMessage(msg.id, msg.content)}
-                >
-                  {copiedMessageId === msg.id ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
+                {/* 메시지 액션 버튼 그룹 */}
+                <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* 복사 버튼 */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => handleCopyMessage(msg.id, msg.content)}
+                    title="복사"
+                  >
+                    {copiedMessageId === msg.id ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </Button>
+
+                  {/* 편집 버튼 (user 메시지만) */}
+                  {msg.role === 'user' && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => handleEditMessage(msg.id, msg.content)}
+                      title="편집"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
                   )}
-                </Button>
+
+                  {/* 삭제 버튼 */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 text-destructive hover:text-destructive"
+                    onClick={() => handleDeleteMessage(msg.id)}
+                    title="삭제"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
 
                 {/* 참조 문서 (Assistant 메시지만) - ChatSourcesDisplay 컴포넌트 사용 */}
                 {msg.role === 'assistant' && (msg.sources || msg.response?.sources) && (

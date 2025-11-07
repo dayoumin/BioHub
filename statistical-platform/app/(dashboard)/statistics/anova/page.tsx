@@ -202,6 +202,83 @@ export default function ANOVAPage() {
     'anova'
   )
 
+  /**
+   * Two-Way ANOVA 실행
+   * - Python Worker: two_way_anova(data_values, factor1_values, factor2_values)
+   * - 타입: TwoWayANOVAResult (types/statistics.ts)
+   */
+  const runTwoWayANOVA = useCallback(async (
+    variables: ANOVAVariables,
+    data: Array<Record<string, string | number | null | undefined>>
+  ) => {
+    try {
+      // 1️⃣ 변수 검증
+      if (variables.factor.length < 2) {
+        throw new Error('Two-Way ANOVA는 2개의 요인 변수가 필요합니다')
+      }
+
+      const dependentVar = variables.dependent
+      const factor1Var = variables.factor[0]
+      const factor2Var = variables.factor[1]
+
+      // 2️⃣ 데이터 추출 및 정렬
+      const dataValues: number[] = []
+      const factor1Values: (string | number)[] = []
+      const factor2Values: (string | number)[] = []
+
+      for (const row of data) {
+        const depValue = row[dependentVar]
+        const f1Value = row[factor1Var]
+        const f2Value = row[factor2Var]
+
+        // 유효한 데이터만 추가
+        if (
+          depValue !== null &&
+          depValue !== undefined &&
+          typeof depValue === 'number' &&
+          !isNaN(depValue) &&
+          f1Value !== null &&
+          f1Value !== undefined &&
+          f2Value !== null &&
+          f2Value !== undefined
+        ) {
+          dataValues.push(depValue)
+          factor1Values.push(f1Value)
+          factor2Values.push(f2Value)
+        }
+      }
+
+      // 3️⃣ 최소 데이터 검증
+      if (dataValues.length < 4) {
+        throw new Error(`Two-Way ANOVA는 최소 4개의 관측값이 필요합니다. 현재: ${dataValues.length}개`)
+      }
+
+      // 4️⃣ PyodideCore 호출
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      const result = await pyodideCore.callWorkerMethod<TwoWayANOVAResult>(
+        3, // worker3-nonparametric-anova.py
+        'two_way_anova',
+        {
+          data_values: dataValues,
+          factor1_values: factor1Values,
+          factor2_values: factor2Values
+        }
+      )
+
+      // 5️⃣ 결과 저장 및 다음 단계로 이동
+      actions.setResults(result as unknown as ANOVAResults)
+      actions.setCurrentStep(3)
+
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Two-Way ANOVA 분석 중 오류가 발생했습니다'
+      actions.setError(errorMessage)
+      throw err
+    }
+  }, [actions])
+
   const handleAnalysis = useCallback(async (variables: ANOVAVariables) => {
     try {
       // 1️⃣ 분석 시작
@@ -242,7 +319,10 @@ export default function ANOVAPage() {
       // 4️⃣ ANOVA 타입별 분석 실행
       if (anovaType === 'twoWay') {
         // ========== Two-Way ANOVA ==========
-        await runTwoWayANOVA(variables, uploadedData.data)
+        await runTwoWayANOVA(
+          variables,
+          uploadedData.data as Array<Record<string, string | number | null | undefined>>
+        )
         return
       } else if (anovaType === 'threeWay') {
         throw new Error('삼원분산분석(Three-Way ANOVA)은 아직 구현되지 않았습니다.')

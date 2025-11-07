@@ -14,7 +14,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Plus, ChevronLeft, ChevronRight, Edit2, MoreVertical, Pin, MapPin, FolderInput, Trash2 } from 'lucide-react'
@@ -71,6 +71,7 @@ export default function ChatbotPage() {
 
   // 드롭다운 메뉴 상태
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   // 모달 상태 (Phase 4에서 구현)
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
@@ -125,7 +126,7 @@ export default function ChatbotPage() {
 
   // 리렌더 트리거 (localStorage 변경 후 호출)
   const triggerUpdate = useCallback(() => {
-    setForceUpdate((prev) => prev + 1)
+    setForceUpdate((prev) => (prev + 1) % 1000)
   }, [])
 
   // 새 대화
@@ -259,6 +260,21 @@ export default function ChatbotPage() {
     triggerUpdate()
   }, [deleteTarget, currentSessionId, handleNewChat, triggerUpdate])
 
+  // 드롭다운 메뉴 외부 클릭 처리
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isMenuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isMenuOpen])
+
   // 키보드 단축키 (Ctrl+N: 새 대화)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -386,7 +402,7 @@ export default function ChatbotPage() {
                   </span>
 
                   {/* 3점 메뉴 버튼 */}
-                  <div className="relative">
+                  <div ref={menuRef} className="relative">
                     <Button
                       variant="ghost"
                       size="icon"
