@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd statistical-platform && npm install && npm run build",
+  "outputDirectory": "statistical-platform/out",
+  "framework": null,
+  "installCommand": "cd statistical-platform && npm install"
+}
