@@ -23,32 +23,14 @@ import {
   Document
 } from './base-provider'
 import { IndexedDBStorage, type StoredDocument } from '../indexeddb-storage'
-
-/**
- * sql.js 타입 정의 (브라우저 SQLite)
- */
-interface SqlJsStatic {
-  Database: new (data?: Uint8Array) => SqlJsDatabase
-}
-
-interface SqlJsDatabase {
-  exec(sql: string): SqlJsExecResult[]
-  close(): void
-}
-
-interface SqlJsExecResult {
-  columns: string[]
-  values: unknown[][]
-}
-
-/**
- * window 객체 확장 (sql.js 스크립트 로드 시 추가됨)
- */
-declare global {
-  interface Window {
-    initSqlJs?: (config: { locateFile?: (file: string) => string }) => Promise<SqlJsStatic>
-  }
-}
+import initSqlJs from 'sql.js'
+import {
+  initSqlWithIndexedDB,
+  persistDB,
+  type SqlJsStatic,
+  type SqlJsDatabase,
+  type SqlJsExecResult
+} from '../utils/sql-indexeddb'
 
 /**
  * SQLite BLOB을 float 배열로 변환
@@ -67,7 +49,7 @@ function blobToFloatArray(blob: Uint8Array): number[] {
 }
 
 /**
- * sql.js CDN 로더
+ * sql.js 로더 (npm 패키지 사용 - 완전 오프라인)
  */
 async function loadSqlJs(): Promise<SqlJsStatic> {
   // 브라우저 환경 체크
@@ -75,79 +57,15 @@ async function loadSqlJs(): Promise<SqlJsStatic> {
     throw new Error('sql.js는 브라우저 환경에서만 사용 가능합니다')
   }
 
-  // ✅ 온라인 환경: CDN에서 로드 시도
-  if (typeof window.initSqlJs === 'function') {
-    const SQL = await window.initSqlJs({
-      locateFile: (file: string) => `https://sql.js.org/dist/${file}`
-    })
-    return SQL as SqlJsStatic
-  }
+  console.log('[sql.js] npm 패키지에서 로드 중...')
 
-  // ✅ 오프라인 대응: 로컬 리소스에서 로드 (public/sql-wasm/)
-  console.log('[sql.js] CDN 실패, 로컬 리소스 로드 시도...')
-
-  return new Promise<SqlJsStatic>((resolve, reject) => {
-    // 방법 1: 로컬 CDN 시도 (public/sql-wasm/)
-    const localScript = document.createElement('script')
-    localScript.src = '/sql-wasm/sql-wasm.js'
-    localScript.async = true
-
-    localScript.onload = async () => {
-      try {
-        if (typeof window.initSqlJs === 'function') {
-          const SQL = await window.initSqlJs({
-            locateFile: (file: string) => `/sql-wasm/${file}`
-          })
-          resolve(SQL as SqlJsStatic)
-        } else {
-          throw new Error('로컬 sql.js 로드 실패')
-        }
-      } catch (error) {
-        console.warn('[sql.js] 로컬 로드 실패, CDN 폴백:', error)
-        loadFromCDN(resolve, reject)
-      }
-    }
-
-    localScript.onerror = () => {
-      console.warn('[sql.js] 로컬 파일 없음, CDN 폴백')
-      loadFromCDN(resolve, reject)
-    }
-
-    document.head.appendChild(localScript)
+  // npm 패키지 사용 (완전 오프라인, CDN 의존성 없음)
+  const SQL = await initSqlJs({
+    locateFile: (file: string) => `/sql-wasm/${file}`
   })
-}
 
-/**
- * CDN에서 sql.js 로드 (폴백)
- */
-function loadFromCDN(
-  resolve: (value: SqlJsStatic) => void,
-  reject: (reason?: unknown) => void
-): void {
-  const cdnScript = document.createElement('script')
-  cdnScript.src = 'https://sql.js.org/dist/sql-wasm.js'
-  cdnScript.async = true
-
-  cdnScript.onload = async () => {
-    try {
-      if (typeof window.initSqlJs === 'function') {
-        const SQL = await window.initSqlJs({
-          locateFile: (file: string) => `https://sql.js.org/dist/${file}`
-        })
-        resolve(SQL as SqlJsStatic)
-      } else {
-        reject(new Error('sql.js 로드 실패'))
-      }
-    } catch (error) {
-      reject(error)
-    }
-  }
-
-  cdnScript.onerror = () => {
-    reject(new Error('sql.js CDN 스크립트 로드 실패'))
-  }
-
-  document.head.appendChild(cdnScript)
+  console.log('[sql.js] ✓ 로드 완료 (오프라인 모드)')
+  return SQL as unknown as SqlJsStatic
 }
 
 export interface OllamaProviderConfig extends RAGProviderConfig {
@@ -209,6 +127,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
   // SQLite DB (sql.js 사용)
   private db: SqlJsDatabase | null = null
+  private SQL: any = null  // absurd-sql용 SQL 객체 저장
   private documents: DBDocument[] = []
 
   constructor(config: OllamaProviderConfig) {
@@ -551,6 +470,11 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           ${wordCount}
         )
       `)
+
+      // ✅ absurd-sql: 변경사항을 IndexedDB에 영구 저장
+      if (this.SQL) {
+        persistDB(this.SQL, this.db)
+      }
     }
 
     console.log(`[OllamaProvider] 문서 추가됨: ${docId}`)
@@ -640,6 +564,11 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         SET ${setClauses.join(', ')}
         WHERE doc_id = '${this.escapeSQL(docId)}'
       `)
+
+      // ✅ absurd-sql: 변경사항을 IndexedDB에 영구 저장
+      if (this.SQL) {
+        persistDB(this.SQL, this.db)
+      }
     }
 
     console.log(`[OllamaProvider] 문서 수정됨: ${docId}`)
@@ -673,6 +602,11 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         DELETE FROM documents
         WHERE doc_id = '${this.escapeSQL(docId)}'
       `)
+
+      // ✅ absurd-sql: 변경사항을 IndexedDB에 영구 저장
+      if (this.SQL) {
+        persistDB(this.SQL, this.db)
+      }
     }
 
     console.log(`[OllamaProvider] 문서 삭제됨: ${docId}`)
@@ -869,25 +803,21 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         return
       }
 
-      // 프로덕션 모드: sql.js 사용
-      // 1. sql.js 라이브러리 로드
-      console.log('[OllamaProvider] sql.js 로딩 중...')
-      const SQL = await loadSqlJs()
+      // 프로덕션 모드: absurd-sql 사용 (IndexedDB 백엔드)
+      // vectorDbPath에서 vectorStoreId 추출
+      // 예: '/rag-data/vector-qwen3-embedding-0.6b.db' → 'qwen3-embedding-0.6b'
+      const vectorStoreId = this.vectorDbPath
+        .replace('/rag-data/vector-', '')
+        .replace('.db', '')
 
-      // 2. SQLite DB 파일 다운로드
-      console.log(`[OllamaProvider] DB 파일 다운로드 중: ${this.vectorDbPath}`)
-      const response = await fetch(this.vectorDbPath)
+      console.log(`[OllamaProvider] Vector Store ID: ${vectorStoreId}`)
 
-      if (!response.ok) {
-        throw new Error(`DB 파일을 찾을 수 없습니다: ${this.vectorDbPath}`)
-      }
+      // 1. absurd-sql로 IndexedDB 기반 SQLite 초기화
+      const { SQL, db } = await initSqlWithIndexedDB(vectorStoreId)
 
-      const arrayBuffer = await response.arrayBuffer()
-      const uint8Array = new Uint8Array(arrayBuffer)
-
-      // 3. sql.js Database 초기화
-      this.db = new SQL.Database(uint8Array)
-      console.log('[OllamaProvider] ✓ DB 연결 성공')
+      this.SQL = SQL  // persistDB에서 사용하기 위해 저장
+      this.db = db
+      console.log('[OllamaProvider] ✓ DB 연결 성공 (IndexedDB 백엔드)')
 
       // 4. documents 테이블에서 모든 문서 로드 (임베딩 포함)
       const result = this.db.exec(`
