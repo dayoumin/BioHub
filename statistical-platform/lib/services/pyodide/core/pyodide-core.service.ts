@@ -26,6 +26,7 @@
 
 import type { PyodideInterface } from '@/types/pyodide'
 import { getPyodideCDNUrls } from '@/lib/constants'
+import type { WorkerRequest, WorkerResponse } from './pyodide-worker'
 
 // ========================================
 // 타입 정의
@@ -200,6 +201,19 @@ declare global {
   }
 }
 
+const SHOULD_USE_WEB_WORKER =
+  typeof process !== 'undefined' &&
+  process.env?.NEXT_PUBLIC_PYODIDE_USE_WORKER === 'true'
+
+const WORKER_INIT_TIMEOUT_MS = 30000
+const WORKER_METHOD_TIMEOUT_MS = 60000
+
+interface PendingWorkerRequest {
+  resolve: (value: unknown) => void
+  reject: (reason: Error) => void
+  timeout: ReturnType<typeof setTimeout>
+}
+
 // ========================================
 // PyodideCore 서비스 클래스
 // ========================================
@@ -214,6 +228,12 @@ export class PyodideCoreService {
   private loadPromise: Promise<void> | null = null
   private packagesLoaded = false
   private loadedWorkers: Set<number> = new Set()
+  private worker: Worker | null = null
+  private workerInitialized = false
+  private workerInitPromise: Promise<void> | null = null
+  private workerRequests: Map<string, PendingWorkerRequest> = new Map()
+  private workerRequestCounter = 0
+  private workerFallbackLogged = false
 
   /**
    * Private constructor (Singleton 패턴)
@@ -242,6 +262,7 @@ export class PyodideCoreService {
    * @internal
    */
   static resetInstance(): void {
+    this.instance?.dispose()
     this.instance = null
   }
 
@@ -259,6 +280,11 @@ export class PyodideCoreService {
    * @throws {Error} Pyodide 로드 실패 시
    */
   async initialize(): Promise<void> {
+    if (this.isWebWorkerMode()) {
+      await this.initializeWorkerBridge()
+      return
+    }
+
     // 이미 초기화된 경우
     if (this.pyodide) {
       return
@@ -329,6 +355,8 @@ export class PyodideCoreService {
     this.loadPromise = null
     this.packagesLoaded = false
     this.loadedWorkers.clear()
+    this.terminateWorker()
+    this.workerFallbackLogged = false
   }
 
   // ========================================
@@ -341,33 +369,43 @@ export class PyodideCoreService {
    * @param workerNumber Worker 번호 (1-4)
    * @throws {Error} Pyodide가 초기화되지 않은 경우
    */
+
   async ensureWorkerLoaded(workerNumber: 1 | 2 | 3 | 4): Promise<void> {
+    if (this.isWebWorkerMode()) {
+      if (this.loadedWorkers.has(workerNumber)) {
+        return
+      }
+
+      await this.initializeWorkerBridge()
+      await this.sendWorkerRequest(
+        'loadWorker',
+        { workerNum: workerNumber },
+        WORKER_INIT_TIMEOUT_MS
+      )
+      this.loadedWorkers.add(workerNumber)
+      return
+    }
+
     if (!this.pyodide) {
-      throw new Error('Pyodide가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.')
+      throw new Error('Pyodide�� �ʱ�ȭ���� �ʾҽ��ϴ�. initialize()�� ���� ȣ���ϼ���.')
     }
 
-    // 내부 캐시 확인 (sys.modules 체크 제거 - sys import 의존성 제거)
     if (this.loadedWorkers.has(workerNumber)) {
-      return // 이미 로드됨
+      return // �̹� �ε��
     }
 
-    // Worker Python 파일 로드
     const workerName = this.getWorkerFileName(workerNumber)
     const response = await fetch(`/workers/python/${workerName}.py`)
     if (!response.ok) {
-      throw new Error(`Worker ${workerNumber} 파일 로드 실패: ${response.statusText}`)
+      throw new Error(`Worker ${workerNumber} ���� �ε� ����: ${response.statusText}`)
     }
 
     const workerCode = await response.text()
-
-    // Python 코드 실행 (sys.modules에 등록)
     await this.pyodide.runPythonAsync(workerCode)
-
-    // 추가 패키지 로드 (백그라운드)
     await this.loadAdditionalPackages(workerNumber)
 
     this.loadedWorkers.add(workerNumber)
-    console.log(`✅ Worker ${workerNumber} 로드 완료: ${workerName}`)
+    console.log(`? Worker ${workerNumber} �ε� �Ϸ�: ${workerName}`)
   }
 
   /**
@@ -421,32 +459,35 @@ export class PyodideCoreService {
    * )
    * ```
    */
+
   async callWorkerMethod<T>(
     workerNum: 1 | 2 | 3 | 4,
     methodName: string,
     params: Record<string, WorkerMethodParam>,
     options: WorkerMethodOptions = {}
   ): Promise<T> {
-    // 1. 초기화
-    await this.initialize()
-    await this.ensureWorkerLoaded(workerNum)
-
-    if (!this.pyodide) {
-      throw new Error('Pyodide가 초기화되지 않았습니다')
-    }
-
-    // 2. 파라미터 검증 (skipValidation이 true가 아닌 경우)
     if (!options.skipValidation) {
       for (const [key, value] of Object.entries(params)) {
         this.validateWorkerParam(value, key)
       }
     }
 
-    // 3. Python 호출 코드 생성
+    if (this.isWebWorkerMode()) {
+      await this.ensureWorkerLoaded(workerNum)
+      return this.callWorkerMethodViaWebWorker<T>(workerNum, methodName, params, options)
+    }
+
+    await this.initialize()
+    await this.ensureWorkerLoaded(workerNum)
+
+    if (!this.pyodide) {
+      throw new Error('Pyodide�� �ʱ�ȭ���� �ʾҽ��ϴ�')
+    }
+
     const paramsList: string[] = []
     for (const [key, value] of Object.entries(params)) {
       const jsonValue = JSON.stringify(value)
-      paramsList.push(`${key}=json.loads('${jsonValue.replace(/'/g, "\\'")}')`)
+      paramsList.push(`${key}=json.loads('${jsonValue.replace(/'/g, "\'")}')`)
     }
 
     const pythonCode = `
@@ -455,14 +496,13 @@ result = ${methodName}(${paramsList.join(', ')})
 json.dumps(result)
     `.trim()
 
-    // 4. Python 실행
     try {
       const rawResult = await this.pyodide.runPythonAsync(pythonCode)
       const parsed = this.parsePythonResult<T>(rawResult)
 
       return parsed
     } catch (error) {
-      const errorMessage = options.errorMessage || `Worker ${workerNum} 메서드 ${methodName} 실행 실패`
+      const errorMessage = options.errorMessage || `Worker ${workerNum} �޼��� ${methodName} ���� ����`
       const errorDetail = error instanceof Error ? error.message : String(error)
       throw new Error(`${errorMessage}: ${errorDetail}`)
     }
@@ -716,6 +756,179 @@ json.dumps(result)
 
     // 이미 객체인 경우 그대로 반환
     return result as T
+  }
+
+
+  // ========================================
+  // Web Worker Helpers
+  // ========================================
+
+  private isWebWorkerMode(): boolean {
+    if (!SHOULD_USE_WEB_WORKER) {
+      return false
+    }
+
+    if (typeof window === 'undefined' || typeof Worker === 'undefined') {
+      if (!this.workerFallbackLogged) {
+        console.warn('[PyodideCore] Web Worker 모드를 사용할 수 없는 환경입니다. 메인 스레드로 폴백합니다.')
+        this.workerFallbackLogged = true
+      }
+      return false
+    }
+
+    return true
+  }
+
+  private async initializeWorkerBridge(): Promise<void> {
+    if (this.workerInitialized) {
+      return
+    }
+
+    if (this.workerInitPromise) {
+      await this.workerInitPromise
+      return
+    }
+
+    if (!this.isWebWorkerMode()) {
+      return
+    }
+
+    this.workerInitPromise = (async () => {
+      try {
+        this.worker = new Worker(new URL('./pyodide-worker.ts', import.meta.url), {
+          type: 'module'
+        })
+
+        this.worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+          this.handleWorkerMessage(event.data)
+        }
+
+        this.worker.onerror = (error: ErrorEvent) => {
+          console.error('[PyodideCore] Worker error:', error)
+        }
+
+        await this.sendWorkerRequest('init', {}, WORKER_INIT_TIMEOUT_MS)
+        this.workerInitialized = true
+      } catch (error) {
+        this.terminateWorker()
+        throw error
+      }
+    })()
+
+    try {
+      await this.workerInitPromise
+    } finally {
+      this.workerInitPromise = null
+    }
+  }
+
+  private async callWorkerMethodViaWebWorker<T>(
+    workerNum: 1 | 2 | 3 | 4,
+    methodName: string,
+    params: Record<string, WorkerMethodParam>,
+    options: WorkerMethodOptions = {}
+  ): Promise<T> {
+    await this.initializeWorkerBridge()
+
+    try {
+      const result = await this.sendWorkerRequest(
+        'callMethod',
+        { workerNum, method: methodName, params },
+        WORKER_METHOD_TIMEOUT_MS
+      )
+
+      return result as T
+    } catch (error) {
+      const errorMessage = options.errorMessage || `Worker ${workerNum} 메서드 ${methodName} 실행 실패`
+      const errorDetail = error instanceof Error ? error.message : String(error)
+      throw new Error(`${errorMessage}: ${errorDetail}`)
+    }
+  }
+
+  private async sendWorkerRequest(
+    type: WorkerRequest['type'],
+    data: Partial<WorkerRequest>,
+    timeout: number
+  ): Promise<unknown> {
+    if (!this.worker) {
+      throw new Error('Pyodide Web Worker가 초기화되지 않았습니다.')
+    }
+
+    const requestId = this.generateWorkerRequestId()
+
+    return new Promise((resolve, reject) => {
+      const timeoutHandle = window.setTimeout(() => {
+        this.workerRequests.delete(requestId)
+        reject(new Error(`Pyodide worker request timeout (${timeout}ms)`))
+      }, timeout) as unknown as NodeJS.Timeout
+
+      this.workerRequests.set(requestId, {
+        resolve,
+        reject,
+        timeout: timeoutHandle
+      })
+
+      const message: WorkerRequest = {
+        id: requestId,
+        type,
+        ...data
+      }
+
+      if (!this.worker) {
+        reject(new Error('Worker not initialized'))
+        return
+      }
+
+      this.worker.postMessage(message)
+    })
+  }
+
+  private handleWorkerMessage(response: WorkerResponse): void {
+    const pending = this.workerRequests.get(response.id)
+
+    if (!pending) {
+      if (response.type !== 'progress') {
+        console.warn(`[PyodideCore] Unknown worker response id: ${response.id}`)
+      }
+      return
+    }
+
+    if (response.type === 'progress') {
+      // Progress 이벤트는 timeout을 유지한 채로 무시
+      return
+    }
+
+    clearTimeout(pending.timeout)
+    this.workerRequests.delete(response.id)
+
+    if (response.type === 'success') {
+      pending.resolve(response.result)
+    } else if (response.type === 'error') {
+      pending.reject(new Error(response.error ?? 'Unknown worker error'))
+    }
+  }
+
+  private generateWorkerRequestId(): string {
+    this.workerRequestCounter += 1
+    return `pyodide_worker_req_${this.workerRequestCounter}_${Date.now()}`
+  }
+
+  private terminateWorker(): void {
+    if (this.worker) {
+      this.worker.terminate()
+      this.worker = null
+    }
+
+    this.workerInitialized = false
+    this.workerInitPromise = null
+
+    for (const { reject, timeout } of this.workerRequests.values()) {
+      clearTimeout(timeout)
+      reject(new Error('Pyodide Web Worker가 종료되었습니다.'))
+    }
+
+    this.workerRequests.clear()
+    this.loadedWorkers.clear()
   }
 
   // ========================================
@@ -1063,4 +1276,3 @@ json.dumps(result)
     return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, n_clusters: nClusters ?? 3 })
   }
 }
-
