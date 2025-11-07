@@ -85,10 +85,25 @@ function openDB(): Promise<IDBDatabase> {
           // 인덱스 생성
           embStore.createIndex('doc_id', 'doc_id', { unique: false })
           embStore.createIndex('doc_chunk', ['doc_id', 'chunk_index'], { unique: true })
-          embStore.createIndex('embedding_model', 'embedding_model', { unique: false })
           embStore.createIndex('created_at', 'created_at', { unique: false })
 
           console.log('[IndexedDB] embeddings 스토어 생성 완료')
+        }
+      }
+
+      // Version 3: embedding_model 인덱스 추가 (청크 기반 검색용)
+      if (oldVersion < 3) {
+        if (db.objectStoreNames.contains(EMBEDDINGS_STORE)) {
+          const target = event.target as IDBOpenDBRequest
+          const transaction = target.transaction
+          if (transaction) {
+            const embStore = transaction.objectStore(EMBEDDINGS_STORE)
+
+            if (!embStore.indexNames.contains('embedding_model')) {
+              embStore.createIndex('embedding_model', 'embedding_model', { unique: false })
+              console.log('[IndexedDB] embedding_model 인덱스 추가 완료')
+            }
+          }
         }
       }
     }

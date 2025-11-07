@@ -1188,7 +1188,10 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         const queryVector = new Float32Array(queryEmbedding)
 
         // 코사인 유사도 계산
-        const similarity = this.cosineSimilarity(queryVector, chunkEmbedding)
+        const similarity = this.cosineSimilarity(
+          Array.from(queryVector),
+          Array.from(chunkEmbedding)
+        )
 
         chunkScores.push({
           doc_id: embeddingData.doc_id,
