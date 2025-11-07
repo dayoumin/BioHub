@@ -31,7 +31,6 @@ import {
 } from 'lucide-react'
 import { RAGService } from '@/lib/rag/rag-service'
 import type { Document } from '@/lib/rag/providers/base-provider'
-import type { OllamaRAGProvider } from '@/lib/rag/providers/ollama-provider'
 
 interface DocumentWithSource extends Document {
   source: 'original' | 'user' // 원본 DB vs 사용자 추가
@@ -53,6 +52,9 @@ export function DocumentManager() {
     currentDocTitle: '',
   })
 
+  // Rebuild 에러 상태
+  const [rebuildErrors, setRebuildErrors] = useState<Array<{ docId: string; error: string }>>([])
+
   // 폼 상태
   const [formData, setFormData] = useState({
     doc_id: '',
@@ -73,13 +75,8 @@ export function DocumentManager() {
       const ragService = RAGService.getInstance()
       await ragService.initialize()
 
-      // OllamaRAGProvider에서 전체 문서 조회
-      const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
-      if (!provider) {
-        throw new Error('RAG Provider가 초기화되지 않았습니다')
-      }
-
-      const allDocs = provider.getAllDocuments()
+      // RAGService의 public 메서드로 문서 조회
+      const allDocs = ragService.getAllDocuments()
 
       // source 필드 추가 (doc_id로 판단)
       const docsWithSource: DocumentWithSource[] = allDocs.map((doc) => ({
@@ -169,13 +166,8 @@ export function DocumentManager() {
       const ragService = RAGService.getInstance()
       await ragService.initialize()
 
-      const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
-      if (!provider) {
-        throw new Error('RAG Provider가 초기화되지 않았습니다')
-      }
-
-      // 문서 추가 (addDocument는 Promise<string> 반환 - doc_id)
-      await provider.addDocument({
+      // RAGService의 public 메서드로 문서 추가
+      await ragService.addDocument({
         doc_id: formData.doc_id,
         title: formData.title,
         library: formData.library,
@@ -218,13 +210,8 @@ export function DocumentManager() {
       const ragService = RAGService.getInstance()
       await ragService.initialize()
 
-      const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
-      if (!provider) {
-        throw new Error('RAG Provider가 초기화되지 않았습니다')
-      }
-
-      // 문서 수정 (updateDocument는 Promise<boolean> 반환)
-      const success = await provider.updateDocument(selectedDoc.doc_id, {
+      // RAGService의 public 메서드로 문서 수정
+      const success = await ragService.updateDocument(selectedDoc.doc_id, {
         title: formData.title,
         content: formData.content,
         category: formData.category || undefined,
@@ -263,13 +250,8 @@ export function DocumentManager() {
         const ragService = RAGService.getInstance()
         await ragService.initialize()
 
-        const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
-        if (!provider) {
-          throw new Error('RAG Provider가 초기화되지 않았습니다')
-        }
-
-        // 문서 삭제 (deleteDocument는 Promise<boolean> 반환)
-        const success = await provider.deleteDocument(docId)
+        // RAGService의 public 메서드로 문서 삭제
+        const success = await ragService.deleteDocument(docId)
 
         if (!success) {
           throw new Error('문서 삭제 실패')
@@ -303,37 +285,55 @@ export function DocumentManager() {
     setIsRebuilding(true)
     setError(null)
     setRebuildProgress({ current: 0, total: 0, percentage: 0, currentDocTitle: '' })
+    setRebuildErrors([]) // 이전 에러 초기화
 
     try {
       console.log('[DocumentManager] Vector Store 재구축 시작')
 
-      // RAGService에서 provider 가져오기
+      // RAGService의 public 메서드로 재구축
       const ragService = RAGService.getInstance()
       await ragService.initialize()
 
-      const provider = (ragService as unknown as { provider: OllamaRAGProvider }).provider
-      if (!provider) {
-        throw new Error('RAG Provider가 초기화되지 않았습니다')
-      }
+      // Progress 업데이트 최적화: Percentage-threshold 방식
+      let lastUpdatePercentage = -1 // 초기값 -1로 설정 (첫 업데이트 보장)
+      const PROGRESS_THRESHOLD = 5 // 5% 이상 변경 시에만 업데이트
 
-      const result = await provider.rebuildVectorStore({
+      const result = await ragService.rebuildVectorStore({
         onProgress: (percentage: number, current: number, total: number, docTitle: string) => {
-          setRebuildProgress({
-            current,
-            total,
-            percentage,
-            currentDocTitle: docTitle,
-          })
+          // 첫 콜백은 항상 처리 (즉시 Progress UI 표시)
+          // 이후 콜백은 임계값 이상 변경되거나 100%인 경우에만 업데이트
+          const shouldUpdate =
+            lastUpdatePercentage < 0 || // 첫 콜백 (Progress UI 즉시 표시)
+            percentage === 100 || // 완료 시 항상 업데이트
+            Math.abs(percentage - lastUpdatePercentage) >= PROGRESS_THRESHOLD
+
+          if (shouldUpdate) {
+            setRebuildProgress({
+              current,
+              total,
+              percentage,
+              currentDocTitle: docTitle,
+            })
+            lastUpdatePercentage = percentage
+          }
         },
       })
 
       console.log('[DocumentManager] ✓ Vector Store 재구축 완료:', result)
+
+      // 에러 저장 (실패한 문서가 있는 경우)
+      if (result.errors.length > 0) {
+        setRebuildErrors(result.errors)
+      }
+
+      // 완료 알림
       alert(
         `재구축 완료!\n\n` +
           `- 처리 문서: ${result.processedDocs}/${result.totalDocs}\n` +
           `- 생성 청크: ${result.totalChunks}개\n` +
           `- 성공: ${result.successDocs}개\n` +
-          `- 실패: ${result.failedDocs}개`
+          `- 실패: ${result.failedDocs}개` +
+          (result.failedDocs > 0 ? '\n\n⚠️ 실패 상세는 하단 에러 패널을 확인하세요' : '')
       )
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
@@ -341,6 +341,7 @@ export function DocumentManager() {
       console.error('[DocumentManager] 재구축 실패:', err)
     } finally {
       setIsRebuilding(false)
+      // Progress는 초기화하지만 에러는 유지 (사용자가 확인할 수 있도록)
       setRebuildProgress({ current: 0, total: 0, percentage: 0, currentDocTitle: '' })
     }
   }, [])
@@ -469,6 +470,39 @@ export function DocumentManager() {
               </div>
             </div>
           )}
+
+          {/* Rebuild 에러 패널 */}
+          {rebuildErrors.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-bold text-destructive">
+                  재구축 실패 ({rebuildErrors.length}개)
+                </h4>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2"
+                  onClick={() => setRebuildErrors([])}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+              <ScrollArea className="max-h-32 bg-destructive/10 rounded p-2">
+                <div className="space-y-2">
+                  {rebuildErrors.map((err, i) => (
+                    <div key={i} className="text-xs">
+                      <div className="font-medium text-destructive truncate" title={err.docId}>
+                        {err.docId}
+                      </div>
+                      <div className="text-muted-foreground text-[10px] mt-0.5">
+                        {err.error}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -530,9 +564,14 @@ export function DocumentManager() {
                   <Input
                     value={formData.library}
                     onChange={(e) => setFormData({ ...formData, library: e.target.value })}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !!selectedDoc}
                     placeholder="예: scipy, numpy, statsmodels"
                   />
+                  {selectedDoc && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      라이브러리는 문서 생성 후 변경할 수 없습니다
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium">카테고리</label>

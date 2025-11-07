@@ -105,7 +105,7 @@ interface SearchResult {
   score: number
 }
 
-interface DBDocument {
+export interface DBDocument {
   doc_id: string
   title: string
   content: string

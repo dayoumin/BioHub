@@ -11,7 +11,6 @@
 
 import { OllamaRAGProvider } from '../providers/ollama-provider'
 import { IndexedDBStorage } from '../indexeddb-storage'
-import { blobToVector } from '../utils/blob-utils'
 import type { DocumentInput } from '../providers/base-provider'
 
 // Mock IndexedDB for Node.js environment
@@ -538,6 +537,66 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
 
       console.log(`✓ Top-K 제한 확인: ${results.length}개 문서 반환 (최대 5개)`)
       console.log(`✓ 점수 범위: ${results[0]?.score.toFixed(4)} ~ ${results[results.length - 1]?.score.toFixed(4)}`)
+    })
+
+    it('Public query() API에서 Top-K 제한 확인 (vector 모드)', async () => {
+      // 10개 문서 추가
+      for (let i = 0; i < 10; i++) {
+        await provider.addDocument({
+          doc_id: `topk_public_test_${i}`,
+          title: `Top-K Public Test Document ${i}`,
+          content: `This is test document number ${i}. It contains detailed statistical analysis content for public API testing.`,
+          library: 'test',
+          category: 'topk-public',
+        })
+      }
+
+      // Public query() API 호출 (vector 모드)
+      const response = await provider.query({
+        query: 'statistical analysis',
+        searchMode: 'vector',
+      })
+
+      // sources가 있고 Top-K 제한을 따르는지 확인 (기본값 5개)
+      expect(response.sources).toBeDefined()
+      expect(response.sources!.length).toBeLessThanOrEqual(5)
+
+      // 점수 내림차순 정렬 확인
+      for (let i = 0; i < response.sources!.length - 1; i++) {
+        expect(response.sources![i].score).toBeGreaterThanOrEqual(response.sources![i + 1].score)
+      }
+
+      console.log(`✓ Public query() Top-K 제한 확인 (vector): ${response.sources!.length}개 반환`)
+    })
+
+    it('Public query() API에서 Top-K 제한 확인 (hybrid 모드, RRF 병합 후)', async () => {
+      // 10개 문서 추가 (테스트 격리 - beforeEach에서 DB 초기화됨)
+      for (let i = 0; i < 10; i++) {
+        await provider.addDocument({
+          doc_id: `topk_hybrid_test_${i}`,
+          title: `Top-K Hybrid Test Document ${i}`,
+          content: `This is test document number ${i}. It contains detailed statistical analysis content for hybrid mode testing.`,
+          library: 'test',
+          category: 'topk-hybrid',
+        })
+      }
+
+      // Public query() API 호출 (hybrid 모드 - RRF 병합)
+      const response = await provider.query({
+        query: 'statistical analysis',
+        searchMode: 'hybrid',
+      })
+
+      // RRF 병합 후에도 Top-K 제한이 지켜지는지 확인 (기본값 5개)
+      expect(response.sources).toBeDefined()
+      expect(response.sources!.length).toBeLessThanOrEqual(5)
+
+      // 점수 내림차순 정렬 확인
+      for (let i = 0; i < response.sources!.length - 1; i++) {
+        expect(response.sources![i].score).toBeGreaterThanOrEqual(response.sources![i + 1].score)
+      }
+
+      console.log(`✓ Public query() Top-K 제한 확인 (hybrid): ${response.sources!.length}개 반환`)
     })
   })
 

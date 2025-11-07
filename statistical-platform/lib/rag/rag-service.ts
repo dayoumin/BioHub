@@ -5,8 +5,15 @@
  * 내부망 환경을 위한 완전 로컬 RAG 시스템
  */
 
-import { BaseRAGProvider, RAGContext, RAGResponse, VectorStore } from './providers/base-provider'
-import { OllamaRAGProvider } from './providers/ollama-provider'
+import {
+  BaseRAGProvider,
+  RAGContext,
+  RAGResponse,
+  VectorStore,
+  Document as RAGDocument,
+  DocumentInput,
+} from './providers/base-provider'
+import { OllamaRAGProvider, DBDocument } from './providers/ollama-provider'
 
 export type RAGProviderType = 'ollama'
 
@@ -163,6 +170,73 @@ export class RAGService {
       this.provider = null
     }
     RAGService.instance = null
+  }
+
+  /**
+   * OllamaRAGProvider 가져오기 (타입 안전)
+   * @throws {Error} Provider가 초기화되지 않았거나 Ollama가 아닌 경우
+   */
+  getOllamaProvider(): OllamaRAGProvider {
+    if (!this.provider) {
+      throw new Error('RAG Provider가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.')
+    }
+    if (this.providerType !== 'ollama') {
+      throw new Error('현재 Provider는 OllamaRAGProvider가 아닙니다')
+    }
+    return this.provider as OllamaRAGProvider
+  }
+
+  /**
+   * 모든 문서 조회
+   */
+  getAllDocuments(): RAGDocument[] {
+    const provider = this.getOllamaProvider()
+    return provider.getAllDocuments()
+  }
+
+  /**
+   * 문서 추가
+   */
+  async addDocument(doc: DocumentInput): Promise<string> {
+    const provider = this.getOllamaProvider()
+    return provider.addDocument(doc)
+  }
+
+  /**
+   * 문서 수정
+   */
+  async updateDocument(
+    docId: string,
+    updates: Partial<Pick<DBDocument, 'title' | 'content' | 'category' | 'summary'>>
+  ): Promise<boolean> {
+    const provider = this.getOllamaProvider()
+    return provider.updateDocument(docId, updates)
+  }
+
+  /**
+   * 문서 삭제
+   */
+  async deleteDocument(docId: string): Promise<boolean> {
+    const provider = this.getOllamaProvider()
+    return provider.deleteDocument(docId)
+  }
+
+  /**
+   * Vector Store 재구축
+   */
+  async rebuildVectorStore(options?: {
+    docIds?: string[]
+    onProgress?: (percentage: number, current: number, total: number, docTitle: string) => void
+  }): Promise<{
+    totalDocs: number
+    processedDocs: number
+    totalChunks: number
+    successDocs: number
+    failedDocs: number
+    errors: Array<{ docId: string; error: string }>
+  }> {
+    const provider = this.getOllamaProvider()
+    return provider.rebuildVectorStore(options)
   }
 }
 
