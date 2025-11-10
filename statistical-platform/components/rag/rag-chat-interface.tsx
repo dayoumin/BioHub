@@ -556,21 +556,45 @@ export function RAGChatInterface({
                       <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
                         이 기능은 로컬 AI 모델(Ollama)을 사용합니다. 아래 단계를 따라 설정해주세요:
                       </p>
-                      <ol className="list-decimal list-inside space-y-2 text-sm text-amber-900 dark:text-amber-100 mb-4">
+                      <ol className="list-decimal list-inside space-y-3 text-sm text-amber-900 dark:text-amber-100 mb-4">
                         <li>
                           <a
                             href="https://ollama.com/download"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="underline hover:text-primary"
+                            className="underline hover:text-primary font-medium"
                           >
                             Ollama 다운로드 및 설치
                           </a>
                         </li>
-                        <li>터미널에서 모델 다운로드:
-                          <code className="ml-2 px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
-                            ollama pull mxbai-embed-large && ollama pull qwen2.5
-                          </code>
+                        <li>
+                          <div className="mt-1">터미널에서 모델 다운로드 (PC 사양에 맞게 선택):</div>
+                          <div className="ml-4 mt-2 space-y-2">
+                            <div>
+                              <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
+                                💻 <strong>RAM 8GB 이하</strong> (가벼운 모델, 빠른 속도):
+                              </div>
+                              <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
+                                ollama pull qwen3-embedding:0.6b && ollama pull qwen2.5:0.5b
+                              </code>
+                            </div>
+                            <div>
+                              <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
+                                💻 <strong>RAM 16GB</strong> (권장, 균형잡힌 성능):
+                              </div>
+                              <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
+                                ollama pull qwen3-embedding:0.6b && ollama pull qwen2.5:3b
+                              </code>
+                            </div>
+                            <div>
+                              <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
+                                💻 <strong>RAM 32GB 이상</strong> (최고 성능):
+                              </div>
+                              <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
+                                ollama pull qwen3-embedding:0.6b && ollama pull qwen2.5:7b
+                              </code>
+                            </div>
+                          </div>
                         </li>
                         <li>페이지 새로고침</li>
                       </ol>
