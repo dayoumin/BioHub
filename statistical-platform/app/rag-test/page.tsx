@@ -50,6 +50,21 @@ interface OllamaModelInfo {
 }
 
 export default function RAGTestPage() {
+  // 프로덕션 환경에서는 404 반환
+  if (process.env.NODE_ENV === 'production') {
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>404 - Not Found</AlertTitle>
+          <AlertDescription>
+            This page is only available in development mode.
+          </AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
   // ===== 쿼리 테스트 상태 =====
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)

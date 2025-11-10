@@ -37,18 +37,104 @@ export interface PlainLanguageResult {
  * 데이터를 분석해서 적절한 통계 방법을 추천
  */
 export class SmartAnalysisEngine {
-  
+
+  /**
+   * 샘플 데이터로 정규성 간이 체크 (왜도 기반)
+   */
+  private static quickNormalityCheck(values: unknown[]): boolean {
+    const numericValues = values.filter(v => typeof v === 'number') as number[]
+    if (numericValues.length < 3) return true // 샘플 부족 시 정규분포 가정
+
+    const n = numericValues.length
+    const mean = numericValues.reduce((sum, val) => sum + val, 0) / n
+    const variance = numericValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n
+    const std = Math.sqrt(variance)
+
+    if (std === 0) return false // 분산 0이면 비정규
+
+    // 왜도 계산 (skewness)
+    const skewness = numericValues.reduce((sum, val) => sum + Math.pow((val - mean) / std, 3), 0) / n
+
+    // |skewness| > 2 → 비정규로 간주
+    return Math.abs(skewness) < 2
+  }
+
+  /**
+   * 데이터 품질 체크 (결측치, 이상치)
+   */
+  private static checkDataQuality(column: DataColumn): {
+    missingRate: number
+    hasOutliers: boolean
+    warnings: string[]
+  } {
+    const warnings: string[] = []
+
+    // 1. 결측치 비율 계산
+    const totalCount = column.sampleValues.length + column.missingCount
+    const missingRate = column.missingCount / totalCount
+
+    if (missingRate > 0.2) {
+      warnings.push(`⚠️ ${column.name}: 결측치가 ${(missingRate * 100).toFixed(0)}%로 높습니다. 데이터 수집을 재검토하세요.`)
+    }
+
+    // 2. 이상치 탐지 (IQR 방법)
+    let hasOutliers = false
+    if (column.type === 'numeric') {
+      const numericValues = column.sampleValues.filter(v => typeof v === 'number') as number[]
+      if (numericValues.length >= 4) {
+        // 정렬
+        const sorted = [...numericValues].sort((a, b) => a - b)
+        const n = sorted.length
+
+        // Q1, Q3 계산
+        const q1Index = Math.floor(n * 0.25)
+        const q3Index = Math.floor(n * 0.75)
+        const q1 = sorted[q1Index]
+        const q3 = sorted[q3Index]
+        const iqr = q3 - q1
+
+        // 이상치 범위
+        const lowerBound = q1 - 1.5 * iqr
+        const upperBound = q3 + 1.5 * iqr
+
+        // 이상치 개수
+        const outlierCount = numericValues.filter(v => v < lowerBound || v > upperBound).length
+        hasOutliers = outlierCount > 0
+
+        if (hasOutliers) {
+          warnings.push(`⚠️ ${column.name}: 이상치가 ${outlierCount}개 발견되었습니다. 데이터를 확인하세요.`)
+        }
+      }
+    }
+
+    return { missingRate, hasOutliers, warnings }
+  }
+
   /**
    * 데이터 구조를 분석해서 가능한 분석 방법들을 추천
    */
   static recommendAnalyses(columns: DataColumn[], researchQuestion?: string): AnalysisRecommendation[] {
     const recommendations: AnalysisRecommendation[] = []
-    
+    const dataQualityWarnings: string[] = []
+
     const numericCols = columns.filter(col => col.type === 'numeric')
     const categoricalCols = columns.filter(col => col.type === 'categorical')
-    
+
+    // 데이터 품질 체크 (모든 컬럼)
+    columns.forEach(col => {
+      const quality = this.checkDataQuality(col)
+      dataQualityWarnings.push(...quality.warnings)
+    })
+
     // 1. 기술통계는 항상 가능
     if (numericCols.length > 0) {
+      const nextSteps = ['데이터 분포 확인', '이상값 탐지', '그룹 비교 고려']
+
+      // 품질 경고가 있으면 nextSteps에 추가
+      if (dataQualityWarnings.length > 0) {
+        nextSteps.unshift('데이터 품질 확인 (결측치/이상치)')
+      }
+
       recommendations.push({
         id: 'descriptive',
         title: '기술통계 분석',
@@ -57,46 +143,86 @@ export class SmartAnalysisEngine {
         method: '기술통계량',
         confidence: 'high',
         requiredColumns: numericCols.slice(0, 1).map(col => col.name),
-        assumptions: ['숫자 데이터여야 함'],
-        nextSteps: ['데이터 분포 확인', '이상값 탐지', '그룹 비교 고려']
+        assumptions: dataQualityWarnings.length > 0
+          ? ['숫자 데이터여야 함', ...dataQualityWarnings]
+          : ['숫자 데이터여야 함'],
+        nextSteps
       })
     }
     
-    // 2. 두 그룹 비교 (독립표본 t-검정)
+    // 2. 두 그룹 비교 (t-검정 또는 Mann-Whitney)
     if (numericCols.length >= 1 && categoricalCols.length >= 1) {
       const binaryCategories = categoricalCols.filter(col => col.uniqueCount === 2)
-      
+
       if (binaryCategories.length > 0) {
-        recommendations.push({
-          id: 'ttest_independent',
-          title: '두 그룹 비교 (t-검정)',
-          description: '두 그룹 간의 평균 차이를 검정합니다',
-          easyDescription: '🔍 두 그룹 사이에 진짜 차이가 있는지 알아보세요 (예: 남녀 차이, 치료 전후 비교)',
-          method: '독립표본 t-검정',
-          confidence: 'high',
-          requiredColumns: [numericCols[0].name, binaryCategories[0].name],
-          assumptions: ['정규분포', '등분산성', '독립성'],
-          nextSteps: ['가정 검정', '효과크기 확인', '시각화']
-        })
+        // 정규성 체크
+        const isNormal = this.quickNormalityCheck(numericCols[0].sampleValues)
+
+        if (isNormal) {
+          // 모수 검정: t-test
+          recommendations.push({
+            id: 'ttest_independent',
+            title: '두 그룹 비교 (t-검정)',
+            description: '두 그룹 간의 평균 차이를 검정합니다',
+            easyDescription: '🔍 두 그룹 사이에 진짜 차이가 있는지 알아보세요 (예: 남녀 차이, 치료 전후 비교)',
+            method: '독립표본 t-검정',
+            confidence: 'high',
+            requiredColumns: [numericCols[0].name, binaryCategories[0].name],
+            assumptions: ['정규분포', '등분산성', '독립성'],
+            nextSteps: ['가정 검정', '효과크기 확인', '시각화']
+          })
+        } else {
+          // 비모수 검정: Mann-Whitney U
+          recommendations.push({
+            id: 'mannwhitney',
+            title: '두 그룹 비교 (비모수 검정)',
+            description: '두 그룹 간의 중앙값 차이를 검정합니다 (정규분포 가정 불필요)',
+            easyDescription: '🔍 두 그룹 사이에 차이가 있는지 알아보세요 (데이터가 정규분포가 아닐 때)',
+            method: 'Mann-Whitney U test',
+            confidence: 'high',
+            requiredColumns: [numericCols[0].name, binaryCategories[0].name],
+            assumptions: ['독립성'],
+            nextSteps: ['중앙값 비교', '효과크기 확인', '시각화']
+          })
+        }
       }
     }
-    
-    // 3. 여러 그룹 비교 (ANOVA)
+
+    // 3. 여러 그룹 비교 (ANOVA 또는 Kruskal-Wallis)
     if (numericCols.length >= 1 && categoricalCols.length >= 1) {
       const multiCategories = categoricalCols.filter(col => col.uniqueCount >= 3 && col.uniqueCount <= 10)
-      
+
       if (multiCategories.length > 0) {
-        recommendations.push({
-          id: 'anova_oneway',
-          title: '여러 그룹 비교 (분산분석)',
-          description: '3개 이상 그룹 간의 평균 차이를 검정합니다',
-          easyDescription: '📈 여러 그룹을 한 번에 비교해보세요 (예: A반, B반, C반 성적 비교)',
-          method: '일원분산분석',
-          confidence: 'high',
-          requiredColumns: [numericCols[0].name, multiCategories[0].name],
-          assumptions: ['정규분포', '등분산성', '독립성'],
-          nextSteps: ['사후검정', '그룹별 평균 비교', '시각화']
-        })
+        // 정규성 체크
+        const isNormal = this.quickNormalityCheck(numericCols[0].sampleValues)
+
+        if (isNormal) {
+          // 모수 검정: ANOVA
+          recommendations.push({
+            id: 'anova_oneway',
+            title: '여러 그룹 비교 (분산분석)',
+            description: '3개 이상 그룹 간의 평균 차이를 검정합니다',
+            easyDescription: '📈 여러 그룹을 한 번에 비교해보세요 (예: A반, B반, C반 성적 비교)',
+            method: '일원분산분석',
+            confidence: 'high',
+            requiredColumns: [numericCols[0].name, multiCategories[0].name],
+            assumptions: ['정규분포', '등분산성', '독립성'],
+            nextSteps: ['사후검정', '그룹별 평균 비교', '시각화']
+          })
+        } else {
+          // 비모수 검정: Kruskal-Wallis
+          recommendations.push({
+            id: 'kruskal_wallis',
+            title: '여러 그룹 비교 (비모수 검정)',
+            description: '3개 이상 그룹 간의 중앙값 차이를 검정합니다 (정규분포 가정 불필요)',
+            easyDescription: '📈 여러 그룹을 한 번에 비교해보세요 (데이터가 정규분포가 아닐 때)',
+            method: 'Kruskal-Wallis test',
+            confidence: 'high',
+            requiredColumns: [numericCols[0].name, multiCategories[0].name],
+            assumptions: ['독립성'],
+            nextSteps: ['사후검정', '그룹별 중앙값 비교', '시각화']
+          })
+        }
       }
     }
     
@@ -115,22 +241,80 @@ export class SmartAnalysisEngine {
       })
     }
     
-    // 5. 회귀분석
+    // 5. 회귀분석 (연구질문에 '예측' 키워드 있으면 신뢰도 상승)
     if (numericCols.length >= 2) {
+      const isPredictionTask = researchQuestion?.toLowerCase().includes('예측') ||
+                               researchQuestion?.toLowerCase().includes('predict')
+
       recommendations.push({
         id: 'regression',
         title: '회귀분석',
         description: '한 변수가 다른 변수를 얼마나 예측하는지 분석합니다',
         easyDescription: '🎯 한 가지를 알면 다른 것을 예측할 수 있는지 알아보세요 (예: 광고비로 매출 예측)',
         method: '단순선형회귀',
-        confidence: 'medium',
+        confidence: isPredictionTask ? 'high' : 'medium',
         requiredColumns: numericCols.slice(0, 2).map(col => col.name),
         assumptions: ['선형관계', '정규분포', '등분산성', '독립성'],
         nextSteps: ['잔차 분석', '예측 구간', '모델 검증']
       })
     }
-    
-    // 6. 연구 질문 기반 추천
+
+    // 6. 다변량 분석 (다중회귀)
+    if (numericCols.length >= 3) {
+      recommendations.push({
+        id: 'multiple_regression',
+        title: '다중회귀분석',
+        description: '여러 변수가 하나의 결과 변수를 얼마나 예측하는지 분석합니다',
+        easyDescription: '🎯 여러 요인을 함께 고려해서 예측해보세요 (예: 광고비+계절+가격으로 매출 예측)',
+        method: '다중선형회귀',
+        confidence: 'medium',
+        requiredColumns: numericCols.slice(0, 3).map(col => col.name),
+        assumptions: ['선형관계', '정규분포', '등분산성', '독립성', '다중공선성 없음'],
+        nextSteps: ['변수 선택', 'VIF 확인', '모델 비교']
+      })
+    }
+
+    // 7. 이원분산분석 (2개 범주형 변수)
+    if (numericCols.length >= 1 && categoricalCols.length >= 2) {
+      recommendations.push({
+        id: 'two_way_anova',
+        title: '이원분산분석',
+        description: '두 개의 범주형 변수가 수치형 변수에 미치는 영향을 분석합니다',
+        easyDescription: '📊 두 가지 요인이 함께 결과에 영향을 주는지 알아보세요 (예: 성별+연령대가 점수에 영향)',
+        method: '이원분산분석',
+        confidence: 'medium',
+        requiredColumns: [numericCols[0].name, categoricalCols[0].name, categoricalCols[1].name],
+        assumptions: ['정규분포', '등분산성', '독립성'],
+        nextSteps: ['주효과 분석', '상호작용 효과 확인', '단순주효과 분석']
+      })
+    }
+
+    // 8. 시계열 데이터 감지
+    const timeColumns = columns.filter(col =>
+      col.name.toLowerCase().includes('날짜') ||
+      col.name.toLowerCase().includes('시간') ||
+      col.name.toLowerCase().includes('년') ||
+      col.name.toLowerCase().includes('월') ||
+      col.name.toLowerCase().includes('date') ||
+      col.name.toLowerCase().includes('time') ||
+      col.name.toLowerCase().includes('year')
+    )
+
+    if (timeColumns.length > 0 && numericCols.length >= 1) {
+      recommendations.push({
+        id: 'time_series',
+        title: '시계열 분석',
+        description: '시간에 따른 데이터의 변화 패턴을 분석합니다',
+        easyDescription: '📈 시간의 흐름에 따라 데이터가 어떻게 변하는지 알아보세요 (트렌드, 계절성)',
+        method: '시계열 분석',
+        confidence: 'medium',
+        requiredColumns: [timeColumns[0].name, numericCols[0].name],
+        assumptions: ['시간 순서 데이터', '일정한 시간 간격'],
+        nextSteps: ['트렌드 분석', '계절성 확인', '예측 모델 구축']
+      })
+    }
+
+    // 9. 연구 질문 기반 추천
     if (researchQuestion) {
       const questionBasedRecommendations = this.analyzeResearchQuestion(researchQuestion, columns)
       recommendations.push(...questionBasedRecommendations)

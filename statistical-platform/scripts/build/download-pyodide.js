@@ -19,7 +19,7 @@ const https = require('https');
 const { execSync } = require('child_process');
 
 // 설정
-const PYODIDE_VERSION = process.env.PYODIDE_VERSION || 'v0.28.3';
+const PYODIDE_VERSION = process.env.PYODIDE_VERSION || '0.29.0';
 const PYODIDE_BASE_URL = 'https://github.com/pyodide/pyodide/releases/download';
 const OUTPUT_DIR = path.join(__dirname, '../../public/pyodide');
 const TEMP_DIR = path.join(__dirname, '../../.temp');

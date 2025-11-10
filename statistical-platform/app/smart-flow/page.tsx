@@ -60,6 +60,7 @@ export default function SmartFlowPage() {
     uploadedData,
     validationResults,
     selectedMethod,
+    variableMapping,
     results,
     isLoading,
     error,
@@ -324,7 +325,7 @@ export default function SmartFlowPage() {
               <div className="animate-in fade-in duration-500">
                 <AnalysisExecutionStep
                   selectedMethod={selectedMethod}
-                  variableMapping={{}}
+                  variableMapping={variableMapping || {}}
                   onAnalysisComplete={handleAnalysisComplete}
                   onNext={goToNextStep}
                   onPrevious={goToPreviousStep}

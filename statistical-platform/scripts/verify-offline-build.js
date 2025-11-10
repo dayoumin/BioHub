@@ -23,15 +23,17 @@ const REQUIRED_FILES = [
   'index.html',                          // 메인 HTML
   'pyodide/pyodide.js',                  // Pyodide 진입점
   'pyodide/pyodide.asm.wasm',            // Pyodide 런타임
+  'pyodide/packages/numpy.js',           // NumPy (통계 필수)
+  'pyodide/packages/scipy.js',           // SciPy (통계 필수)
+  'pyodide/packages/pandas.js',          // Pandas (데이터 처리)
   'sql-wasm/sql-wasm.js',                // SQL.js
   'sql-wasm/sql-wasm.wasm',              // SQL.js WASM
 ];
 
 const OPTIONAL_FILES = [
-  'pyodide/packages/numpy.js',           // NumPy (통계 필수)
-  'pyodide/packages/scipy.js',           // SciPy (통계 필수)
-  'pyodide/packages/pandas.js',          // Pandas (데이터 처리)
   'pyodide/packages/statsmodels.js',     // statsmodels (고급 통계)
+  'pyodide/packages/pingouin.js',        // pingouin (통계)
+  'pyodide/packages/matplotlib.js',      // matplotlib (시각화)
 ];
 
 console.log('🔍 오프라인 빌드 검증 시작...\n');
@@ -140,13 +142,14 @@ console.log('📊 빌드 크기:');
 const totalSize = getDirectorySize(OUT_DIR);
 console.log(`  총 크기: ${formatBytes(totalSize)}`);
 
-if (totalSize < 50 * 1024 * 1024) {
-  console.log('  ⚠️ 빌드 크기가 50MB 미만입니다.');
-  console.log('     Pyodide가 로컬에 포함되지 않았을 수 있습니다.');
-} else if (totalSize > 200 * 1024 * 1024) {
-  console.log('  ✅ Pyodide 로컬 번들링 확인 (200MB 이상)');
+// 오프라인 빌드는 최소 200MB 이상이어야 함 (Pyodide packages 포함)
+if (totalSize < 200 * 1024 * 1024) {
+  console.error('  ❌ 빌드 크기 부족 (200MB 미만)');
+  console.error('     Pyodide packages가 포함되지 않았습니다.');
+  console.error('     npm run setup:pyodide를 먼저 실행하세요.');
+  process.exit(1);
 } else {
-  console.log('  ✅ 적정 크기');
+  console.log('  ✅ Pyodide 로컬 번들링 확인 (200MB 이상)');
 }
 
 console.log('');
