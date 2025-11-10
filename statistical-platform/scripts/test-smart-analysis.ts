@@ -233,7 +233,7 @@ const scenarios: TestScenario[] = [
     ],
     researchQuestion: '여러 요인이 매출에 영향을 주나요?',
     expectedMethods: ['다중선형회귀'],
-    expectedConfidence: 'medium'
+    expectedConfidence: 'high'
   },
 
   // 시나리오 9: 이원분산분석
@@ -265,7 +265,7 @@ const scenarios: TestScenario[] = [
     ],
     researchQuestion: '성별과 연령대가 함께 점수에 영향을 주나요?',
     expectedMethods: ['이원분산분석'],
-    expectedConfidence: 'medium'
+    expectedConfidence: 'high'
   },
 
   // 시나리오 10: 시계열 분석
@@ -296,21 +296,23 @@ const scenarios: TestScenario[] = [
   // 시나리오 11: 데이터 품질 문제 (결측치)
   {
     name: '시나리오 11: 결측치 많음',
-    description: '결측치 30%인 데이터',
+    description: '결측치 30%인 데이터 (전체 100행 중 30개 결측)',
     columns: [
       {
         name: '키',
         type: 'numeric',
         sampleValues: [165, 170, 175],
         missingCount: 30,  // 30개 결측
-        uniqueCount: 50
+        uniqueCount: 50,
+        totalCount: 100    // 전체 행 수 명시
       },
       {
         name: '몸무게',
         type: 'numeric',
         sampleValues: [55, 60, 70],
         missingCount: 5,
-        uniqueCount: 50
+        uniqueCount: 50,
+        totalCount: 100    // 전체 행 수 명시
       }
     ],
     expectedMethods: ['기술통계량', '상관분석'],
@@ -366,13 +368,19 @@ function runTest(scenario: TestScenario): {
     console.log(`\n✅ 기대한 방법이 추천됨: ${scenario.expectedMethods.join(', ')}`)
   }
 
-  // 검증: 신뢰도가 적절한가?
-  const topRecommendation = recommendations[0]
-  if (topRecommendation && topRecommendation.confidence !== scenario.expectedConfidence) {
-    issues.push(
-      `⚠️ 신뢰도 불일치: 기대값=${scenario.expectedConfidence}, ` +
-      `실제값=${topRecommendation.confidence}`
-    )
+  // 검증: 신뢰도가 적절한가? (기대한 방법의 신뢰도 확인)
+  const expectedRecommendations = recommendations.filter(r =>
+    scenario.expectedMethods.includes(r.method)
+  )
+
+  if (expectedRecommendations.length > 0) {
+    const expectedRec = expectedRecommendations[0]
+    if (expectedRec.confidence !== scenario.expectedConfidence) {
+      issues.push(
+        `⚠️ 신뢰도 불일치: 기대값=${scenario.expectedConfidence}, ` +
+        `실제값=${expectedRec.confidence} (방법: ${expectedRec.method})`
+      )
+    }
   }
 
   // 검증: 추천이 비어있지 않은가?

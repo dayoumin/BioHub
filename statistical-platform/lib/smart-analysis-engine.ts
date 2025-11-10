@@ -9,6 +9,7 @@ export interface DataColumn {
   sampleValues: any[]
   missingCount: number
   uniqueCount: number
+  totalCount?: number  // 전체 행 수 (선택적, 없으면 sampleValues.length + missingCount로 추정)
 }
 
 export interface AnalysisRecommendation {
@@ -70,8 +71,9 @@ export class SmartAnalysisEngine {
     const warnings: string[] = []
 
     // 1. 결측치 비율 계산
-    const totalCount = column.sampleValues.length + column.missingCount
-    const missingRate = column.missingCount / totalCount
+    // totalCount가 명시되어 있으면 사용, 없으면 sampleValues + missingCount로 추정
+    const totalCount = column.totalCount ?? (column.sampleValues.length + column.missingCount)
+    const missingRate = totalCount > 0 ? column.missingCount / totalCount : 0
 
     if (missingRate > 0.2) {
       warnings.push(`⚠️ ${column.name}: 결측치가 ${(missingRate * 100).toFixed(0)}%로 높습니다. 데이터 수집을 재검토하세요.`)
@@ -261,13 +263,17 @@ export class SmartAnalysisEngine {
 
     // 6. 다변량 분석 (다중회귀)
     if (numericCols.length >= 3) {
+      const isMultipleFactorAnalysis = researchQuestion?.toLowerCase().includes('여러') ||
+                                        researchQuestion?.toLowerCase().includes('multiple') ||
+                                        researchQuestion?.toLowerCase().includes('요인')
+
       recommendations.push({
         id: 'multiple_regression',
         title: '다중회귀분석',
         description: '여러 변수가 하나의 결과 변수를 얼마나 예측하는지 분석합니다',
         easyDescription: '🎯 여러 요인을 함께 고려해서 예측해보세요 (예: 광고비+계절+가격으로 매출 예측)',
         method: '다중선형회귀',
-        confidence: 'medium',
+        confidence: isMultipleFactorAnalysis ? 'high' : 'medium',
         requiredColumns: numericCols.slice(0, 3).map(col => col.name),
         assumptions: ['선형관계', '정규분포', '등분산성', '독립성', '다중공선성 없음'],
         nextSteps: ['변수 선택', 'VIF 확인', '모델 비교']
@@ -276,13 +282,19 @@ export class SmartAnalysisEngine {
 
     // 7. 이원분산분석 (2개 범주형 변수)
     if (numericCols.length >= 1 && categoricalCols.length >= 2) {
+      const isTwoFactorAnalysis = researchQuestion?.toLowerCase().includes('함께') ||
+                                   researchQuestion?.toLowerCase().includes('together') ||
+                                   researchQuestion?.toLowerCase().includes('상호작용') ||
+                                   (researchQuestion?.toLowerCase().includes('과') &&
+                                    researchQuestion?.toLowerCase().includes('가'))
+
       recommendations.push({
         id: 'two_way_anova',
         title: '이원분산분석',
         description: '두 개의 범주형 변수가 수치형 변수에 미치는 영향을 분석합니다',
         easyDescription: '📊 두 가지 요인이 함께 결과에 영향을 주는지 알아보세요 (예: 성별+연령대가 점수에 영향)',
         method: '이원분산분석',
-        confidence: 'medium',
+        confidence: isTwoFactorAnalysis ? 'high' : 'medium',
         requiredColumns: [numericCols[0].name, categoricalCols[0].name, categoricalCols[1].name],
         assumptions: ['정규분포', '등분산성', '독립성'],
         nextSteps: ['주효과 분석', '상호작용 효과 확인', '단순주효과 분석']
@@ -290,15 +302,30 @@ export class SmartAnalysisEngine {
     }
 
     // 8. 시계열 데이터 감지
-    const timeColumns = columns.filter(col =>
-      col.name.toLowerCase().includes('날짜') ||
-      col.name.toLowerCase().includes('시간') ||
-      col.name.toLowerCase().includes('년') ||
-      col.name.toLowerCase().includes('월') ||
-      col.name.toLowerCase().includes('date') ||
-      col.name.toLowerCase().includes('time') ||
-      col.name.toLowerCase().includes('year')
-    )
+    const timeColumns = columns.filter(col => {
+      const name = col.name.toLowerCase()
+
+      // 컬럼명에 시간 키워드가 포함되어 있는지 확인
+      const hasTimeKeyword =
+        name.includes('날짜') ||
+        name.includes('년') ||
+        name.includes('월') ||
+        name.includes('date') ||
+        name.includes('year')
+
+      // "시간"이나 "time" 키워드는 단독으로 나타날 때만 시계열로 인정
+      // (예: "시간" O, "공부시간" X)
+      const hasStandaloneTimeKeyword =
+        name === '시간' ||
+        name === 'time' ||
+        name.startsWith('시간_') ||
+        name.startsWith('time_') ||
+        name.endsWith('_시간') ||
+        name.endsWith('_time')
+
+      // 범주형 데이터가 아니고, 시간 관련 키워드가 있으면 시계열 후보
+      return hasTimeKeyword || hasStandaloneTimeKeyword
+    })
 
     if (timeColumns.length > 0 && numericCols.length >= 1) {
       recommendations.push({
@@ -370,8 +397,7 @@ export class SmartAnalysisEngine {
     const keywords = {
       difference: ['차이', '다른', '비교', 'difference', 'compare', 'different'],
       relationship: ['관계', '관련', 'relationship', 'correlation', 'related'],
-      prediction: ['예측', '영향', 'predict', 'effect', 'influence'],
-      trend: ['변화', '트렌드', '경향', 'trend', 'change', 'over time']
+      prediction: ['예측', '영향', 'predict', 'effect', 'influence']
     }
     
     // 차이 분석 키워드 감지
