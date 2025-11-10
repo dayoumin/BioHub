@@ -47,6 +47,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useToast } from '@/components/ui/use-toast'
 import {
   AlertCircle,
   CheckCircle2,
@@ -91,6 +92,9 @@ export function VariableSelectorModern({
   // ========================================
   // 1. 상태 관리
   // ========================================
+
+  // Toast hook
+  const { toast } = useToast()
 
   // 변수 할당 상태
   const [assignments, setAssignments] = useState<VariableAssignment>({})
@@ -327,7 +331,12 @@ export function VariableSelectorModern({
     // 타입 검증
     if (varReq.types && varReq.types.length > 0) {
       if (!varReq.types.includes(column.type)) {
-        // 타입 불일치 - 에러 표시 (선택적)
+        // 타입 불일치 - Toast 알림
+        toast({
+          title: "타입 불일치",
+          description: `"${variableName}"은(는) ${varReq.label}에 할당할 수 없습니다. (${column.type} 타입)`,
+          variant: "destructive"
+        })
         return
       }
     }
@@ -339,14 +348,31 @@ export function VariableSelectorModern({
       const currentArray = Array.isArray(current) ? current : current ? [current] : []
 
       // 이미 할당된 변수면 무시
-      if (currentArray.includes(variableName)) return
+      if (currentArray.includes(variableName)) {
+        toast({
+          title: "중복 할당",
+          description: `"${variableName}"은(는) 이미 ${varReq.label}에 할당되어 있습니다.`,
+          variant: "default"
+        })
+        return
+      }
 
       handleVariableSelect(targetRole, [...currentArray, variableName])
+      toast({
+        title: "변수 할당 완료",
+        description: `"${variableName}"을(를) ${varReq.label}에 추가했습니다.`,
+        variant: "default"
+      })
     } else {
       // 단일 선택: 덮어쓰기
       handleVariableSelect(targetRole, variableName)
+      toast({
+        title: "변수 할당 완료",
+        description: `"${variableName}"을(를) ${varReq.label}로 설정했습니다.`,
+        variant: "default"
+      })
     }
-  }, [analysis, requirements, assignments, handleVariableSelect])
+  }, [analysis, requirements, assignments, handleVariableSelect, toast])
 
   // 변수 제거 핸들러
   const handleRemoveVariable = useCallback((role: string, varName: string) => {

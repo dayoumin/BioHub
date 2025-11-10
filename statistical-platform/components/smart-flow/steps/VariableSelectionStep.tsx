@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Info, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
-import { VariableSelectorSimple } from '@/components/variable-selection/VariableSelectorSimple'
-import { VariableSelectorPremium } from '@/components/variable-selection/VariableSelectorPremium'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { getMethodRequirements } from '@/lib/statistics/variable-requirements'
 import { VariableAssignment } from '@/components/variable-selection/VariableSelector'
@@ -126,14 +125,13 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       <div className="space-y-6">
         {/* UI 모드 선택 */}
         <Tabs value={selectedMode} onValueChange={(v) => setSelectedMode(v as any)} className="mb-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="simple">간단한 선택</TabsTrigger>
-            <TabsTrigger value="advanced">드래그 앤 드롭</TabsTrigger>
-            <TabsTrigger value="premium">프리미엄 UX</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="simple">드래그앤드롭 (추천)</TabsTrigger>
+            <TabsTrigger value="advanced">3단 레이아웃</TabsTrigger>
           </TabsList>
 
           <TabsContent value="simple" className="mt-4">
-            <VariableSelectorSimple
+            <VariableSelectorModern
               methodId={selectedMethod.id}
               data={uploadedData}
               onVariablesSelected={handleVariablesSelected}
@@ -146,15 +144,6 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
               methodId={selectedMethod.id}
               data={uploadedData}
               onVariablesSelected={handleVariablesSelected}
-            />
-          </TabsContent>
-
-          <TabsContent value="premium" className="mt-4">
-            <VariableSelectorPremium
-              methodId={selectedMethod.id}
-              data={uploadedData}
-              onVariablesSelected={handleVariablesSelected}
-              onBack={onBack || goToPreviousStep}
             />
           </TabsContent>
         </Tabs>

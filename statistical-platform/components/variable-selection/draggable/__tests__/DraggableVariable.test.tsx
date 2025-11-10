@@ -10,12 +10,20 @@ const mockColumn: ColumnAnalysis = {
   dataType: 'number',
   uniqueCount: 24,
   missingCount: 0,
+  totalCount: 24,
+  missingRate: 0,
+  samples: [],
+  metadata: {
+    possibleTypes: ['continuous'],
+    confidence: 0.95,
+    reason: 'test data'
+  },
   statistics: {
     min: 72.0,
     max: 95.0,
     mean: 83.5,
     median: 84.0,
-    stdDev: 6.8
+    std: 6.8
   }
 }
 
