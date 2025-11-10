@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -29,6 +29,7 @@ import type { VariableMapping } from '@/hooks/use-statistics-page'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 
 interface VariableAssignment {
   [role: string]: string | string[]
@@ -80,6 +81,11 @@ export default function DescriptiveStatsPage() {
 
   // 편의를 위한 destructuring
   const { currentStep, selectedVariables, uploadedData, results, isAnalyzing } = state
+
+  // 최근 사용 목록에 추가 (페이지 마운트 시 1회 실행)
+  useEffect(() => {
+    addToRecentStatistics('descriptive')
+  }, [])
 
   // 단계 정의
   const steps: StatisticsStep[] = [
