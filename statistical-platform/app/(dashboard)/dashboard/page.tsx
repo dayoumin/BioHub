@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Sparkles, Star, ChevronDown, ChevronUp } from "lucide-react"
+import { Sparkles, Star, ChevronDown, ChevronUp, Clock } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, useCallback } from "react"
 import { STATISTICS_MENU } from "@/lib/statistics/menu-config"
@@ -12,16 +12,29 @@ import { cn } from "@/lib/utils"
 export default function DashboardPage() {
   // 즐겨찾기 상태 관리
   const [favorites, setFavorites] = useState<string[]>([])
+  // 최근 사용 상태 관리
+  const [recentlyUsed, setRecentlyUsed] = useState<string[]>([])
   // 선택된 카테고리 (토글용)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem('statPlatform_favorites')
-    if (saved) {
+    // 즐겨찾기 로드
+    const savedFavorites = localStorage.getItem('statPlatform_favorites')
+    if (savedFavorites) {
       try {
-        setFavorites(JSON.parse(saved))
+        setFavorites(JSON.parse(savedFavorites))
       } catch (error) {
         console.error('Failed to load favorites:', error)
+      }
+    }
+
+    // 최근 사용 로드
+    const savedRecent = localStorage.getItem('statPlatform_recent')
+    if (savedRecent) {
+      try {
+        setRecentlyUsed(JSON.parse(savedRecent))
+      } catch (error) {
+        console.error('Failed to load recently used:', error)
       }
     }
   }, [])
@@ -46,6 +59,7 @@ export default function DashboardPage() {
   // 모든 메뉴 아이템 평탄화
   const allItems = STATISTICS_MENU.flatMap((category) => category.items)
   const favoriteItems = allItems.filter((item) => favorites.includes(item.id))
+  const recentItems = allItems.filter((item) => recentlyUsed.includes(item.id)).slice(0, 5)
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-8">
@@ -61,11 +75,119 @@ export default function DashboardPage() {
         </Card>
       </Link>
 
-      {/* 2. 즐겨찾기 섹션 */}
+      {/* 2. 최근 사용한 분석 섹션 */}
+      {recentItems.length > 0 && (
+        <div className="space-y-4 max-w-3xl mx-auto">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Clock className="h-6 w-6 text-muted-foreground" />
+              최근 사용한 분석
+            </h2>
+            <Badge variant="outline" className="text-base px-3 py-1">
+              {recentItems.length}개
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {recentItems.map((item) => (
+              <Link key={item.id} href={item.href}>
+                <Card className="hover:shadow-md transition-all hover:scale-105 cursor-pointer">
+                  <CardContent className="p-4 text-center">
+                    <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 3. 선택된 카테고리의 분석 방법들 (상단 이동) */}
+      {selectedCategory && (
+        <div className="max-w-4xl mx-auto">
+          <Card className="border-primary/50 shadow-lg">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title} 분석 방법
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedCategory(null)}
+                  >
+                    닫기
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.items.map((item) => {
+                    const isFavorite = favorites.includes(item.id)
+
+                    return (
+                      <Card key={item.id} className="hover:shadow-md transition-all">
+                        <CardContent className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-sm">{item.title}</h4>
+                                {item.subtitle && (
+                                  <p className="text-xs text-muted-foreground mt-1">{item.subtitle}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {item.badge && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {item.badge}
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    toggleFavorite(item.id)
+                                  }}
+                                  aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                                >
+                                  <Star
+                                    className={cn(
+                                      'h-4 w-4 transition-colors',
+                                      isFavorite ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground hover:text-foreground'
+                                    )}
+                                  />
+                                </Button>
+                              </div>
+                            </div>
+                            {item.implemented ? (
+                              <Link href={item.href}>
+                                <Button size="sm" className="w-full">
+                                  분석 시작
+                                </Button>
+                              </Link>
+                            ) : (
+                              <Button size="sm" className="w-full" disabled>
+                                준비 중
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 4. 즐겨찾기 섹션 (심플화) */}
       <div className="space-y-4 max-w-3xl mx-auto">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+            <Star className="h-6 w-6 fill-yellow-500 text-yellow-500" />
             내 통계 도구
           </h2>
           {favorites.length > 0 && (
@@ -118,7 +240,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* 3. 통계 분석 카테고리 */}
+      {/* 5. 통계 분석 카테고리 */}
       <div className="space-y-6">
         <h2 className="text-2xl font-bold text-center">통계 분석 카테고리</h2>
 
@@ -163,78 +285,6 @@ export default function DashboardPage() {
             )
           })}
         </div>
-
-        {/* 선택된 카테고리의 분석 방법들 */}
-        {selectedCategory && (
-          <div className="max-w-4xl mx-auto">
-            <Card className="border-primary/50">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title} 분석 방법
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.items.map((item) => {
-                      const isFavorite = favorites.includes(item.id)
-
-                      return (
-                        <Card key={item.id} className="hover:shadow-md transition-all">
-                          <CardContent className="p-4">
-                            <div className="space-y-3">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-sm">{item.title}</h4>
-                                  {item.subtitle && (
-                                    <p className="text-xs text-muted-foreground mt-1">{item.subtitle}</p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {item.badge && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      {item.badge}
-                                    </Badge>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      toggleFavorite(item.id)
-                                    }}
-                                    aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
-                                  >
-                                    <Star
-                                      className={cn(
-                                        'h-4 w-4',
-                                        isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
-                                      )}
-                                    />
-                                  </Button>
-                                </div>
-                              </div>
-                              {item.implemented ? (
-                                <Link href={item.href}>
-                                  <Button size="sm" className="w-full">
-                                    분석 시작
-                                  </Button>
-                                </Link>
-                              ) : (
-                                <Button size="sm" className="w-full" disabled>
-                                  준비 중
-                                </Button>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
 
       {/* 하단 안내 */}

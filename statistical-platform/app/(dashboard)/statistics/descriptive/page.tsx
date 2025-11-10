@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useCallback } from 'react'
-import type { DescriptiveVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -17,7 +16,6 @@ import {
 import {
   FileText,
   Calculator,
-  Download,
   Play,
   Info,
   TrendingUp,
@@ -27,7 +25,7 @@ import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/St
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelector } from '@/components/variable-selection/VariableSelector'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import type { VariableMapping, UploadedData } from '@/hooks/use-statistics-page'
+import type { VariableMapping } from '@/hooks/use-statistics-page'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
@@ -523,11 +521,10 @@ export default function DescriptiveStatsPage() {
         {/* 5단계: 결과 확인 */}
         {results && currentStep === 4 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="summary">요약</TabsTrigger>
               <TabsTrigger value="table">통계표</TabsTrigger>
               <TabsTrigger value="details">세부 정보</TabsTrigger>
-              <TabsTrigger value="export">내보내기</TabsTrigger>
             </TabsList>
 
             <TabsContent value="summary" className="space-y-6">
@@ -551,37 +548,6 @@ export default function DescriptiveStatsPage() {
                 <h3 className="text-lg font-semibold mb-4">변수별 세부 정보</h3>
                 {renderVariableDetails()}
               </div>
-            </TabsContent>
-
-            <TabsContent value="export" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>결과 내보내기</CardTitle>
-                  <CardDescription>
-                    기술통계 결과를 다양한 형식으로 내보낼 수 있습니다
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      CSV
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      Excel
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      PDF
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      SPSS
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         )}

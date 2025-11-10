@@ -17,7 +17,6 @@ import {
   Microscope,
   BarChart3,
   PieChart,
-  Download,
   Play,
   Info,
   TrendingUp,
@@ -618,11 +617,10 @@ export default function ExploreDataPage() {
         {/* 4단계: 결과 확인 */}
         {results && results.length > 0 && currentStep === 3 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">전체 개요</TabsTrigger>
               <TabsTrigger value="details">변수별 상세</TabsTrigger>
               <TabsTrigger value="quality">데이터 품질</TabsTrigger>
-              <TabsTrigger value="export">내보내기</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -664,37 +662,6 @@ export default function ExploreDataPage() {
 
             <TabsContent value="quality" className="space-y-6">
               {renderDataQualityAssessment()}
-            </TabsContent>
-
-            <TabsContent value="export" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>결과 내보내기</CardTitle>
-                  <CardDescription>
-                    데이터 탐색 결과를 다양한 형식으로 내보낼 수 있습니다
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      CSV
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      Excel
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      EDA 보고서
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      시각화
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         )}

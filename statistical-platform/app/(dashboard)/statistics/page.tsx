@@ -81,8 +81,8 @@ export default function StatisticsPage() {
               >
                 <Star
                   className={cn(
-                    'h-4 w-4',
-                    isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                    'h-4 w-4 transition-colors',
+                    isFavorite ? 'fill-yellow-500 text-yellow-500' : 'text-muted-foreground hover:text-foreground'
                   )}
                 />
               </Button>

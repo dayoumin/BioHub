@@ -18,7 +18,6 @@ import {
   PieChart,
   Target,
   BarChart3,
-  Download,
   Play,
   Info,
   Calculator,
@@ -564,12 +563,11 @@ export default function ProportionTestPage() {
         {/* 4단계: 결과 확인 */}
         {results && currentStep === 4 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="summary">요약</TabsTrigger>
               <TabsTrigger value="results">검정결과</TabsTrigger>
               <TabsTrigger value="confidence">신뢰구간</TabsTrigger>
               <TabsTrigger value="methods">방법설명</TabsTrigger>
-              <TabsTrigger value="export">내보내기</TabsTrigger>
             </TabsList>
 
             <TabsContent value="summary" className="space-y-6">
@@ -599,37 +597,6 @@ export default function ProportionTestPage() {
 
             <TabsContent value="methods" className="space-y-6">
               {renderMethodExplanation()}
-            </TabsContent>
-
-            <TabsContent value="export" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>결과 내보내기</CardTitle>
-                  <CardDescription>
-                    비율 검정 결과를 다양한 형식으로 내보낼 수 있습니다
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      CSV
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      Excel
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      PDF 보고서
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      품질관리 보고서
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         )}

@@ -579,6 +579,63 @@ USB/
 
 ---
 
+### Phase 9.5: 시각화 기능 확장 (선택, 향후)
+
+**목표**: 통계 결과 시각화 고도화 및 사용자 경험 개선
+
+#### 9.5-1. 현재 구현 상태 (2025-11-10 확인)
+
+**✅ Python 기반 시각화 (Pyodide + matplotlib)**
+- **파일**: [lib/pyodide-visualizations.ts](statistical-platform/lib/pyodide-visualizations.ts) (418 lines)
+- **지원 차트 (7종)**:
+  1. `createHistogram()` - 히스토그램 + 정규분포 피팅
+  2. `createBoxplot()` - 박스플롯 (그룹 비교)
+  3. `createScatterPlot()` - 산점도 + 회귀선
+  4. `createQQPlot()` - Q-Q Plot (정규성 검정)
+  5. `createHeatmap()` - 히트맵 (상관계수 행렬)
+  6. `createBarChart()` - 막대 그래프 (오차 막대 포함)
+  7. `createLineChart()` - 선 그래프 (시계열)
+- **장점**:
+  - 브라우저에서 직접 렌더링 (서버 불필요)
+  - base64 이미지 생성
+  - SPSS/R 수준의 고품질 차트
+
+**✅ Plotly 기반 시각화 (부분 구현)**
+- **파일**: [lib/pyodide-plotly-visualizations.ts](statistical-platform/lib/pyodide-plotly-visualizations.ts)
+- **장점**: 인터랙티브 (줌, 팬, 호버)
+
+#### 9.5-2. 추가 개선 사항
+
+**1. 차트 커스터마이징** (우선순위: Medium)
+- 색상 팔레트 선택 (ColorBrewer, Viridis 등)
+- 폰트 크기 조정 (Small, Medium, Large)
+- 범례 위치 변경 (상/하/좌/우)
+- 축 범위 수동 설정
+- 예상 시간: 2-3일
+
+**2. 고급 통계 차트** (우선순위: Low)
+- Violin Plot (분포 + 박스플롯 결합)
+- Pair Plot (다변량 산점도 행렬)
+- 잔차 진단 플롯 (회귀분석용 - 4 plots)
+- Forest Plot (메타분석용)
+- 예상 시간: 3-4일
+
+**3. 차트 내보내기** (우선순위: High)
+- PNG/SVG 다운로드 버튼
+- 고해상도 이미지 (300 DPI, 출판용)
+- 차트만 따로 PDF 저장
+- 클립보드 복사 (→ Word/PowerPoint 직접 붙여넣기)
+- 예상 시간: 1-2일
+
+**4. 실시간 프리뷰** (우선순위: Medium)
+- 변수 선택 시 즉시 차트 미리보기
+- 옵션 변경 시 실시간 업데이트
+- 예상 시간: 2일
+
+**총 예상 시간**: 1-2주 (우선순위 High 항목만 구현 시 3-4일)
+
+---
+
 ### Phase 10: 배포 준비 (예정)
 
 **목표**: 프로덕션 환경 배포를 위한 인프라 구성
@@ -638,6 +695,156 @@ USB/
 - [ ] 도메인 및 SSL 인증서 설정
 - [ ] 백업 및 롤백 계획 수립
 - [ ] 사용자 문서 및 튜토리얼 작성 완료
+
+---
+
+### Phase 10.5: 결과 내보내기 기능 (예정)
+
+**목표**: 통계 분석 결과를 다양한 형식으로 내보내기
+
+**현재 상태** (2025-11-10):
+- ❌ **UI 제거 완료**: 17개 파일에서 작동하지 않던 "결과 내보내기" 탭 삭제
+- ❌ **기능 미구현**: 실제 내보내기 기능은 아직 없음
+
+#### 10.5-1. CSV/Excel 내보내기 (우선순위: High)
+
+**기능**:
+- 결과 테이블 → CSV/XLSX 변환
+- 다중 시트 지원 (요약, 상세, 가정검정 등)
+- 한글 인코딩 지원 (UTF-8 BOM)
+- 파일명 자동 생성 (통계명_날짜_시간.xlsx)
+
+**라이브러리**:
+- CSV: 브라우저 내장 `Blob` API + `TextEncoder`
+- Excel: `xlsx` 라이브러리 (이미 프로젝트에서 사용 중)
+
+**예상 시간**: 1-2일
+
+**구현 예제**:
+```typescript
+// lib/services/export-service.ts
+export async function exportToExcel(results: StatisticalResults) {
+  const workbook = XLSX.utils.book_new()
+
+  // Sheet 1: 요약
+  const summaryData = [
+    ['분석 방법', results.method],
+    ['분석 일시', results.date],
+    ['표본 크기', results.n]
+  ]
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+  XLSX.utils.book_append_sheet(workbook, summarySheet, '요약')
+
+  // Sheet 2: 결과 테이블
+  const resultsSheet = XLSX.utils.json_to_sheet(results.table)
+  XLSX.utils.book_append_sheet(workbook, resultsSheet, '결과')
+
+  // 다운로드
+  XLSX.writeFile(workbook, `${results.method}_${Date.now()}.xlsx`)
+}
+```
+
+#### 10.5-2. PDF 리포트 (우선순위: Medium)
+
+**기능**:
+- 전문적인 통계 리포트 생성 (SPSS Output 스타일)
+- 차트, 테이블, 해석 포함
+- 목차, 페이지 번호, 헤더/푸터
+- A4 페이지 레이아웃 (출판 품질)
+
+**라이브러리**:
+- Option 1: `jsPDF` + `jspdf-autotable` (가볍고 빠름)
+- Option 2: `pdfmake` (더 고급, 복잡한 레이아웃 지원)
+
+**예상 시간**: 3-4일
+
+**리포트 구조**:
+1. 표지 (통계명, 분석자, 날짜)
+2. 목차
+3. 분석 개요 (목적, 가설, 데이터 설명)
+4. 기술통계
+5. 가정 검정 결과
+6. 주 분석 결과 (테이블 + 차트)
+7. 사후 검정 (필요 시)
+8. 해석 및 결론
+9. 부록 (원본 데이터 요약)
+
+#### 10.5-3. SPSS 형식 내보내기 (우선순위: Low)
+
+**배경**:
+- `.sav` 파일 생성은 브라우저에서 불가능 (바이너리 포맷 복잡)
+- 대안: **SPSS Syntax 파일 (.sps)** 생성 (더 실용적)
+
+**기능**:
+- SPSS Syntax 파일 생성
+- 사용자가 SPSS에서 실행 가능한 명령어 제공
+- 데이터 + 분석 코드 포함
+
+**예상 시간**: 2-3일
+
+**Syntax 예제**:
+```sps
+* 기술통계 분석 - 2025-11-10.
+DATA LIST FREE / 변수1 변수2 변수3.
+BEGIN DATA.
+23.5 45.2 67.8
+24.1 46.7 68.3
+...
+END DATA.
+
+DESCRIPTIVES VARIABLES=변수1 변수2 변수3
+  /STATISTICS=MEAN STDDEV MIN MAX.
+```
+
+#### 10.5-4. 클립보드 복사 (우선순위: High)
+
+**기능**:
+- 테이블 → 클립보드 (탭 구분)
+- Excel/Word에 직접 붙여넣기 가능
+- HTML 포맷 지원 (서식 유지)
+
+**API**: `navigator.clipboard.write()`
+
+**예상 시간**: 1시간
+
+**구현 예제**:
+```typescript
+async function copyTableToClipboard(data: any[]) {
+  // 탭 구분 텍스트
+  const tsv = data.map(row => Object.values(row).join('\t')).join('\n')
+
+  // HTML 테이블
+  const html = `<table>${data.map(row =>
+    `<tr>${Object.values(row).map(cell => `<td>${cell}</td>`).join('')}</tr>`
+  ).join('')}</table>`
+
+  await navigator.clipboard.write([
+    new ClipboardItem({
+      'text/plain': new Blob([tsv], { type: 'text/plain' }),
+      'text/html': new Blob([html], { type: 'text/html' })
+    })
+  ])
+}
+```
+
+#### 10.5-5. 구현 우선순위
+
+| 기능 | 우선순위 | 예상 시간 | 사용 빈도 | 비고 |
+|------|---------|---------|----------|------|
+| **클립보드 복사** | High | 1시간 | ⭐⭐⭐⭐⭐ | 가장 빠르고 편리 |
+| **CSV 내보내기** | High | 0.5일 | ⭐⭐⭐⭐⭐ | 범용성 높음 |
+| **Excel 내보내기** | High | 1일 | ⭐⭐⭐⭐ | 전문가용 |
+| **PDF 리포트** | Medium | 3-4일 | ⭐⭐⭐ | 출판/보고서용 |
+| **SPSS Syntax** | Low | 2-3일 | ⭐⭐ | SPSS 사용자만 |
+
+**총 예상 시간**: 1-2주 (High 우선순위만 구현 시 2-3일)
+
+**의존성**:
+- Phase 9 완료 (코드 품질 보증)
+- 타입 안전성 100% 달성
+
+**문서**:
+- 📝 EXPORT_FEATURES_DESIGN.md (작성 예정)
 
 ---
 

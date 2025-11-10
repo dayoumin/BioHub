@@ -257,13 +257,38 @@ statistical-platform/
 
 ---
 
+## 📦 배포 시나리오
+
+이 프로젝트는 **2가지 배포 방식**을 지원합니다:
+
+### Vercel 클라우드 배포 (일반 사용자)
+- ✅ **CDN 자동 다운로드**: Pyodide를 CDN에서 자동으로 로드
+- ✅ **빌드 크기**: ~50MB (Pyodide 미포함)
+- ✅ **환경변수**: `NEXT_PUBLIC_OLLAMA_ENDPOINT` (선택)
+- 🎯 **대상**: 인터넷 연결 가능한 일반 사용자
+
+### 로컬 오프라인 배포 (폐쇄망 환경)
+- ✅ **완전 오프라인**: 인터넷 없이 모든 기능 동작
+- ✅ **빌드 크기**: ~250MB (Pyodide 200MB 포함)
+- ✅ **환경변수**: `NEXT_PUBLIC_PYODIDE_USE_LOCAL=true` (필수)
+- 🎯 **대상**: 군대/병원/연구소 등 폐쇄망 환경
+
+**상세**: [DEPLOYMENT_SCENARIOS.md](statistical-platform/docs/DEPLOYMENT_SCENARIOS.md)
+
+---
+
 ## 🔧 개발 명령어
 
 ```bash
 npm run dev          # 개발 서버
-npm run build        # 빌드
+npm run build        # 빌드 (Vercel 클라우드용)
+npm run build:offline # 빌드 (로컬 오프라인용)
 npm test             # 테스트
 npx tsc --noEmit     # 타입 체크
+
+# 오프라인 배포 사전 준비
+npm run setup:pyodide    # Pyodide 다운로드 (200MB)
+ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 ```
 
 ---

@@ -26,7 +26,8 @@
     "analyze:metadata": "bash scripts/statistics/analyze-metadata.sh",
     "analyze:steps": "node scripts/statistics/analyze-step-patterns.js",
     "verify:rag": "node scripts/rag/verify-stores.js",
-    "setup:sql-wasm": "node scripts/build/download-sql-wasm.js"
+    "setup:sql-wasm": "node scripts/build/download-sql-wasm.js",
+    "setup:pyodide": "node scripts/build/download-pyodide.js"
   },
   "dependencies": {
     "@jlongster/sql.js": "^1.6.7",

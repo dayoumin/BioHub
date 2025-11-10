@@ -17,7 +17,6 @@ import {
   Zap,
   Calculator,
   Target,
-  Download,
   Play,
   Info,
   TrendingUp,
@@ -685,11 +684,10 @@ export default function PowerAnalysisPage() {
         {/* 4단계: 결과 확인 */}
         {results && currentStep === 3 && (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="summary">요약</TabsTrigger>
               <TabsTrigger value="results">분석결과</TabsTrigger>
               <TabsTrigger value="guide">효과크기 가이드</TabsTrigger>
-              <TabsTrigger value="export">내보내기</TabsTrigger>
             </TabsList>
 
             <TabsContent value="summary" className="space-y-6">
@@ -724,37 +722,6 @@ export default function PowerAnalysisPage() {
 
             <TabsContent value="guide" className="space-y-6">
               {renderEffectSizeGuide()}
-            </TabsContent>
-
-            <TabsContent value="export" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>결과 내보내기</CardTitle>
-                  <CardDescription>
-                    검정력 분석 결과를 다양한 형식으로 내보낼 수 있습니다
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      CSV
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      Excel
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      연구계획서
-                    </Button>
-                    <Button variant="outline" className="w-full">
-                      <Download className="mr-2 h-4 w-4" />
-                      검정력 곡선
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         )}
