@@ -317,6 +317,117 @@ const scenarios: TestScenario[] = [
     ],
     expectedMethods: ['기술통계량', '상관분석'],
     expectedConfidence: 'high'
+  },
+
+  // ========== 엣지 케이스 시나리오 ==========
+
+  // 시나리오 12: 매우 작은 데이터셋 (n=3)
+  {
+    name: '시나리오 12: 매우 작은 데이터셋',
+    description: '샘플 크기가 매우 작은 경우 (n=3) - 경고 표시 예상',
+    columns: [
+      {
+        name: '점수',
+        type: 'numeric',
+        sampleValues: [85, 90, 78],
+        missingCount: 0,
+        uniqueCount: 3
+      },
+      {
+        name: '그룹',
+        type: 'categorical',
+        sampleValues: ['A', 'B'],
+        missingCount: 0,
+        uniqueCount: 2
+      }
+    ],
+    researchQuestion: '그룹 간 차이가 있나요?',
+    expectedMethods: ['기술통계량'], // 샘플 크기 작아서 기술통계만 추천
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 13: 모든 값이 동일
+  {
+    name: '시나리오 13: 분산이 0인 데이터',
+    description: '모든 값이 동일한 경우',
+    columns: [
+      {
+        name: '키',
+        type: 'numeric',
+        sampleValues: [170, 170, 170, 170, 170],
+        missingCount: 0,
+        uniqueCount: 1
+      }
+    ],
+    expectedMethods: ['기술통계량'],
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 14: 범주가 너무 많음 (>10)
+  {
+    name: '시나리오 14: 범주가 너무 많은 데이터',
+    description: '범주형 변수의 고유값이 11개 이상 - 경고 표시 예상',
+    columns: [
+      {
+        name: '점수',
+        type: 'numeric',
+        sampleValues: [85, 90, 78, 92, 88],
+        missingCount: 0,
+        uniqueCount: 100
+      },
+      {
+        name: '지역',
+        type: 'categorical',
+        sampleValues: ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '경기', '강원', '충북'],
+        missingCount: 0,
+        uniqueCount: 11
+      }
+    ],
+    researchQuestion: '지역별 점수 차이가 있나요?',
+    expectedMethods: ['기술통계량'], // 범주 과다로 기술통계만 추천
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 15: 극단적 이상치 포함
+  {
+    name: '시나리오 15: 극단적 이상치',
+    description: '명백한 이상치가 포함된 데이터',
+    columns: [
+      {
+        name: '소득',
+        type: 'numeric',
+        sampleValues: [3000, 3200, 3500, 3100, 99999],
+        missingCount: 0,
+        uniqueCount: 50
+      },
+      {
+        name: '연령',
+        type: 'numeric',
+        sampleValues: [25, 30, 35, 28, 32],
+        missingCount: 0,
+        uniqueCount: 40
+      }
+    ],
+    researchQuestion: '소득과 연령의 관계를 알고 싶어요',
+    expectedMethods: ['기술통계량', '상관분석'],
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 16: 단일 수치형 변수만
+  {
+    name: '시나리오 16: 단일 수치형 변수',
+    description: '수치형 변수 1개만 있는 경우',
+    columns: [
+      {
+        name: '점수',
+        type: 'numeric',
+        sampleValues: [85, 90, 78, 92, 88],
+        missingCount: 0,
+        uniqueCount: 100
+      }
+    ],
+    expectedMethods: ['기술통계량'],
+    expectedConfidence: 'high'
   }
 ]
 

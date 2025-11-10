@@ -157,36 +157,43 @@ export class SmartAnalysisEngine {
       const binaryCategories = categoricalCols.filter(col => col.uniqueCount === 2)
 
       if (binaryCategories.length > 0) {
-        // 정규성 체크
-        const isNormal = this.quickNormalityCheck(numericCols[0].sampleValues)
+        // 샘플 크기 체크 (최소 5개 이상)
+        const sampleSize = numericCols[0].sampleValues.length
+        const minSampleSize = 5
 
-        if (isNormal) {
-          // 모수 검정: t-test
-          recommendations.push({
-            id: 'ttest_independent',
-            title: '두 그룹 비교 (t-검정)',
-            description: '두 그룹 간의 평균 차이를 검정합니다',
-            easyDescription: '🔍 두 그룹 사이에 진짜 차이가 있는지 알아보세요 (예: 남녀 차이, 치료 전후 비교)',
-            method: '독립표본 t-검정',
-            confidence: 'high',
-            requiredColumns: [numericCols[0].name, binaryCategories[0].name],
-            assumptions: ['정규분포', '등분산성', '독립성'],
-            nextSteps: ['가정 검정', '효과크기 확인', '시각화']
-          })
-        } else {
-          // 비모수 검정: Mann-Whitney U
-          recommendations.push({
-            id: 'mannwhitney',
-            title: '두 그룹 비교 (비모수 검정)',
-            description: '두 그룹 간의 중앙값 차이를 검정합니다 (정규분포 가정 불필요)',
-            easyDescription: '🔍 두 그룹 사이에 차이가 있는지 알아보세요 (데이터가 정규분포가 아닐 때)',
-            method: 'Mann-Whitney U test',
-            confidence: 'high',
-            requiredColumns: [numericCols[0].name, binaryCategories[0].name],
-            assumptions: ['독립성'],
-            nextSteps: ['중앙값 비교', '효과크기 확인', '시각화']
-          })
+        if (sampleSize >= minSampleSize) {
+          // 정규성 체크
+          const isNormal = this.quickNormalityCheck(numericCols[0].sampleValues)
+
+          if (isNormal) {
+            // 모수 검정: t-test
+            recommendations.push({
+              id: 'ttest_independent',
+              title: '두 그룹 비교 (t-검정)',
+              description: '두 그룹 간의 평균 차이를 검정합니다',
+              easyDescription: '🔍 두 그룹 사이에 진짜 차이가 있는지 알아보세요 (예: 남녀 차이, 치료 전후 비교)',
+              method: '독립표본 t-검정',
+              confidence: 'high',
+              requiredColumns: [numericCols[0].name, binaryCategories[0].name],
+              assumptions: ['정규분포', '등분산성', '독립성'],
+              nextSteps: ['가정 검정', '효과크기 확인', '시각화']
+            })
+          } else {
+            // 비모수 검정: Mann-Whitney U
+            recommendations.push({
+              id: 'mannwhitney',
+              title: '두 그룹 비교 (비모수 검정)',
+              description: '두 그룹 간의 중앙값 차이를 검정합니다 (정규분포 가정 불필요)',
+              easyDescription: '🔍 두 그룹 사이에 차이가 있는지 알아보세요 (데이터가 정규분포가 아닐 때)',
+              method: 'Mann-Whitney U test',
+              confidence: 'high',
+              requiredColumns: [numericCols[0].name, binaryCategories[0].name],
+              assumptions: ['독립성'],
+              nextSteps: ['중앙값 비교', '효과크기 확인', '시각화']
+            })
+          }
         }
+        // 샘플 크기가 작으면 추천하지 않음 (analyzeResearchQuestion에서 경고 표시)
       }
     }
 
