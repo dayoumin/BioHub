@@ -17,6 +17,11 @@ describe('environment-detector', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
+    // global.fetch가 없을 경우 추가 (Node.js 환경)
+    if (!global.fetch) {
+      global.fetch = jest.fn()
+    }
+
     // jest.spyOn으로 전역 객체 모킹 (자동 복원 가능)
     jest.spyOn(global, 'fetch').mockImplementation(() =>
       Promise.resolve({ ok: true } as Response)
