@@ -94,11 +94,11 @@ export function DraggableVariable({
         </div>
 
         {/* 통계 정보 (옵션) */}
-        {showStats && column.statistics && (
+        {showStats && (
           <p className="text-xs text-muted-foreground mt-0.5">
             {column.dataType === 'number' &&
-             column.statistics.min !== undefined &&
-             column.statistics.max !== undefined
+             column.statistics?.min !== undefined &&
+             column.statistics?.max !== undefined
               ? `범위: ${column.statistics.min.toFixed(2)} ~ ${column.statistics.max.toFixed(2)}`
               : `고유값: ${column.uniqueCount}개`}
           </p>
