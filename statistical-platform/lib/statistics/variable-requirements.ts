@@ -376,7 +376,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         example: '작업 시간'
       },
       {
-        role: 'independent',
+        role: 'factor',
         label: '요인 (독립변수)',
         types: ['categorical'],
         required: true,
