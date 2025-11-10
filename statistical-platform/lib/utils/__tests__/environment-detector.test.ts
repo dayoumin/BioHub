@@ -13,23 +13,23 @@ import {
   type Environment,
 } from '../environment-detector'
 
-// fetch mock
-global.fetch = jest.fn()
-
-// setTimeout mock (clearTimeout 포함)
-const mockClearTimeout = jest.fn()
-const originalSetTimeout = global.setTimeout
-global.setTimeout = jest.fn((callback, _delay) => {
-  if (typeof callback === 'function') {
-    callback()
-  }
-  return 123 as unknown as NodeJS.Timeout
-}) as unknown as typeof setTimeout
-global.clearTimeout = mockClearTimeout
-
 describe('environment-detector', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+
+    // jest.spyOn으로 전역 객체 모킹 (자동 복원 가능)
+    jest.spyOn(global, 'fetch').mockImplementation(() =>
+      Promise.resolve({ ok: true } as Response)
+    )
+
+    jest.spyOn(global, 'setTimeout').mockImplementation(((callback: () => void, _delay?: number) => {
+      if (typeof callback === 'function') {
+        callback()
+      }
+      return 123 as unknown as NodeJS.Timeout
+    }) as typeof setTimeout)
+
+    jest.spyOn(global, 'clearTimeout').mockImplementation(() => {})
 
     // localStorage mock
     const localStorageMock = {
@@ -327,14 +327,14 @@ describe('environment-detector', () => {
 
   describe('fetchWithRetry 로직', () => {
     it('Retry 로직이 실제로 100ms 대기하는지 확인', async () => {
-      // setTimeout을 실제로 호출하도록 복원
-      global.setTimeout = originalSetTimeout
+      // 이 테스트에서만 setTimeout을 실제로 호출하도록 복원
+      jest.restoreAllMocks()
 
       const originalVercelEnv = process.env.NEXT_PUBLIC_VERCEL_ENV
       delete process.env.NEXT_PUBLIC_VERCEL_ENV
 
-      // 모든 시도가 실패하도록 설정
-      ;(global.fetch as jest.Mock).mockRejectedValue(new Error('Network error'))
+      // fetch는 계속 mock (실패하도록)
+      jest.spyOn(global, 'fetch').mockRejectedValue(new Error('Network error'))
 
       const start = Date.now()
       await checkDoclingAvailable()
@@ -342,14 +342,6 @@ describe('environment-detector', () => {
 
       // 2번 재시도하므로 최소 100ms는 걸려야 함
       expect(elapsed).toBeGreaterThanOrEqual(90) // 약간의 여유
-
-      // setTimeout mock 복원
-      global.setTimeout = jest.fn((callback, _delay) => {
-        if (typeof callback === 'function') {
-          callback()
-        }
-        return 123 as unknown as NodeJS.Timeout
-      }) as unknown as typeof setTimeout
 
       if (originalVercelEnv !== undefined) {
         process.env.NEXT_PUBLIC_VERCEL_ENV = originalVercelEnv

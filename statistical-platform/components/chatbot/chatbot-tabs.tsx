@@ -67,16 +67,22 @@ export function ChatbotTabs({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="conversations" className="flex-1 mt-0">
-        {conversationsContent}
+      <TabsContent value="conversations" className="flex-1 mt-0" forceMount>
+        <div className={activeTab === 'conversations' ? 'flex flex-col h-full' : 'hidden'}>
+          {conversationsContent}
+        </div>
       </TabsContent>
 
-      <TabsContent value="documents" className="flex-1 mt-0">
-        {documentsContent}
+      <TabsContent value="documents" className="flex-1 mt-0" forceMount>
+        <div className={activeTab === 'documents' ? 'flex flex-col h-full' : 'hidden'}>
+          {documentsContent}
+        </div>
       </TabsContent>
 
-      <TabsContent value="settings" className="flex-1 mt-0 overflow-auto">
-        {settingsContent}
+      <TabsContent value="settings" className="flex-1 mt-0 overflow-auto" forceMount>
+        <div className={activeTab === 'settings' ? 'block' : 'hidden'}>
+          {settingsContent}
+        </div>
       </TabsContent>
     </Tabs>
   )

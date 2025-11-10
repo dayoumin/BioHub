@@ -347,7 +347,7 @@ export function DocumentManager() {
   }, [])
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-full min-h-0 bg-background">
       {/* 좌측: 문서 목록 */}
       <aside className="w-80 border-r bg-muted/5 flex flex-col">
         <div className="p-4 border-b bg-background">
