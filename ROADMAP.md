@@ -250,7 +250,7 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
 
 **목표**: 웹버전 + 로컬버전 양방향 배포
 
-#### 7-1. 웹버전 (Vercel 배포)
+#### 7-1. 웹버전 (Vercel 배포) ⭐ 우선
 **배포 URL**: https://stats-nifs.vercel.app (예정)
 
 **특징**:
@@ -259,32 +259,38 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
 - ✅ Service Worker 캐싱 (두 번째 방문부터 오프라인 가능)
 - ⚠️ RAG 기능: 사용자 PC에 Ollama 설치 필요
 
-**현재 상태**:
+**현재 상태** (2025-11-10 수정):
 - ✅ `next.config.ts`: `output: 'export'` (정적 HTML 생성)
 - ✅ Service Worker: Pyodide CDN 캐싱 (365일)
 - ✅ localhost 우회 로직 (Ollama 연결 지원)
+- ✅ `vercel.json`: rewrite 규칙 제거 (정적 export 최적화)
+- ✅ `/rag-test`: 프로덕션 환경 숨김 처리
+- ✅ `public/pyodide/`: .gitignore 추가 (800MB+)
 
 **배포 크기**: ~5 MB (Pyodide 제외)
 
 ---
 
-#### 7-2. 로컬버전 (오프라인 HTML)
+#### 7-2. 로컬버전 (오프라인 HTML) 🔜 추후 구현
 **대상**: 인터넷 차단 환경 (내부망)
 
 **특징**:
-- ✅ 완전 오프라인 동작 (인터넷 불필요)
-- ✅ Pyodide 로컬 번들링 (~200 MB)
-- ✅ Ollama + 모델 USB 전달
-- ✅ USB 또는 내부 공유로 배포
+- ⏳ 완전 오프라인 동작 (인터넷 불필요)
+- ⏳ Pyodide 로컬 번들링 (~200 MB)
+- ⏳ Ollama + 모델 USB 전달
+- ⏳ USB 또는 내부 공유로 배포
 
-**현재 상태**:
-- ✅ `.env.local`: `NEXT_PUBLIC_PYODIDE_USE_LOCAL=true`
+**현재 상태** (2025-11-10):
+- ✅ `.env.local`: `NEXT_PUBLIC_PYODIDE_USE_LOCAL=true` 지원 준비
 - ✅ `lib/constants.ts`: 로컬 Pyodide 경로 지원
 - ✅ 오프라인 배포 가이드 문서 완료
+- ✅ `scripts/build/download-pyodide.js`: Pyodide 0.29.0 다운로드 스크립트
+- ✅ `scripts/verify-offline-build.js`: 오프라인 빌드 검증 스크립트 강화
+- ⏳ **실제 Pyodide packages 다운로드**: 추후 필요 시 구현 (343MB)
 
-**배포 크기**: ~2.55 GB (Pyodide + Ollama + 모델 포함)
+**배포 크기 (예상)**: ~2.55 GB (Pyodide + Ollama + 모델 포함)
 
-**전달 파일**:
+**전달 파일 (계획)**:
 ```
 USB/
 ├── statistics-offline.zip     (~250 MB) - 빌드된 정적 파일
@@ -296,6 +302,12 @@ USB/
 **참고 문서**:
 - [OFFLINE_DEPLOYMENT_GUIDE.md](statistical-platform/docs/OFFLINE_DEPLOYMENT_GUIDE.md)
 - [OFFLINE_DEPLOYMENT_CHECKLIST.md](statistical-platform/docs/OFFLINE_DEPLOYMENT_CHECKLIST.md)
+
+**TODO (추후 작업)**:
+- Pyodide packages 다운로드 (필수 패키지만: numpy, scipy, pandas ~170MB)
+- 압축 해제 스크립트 개선 (Python tarfile 모듈 활용)
+- 오프라인 빌드 자동화 (npm run build:offline)
+- deployment-package 재빌드 및 검증
 
 ---
 
