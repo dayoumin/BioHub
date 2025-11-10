@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Loader2, Globe, Monitor, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
@@ -24,7 +24,7 @@ export function EnvironmentIndicator() {
   const [envInfo, setEnvInfo] = useState<EnvironmentInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const loadEnvInfo = async () => {
+  const loadEnvInfo = useCallback(async () => {
     setIsLoading(true)
     try {
       const info = await getCachedEnvironmentInfo()
@@ -34,16 +34,16 @@ export function EnvironmentIndicator() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadEnvInfo()
-  }, [])
+  }, [loadEnvInfo])
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     invalidateEnvironmentCache()
     await loadEnvInfo()
-  }
+  }, [loadEnvInfo])
 
   if (isLoading) {
     return (

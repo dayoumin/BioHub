@@ -40,7 +40,40 @@ export function detectEnvironment(): Environment {
 }
 
 /**
- * Docling 서버 가용성 체크 (localhost:8000)
+ * Retry 로직을 포함한 fetch 헬퍼
+ */
+async function fetchWithRetry(
+  url: string,
+  retries = 2,
+  timeout = 2000
+): Promise<boolean> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
+      if (response.ok) {
+        return true
+      }
+    } catch (error) {
+      // 마지막 시도가 아니면 재시도
+      if (attempt < retries - 1) {
+        // 짧은 대기 후 재시도 (100ms)
+        await new Promise((resolve) => setTimeout(resolve, 100))
+        continue
+      }
+    }
+  }
+  return false
+}
+
+/**
+ * Docling 서버 가용성 체크 (기본: localhost:8000)
  */
 export async function checkDoclingAvailable(): Promise<boolean> {
   // 웹 환경에서는 Docling 불가
@@ -48,40 +81,16 @@ export async function checkDoclingAvailable(): Promise<boolean> {
     return false
   }
 
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 2000) // 2초 타임아웃
-
-    const response = await fetch('http://localhost:8000/health', {
-      signal: controller.signal,
-    })
-    clearTimeout(timeoutId)
-
-    return response.ok
-  } catch {
-    return false
-  }
+  const doclingEndpoint = process.env.NEXT_PUBLIC_DOCLING_ENDPOINT || 'http://localhost:8000'
+  return fetchWithRetry(`${doclingEndpoint}/health`)
 }
 
 /**
- * Ollama 서버 가용성 체크 (localhost:11434)
+ * Ollama 서버 가용성 체크 (기본: localhost:11434)
  */
 export async function checkOllamaAvailable(): Promise<boolean> {
   const ollamaEndpoint = process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434'
-
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 2000) // 2초 타임아웃
-
-    const response = await fetch(`${ollamaEndpoint}/api/tags`, {
-      signal: controller.signal,
-    })
-    clearTimeout(timeoutId)
-
-    return response.ok
-  } catch {
-    return false
-  }
+  return fetchWithRetry(`${ollamaEndpoint}/api/tags`)
 }
 
 /**
