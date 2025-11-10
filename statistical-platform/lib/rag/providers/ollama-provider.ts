@@ -148,7 +148,14 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
     // 1. Ollama 서버 연결 확인
     try {
-      const response = await fetch(`${this.ollamaEndpoint}/api/tags`)
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 3000) // 3초 타임아웃
+
+      const response = await fetch(`${this.ollamaEndpoint}/api/tags`, {
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
       if (!response.ok) {
         throw new Error('Ollama 서버에 연결할 수 없습니다')
       }

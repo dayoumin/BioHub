@@ -67,6 +67,36 @@ export function RAGChatInterface({
   const [editingContent, setEditingContent] = useState('')
   const scrollAreaRef = useRef<HTMLDivElement>(null)
 
+  // Ollama 연결 상태 체크
+  const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'available' | 'unavailable'>('checking')
+
+  // Ollama 연결 상태 체크
+  useEffect(() => {
+    const checkOllama = async () => {
+      const ollamaEndpoint = process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434'
+
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 2000) // 2초 타임아웃
+
+        const response = await fetch(`${ollamaEndpoint}/api/tags`, {
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+
+        if (response.ok) {
+          setOllamaStatus('available')
+        } else {
+          setOllamaStatus('unavailable')
+        }
+      } catch {
+        setOllamaStatus('unavailable')
+      }
+    }
+
+    checkOllama()
+  }, [])
+
   // 세션 로드
   useEffect(() => {
     const loadSession = async () => {
@@ -129,9 +159,20 @@ export function RAGChatInterface({
 
     try {
       // RAG 쿼리 (초기 응답으로 메타데이터 가져오기)
-      const initialResponse = await queryRAG({
-        query: query.trim(),
-      })
+      // Production 환경에서 Ollama 연결 실패 가능성 체크
+      let initialResponse
+      try {
+        initialResponse = await queryRAG({
+          query: query.trim(),
+        })
+      } catch (ragError: unknown) {
+        // Ollama 연결 실패 시 graceful 처리
+        const errorMessage = ragError instanceof Error ? ragError.message : '알 수 없는 오류'
+        if (errorMessage.includes('fetch') || errorMessage.includes('CORS') || errorMessage.includes('NetworkError')) {
+          throw new Error('RAG 시스템을 사용할 수 없습니다. 로컬 Ollama 서버를 실행하거나 환경을 확인해주세요.')
+        }
+        throw ragError
+      }
 
       // AI 응답 메시지 준비 (빈 내용으로 시작)
       const assistantMessageId = `${Date.now()}-assistant`
@@ -500,20 +541,69 @@ export function RAGChatInterface({
             </div>
           )}
 
-          {/* 빈 상태: 웰컴 문구 + 퀵 프롬프트 */}
+          {/* 빈 상태: Ollama 설치 안내 또는 웰컴 문구 + 퀵 프롬프트 */}
           {messages.length === 0 && quickPrompts && quickPrompts.length > 0 && (
             <div className="flex flex-col items-center justify-center py-8">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-                  <Sparkles className="h-8 w-8 text-primary" />
+              {/* Ollama 미설치 시 안내 */}
+              {ollamaStatus === 'unavailable' && (
+                <Card className="max-w-2xl w-full mb-8 p-6 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+                  <div className="flex items-start gap-4">
+                    <div className="text-4xl">⚠️</div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold mb-2 text-amber-900 dark:text-amber-100">
+                        RAG 챗봇을 사용하려면 Ollama 설치가 필요합니다
+                      </h3>
+                      <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
+                        이 기능은 로컬 AI 모델(Ollama)을 사용합니다. 아래 단계를 따라 설정해주세요:
+                      </p>
+                      <ol className="list-decimal list-inside space-y-2 text-sm text-amber-900 dark:text-amber-100 mb-4">
+                        <li>
+                          <a
+                            href="https://ollama.com/download"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline hover:text-primary"
+                          >
+                            Ollama 다운로드 및 설치
+                          </a>
+                        </li>
+                        <li>터미널에서 모델 다운로드:
+                          <code className="ml-2 px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
+                            ollama pull mxbai-embed-large && ollama pull qwen2.5
+                          </code>
+                        </li>
+                        <li>페이지 새로고침</li>
+                      </ol>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        💡 폐쇄망 환경이나 오프라인 사용을 위한 기능입니다. 인터넷 연결이 필요 없습니다.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* 로딩 중 */}
+              {ollamaStatus === 'checking' && (
+                <div className="flex items-center gap-2 text-muted-foreground mb-8">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Ollama 연결 확인 중...</span>
                 </div>
-                <h2 className="text-2xl font-bold mb-2">
-                  {RAG_UI_CONFIG.titles.chatInterface}
-                </h2>
-                <p className="text-muted-foreground">
-                  {RAG_UI_CONFIG.messages.welcomeSubtext}
-                </p>
-              </div>
+              )}
+
+              {/* Ollama 사용 가능 시 웰컴 문구 */}
+              {ollamaStatus === 'available' && (
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                    <Sparkles className="h-8 w-8 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2">
+                    {RAG_UI_CONFIG.titles.chatInterface}
+                  </h2>
+                  <p className="text-muted-foreground">
+                    {RAG_UI_CONFIG.messages.welcomeSubtext}
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4 max-w-2xl w-full">
                 {quickPrompts.map((prompt, idx) => (
@@ -550,9 +640,15 @@ export function RAGChatInterface({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={RAG_UI_CONFIG.placeholders.query}
+              placeholder={
+                ollamaStatus === 'unavailable'
+                  ? 'Ollama를 설치하고 모델을 다운로드하면 사용할 수 있습니다'
+                  : ollamaStatus === 'checking'
+                  ? '연결 확인 중...'
+                  : RAG_UI_CONFIG.placeholders.query
+              }
               rows={3}
-              disabled={isLoading}
+              disabled={isLoading || ollamaStatus !== 'available'}
               className="resize-none border-0 bg-background w-full"
             />
             {/* 입력 영역 위 우측 버튼 그룹 */}
