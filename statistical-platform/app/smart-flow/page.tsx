@@ -19,6 +19,7 @@ import { ProgressStepper } from '@/components/smart-flow/ProgressStepper'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { DataValidationStep } from '@/components/smart-flow/steps/DataValidationStep'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
+import { VariableSelectionStep } from '@/components/smart-flow/steps/VariableSelectionStep'
 import { AnalysisExecutionStep } from '@/components/smart-flow/steps/AnalysisExecutionStep'
 import { ResultsActionStep } from '@/components/smart-flow/steps/ResultsActionStep'
 import { AnalysisHistoryPanel } from '@/components/smart-flow/AnalysisHistoryPanel'
@@ -27,8 +28,9 @@ const steps: StepConfig[] = [
   { id: 1, name: '데이터 업로드', icon: Upload, description: '' },
   { id: 2, name: '데이터 검증', icon: CheckCircle, description: '' },
   { id: 3, name: '분석 목적', icon: Sparkles, description: '' },
-  { id: 4, name: '통계 분석', icon: BarChart3, description: '' },
-  { id: 5, name: '결과 및 액션', icon: FileText, description: '' }
+  { id: 4, name: '변수 선택', icon: HelpCircle, description: '' },
+  { id: 5, name: '통계 분석', icon: BarChart3, description: '' },
+  { id: 6, name: '결과 및 액션', icon: FileText, description: '' }
 ]
 
 export default function SmartFlowPage() {
@@ -314,6 +316,12 @@ export default function SmartFlowPage() {
 
             {currentStep === 4 && (
               <div className="animate-in fade-in duration-500">
+                <VariableSelectionStep />
+              </div>
+            )}
+
+            {currentStep === 5 && (
+              <div className="animate-in fade-in duration-500">
                 <AnalysisExecutionStep
                   selectedMethod={selectedMethod}
                   variableMapping={{}}
@@ -326,7 +334,7 @@ export default function SmartFlowPage() {
               </div>
             )}
 
-            {currentStep === 5 && (
+            {currentStep === 6 && (
               <div className="animate-in fade-in duration-500">
                 <ResultsActionStep results={results} />
               </div>
@@ -364,7 +372,7 @@ export default function SmartFlowPage() {
 
           <Button
             onClick={() => startTransition(() => goToNextStep())}
-            disabled={currentStep === 5 || !canProceedToNext() || isLoading || isPending}
+            disabled={currentStep === 6 || !canProceedToNext() || isLoading || isPending}
           >
             다음 단계
             <ChevronRight className="w-4 h-4 ml-2" />

@@ -4,7 +4,7 @@ import { VariableSelectorModern } from '../VariableSelectorModern'
 // Mock variable-requirements
 jest.mock('@/lib/statistics/variable-requirements', () => ({
   getMethodRequirements: jest.fn((methodId: string) => {
-    const requirements = {
+    const requirements: Record<string, unknown> = {
       'anova-one-way': {
         id: 'anova-one-way',
         name: '일원 분산분석 (One-Way ANOVA)',

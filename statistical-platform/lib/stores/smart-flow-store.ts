@@ -183,7 +183,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       loadFromHistory: (historyId) => {
         const state = get()
         const history = state.analysisHistory.find(h => h.id === historyId)
-        
+
         if (history) {
           set({
             uploadedData: history.stepData.uploadedData,
@@ -192,8 +192,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
             selectedMethod: history.stepData.selectedMethod,
             results: history.stepData.results,
             currentHistoryId: historyId,
-            currentStep: 5, // 결과 단계로 이동
-            completedSteps: [1, 2, 3, 4, 5]
+            currentStep: 6, // 결과 단계로 이동
+            completedSteps: [1, 2, 3, 4, 5, 6]
           })
         }
       },
@@ -246,15 +246,16 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           case 1: return state.uploadedFile !== null && state.uploadedData !== null
           case 2: return state.validationResults?.isValid === true
           case 3: return state.selectedMethod !== null
-          case 4: return false // 자동 진행
-          case 5: return false // 마지막 단계
+          case 4: return state.variableMapping !== null // 변수 선택 완료
+          case 5: return false // 자동 진행
+          case 6: return false // 마지막 단계
           default: return false
         }
       },
-      
+
       goToNextStep: () => {
         const state = get()
-        if (state.currentStep < 5) {
+        if (state.currentStep < 6) {
           set({
             completedSteps: [...new Set([...state.completedSteps, state.currentStep])],
             currentStep: state.currentStep + 1
