@@ -1,8 +1,8 @@
 # 📋 통계 분석 플랫폼 로드맵
 
 **프로젝트**: 전문가급 통계 분석 플랫폼 (SPSS/R Studio 급)
-**목표**: PC웹 + 데스크탑 앱
-**기술**: Next.js 15 + TypeScript + Pyodide + Tauri
+**목표**: 웹버전 (Vercel) + 로컬버전 (오프라인 HTML)
+**기술**: Next.js 15 + TypeScript + Pyodide + Ollama (RAG)
 
 ---
 
@@ -246,25 +246,73 @@ After:  Groups → PyodideCore → Python Workers (10-15% 성능 향상)
 
 ---
 
-### Phase 7: Tauri 데스크탑 앱 (예정, 평가 후 결정)
+### Phase 7: 배포 환경 구성 (진행 중)
 
-**목표**: 데스크탑 앱 패키징
+**목표**: 웹버전 + 로컬버전 양방향 배포
+
+#### 7-1. 웹버전 (Vercel 배포)
+**배포 URL**: https://stats-nifs.vercel.app (예정)
+
+**특징**:
+- ✅ CDN을 통한 Pyodide 로드 (빠른 초기 로딩)
+- ✅ 인터넷 연결 필수 (첫 방문 시)
+- ✅ Service Worker 캐싱 (두 번째 방문부터 오프라인 가능)
+- ⚠️ RAG 기능: 사용자 PC에 Ollama 설치 필요
 
 **현재 상태**:
-- ✅ Phase 6 완료로 기술적 준비 완료
-- ⏳ **외부 평가 대기 중** (다른 사람들의 웹 버전 평가 후 결정)
-- 📊 **판단 기준**: 사용자 피드백, 성능 측정, 기능 만족도
+- ✅ `next.config.ts`: `output: 'export'` (정적 HTML 생성)
+- ✅ Service Worker: Pyodide CDN 캐싱 (365일)
+- ✅ localhost 우회 로직 (Ollama 연결 지원)
 
-**예상 작업 내용** (평가 완료 후):
-1. Tauri 프로젝트 설정
-2. 네이티브 파일 시스템 연동
-3. PyodideCore 패턴 재사용 (Phase 6 학습 활용)
-4. 앱 패키징 및 테스트
-5. 설치 프로그램 생성
+**배포 크기**: ~5 MB (Pyodide 제외)
 
-**참고사항**:
-- Phase 6의 PyodideCore 직접 연결 패턴은 데스크탑에서도 그대로 활용 가능
-- 웹 버전이 안정화되면 데스크탑으로의 전환이 용이함
+---
+
+#### 7-2. 로컬버전 (오프라인 HTML)
+**대상**: 인터넷 차단 환경 (내부망)
+
+**특징**:
+- ✅ 완전 오프라인 동작 (인터넷 불필요)
+- ✅ Pyodide 로컬 번들링 (~200 MB)
+- ✅ Ollama + 모델 USB 전달
+- ✅ USB 또는 내부 공유로 배포
+
+**현재 상태**:
+- ✅ `.env.local`: `NEXT_PUBLIC_PYODIDE_USE_LOCAL=true`
+- ✅ `lib/constants.ts`: 로컬 Pyodide 경로 지원
+- ✅ 오프라인 배포 가이드 문서 완료
+
+**배포 크기**: ~2.55 GB (Pyodide + Ollama + 모델 포함)
+
+**전달 파일**:
+```
+USB/
+├── statistics-offline.zip     (~250 MB) - 빌드된 정적 파일
+├── OllamaSetup.exe            (~100 MB) - Ollama 설치 파일
+├── ollama-models.zip          (~2.2 GB) - AI 모델 (nomic-embed-text, qwen2.5)
+└── README-OFFLINE.txt         - 설치 가이드
+```
+
+**참고 문서**:
+- [OFFLINE_DEPLOYMENT_GUIDE.md](statistical-platform/docs/OFFLINE_DEPLOYMENT_GUIDE.md)
+- [OFFLINE_DEPLOYMENT_CHECKLIST.md](statistical-platform/docs/OFFLINE_DEPLOYMENT_CHECKLIST.md)
+
+---
+
+#### 7-3. 외부 의존성 현황
+
+| 컴포넌트 | 웹버전 | 로컬버전 | 비고 |
+|---------|--------|---------|------|
+| **Pyodide** | CDN | 로컬 번들 | 환경 변수로 전환 |
+| **Google Fonts** | 자동 번들 | 자동 번들 | Next.js 기능 |
+| **Ollama** | 사용자 설치 | 사용자 설치 | RAG 기능용 |
+| **통계 계산** | 브라우저 | 브라우저 | - |
+| **Vector Store** | IndexedDB | IndexedDB | - |
+
+**⚠️ Docling 의존성**: 없음
+- Docling은 **문서 크롤링 도구**로 개발 단계에서만 사용
+- `rag-system/scripts/parse_openintro_pdf.py` (PDF → Markdown 변환)
+- 런타임에는 필요 없음 (이미 변환된 Markdown 사용)
 
 ---
 
