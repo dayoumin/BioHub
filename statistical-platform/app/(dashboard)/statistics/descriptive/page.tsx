@@ -81,7 +81,7 @@ export default function DescriptiveStatsPage() {
   const { pyodideService: _pyodideService } = usePyodideService()
 
   // 편의를 위한 destructuring
-  const { currentStep, variableMapping, uploadedData, results, isAnalyzing } = state
+  const { currentStep, selectedVariables, uploadedData, results, isAnalyzing } = state
 
   // 단계 정의
   const steps: StatisticsStep[] = [
@@ -97,14 +97,14 @@ export default function DescriptiveStatsPage() {
       number: 2,
       title: '변수 선택',
       description: '분석할 수치형 변수 선택',
-      status: Object.keys(variableMapping).length > 0 ? 'completed' : uploadedData ? 'current' : 'pending'
+      status: selectedVariables ? 'completed' : uploadedData ? 'current' : 'pending'
     },
     {
       id: 'configure-options',
       number: 3,
       title: '옵션 설정',
       description: '통계량 및 신뢰구간 설정',
-      status: Object.keys(variableMapping).length > 0 ? 'current' : 'pending'
+      status: selectedVariables ? 'current' : 'pending'
     },
     {
       id: 'run-analysis',
@@ -484,7 +484,7 @@ export default function DescriptiveStatsPage() {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={() => actions.setCurrentStep(3)}
-                  disabled={Object.keys(variableMapping).length === 0}
+                  disabled={!selectedVariables}
                 >
                   다음 단계
                 </Button>

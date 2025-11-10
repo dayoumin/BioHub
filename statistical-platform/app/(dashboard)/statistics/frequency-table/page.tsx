@@ -56,7 +56,7 @@ export default function FrequencyTablePage() {
     withUploadedData: true,
     withError: true
   })
-  const { currentStep, uploadedData, variableMapping, results, isAnalyzing, selectedVariables } = state
+  const { currentStep, uploadedData, results, isAnalyzing, selectedVariables } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [showPercentages, setShowPercentages] = useState(true)
   const [showCumulative, setShowCumulative] = useState(true)
@@ -77,14 +77,14 @@ export default function FrequencyTablePage() {
       number: 1,
       title: '변수 선택',
       description: '분석할 범주형 변수 선택',
-      status: uploadedData && Object.keys(variableMapping).length > 0 ? 'completed' : (uploadedData ? 'current' : 'pending')
+      status: uploadedData && selectedVariables ? 'completed' : (uploadedData ? 'current' : 'pending')
     },
     {
       id: 'configure-options',
       number: 2,
       title: '옵션 설정',
       description: '표시 형식 및 정렬 옵션',
-      status: Object.keys(variableMapping).length > 0 ? 'current' : 'pending'
+      status: selectedVariables ? 'current' : 'pending'
     },
     {
       id: 'run-analysis',
@@ -345,7 +345,7 @@ export default function FrequencyTablePage() {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={() => actions.setCurrentStep(3)}
-                  disabled={Object.keys(variableMapping).length === 0}
+                  disabled={!selectedVariables}
                 >
                   다음 단계
                 </Button>

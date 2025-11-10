@@ -63,7 +63,7 @@ export default function NormalityTestPage() {
     withUploadedData: true,
     withError: false
   })
-  const { currentStep, uploadedData, variableMapping, results, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [showAllTests, setShowAllTests] = useState(true)
   const { pyodideService: _pyodideService } = usePyodideService()
@@ -82,14 +82,14 @@ export default function NormalityTestPage() {
       number: 1,
       title: '변수 선택',
       description: '정규성을 검정할 수치형 변수 선택',
-      status: uploadedData && Object.keys(variableMapping).length > 0 ? 'completed' : (uploadedData ? 'current' : 'pending')
+      status: uploadedData && selectedVariables ? 'completed' : (uploadedData ? 'current' : 'pending')
     },
     {
       id: 'configure-tests',
       number: 2,
       title: '검정 설정',
       description: '정규성 검정 방법 및 옵션 설정',
-      status: Object.keys(variableMapping).length > 0 ? 'current' : 'pending'
+      status: selectedVariables ? 'current' : 'pending'
     },
     {
       id: 'run-analysis',
@@ -530,7 +530,7 @@ export default function NormalityTestPage() {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={() => actions.setCurrentStep(3)}
-                  disabled={Object.keys(variableMapping).length === 0}
+                  disabled={!selectedVariables}
                 >
                   다음 단계
                 </Button>

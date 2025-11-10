@@ -66,7 +66,7 @@ export default function OneSampleTPage() {
     withUploadedData: true,
     withError: false
   })
-  const { currentStep, uploadedData, variableMapping, results, isAnalyzing } = state
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [testValue, setTestValue] = useState('0')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
@@ -87,14 +87,14 @@ export default function OneSampleTPage() {
       number: 1,
       title: '변수 선택',
       description: '검정할 수치형 변수 선택',
-      status: Object.keys(variableMapping).length > 0 ? 'completed' : uploadedData ? 'current' : 'pending'
+      status: selectedVariables ? 'completed' : uploadedData ? 'current' : 'pending'
     },
     {
       id: 'set-hypothesis',
       number: 2,
       title: '가설 설정',
       description: '검정값 및 대립가설 설정',
-      status: Object.keys(variableMapping).length > 0 ? 'current' : 'pending'
+      status: selectedVariables ? 'current' : 'pending'
     },
     {
       id: 'run-analysis',
@@ -483,7 +483,7 @@ export default function OneSampleTPage() {
               <div className="flex justify-end mt-6">
                 <Button
                   onClick={() => actions.setCurrentStep(3)}
-                  disabled={Object.keys(variableMapping).length === 0 || !testValue}
+                  disabled={!selectedVariables || !testValue}
                 >
                   다음 단계
                 </Button>
