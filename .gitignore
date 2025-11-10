@@ -87,3 +87,6 @@ nul
 # RAG System generated data
 statistical-platform/rag-system/data/
 statistical-platform/rag-system/test_output.txt
+
+# Experimental embedded app (별도 저장소 관리)
+embedded-statistical-app/
