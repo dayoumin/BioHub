@@ -49,19 +49,47 @@ export class ChatStorageIndexedDB {
    * 초기화 (최초 1회만)
    */
   static async initialize(): Promise<void> {
-    if (this.initialized) return
+    if (this.initialized && this.manager?.isReady) return
 
     try {
-      this.manager = new IndexedDBManager(DB_CONFIG)
+      // IndexedDB 매니저 생성 및 초기화
+      if (!this.manager) {
+        this.manager = new IndexedDBManager(DB_CONFIG)
+      }
+
+      // IndexedDB 완전히 준비될 때까지 대기
       await this.manager.initialize(STORES)
+
+      // 초기화 완료 표시 (manager.isReady가 true인 상태)
       this.initialized = true
       console.log('[ChatStorageIndexedDB] Initialized')
 
-      // localStorage에서 마이그레이션
+      // localStorage에서 마이그레이션 (초기화 완료 후)
       await this.migrateFromLocalStorage()
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to initialize:', error)
+      this.initialized = false
+      this.manager = null
       throw error
+    }
+  }
+
+  /**
+   * IndexedDB가 준비되었는지 확인 (초기화 + 준비 상태)
+   */
+  private static async ensureReady(): Promise<void> {
+    // 초기화 확인
+    if (!this.initialized) {
+      await this.initialize()
+    }
+
+    // IndexedDB 준비 완료 대기
+    if (!this.manager?.isReady) {
+      console.warn('[ChatStorageIndexedDB] Manager not ready, retrying...')
+      await new Promise(resolve => setTimeout(resolve, 100))
+      if (!this.manager?.isReady) {
+        throw new Error('IndexedDB manager failed to initialize')
+      }
     }
   }
 
@@ -119,18 +147,10 @@ export class ChatStorageIndexedDB {
    */
   static async loadSessions(): Promise<ChatSession[]> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      // IndexedDB 준비 완료 대기
-      if (!this.manager?.isReady) {
-        console.warn('[ChatStorageIndexedDB] Manager not ready, retrying...')
-        await new Promise(resolve => setTimeout(resolve, 100))
-        if (!this.manager?.isReady) {
-          throw new Error('IndexedDB manager failed to initialize')
-        }
-      }
-
-      const allSessions = await this.manager.getAll<ChatSession>('sessions')
+      const allSessions = await this.manager!.getAll<ChatSession>('sessions')
       return allSessions
         .filter(s => !s.isArchived)
         .sort((a, b) => b.updatedAt - a.updatedAt)
@@ -145,18 +165,10 @@ export class ChatStorageIndexedDB {
    */
   static async loadArchivedSessions(): Promise<ChatSession[]> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      // IndexedDB 준비 완료 대기
-      if (!this.manager?.isReady) {
-        console.warn('[ChatStorageIndexedDB] Manager not ready, retrying...')
-        await new Promise(resolve => setTimeout(resolve, 100))
-        if (!this.manager?.isReady) {
-          throw new Error('IndexedDB manager failed to initialize')
-        }
-      }
-
-      const allSessions = await this.manager.getAll<ChatSession>('sessions')
+      const allSessions = await this.manager!.getAll<ChatSession>('sessions')
       return allSessions
         .filter(s => s.isArchived)
         .sort((a, b) => b.updatedAt - a.updatedAt)
@@ -171,9 +183,10 @@ export class ChatStorageIndexedDB {
    */
   static async loadSession(id: string): Promise<ChatSession | null> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      return await this.manager?.get<ChatSession>('sessions', id) ?? null
+      return await this.manager!.get<ChatSession>('sessions', id) ?? null
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to load session:', error)
       return null
@@ -185,9 +198,10 @@ export class ChatStorageIndexedDB {
    */
   static async saveSession(session: ChatSession): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      await this.manager?.put('sessions', {
+      await this.manager!.put('sessions', {
         ...session,
         updatedAt: Date.now(),
       })
@@ -208,10 +222,11 @@ export class ChatStorageIndexedDB {
     message: ChatMessage
   ): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
       // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
-      await this.manager?.updateInTransaction<ChatSession>(
+      await this.manager!.updateInTransaction<ChatSession>(
         'sessions',
         sessionId,
         (session) => {
@@ -240,10 +255,11 @@ export class ChatStorageIndexedDB {
    */
   static async deleteMessage(sessionId: string, messageId: string): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
       // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
-      await this.manager?.updateInTransaction<ChatSession>(
+      await this.manager!.updateInTransaction<ChatSession>(
         'sessions',
         sessionId,
         (session) => {
@@ -265,9 +281,10 @@ export class ChatStorageIndexedDB {
    */
   static async deleteSession(id: string): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      await this.manager?.delete('sessions', id)
+      await this.manager!.delete('sessions', id)
       this.broadcastChange('session', 'delete', id)
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to delete session:', error)
@@ -280,10 +297,11 @@ export class ChatStorageIndexedDB {
    */
   static async toggleFavorite(id: string): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
       // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
-      await this.manager?.updateInTransaction<ChatSession>(
+      await this.manager!.updateInTransaction<ChatSession>(
         'sessions',
         id,
         (session) => {
@@ -305,10 +323,11 @@ export class ChatStorageIndexedDB {
    */
   static async renameSession(id: string, newTitle: string): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
       // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
-      await this.manager?.updateInTransaction<ChatSession>(
+      await this.manager!.updateInTransaction<ChatSession>(
         'sessions',
         id,
         (session) => {
@@ -330,10 +349,11 @@ export class ChatStorageIndexedDB {
    */
   static async toggleArchive(id: string): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
       // ✅ 단일 트랜잭션으로 읽기-수정-쓰기 처리
-      await this.manager?.updateInTransaction<ChatSession>(
+      await this.manager!.updateInTransaction<ChatSession>(
         'sessions',
         id,
         (session) => {
@@ -354,7 +374,8 @@ export class ChatStorageIndexedDB {
    * 새 세션 생성
    */
   static async createNewSession(): Promise<ChatSession> {
-    if (!this.initialized) await this.initialize()
+    // 초기화 및 준비 상태 확인
+    await this.ensureReady()
 
     const newSession: ChatSession = {
       id: this.generateId(),
@@ -375,9 +396,10 @@ export class ChatStorageIndexedDB {
    */
   static async loadSettings(): Promise<ChatSettings> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      const setting = await this.manager?.get<{ key: string; value: ChatSettings }>(
+      const setting = await this.manager!.get<{ key: string; value: ChatSettings }>(
         'settings',
         'settings'
       )
@@ -393,9 +415,10 @@ export class ChatStorageIndexedDB {
    */
   static async saveSettings(settings: ChatSettings): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      await this.manager?.put('settings', { key: 'settings', value: settings })
+      await this.manager!.put('settings', { key: 'settings', value: settings })
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to save settings:', error)
       throw new Error('설정 저장에 실패했습니다.')
@@ -407,9 +430,10 @@ export class ChatStorageIndexedDB {
    */
   static async loadAllSessions(): Promise<ChatSession[]> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      return await this.manager?.getAll<ChatSession>('sessions') ?? []
+      return await this.manager!.getAll<ChatSession>('sessions') ?? []
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to load all sessions:', error)
       return []
@@ -421,9 +445,10 @@ export class ChatStorageIndexedDB {
    */
   static async loadProjects(): Promise<ChatProject[]> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      return await this.manager?.getAll<ChatProject>('projects') ?? []
+      return await this.manager!.getAll<ChatProject>('projects') ?? []
     } catch (error) {
       console.error('[ChatStorageIndexedDB] Failed to load projects:', error)
       return []
@@ -435,9 +460,10 @@ export class ChatStorageIndexedDB {
    */
   static async saveProject(project: ChatProject): Promise<void> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      await this.manager?.put('projects', {
+      await this.manager!.put('projects', {
         ...project,
         updatedAt: Date.now(),
       })
@@ -452,11 +478,12 @@ export class ChatStorageIndexedDB {
   /**
    * 설정 항목 로드
    */
-  private static async getSetting(key: string): Promise<any> {
+  private static async getSetting(key: string): Promise<unknown> {
     try {
-      if (!this.initialized) await this.initialize()
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
 
-      const setting = await this.manager?.get<{ key: string; value: any }>(
+      const setting = await this.manager!.get<{ key: string; value: unknown }>(
         'settings',
         key
       )

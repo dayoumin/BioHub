@@ -10,6 +10,9 @@ try {
 
 // performance는 jsdom 환경에서 기본 제공됨
 
+// IndexedDB Mock (fake-indexeddb)
+require('fake-indexeddb/auto')
+
 // structuredClone polyfill for fake-indexeddb
 // Node.js 22 has structuredClone, but we provide a global reference for jsdom
 if (typeof global.structuredClone !== 'function') {
