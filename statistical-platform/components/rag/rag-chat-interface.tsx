@@ -572,26 +572,26 @@ export function RAGChatInterface({
                           <div className="ml-4 mt-2 space-y-2">
                             <div>
                               <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
-                                💻 <strong>RAM 8GB 이하</strong> (가벼운 모델, 빠른 속도):
+                                💻 <strong>RAM 8GB 이하</strong> (가벼운 모델, ~400MB):
                               </div>
                               <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
-                                ollama pull qwen3-embedding:0.6b && ollama pull qwen2.5:0.5b
+                                ollama pull qwen3-embedding:0.6b && ollama pull qwen3:0.6b
                               </code>
                             </div>
                             <div>
                               <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
-                                💻 <strong>RAM 16GB</strong> (권장, 균형잡힌 성능):
+                                💻 <strong>RAM 16GB</strong> (권장, ~2.7GB):
                               </div>
                               <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
-                                ollama pull qwen3-embedding:0.6b && ollama pull qwen2.5:3b
+                                ollama pull qwen3-embedding:0.6b && ollama pull qwen3:4b
                               </code>
                             </div>
                             <div>
                               <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
-                                💻 <strong>RAM 32GB 이상</strong> (최고 성능):
+                                💻 <strong>RAM 32GB 이상</strong> (최고 성능, ~5GB):
                               </div>
                               <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
-                                ollama pull qwen3-embedding:0.6b && ollama pull qwen2.5:7b
+                                ollama pull qwen3-embedding:0.6b && ollama pull qwen3:8b
                               </code>
                             </div>
                           </div>
