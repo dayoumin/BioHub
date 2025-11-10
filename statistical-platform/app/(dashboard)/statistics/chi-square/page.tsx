@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ChiSquareVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,11 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { FisherExactTestResult } from '@/types/pyodide-results'
 
 export default function FisherExactTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('chi-square')
+  }, [])
+
   const { state, actions } = useStatisticsPage<FisherExactTestResult, ChiSquareVariables>({
     withUploadedData: false,
     withError: true

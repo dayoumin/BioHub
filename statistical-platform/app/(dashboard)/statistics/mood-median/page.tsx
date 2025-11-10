@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -76,6 +77,11 @@ interface MoodMedianTestResult {
 // ============================================================================
 
 export default function MoodMedianTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('mood-median')
+  }, [])
+
   // useStatisticsPage hook
   const { state, actions } = useStatisticsPage<MoodMedianTestResult, MoodMedianVariables>({
     withUploadedData: true,

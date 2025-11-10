@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { McNemarVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -55,6 +56,11 @@ interface McNemarTestResult {
 }
 
 export default function McNemarTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('mcnemar')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<McNemarTestResult, McNemarVariables>({
     withUploadedData: true,

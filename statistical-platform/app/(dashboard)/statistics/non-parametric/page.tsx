@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react'
+import React , { useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { NonParametricVariables } from '@/types/statistics'
 import { toNonParametricVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { useState, useCallback } from 'react'
@@ -129,6 +130,11 @@ const testDescriptions: Record<NonParametricTest, TestDescription> = {
 }
 
 export default function NonParametricTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('non-parametric')
+  }, [])
+
   const { state, actions } = useStatisticsPage<StatisticalResult, NonParametricVariables>({
     withUploadedData: true,
     withError: true

@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
+
+import React, { useCallback, useEffect } from 'react'
 import type { MeansPlotVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -52,6 +54,11 @@ interface MeansPlotResults {
 }
 
 export default function MeansPlotPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('means-plot')
+  }, [])
+
   // Hook for state management (Pattern A)
   const { state, actions } = useStatisticsPage<MeansPlotResults, MeansPlotVariables>({
     withUploadedData: true,

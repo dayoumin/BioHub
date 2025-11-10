@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { PCAVariables } from '@/types/statistics'
 import { toPCAVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -69,6 +70,11 @@ interface PCAResult {
 }
 
 export default function PCAPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('pca')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<PCAResult, PCAVariables>({
     withUploadedData: true,

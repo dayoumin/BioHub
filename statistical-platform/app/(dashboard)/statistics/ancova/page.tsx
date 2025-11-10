@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ANCOVAVariables } from '@/types/statistics'
 import { toANCOVAVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -112,6 +113,11 @@ interface ANCOVAResult {
 }
 
 export default function ANCOVAPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('ancova')
+  }, [])
+
   // Custom hook: common state management
   const { state, actions } = useStatisticsPage<ANCOVAResult, ANCOVAVariables>({
     withUploadedData: true,

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -60,6 +61,11 @@ interface PowerAnalysisConfig {
 }
 
 export default function PowerAnalysisPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('power-analysis')
+  }, [])
+
   // Hook for state management
   const { state, actions } = useStatisticsPage<PowerAnalysisResult, never>({
     withUploadedData: false,

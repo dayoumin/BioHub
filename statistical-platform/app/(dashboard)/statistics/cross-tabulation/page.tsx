@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { CrossTabulationVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -80,6 +81,11 @@ interface CrossTabResults {
 // → types/statistics.ts의 CrossTabulationVariables 사용
 
 export default function CrossTabulationPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('cross-tabulation')
+  }, [])
+
   const { state, actions } = useStatisticsPage<CrossTabResults, CrossTabulationVariables>({
     withUploadedData: true,
     withError: true

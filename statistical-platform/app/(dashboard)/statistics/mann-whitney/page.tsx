@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { MannWhitneyVariables } from '@/types/statistics'
 import { toMannWhitneyVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -80,6 +81,11 @@ interface MannWhitneyResult {
 }
 
 export default function MannWhitneyPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('mann-whitney')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<MannWhitneyResult, MannWhitneyVariables>({
     withUploadedData: true,

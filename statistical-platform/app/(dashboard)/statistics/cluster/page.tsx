@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ClusterVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,11 @@ interface ClusterAnalysisResult {
 }
 
 export default function ClusterAnalysisPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('cluster-analysis')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<ClusterAnalysisResult, ClusterVariables>({
     withUploadedData: true,

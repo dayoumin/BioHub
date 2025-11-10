@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -87,6 +88,11 @@ interface TTestVariables {
 }
 
 export default function TTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('t-test')
+  }, [])
+
   // Custom hook: common state management
   const { state, actions } = useStatisticsPage<TTestResult, TTestVariables>({
     withUploadedData: true,

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { FriedmanVariables } from '@/types/statistics'
 import { toFriedmanVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -81,6 +82,11 @@ interface FriedmanResult {
 }
 
 export default function FriedmanPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('friedman')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<FriedmanResult, FriedmanVariables>({
     withUploadedData: true,

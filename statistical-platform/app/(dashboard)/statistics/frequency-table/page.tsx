@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { FrequencyTableVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -51,6 +52,11 @@ interface FrequencyResults {
 }
 
 export default function FrequencyTablePage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('frequency-table')
+  }, [])
+
   const { state, actions } = useStatisticsPage<FrequencyResults, FrequencyTableVariables>({
     withUploadedData: true,
     withError: true

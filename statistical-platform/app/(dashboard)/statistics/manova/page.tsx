@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { MANOVAVariables } from '@/types/statistics'
 import { toMANOVAVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -141,6 +142,11 @@ interface ManovaResult {
 }
 
 export default function ManovaPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('manova')
+  }, [])
+
   const { state, actions } = useStatisticsPage<ManovaResult, MANOVAVariables>({
     withUploadedData: true,
     withError: true

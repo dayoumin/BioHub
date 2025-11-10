@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { CorrelationVariables } from '@/types/statistics'
 import { toCorrelationVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { motion } from 'framer-motion'
@@ -98,6 +99,11 @@ interface CorrelationResults {
 }
 
 export default function CorrelationPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('correlation')
+  }, [])
+
   // Custom hook: common state management
   const { state, actions } = useStatisticsPage<CorrelationResults, CorrelationVariables>({
     withUploadedData: true,

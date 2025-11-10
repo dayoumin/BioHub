@@ -28,7 +28,8 @@
  * - ✅ 명시적 타입 지정
  */
 
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -84,6 +85,11 @@ export default function BinomialTestPage(): React.ReactElement {
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('binomial-test')
+  }, [])
 
   // ============================================================================
   // State (Analysis Options)

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type {
   ANOVAVariables,
   PostHocComparison,
@@ -98,6 +99,11 @@ interface ANOVAResults {
 }
 
 export default function ANOVAPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('anova')
+  }, [])
+
   // Custom hook: common state management
   const { state, actions } = useStatisticsPage<ANOVAResults, ANOVAVariables>({
     withUploadedData: true,

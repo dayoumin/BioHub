@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { OneSampleTVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -61,6 +62,11 @@ interface OneSampleTResults {
 // 로컬 인터페이스 제거: types/statistics.ts의 OneSampleTVariables 사용
 
 export default function OneSampleTPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('one-sample-t')
+  }, [])
+
   const { state, actions } = useStatisticsPage<OneSampleTResults, OneSampleTVariables>({
     withUploadedData: true,
     withError: false

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { OrdinalRegressionVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -117,6 +118,11 @@ interface OrdinalRegressionResult {
 }
 
 export default function OrdinalRegressionPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('ordinal-regression')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<OrdinalRegressionResult>({
     withUploadedData: true,

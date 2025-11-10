@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { DoseResponseVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -650,6 +651,11 @@ except Exception as e:
 }
 
 export default function DoseResponsePage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('dose-response')
+  }, [])
+
   // Hook for state management
   const { state, actions } = useStatisticsPage<DoseResponseResult, DoseResponseVariables>({
     withUploadedData: true,

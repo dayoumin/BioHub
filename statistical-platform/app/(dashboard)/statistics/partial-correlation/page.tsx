@@ -1,6 +1,8 @@
 'use client'
 
-import { useCallback } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
+
+import React, { useCallback, useEffect } from 'react'
 import type { PartialCorrelationVariables } from '@/types/statistics'
 import { toPartialCorrelationVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
@@ -50,6 +52,11 @@ interface PartialCorrelationResults {
 }
 
 export default function PartialCorrelationPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('partial-correlation')
+  }, [])
+
   const { state, actions } = useStatisticsPage<PartialCorrelationResults, PartialCorrelationVariables>({
     withUploadedData: true,
     withError: true,

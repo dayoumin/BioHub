@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ChiSquareGoodnessVariables } from '@/types/statistics'
 import type { VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -74,6 +75,11 @@ interface ChiSquareGoodnessResult {
 }
 
 export default function ChiSquareGoodnessPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('chi-square-goodness')
+  }, [])
+
   // State management with useStatisticsPage hook
   const { state, actions } = useStatisticsPage<ChiSquareGoodnessResult, ChiSquareGoodnessVariables>({
     withUploadedData: true,

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { KruskalWallisVariables } from '@/types/statistics'
 import { toKruskalWallisVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -81,6 +82,11 @@ interface KruskalWallisResult {
 }
 
 export default function KruskalWallisPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('kruskal-wallis')
+  }, [])
+
   // State (using hook)
   const { state, actions } = useStatisticsPage<KruskalWallisResult, KruskalWallisVariables>({
     withUploadedData: true,

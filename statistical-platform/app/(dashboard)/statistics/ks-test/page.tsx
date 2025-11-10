@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { KSTestVariables } from '@/types/statistics'
 import { toKSTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -59,6 +60,11 @@ interface KSTestResult {
 }
 
 export default function KolmogorovSmirnovTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('kolmogorov-smirnov')
+  }, [])
+
   // Hook for state management
   const { state, actions } = useStatisticsPage<KSTestResult, KSTestVariables>({
     withUploadedData: true,

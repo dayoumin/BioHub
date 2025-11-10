@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { MannKendallVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -507,6 +508,11 @@ else:
 }
 
 export default function MannKendallPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('mann-kendall')
+  }, [])
+
   const [selectedTest, setSelectedTest] = React.useState('original')
 
   // Use the standard hook

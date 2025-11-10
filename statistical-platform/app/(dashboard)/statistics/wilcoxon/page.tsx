@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { WilcoxonVariables } from '@/types/statistics'
 import { toWilcoxonVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -89,6 +90,11 @@ interface WilcoxonResult {
 }
 
 export default function WilcoxonPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('wilcoxon')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<WilcoxonResult, WilcoxonVariables>({
     withUploadedData: true,

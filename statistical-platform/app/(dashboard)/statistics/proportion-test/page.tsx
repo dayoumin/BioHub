@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ProportionTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,11 @@ interface ProportionTestResults {
 }
 
 export default function ProportionTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('one-sample-proportion')
+  }, [])
+
   const { state, actions } = useStatisticsPage<ProportionTestResults, ProportionTestVariables>({
     withUploadedData: true,
     withError: false

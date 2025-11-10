@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RunsTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -65,6 +66,11 @@ interface RunsTestResult {
 }
 
 export default function RunsTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('runs-test')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<RunsTestResult, RunsTestVariables>({
     withUploadedData: true,

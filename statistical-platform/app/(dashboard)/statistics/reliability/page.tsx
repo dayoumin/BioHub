@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ReliabilityVariables } from '@/types/statistics'
 import { toReliabilityVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -73,6 +74,11 @@ interface ReliabilityResult {
 }
 
 export default function ReliabilityAnalysisPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('reliability')
+  }, [])
+
   // Hook for state management
   const { state, actions } = useStatisticsPage<ReliabilityResult, ReliabilityVariables>({
     withUploadedData: true,

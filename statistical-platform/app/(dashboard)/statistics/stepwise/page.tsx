@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
+
+import React, { useState, useCallback, useEffect } from 'react'
 import type { StepwiseVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
@@ -73,6 +75,11 @@ interface StepwiseResults {
 }
 
 export default function StepwiseRegressionPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('stepwise-regression')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<StepwiseResults, StepwiseVariables>({
     withUploadedData: true,

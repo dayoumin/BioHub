@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { DiscriminantVariables } from '@/types/statistics'
 import { toDiscriminantVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -82,6 +83,11 @@ interface DiscriminantResult {
 }
 
 export default function DiscriminantPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('discriminant')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<DiscriminantResult, DiscriminantVariables>({
     withUploadedData: true,

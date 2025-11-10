@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { NormalityTestVariables } from '@/types/statistics'
 import { toNormalityTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,6 +59,11 @@ interface NormalityResults {
 // 로컬 인터페이스 제거: types/statistics.ts의 NormalityTestVariables 사용
 
 export default function NormalityTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('normality-test')
+  }, [])
+
   const { state, actions } = useStatisticsPage<NormalityResults, NormalityTestVariables>({
     withUploadedData: true,
     withError: false

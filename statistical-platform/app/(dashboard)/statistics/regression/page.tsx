@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RegressionVariables } from '@/types/statistics'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -66,6 +67,11 @@ type RegressionResults = LinearRegressionResults | LogisticRegressionResults
 // 로컬 타입 제거: types/statistics.ts의 RegressionVariables 사용
 
 export default function RegressionPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('regression')
+  }, [])
+
   // Custom hook: common state management
   const { state, actions } = useStatisticsPage<RegressionResults, RegressionVariables>({
     withUploadedData: true,

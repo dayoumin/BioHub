@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { SignTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,11 @@ interface SignTestResult {
 }
 
 export default function SignTestPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('sign-test')
+  }, [])
+
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<SignTestResult>({
     withUploadedData: true,

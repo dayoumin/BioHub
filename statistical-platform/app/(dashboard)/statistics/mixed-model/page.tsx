@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { MixedModelVariables } from '@/types/statistics'
 import { toMixedModelVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -115,6 +116,11 @@ interface MixedModelResult {
 }
 
 export default function MixedModelPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('mixed-model')
+  }, [])
+
   // Hook for state management
   const { state, actions } = useStatisticsPage<MixedModelResult, MixedModelVariables>({
     withUploadedData: true,
