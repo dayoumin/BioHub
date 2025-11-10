@@ -3,16 +3,18 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Settings, Palette, Bot, Database, Star, Moon, Sun } from 'lucide-react'
+import { Settings, Palette, Bot, Database, Star, Moon, Sun, Clock } from 'lucide-react'
 import { STATISTICS_MENU } from '@/lib/statistics/menu-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { ChatStorage } from '@/lib/services/chat-storage'
+import { clearRecentStatistics, getRecentStatistics } from '@/lib/utils/recent-statistics'
 
 export default function SettingsPage() {
   const [favorites, setFavorites] = useState<string[]>([])
+  const [recentCount, setRecentCount] = useState<number>(0)
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
   const [chatbotModel, setChatbotModel] = useState<string>('llama3.2')
   const [vectorDb, setVectorDb] = useState<string>('chromadb')
@@ -51,6 +53,10 @@ export default function SettingsPage() {
     // 플로팅 버튼 설정 로드
     const chatSettings = ChatStorage.loadSettings()
     setFloatingButtonEnabled(chatSettings.floatingButtonEnabled)
+
+    // 최근 사용 목록 개수 로드
+    const recentItems = getRecentStatistics()
+    setRecentCount(recentItems.length)
   }, [])
 
   // 모든 아이템 ID 가져오기
@@ -99,6 +105,12 @@ export default function SettingsPage() {
 
     // 페이지 새로고침 없이 즉시 반영되도록 window 이벤트 발생
     window.dispatchEvent(new CustomEvent('chatbot-settings-changed'))
+  }
+
+  // 최근 사용 목록 초기화 핸들러
+  const handleClearRecent = () => {
+    clearRecentStatistics()
+    setRecentCount(0)
   }
 
   return (
@@ -291,6 +303,7 @@ export default function SettingsPage() {
 
         {/* 즐겨찾기 관리 */}
         <TabsContent value="favorites" className="space-y-4">
+          {/* 즐겨찾기 카드 */}
           <Card>
             <CardHeader>
               <CardTitle>즐겨찾기 관리</CardTitle>
@@ -339,6 +352,45 @@ export default function SettingsPage() {
               <div className="bg-yellow-50 dark:bg-yellow-950/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <p className="text-sm">
                   <strong>참고:</strong> 개별 통계의 즐겨찾기는 통계분석 페이지에서 별표(⭐) 아이콘을 클릭하여 관리할 수 있습니다.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 최근 사용 목록 카드 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>최근 사용한 분석 관리</CardTitle>
+              <CardDescription>
+                최근 방문한 통계 분석 목록을 관리하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div>
+                  <p className="font-medium">최근 사용 목록</p>
+                  <p className="text-sm text-muted-foreground">
+                    최대 5개까지 저장됩니다
+                  </p>
+                </div>
+                <div className="text-3xl font-bold text-primary">
+                  {recentCount}
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleClearRecent}
+                disabled={recentCount === 0}
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                최근 사용 목록 초기화
+              </Button>
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm">
+                  <strong>참고:</strong> 최근 사용 목록은 통계 페이지를 방문할 때 자동으로 추가되며, 대시보드에서 빠르게 재접근할 수 있습니다.
                 </p>
               </div>
             </CardContent>
