@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react'
 import { PyodideStatisticsService } from '@/lib/services/pyodide-statistics'
 import { retryPyodideOperation } from '@/lib/services/pyodide-helper'
+import { PyodideCoreService, PyodideLoadingProgress } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { PyodideLoadingModal } from '@/components/pyodide/pyodide-loading-modal'
 
 interface PyodideContextType {
   isLoaded: boolean
@@ -30,6 +32,7 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [service, setService] = useState<PyodideStatisticsService | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [loadingProgress, setLoadingProgress] = useState<PyodideLoadingProgress | null>(null)
   const initializeStartedRef = useRef(false)
 
   // 성공 메시지 자동 숨김
@@ -45,10 +48,21 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
   // initPyodide 함수를 useCallback으로 감싸서 재사용 가능하게 함
   const initPyodide = useCallback(async () => {
     const pyodideService = PyodideStatisticsService.getInstance()
+    const coreService = PyodideCoreService.getInstance()
 
     console.log('[PyodideProvider] Pyodide 초기화 시작...')
     setIsLoading(true)
     setError(null)
+
+    // 진행률 리스너 등록
+    const removeListener = coreService.onProgress((progress) => {
+      setLoadingProgress(progress)
+
+      // 완료 시 성공 메시지 표시
+      if (progress.stage === 'complete') {
+        setShowSuccess(true)
+      }
+    })
 
     try {
       const startTime = performance.now()
@@ -64,13 +78,13 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
 
       setService(pyodideService)
       setIsLoaded(true)
-      setShowSuccess(true) // 성공 메시지 표시
       console.log(`[PyodideProvider] Pyodide 초기화 완료! (소요시간: ${loadTime}초)`)
     } catch (err) {
       console.error('[PyodideProvider] Pyodide 초기화 실패 (모든 재시도 실패):', err)
       setError(err instanceof Error ? err.message : 'Pyodide 초기화 실패')
     } finally {
       setIsLoading(false)
+      removeListener() // 리스너 제거
     }
   }, [])
 
@@ -96,18 +110,15 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
     initPyodide()
   }, [initPyodide]) // initPyodide만 의존성으로 추가 (안정적)
 
-  // 로딩 상태를 화면 하단에 작은 인디케이터로 표시
+  // 로딩 모달 표시
   return (
     <PyodideContext.Provider value={{ isLoaded, isLoading, error, service }}>
       {children}
-      {isLoading && (
-        <div className="fixed bottom-4 right-4 bg-background/80 backdrop-blur-sm border rounded-lg p-3 shadow-sm z-50">
-          <div className="flex items-center gap-2 text-sm">
-            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
-            <span className="text-muted-foreground">통계 엔진 로딩중...</span>
-          </div>
-        </div>
-      )}
+
+      {/* 화면 중앙 로딩 모달 */}
+      <PyodideLoadingModal progress={loadingProgress} isVisible={isLoading} />
+
+      {/* 에러 메시지 (우측 하단) */}
       {error && (
         <div className="fixed bottom-4 right-4 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 shadow-sm z-50">
           <div className="flex flex-col gap-2">
@@ -127,7 +138,9 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
           </div>
         </div>
       )}
-      {showSuccess && (
+
+      {/* 성공 메시지 (우측 하단) */}
+      {showSuccess && !isLoading && (
         <div className="fixed bottom-4 right-4 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 shadow-sm z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
             <span>✅ 통계 엔진 준비 완료</span>

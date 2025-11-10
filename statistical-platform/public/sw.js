@@ -16,8 +16,8 @@ const APP_CACHE = `app-cache-${CACHE_VERSION}`
 // Pyodide CDN URL 패턴
 const PYODIDE_CDN_PATTERN = /^https:\/\/cdn\.jsdelivr\.net\/pyodide\/.*/i
 
-// 30일 (밀리초)
-const MAX_AGE = 30 * 24 * 60 * 60 * 1000
+// 365일 (1년, 밀리초) - 통계 라이브러리는 안정적이므로 장기 캐싱
+const MAX_AGE = 365 * 24 * 60 * 60 * 1000
 
 /**
  * Service Worker 설치 이벤트
@@ -65,6 +65,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
+
+  // localhost 요청은 Service Worker가 개입하지 않음 (Ollama 등 로컬 서버)
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return // Service Worker 처리 생략 (브라우저 기본 동작)
+  }
 
   // Pyodide CDN 요청인 경우
   if (PYODIDE_CDN_PATTERN.test(request.url)) {

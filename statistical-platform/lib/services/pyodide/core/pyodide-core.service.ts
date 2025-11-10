@@ -214,6 +214,21 @@ interface PendingWorkerRequest {
   timeout: ReturnType<typeof setTimeout>
 }
 
+/**
+ * 로딩 진행률 이벤트
+ */
+export interface PyodideLoadingProgress {
+  stage: 'runtime' | 'numpy' | 'scipy' | 'helpers' | 'complete'
+  progress: number // 0-100
+  message: string
+  estimatedSize?: string // 예: "6MB", "12MB"
+}
+
+/**
+ * 진행률 리스너 타입
+ */
+export type ProgressListener = (progress: PyodideLoadingProgress) => void
+
 // ========================================
 // PyodideCore 서비스 클래스
 // ========================================
@@ -234,6 +249,9 @@ export class PyodideCoreService {
   private workerRequests: Map<string, PendingWorkerRequest> = new Map()
   private workerRequestCounter = 0
   private workerFallbackLogged = false
+
+  // 진행률 추적
+  private progressListeners: Set<ProgressListener> = new Set()
 
   /**
    * Private constructor (Singleton 패턴)
@@ -299,13 +317,65 @@ export class PyodideCoreService {
 
     this.loadPromise = (async () => {
       try {
-        // Pyodide 로드
+        // 1. Pyodide 런타임 로드 (6MB)
+        this.emitProgress({
+          stage: 'runtime',
+          progress: 0,
+          message: 'Pyodide 런타임 로딩 중...',
+          estimatedSize: '6MB'
+        })
+
         this.pyodide = await this._loadPyodide()
 
-        // 기본 패키지 로드 (NumPy + SciPy만)
-        await this.pyodide.loadPackage(['numpy', 'scipy'])
+        this.emitProgress({
+          stage: 'runtime',
+          progress: 25,
+          message: 'Pyodide 런타임 로드 완료',
+          estimatedSize: '6MB'
+        })
 
-        // helpers.py 로드 (모든 Worker가 공통으로 사용)
+        // 2. NumPy 로드 (12MB)
+        this.emitProgress({
+          stage: 'numpy',
+          progress: 25,
+          message: 'NumPy 패키지 로딩 중...',
+          estimatedSize: '12MB'
+        })
+
+        await this.pyodide.loadPackage(['numpy'])
+
+        this.emitProgress({
+          stage: 'numpy',
+          progress: 50,
+          message: 'NumPy 패키지 로드 완료',
+          estimatedSize: '12MB'
+        })
+
+        // 3. SciPy 로드 (25MB)
+        this.emitProgress({
+          stage: 'scipy',
+          progress: 50,
+          message: 'SciPy 패키지 로딩 중...',
+          estimatedSize: '25MB'
+        })
+
+        await this.pyodide.loadPackage(['scipy'])
+
+        this.emitProgress({
+          stage: 'scipy',
+          progress: 85,
+          message: 'SciPy 패키지 로드 완료',
+          estimatedSize: '25MB'
+        })
+
+        // 4. helpers.py 로드 (5KB)
+        this.emitProgress({
+          stage: 'helpers',
+          progress: 85,
+          message: '헬퍼 모듈 로딩 중...',
+          estimatedSize: '5KB'
+        })
+
         const helpersResponse = await fetch('/workers/python/helpers.py')
         if (helpersResponse.ok) {
           const helpersCode = await helpersResponse.text()
@@ -325,6 +395,13 @@ export class PyodideCoreService {
 
         this.packagesLoaded = true
         this.isLoading = false
+
+        // 5. 완료
+        this.emitProgress({
+          stage: 'complete',
+          progress: 100,
+          message: '통계 엔진 준비 완료'
+        })
 
         console.log('✅ Pyodide 초기화 완료 (NumPy + SciPy + helpers)')
       } catch (error) {
@@ -357,6 +434,39 @@ export class PyodideCoreService {
     this.loadedWorkers.clear()
     this.terminateWorker()
     this.workerFallbackLogged = false
+    this.progressListeners.clear()
+  }
+
+  // ========================================
+  // Public API - 진행률 추적
+  // ========================================
+
+  /**
+   * 진행률 리스너 추가
+   *
+   * @param listener 진행률 콜백 함수
+   * @returns 리스너 제거 함수
+   */
+  onProgress(listener: ProgressListener): () => void {
+    this.progressListeners.add(listener)
+    return () => {
+      this.progressListeners.delete(listener)
+    }
+  }
+
+  /**
+   * 진행률 이벤트 발송
+   *
+   * @param progress 진행률 정보
+   */
+  private emitProgress(progress: PyodideLoadingProgress): void {
+    this.progressListeners.forEach((listener) => {
+      try {
+        listener(progress)
+      } catch (error) {
+        console.error('[PyodideCore] 진행률 리스너 오류:', error)
+      }
+    })
   }
 
   // ========================================
