@@ -4,15 +4,27 @@
  * VariableSelectorModern - 현대적인 변수 선택 UI
  *
  * 목표:
- * - 버튼 기반 모달 선택 (드래그앤드롭 제거)
+ * - 드래그앤드롭 + 모달 병행 선택 (Jamovi/JASP 방식)
  * - 공간 효율 300% 개선 (1단 레이아웃)
  * - 선택 시간 50% 단축 (20초 → 10초)
  *
- * 디자인 참고: SPSS, Jamovi
+ * 디자인 참고: SPSS, Jamovi, JASP
  * CLAUDE.md 규칙: any 금지, unknown + 타입 가드 사용
  */
 
 import React, { useState, useMemo, useCallback } from 'react'
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  useDraggable,
+  useDroppable,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors
+} from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import type { VariableAssignment } from '@/types/statistics-converters'
 import {
   VariableRole,
@@ -46,6 +58,8 @@ import {
   X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { DraggableVariable, DraggableVariableOverlay } from './draggable/DraggableVariable'
+import { DroppableRoleZone } from './draggable/DroppableRoleZone'
 
 // Props 인터페이스
 export interface VariableSelectorModernProps {
@@ -90,6 +104,18 @@ export function VariableSelectorModern({
   // 모달 내부 상태
   const [searchQuery, setSearchQuery] = useState('')
   const [tempSelection, setTempSelection] = useState<string[]>([])
+
+  // 드래그앤드롭 상태
+  const [activeId, setActiveId] = useState<string | null>(null)
+
+  // 드래그앤드롭 센서 설정
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px 이동 후 드래그 시작 (클릭과 구분)
+      },
+    })
+  )
 
   // ========================================
   // 2. 메타데이터 로드 (기존 시스템 재사용)
@@ -273,6 +299,75 @@ export function VariableSelectorModern({
     handleCloseModal()
   }, [activeRole, tempSelection, requirements, handleVariableSelect, handleCloseModal])
 
+  // 드래그 시작
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }, [])
+
+  // 드래그 종료 (드롭 처리)
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveId(null)
+
+    if (!over) return
+    if (!analysis) return
+    if (!requirements) return
+
+    const variableName = active.id as string
+    const targetRole = over.id as string
+
+    // 해당 역할의 요구사항 찾기
+    const varReq = requirements.variables.find(v => v.role === targetRole)
+    if (!varReq) return
+
+    // 변수 타입 확인
+    const column = analysis.columns.find(c => c.name === variableName)
+    if (!column) return
+
+    // 타입 검증
+    if (varReq.types && varReq.types.length > 0) {
+      if (!varReq.types.includes(column.type)) {
+        // 타입 불일치 - 에러 표시 (선택적)
+        return
+      }
+    }
+
+    // 변수 할당
+    if (varReq.multiple) {
+      // 다중 선택: 기존 배열에 추가
+      const current = assignments[targetRole]
+      const currentArray = Array.isArray(current) ? current : current ? [current] : []
+
+      // 이미 할당된 변수면 무시
+      if (currentArray.includes(variableName)) return
+
+      handleVariableSelect(targetRole, [...currentArray, variableName])
+    } else {
+      // 단일 선택: 덮어쓰기
+      handleVariableSelect(targetRole, variableName)
+    }
+  }, [analysis, requirements, assignments, handleVariableSelect])
+
+  // 변수 제거 핸들러
+  const handleRemoveVariable = useCallback((role: string, varName: string) => {
+    setAssignments(prev => {
+      const current = prev[role]
+      if (!current) return prev
+
+      if (Array.isArray(current)) {
+        const filtered = current.filter(v => v !== varName)
+        if (filtered.length === 0) {
+          const { [role]: _, ...rest } = prev
+          return rest
+        }
+        return { ...prev, [role]: filtered }
+      }
+
+      const { [role]: _, ...rest } = prev
+      return rest
+    })
+  }, [])
+
   // ========================================
   // 5. 렌더링
   // ========================================
@@ -302,114 +397,100 @@ export function VariableSelectorModern({
   }
 
   return (
-    <div className={cn('space-y-6', className)}>
-      {/* ========================================
-          헤더: 제목 + 초기화
-          ======================================== */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">{requirements.name} 변수 설정</CardTitle>
-              <CardDescription className="mt-1">
-                {requirements.description}
-              </CardDescription>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className={cn('space-y-6', className)}>
+        {/* ========================================
+            헤더: 제목 + 초기화
+            ======================================== */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">{requirements.name} 변수 설정</CardTitle>
+                <CardDescription className="mt-1">
+                  {requirements.description}
+                </CardDescription>
+              </div>
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                초기화
+              </Button>
             </div>
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              초기화
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
+          </CardHeader>
+        </Card>
 
-      {/* ========================================
-          역할별 변수 선택 필드 (Phase 1.2에서 구현)
-          ======================================== */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          {requirements.variables.map(varReq => (
-            <div key={varReq.role} className="space-y-2">
-              {/* 라벨 */}
+        {/* ========================================
+            2-컬럼 레이아웃: 변수 목록 + 역할별 드롭존
+            ======================================== */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* 왼쪽: 드래그 가능한 변수 목록 */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">변수 목록</CardTitle>
+              <CardDescription>
+                변수를 드래그하여 역할에 할당하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {analysis.columns.map(column => (
+                  <DraggableVariable
+                    key={column.name}
+                    column={column}
+                    showStats={true}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 오른쪽: 역할별 드롭존 */}
+          <Card>
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">
-                  {varReq.label}
-                  {varReq.required && <span className="text-red-500 ml-1">*</span>}
-                </label>
+                <CardTitle className="text-lg">변수 역할 할당</CardTitle>
                 <Button
-                  onClick={() => handleOpenModal(varReq.role as VariableRole)}
-                  variant="outline"
+                  onClick={() => handleOpenModal(requirements.variables[0]?.role as VariableRole)}
+                  variant="ghost"
                   size="sm"
                   className="gap-2"
                 >
-                  변수 선택
+                  모달로 선택
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {requirements.variables.map(varReq => {
+                const assigned = assignments[varReq.role]
+                const assignedArray = assigned
+                  ? (Array.isArray(assigned) ? assigned : [assigned])
+                  : []
 
-              {/* 선택된 변수 칩 영역 */}
-              <div className="min-h-[48px] p-3 border rounded-md bg-muted/50">
-                {(() => {
-                  const assigned = assignments[varReq.role]
-                  if (!assigned) {
-                    return (
-                      <p className="text-sm text-muted-foreground">
-                        + 변수 추가
-                      </p>
-                    )
-                  }
-
-                  const vars = Array.isArray(assigned) ? assigned : [assigned]
-                  return (
-                    <div className="flex flex-wrap gap-2">
-                      {vars.map(varName => (
-                        <Badge key={varName} variant="secondary" className="gap-2">
-                          {varName}
-                          <button
-                            onClick={() => {
-                              // 변수 제거
-                              setAssignments(prev => {
-                                const current = prev[varReq.role]
-                                if (!current) return prev
-
-                                if (Array.isArray(current)) {
-                                  const filtered = current.filter(v => v !== varName)
-                                  if (filtered.length === 0) {
-                                    const { [varReq.role]: _, ...rest } = prev
-                                    return rest
-                                  }
-                                  return { ...prev, [varReq.role]: filtered }
-                                }
-
-                                const { [varReq.role]: _, ...rest } = prev
-                                return rest
-                              })
-                            }}
-                            className="hover:text-destructive"
-                          >
-                            ×
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )
-                })()}
-              </div>
-
-              {/* 설명 */}
-              <p className="text-xs text-muted-foreground">
-                {varReq.description}
-                {varReq.example && ` (예: ${varReq.example})`}
-              </p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+                return (
+                  <DroppableRoleZone
+                    key={varReq.role}
+                    role={varReq.role}
+                    label={varReq.label}
+                    description={`${varReq.description}${varReq.example ? ` (예: ${varReq.example})` : ''}`}
+                    required={varReq.required}
+                    assignedVariables={assignedArray}
+                    onRemoveVariable={(varName) => handleRemoveVariable(varReq.role, varName)}
+                  />
+                )
+              })}
+            </CardContent>
+          </Card>
+        </div>
 
       {/* ========================================
           검증 피드백 (Phase 1.5에서 구현)
@@ -711,6 +792,15 @@ export function VariableSelectorModern({
           </div>
         )
       })()}
+
+      {/* 드래그 오버레이 (드래그 중 마우스를 따라다니는 카드) */}
+      <DragOverlay>
+        {activeId && (() => {
+          const column = analysis.columns.find(c => c.name === activeId)
+          return column ? <DraggableVariableOverlay column={column} /> : null
+        })()}
+      </DragOverlay>
     </div>
+    </DndContext>
   )
 }
