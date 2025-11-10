@@ -323,8 +323,12 @@ export class SmartAnalysisEngine {
         name.endsWith('_시간') ||
         name.endsWith('_time')
 
-      // 범주형 데이터가 아니고, 시간 관련 키워드가 있으면 시계열 후보
-      return hasTimeKeyword || hasStandaloneTimeKeyword
+      // numeric 타입 + "_time" 패턴은 지표일 가능성이 높음 (예: study_time, response_time)
+      // 시계열 컬럼은 보통 categorical 또는 text 타입
+      const isLikelyTimestamp = (hasTimeKeyword || hasStandaloneTimeKeyword) &&
+                                 col.type !== 'numeric'
+
+      return isLikelyTimestamp
     })
 
     if (timeColumns.length > 0 && numericCols.length >= 1) {
@@ -404,19 +408,56 @@ export class SmartAnalysisEngine {
     if (keywords.difference.some(keyword => lowerQuestion.includes(keyword))) {
       const numericCols = columns.filter(col => col.type === 'numeric')
       const categoricalCols = columns.filter(col => col.type === 'categorical')
-      
+
       if (numericCols.length >= 1 && categoricalCols.length >= 1) {
-        recommendations.push({
-          id: 'question_based_comparison',
-          title: '그룹 간 차이 분석 (연구질문 기반)',
-          description: '연구 질문에서 감지된 그룹 비교 분석',
-          easyDescription: '❓ 질문하신 내용을 바탕으로 그룹 간 차이를 분석해드려요',
-          method: categoricalCols[0].uniqueCount === 2 ? '독립표본 t-검정' : '일원분산분석',
-          confidence: 'high',
-          requiredColumns: [numericCols[0].name, categoricalCols[0].name],
-          assumptions: ['정규분포', '등분산성'],
-          nextSteps: ['결과 해석', '실용적 의미 확인']
-        })
+        // 샘플 크기 체크 (최소 5개 이상 필요)
+        const totalSampleSize = numericCols[0].sampleValues.length
+        const minSampleSize = 5
+
+        // 범주 개수 체크 (최대 10개까지)
+        const categoryCount = categoricalCols[0].uniqueCount
+        const maxCategories = 10
+
+        // 샘플 크기가 충분하고 범주가 적절한 경우만 추천
+        if (totalSampleSize >= minSampleSize && categoryCount <= maxCategories) {
+          recommendations.push({
+            id: 'question_based_comparison',
+            title: '그룹 간 차이 분석 (연구질문 기반)',
+            description: '연구 질문에서 감지된 그룹 비교 분석',
+            easyDescription: '❓ 질문하신 내용을 바탕으로 그룹 간 차이를 분석해드려요',
+            method: categoryCount === 2 ? '독립표본 t-검정' : '일원분산분석',
+            confidence: 'high',
+            requiredColumns: [numericCols[0].name, categoricalCols[0].name],
+            assumptions: ['정규분포', '등분산성'],
+            nextSteps: ['결과 해석', '실용적 의미 확인']
+          })
+        } else if (totalSampleSize < minSampleSize) {
+          // 샘플 크기가 작으면 경고와 함께 낮은 신뢰도로 추천
+          recommendations.push({
+            id: 'question_based_comparison_low',
+            title: '그룹 간 차이 분석 (주의 필요)',
+            description: `샘플 크기가 작아 통계적 검정력이 낮습니다 (현재: ${totalSampleSize}개, 권장: ${minSampleSize}개 이상)`,
+            easyDescription: '⚠️ 데이터가 적어서 결과 신뢰도가 낮을 수 있어요. 더 많은 데이터를 수집하세요',
+            method: '기술통계량',
+            confidence: 'low',
+            requiredColumns: [numericCols[0].name],
+            assumptions: [`⚠️ 샘플 크기 부족: ${totalSampleSize}개 (권장: ${minSampleSize}개 이상)`],
+            nextSteps: ['데이터 추가 수집', '기술통계로 패턴 파악']
+          })
+        } else if (categoryCount > maxCategories) {
+          // 범주가 너무 많으면 경고
+          recommendations.push({
+            id: 'question_based_comparison_many_categories',
+            title: '그룹 간 차이 분석 (범주 과다)',
+            description: `범주가 너무 많아 해석이 어려울 수 있습니다 (현재: ${categoryCount}개, 권장: ${maxCategories}개 이하)`,
+            easyDescription: '⚠️ 그룹이 너무 많아서 해석이 복잡할 수 있어요. 주요 그룹만 선택하세요',
+            method: '기술통계량',
+            confidence: 'medium',
+            requiredColumns: [numericCols[0].name, categoricalCols[0].name],
+            assumptions: [`⚠️ 범주 과다: ${categoryCount}개 (권장: ${maxCategories}개 이하)`],
+            nextSteps: ['주요 그룹만 선택', '범주 통합 고려']
+          })
+        }
       }
     }
     

@@ -131,12 +131,12 @@ const timeSeriesTests = [
     expectTimeSeries: true
   },
   {
-    name: '테스트 2-4: "공부_시간" → 시계열 O (endsWith "_시간")',
+    name: '테스트 2-4: "공부_시간" (numeric) → 시계열 X',
     columns: [
-      { name: '공부_시간', type: 'numeric' as const, sampleValues: ['09:00', '10:00'], missingCount: 0, uniqueCount: 24 },
-      { name: '집중도', type: 'numeric' as const, sampleValues: [70, 80], missingCount: 0, uniqueCount: 100 }
+      { name: '공부_시간', type: 'numeric' as const, sampleValues: [1, 2, 3], missingCount: 0, uniqueCount: 10 },
+      { name: '집중도', type: 'numeric' as const, sampleValues: [70, 80, 90], missingCount: 0, uniqueCount: 100 }
     ],
-    expectTimeSeries: true
+    expectTimeSeries: false
   },
   {
     name: '테스트 2-5: "시간대" → 시계열 X',
@@ -163,10 +163,34 @@ const timeSeriesTests = [
     expectTimeSeries: true
   },
   {
-    name: '테스트 2-8: "time_series" → 시계열 O (startsWith "time_")',
+    name: '테스트 2-8: "time_series" (categorical) → 시계열 O',
     columns: [
       { name: 'time_series', type: 'categorical' as const, sampleValues: ['t1', 't2'], missingCount: 0, uniqueCount: 100 },
       { name: 'value', type: 'numeric' as const, sampleValues: [10, 20], missingCount: 0, uniqueCount: 100 }
+    ],
+    expectTimeSeries: true
+  },
+  {
+    name: '테스트 2-9: "study_time" (numeric) → 시계열 X',
+    columns: [
+      { name: 'study_time', type: 'numeric' as const, sampleValues: [1, 2, 3, 4, 5], missingCount: 0, uniqueCount: 10 },
+      { name: 'score', type: 'numeric' as const, sampleValues: [70, 75, 80, 85, 90], missingCount: 0, uniqueCount: 50 }
+    ],
+    expectTimeSeries: false
+  },
+  {
+    name: '테스트 2-10: "response_time" (numeric) → 시계열 X',
+    columns: [
+      { name: 'response_time', type: 'numeric' as const, sampleValues: [100, 150, 120], missingCount: 0, uniqueCount: 100 },
+      { name: 'user_id', type: 'categorical' as const, sampleValues: ['A', 'B', 'C'], missingCount: 0, uniqueCount: 100 }
+    ],
+    expectTimeSeries: false
+  },
+  {
+    name: '테스트 2-11: "측정_시간" (categorical) → 시계열 O',
+    columns: [
+      { name: '측정_시간', type: 'categorical' as const, sampleValues: ['09:00', '10:00', '11:00'], missingCount: 0, uniqueCount: 24 },
+      { name: '온도', type: 'numeric' as const, sampleValues: [20, 22, 25], missingCount: 0, uniqueCount: 100 }
     ],
     expectTimeSeries: true
   }
@@ -196,6 +220,8 @@ console.log('📋 테스트 결과 요약')
 console.log('='.repeat(80))
 
 console.log('\n✅ 모든 엣지 케이스 테스트 완료')
-console.log('\n💡 참고: 테스트 2-4 ("공부_시간")는 현재 시계열로 인정됩니다.')
-console.log('   이는 endsWith("_시간") 조건에 부합하기 때문입니다.')
-console.log('   필요시 추가 필터링(예: 데이터 타입 검증)을 고려할 수 있습니다.\n')
+console.log('\n💡 개선 사항:')
+console.log('   • numeric 타입 + "_time" 패턴은 시계열에서 제외')
+console.log('   • "study_time", "response_time" 같은 지표는 시계열로 분류되지 않음')
+console.log('   • "측정_시간" (categorical)은 여전히 시계열로 인정')
+console.log('   • 시계열 컬럼은 categorical 또는 text 타입만 허용\n')
