@@ -28,7 +28,8 @@ import {
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
+import type { VariableAssignment } from '@/types/statistics-converters'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -391,7 +392,7 @@ export default function OneSampleTPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VariableSelector
+              <VariableSelectorModern
                 methodId="one-sample-t"
                 data={uploadedData.data}
                 onVariablesSelected={createVariableSelectionHandler(

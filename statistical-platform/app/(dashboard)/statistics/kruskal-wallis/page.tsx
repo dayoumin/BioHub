@@ -26,7 +26,7 @@ import {
 // Components - 기존 시스템 사용
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
@@ -393,7 +393,7 @@ export default function KruskalWallisPage() {
           description="종속변수(연속형)와 그룹변수(범주형)를 선택하세요"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <VariableSelector
+          <VariableSelectorModern
             methodId="kruskal-wallis"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}

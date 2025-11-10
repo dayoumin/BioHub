@@ -7,7 +7,7 @@ import type { StepwiseVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -950,7 +950,7 @@ json.dumps(results)
         />
       )}
       {currentStep === 3 && (
-        <VariableSelector
+        <VariableSelectorModern
           methodId="stepwise-regression"
           data={data}
           onVariablesSelected={handleVariablesSelected}

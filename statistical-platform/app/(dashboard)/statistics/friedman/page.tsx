@@ -27,7 +27,7 @@ import {
 // Components - 기존 시스템 사용
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
@@ -413,7 +413,7 @@ export default function FriedmanPage() {
           description="반복측정 조건 변수들을 선택하세요 (최소 3개)"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <VariableSelector
+          <VariableSelectorModern
             methodId="friedman"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}

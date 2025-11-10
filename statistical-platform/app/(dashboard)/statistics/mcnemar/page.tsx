@@ -24,7 +24,7 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
@@ -428,7 +428,7 @@ export default function McNemarTestPage() {
             </div>
           </AlertDescription>
         </Alert>
-        <VariableSelector
+        <VariableSelectorModern
           methodId="mcnemar"
           data={uploadedData.data}
           onVariablesSelected={handleVariableSelection}

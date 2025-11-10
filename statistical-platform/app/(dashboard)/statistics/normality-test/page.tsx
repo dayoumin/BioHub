@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
@@ -479,7 +479,7 @@ export default function NormalityTestPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VariableSelector
+              <VariableSelectorModern
                 methodId="normality-test"
                 data={uploadedData.data}
                 onVariablesSelected={(variables: VariableAssignment) => {

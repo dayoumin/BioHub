@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -408,7 +408,7 @@ export default function NonParametricTestPage() {
             {/* 분석 설정 탭 */}
             <TabsContent value="setup" className="space-y-6">
               {/* 변수 선택 */}
-              <VariableSelector
+              <VariableSelectorModern
                 methodId="non-parametric"
                 data={uploadedData.data}
                 onVariablesSelected={handleVariablesSelected}

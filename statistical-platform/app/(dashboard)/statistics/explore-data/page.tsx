@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
@@ -556,7 +556,7 @@ export default function ExploreDataPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VariableSelector
+              <VariableSelectorModern
                 methodId="explore-data"
                 data={uploadedData.data}
                 onVariablesSelected={handleVariablesSelected}

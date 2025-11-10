@@ -28,7 +28,7 @@ import {
 // Components
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
@@ -536,7 +536,7 @@ export default function ManovaPage() {
           description="여러 종속변수와 독립변수를 선택하세요"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <VariableSelector
+          <VariableSelectorModern
             methodId="manova"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}

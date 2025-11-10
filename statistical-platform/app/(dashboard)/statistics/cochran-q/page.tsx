@@ -24,7 +24,7 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 
@@ -427,7 +427,7 @@ export default function CochranQTestPage() {
             </AlertDescription>
           </Alert>
 
-          <VariableSelector
+          <VariableSelectorModern
             methodId="cochran-q"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}

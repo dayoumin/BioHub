@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
@@ -518,7 +518,7 @@ export default function CrossTabulationPage() {
 
         {/* 1단계: 변수 선택 */}
         {currentStep === 1 && uploadedData && (
-          <VariableSelector
+          <VariableSelectorModern
             methodId="cross-tabulation"
             data={uploadedData.data}
             onVariablesSelected={handleVariablesSelected as (variables: unknown) => void}

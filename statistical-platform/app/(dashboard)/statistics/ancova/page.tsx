@@ -27,7 +27,7 @@ import {
 // Components
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
@@ -480,7 +480,7 @@ export default function ANCOVAPage() {
           description="종속변수, 요인, 공변량을 선택하세요"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <VariableSelector
+          <VariableSelectorModern
             methodId="ancova"
             data={Array.isArray(uploadedData) ? uploadedData : []}
             onVariablesSelected={handleVariableSelection}

@@ -7,7 +7,7 @@ import type { PartialCorrelationVariables } from '@/types/statistics'
 import { toPartialCorrelationVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -658,7 +658,7 @@ json.dumps(results)
         />
       )}
       {currentStep === 2 && uploadedData && (
-        <VariableSelector
+        <VariableSelectorModern
           methodId="partial-correlation"
           data={uploadedData.data}
           onVariablesSelected={handleVariablesSelected}

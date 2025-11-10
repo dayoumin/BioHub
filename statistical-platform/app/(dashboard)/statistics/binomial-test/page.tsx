@@ -40,7 +40,7 @@ import { Calculator, Upload, Settings, BarChart3, Info } from 'lucide-react'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 
@@ -401,7 +401,7 @@ export default function BinomialTestPage(): React.ReactElement {
             title="변수 선택"
             description="이진 변수를 선택하세요"
           >
-            <VariableSelector
+            <VariableSelectorModern
               methodId="binomial-test"
               data={uploadedData.data}
               onVariablesSelected={handleVariableChange}

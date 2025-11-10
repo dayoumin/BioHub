@@ -24,7 +24,7 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
@@ -381,7 +381,7 @@ export default function RunsTestPage() {
         description="무작위성을 검정할 변수를 선택하세요"
         icon={<Users className="w-5 h-5 text-primary" />}
       >
-        <VariableSelector
+        <VariableSelectorModern
           methodId="runs-test"
           data={uploadedData.data}
           onVariablesSelected={handleVariableSelection}

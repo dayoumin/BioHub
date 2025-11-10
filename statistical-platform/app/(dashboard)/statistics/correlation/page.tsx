@@ -27,7 +27,7 @@ import {
 } from 'lucide-react'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -429,7 +429,7 @@ export default function CorrelationPage() {
         description="상관관계를 분석할 변수들을 선택하세요"
         icon={<Users className="w-5 h-5 text-primary" />}
       >
-        <VariableSelector
+        <VariableSelectorModern
           methodId="pearson-correlation"
           data={uploadedData.data}
           onVariablesSelected={(variables: VariableAssignment) => {

@@ -28,7 +28,7 @@ import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/St
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
@@ -496,7 +496,7 @@ export default function WelchTPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <VariableSelector
+              <VariableSelectorModern
                 methodId="welch-t"
                 data={uploadedData.data}
                 onVariablesSelected={handleVariablesSelected}

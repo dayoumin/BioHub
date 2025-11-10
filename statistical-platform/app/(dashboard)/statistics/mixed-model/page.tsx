@@ -28,7 +28,7 @@ import {
 // Components
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
@@ -551,7 +551,7 @@ export default function MixedModelPage() {
           description="종속변수, 고정효과, 무선효과를 선택하세요"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <VariableSelector
+          <VariableSelectorModern
             methodId="mixed-model"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}

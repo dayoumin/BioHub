@@ -14,7 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector, VariableAssignment } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
+import type { VariableAssignment } from '@/types/statistics-converters'
 import { useStatisticsPage , type UploadedData } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
@@ -373,7 +374,7 @@ anova_table = {
   return (
     <div className="space-y-6">
       {uploadedData && (
-        <VariableSelector
+        <VariableSelectorModern
           methodId="response-surface"
           data={uploadedData.data}
           onVariablesSelected={handleAnalysis}

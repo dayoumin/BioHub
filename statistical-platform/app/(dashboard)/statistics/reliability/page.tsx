@@ -30,7 +30,7 @@ import {
 // Components - 기존 시스템 사용
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -415,7 +415,7 @@ export default function ReliabilityAnalysisPage() {
           description="신뢰도 분석할 항목들을 선택하세요"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <VariableSelector
+          <VariableSelectorModern
             methodId="reliability"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}

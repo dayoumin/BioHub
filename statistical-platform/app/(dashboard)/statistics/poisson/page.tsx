@@ -6,7 +6,7 @@ import type { PoissonVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -678,7 +678,7 @@ export default function PoissonRegressionPage() {
         <div>
           <h4 className="font-medium mb-3">변수 선택 (종속변수 1개 + 독립변수 1개 이상)</h4>
           {uploadedData && (
-            <VariableSelector
+            <VariableSelectorModern
               methodId="poisson-regression"
               data={uploadedData.data}
               onVariablesSelected={handleVariablesSelected}

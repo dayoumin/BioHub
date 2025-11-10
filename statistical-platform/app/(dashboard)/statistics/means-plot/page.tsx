@@ -6,7 +6,7 @@ import React, { useCallback, useEffect } from 'react'
 import type { MeansPlotVariables } from '@/types/statistics'
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
@@ -461,7 +461,7 @@ json.dumps(results)
         />
       )}
       {currentStep === 3 && uploadedData && (
-        <VariableSelector
+        <VariableSelectorModern
           methodId="means-plot"
           data={uploadedData.data}
           onVariablesSelected={handleVariablesSelected}

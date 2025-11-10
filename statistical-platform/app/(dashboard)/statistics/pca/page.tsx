@@ -13,7 +13,7 @@ import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import {
   Zap,
   Upload,
@@ -527,7 +527,7 @@ export default function PCAPage() {
             </div>
           </AlertDescription>
         </Alert>
-        <VariableSelector
+        <VariableSelectorModern
           methodId="pca"
           data={uploadedData.data}
           onVariablesSelected={handleVariableSelection}

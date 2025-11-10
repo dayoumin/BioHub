@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Activity, CheckCircle, AlertTriangle, TrendingUp, TrendingDown, Minus, Info } from 'lucide-react'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
@@ -231,7 +231,7 @@ else:
         </CardHeader>
         <CardContent>
           {uploadedData ? (
-            <VariableSelector
+            <VariableSelectorModern
               methodId="mann-kendall-test"
               data={uploadedData.data}
               onVariablesSelected={handleAnalysis}

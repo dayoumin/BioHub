@@ -24,7 +24,7 @@ import {
 
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
@@ -428,7 +428,7 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
             </div>
           </AlertDescription>
         </Alert>
-        <VariableSelector
+        <VariableSelectorModern
           methodId="kolmogorov-smirnov"
           data={uploadedData.data}
           onVariablesSelected={(variables) => {

@@ -29,7 +29,7 @@ import {
 // Components
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Hooks & Utils
@@ -388,7 +388,7 @@ export default function ChiSquareGoodnessPage() {
           description="범주형 변수를 선택하고 기댓값을 설정하세요"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <VariableSelector
+          <VariableSelectorModern
             methodId="chi-square-goodness"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}

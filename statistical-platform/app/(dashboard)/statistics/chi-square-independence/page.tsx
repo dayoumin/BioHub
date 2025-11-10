@@ -27,7 +27,7 @@ import {
 // Components - 기존 시스템 사용
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
@@ -459,7 +459,7 @@ export default function ChiSquareIndependencePage() {
           description="독립성을 검정할 두 범주형 변수를 선택하세요"
           icon={<BarChart3 className="w-5 h-5 text-primary" />}
         >
-          <VariableSelector
+          <VariableSelectorModern
             methodId="chi-square-independence"
             data={uploadedData.data}
             onVariablesSelected={handleVariableSelection}

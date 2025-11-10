@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelector } from '@/components/variable-selection/VariableSelector'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
@@ -458,7 +458,7 @@ export default function SignTestPage() {
         <div>
           <h4 className="font-medium mb-3">변수 선택 (2개 필요: Before, After)</h4>
           {uploadedData && (
-            <VariableSelector
+            <VariableSelectorModern
               methodId="sign-test"
               data={uploadedData.data}
               onVariablesSelected={handleVariablesSelected}
