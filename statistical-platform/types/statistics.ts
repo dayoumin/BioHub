@@ -61,7 +61,7 @@ export interface FrequencyTableVariables {
 // T-검정
 export interface TTestVariables {
   dependent: string // 1개
-  groups: string[] // 2개
+  factor: string[] // 2개 (variable-requirements.ts: role: 'factor')
 }
 
 export interface OneSampleTVariables {
@@ -70,7 +70,7 @@ export interface OneSampleTVariables {
 
 export interface WelchTVariables {
   dependent: string // 1개
-  groups: string[] // 2개
+  factor: string[] // 2개 (variable-requirements.ts: role: 'factor')
 }
 
 // 분산분석
@@ -195,13 +195,13 @@ export interface ChiSquareIndependenceVariables {
 }
 
 export interface McNemarVariables {
-  groups: string[] // 2개
+  dependent: string[] // 2개 (variable-requirements.ts: role: 'dependent', multiple: true, minCount: 2, maxCount: 2)
 }
 
 // 비모수 검정
 export interface NonParametricVariables {
   dependent: string // 1개
-  groups: string[] // 2개 이상
+  factor: string[] // 2개 이상 (variable-requirements.ts: role: 'factor')
 }
 
 export interface MannWhitneyVariables {
@@ -211,7 +211,7 @@ export interface MannWhitneyVariables {
 
 export interface KruskalWallisVariables {
   dependent: string // 1개
-  groups: string[] // 3개 이상
+  factor: string[] // 3개 이상 (variable-requirements.ts: role: 'factor')
 }
 
 export interface WilcoxonVariables {
@@ -232,8 +232,8 @@ export interface RunsTestVariables {
 }
 
 export interface CochranQVariables {
-  subjects: string // 피험자 식별 변수
-  conditions: string[] // 3개 이상 이진 변수
+  independent: string // 피험자 식별 변수 (variable-requirements.ts: role: 'independent')
+  dependent: string[] // 3개 이상 이진 변수 (variable-requirements.ts: role: 'dependent', multiple: true, minCount: 3)
 }
 
 export interface MoodMedianVariables {
@@ -258,7 +258,7 @@ export interface KSTestVariables {
 
 // 비율 검정
 export interface ProportionTestVariables {
-  groups: string[] // 1-2개
+  factor: string[] // 1-2개 (variable-requirements.ts: role: 'factor')
 }
 
 // 생존분석

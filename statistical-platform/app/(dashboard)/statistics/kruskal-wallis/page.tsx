@@ -167,7 +167,7 @@ export default function KruskalWallisPage() {
   const handleVariableSelection = createVariableSelectionHandler<KruskalWallisVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toKruskalWallisVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
-      if (variables.dependent && variables.groups && variables.groups.length >= 1) {
+      if (variables.dependent && variables.factor && variables.factor.length >= 1) {
         void runAnalysis(variables)
       }
     },
@@ -175,7 +175,7 @@ export default function KruskalWallisPage() {
   )
 
   const runAnalysis = async (variables: KruskalWallisVariables) => {
-    if (!uploadedData || !pyodide || !variables.dependent || !variables.groups || variables.groups.length === 0) {
+    if (!uploadedData || !pyodide || !variables.dependent || !variables.factor || variables.factor.length === 0) {
       actions.setError?.('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
@@ -184,7 +184,7 @@ export default function KruskalWallisPage() {
 
     try {
       const valueColumn = variables.dependent
-      const groupColumn = variables.groups[0]
+      const groupColumn = variables.factor[0]
 
       // 그룹별 데이터 추출
       const groups: Record<string, number[]> = {}

@@ -27,20 +27,11 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import type { CochranQVariables } from '@/types/statistics'
 
 // ============================================================================
 // 타입 정의
 // ============================================================================
-
-/**
- * Cochran Q Test 변수 선택
- * - subjects: 피험자 식별 변수
- * - conditions: 3개 이상의 이진 변수 (0/1)
- */
-interface CochranQVariables {
-  subjects: string
-  conditions: string[]
-}
 
 /**
  * Cochran Q Test 결과
@@ -165,12 +156,12 @@ export default function CochranQTestPage() {
   const handleVariableSelection = useCallback((variables: unknown) => {
     if (!variables || typeof variables !== 'object') return
 
-    const vars = variables as { subjects?: string; conditions?: string[] }
+    const vars = variables as { independent?: string; dependent?: string[] }
 
-    if (vars.subjects && vars.conditions && vars.conditions.length >= 3) {
+    if (vars.independent && vars.dependent && vars.dependent.length >= 3) {
       const cochranVars: CochranQVariables = {
-        subjects: vars.subjects,
-        conditions: vars.conditions
+        independent: vars.independent,
+        dependent: vars.dependent
       }
 
       actions.setSelectedVariables?.(cochranVars)
@@ -187,7 +178,7 @@ export default function CochranQTestPage() {
     actions.startAnalysis?.()
 
     try {
-      const { subjects: subjectVar, conditions: conditionVars } = selectedVariables
+      const { independent: subjectVar, dependent: conditionVars } = selectedVariables
 
       // 1️⃣ 데이터 추출 및 2D 행렬 생성
       // subjects를 기준으로 정렬하여 행 순서 보장
@@ -422,8 +413,8 @@ export default function CochranQTestPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>변수 선택 안내</AlertTitle>
             <AlertDescription>
-              <strong>Subjects:</strong> 피험자를 구분하는 변수 (ID, 이름 등)<br />
-              <strong>Conditions:</strong> 이진 변수(0/1) 3개 이상 선택 (예: 약물A, 약물B, 약물C)
+              <strong>Independent (피험자 변수):</strong> 피험자를 구분하는 변수 (ID, 이름 등)<br />
+              <strong>Dependent (조건 변수):</strong> 이진 변수(0/1) 3개 이상 선택 (예: 약물A, 약물B, 약물C)
             </AlertDescription>
           </Alert>
 

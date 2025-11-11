@@ -110,7 +110,7 @@ export function toFriedmanVariables(vars: VariableAssignment): FriedmanVariables
 export function toKruskalWallisVariables(vars: VariableAssignment): KruskalWallisVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    groups: toStringArray(vars.groups)
+    factor: toStringArray(vars.factor || vars.groups)
   }
 }
 
@@ -145,7 +145,7 @@ export function toMixedModelVariables(vars: VariableAssignment): MixedModelVaria
 export function toNonParametricVariables(vars: VariableAssignment): NonParametricVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    groups: toStringArray(vars.groups)
+    factor: toStringArray(vars.factor || vars.groups)
   }
 }
 
@@ -185,7 +185,7 @@ export function toPCAVariables(vars: VariableAssignment): PCAVariables {
 
 export function toProportionTestVariables(vars: VariableAssignment): ProportionTestVariables {
   return {
-    groups: toStringArray(vars.groups || vars.variables)
+    factor: toStringArray(vars.factor || vars.groups || vars.variables)
   }
 }
 
@@ -211,7 +211,7 @@ export function toRunsTestVariables(vars: VariableAssignment): RunsTestVariables
 export function toWelchTVariables(vars: VariableAssignment): WelchTVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    groups: toStringArray(vars.groups)
+    factor: toStringArray(vars.factor || vars.groups)
   }
 }
 
