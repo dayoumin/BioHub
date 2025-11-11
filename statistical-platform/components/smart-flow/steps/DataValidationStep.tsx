@@ -19,7 +19,7 @@ import type { Data } from 'plotly.js'
 import { DataTypeDetector } from '@/lib/statistics/data-type-detector'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { AssumptionResultsPanel, NumericStatsTable } from './validation/components'
-import { useAutoProgress, useNormalityTest } from './validation/hooks'
+import { useNormalityTest } from './validation/hooks'
 
 // Constants - 명확한 이름과 주석
 const VALIDATION_CONSTANTS = {
@@ -903,7 +903,7 @@ export const DataValidationStep = memo(function DataValidationStep({
           </Card>
 
           {/* 가정 위반 시 대응 방안 */}
-          {((assumptionResults?.summary as any)?.violations ?? []).length > 0 && (
+          {(assumptionResults?.summary?.violations ?? []).length > 0 && (
             <Card className="border-amber-500 bg-amber-50/50 dark:bg-amber-950/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
@@ -913,7 +913,7 @@ export const DataValidationStep = memo(function DataValidationStep({
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* 정규성 위반 대응 */}
-                {assumptionResults && ((assumptionResults.summary as any)?.violations ?? []).includes('정규성 위반') && (
+                {assumptionResults?.summary?.violations?.includes('정규성 위반') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <BarChart3 className="h-4 w-4" />
@@ -950,7 +950,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 등분산성 위반 대응 */}
-                {assumptionResults && ((assumptionResults.summary as any)?.violations ?? []).includes('등분산성 위반') && (
+                {assumptionResults?.summary?.violations?.includes('등분산성 위반') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <Activity className="h-4 w-4" />
@@ -966,7 +966,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 이상치 과다 대응 */}
-                {assumptionResults && ((assumptionResults.summary as any)?.violations ?? []).includes('이상치 과다') && (
+                {assumptionResults?.summary?.violations?.includes('이상치 과다') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
@@ -982,7 +982,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 )}
 
                 {/* 표본 크기 부족 대응 */}
-                {assumptionResults && ((assumptionResults.summary as any)?.violations ?? []).includes('표본 크기 부족') && (
+                {assumptionResults?.summary?.violations?.includes('표본 크기 부족') && (
                   <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border-l-4 border-amber-500">
                     <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
                       <Info className="h-4 w-4" />
