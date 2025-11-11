@@ -14,9 +14,15 @@ export {
   extractNumericData,
   calculateBasicStats,
   normalQuantile,
-  calculateCorrelation,
   generateTheoreticalQuantiles
 } from './statisticalTests'
+
+// Correlation (기존 최적화된 함수 사용)
+export {
+  calculateCorrelation,
+  calculateCorrelationMatrix,
+  getNumericColumnData
+} from './correlationUtils'
 
 // Chart Helpers
 export {

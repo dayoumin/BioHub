@@ -100,43 +100,6 @@ export function normalQuantile(p: number): number {
 }
 
 /**
- * 상관계수 계산 (Pearson)
- *
- * @param x - 첫 번째 변수
- * @param y - 두 번째 변수
- * @returns 상관계수 (-1 ~ 1)
- *
- * @description
- * - 두 변수 간의 선형 관계 강도 측정
- * - -1: 완전 음의 상관, 0: 무상관, 1: 완전 양의 상관
- */
-export function calculateCorrelation(x: number[], y: number[]): number {
-  if (x.length !== y.length || x.length === 0) {
-    return 0
-  }
-
-  const n = x.length
-  const meanX = x.reduce((sum, val) => sum + val, 0) / n
-  const meanY = y.reduce((sum, val) => sum + val, 0) / n
-
-  let numerator = 0
-  let denominatorX = 0
-  let denominatorY = 0
-
-  for (let i = 0; i < n; i++) {
-    const dx = x[i] - meanX
-    const dy = y[i] - meanY
-    numerator += dx * dy
-    denominatorX += dx * dx
-    denominatorY += dy * dy
-  }
-
-  const denominator = Math.sqrt(denominatorX * denominatorY)
-
-  return denominator === 0 ? 0 : numerator / denominator
-}
-
-/**
  * Q-Q Plot용 이론적 분위수 생성
  *
  * @param n - 데이터 개수
