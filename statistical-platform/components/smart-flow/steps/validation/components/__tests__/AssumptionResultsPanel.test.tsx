@@ -15,8 +15,10 @@ describe('AssumptionResultsPanel', () => {
     {
       name: 'height',
       type: 'numeric',
-      uniqueCount: 100,
       numericCount: 100,
+      textCount: 0,
+      missingCount: 0,
+      uniqueValues: 100,
       mean: 170,
       median: 168,
       std: 10,
@@ -27,8 +29,10 @@ describe('AssumptionResultsPanel', () => {
     {
       name: 'weight',
       type: 'numeric',
-      uniqueCount: 100,
       numericCount: 100,
+      textCount: 0,
+      missingCount: 0,
+      uniqueValues: 100,
       mean: 70,
       median: 68,
       std: 8,
@@ -42,9 +46,11 @@ describe('AssumptionResultsPanel', () => {
     {
       name: 'gender',
       type: 'categorical',
-      uniqueCount: 2,
-      categoricalCount: 100,
-      categories: [
+      numericCount: 0,
+      textCount: 100,
+      missingCount: 0,
+      uniqueValues: 2,
+      topCategories: [
         { value: 'M', count: 60 },
         { value: 'F', count: 40 }
       ]

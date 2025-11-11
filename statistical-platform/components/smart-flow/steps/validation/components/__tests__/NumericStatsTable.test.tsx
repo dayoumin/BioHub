@@ -14,8 +14,10 @@ describe('NumericStatsTable', () => {
     {
       name: 'height',
       type: 'numeric',
-      uniqueCount: 100,
       numericCount: 100,
+      textCount: 0,
+      missingCount: 0,
+      uniqueValues: 100,
       mean: 170.5,
       median: 168.3,
       std: 10.2,
@@ -29,8 +31,10 @@ describe('NumericStatsTable', () => {
     {
       name: 'weight',
       type: 'numeric',
-      uniqueCount: 100,
       numericCount: 100,
+      textCount: 0,
+      missingCount: 0,
+      uniqueValues: 100,
       mean: 70.0,
       median: 68.0,
       std: 8.0,
@@ -47,9 +51,11 @@ describe('NumericStatsTable', () => {
     {
       name: 'gender',
       type: 'categorical',
-      uniqueCount: 2,
-      categoricalCount: 100,
-      categories: [
+      numericCount: 0,
+      textCount: 100,
+      missingCount: 0,
+      uniqueValues: 2,
+      topCategories: [
         { value: 'M', count: 60 },
         { value: 'F', count: 40 }
       ]
@@ -242,8 +248,10 @@ describe('NumericStatsTable', () => {
         {
           name: 'clean_data',
           type: 'numeric',
-          uniqueCount: 100,
           numericCount: 100,
+          textCount: 0,
+          missingCount: 0,
+          uniqueValues: 100,
           mean: 50,
           median: 50,
           std: 5,
