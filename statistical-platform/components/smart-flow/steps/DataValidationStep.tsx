@@ -88,11 +88,10 @@ export const DataValidationStep = memo(function DataValidationStep({
   currentStep,
   totalSteps
 }: DataValidationStepProps) {
+  // Local state
   const [autoProgress, setAutoProgress] = useState(false)
   const [countdown, setCountdown] = useState<number>(VALIDATION_CONSTANTS.AUTO_PROGRESS_COUNTDOWN)
   const [isPaused, setIsPaused] = useState(false)
-  const [normalityTests, setNormalityTests] = useState<Record<string, any>>({})
-  const [isCalculating, setIsCalculating] = useState(false)
   const [isAssumptionLoading, setIsAssumptionLoading] = useState(false)
   const [selectedColumn, setSelectedColumn] = useState<ColumnStatistics | null>(null)
   const [showVisualization, setShowVisualization] = useState(false)
@@ -106,6 +105,15 @@ export const DataValidationStep = memo(function DataValidationStep({
 
   // PyodideProvider에서 상태 가져오기
   const { isLoaded: pyodideLoaded, isLoading: pyodideLoading, service: pyodideService, error: pyodideError } = usePyodide()
+
+  // Custom hooks
+  const { normalityTests, isCalculating, runNormalityTests: runNormalityTestsHook, clearResults } = useNormalityTest({
+    pyodideService,
+    pyodideLoading,
+    pyodideLoaded,
+    normalityRule,
+    alpha
+  })
 
   // Store에서 상태 관리
   const {
@@ -287,8 +295,8 @@ export const DataValidationStep = memo(function DataValidationStep({
     if (!hasEnoughData) return
 
     didAutoRunNormality.current = true
-    runNormalityTests()
-  }, [pyodideLoaded, pyodideService, data, numericColumns, isAssumptionLoading, isCalculating, pyodideLoading])
+    runNormalityTestsHook(data, numericColumns)
+  }, [pyodideLoaded, pyodideService, data, numericColumns, isAssumptionLoading, isCalculating, pyodideLoading, runNormalityTestsHook])
 
   // 자동 진행 기능
   useEffect(() => {
@@ -311,97 +319,6 @@ export const DataValidationStep = memo(function DataValidationStep({
     setIsPaused(!isPaused)
     if (isPaused) {
       setCountdown(5) // 재시작 시 카운트다운 초기화
-    }
-  }
-
-  // 정규성 검정 실행 (자동/수동 공용) - 다중 검정 통합
-  const runNormalityTests = async () => {
-    console.log('performStatisticalTests called', {
-      hasData: !!data,
-      numericColumnsCount: numericColumns.length,
-      numericColumns: numericColumns.map(c => c.name)
-    })
-
-    // 가드: 데이터/수치형 변수 없으면 실행하지 않음
-    if (!data || !numericColumns.length) {
-      console.log('No data or numeric columns, returning')
-      return
-    }
-    // 다른 작업 진행 중이면 스킵
-    if (isAssumptionLoading || isCalculating || pyodideLoading) {
-      console.log('Skip normality: busy state')
-      return
-    }
-
-    setIsCalculating(true)
-    const normalityResults: Record<string, any> = {}
-
-    try {
-      // Pyodide가 이미 로드되어 있으므로 바로 실행
-      if (!pyodideLoaded || !pyodideService) {
-        console.log('Pyodide not loaded yet')
-        return
-      }
-      console.log('Running multiple normality tests with preloaded Pyodide')
-      for (const col of numericColumns) {
-        // 열 데이터 추출
-        const columnData = data
-          .map((row: Record<string, unknown>) => row[col.name])
-          .filter((val: unknown): val is number | string => val !== null && val !== undefined && !isNaN(Number(val)))
-          .map((val: number | string) => Number(val))
-
-        if (columnData.length >= 3) {
-          console.log(`Testing column ${col.name} with ${columnData.length} values`)
-
-          // 다중 정규성 검정 (n >= 3)
-          try {
-            const results: any = {}
-
-            // Shapiro-Wilk Test (3 <= n <= 5000)
-            if (columnData.length <= 5000) {
-              results.shapiroWilk = await pyodideService.shapiroWilkTest(columnData)
-            }
-
-            // Anderson-Darling Test (n >= 8)
-            if (columnData.length >= 8) {
-              results.andersonDarling = await pyodideService.andersonDarlingTest(columnData)
-            }
-
-            // D'Agostino-Pearson Test (n >= 20)
-            if (columnData.length >= 20) {
-              results.dagostinoPearson = await pyodideService.dagostinoPearsonTest(columnData)
-            }
-
-            // 종합 판정 (설정된 규칙에 따라)
-            const passedTests = Object.values(results).filter((r: any) => r.isNormal).length
-            const totalTests = Object.keys(results).length
-
-            results.summary = {
-              totalTests,
-              passedTests,
-              isNormal: normalityRule === 'any' ? passedTests > 0 :
-                       normalityRule === 'majority' ? passedTests > totalTests / 2 :
-                       passedTests === totalTests
-            }
-
-            console.log(`Normality tests for ${col.name}:`, results)
-            normalityResults[col.name] = results
-          } catch (err) {
-            console.error(`Normality test failed for ${col.name}:`, err)
-            logger.error(`Normality test failed for ${col.name}`, err)
-          }
-        }
-      }
-
-      console.log('Final results:', {
-        normalityResults
-      })
-      setNormalityTests(normalityResults)
-    } catch (error) {
-      console.error('Statistical tests error:', error)
-      logger.error('통계 검정 오류', error)
-    } finally {
-      setIsCalculating(false)
     }
   }
 
@@ -1325,13 +1242,13 @@ export const DataValidationStep = memo(function DataValidationStep({
                           )}
 
                           {/* D'Agostino */}
-                          {test.dagostino && (
+                          {test.dagostinoPearson && (
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-muted-foreground">D'Agostino-Pearson</span>
                               <div className="flex items-center gap-3">
-                                <span>K² = {test.dagostino.statistic.toFixed(4)}</span>
-                                <span className={test.dagostino.pValue > alpha ? 'text-green-600' : 'text-amber-600'}>
-                                  p = {test.dagostino.pValue.toFixed(4)}
+                                <span>K² = {test.dagostinoPearson.statistic.toFixed(4)}</span>
+                                <span className={test.dagostinoPearson.pValue > alpha ? 'text-green-600' : 'text-amber-600'}>
+                                  p = {test.dagostinoPearson.pValue.toFixed(4)}
                                 </span>
                               </div>
                             </div>
@@ -1478,7 +1395,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                 <div className="text-xs text-muted-foreground">
                   Shapiro-Wilk, Anderson-Darling, D'Agostino-Pearson 검정 실행
                 </div>
-                <Button size="sm" variant="outline" onClick={runNormalityTests} disabled={isCalculating}>
+                <Button size="sm" variant="outline" onClick={() => runNormalityTestsHook(data, numericColumns)} disabled={isCalculating}>
                   {isCalculating ? (
                     <span className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
