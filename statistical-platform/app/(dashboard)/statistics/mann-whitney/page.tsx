@@ -31,7 +31,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -93,22 +93,23 @@ export default function MannWhitneyPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  // PyodideCore instance
+  const [pyodideCore] = useState(() => PyodideCoreService.getInstance())
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Initialize Pyodide
+  // Initialize PyodideCore
   useEffect(() => {
     const initPyodide = async () => {
       try {
-        await pyodideStats.initialize()
-        setPyodide(pyodideStats)
+        await pyodideCore.initialize()
+        setIsInitialized(true)
       } catch (err) {
         console.error('Pyodide 초기화 실패:', err)
         actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
     initPyodide()
-  }, [actions])
+  }, [actions, pyodideCore])
 
   // Steps configuration
   const steps: StatisticsStep[] = [
@@ -163,7 +164,7 @@ export default function MannWhitneyPage() {
   )
 
   const runAnalysis = async (variables: MannWhitneyVariables) => {
-    if (!uploadedData || !uploadedData.data || !pyodide || !variables.dependent || !variables.factor || variables.factor.length === 0) {
+    if (!uploadedData || !uploadedData.data || !isInitialized || !variables.dependent || !variables.factor || variables.factor.length === 0) {
       actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
@@ -200,8 +201,18 @@ export default function MannWhitneyPage() {
       const group1 = groups.get(groupValues[0])!
       const group2 = groups.get(groupValues[1])!
 
-      // Mann-Whitney U 검정 실행
-      const result = await pyodide.mannWhitneyU(group1, group2)
+      // Mann-Whitney U 검정 실행 (PyodideCoreService 사용)
+      const result = await pyodideCore.callWorkerMethod<{
+        statistic: number
+        pvalue: number
+      }>(
+        3, // Worker 3 (Nonparametric)
+        'mann_whitney_test',
+        {
+          group1,
+          group2
+        }
+      )
 
       // 결과를 MannWhitneyResult 형식으로 변환
       const formattedResult: MannWhitneyResult = {

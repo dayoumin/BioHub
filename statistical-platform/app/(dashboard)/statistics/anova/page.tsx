@@ -275,8 +275,7 @@ export default function ANOVAPage() {
       )
 
       // 5️⃣ 결과 저장 및 다음 단계로 이동
-      actions.setResults(result as unknown as ANOVAResults)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(result as unknown as ANOVAResults, 3)
 
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Two-Way ANOVA 분석 중 오류가 발생했습니다'
@@ -354,8 +353,7 @@ export default function ANOVAPage() {
       )
 
       // 5️⃣ 결과 저장 및 다음 단계로 이동
-      actions.setResults(result as unknown as ANOVAResults)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(result as unknown as ANOVAResults, 3)
 
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Repeated Measures ANOVA 분석 중 오류가 발생했습니다'
@@ -438,8 +436,7 @@ export default function ANOVAPage() {
       )
 
       // 5️⃣ 결과 저장 및 다음 단계로 이동
-      actions.setResults(result as unknown as ANOVAResults)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis(result as unknown as ANOVAResults, 3)
 
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Three-Way ANOVA 분석 중 오류가 발생했습니다'

@@ -896,7 +896,49 @@ describe('Method Name Page - Coding Standards Compliance', () => {
 | `time`/`event`/`censoring` | `time?: string`, `event?: string`, `censoring?: string` | 동일 키 | 생존분석 계열 |
 
 > **중요**: fallback 키는 `types/statistics-converters.ts`에 정의된 순서를 그대로 따라야 하며, 새로운 키를 임의로 추가하거나 이름을 변경하면 VariableSelector와의 계약이 깨집니다.
-### 17.3 잘못된 예 (Critical 버그 발생)
+### 17.3 예외 케이스: 다중 Role → 별도 필드 매핑
+
+일부 통계는 **2개 이상의 role을 별도 필드로 매핑**해야 합니다. (표준 매핑 규칙 예외)
+
+#### chi-square-independence (카이제곱 독립성 검정)
+
+**variable-requirements.ts**:
+```typescript
+{
+  id: 'chi-square-independence',
+  variables: [
+    { role: 'independent', label: '행 변수 (Row Variable)' },  // 1st variable
+    { role: 'dependent', label: '열 변수 (Column Variable)' }  // 2nd variable
+  ]
+}
+```
+
+**types/statistics.ts**:
+```typescript
+export interface ChiSquareIndependenceVariables {
+  row: string     // ← role: 'independent' (1st variable)
+  column: string  // ← role: 'dependent' (2nd variable)
+}
+```
+
+**types/statistics-converters.ts**:
+```typescript
+export function toChiSquareIndependenceVariables(vars: VariableAssignment): ChiSquareIndependenceVariables {
+  return {
+    row: toSingleString(vars.independent || vars.row),      // fallback 지원
+    column: toSingleString(vars.dependent || vars.column)
+  }
+}
+```
+
+**이유**:
+- 교차표(contingency table)는 **행(row)과 열(column)** 개념 필요
+- `independent[]` 배열로 합치면 순서가 보장되지 않음
+- 별도 필드로 분리해야 UI/UX 명확성 확보
+
+**검증 스크립트**: `scripts/statistics/validate-variable-mapping.js`의 `MULTI_ROLE_EXCEPTIONS`에 등록되어 자동 검증됨
+
+### 17.4 잘못된 예 (Critical 버그 발생)
 
 ```typescript
 // ❌ 잘못된 예: variable-requirements.ts와 불일치
@@ -921,7 +963,7 @@ export interface ANCOVAVariables {
 - VariableSelector가 `factor` 키에 변수를 저장하지만, 페이지는 `groups`를 읽어 빈 배열 에러 발생
 - Two-Way/Three-Way ANOVA에서 요인 변수를 읽지 못해 one-way로 강등됨
 
-### 17.4 올바른 예
+### 17.5 올바른 예
 
 ```typescript
 // ✅ 올바른 예: variable-requirements.ts와 일치
@@ -948,7 +990,7 @@ export interface MixedModelVariables {
 }
 ```
 
-### 17.5 페이지 구현 시 주의사항
+### 17.6 페이지 구현 시 주의사항
 
 #### ✅ VariableSelectorModern + Converter 패턴
 
@@ -986,14 +1028,14 @@ const runAnalysis = useCallback(async (variables: MannWhitneyVariables) => {
   // ...
 }, [actions])
 ```
-### 17.6 점검 체크리스트
+### 17.7 점검 체크리스트
 
 - [ ] `variable-requirements.ts`의 role과 `types/statistics.ts` 필드명이 1:1로 대응하는지 확인했다.
 - [ ] 대응 converter(`types/statistics-converters.ts`)가 Section 17.2의 fallback 순서를 그대로 따른다.
 - [ ] 페이지에서는 `createVariableSelectionHandler` + converter 조합으로만 `actions.setSelectedVariables`를 호출한다.
 - [ ] `runAnalysis`는 정규화된 타입(예: `ChiSquareIndependenceVariables`)만 사용하고 raw `VariableAssignment`를 직접 다루지 않는다.
 - [ ] 다중 변수가 필요한 경우(독립변수 2개 등) 길이 검증 후 명확한 에러 메시지를 노출한다.
-### 17.7 역사적 맥락
+### 17.8 역사적 맥락
 
 **문제 발견일**: 2025-11-06
 

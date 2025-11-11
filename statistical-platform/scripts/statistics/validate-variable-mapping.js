@@ -60,6 +60,20 @@ const FORBIDDEN_FIELD_NAMES = {
   'covariates': 'covariate로 변경 (단수형)'
 };
 
+// 예외 케이스: 다중 role을 별도 필드로 매핑
+const MULTI_ROLE_EXCEPTIONS = {
+  'chi-square-independence': {
+    type: 'multi-field',
+    description: '2개 role을 별도 필드로 매핑 (row, column)',
+    mapping: [
+      { role: 'independent', field: 'row' },
+      { role: 'dependent', field: 'column' }
+    ]
+  }
+  // 향후 새로운 예외 케이스를 여기에 추가
+  // 예: 'method-name': { type: 'multi-field', mapping: [...] }
+};
+
 let errors = 0;
 let warnings = 0;
 
@@ -160,41 +174,78 @@ function validateRoleMapping() {
 
     totalChecks++;
 
-    // role들이 fields에 포함되어 있는지 확인
-    const missingRoles = roles.filter(role => {
-      const expectedField = STANDARD_ROLE_MAPPING[role];
-      return expectedField && !fields.includes(expectedField);
-    });
+    // 예외 케이스 처리 (다중 role → 별도 필드 매핑)
+    if (MULTI_ROLE_EXCEPTIONS[methodId]) {
+      const exception = MULTI_ROLE_EXCEPTIONS[methodId];
+      const missingFields = exception.mapping.filter(({ field }) => !fields.includes(field));
+      const forbiddenUsages = fields.filter(field => FORBIDDEN_FIELD_NAMES[field]);
 
-    // 금지된 필드명 사용 여부 확인
-    const forbiddenUsages = fields.filter(field => FORBIDDEN_FIELD_NAMES[field]);
+      if (missingFields.length === 0 && forbiddenUsages.length === 0) {
+        console.log(`${colors.green}✅ [${methodId}]${colors.reset} ${typeName} ${colors.cyan}(Exception)${colors.reset}`);
+        console.log(`   ${colors.cyan}Exception:${colors.reset} ${exception.description}`);
+        exception.mapping.forEach(({ role, field }) => {
+          console.log(`   role: '${role}' → field: '${field}'`);
+        });
+        passedChecks++;
+      } else {
+        console.log(`${colors.red}❌ [${methodId}]${colors.reset} ${typeName} ${colors.cyan}(Exception)${colors.reset}`);
 
-    if (missingRoles.length === 0 && forbiddenUsages.length === 0) {
-      console.log(`${colors.green}✅ [${methodId}]${colors.reset} ${typeName}`);
-      console.log(`   Roles: ${roles.join(', ')} → Fields: ${fields.join(', ')}`);
-      passedChecks++;
+        if (missingFields.length > 0) {
+          console.log(`   ${colors.red}Missing fields:${colors.reset}`);
+          missingFields.forEach(({ role, field }) => {
+            console.log(`     - role: '${role}' → expected field: '${field}'`);
+          });
+        }
+
+        if (forbiddenUsages.length > 0) {
+          console.log(`   ${colors.red}Forbidden:${colors.reset}`);
+          forbiddenUsages.forEach(field => {
+            console.log(`     - field: '${field}' (${FORBIDDEN_FIELD_NAMES[field]})`);
+          });
+        }
+
+        console.log(`   ${colors.yellow}Expected:${colors.reset} ${exception.mapping.map(m => m.field).join(', ')}`);
+        console.log(`   ${colors.yellow}Actual:${colors.reset}   ${fields.join(', ')}`);
+
+        errors++;
+      }
     } else {
-      console.log(`${colors.red}❌ [${methodId}]${colors.reset} ${typeName}`);
+      // 일반 케이스: 1 role = 1 field 매핑
+      const missingRoles = roles.filter(role => {
+        const expectedField = STANDARD_ROLE_MAPPING[role];
+        return expectedField && !fields.includes(expectedField);
+      });
 
-      if (missingRoles.length > 0) {
-        console.log(`   ${colors.red}Missing:${colors.reset}`);
-        missingRoles.forEach(role => {
-          const expected = STANDARD_ROLE_MAPPING[role];
-          console.log(`     - role: '${role}' → expected field: '${expected}'`);
-        });
+      // 금지된 필드명 사용 여부 확인
+      const forbiddenUsages = fields.filter(field => FORBIDDEN_FIELD_NAMES[field]);
+
+      if (missingRoles.length === 0 && forbiddenUsages.length === 0) {
+        console.log(`${colors.green}✅ [${methodId}]${colors.reset} ${typeName}`);
+        console.log(`   Roles: ${roles.join(', ')} → Fields: ${fields.join(', ')}`);
+        passedChecks++;
+      } else {
+        console.log(`${colors.red}❌ [${methodId}]${colors.reset} ${typeName}`);
+
+        if (missingRoles.length > 0) {
+          console.log(`   ${colors.red}Missing:${colors.reset}`);
+          missingRoles.forEach(role => {
+            const expected = STANDARD_ROLE_MAPPING[role];
+            console.log(`     - role: '${role}' → expected field: '${expected}'`);
+          });
+        }
+
+        if (forbiddenUsages.length > 0) {
+          console.log(`   ${colors.red}Forbidden:${colors.reset}`);
+          forbiddenUsages.forEach(field => {
+            console.log(`     - field: '${field}' (${FORBIDDEN_FIELD_NAMES[field]})`);
+          });
+        }
+
+        console.log(`   ${colors.yellow}Expected:${colors.reset} ${roles.map(r => STANDARD_ROLE_MAPPING[r]).join(', ')}`);
+        console.log(`   ${colors.yellow}Actual:${colors.reset}   ${fields.join(', ')}`);
+
+        errors++;
       }
-
-      if (forbiddenUsages.length > 0) {
-        console.log(`   ${colors.red}Forbidden:${colors.reset}`);
-        forbiddenUsages.forEach(field => {
-          console.log(`     - field: '${field}' (${FORBIDDEN_FIELD_NAMES[field]})`);
-        });
-      }
-
-      console.log(`   ${colors.yellow}Expected:${colors.reset} ${roles.map(r => STANDARD_ROLE_MAPPING[r]).join(', ')}`);
-      console.log(`   ${colors.yellow}Actual:${colors.reset}   ${fields.join(', ')}`);
-
-      errors++;
     }
 
     console.log('');
