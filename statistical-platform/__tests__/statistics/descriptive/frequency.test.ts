@@ -8,21 +8,13 @@ import type { CalculatorContext } from '../../../lib/statistics/calculator-types
 import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 describe('Frequency Analysis', () => {
-  // Mock PyodideCore
-  const mockPyodideCore = {
-    frequencyAnalysis: jest.fn()
-  } as unknown as PyodideCoreService
-
+  // Frequency 핸들러는 PyodideCore를 사용하지 않음 (JavaScript로 직접 계산)
   const mockContext: CalculatorContext = {
-    pyodideCore: mockPyodideCore
+    pyodideCore: {} as PyodideCoreService
   }
 
   const descriptiveGroup = createDescriptiveGroup(mockContext)
   const frequencyHandler = descriptiveGroup.handlers.frequency
-
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
 
   describe('기본 케이스 (정상 데이터)', () => {
     it('should calculate frequency distribution correctly', async () => {
@@ -35,26 +27,17 @@ describe('Frequency Analysis', () => {
         { category: 'B' }
       ]
 
-      const mockPyodideResult = {
-        frequencies: {
-          A: 3,
-          B: 2,
-          C: 1
-        },
-        percentages: {
-          A: 50.0,
-          B: 33.33,
-          C: 16.67
-        },
-        total: 6
-      }
-
-      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
-
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
-      expect(mockPyodideCore.frequencyAnalysis).toHaveBeenCalledWith(['A', 'B', 'A', 'C', 'A', 'B'])
+      expect(result.data?.metrics).toBeDefined()
+      expect(result.data?.tables).toHaveLength(1)
+      // 빈도표에 A가 3번, B가 2번, C가 1번 나타나는지 확인
+      const freqTable = result.data?.tables?.[0].data as Array<Record<string, unknown>>
+      expect(freqTable).toHaveLength(3)
+      expect(freqTable.find(row => row['값'] === 'A')?.['빈도']).toBe(3)
+      expect(freqTable.find(row => row['값'] === 'B')?.['빈도']).toBe(2)
+      expect(freqTable.find(row => row['값'] === 'C')?.['빈도']).toBe(1)
     })
 
     it('should handle numeric categories', async () => {
@@ -67,25 +50,11 @@ describe('Frequency Analysis', () => {
         { score: 1 }
       ]
 
-      const mockPyodideResult = {
-        frequencies: {
-          '1': 3,
-          '2': 2,
-          '3': 1
-        },
-        percentages: {
-          '1': 50.0,
-          '2': 33.33,
-          '3': 16.67
-        },
-        total: 6
-      }
-
-      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
-
       const result = await frequencyHandler(testData, { column: 'score' })
 
       expect(result.success).toBe(true)
+      const freqTable = result.data?.tables?.[0].data as Array<Record<string, unknown>>
+      expect(freqTable.find(row => row['값'] === '1')?.['빈도']).toBe(3)
     })
   })
 
@@ -97,17 +66,12 @@ describe('Frequency Analysis', () => {
         { category: 'A' }
       ]
 
-      const mockPyodideResult = {
-        frequencies: { A: 3 },
-        percentages: { A: 100.0 },
-        total: 3
-      }
-
-      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
-
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
+      const freqTable = result.data?.tables?.[0].data as Array<Record<string, unknown>>
+      expect(freqTable).toHaveLength(1)
+      expect(freqTable[0]['빈도']).toBe(3)
     })
 
     it('should handle many categories (>10)', async () => {
@@ -115,24 +79,11 @@ describe('Frequency Analysis', () => {
         category: `Cat${i % 15}`
       }))
 
-      const mockFreq: Record<string, number> = {}
-      for (let i = 0; i < 15; i++) {
-        mockFreq[`Cat${i}`] = Math.floor(50 / 15) + (i < 50 % 15 ? 1 : 0)
-      }
-
-      const mockPyodideResult = {
-        frequencies: mockFreq,
-        percentages: Object.fromEntries(
-          Object.entries(mockFreq).map(([k, v]) => [k, (v / 50) * 100])
-        ),
-        total: 50
-      }
-
-      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
-
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
+      const freqTable = result.data?.tables?.[0].data as Array<Record<string, unknown>>
+      expect(freqTable).toHaveLength(15)
     })
 
     it('should handle missing values', async () => {
@@ -144,24 +95,13 @@ describe('Frequency Analysis', () => {
         { category: 'A' }
       ]
 
-      const mockPyodideResult = {
-        frequencies: {
-          A: 2,
-          B: 1
-        },
-        percentages: {
-          A: 66.67,
-          B: 33.33
-        },
-        total: 3
-      }
-
-      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
-
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
-      expect(mockPyodideCore.frequencyAnalysis).toHaveBeenCalledWith(['A', 'B', 'A']) // null/undefined 제외
+      const freqTable = result.data?.tables?.[0].data as Array<Record<string, unknown>>
+      expect(freqTable).toHaveLength(2) // null/undefined 제외
+      expect(freqTable.find(row => row['값'] === 'A')?.['빈도']).toBe(2)
+      expect(freqTable.find(row => row['값'] === 'B')?.['빈도']).toBe(1)
     })
   })
 
@@ -192,17 +132,7 @@ describe('Frequency Analysis', () => {
       expect(result.success).toBe(false)
     })
 
-    it('should handle Pyodide error', async () => {
-      const testData = [{ category: 'A' }]
-
-      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockRejectedValue(
-        new Error('Pyodide calculation failed')
-      )
-
-      const result = await frequencyHandler(testData, { column: 'category' })
-
-      expect(result.success).toBe(false)
-    })
+    // Frequency는 JavaScript로 직접 계산하므로 Pyodide 에러 테스트 불필요
   })
 
   describe('대용량 데이터', () => {
@@ -212,29 +142,12 @@ describe('Frequency Analysis', () => {
         category: categories[i % categories.length]
       }))
 
-      const mockPyodideResult = {
-        frequencies: {
-          A: 2000,
-          B: 2000,
-          C: 2000,
-          D: 2000,
-          E: 2000
-        },
-        percentages: {
-          A: 20.0,
-          B: 20.0,
-          C: 20.0,
-          D: 20.0,
-          E: 20.0
-        },
-        total: 10000
-      }
-
-      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
-
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
+      const freqTable = result.data?.tables?.[0].data as Array<Record<string, unknown>>
+      expect(freqTable).toHaveLength(5)
+      expect(freqTable.find(row => row['값'] === 'A')?.['빈도']).toBe(2000)
     })
   })
 })

@@ -106,7 +106,8 @@
       "Bash(timeout 3 sleep:*)",
       "Bash(do if grep -q \": any\" \"$file\")",
       "Bash(then echo \"$file\")",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(npm run validate:mapping:*)"
     ],
     "deny": [],
     "ask": []

@@ -122,7 +122,7 @@ export default function RunsTestPage() {
   )
 
   const runAnalysis = useCallback(async (variables: RunsTestVariables | string[]) => {
-    const varName = typeof variables === 'string' ? variables : Array.isArray(variables) ? variables[0] : variables.data
+    const varName = typeof variables === 'string' ? variables : Array.isArray(variables) ? variables[0] : variables.dependent
     if (!uploadedData || !varName) return
 
     actions.startAnalysis()
@@ -237,15 +237,15 @@ export default function RunsTestPage() {
     if (!variables || typeof variables !== 'object') return
 
     // Extract variable names from the selection object
-    const variableSelection = variables as { variables: string[] }
-    const selectedVar = variableSelection.variables?.[0] || ''
+    const variableSelection = variables as { dependent?: string; variables?: string[] }
+    const selectedVar = variableSelection.dependent || variableSelection.variables?.[0] || ''
 
     if (!actions.setSelectedVariables) {
       console.error('[runs-test] setSelectedVariables not available')
       return
     }
 
-    const typedVariables: RunsTestVariables = { data: selectedVar }
+    const typedVariables: RunsTestVariables = { dependent: selectedVar }
     actions.setSelectedVariables(typedVariables)
 
     // 자동으로 분석 실행

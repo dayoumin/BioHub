@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 🚨 현재 중요 규칙 (2025-11-11 업데이트)
 
-**상태**: ✅ Phase A-3 완료 (변수 role 매핑 표준화 완료)
+**상태**: ✅ Phase A-3-R1 완료 (변수 role 매핑 표준화 + Critical 버그 수정)
 
 **해결된 문제**:
-- ✅ **변수 role 일치**: variable-requirements.ts === types/statistics.ts (7개 인터페이스 수정)
-- ✅ **타입 중앙화**: Section 18 준수 (cochran-q 중복 정의 제거)
+- ✅ **변수 role 일치**: variable-requirements.ts === types/statistics.ts (6개 인터페이스 수정)
+- ✅ **타입 중앙화**: Section 18 준수 (mood-median 중복 정의 제거)
+- ✅ **Critical 버그 수정**: chi-square-independence, binomial-test, runs-test (3개)
 - 🟡 **공통 컴포넌트 미활용**: 향후 개선 예정 (우선순위 낮음)
 
 **반드시 지킬 것** (CRITICAL):
@@ -34,6 +35,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `role: 'within'` | `within: string[]` | `conditions` |
 | `role: 'covariate'` | `covariate: string[]` | `covariates` |
 | `role: 'blocking'` | `blocking?: string[]` | `randomEffects` |
+
+**예외 케이스** (2개 role을 별도 필드로 사용):
+- **chi-square-independence**: `role: 'independent'` + `role: 'dependent'` → `row: string` + `column: string`
+  - 컨버터: `independent||row`, `dependent||column` fallback 적용
 
 **필드명 규칙**: camelCase (pValue, ciLower, ciUpper) ✅ | snake_case (p_value, ci_lower) ❌
 
@@ -307,16 +312,18 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ **41/41 페이지 (100%)** 완료
   - ✅ TypeScript 에러: 717 → 0 (-100%, 완전 제거)
   - ✅ 코드 품질: 3.5/5 → 4.97/5 (+42% 향상)
-- ✅ **Phase A-3 완료** (2025-11-11): 변수 role 매핑 표준화
-  - ✅ types/statistics.ts 수정 (7개 인터페이스)
-  - ✅ types/statistics-converters.ts 수정 (4개 함수, 하위호환 유지)
-  - ✅ 2개 페이지 수정 (kruskal-wallis, cochran-q)
-  - ✅ Section 17-18 100% 준수
-  - ✅ TypeScript 에러: 0개 (프로덕션 코드)
+- ✅ **Phase A-3-R1 완료** (2025-11-11): 변수 role 매핑 표준화 + Critical 버그 수정
+  - ✅ **Phase A-3**: 6개 인터페이스 수정 (Section 17-18 준수)
+    - FrequencyTableVariables, PartialCorrelationVariables, RunsTestVariables
+    - MoodMedianVariables, BinomialTestVariables, FactorAnalysisVariables
+  - ✅ **Phase A-3-R1**: Critical 버그 수정 (외부 코드 리뷰 피드백)
+    - chi-square-independence: 2-role 특수 케이스 복구 (row/column)
+    - binomial-test, runs-test: handleVariableChange fallback 추가
+  - ✅ TypeScript 에러: 0개, 개발 서버: 정상 실행
 - ✅ **Smart Flow Phase 4-6 완료** (2025-11-11):
   - ✅ DataValidationStep 리팩토링 (컴포넌트 분리)
   - ✅ AssumptionResultsPanel, NumericStatsTable 컴포넌트화
-  - ✅ 38개 컴포넌트 테스트 작성 및 통과
+  - ✅ 125개 컴포넌트 테스트 작성 및 통과
 
 **다음 작업**:
 - 🔜 Phase 7 계획 수립 (Tauri 데스크탑 앱 or 추가 통계 메서드)
@@ -348,4 +355,4 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ---
 
-**Updated**: 2025-11-11 | **Version**: Phase 6 + Phase 2-2 + Phase A-3 + Smart Flow Phase 4-6 Complete | **Next**: Phase 7 or 검증 자동화
+**Updated**: 2025-11-11 | **Version**: Phase 6 + Phase 2-2 + Phase A-3-R1 + Smart Flow Phase 4-6 Complete | **Next**: Phase 7 or 검증 자동화

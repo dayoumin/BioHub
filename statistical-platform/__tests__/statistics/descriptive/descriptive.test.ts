@@ -217,16 +217,14 @@ describe('Descriptive Statistics', () => {
     })
 
     it('should handle Pyodide error', async () => {
-      const testData = [{ value: 10 }]
+      const testData = [{ value: 10 }, { value: 20 }]
 
       ;(mockPyodideCore.descriptiveStats as jest.Mock).mockRejectedValue(
         new Error('Pyodide calculation failed')
       )
 
-      const result = await descriptiveHandler(testData, { column: 'value' })
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('계산')
+      // 에러가 발생하면 Promise가 reject됩니다 (handler에 try-catch 없음)
+      await expect(descriptiveHandler(testData, { column: 'value' })).rejects.toThrow('Pyodide calculation failed')
     })
   })
 

@@ -27,20 +27,11 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import type { MoodMedianVariables } from '@/types/statistics'
 
 // ============================================================================
 // 타입 정의
 // ============================================================================
-
-/**
- * Mood Median Test 변수 선택
- * - grouping: 그룹 변수 (범주형)
- * - test: 검정 변수 (연속형)
- */
-interface MoodMedianVariables {
-  grouping: string
-  test: string
-}
 
 /**
  * Mood Median Test 결과
@@ -139,12 +130,12 @@ export default function MoodMedianTestPage() {
   const handleVariableSelection = useCallback((variables: unknown) => {
     if (!variables || typeof variables !== 'object') return
 
-    const vars = variables as { grouping?: string; test?: string }
+    const vars = variables as { factor?: string; dependent?: string; grouping?: string; test?: string }
 
-    if (vars.grouping && vars.test) {
+    if ((vars.factor && vars.dependent) || (vars.grouping && vars.test)) {
       const moodVars: MoodMedianVariables = {
-        grouping: vars.grouping,
-        test: vars.test
+        factor: vars.factor || vars.grouping || '',
+        dependent: vars.dependent || vars.test || ''
       }
 
       actions.setSelectedVariables?.(moodVars)
@@ -161,7 +152,7 @@ export default function MoodMedianTestPage() {
     actions.startAnalysis?.()
 
     try {
-      const { grouping: groupVar, test: testVar } = selectedVariables
+      const { factor: groupVar, dependent: testVar } = selectedVariables
 
       // 1️⃣ 데이터 추출 및 그룹별 분리
       const groupsMap = new Map<string | number, number[]>()

@@ -55,7 +55,7 @@ export interface DescriptiveVariables {
 }
 
 export interface FrequencyTableVariables {
-  all: string[] // 1개 이상
+  dependent: string[] // 1개 이상 (variable-requirements.ts: role: 'dependent')
 }
 
 // T-검정
@@ -148,7 +148,7 @@ export interface CorrelationVariables {
 }
 
 export interface PartialCorrelationVariables {
-  all: string[] // 2개 이상 (독립변수 + 통제변수)
+  dependent: string[] // 2개 이상 (variable-requirements.ts: role: 'dependent')
   covariate?: string[] // 통제변수 (선택적)
   location?: {
     column: string
@@ -190,8 +190,8 @@ export interface ChiSquareGoodnessVariables {
 }
 
 export interface ChiSquareIndependenceVariables {
-  row: string // 1개
-  column: string // 1개
+  row: string // 1개 (variable-requirements.ts: role: 'independent')
+  column: string // 1개 (variable-requirements.ts: role: 'dependent')
 }
 
 export interface McNemarVariables {
@@ -228,7 +228,7 @@ export interface SignTestVariables {
 }
 
 export interface RunsTestVariables {
-  data: string // 1개 (이진 데이터)
+  dependent: string // 1개 (variable-requirements.ts: role: 'dependent')
 }
 
 export interface CochranQVariables {
@@ -237,12 +237,12 @@ export interface CochranQVariables {
 }
 
 export interface MoodMedianVariables {
-  grouping: string // 그룹 변수 (범주형)
-  test: string // 검정 변수 (연속형)
+  factor: string // 1개 (variable-requirements.ts: role: 'factor')
+  dependent: string // 1개 (variable-requirements.ts: role: 'dependent')
 }
 
 export interface BinomialTestVariables {
-  variable: string // 이진 변수 (0/1 또는 categorical)
+  dependent: string // 1개 (variable-requirements.ts: role: 'dependent')
 }
 
 // 정규성 및 검정력
@@ -277,7 +277,7 @@ export interface PCAVariables {
 }
 
 export interface FactorAnalysisVariables {
-  all: string[] // 3개 이상
+  dependent: string[] // 3개 이상 (variable-requirements.ts: role: 'dependent', multiple: true, minCount: 3)
 }
 
 export interface ClusterVariables {

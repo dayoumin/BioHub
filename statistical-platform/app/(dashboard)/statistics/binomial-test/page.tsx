@@ -119,8 +119,8 @@ export default function BinomialTestPage(): React.ReactElement {
     if (!variables || typeof variables !== 'object') return
     if (!uploadedData) return
 
-    const varSelection = variables as { variable?: string }
-    const selectedVar = varSelection.variable
+    const varSelection = variables as { dependent?: string; variable?: string }
+    const selectedVar = varSelection.dependent || varSelection.variable
 
     if (!selectedVar) return
 
@@ -154,7 +154,7 @@ export default function BinomialTestPage(): React.ReactElement {
 
   const runAnalysis = useCallback(async (variables: BinomialTestVariables) => {
     if (!uploadedData) return
-    if (!variables.variable) return
+    if (!variables.dependent) return
     if (analysisOptions.successValue === null) {
       actions.setError('성공 기준값을 선택해주세요.')
       return
@@ -168,7 +168,7 @@ export default function BinomialTestPage(): React.ReactElement {
       let totalCount = 0
 
       for (const row of uploadedData.data) {
-        const value = (row as Record<string, unknown>)[variables.variable]
+        const value = (row as Record<string, unknown>)[variables.dependent]
 
         if (value === null || value === undefined) {
           continue
@@ -290,7 +290,7 @@ export default function BinomialTestPage(): React.ReactElement {
     }
 
     const variables: BinomialTestVariables = {
-      variable: selectedVariable
+      dependent: selectedVariable
     }
 
     void runAnalysis(variables)

@@ -76,8 +76,8 @@ export function toANOVAVariables(vars: VariableAssignment): ANOVAVariables {
 
 export function toChiSquareIndependenceVariables(vars: VariableAssignment): ChiSquareIndependenceVariables {
   return {
-    row: toSingleString(vars.row),
-    column: toSingleString(vars.column)
+    row: toSingleString(vars.independent || vars.row),
+    column: toSingleString(vars.dependent || vars.column)
   }
 }
 
@@ -96,7 +96,7 @@ export function toDiscriminantVariables(vars: VariableAssignment): DiscriminantV
 
 export function toFrequencyTableVariables(vars: VariableAssignment): FrequencyTableVariables {
   return {
-    all: toStringArray(vars.all || vars.variables)
+    dependent: toStringArray(vars.dependent || vars.all || vars.variables) // Fallback: all → dependent
   }
 }
 
@@ -163,7 +163,7 @@ export function toOneSampleTVariables(vars: VariableAssignment): OneSampleTVaria
 
 export function toPartialCorrelationVariables(vars: VariableAssignment): PartialCorrelationVariables {
   const result: PartialCorrelationVariables = {
-    all: toStringArray(vars.all || vars.variables)
+    dependent: toStringArray(vars.dependent || vars.all || vars.variables) // Fallback: all → dependent
   }
 
   if (vars.covariate) {
@@ -204,7 +204,7 @@ export function toReliabilityVariables(vars: VariableAssignment): ReliabilityVar
 
 export function toRunsTestVariables(vars: VariableAssignment): RunsTestVariables {
   return {
-    data: toSingleString(vars.data || vars.variable)
+    dependent: toSingleString(vars.dependent || vars.data || vars.variable) // Fallback: data → dependent
   }
 }
 

@@ -39,188 +39,395 @@ export default function StatisticsPage() {
 
 ---
 
-## 2. 비동기 분석 함수 패턴 (필수)
+## 2. 분석 실행 함수 규칙 (필수)
+
+
+
+### 2.1 표준 플로우
+
+
+
+- `useStatisticsPage`에서 내려주는 `state`/`actions`를 기준으로 모든 분석 흐름을 구성합니다.
+
+- `runAnalysis` 안에서는 `uploadedData`, `selectedVariables`, Pyodide 준비 상태를 모두 확인한 뒤에만 `actions.startAnalysis()`를 호출합니다.
+
+- 결과 전달은 반드시 `actions.completeAnalysis(result, nextStep)`를 사용하며, `actions.setResults()`는 금지입니다.
+
+- React 18 automatic batching 덕분에 별도 `setTimeout`/`setState` 꼼수는 필요하지 않습니다.
+
+
 
 ```typescript
-import { useCallback } from 'react'
-import type { PyodideInterface } from '@/types/pyodide'
-import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 
-const runAnalysis = useCallback(async (params: AnalysisParams) => {
-  // 1. Early return
-  if (!uploadedData) return
+import { usePyodideService } from '@/hooks/use-pyodide-service'
 
-  // 2. 분석 시작 (isAnalyzing = true로 설정)
+
+
+const { pyodideService, isLoading: isPyodideLoading } = usePyodideService()
+
+
+
+const runAnalysis = useCallback(async (variables: MannWhitneyVariables) => {
+
+  if (!uploadedData || !pyodideService?.isReady || isPyodideLoading) return
+
+  if (!variables.dependent || variables.factor?.length !== 2) return
+
+
+
   actions.startAnalysis()
 
-  // 3. 비동기 분석 실행
+
+
   try {
-    // Pyodide 로딩 (함수 내부에서 직접 로드)
-    const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'pandas', 'scipy'])
 
-    // 분석 실행
-    pyodide.globals.set('data', uploadedData.data)
-    const result = pyodide.runPython(pythonCode)
+    await pyodideService.loadPackages(['numpy', 'pandas', 'scipy'])
 
-    // ✅ 결과 저장 및 상태 완전 리셋
-    actions.completeAnalysis(result.toJs(), nextStepNumber)
+    const pythonResult = await pyodideService.runPython(pythonCode)
+
+    actions.completeAnalysis(pythonResult, 3)
+
   } catch (err) {
-    actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+
+    const message = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
+
+    actions.setError(message)
+
   }
-}, [uploadedData, actions])
+
+}, [uploadedData, pyodideService, isPyodideLoading, actions])
+
 ```
 
-**중요**:
-- React 18 automatic batching이 UI 업데이트를 자동 처리하므로 setTimeout 불필요
-- ⚠️ **Critical**: `actions.setResults()` 대신 `actions.completeAnalysis()` 필수 사용 (아래 섹션 참조)
 
-### Pyodide 초기화
 
-**권장**: 함수 내부에서 직접 로드
+### 2.2 Pyodide 서비스/코어 선택 가이드
+
+
+
+| 구성 | 설명 | 활용 예시 |
+
+|------|------|-----------|
+
+| `usePyodideService` | 가벼운 분석/목업용 Pyodide 서비스 (React 훅) | Descriptive, Frequency, 탐색형 페이지 |
+
+| `PyodideCoreService` | Web Worker + WASM 기반 싱글톤. `callWorkerMethod`로 분석 호출 | Binomial Test, Regression, Smart Analysis |
+
+
 
 ```typescript
-const runAnalysis = useCallback(async (params) => {
-  const pyodide = await loadPyodideWithPackages([...])  // ← 함수 내부에서 로드
-  // ...
+
+const runHeavyAnalysis = useCallback(async (variables: RegressionVariables) => {
+
+  if (!uploadedData) return
+
+
+
+  actions.startAnalysis()
+
+
+
+  try {
+
+    const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+
+    const pyodideCore = PyodideCoreService.getInstance()
+
+    await pyodideCore.initialize()
+
+
+
+    const pythonResult = await pyodideCore.callWorkerMethod<RegressionResult>(
+
+      2, // worker2-hypothesis.py
+
+      'regression',
+
+      { dataset: uploadedData.data, variables }
+
+    )
+
+
+
+    actions.completeAnalysis(pythonResult, 4)
+
+  } catch (err) {
+
+    const message = err instanceof Error ? err.message : 'Pyodide 실행 중 오류가 발생했습니다.'
+
+    actions.setError(message)
+
+  }
+
 }, [uploadedData, actions])
+
 ```
 
-**피해야 할 패턴**: useState + useEffect
 
-```typescript
-// ❌ 불필요한 state 관리
-const [pyodide, setPyodide] = useState(null)
 
-useEffect(() => {
-  // Pyodide 초기화...
-}, [])
-```
+- Pyodide 인스턴스를 컴포넌트 `useState`에 저장하지 말고, 항상 서비스/싱글톤에서 가져옵니다.
+
+- Worker ID와 메서드명은 `lib/statistics/statistical-calculator.ts` 및 `PyodideCoreService` 구현과 동일해야 합니다.
+
+
 
 ---
 
-## 3. DataUploadStep 사용법 (필수)
+
+
+## 3. DataUploadStep 연동 (필수)
+
+
+
+- 업로드/스텝 전환 로직은 `createDataUploadHandler` 또는 `createStatisticsPageHandlers`로 캡슐화합니다.
+
+- handler는 `useCallback`으로 감싼 뒤 `DataUploadStep`에 그대로 전달합니다.
+
+
 
 ```typescript
-const handleDataUpload = useCallback((uploadedData: unknown[], uploadedColumns: string[]) => {
-  actions.setUploadedData({
-    data: uploadedData as Record<string, unknown>[],
-    fileName: 'uploaded-file.csv',
-    columns: uploadedColumns
-  })
-}, [actions])
+
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+
+
+
+const handleDataUpload = useCallback(
+
+  createDataUploadHandler(
+
+    actions.setUploadedData,
+
+    () => actions.setCurrentStep(1),
+
+    'frequency-table'
+
+  ),
+
+  [actions]
+
+)
+
+
 
 <DataUploadStep
-  onUploadComplete={(_file, data) => handleDataUpload(data, Object.keys(data[0] || {}))}
-  onNext={() => actions.setCurrentStep(nextStepNumber)}
+
+  onUploadComplete={handleDataUpload}
+
+  onNext={() => actions.setCurrentStep(2)}
+
 />
+
 ```
 
-**주의**: onUploadComplete와 onNext를 분리하여 중복 호출 방지
+
+
+```typescript
+
+const { handleDataUpload, handleVariablesSelected } = createStatisticsPageHandlers(actions, {
+
+  onUploadSuccess: () => actions.setCurrentStep(1),
+
+  onVariablesSelected: () => actions.setCurrentStep(2),
+
+  pageId: 'partial-correlation'
+
+})
+
+```
+
+
+
+- helper가 빈 데이터/열 미검출 케이스를 알아서 필터링하므로 페이지에서는 업로드 성공 여부만 확인하면 됩니다.
+
+- Step 이동은 handler 성공 콜백에서만 수행하며, UI 버튼에서는 단순히 handler를 호출합니다.
+
+
 
 ---
 
-## 4. VariableSelector 사용법 (필수)
+
+
+## 4. VariableSelector 연동 (필수)
+
+
+
+### 4.1 VariableSelectorModern + 컨버터 패턴
+
+
+
+- Smart Flow 페이지는 모두 `VariableSelectorModern`과 `createVariableSelectionHandler`를 사용합니다.
+
+- Selector가 돌려주는 `VariableAssignment`는 `types/statistics-converters.ts`의 변환 함수를 거쳐 최종 타입(`ChiSquareIndependenceVariables` 등)으로 정규화합니다.
+
+
 
 ```typescript
-const handleVariablesSelected = useCallback((variables: unknown) => {
-  if (!variables || typeof variables !== 'object') return
 
-  actions.setSelectedVariables(variables as VariableType)
-  actions.setCurrentStep(nextStepNumber)
-  runAnalysis(variables as VariableType)
-}, [actions, runAnalysis])
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 
-<VariableSelector
-  methodId="method-name"
+import { createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+
+import { toChiSquareIndependenceVariables, type VariableAssignment } from '@/types/statistics-converters'
+
+
+
+const handleVariablesSelected = useCallback(
+
+  createVariableSelectionHandler<ChiSquareIndependenceVariables>(
+
+    (raw) =>
+
+      actions.setSelectedVariables?.(
+
+        raw ? toChiSquareIndependenceVariables(raw as VariableAssignment) : null
+
+      ),
+
+    (normalized) => {
+
+      if (normalized.independent.length === 2) {
+
+        runAnalysis(normalized)
+
+      }
+
+    },
+
+    'chi-square-independence'
+
+  ),
+
+  [actions, runAnalysis]
+
+)
+
+
+
+<VariableSelectorModern
+
+  methodId="chi-square-independence"
+
   data={uploadedData.data}
+
   onVariablesSelected={handleVariablesSelected}
-  onBack={() => actions.setCurrentStep(previousStepNumber)}
+
+  onBack={() => actions.setCurrentStep(1)}
+
 />
+
 ```
+
+
+
+- handler의 첫 번째 콜백은 `actions.setSelectedVariables`에 바로 쓰이는 정규화된 데이터를 전달하고, 두 번째 콜백은 step 전환·자동 실행 등을 담당합니다.
+
+- fallback 규칙은 Section 17 (role 매핑)과 `types/statistics-converters.ts` 구현을 그대로 따라야 합니다.
+
+
 
 **주의사항**:
-- `onBack` 사용 (onPrevious 아님)
-- **methodId는 반드시 kebab-case 형식 사용** (variable-requirements.ts의 ID와 정확히 일치)
 
-### methodId 명명 규칙 (Critical)
+- `onBack` props 이름을 그대로 사용합니다 (`onPrevious` 금지).
 
-**발견일**: 2025-11-06
-**심각도**: Critical - "데이터를 불러올 수 없습니다" 에러 발생
+- methodId는 `variable-requirements.ts`의 `id`와 1:1로 매핑되는 kebab-case 여야 합니다.
 
-#### 올바른 methodId 형식
+
+
+### methodId 표준 (Critical)
+
+
+
+**추가일**: 2025-11-06 / **등급**: Critical - "데이터를 가져올 수 없습니다" 오류 방지
+
+
+
+#### 올바른 methodId 예시
+
+
 
 ```typescript
-// ✅ 올바른 형식: kebab-case (variable-requirements.ts와 일치)
-<VariableSelector methodId="one-way-anova" ... />
-<VariableSelector methodId="chi-square-goodness" ... />
-<VariableSelector methodId="kolmogorov-smirnov" ... />
-<VariableSelector methodId="pearson-correlation" ... />
-<VariableSelector methodId="descriptive-stats" ... />
-<VariableSelector methodId="discriminant-analysis" ... />
 
-// ❌ 잘못된 형식: underscore, camelCase
-<VariableSelector methodId="chi_square_goodness" ... />  // 언더스코어
-<VariableSelector methodId="kolmogorovSmirnov" ... />    // camelCase
-<VariableSelector methodId="correlation" ... />          // 불완전한 ID
+<VariableSelectorModern methodId="one-way-anova" ... />
+
+<VariableSelectorModern methodId="chi-square-goodness" ... />
+
+<VariableSelectorModern methodId="kolmogorov-smirnov" ... />
+
+<VariableSelectorModern methodId="pearson-correlation" ... />
+
+<VariableSelectorModern methodId="descriptive-stats" ... />
+
+<VariableSelectorModern methodId="discriminant-analysis" ... />
+
 ```
 
-#### methodId 검증 방법
 
-1. **variable-requirements.ts 확인**
-   ```typescript
-   // lib/statistics/variable-requirements.ts
-   export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = [
-     { id: 'one-way-anova', ... },        // ← 이 ID를 사용
-     { id: 'chi-square-goodness', ... },  // ← 이 ID를 사용
-     // ...
-   ]
-   ```
 
-2. **VariableSelector는 이 ID로 요구사항을 조회**
-   ```typescript
-   const methodRequirements = getMethodRequirements(methodId)
-   if (!methodRequirements) {
-     // ❌ "데이터를 불러올 수 없습니다" 에러 발생!
-   }
-   ```
+#### 잘못된 예시
 
-#### 일반적인 매핑 예시
 
-| 페이지 디렉토리 | 올바른 methodId | 잘못된 예시 |
-|---------------|----------------|------------|
+
+```typescript
+
+<VariableSelectorModern methodId="chi_square_goodness" ... />  // underscore
+
+<VariableSelectorModern methodId="kolmogorovSmirnov" ... />    // camelCase
+
+<VariableSelectorModern methodId="correlation" ... />          // 축약 ID
+
+```
+
+
+
+#### methodId 검증 팁
+
+
+
+1. `lib/statistics/variable-requirements.ts`에서 `id` 목록을 확인합니다.
+
+2. `getMethodRequirements(methodId)`가 `undefined`를 반환하면 즉시 오류 메시지를 노출합니다.
+
+3. 변경 후에는 `rg "methodId=" app/(dashboard)/statistics`로 일괄 검색하여 오탈자를 잡습니다.
+
+
+
+#### 자주 틀리는 케이스
+
+
+
+| 통계 화면 | 정식 methodId | 잘못된 표기 |
+
+|-----------|---------------|-------------|
+
 | chi-square-goodness | `chi-square-goodness` | `chi_square_goodness` |
+
 | chi-square-independence | `chi-square-independence` | `chi_square_independence` |
+
 | ks-test | `kolmogorov-smirnov` | `kolmogorovSmirnov` |
+
 | correlation | `pearson-correlation` | `correlation` |
+
 | descriptive | `descriptive-stats` | `descriptive` |
+
 | discriminant | `discriminant-analysis` | `discriminant` |
+
 | explore-data | `explore-data` | `explore_data` |
+
 | kruskal-wallis | `kruskal-wallis` | `kruskal_wallis` |
+
 | mann-whitney | `mann-whitney` | `mann_whitney` |
+
 | poisson | `poisson-regression` | `poisson` |
+
 | proportion-test | `one-sample-proportion` | `proportion-test` |
+
 | runs-test | `runs-test` | `runsTest` |
+
 | stepwise | `stepwise-regression` | `stepwise` |
+
 | wilcoxon | `wilcoxon-signed-rank` | `wilcoxon_signed_rank` |
 
-#### 디버깅
 
-methodId 불일치로 인한 에러 발생 시:
-
-1. 브라우저 콘솔에서 확인:
-   ```javascript
-   // VariableSelector가 null을 반환하면 methodId 불일치
-   ```
-
-2. variable-requirements.ts에서 정확한 ID 확인:
-   ```bash
-   grep "id:" lib/statistics/variable-requirements.ts
-   ```
-
-3. 모든 페이지의 methodId 검색:
-   ```bash
-   grep -r "methodId=" app/(dashboard)/statistics/*/page.tsx
-   ```
 
 ---
 
@@ -674,13 +881,21 @@ describe('Method Name Page - Coding Standards Compliance', () => {
 
 ### 17.2 SPSS/R/SAS 표준 Role 매핑
 
-| variable-requirements.ts | types/statistics.ts | ❌ 절대 금지 |
-|-------------------------|---------------------|-------------|
-| `role: 'factor'` | `factor: string[]` | `groups`, `independent` |
-| `role: 'within'` | `within: string[]` | `conditions` |
-| `role: 'covariate'` | `covariate: string[]` | `covariates` (복수형 금지) |
-| `role: 'blocking'` | `blocking?: string[]` | `randomEffects` |
+| variable-requirements.ts role | types/statistics.ts 필드 | 허용 fallback 키 (VariableAssignment) | 비고 |
+|-------------------------------|--------------------------|---------------------------------------|------|
+| `dependent` | `dependent: string \| string[]` | `variable`, `data`, `all` (분석별) | Binomial/Frequency 등 Y 변수 |
+| `independent` | `independent: string[]` | `factor`, `groups` | 회귀, 교차표 X 변수 |
+| `factor` | `factor: string[]` | `groups` | ANOVA/비모수 그룹 변수 |
+| `covariate` | `covariate: string[]` | `covariates` | ANCOVA/회귀 공변량 |
+| `within` | `within: string[]` | `conditions` | 반복측정 조건 |
+| `blocking` | `blocking?: string[]` | `randomEffects` | 혼합모형 차단 변수 |
+| `weight` | `weight?: string` | `weights` | 카이제곱 가중치 |
+| `items` | `items: string[]` | `variables` | 신뢰도/척도 항목 |
+| `all` | `all: string[]` | `variables`, 특정 분석에서는 `dependent` | 상관/요인/PCA 전체 변수 |
+| `location` | `location: { column: string; row: string }` | `row`, `column` (object) | 교차표, 빈도표 위치 정보 |
+| `time`/`event`/`censoring` | `time?: string`, `event?: string`, `censoring?: string` | 동일 키 | 생존분석 계열 |
 
+> **중요**: fallback 키는 `types/statistics-converters.ts`에 정의된 순서를 그대로 따라야 하며, 새로운 키를 임의로 추가하거나 이름을 변경하면 VariableSelector와의 계약이 깨집니다.
 ### 17.3 잘못된 예 (Critical 버그 발생)
 
 ```typescript
@@ -735,34 +950,49 @@ export interface MixedModelVariables {
 
 ### 17.5 페이지 구현 시 주의사항
 
+#### ✅ VariableSelectorModern + Converter 패턴
+
 ```typescript
-// ✅ 올바른 변수 접근
-const runAnalysis = useCallback(async (variables: MannWhitneyVariables) => {
-  if (!variables.dependent || !variables.factor || variables.factor.length < 2) {
-    actions.setError('최소 2개 그룹이 필요합니다.')
-    return
-  }
-
-  const groupVar = variables.factor[0]  // ✅ factor 사용
-  // ...
-}, [actions])
-
-// ❌ 잘못된 변수 접근
-const runAnalysis = useCallback(async (variables: MannWhitneyVariables) => {
-  const groupVar = variables.groups[0]  // ❌ groups는 존재하지 않음!
-}, [actions])
+const handleVariablesSelected = useCallback(
+  createVariableSelectionHandler<MannWhitneyVariables>(
+    (raw) =>
+      actions.setSelectedVariables?.(
+        raw ? toMannWhitneyVariables(raw as VariableAssignment) : null
+      ),
+    (normalized) => {
+      if (normalized.factor.length >= 2) {
+        runAnalysis(normalized)
+      } else {
+        actions.setError('최소 2개의 그룹 변수가 필요합니다.')
+      }
+    },
+    'mann-whitney'
+  ),
+  [actions, runAnalysis]
+)
 ```
 
-### 17.6 검증 체크리스트
+- converter가 반환한 **정규화 타입**만 `actions.setSelectedVariables`와 `runAnalysis`에 전달합니다.
+- 길이/필수 검사는 정규화된 필드(`factor`, `independent`, `dependent` 등)에 대해 수행합니다.
 
-새 통계 페이지 추가 또는 수정 시:
+#### ❌ 잘못된 패턴
 
-- [ ] `variable-requirements.ts`에서 해당 메서드의 `role` 값 확인
-- [ ] `types/statistics.ts`에서 인터페이스 필드명이 `role`과 정확히 일치하는지 확인
-- [ ] 페이지 코드에서 변수 접근 시 올바른 필드명 사용
-- [ ] TypeScript 컴파일 에러 없음
-- [ ] 브라우저 테스트: 변수 선택 → 분석 실행 → 결과 확인
+- `groups`, `all`, `variables` 등 converter가 아닌 임의의 필드명을 직접 참조한다.
+- `runAnalysis`가 `VariableAssignment`(string 또는 string[])를 그대로 사용해서 타입이 바뀔 때마다 에러가 난다.
 
+```typescript
+const runAnalysis = useCallback(async (variables: MannWhitneyVariables) => {
+  const groupVar = variables.groups[0]  // ❌ role 불일치: factor를 사용해야 함
+  // ...
+}, [actions])
+```
+### 17.6 점검 체크리스트
+
+- [ ] `variable-requirements.ts`의 role과 `types/statistics.ts` 필드명이 1:1로 대응하는지 확인했다.
+- [ ] 대응 converter(`types/statistics-converters.ts`)가 Section 17.2의 fallback 순서를 그대로 따른다.
+- [ ] 페이지에서는 `createVariableSelectionHandler` + converter 조합으로만 `actions.setSelectedVariables`를 호출한다.
+- [ ] `runAnalysis`는 정규화된 타입(예: `ChiSquareIndependenceVariables`)만 사용하고 raw `VariableAssignment`를 직접 다루지 않는다.
+- [ ] 다중 변수가 필요한 경우(독립변수 2개 등) 길이 검증 후 명확한 에러 메시지를 노출한다.
 ### 17.7 역사적 맥락
 
 **문제 발견일**: 2025-11-06

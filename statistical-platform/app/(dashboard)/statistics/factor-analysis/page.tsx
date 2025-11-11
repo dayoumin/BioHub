@@ -85,7 +85,7 @@ export default function FactorAnalysisPage() {
       number: 2,
       title: '변수 선택',
       description: '분석할 변수 선택',
-      status: selectedVariables && selectedVariables.all.length > 0 ? 'completed'
+      status: selectedVariables && selectedVariables.dependent.length > 0 ? 'completed'
               : uploadedData ? 'current' : 'pending'
     },
     {
@@ -329,12 +329,12 @@ export default function FactorAnalysisPage() {
 
   // 요인분석 실행
   const handleRunAnalysis = useCallback(async () => {
-    if (!uploadedData?.data.length || !(selectedVariables?.all ?? []).length) {
+    if (!uploadedData?.data.length || !(selectedVariables?.dependent ?? []).length) {
       actions.setError('데이터와 변수를 선택해주세요.')
       return
     }
 
-    if ((selectedVariables?.all ?? []).length < 3) {
+    if ((selectedVariables?.dependent ?? []).length < 3) {
       actions.setError('요인분석을 위해서는 최소 3개 이상의 변수가 필요합니다.')
       return
     }
@@ -345,7 +345,7 @@ export default function FactorAnalysisPage() {
       let result: FactorAnalysisResult
 
       if (analysisType === 'exploratory') {
-        result = calculateExploratory(uploadedData.data, selectedVariables?.all ?? [])
+        result = calculateExploratory(uploadedData.data, selectedVariables?.dependent ?? [])
       } else {
         // 확인적 요인분석 (CFA)는 추후 구현
         throw new Error('확인적 요인분석(CFA)은 추후 구현 예정입니다.')
@@ -374,16 +374,16 @@ export default function FactorAnalysisPage() {
               <input
                 type="checkbox"
                 id={column}
-                checked={(selectedVariables?.all ?? []).includes(column)}
+                checked={(selectedVariables?.dependent ?? []).includes(column)}
                 onChange={(e) => {
                   if (!actions.setSelectedVariables) {
                     console.error('[factor-analysis] setSelectedVariables not available')
                     return
                   }
                   if (e.target.checked) {
-                    actions.setSelectedVariables({ all: [...(selectedVariables?.all ?? []), column] })
+                    actions.setSelectedVariables({ dependent: [...(selectedVariables?.dependent ?? []), column] })
                   } else {
-                    actions.setSelectedVariables({ all: (selectedVariables?.all ?? []).filter(v => v !== column) })
+                    actions.setSelectedVariables({ dependent: (selectedVariables?.dependent ?? []).filter((v: string) => v !== column) })
                   }
                 }}
                 className="rounded border-gray-300"
@@ -459,7 +459,7 @@ export default function FactorAnalysisPage() {
               id="numFactors"
               type="number"
               min="1"
-              max={Math.floor((selectedVariables?.all ?? []).length / 2)}
+              max={Math.floor((selectedVariables?.dependent ?? []).length / 2)}
               value={numFactors}
               onChange={(e) => setNumFactors(parseInt(e.target.value) || 1)}
               className="mt-2"
@@ -484,13 +484,13 @@ export default function FactorAnalysisPage() {
         )}
       </div>
 
-      {(selectedVariables?.all ?? []).length > 0 && uploadedData && uploadedData.data.length > 0 && (
+      {(selectedVariables?.dependent ?? []).length > 0 && uploadedData && uploadedData.data.length > 0 && (
         <div className="p-4 bg-muted rounded-lg">
           <div className="text-sm space-y-1">
-            <p><strong>선택된 변수:</strong> {(selectedVariables?.all ?? []).length}개</p>
+            <p><strong>선택된 변수:</strong> {(selectedVariables?.dependent ?? []).length}개</p>
             <p><strong>표본 크기:</strong> {uploadedData.data.length}개</p>
-            <p><strong>권장 최소 표본:</strong> {(selectedVariables?.all ?? []).length * 3}개</p>
-            <p><strong>표본 적절성:</strong> {uploadedData.data.length >= (selectedVariables?.all ?? []).length * 3 ? '✅ 적절' : '⚠️ 부족'}</p>
+            <p><strong>권장 최소 표본:</strong> {(selectedVariables?.dependent ?? []).length * 3}개</p>
+            <p><strong>표본 적절성:</strong> {uploadedData.data.length >= (selectedVariables?.dependent ?? []).length * 3 ? '✅ 적절' : '⚠️ 부족'}</p>
           </div>
         </div>
       )}
@@ -508,7 +508,7 @@ export default function FactorAnalysisPage() {
         </Button>
         <Button
           onClick={handleRunAnalysis}
-          disabled={(selectedVariables?.all ?? []).length < 3 || isAnalyzing || analysisType === 'confirmatory'}
+          disabled={(selectedVariables?.dependent ?? []).length < 3 || isAnalyzing || analysisType === 'confirmatory'}
         >
           {isAnalyzing ? '분석 중...' : '요인분석 실행'}
         </Button>
@@ -878,7 +878,7 @@ export default function FactorAnalysisPage() {
               return
             }
             actions.setCurrentStep(1)
-            actions.setSelectedVariables({ all: [] })
+            actions.setSelectedVariables({ dependent: [] })
             actions.setUploadedData(null)
           }}>
             새 분석 시작
