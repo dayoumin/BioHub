@@ -491,7 +491,7 @@ export default function FriedmanPage() {
                 description="χ² 통계량과 검정 결과"
                 columns={[
                   { key: 'name', header: '통계량', type: 'text', align: 'left' },
-                  { key: 'value', header: '값', type: 'custom', align: 'right' },
+                  { key: 'value', header: '값', type: 'custom', align: 'right', formatter: (v) => v },
                   { key: 'description', header: '설명', type: 'text', align: 'center' }
                 ]}
                 data={[
@@ -608,8 +608,8 @@ export default function FriedmanPage() {
                     columns={[
                       { key: 'comparison', header: '비교', type: 'text', align: 'left' },
                       { key: 'rankDiff', header: '순위 차이', type: 'number', align: 'right', formatter: (v) => `${v > 0 ? '+' : ''}${v.toFixed(2)}` },
-                      { key: 'pValue', header: 'p-값', type: 'custom', align: 'right' },
-                      { key: 'significant', header: '유의성', type: 'custom', align: 'center' }
+                      { key: 'pValue', header: 'p-값', type: 'custom', align: 'right', formatter: (v) => v },
+                      { key: 'significant', header: '유의성', type: 'custom', align: 'center', formatter: (v) => v }
                     ]}
                     data={analysisResult.postHoc.comparisons.map(comp => ({
                       comparison: `${comp.condition1} vs ${comp.condition2}`,
