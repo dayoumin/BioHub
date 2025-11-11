@@ -38,6 +38,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar, ComposedChart } from 'recharts'
+import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -724,49 +725,35 @@ export default function RegressionPage() {
         </Alert>
 
         {/* 회귀계수 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">회귀계수 및 통계적 유의성</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2">변수</th>
-                    <th className="text-right py-2">계수</th>
-                    <th className="text-right py-2">표준오차</th>
-                    <th className="text-right py-2">t-value</th>
-                    <th className="text-right py-2">p-value</th>
-                    <th className="text-right py-2">95% CI</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coefficients.map((coef: unknown) => {
-                    if (typeof coef !== 'object' || coef === null) return null
-                    const c = coef as { name: string; estimate: number; stdError: number; tValue: number; pValue: number; ci: number[] }
-                    return (
-                      <tr key={c.name} className="border-b">
-                        <td className="py-2 font-medium">{c.name}</td>
-                        <td className="text-right">{c.estimate.toFixed(3)}</td>
-                        <td className="text-right">{c.stdError.toFixed(3)}</td>
-                        <td className="text-right">{c.tValue.toFixed(3)}</td>
-                        <td className="text-right">
-                          <Badge variant={c.pValue < 0.05 ? "default" : "secondary"}>
-                            {c.pValue < 0.001 ? '< 0.001' : c.pValue.toFixed(4)}
-                          </Badge>
-                        </td>
-                        <td className="text-right text-xs">
-                          [{c.ci[0].toFixed(2)}, {c.ci[1].toFixed(2)}]
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <StatisticsTable
+          title="회귀계수 및 통계적 유의성"
+          columns={[
+            { key: 'name', header: '변수', type: 'text', align: 'left' },
+            { key: 'estimate', header: '계수', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+            { key: 'stdError', header: '표준오차', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+            { key: 'tValue', header: 't-value', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+            {
+              key: 'pValue',
+              header: 'p-value',
+              type: 'pvalue',
+              align: 'right',
+              formatter: (v) => (
+                <Badge variant={v < 0.05 ? "default" : "secondary"}>
+                  {v < 0.001 ? '< 0.001' : v.toFixed(4)}
+                </Badge>
+              )
+            },
+            {
+              key: 'ci',
+              header: '95% CI',
+              type: 'custom',
+              align: 'right',
+              formatter: (v: number[]) => `[${v[0].toFixed(2)}, ${v[1].toFixed(2)}]`
+            }
+          ]}
+          data={coefficients}
+          compactMode
+        />
 
         {/* 산점도 및 회귀선 */}
         {regressionType === 'simple' && scatterData && (
@@ -881,47 +868,29 @@ export default function RegressionPage() {
         </Alert>
 
         {/* 회귀계수 및 오즈비 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">로지스틱 회귀계수 및 오즈비</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2">변수</th>
-                    <th className="text-right py-2">계수</th>
-                    <th className="text-right py-2">표준오차</th>
-                    <th className="text-right py-2">z-value</th>
-                    <th className="text-right py-2">p-value</th>
-                    <th className="text-right py-2">오즈비</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {coefficients.map((coef: unknown) => {
-                    if (typeof coef !== 'object' || coef === null) return null
-                    const c = coef as { name: string; estimate: number; stdError: number; zValue: number; pValue: number; oddsRatio: number }
-                    return (
-                      <tr key={c.name} className="border-b">
-                        <td className="py-2 font-medium">{c.name}</td>
-                        <td className="text-right">{c.estimate.toFixed(3)}</td>
-                        <td className="text-right">{c.stdError.toFixed(3)}</td>
-                        <td className="text-right">{c.zValue.toFixed(3)}</td>
-                        <td className="text-right">
-                          <Badge variant={c.pValue < 0.05 ? "default" : "secondary"}>
-                            {c.pValue < 0.001 ? '< 0.001' : c.pValue.toFixed(4)}
-                          </Badge>
-                        </td>
-                        <td className="text-right">{c.oddsRatio.toFixed(3)}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <StatisticsTable
+          title="로지스틱 회귀계수 및 오즈비"
+          columns={[
+            { key: 'name', header: '변수', type: 'text', align: 'left' },
+            { key: 'estimate', header: '계수', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+            { key: 'stdError', header: '표준오차', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+            { key: 'zValue', header: 'z-value', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+            {
+              key: 'pValue',
+              header: 'p-value',
+              type: 'pvalue',
+              align: 'right',
+              formatter: (v) => (
+                <Badge variant={v < 0.05 ? "default" : "secondary"}>
+                  {v < 0.001 ? '< 0.001' : v.toFixed(4)}
+                </Badge>
+              )
+            },
+            { key: 'oddsRatio', header: '오즈비', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) }
+          ]}
+          data={coefficients}
+          compactMode
+        />
 
         {/* 혼동 행렬 */}
         <div className="grid md:grid-cols-2 gap-4">

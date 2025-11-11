@@ -107,7 +107,8 @@
       "Bash(do if grep -q \": any\" \"$file\")",
       "Bash(then echo \"$file\")",
       "Bash(npx tsx:*)",
-      "Bash(npm run validate:mapping:*)"
+      "Bash(npm run validate:mapping:*)",
+      "Bash(tasklist:*)"
     ],
     "deny": [],
     "ask": []

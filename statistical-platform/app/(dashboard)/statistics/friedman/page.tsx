@@ -29,6 +29,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
@@ -485,108 +486,64 @@ export default function FriedmanPage() {
             </TabsList>
 
             <TabsContent value="statistics">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Friedman 검정 통계량</CardTitle>
-                  <CardDescription>χ² 통계량과 검정 결과</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="border p-2 text-left">통계량</th>
-                          <th className="border p-2 text-right">값</th>
-                          <th className="border p-2 text-center">설명</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="border p-2 font-medium">χ²ᵣ 통계량</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.statistic.toFixed(4)}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">Friedman 카이제곱</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">자유도</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.degreesOfFreedom}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">df = k - 1</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">p-값</td>
-                          <td className="border p-2 text-right">
-                            <PValueBadge value={analysisResult.pValue} />
-                          </td>
-                          <td className="border p-2 text-sm text-muted-foreground">카이제곱 분포</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">블록 수</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.nBlocks}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">개체 수</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">조건 수</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.nConditions}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">반복측정 조건</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">Kendall's W</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.effectSize.kendallW.toFixed(4)}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">일치도 계수</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+              <StatisticsTable
+                title="Friedman 검정 통계량"
+                description="χ² 통계량과 검정 결과"
+                columns={[
+                  { key: 'name', header: '통계량', type: 'text', align: 'left' },
+                  { key: 'value', header: '값', type: 'custom', align: 'right' },
+                  { key: 'description', header: '설명', type: 'text', align: 'center' }
+                ]}
+                data={[
+                  { name: 'χ²ᵣ 통계량', value: analysisResult.statistic.toFixed(4), description: 'Friedman 카이제곱' },
+                  { name: '자유도', value: analysisResult.degreesOfFreedom, description: 'df = k - 1' },
+                  { name: 'p-값', value: <PValueBadge value={analysisResult.pValue} />, description: '카이제곱 분포' },
+                  { name: '블록 수', value: analysisResult.nBlocks, description: '개체 수' },
+                  { name: '조건 수', value: analysisResult.nConditions, description: '반복측정 조건' },
+                  { name: "Kendall's W", value: analysisResult.effectSize.kendallW.toFixed(4), description: '일치도 계수' }
+                ]}
+                bordered
+                compactMode
+              />
             </TabsContent>
 
             <TabsContent value="descriptives">
-              <Card>
-                <CardHeader>
-                  <CardTitle>조건별 기술통계량</CardTitle>
-                  <CardDescription>각 측정 조건의 중심경향성과 순위 정보</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="border p-2 text-left">조건</th>
-                          <th className="border p-2 text-right">N</th>
-                          <th className="border p-2 text-right">중위수</th>
-                          <th className="border p-2 text-right">평균</th>
-                          <th className="border p-2 text-right">평균순위</th>
-                          <th className="border p-2 text-right">순위합</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(analysisResult.descriptives).map(([conditionName, stats], index) => (
-                          <tr key={index} className="hover:bg-muted/50">
-                            <td className="border p-2 font-medium">{conditionName}</td>
-                            <td className="border p-2 text-right">{stats.n}</td>
-                            <td className="border p-2 text-right font-mono">{stats.median.toFixed(3)}</td>
-                            <td className="border p-2 text-right font-mono">{stats.mean.toFixed(3)}</td>
-                            <td className="border p-2 text-right font-mono">{stats.meanRank.toFixed(2)}</td>
-                            <td className="border p-2 text-right font-mono">{analysisResult.rankSums[conditionName].toFixed(1)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              <div className="space-y-6">
+                <StatisticsTable
+                  title="조건별 기술통계량"
+                  description="각 측정 조건의 중심경향성과 순위 정보"
+                  columns={[
+                    { key: 'condition', header: '조건', type: 'text', align: 'left' },
+                    { key: 'n', header: 'N', type: 'number', align: 'right' },
+                    { key: 'median', header: '중위수', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+                    { key: 'mean', header: '평균', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+                    { key: 'meanRank', header: '평균순위', type: 'number', align: 'right', formatter: (v) => v.toFixed(2) },
+                    { key: 'rankSum', header: '순위합', type: 'number', align: 'right', formatter: (v) => v.toFixed(1) }
+                  ]}
+                  data={Object.entries(analysisResult.descriptives).map(([conditionName, stats]) => ({
+                    condition: conditionName,
+                    n: stats.n,
+                    median: stats.median,
+                    mean: stats.mean,
+                    meanRank: stats.meanRank,
+                    rankSum: analysisResult.rankSums[conditionName]
+                  }))}
+                  bordered
+                  compactMode
+                />
 
-                  <div className="mt-6 p-4 bg-muted rounded-lg">
-                    <h4 className="font-medium mb-2">일치도 해석 (Kendall's W)</h4>
-                    <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg ${getKendallWInterpretation(analysisResult.effectSize.kendallW).bg}`}>
-                      <span className={`font-medium ${getKendallWInterpretation(analysisResult.effectSize.kendallW).color}`}>
-                        W = {analysisResult.effectSize.kendallW.toFixed(3)} ({getKendallWInterpretation(analysisResult.effectSize.kendallW).level})
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      블록 내 순위 일치도: {(analysisResult.effectSize.kendallW * 100).toFixed(1)}%
-                    </p>
+                <Card className="p-4 bg-muted">
+                  <h4 className="font-medium mb-2">일치도 해석 (Kendall's W)</h4>
+                  <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg ${getKendallWInterpretation(analysisResult.effectSize.kendallW).bg}`}>
+                    <span className={`font-medium ${getKendallWInterpretation(analysisResult.effectSize.kendallW).color}`}>
+                      W = {analysisResult.effectSize.kendallW.toFixed(3)} ({getKendallWInterpretation(analysisResult.effectSize.kendallW).level})
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    블록 내 순위 일치도: {(analysisResult.effectSize.kendallW * 100).toFixed(1)}%
+                  </p>
+                </Card>
+              </div>
             </TabsContent>
 
             <TabsContent value="interpretation">
@@ -638,59 +595,37 @@ export default function FriedmanPage() {
             </TabsContent>
 
             <TabsContent value="posthoc">
-              <Card>
-                <CardHeader>
-                  <CardTitle>사후검정</CardTitle>
-                  <CardDescription>조건 간 쌍별 비교 결과</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {analysisResult.postHoc ? (
-                    <>
-                      <div className="mb-4">
-                        <Badge variant="outline">
-                          {analysisResult.postHoc.method}
-                        </Badge>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border">
-                          <thead>
-                            <tr className="bg-muted">
-                              <th className="border p-2 text-left">비교</th>
-                              <th className="border p-2 text-right">순위 차이</th>
-                              <th className="border p-2 text-right">p-값</th>
-                              <th className="border p-2 text-center">유의성</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {analysisResult.postHoc.comparisons.map((comp, index) => (
-                              <tr key={index} className="hover:bg-muted/50">
-                                <td className="border p-2 font-medium">
-                                  {comp.condition1} vs {comp.condition2}
-                                </td>
-                                <td className="border p-2 text-right font-mono">
-                                  {comp.rankDiff > 0 ? '+' : ''}{comp.rankDiff.toFixed(2)}
-                                </td>
-                                <td className="border p-2 text-right">
-                                  <PValueBadge value={comp.pValue} size="sm" />
-                                </td>
-                                <td className="border p-2 text-center">
-                                  <Badge variant={comp.significant ? "default" : "outline"}>
-                                    {comp.significant ? "유의" : "비유의"}
-                                  </Badge>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      사후검정은 전체 검정이 유의할 때 수행됩니다.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              {analysisResult.postHoc ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      {analysisResult.postHoc.method}
+                    </Badge>
+                  </div>
+                  <StatisticsTable
+                    title="사후검정"
+                    description="조건 간 쌍별 비교 결과"
+                    columns={[
+                      { key: 'comparison', header: '비교', type: 'text', align: 'left' },
+                      { key: 'rankDiff', header: '순위 차이', type: 'number', align: 'right', formatter: (v) => `${v > 0 ? '+' : ''}${v.toFixed(2)}` },
+                      { key: 'pValue', header: 'p-값', type: 'custom', align: 'right' },
+                      { key: 'significant', header: '유의성', type: 'custom', align: 'center' }
+                    ]}
+                    data={analysisResult.postHoc.comparisons.map(comp => ({
+                      comparison: `${comp.condition1} vs ${comp.condition2}`,
+                      rankDiff: comp.rankDiff,
+                      pValue: <PValueBadge value={comp.pValue} size="sm" />,
+                      significant: <Badge variant={comp.significant ? "default" : "outline"}>{comp.significant ? "유의" : "비유의"}</Badge>
+                    }))}
+                    bordered
+                    compactMode
+                  />
+                </div>
+              ) : (
+                <Card className="text-center py-8 text-muted-foreground">
+                  사후검정은 전체 검정이 유의할 때 수행됩니다.
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
 

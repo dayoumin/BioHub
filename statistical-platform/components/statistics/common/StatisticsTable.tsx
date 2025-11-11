@@ -73,6 +73,7 @@ interface StatisticsTableProps {
   onRowClick?: (row: TableRow) => void
   className?: string
   compactMode?: boolean
+  bordered?: boolean
   stickyHeader?: boolean
   maxHeight?: string
 }
@@ -94,6 +95,7 @@ export function StatisticsTable({
   onRowClick,
   className,
   compactMode = false,
+  bordered = false,
   stickyHeader = true,
   maxHeight = '600px'
 }: StatisticsTableProps) {
@@ -263,9 +265,18 @@ export function StatisticsTable({
       'relative overflow-auto',
       stickyHeader && maxHeight && `max-h-[${maxHeight}]`
     )}>
-      <Table className={cn(compactMode && 'text-sm')}>
-        <TableHeader className={cn(stickyHeader && 'sticky top-0 z-10 bg-background')}>
-          <TableRow className="hover:bg-transparent">
+      <Table className={cn(
+        compactMode && 'text-sm',
+        bordered && 'border-collapse border'
+      )}>
+        <TableHeader className={cn(
+          stickyHeader && 'sticky top-0 z-10 bg-background',
+          bordered && 'bg-muted'
+        )}>
+          <TableRow className={cn(
+            'hover:bg-transparent',
+            bordered && 'bg-muted'
+          )}>
             {selectable && (
               <TableHead className="w-12">
                 <input
@@ -286,7 +297,8 @@ export function StatisticsTable({
                   column.align === 'center' && 'text-center',
                   column.align === 'right' && 'text-right',
                   column.width && `w-[${column.width}]`,
-                  sortable && column.sortable !== false && 'cursor-pointer select-none hover:bg-muted/50'
+                  sortable && column.sortable !== false && 'cursor-pointer select-none hover:bg-muted/50',
+                  bordered && 'border p-2'
                 )}
                 onClick={() => column.sortable !== false && handleSort(column.key)}
               >
@@ -372,7 +384,8 @@ export function StatisticsTable({
                     className={cn(
                       column.align === 'center' && 'text-center',
                       column.align === 'right' && 'text-right',
-                      getHighlightClass(column, row[column.key], row)
+                      getHighlightClass(column, row[column.key], row),
+                      bordered && 'border p-2'
                     )}
                   >
                     {formatCellValue(column, row[column.key], row)}
