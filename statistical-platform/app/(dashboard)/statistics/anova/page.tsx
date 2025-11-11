@@ -33,6 +33,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { MethodSelectionCard } from '@/components/statistics/MethodSelectionCard'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
+import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -956,45 +957,29 @@ export default function ANOVAPage() {
           </Alert>
 
           {/* ANOVA 표 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">ANOVA Table</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Source</th>
-                      <th className="text-right py-2">SS</th>
-                      <th className="text-right py-2">df</th>
-                      <th className="text-right py-2">MS</th>
-                      <th className="text-right py-2">F</th>
-                      <th className="text-right py-2">p-value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {anovaTable.map((row, idx) => (
-                      <tr key={idx} className="border-b">
-                        <td className="py-2">{row.source}</td>
-                        <td className="text-right">{row.ss.toFixed(2)}</td>
-                        <td className="text-right">{row.df}</td>
-                        <td className="text-right">{row.ms ? row.ms.toFixed(2) : '-'}</td>
-                        <td className="text-right">{row.f ? row.f.toFixed(3) : '-'}</td>
-                        <td className="text-right">
-                          {row.p !== null ? (
-                            <Badge variant={row.p < 0.05 ? "default" : "secondary"}>
-                              {row.p < 0.001 ? '< 0.001' : row.p.toFixed(4)}
-                            </Badge>
-                          ) : '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <StatisticsTable
+            title="ANOVA Table"
+            columns={[
+              { key: 'source', header: 'Source', type: 'text', align: 'left' },
+              { key: 'ss', header: 'SS', type: 'number', align: 'right', formatter: (v) => v.toFixed(2) },
+              { key: 'df', header: 'df', type: 'number', align: 'right' },
+              { key: 'ms', header: 'MS', type: 'number', align: 'right', formatter: (v) => v ? v.toFixed(2) : '-' },
+              { key: 'f', header: 'F', type: 'number', align: 'right', formatter: (v) => v ? v.toFixed(3) : '-' },
+              {
+                key: 'p',
+                header: 'p-value',
+                type: 'pvalue',
+                align: 'right',
+                formatter: (v) => v !== null ? (
+                  <Badge variant={v < 0.05 ? "default" : "secondary"}>
+                    {v < 0.001 ? '< 0.001' : v.toFixed(4)}
+                  </Badge>
+                ) : '-'
+              }
+            ]}
+            data={anovaTable}
+            compactMode
+          />
 
           {/* 그룹 평균 시각화 */}
           <Card>
