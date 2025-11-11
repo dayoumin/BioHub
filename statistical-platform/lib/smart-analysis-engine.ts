@@ -56,8 +56,9 @@ export class SmartAnalysisEngine {
     // 왜도 계산 (skewness)
     const skewness = numericValues.reduce((sum, val) => sum + Math.pow((val - mean) / std, 3), 0) / n
 
-    // |skewness| > 2 → 비정규로 간주
-    return Math.abs(skewness) < 2
+    // |skewness| > 1.5 → 비정규로 간주 (극단적 왜도)
+    // 참고: 기존 기준 2.0은 너무 엄격함. 1.5가 더 현실적
+    return Math.abs(skewness) < 1.5
   }
 
   /**
@@ -83,6 +84,7 @@ export class SmartAnalysisEngine {
     let hasOutliers = false
     if (column.type === 'numeric') {
       const numericValues = column.sampleValues.filter(v => typeof v === 'number') as number[]
+
       if (numericValues.length >= 4) {
         // 정렬
         const sorted = [...numericValues].sort((a, b) => a - b)
@@ -107,6 +109,30 @@ export class SmartAnalysisEngine {
           warnings.push(`⚠️ ${column.name}: 이상치가 ${outlierCount}개 발견되었습니다. 데이터를 확인하세요.`)
         }
       }
+
+      // 3. 중복값 과다 (수치형이지만 실질적으로 범주형)
+      if (column.uniqueCount > 0 && column.uniqueCount < 10 && numericValues.length >= 10) {
+        warnings.push(`⚠️ ${column.name}: 고유값이 ${column.uniqueCount}개로 적습니다. 범주형 변수로 처리하는 것을 고려하세요.`)
+      }
+
+      // 4. 음수/0값 포함 체크 (로그변환 불가)
+      const hasNegativeOrZero = numericValues.some(v => v <= 0)
+      if (hasNegativeOrZero) {
+        const negativeCount = numericValues.filter(v => v < 0).length
+        const zeroCount = numericValues.filter(v => v === 0).length
+        if (negativeCount > 0 || zeroCount > 0) {
+          warnings.push(`ℹ️ ${column.name}: 음수(${negativeCount}개) 또는 0(${zeroCount}개)을 포함합니다. 로그변환 시 주의하세요.`)
+        }
+      }
+
+      // 5. 등분산성 체크 (여러 그룹이 있을 때는 나중에)
+      // 여기서는 전체 분산이 0인 경우만 체크
+      const mean = numericValues.reduce((sum, v) => sum + v, 0) / numericValues.length
+      const variance = numericValues.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / numericValues.length
+
+      if (variance === 0 && numericValues.length > 1) {
+        warnings.push(`⚠️ ${column.name}: 모든 값이 동일합니다 (분산=0). 통계 분석이 불가능합니다.`)
+      }
     }
 
     return { missingRate, hasOutliers, warnings }
@@ -122,13 +148,20 @@ export class SmartAnalysisEngine {
     const numericCols = columns.filter(col => col.type === 'numeric')
     const categoricalCols = columns.filter(col => col.type === 'categorical')
 
+    // 사전 체크: 모든 데이터가 결측치인 경우
+    const hasAnyValidData = columns.some(col => col.sampleValues.length > 0)
+    if (!hasAnyValidData) {
+      // 추천 없음 - 빈 배열 반환
+      return []
+    }
+
     // 데이터 품질 체크 (모든 컬럼)
     columns.forEach(col => {
       const quality = this.checkDataQuality(col)
       dataQualityWarnings.push(...quality.warnings)
     })
 
-    // 1. 기술통계는 항상 가능
+    // 1. 기술통계는 항상 가능 (수치형 변수가 있을 때)
     if (numericCols.length > 0) {
       const nextSteps = ['데이터 분포 확인', '이상값 탐지', '그룹 비교 고려']
 
@@ -352,7 +385,28 @@ export class SmartAnalysisEngine {
       })
     }
 
-    // 9. 연구 질문 기반 추천
+    // 9. 범주형 vs 범주형 (카이제곱 검정)
+    if (categoricalCols.length >= 2) {
+      // 샘플 크기와 기대빈도 체크
+      const sampleSize = categoricalCols[0].sampleValues.length
+      const minSampleSize = 5
+
+      if (sampleSize >= minSampleSize) {
+        recommendations.push({
+          id: 'chi_square',
+          title: '범주형 독립성 검정',
+          description: '두 범주형 변수가 서로 독립적인지 검정합니다',
+          easyDescription: '🎲 두 가지 범주가 서로 관련이 있는지 알아보세요 (예: 성별과 선호도, 치료법과 결과)',
+          method: '카이제곱 검정',
+          confidence: 'high',
+          requiredColumns: [categoricalCols[0].name, categoricalCols[1].name],
+          assumptions: ['독립성', '기대빈도 ≥ 5'],
+          nextSteps: ['교차표 작성', '기대빈도 확인', '잔차 분석']
+        })
+      }
+    }
+
+    // 10. 연구 질문 기반 추천
     if (researchQuestion) {
       const questionBasedRecommendations = this.analyzeResearchQuestion(researchQuestion, columns)
       recommendations.push(...questionBasedRecommendations)

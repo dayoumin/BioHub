@@ -428,6 +428,223 @@ const scenarios: TestScenario[] = [
     ],
     expectedMethods: ['기술통계량'],
     expectedConfidence: 'high'
+  },
+
+  // ========== 추가 중요 시나리오 ==========
+
+  // 시나리오 17: 범주형 vs 범주형 (카이제곱 검정)
+  {
+    name: '시나리오 17: 범주형 vs 범주형',
+    description: '두 범주형 변수의 독립성 검정 (카이제곱)',
+    columns: [
+      {
+        name: '성별',
+        type: 'categorical',
+        sampleValues: ['남', '여', '남', '여', '남'],
+        missingCount: 0,
+        uniqueCount: 2
+      },
+      {
+        name: '선호도',
+        type: 'categorical',
+        sampleValues: ['좋음', '보통', '나쁨'],
+        missingCount: 0,
+        uniqueCount: 3
+      }
+    ],
+    researchQuestion: '성별에 따라 선호도가 다른가요?',
+    expectedMethods: ['카이제곱 검정'],
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 18: 모든 데이터가 범주형
+  {
+    name: '시나리오 18: 모든 데이터가 범주형',
+    description: '수치형 변수가 없는 경우',
+    columns: [
+      {
+        name: '성별',
+        type: 'categorical',
+        sampleValues: ['남', '여', '남', '여', '남'],
+        missingCount: 0,
+        uniqueCount: 2
+      },
+      {
+        name: '학년',
+        type: 'categorical',
+        sampleValues: ['1학년', '2학년', '3학년', '1학년', '2학년'],
+        missingCount: 0,
+        uniqueCount: 3
+      },
+      {
+        name: '지역',
+        type: 'categorical',
+        sampleValues: ['서울', '부산', '대구', '서울', '부산'],
+        missingCount: 0,
+        uniqueCount: 3
+      }
+    ],
+    researchQuestion: '성별과 학년이 관련이 있나요?',
+    expectedMethods: ['카이제곱 검정'],
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 19: 극단적 왜도 (정규분포 심각 위반)
+  {
+    name: '시나리오 19: 극단적 왜도',
+    description: '매우 치우친 분포 (소득 데이터)',
+    columns: [
+      {
+        name: '소득',
+        type: 'numeric',
+        sampleValues: [2000, 2100, 2200, 2300, 2400, 50000, 80000, 100000, 500000, 1000000],
+        missingCount: 0,
+        uniqueCount: 50
+      },
+      {
+        name: '그룹',
+        type: 'categorical',
+        sampleValues: ['A', 'B'],
+        missingCount: 0,
+        uniqueCount: 2
+      }
+    ],
+    researchQuestion: '그룹 간 소득 차이가 있나요?',
+    expectedMethods: ['Mann-Whitney U test'], // 비모수 검정 권장
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 20: 중복값 과다 (실질적 범주형)
+  {
+    name: '시나리오 20: 중복값 과다',
+    description: '수치형이지만 고유값이 매우 적음 (1-5 척도)',
+    columns: [
+      {
+        name: '만족도',
+        type: 'numeric',
+        sampleValues: [1, 2, 3, 4, 5, 3, 2, 4, 5, 3],
+        missingCount: 0,
+        uniqueCount: 5
+      },
+      {
+        name: '그룹',
+        type: 'categorical',
+        sampleValues: ['A', 'B'],
+        missingCount: 0,
+        uniqueCount: 2
+      }
+    ],
+    researchQuestion: '그룹 간 만족도 차이가 있나요?',
+    expectedMethods: ['기술통계량'], // 경고 표시 예상
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 21: 모든 데이터가 결측치
+  {
+    name: '시나리오 21: 모든 데이터 결측치',
+    description: '100% 결측치 (극단적 케이스)',
+    columns: [
+      {
+        name: '키',
+        type: 'numeric',
+        sampleValues: [],
+        missingCount: 100,
+        uniqueCount: 0,
+        totalCount: 100
+      },
+      {
+        name: '몸무게',
+        type: 'numeric',
+        sampleValues: [],
+        missingCount: 100,
+        uniqueCount: 0,
+        totalCount: 100
+      }
+    ],
+    expectedMethods: [],
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 22: 텍스트 데이터 포함
+  {
+    name: '시나리오 22: 텍스트 데이터 포함',
+    description: 'text 타입 변수가 있는 경우',
+    columns: [
+      {
+        name: '이름',
+        type: 'text',
+        sampleValues: ['홍길동', '김철수', '이영희'],
+        missingCount: 0,
+        uniqueCount: 100
+      },
+      {
+        name: '점수',
+        type: 'numeric',
+        sampleValues: [85, 90, 78, 92, 88],
+        missingCount: 0,
+        uniqueCount: 100
+      },
+      {
+        name: '학년',
+        type: 'categorical',
+        sampleValues: ['1학년', '2학년', '3학년'],
+        missingCount: 0,
+        uniqueCount: 3
+      }
+    ],
+    researchQuestion: '학년별 점수 차이가 있나요?',
+    expectedMethods: ['기술통계량', '일원분산분석'],
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 23: 등분산성 위반
+  {
+    name: '시나리오 23: 등분산성 위반',
+    description: '그룹별 분산이 크게 다른 경우',
+    columns: [
+      {
+        name: '점수',
+        type: 'numeric',
+        sampleValues: [10, 11, 12, 13, 14, 100, 110, 120, 130, 140],
+        missingCount: 0,
+        uniqueCount: 50
+      },
+      {
+        name: '그룹',
+        type: 'categorical',
+        sampleValues: ['A', 'B'],
+        missingCount: 0,
+        uniqueCount: 2
+      }
+    ],
+    researchQuestion: '그룹 간 점수 차이가 있나요?',
+    expectedMethods: ['기술통계량'], // 경고 표시 예상
+    expectedConfidence: 'high'
+  },
+
+  // 시나리오 24: 음수/0값 포함
+  {
+    name: '시나리오 24: 음수/0값 포함',
+    description: '음수와 0을 포함한 데이터 (로그변환 불가)',
+    columns: [
+      {
+        name: '수익',
+        type: 'numeric',
+        sampleValues: [-100, -50, 0, 50, 100],
+        missingCount: 0,
+        uniqueCount: 50
+      },
+      {
+        name: '손실',
+        type: 'numeric',
+        sampleValues: [-200, -100, 0, 100, 200],
+        missingCount: 0,
+        uniqueCount: 50
+      }
+    ],
+    researchQuestion: '수익과 손실의 관계를 알고 싶어요',
+    expectedMethods: ['기술통계량', '상관분석'],
+    expectedConfidence: 'high'
   }
 ]
 
@@ -466,17 +683,23 @@ function runTest(scenario: TestScenario): {
 
   // 검증: 기대한 방법이 추천되었는가?
   const recommendedMethods = recommendations.map(r => r.method)
-  const hasExpectedMethod = scenario.expectedMethods.some(expected =>
-    recommendedMethods.includes(expected)
-  )
 
-  if (!hasExpectedMethod) {
-    issues.push(
-      `❌ 기대한 방법 [${scenario.expectedMethods.join(', ')}]이 추천되지 않음. ` +
-      `실제 추천: [${recommendedMethods.join(', ')}]`
-    )
+  // 특별 케이스: 빈 배열이 기대값인 경우 (모든 데이터 결측치 등)
+  if (scenario.expectedMethods.length === 0 && recommendations.length === 0) {
+    console.log(`\n✅ 기대한 대로 추천 없음 (데이터 부족)`)
   } else {
-    console.log(`\n✅ 기대한 방법이 추천됨: ${scenario.expectedMethods.join(', ')}`)
+    const hasExpectedMethod = scenario.expectedMethods.some(expected =>
+      recommendedMethods.includes(expected)
+    )
+
+    if (!hasExpectedMethod) {
+      issues.push(
+        `❌ 기대한 방법 [${scenario.expectedMethods.join(', ')}]이 추천되지 않음. ` +
+        `실제 추천: [${recommendedMethods.join(', ')}]`
+      )
+    } else {
+      console.log(`\n✅ 기대한 방법이 추천됨: ${scenario.expectedMethods.join(', ')}`)
+    }
   }
 
   // 검증: 신뢰도가 적절한가? (기대한 방법의 신뢰도 확인)
@@ -494,8 +717,8 @@ function runTest(scenario: TestScenario): {
     }
   }
 
-  // 검증: 추천이 비어있지 않은가?
-  if (recommendations.length === 0) {
+  // 검증: 추천이 비어있지 않은가? (단, 기대값이 빈 배열인 경우는 제외)
+  if (recommendations.length === 0 && scenario.expectedMethods.length > 0) {
     issues.push(`❌ 추천 결과가 없음 (최소 1개 이상 필요)`)
   }
 

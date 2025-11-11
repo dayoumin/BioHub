@@ -105,7 +105,8 @@
       "Bash(timeout 5 npm run dev:*)",
       "Bash(timeout 3 sleep:*)",
       "Bash(do if grep -q \": any\" \"$file\")",
-      "Bash(then echo \"$file\")"
+      "Bash(then echo \"$file\")",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []
