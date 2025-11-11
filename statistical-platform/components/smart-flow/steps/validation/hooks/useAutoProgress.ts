@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
-interface UseAutoProgressOptions {
+export interface UseAutoProgressOptions {
   /** 자동 진행 활성화 여부 */
   enabled: boolean
   /** 검증 결과 */
@@ -21,7 +21,7 @@ interface UseAutoProgressOptions {
   onComplete?: () => void
 }
 
-interface UseAutoProgressReturn {
+export interface UseAutoProgressReturn {
   /** 현재 카운트다운 값 */
   countdown: number
   /** 일시정지 상태 */
