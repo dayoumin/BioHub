@@ -1,3 +1,111 @@
+## 2025-11-11 (화)
+
+### ✅ Phase 3: StatisticsTable 공통 컴포넌트 확대 적용
+
+**목표**: 개별 통계 페이지의 테이블 UI 일관성 향상 및 유지보수성 개선
+
+#### 1. StatisticsTable 컴포넌트 강화 (20분)
+
+**작업**:
+- `bordered?: boolean` prop 추가
+- border-collapse, border, bg-muted 스타일 자동 적용
+- friedman, kruskal-wallis 등 격자 스타일 테이블 지원
+
+**수정 파일**:
+- components/statistics/common/StatisticsTable.tsx (Line 76, 270-301, 388)
+
+**커밋**: `8f0a801` - feat(phase3): StatisticsTable bordered prop 추가
+
+#### 2. 3개 페이지 StatisticsTable 적용 (60분)
+
+**적용 완료**:
+1. **anova/page.tsx** - ANOVA Table (1개)
+   - 38줄 → 23줄 (-39%)
+
+2. **regression/page.tsx** - 회귀계수 테이블 (2개)
+   - 선형회귀: 38줄 → 28줄 (-26%)
+   - 로지스틱: 38줄 → 23줄 (-39%)
+
+3. **friedman/page.tsx** - 3개 테이블
+   - 검정통계량: 53줄 → 19줄 (-64%)
+   - 기술통계량: 47줄 → 37줄 (-21%)
+   - 사후검정: 48줄 → 32줄 (-33%)
+
+**성과**:
+- 코드 감소: 평균 -37%
+- TypeScript: 0 errors ✓
+- Build: 66/66 pages ✓
+
+**커밋**: `8f0a801` - feat(phase3): StatisticsTable bordered prop 추가 및 3개 페이지 적용
+
+#### 3. 버그 수정 (15분)
+
+**문제 1**: Friedman 페이지 React 노드 [object Object] 출력
+- 원인: `type: 'custom'` 컬럼에 formatter 누락
+- 수정: `formatter: (v) => v` 추가 (3곳)
+
+**문제 2**: .backup 파일 34KB Git 커밋
+- 수정: chi-square-independence/page.tsx.backup 제거
+
+**커밋**: `0f874ff` - fix(phase3): Friedman 페이지 React 노드 렌더링 수정 및 백업 파일 제거
+
+---
+
+### 📅 내일 할일 (2025-11-12)
+
+#### 옵션 1: Phase 3 확대 적용 ⭐ (권장)
+
+**대상 페이지** (우선순위 순):
+1. **kruskal-wallis/page.tsx** - 3개 테이블 (예상: 20분)
+   - H 통계량 테이블
+   - 그룹별 순위 통계
+   - 사후검정 (Dunn test)
+
+2. **wilcoxon/page.tsx** - 2개 테이블 (예상: 15분)
+   - 순위합 통계
+   - 시점별 기술통계
+
+3. **manova/page.tsx** - 다수 테이블 (예상: 30분)
+   - Wilks' Lambda, Pillai's Trace 등
+   - 개체 간/개체 내 효과 테이블
+
+4. **ancova/page.tsx** - 3개 테이블 (예상: 20분)
+   - ANCOVA Table
+   - 공변량 회귀계수
+   - 조정된 평균
+
+**총 예상 시간**: 85분
+
+**적용 방법**:
+```typescript
+// bordered prop 사용
+<StatisticsTable
+  columns={[...]}
+  data={[...]}
+  bordered  // 격자 스타일
+  compactMode
+/>
+```
+
+#### 옵션 2: 다른 공통 컴포넌트 시범 적용
+
+**대상**:
+- EffectSizeCard (t-test, anova, mann-whitney 등)
+- StatisticalResultCard (chi-square, friedman 등)
+
+**예상 시간**: 각 2개 페이지 × 15분 = 30분
+
+#### 옵션 3: Phase 3 문서 업데이트
+
+**작업**:
+- PHASE3_FINAL_SUMMARY.md 업데이트
+- STATUS.md에 Phase 3 완료 기록
+- 성과 지표 정리
+
+**예상 시간**: 20분
+
+---
+
 ## 2025-11-06 (수)
 
 ### ✅ methodId 표준화 및 Critical 버그 수정
