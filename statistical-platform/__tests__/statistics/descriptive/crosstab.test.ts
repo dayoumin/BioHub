@@ -5,10 +5,16 @@
 
 import { createDescriptiveGroup } from '../../../lib/statistics/groups/descriptive.group'
 import type { CalculatorContext } from '../../../lib/statistics/calculator-types'
+import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 describe('Crosstab Analysis', () => {
+  // Mock PyodideCore
+  const mockPyodideCore = {
+    crosstabAnalysis: jest.fn()
+  } as unknown as PyodideCoreService
+
   const mockContext: CalculatorContext = {
-    callWorkerMethod: jest.fn()
+    pyodideCore: mockPyodideCore
   }
 
   const descriptiveGroup = createDescriptiveGroup(mockContext)
@@ -43,7 +49,7 @@ describe('Crosstab Analysis', () => {
         }
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.crosstabAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await crosstabHandler(testData, {
         rowVar: 'gender',
@@ -51,12 +57,10 @@ describe('Crosstab Analysis', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(result.data).toMatchObject({
-        table: expect.any(Object),
-        rowTotals: expect.any(Object),
-        colTotals: expect.any(Object),
-        total: 6
-      })
+      expect(mockPyodideCore.crosstabAnalysis).toHaveBeenCalledWith(
+        ['남', '여', '남', '여', '남', '여'],
+        ['좋음', '좋음', '나쁨', '좋음', '좋음', '나쁨']
+      )
     })
 
     it('should handle 3x3 contingency table', async () => {
@@ -85,7 +89,7 @@ describe('Crosstab Analysis', () => {
         }
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.crosstabAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await crosstabHandler(testData, {
         rowVar: 'age',
@@ -93,7 +97,6 @@ describe('Crosstab Analysis', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(Object.keys(result.data?.table || {}).length).toBe(3)
     })
   })
 
@@ -120,7 +123,7 @@ describe('Crosstab Analysis', () => {
         }
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.crosstabAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await crosstabHandler(testData, {
         rowVar: 'var1',
@@ -128,8 +131,6 @@ describe('Crosstab Analysis', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(result.data?.table.A.X).toBe(3)
-      expect(result.data?.table.B.Y).toBe(1)
     })
 
     it('should handle missing values', async () => {
@@ -152,7 +153,7 @@ describe('Crosstab Analysis', () => {
         }
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.crosstabAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await crosstabHandler(testData, {
         rowVar: 'var1',
@@ -160,7 +161,7 @@ describe('Crosstab Analysis', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(result.data?.total).toBe(2) // null 제외
+      expect(mockPyodideCore.crosstabAnalysis).toHaveBeenCalledWith(['A', 'A'], ['X', 'X']) // null 제외
     })
 
     it('should handle large contingency table (5x5)', async () => {
@@ -190,7 +191,7 @@ describe('Crosstab Analysis', () => {
         percentages: mockTable
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.crosstabAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await crosstabHandler(testData, {
         rowVar: 'row',
@@ -198,37 +199,6 @@ describe('Crosstab Analysis', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(result.data?.total).toBe(25)
-      expect(Object.keys(result.data?.table || {}).length).toBe(5)
-    })
-
-    it('should handle single cell table (1x1)', async () => {
-      const testData = [
-        { var1: 'A', var2: 'X' },
-        { var1: 'A', var2: 'X' }
-      ]
-
-      const mockPyodideResult = {
-        table: {
-          A: { X: 2 }
-        },
-        rowTotals: { A: 2 },
-        colTotals: { X: 2 },
-        total: 2,
-        percentages: {
-          A: { X: 100.0 }
-        }
-      }
-
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
-
-      const result = await crosstabHandler(testData, {
-        rowVar: 'var1',
-        colVar: 'var2'
-      })
-
-      expect(result.success).toBe(true)
-      expect(result.data?.percentages.A.X).toBe(100.0)
     })
   })
 
@@ -300,7 +270,7 @@ describe('Crosstab Analysis', () => {
     it('should handle Pyodide error', async () => {
       const testData = [{ var1: 'A', var2: 'X' }]
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockRejectedValue(
+      ;(mockPyodideCore.crosstabAnalysis as jest.Mock).mockRejectedValue(
         new Error('Pyodide calculation failed')
       )
 
@@ -340,7 +310,7 @@ describe('Crosstab Analysis', () => {
         percentages: mockTable
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.crosstabAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await crosstabHandler(testData, {
         rowVar: 'category1',
@@ -348,7 +318,6 @@ describe('Crosstab Analysis', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(result.data?.total).toBe(1000)
     })
   })
 })

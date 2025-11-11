@@ -23,6 +23,7 @@
     "generate:vector-stores": "node scripts/rag/generate-metadata.js",
     "validate:statistics": "node scripts/statistics/validate-ui.js",
     "validate:types": "node scripts/statistics/validate-types.js",
+    "validate:mapping": "node scripts/statistics/validate-variable-mapping.js",
     "analyze:metadata": "bash scripts/statistics/analyze-metadata.sh",
     "analyze:steps": "node scripts/statistics/analyze-step-patterns.js",
     "verify:rag": "node scripts/rag/verify-stores.js",

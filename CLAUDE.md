@@ -2,14 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🚨 현재 중요 규칙 (2025-11-06 업데이트)
+## 🚨 현재 중요 규칙 (2025-11-11 업데이트)
 
-**진행 중**: 변수 role 매핑 표준화 (Critical Issue)
+**상태**: ✅ Phase A-3 완료 (변수 role 매핑 표준화 완료)
 
-**발견된 문제**:
-- 🔴 **변수 role 불일치**: variable-requirements.ts ≠ types/statistics.ts (5개 통계 영향)
-- 🔴 **타입 파편화**: PostHocComparison 타입이 4곳에 서로 다르게 정의됨
-- 🟡 **공통 컴포넌트 미활용**: StatisticsTable 존재하지만 모든 페이지가 `<table>` 직접 구현
+**해결된 문제**:
+- ✅ **변수 role 일치**: variable-requirements.ts === types/statistics.ts (7개 인터페이스 수정)
+- ✅ **타입 중앙화**: Section 18 준수 (cochran-q 중복 정의 제거)
+- 🟡 **공통 컴포넌트 미활용**: 향후 개선 예정 (우선순위 낮음)
 
 **반드시 지킬 것** (CRITICAL):
 1. ✅ **변수 role 일치**: variable-requirements.ts의 `role`을 types/statistics.ts에 정확히 반영
@@ -295,7 +295,7 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ## 📋 현재 작업 상태
 
-**최신 상태** (2025-11-06):
+**최신 상태** (2025-11-11):
 - ✅ Phase 6 완료: PyodideCore 직접 연결
   - ✅ 10개 handler 완전 변환 (39개 메서드, 100%)
   - ✅ TypeScript 컴파일 에러: **0개** (core groups/handlers)
@@ -303,23 +303,24 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 - ✅ Phase 1 완료: setTimeout 패턴 제거
   - ✅ 27/27 페이지 (100%) 표준 패턴으로 전환
   - ✅ isAnalyzing Critical 버그 10개 수정
-- ✅ Phase 2-2 진행 중: 코드 품질 개선
-  - ✅ 34/45 페이지 (76%) 완료
-  - ✅ TypeScript 에러: 717 → 409 (-308, -42.9%)
-- 🔴 **발견된 Critical Issue** (2025-11-06):
-  - 🔴 변수 role 매핑 불일치 (5개 통계 영향: ANOVA, MANOVA, Mixed Model, Mann-Whitney, Friedman)
-  - 🔴 타입 파편화 문제 (PostHocComparison 등 4곳 중복 정의)
-  - 🟡 공통 컴포넌트 미활용 (UI 일관성 저하)
-
-**현재 작업**:
-- 🔜 **Phase A-3**: 변수 role 매핑 표준화 (CRITICAL)
-  - types/statistics.ts 수정 (4개 인터페이스)
-  - 5개 통계 페이지 수정
-  - STATISTICS_PAGE_CODING_STANDARDS.md 보강
+- ✅ Phase 2-2 완료: 코드 품질 개선 (2025-11-04)
+  - ✅ **41/41 페이지 (100%)** 완료
+  - ✅ TypeScript 에러: 717 → 0 (-100%, 완전 제거)
+  - ✅ 코드 품질: 3.5/5 → 4.97/5 (+42% 향상)
+- ✅ **Phase A-3 완료** (2025-11-11): 변수 role 매핑 표준화
+  - ✅ types/statistics.ts 수정 (7개 인터페이스)
+  - ✅ types/statistics-converters.ts 수정 (4개 함수, 하위호환 유지)
+  - ✅ 2개 페이지 수정 (kruskal-wallis, cochran-q)
+  - ✅ Section 17-18 100% 준수
+  - ✅ TypeScript 에러: 0개 (프로덕션 코드)
+- ✅ **Smart Flow Phase 4-6 완료** (2025-11-11):
+  - ✅ DataValidationStep 리팩토링 (컴포넌트 분리)
+  - ✅ AssumptionResultsPanel, NumericStatsTable 컴포넌트화
+  - ✅ 38개 컴포넌트 테스트 작성 및 통과
 
 **다음 작업**:
-- 🔜 Phase 2-2 완료: 남은 11개 통계 페이지
-- 🔜 Phase 7 계획 수립 (Tauri or 추가 메서드)
+- 🔜 Phase 7 계획 수립 (Tauri 데스크탑 앱 or 추가 통계 메서드)
+- 🔜 검증 자동화 스크립트 (선택, 재발 방지)
 - 🔜 Phase 8 RAG 시스템 (선택)
 
 **📝 상세 작업 기록**: [dailywork.md](dailywork.md) | [STATUS.md](STATUS.md)
@@ -347,4 +348,4 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ---
 
-**Updated**: 2025-11-06 | **Version**: Phase 6 Complete + Critical Issue 발견 | **Next**: Phase A-3 (변수 role 매핑 표준화)
+**Updated**: 2025-11-11 | **Version**: Phase 6 + Phase 2-2 + Phase A-3 + Smart Flow Phase 4-6 Complete | **Next**: Phase 7 or 검증 자동화

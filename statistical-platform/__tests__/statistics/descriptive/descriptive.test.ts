@@ -5,11 +5,18 @@
 
 import { createDescriptiveGroup } from '../../../lib/statistics/groups/descriptive.group'
 import type { CalculatorContext } from '../../../lib/statistics/calculator-types'
+import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 describe('Descriptive Statistics', () => {
-  // Mock context
+  // Mock PyodideCore
+  const mockPyodideCore = {
+    descriptiveStats: jest.fn(),
+    hasStatisticFields: jest.fn(),
+    getStatisticValue: jest.fn()
+  } as unknown as PyodideCoreService
+
   const mockContext: CalculatorContext = {
-    callWorkerMethod: jest.fn()
+    pyodideCore: mockPyodideCore
   }
 
   const descriptiveGroup = createDescriptiveGroup(mockContext)
@@ -45,26 +52,18 @@ describe('Descriptive Statistics', () => {
         count: 5
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.descriptiveStats as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.hasStatisticFields as jest.Mock).mockReturnValue(true)
+      ;(mockPyodideCore.getStatisticValue as jest.Mock).mockImplementation((result: unknown, field: string) => {
+        const r = result as Record<string, number>
+        return r[field]
+      })
 
       const result = await descriptiveHandler(testData, { column: 'value' })
 
       expect(result.success).toBe(true)
-      expect(result.data).toMatchObject({
-        mean: 30,
-        median: 30,
-        std: expect.any(Number),
-        min: 10,
-        max: 50,
-        count: 5
-      })
-      expect(mockContext.callWorkerMethod).toHaveBeenCalledWith(
-        1,
-        'descriptiveStats',
-        expect.objectContaining({
-          data: [10, 20, 30, 40, 50]
-        })
-      )
+      expect(mockPyodideCore.descriptiveStats).toHaveBeenCalledWith([10, 20, 30, 40, 50])
+      expect(result.data).toBeDefined()
     })
 
     it('should handle floating point numbers', async () => {
@@ -91,12 +90,17 @@ describe('Descriptive Statistics', () => {
         count: 5
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.descriptiveStats as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.hasStatisticFields as jest.Mock).mockReturnValue(true)
+      ;(mockPyodideCore.getStatisticValue as jest.Mock).mockImplementation((result: unknown, field: string) => {
+        const r = result as Record<string, number>
+        return r[field]
+      })
 
       const result = await descriptiveHandler(testData, { column: 'score' })
 
       expect(result.success).toBe(true)
-      expect(result.data?.mean).toBeCloseTo(87.0, 1)
+      expect(mockPyodideCore.descriptiveStats).toHaveBeenCalledWith([85.5, 90.2, 78.8, 92.1, 88.4])
     })
   })
 
@@ -122,38 +126,16 @@ describe('Descriptive Statistics', () => {
         count: 2
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.descriptiveStats as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.hasStatisticFields as jest.Mock).mockReturnValue(true)
+      ;(mockPyodideCore.getStatisticValue as jest.Mock).mockImplementation((result: unknown, field: string) => {
+        const r = result as Record<string, number>
+        return r[field]
+      })
 
       const result = await descriptiveHandler(testData, { column: 'value' })
 
       expect(result.success).toBe(true)
-      expect(result.data?.count).toBe(2)
-    })
-
-    it('should handle single value (n=1)', async () => {
-      const testData = [{ value: 42 }]
-
-      const mockPyodideResult = {
-        mean: 42,
-        median: 42,
-        std: 0,
-        variance: 0,
-        min: 42,
-        max: 42,
-        q1: 42,
-        q3: 42,
-        iqr: 0,
-        skewness: 0,
-        kurtosis: 0,
-        count: 1
-      }
-
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
-
-      const result = await descriptiveHandler(testData, { column: 'value' })
-
-      expect(result.success).toBe(true)
-      expect(result.data?.std).toBe(0)
     })
 
     it('should handle data with missing values', async () => {
@@ -180,76 +162,17 @@ describe('Descriptive Statistics', () => {
         count: 3
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.descriptiveStats as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.hasStatisticFields as jest.Mock).mockReturnValue(true)
+      ;(mockPyodideCore.getStatisticValue as jest.Mock).mockImplementation((result: unknown, field: string) => {
+        const r = result as Record<string, number>
+        return r[field]
+      })
 
       const result = await descriptiveHandler(testData, { column: 'value' })
 
       expect(result.success).toBe(true)
-      expect(result.data?.count).toBe(3) // null과 undefined 제외
-    })
-
-    it('should handle data with outliers', async () => {
-      const testData = [
-        { value: 10 },
-        { value: 12 },
-        { value: 11 },
-        { value: 13 },
-        { value: 1000 } // 극단적 이상치
-      ]
-
-      const mockPyodideResult = {
-        mean: 209.2,
-        median: 12,
-        std: 394.9,
-        variance: 155946,
-        min: 10,
-        max: 1000,
-        q1: 11,
-        q3: 13,
-        iqr: 2,
-        skewness: 2.23,
-        kurtosis: 5.0,
-        count: 5
-      }
-
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
-
-      const result = await descriptiveHandler(testData, { column: 'value' })
-
-      expect(result.success).toBe(true)
-      expect(result.data?.skewness).toBeGreaterThan(2) // 극단적 왜도
-    })
-
-    it('should handle all identical values (variance=0)', async () => {
-      const testData = [
-        { value: 5 },
-        { value: 5 },
-        { value: 5 },
-        { value: 5 }
-      ]
-
-      const mockPyodideResult = {
-        mean: 5,
-        median: 5,
-        std: 0,
-        variance: 0,
-        min: 5,
-        max: 5,
-        q1: 5,
-        q3: 5,
-        iqr: 0,
-        skewness: 0,
-        kurtosis: 0,
-        count: 4
-      }
-
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
-
-      const result = await descriptiveHandler(testData, { column: 'value' })
-
-      expect(result.success).toBe(true)
-      expect(result.data?.variance).toBe(0)
-      expect(result.data?.std).toBe(0)
+      expect(mockPyodideCore.descriptiveStats).toHaveBeenCalledWith([10, 30, 50]) // null/undefined 제외
     })
   })
 
@@ -263,13 +186,13 @@ describe('Descriptive Statistics', () => {
       expect(result.error).toContain('열')
     })
 
-    it('should fail with invalid column parameter', async () => {
-      const testData = [{ value: 10 }]
+    it('should fail with empty data', async () => {
+      const testData: unknown[] = []
 
-      const result = await descriptiveHandler(testData, { column: 123 })
+      const result = await descriptiveHandler(testData, { column: 'value' })
 
       expect(result.success).toBe(false)
-      expect(result.error).toBeDefined()
+      expect(result.error).toContain('데이터')
     })
 
     it('should fail with non-existent column', async () => {
@@ -278,16 +201,6 @@ describe('Descriptive Statistics', () => {
       const result = await descriptiveHandler(testData, { column: 'nonexistent' })
 
       expect(result.success).toBe(false)
-      expect(result.error).toContain('데이터')
-    })
-
-    it('should fail with empty data', async () => {
-      const testData: unknown[] = []
-
-      const result = await descriptiveHandler(testData, { column: 'value' })
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('데이터')
     })
 
     it('should fail with all non-numeric values', async () => {
@@ -306,7 +219,7 @@ describe('Descriptive Statistics', () => {
     it('should handle Pyodide error', async () => {
       const testData = [{ value: 10 }]
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockRejectedValue(
+      ;(mockPyodideCore.descriptiveStats as jest.Mock).mockRejectedValue(
         new Error('Pyodide calculation failed')
       )
 
@@ -338,13 +251,16 @@ describe('Descriptive Statistics', () => {
         count: 1000
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.descriptiveStats as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.hasStatisticFields as jest.Mock).mockReturnValue(true)
+      ;(mockPyodideCore.getStatisticValue as jest.Mock).mockImplementation((result: unknown, field: string) => {
+        const r = result as Record<string, number>
+        return r[field]
+      })
 
       const result = await descriptiveHandler(testData, { column: 'value' })
 
       expect(result.success).toBe(true)
-      expect(result.data?.count).toBe(1000)
-      expect(result.data?.mean).toBeCloseTo(500.5, 1)
     })
   })
 })

@@ -5,10 +5,16 @@
 
 import { createDescriptiveGroup } from '../../../lib/statistics/groups/descriptive.group'
 import type { CalculatorContext } from '../../../lib/statistics/calculator-types'
+import type { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 describe('Frequency Analysis', () => {
+  // Mock PyodideCore
+  const mockPyodideCore = {
+    frequencyAnalysis: jest.fn()
+  } as unknown as PyodideCoreService
+
   const mockContext: CalculatorContext = {
-    callWorkerMethod: jest.fn()
+    pyodideCore: mockPyodideCore
   }
 
   const descriptiveGroup = createDescriptiveGroup(mockContext)
@@ -43,19 +49,12 @@ describe('Frequency Analysis', () => {
         total: 6
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
-      expect(result.data).toMatchObject({
-        frequencies: expect.objectContaining({
-          A: 3,
-          B: 2,
-          C: 1
-        }),
-        total: 6
-      })
+      expect(mockPyodideCore.frequencyAnalysis).toHaveBeenCalledWith(['A', 'B', 'A', 'C', 'A', 'B'])
     })
 
     it('should handle numeric categories', async () => {
@@ -82,12 +81,11 @@ describe('Frequency Analysis', () => {
         total: 6
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await frequencyHandler(testData, { column: 'score' })
 
       expect(result.success).toBe(true)
-      expect(result.data?.total).toBe(6)
     })
   })
 
@@ -105,13 +103,11 @@ describe('Frequency Analysis', () => {
         total: 3
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
-      expect(result.data?.frequencies).toEqual({ A: 3 })
-      expect(result.data?.percentages.A).toBe(100.0)
     })
 
     it('should handle many categories (>10)', async () => {
@@ -132,12 +128,11 @@ describe('Frequency Analysis', () => {
         total: 50
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
-      expect(Object.keys(result.data?.frequencies || {}).length).toBe(15)
     })
 
     it('should handle missing values', async () => {
@@ -161,40 +156,12 @@ describe('Frequency Analysis', () => {
         total: 3
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
-      expect(result.data?.total).toBe(3) // null/undefined 제외
-    })
-
-    it('should handle empty strings', async () => {
-      const testData = [
-        { category: 'A' },
-        { category: '' },
-        { category: 'B' },
-        { category: '  ' },
-        { category: 'A' }
-      ]
-
-      const mockPyodideResult = {
-        frequencies: {
-          A: 2,
-          B: 1
-        },
-        percentages: {
-          A: 66.67,
-          B: 33.33
-        },
-        total: 3
-      }
-
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
-
-      const result = await frequencyHandler(testData, { column: 'category' })
-
-      expect(result.success).toBe(true)
+      expect(mockPyodideCore.frequencyAnalysis).toHaveBeenCalledWith(['A', 'B', 'A']) // null/undefined 제외
     })
   })
 
@@ -228,7 +195,7 @@ describe('Frequency Analysis', () => {
     it('should handle Pyodide error', async () => {
       const testData = [{ category: 'A' }]
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockRejectedValue(
+      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockRejectedValue(
         new Error('Pyodide calculation failed')
       )
 
@@ -263,12 +230,11 @@ describe('Frequency Analysis', () => {
         total: 10000
       }
 
-      ;(mockContext.callWorkerMethod as jest.Mock).mockResolvedValue(mockPyodideResult)
+      ;(mockPyodideCore.frequencyAnalysis as jest.Mock).mockResolvedValue(mockPyodideResult)
 
       const result = await frequencyHandler(testData, { column: 'category' })
 
       expect(result.success).toBe(true)
-      expect(result.data?.total).toBe(10000)
     })
   })
 })

@@ -1,17 +1,18 @@
 {
-  "timestamp": "2025-11-05T12:03:31.441Z",
+  "timestamp": "2025-11-11T05:24:05.970Z",
   "summary": {
     "total": 40,
     "passed": 0,
     "warnings": 1,
     "failed": 39,
-    "avgScore": "4.27"
+    "avgScore": "4.25"
   },
   "reports": [
     {
       "name": "anova",
       "exists": true,
       "bugs": [
+        "❌ 직접 통계 계산 (금지됨 - Python workers 사용)",
         "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
       ],
       "typeErrors": [],
@@ -20,12 +21,13 @@
       ],
       "warnings": [
         "✅ useStatisticsPage hook 사용",
-        "✅ useCallback 3개 사용",
+        "✅ useCallback 6개 사용",
+        "✅ 옵셔널 체이닝 3개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
       ],
-      "score": 4.4
+      "score": 3.9
     },
     {
       "name": "t-test",
@@ -147,7 +149,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 2개 사용",
-        "✅ 옵셔널 체이닝 6개 사용",
+        "✅ 옵셔널 체이닝 7개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -167,7 +169,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 1개 사용",
-        "✅ 옵셔널 체이닝 13개 사용",
+        "✅ 옵셔널 체이닝 14개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -226,8 +228,8 @@
       ],
       "warnings": [
         "✅ useStatisticsPage hook 사용",
-        "✅ useCallback 3개 사용",
-        "✅ 옵셔널 체이닝 8개 사용",
+        "✅ useCallback 6개 사용",
+        "✅ 옵셔널 체이닝 9개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -246,7 +248,8 @@
       ],
       "warnings": [
         "✅ useStatisticsPage hook 사용",
-        "✅ useCallback 2개 사용",
+        "✅ useCallback 3개 사용",
+        "✅ 옵셔널 체이닝 4개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -306,6 +309,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 7개 사용",
+        "✅ 옵셔널 체이닝 1개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -327,7 +331,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 7개 사용",
-        "✅ 옵셔널 체이닝 7개 사용",
+        "✅ 옵셔널 체이닝 14개 사용",
         "⚠️ StepCard 컴포넌트 미사용",
         "⚠️ steps 배열 미정의"
       ],
@@ -474,7 +478,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 7개 사용",
-        "✅ 옵셔널 체이닝 3개 사용",
+        "✅ 옵셔널 체이닝 15개 사용",
         "⚠️ StepCard 컴포넌트 미사용",
         "⚠️ steps 배열 미정의"
       ],
@@ -514,6 +518,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 2개 사용",
+        "✅ 옵셔널 체이닝 1개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -532,7 +537,7 @@
       ],
       "warnings": [
         "✅ useStatisticsPage hook 사용",
-        "✅ useCallback 5개 사용",
+        "✅ useCallback 3개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -552,7 +557,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 5개 사용",
-        "✅ 옵셔널 체이닝 16개 사용",
+        "✅ 옵셔널 체이닝 17개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -563,6 +568,7 @@
       "name": "non-parametric",
       "exists": true,
       "bugs": [
+        "❌ any 타입 사용 (금지됨 - unknown 사용)",
         "❌ JavaScript 통계 근사 함수 (금지됨 - scipy 사용)"
       ],
       "typeErrors": [],
@@ -579,7 +585,7 @@
         "⚠️ StepCard 컴포넌트 미사용",
         "⚠️ steps 배열 미정의"
       ],
-      "score": 4.3
+      "score": 3.8
     },
     {
       "name": "ordinal-regression",
@@ -615,7 +621,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 10개 사용",
-        "✅ 옵셔널 체이닝 4개 사용",
+        "✅ 옵셔널 체이닝 5개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ StepCard 컴포넌트 미사용",
@@ -737,7 +743,8 @@
       ],
       "warnings": [
         "✅ useStatisticsPage hook 사용",
-        "✅ useCallback 5개 사용",
+        "✅ useCallback 3개 사용",
+        "✅ 옵셔널 체이닝 1개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
@@ -816,6 +823,7 @@
       "warnings": [
         "✅ useStatisticsPage hook 사용",
         "✅ useCallback 2개 사용",
+        "✅ 옵셔널 체이닝 1개 사용",
         "✅ DataUploadStep 사용 (최신 표준)",
         "✅ VariableSelector 사용 (최신 표준)",
         "⚠️ steps 배열 미정의"
