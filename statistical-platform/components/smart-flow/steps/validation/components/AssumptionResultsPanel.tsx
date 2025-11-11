@@ -41,7 +41,7 @@ export const AssumptionResultsPanel = memo(function AssumptionResultsPanel({
   }
 
   const { summary } = assumptionResults
-  const violations = (summary as unknown as { violations?: string[] }).violations ?? []
+  const violations = summary.violations ?? []
 
   return (
     <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
