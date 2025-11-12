@@ -28,7 +28,9 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import type { MoodMedianVariables } from '@/types/statistics'
+import { toMoodMedianVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // ============================================================================
 // 타입 정의
@@ -128,21 +130,24 @@ export default function MoodMedianTestPage() {
   /**
    * 변수 선택 핸들러
    */
-  const handleVariableSelection = useCallback((variables: unknown) => {
-    if (!variables || typeof variables !== 'object') return
-
-    const vars = variables as { factor?: string; dependent?: string; grouping?: string; test?: string }
-
-    if ((vars.factor && vars.dependent) || (vars.grouping && vars.test)) {
-      const moodVars: MoodMedianVariables = {
-        factor: vars.factor || vars.grouping || '',
-        dependent: vars.dependent || vars.test || ''
-      }
-
-      actions.setSelectedVariables?.(moodVars)
-      actions.setCurrentStep?.(3)
-    }
-  }, [actions])
+  const handleVariableSelection = useCallback(
+    createVariableSelectionHandler<MoodMedianVariables>(
+      (vars) => {
+        // First callback: state update with converter
+        const converted = vars ? toMoodMedianVariables(vars as unknown as VariableAssignment) : null
+        actions.setSelectedVariables?.(converted)
+      },
+      (vars) => {
+        // Second callback: step change (instead of auto-run)
+        const converted = toMoodMedianVariables(vars as unknown as VariableAssignment)
+        if (converted.factor && converted.dependent) {
+          actions.setCurrentStep?.(3)
+        }
+      },
+      'mood-median'
+    ),
+    [actions]
+  )
 
   /**
    * 분석 실행 핸들러

@@ -245,9 +245,10 @@ export default function McNemarTestPage() {
 
   const handleVariableSelection = createVariableSelectionHandler<McNemarVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toMcNemarVariables(vars as unknown as VariableAssignment) : null),
-    (variables) => {
-      if (variables.dependent && variables.dependent.length === 2) {
-        void runAnalysis(variables)
+    (vars) => {
+      const converted = toMcNemarVariables(vars as unknown as VariableAssignment)
+      if (converted.dependent && converted.dependent.length === 2) {
+        void runAnalysis(converted)
       }
     },
     'mcnemar'
@@ -723,8 +724,8 @@ export default function McNemarTestPage() {
       currentStep={currentStep}
       onStepChange={actions.setCurrentStep}
       onRun={() => {
-        if (selectedVariables && Array.isArray(selectedVariables)) {
-          runAnalysis(selectedVariables)
+        if (selectedVariables?.dependent && selectedVariables.dependent.length === 2) {
+          void runAnalysis(selectedVariables)
         }
       }}
       onReset={() => {

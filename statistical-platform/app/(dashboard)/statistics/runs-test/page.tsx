@@ -3,7 +3,9 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RunsTestVariables } from '@/types/statistics'
+import { toRunsTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -234,24 +236,24 @@ export default function RunsTestPage() {
     }
   }, [uploadedData, actions])
 
-  const handleVariableSelection = useCallback((variables: unknown) => {
-    if (!variables || typeof variables !== 'object') return
-
-    // Extract variable names from the selection object
-    const variableSelection = variables as { dependent?: string; variables?: string[] }
-    const selectedVar = variableSelection.dependent || variableSelection.variables?.[0] || ''
-
-    if (!actions.setSelectedVariables) {
-      console.error('[runs-test] setSelectedVariables not available')
-      return
-    }
-
-    const typedVariables: RunsTestVariables = { dependent: selectedVar }
-    actions.setSelectedVariables(typedVariables)
-
-    // 자동으로 분석 실행
-    runAnalysis(typedVariables)
-  }, [runAnalysis, actions])
+  const handleVariableSelection = useCallback(
+    createVariableSelectionHandler<RunsTestVariables>(
+      (vars) => {
+        // First callback: state update with converter
+        const converted = vars ? toRunsTestVariables(vars as unknown as VariableAssignment) : null
+        actions.setSelectedVariables?.(converted)
+      },
+      (vars) => {
+        // Second callback: analysis execution with converter
+        const converted = toRunsTestVariables(vars as unknown as VariableAssignment)
+        if (converted.dependent) {
+          runAnalysis(converted)
+        }
+      },
+      'runs-test'
+    ),
+    [actions, runAnalysis]
+  )
 
   const renderMethodIntroduction = () => (
     <StepCard

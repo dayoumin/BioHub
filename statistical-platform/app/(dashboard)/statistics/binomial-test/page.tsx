@@ -41,10 +41,11 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 
 import type { BinomialTestVariables } from '@/types/statistics'
+import { toBinomialTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 
 // ============================================================================
 // 타입 정의
@@ -115,42 +116,50 @@ export default function BinomialTestPage(): React.ReactElement {
     'binomial-test'
   )
 
-  const handleVariableChange = useCallback((variables: unknown) => {
-    if (!variables || typeof variables !== 'object') return
-    if (!uploadedData) return
+  const handleVariableChange = useCallback(
+    createVariableSelectionHandler<BinomialTestVariables>(
+      (vars) => {
+        // First callback: state update with converter
+        const converted = vars ? toBinomialTestVariables(vars as unknown as VariableAssignment) : null
+        actions.setSelectedVariables?.(converted)
 
-    const varSelection = variables as { dependent?: string; variable?: string }
-    const selectedVar = varSelection.dependent || varSelection.variable
+        // Extract unique values for the selected variable
+        if (converted?.dependent && uploadedData) {
+          const values = new Set<string | number>()
+          for (const row of uploadedData.data) {
+            const value = (row as Record<string, unknown>)[converted.dependent]
+            if (value !== null && value !== undefined) {
+              if (typeof value === 'number' || typeof value === 'string') {
+                values.add(value)
+              }
+            }
+          }
 
-    if (!selectedVar) return
+          const uniqueArr = Array.from(values)
+          setUniqueValues(uniqueArr)
 
-    // 선택된 변수의 고유값 추출
-    const values = new Set<string | number>()
-    for (const row of uploadedData.data) {
-      const value = (row as Record<string, unknown>)[selectedVar]
-      if (value !== null && value !== undefined) {
-        if (typeof value === 'number' || typeof value === 'string') {
-          values.add(value)
+          // 이진 변수인 경우 자동으로 첫 번째 값을 성공값으로 설정
+          if (uniqueArr.length === 2) {
+            setAnalysisOptions(prev => ({
+              ...prev,
+              successValue: uniqueArr[0]
+            }))
+          } else {
+            setAnalysisOptions(prev => ({
+              ...prev,
+              successValue: null
+            }))
+          }
         }
-      }
-    }
-
-    const uniqueArr = Array.from(values)
-    setUniqueValues(uniqueArr)
-
-    // 이진 변수인 경우 자동으로 첫 번째 값을 성공값으로 설정
-    if (uniqueArr.length === 2) {
-      setAnalysisOptions(prev => ({
-        ...prev,
-        successValue: uniqueArr[0]
-      }))
-    } else {
-      setAnalysisOptions(prev => ({
-        ...prev,
-        successValue: null
-      }))
-    }
-  }, [uploadedData])
+      },
+      (vars) => {
+        // Second callback: no auto-run for binomial-test (user needs to set options first)
+        // We don't auto-run because the user needs to configure successValue and other options
+      },
+      'binomial-test'
+    ),
+    [uploadedData, actions]
+  )
 
   const runAnalysis = useCallback(async (variables: BinomialTestVariables) => {
     if (!uploadedData) return

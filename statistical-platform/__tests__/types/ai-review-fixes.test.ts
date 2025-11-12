@@ -90,7 +90,7 @@ describe('AI Review Fix Validation', () => {
         dependent: 'Success'
       }
 
-      const result = toProportionTestVariables(input) as Record<string, unknown>
+      const result = toProportionTestVariables(input) as unknown as Record<string, unknown>
 
       // factor 필드가 없어야 함
       expect('factor' in result).toBe(false)
@@ -138,7 +138,7 @@ describe('AI Review Fix Validation', () => {
         dependent: ['Var1', 'Var2']
       }
 
-      const result = toMcNemarVariables(input) as Record<string, unknown>
+      const result = toMcNemarVariables(input) as unknown as Record<string, unknown>
 
       // variables 필드가 없어야 함 (구 패턴 제거)
       expect('variables' in result).toBe(false)

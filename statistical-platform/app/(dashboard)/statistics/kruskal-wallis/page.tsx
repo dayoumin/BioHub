@@ -168,9 +168,10 @@ export default function KruskalWallisPage() {
 
   const handleVariableSelection = createVariableSelectionHandler<KruskalWallisVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toKruskalWallisVariables(vars as unknown as VariableAssignment) : null),
-    (variables) => {
-      if (variables.dependent && variables.factor) {
-        void runAnalysis(variables)
+    (vars) => {
+      const converted = toKruskalWallisVariables(vars as unknown as VariableAssignment)
+      if (converted.dependent && converted.factor) {
+        void runAnalysis(converted)
       }
     },
     'kruskal-wallis'
