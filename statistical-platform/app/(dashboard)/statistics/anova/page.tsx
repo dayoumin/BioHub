@@ -36,6 +36,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // interface SelectedVariables {
 //   dependent: string
@@ -1104,14 +1105,28 @@ export default function ANOVAPage() {
 
           {/* 액션 버튼 */}
           <div className="flex gap-3 justify-center pt-4">
-            <Button variant="outline" onClick={() => {}}>
-              <FileText className="w-4 h-4 mr-2" />
-              보고서 생성
-            </Button>
-            <Button variant="outline" onClick={() => {}}>
-              <Download className="w-4 h-4 mr-2" />
-              결과 다운로드
-            </Button>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <FileText className="w-4 h-4 mr-2" />
+                  보고서 생성
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>향후 제공 예정입니다</p>
+              </TooltipContent>
+            </UITooltip>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <Download className="w-4 h-4 mr-2" />
+                  결과 다운로드
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>향후 제공 예정입니다</p>
+              </TooltipContent>
+            </UITooltip>
           </div>
         </div>
       </StepCard>

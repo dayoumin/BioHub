@@ -58,6 +58,7 @@ import {
   ReferenceLine,
   Cell
 } from 'recharts'
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface TTestResult {
   type: 'one-sample' | 'two-sample' | 'paired'

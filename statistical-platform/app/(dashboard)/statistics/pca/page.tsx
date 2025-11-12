@@ -30,6 +30,7 @@ import {
 
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // 데이터 인터페이스
 // 로컬 인터페이스 제거: types/statistics.ts의 PCAVariables 사용
@@ -769,10 +770,27 @@ export default function PCAPage() {
 
           {/* 액션 버튼 */}
           <div className="flex gap-3 justify-center pt-4">
-            <Button variant="outline" onClick={() => {}}>
-              <FileText className="w-4 h-4 mr-2" />
-              보고서 생성
-            </Button>
+            <Tooltip>
+
+              <TooltipTrigger asChild>
+
+                <Button variant="outline" disabled>
+
+                  <FileText className="w-4 h-4 mr-2" />
+
+                  보고서 생성
+
+                </Button>
+
+              </TooltipTrigger>
+
+              <TooltipContent>
+
+                <p>향후 제공 예정입니다</p>
+
+              </TooltipContent>
+
+            </Tooltip>
             <Button variant="outline" onClick={() => {}}>
               <Download className="w-4 h-4 mr-2" />
               주성분 데이터 다운로드

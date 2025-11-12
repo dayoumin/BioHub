@@ -36,6 +36,7 @@ import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-pag
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Data interfaces
 interface DataRow {

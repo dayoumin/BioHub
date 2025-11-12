@@ -28,6 +28,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // 데이터 인터페이스
 // 로컬 인터페이스 제거: types/statistics.ts의 KSTestVariables 사용
@@ -202,6 +203,7 @@ critical_value = 1.36 / np.sqrt(n)
 from scipy import stats
 import numpy as np
 import { type UploadedData } from '@/hooks/use-statistics-page'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 values1 = np.array(js_values1)
 values2 = np.array(js_values2)
@@ -618,14 +620,48 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
 
           {/* 액션 버튼 */}
           <div className="flex gap-3 justify-center pt-4">
-            <Button variant="outline" onClick={() => {}}>
-              <FileText className="w-4 h-4 mr-2" />
-              보고서 생성
-            </Button>
-            <Button variant="outline" onClick={() => {}}>
-              <Download className="w-4 h-4 mr-2" />
-              결과 다운로드
-            </Button>
+            <Tooltip>
+
+              <TooltipTrigger asChild>
+
+                <Button variant="outline" disabled>
+
+                  <FileText className="w-4 h-4 mr-2" />
+
+                  보고서 생성
+
+                </Button>
+
+              </TooltipTrigger>
+
+              <TooltipContent>
+
+                <p>향후 제공 예정입니다</p>
+
+              </TooltipContent>
+
+            </Tooltip>
+            <Tooltip>
+
+              <TooltipTrigger asChild>
+
+                <Button variant="outline" disabled>
+
+                  <Download className="w-4 h-4 mr-2" />
+
+                  결과 다운로드
+
+                </Button>
+
+              </TooltipTrigger>
+
+              <TooltipContent>
+
+                <p>향후 제공 예정입니다</p>
+
+              </TooltipContent>
+
+            </Tooltip>
           </div>
         </div>
       </StepCard>

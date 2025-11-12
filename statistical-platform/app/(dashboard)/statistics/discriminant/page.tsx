@@ -29,6 +29,7 @@ import type { UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // 데이터 인터페이스
 // 로컬 인터페이스 제거: types/statistics.ts의 DiscriminantVariables 사용

@@ -29,6 +29,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -688,14 +689,48 @@ export default function CorrelationPage() {
 
           {/* 액션 버튼 */}
           <div className="flex gap-3 justify-center pt-4">
-            <Button variant="outline" onClick={() => {}}>
-              <FileText className="w-4 h-4 mr-2" />
-              보고서 생성
-            </Button>
-            <Button variant="outline" onClick={() => {}}>
-              <Download className="w-4 h-4 mr-2" />
-              결과 다운로드
-            </Button>
+            <UITooltip>
+
+              <TooltipTrigger asChild>
+
+                <Button variant="outline" disabled>
+
+                  <FileText className="w-4 h-4 mr-2" />
+
+                  보고서 생성
+
+                </Button>
+
+              </TooltipTrigger>
+
+              <TooltipContent>
+
+                <p>향후 제공 예정입니다</p>
+
+              </TooltipContent>
+
+            </UITooltip>
+            <UITooltip>
+
+              <TooltipTrigger asChild>
+
+                <Button variant="outline" disabled>
+
+                  <Download className="w-4 h-4 mr-2" />
+
+                  결과 다운로드
+
+                </Button>
+
+              </TooltipTrigger>
+
+              <TooltipContent>
+
+                <p>향후 제공 예정입니다</p>
+
+              </TooltipContent>
+
+            </UITooltip>
           </div>
         </div>
       </StepCard>

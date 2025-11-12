@@ -28,6 +28,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import type { CochranQVariables } from '@/types/statistics'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // ============================================================================
 // 타입 정의
