@@ -32,6 +32,7 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 // Services & Types
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -530,34 +531,29 @@ export default function ReliabilityAnalysisPage() {
                   <CardDescription>각 항목이 전체 신뢰도에 미치는 영향</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="border p-2 text-left">항목</th>
-                          <th className="border p-2 text-right">평균</th>
-                          <th className="border p-2 text-right">표준편차</th>
-                          <th className="border p-2 text-right">항목-전체 상관</th>
-                          <th className="border p-2 text-right">삭제 시 α</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analysisResult.itemStatistics.map((item, index) => (
-                          <tr key={index} className="hover:bg-muted/50">
-                            <td className="border p-2 font-medium">{item.item}</td>
-                            <td className="border p-2 text-right font-mono">{item.mean.toFixed(2)}</td>
-                            <td className="border p-2 text-right font-mono">{item.stdDev.toFixed(2)}</td>
-                            <td className="border p-2 text-right font-mono">{item.correctedItemTotal.toFixed(3)}</td>
-                            <td className="border p-2 text-right font-mono">
-                              <span className={item.alphaIfDeleted > analysisResult.cronbachAlpha ? 'text-muted-foreground' : 'text-muted-foreground'}>
-                                {item.alphaIfDeleted.toFixed(3)}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="항목별 통계량"
+                    columns={[
+                      { key: 'item', header: '항목', type: 'text', align: 'left' },
+                      { key: 'mean', header: '평균', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(2) },
+                      { key: 'stdDev', header: '표준편차', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(2) },
+                      { key: 'correctedItemTotal', header: '항목-전체 상관', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                      { key: 'alphaIfDeleted', header: '삭제 시 α', type: 'custom', align: 'right', formatter: (v) => v }
+                    ] as const}
+                    data={analysisResult.itemStatistics.map((item, index) => ({
+                      item: item.item,
+                      mean: item.mean,
+                      stdDev: item.stdDev,
+                      correctedItemTotal: item.correctedItemTotal,
+                      alphaIfDeleted: (
+                        <span className={item.alphaIfDeleted > analysisResult.cronbachAlpha ? 'text-muted-foreground' : 'text-muted-foreground'}>
+                          {item.alphaIfDeleted.toFixed(3)}
+                        </span>
+                      )
+                    }))}
+                    bordered
+                    compactMode
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

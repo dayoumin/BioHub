@@ -29,6 +29,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
@@ -453,46 +454,24 @@ export default function MannWhitneyPage() {
                   <CardDescription>순위합과 U 통계량 결과</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="border p-2 text-left">통계량</th>
-                          <th className="border p-2 text-right">값</th>
-                          <th className="border p-2 text-center">설명</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="border p-2 font-medium">U 통계량</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.uValue}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">Mann-Whitney U 값</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">검정통계량</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.statistic.toFixed(4)}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">표준화된 검정통계량</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">p-값</td>
-                          <td className="border p-2 text-right">
-                            <PValueBadge value={analysisResult.pValue} />
-                          </td>
-                          <td className="border p-2 text-sm text-muted-foreground">양측 검정</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">그룹 1 순위합</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.rankSum1.toFixed(1)}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">첫 번째 그룹 순위합</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">그룹 2 순위합</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.rankSum2.toFixed(1)}</td>
-                          <td className="border p-2 text-sm text-muted-foreground">두 번째 그룹 순위합</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="Mann-Whitney U 검정 통계량"
+                    description="순위합과 U 통계량 결과"
+                    columns={[
+                      { key: 'name', header: '통계량', type: 'text', align: 'left' },
+                      { key: 'value', header: '값', type: 'custom', align: 'right', formatter: (v) => v },
+                      { key: 'description', header: '설명', type: 'text', align: 'center' }
+                    ] as const}
+                    data={[
+                      { name: 'U 통계량', value: analysisResult.uValue, description: 'Mann-Whitney U 값' },
+                      { name: '검정통계량', value: analysisResult.statistic.toFixed(4), description: '표준화된 검정통계량' },
+                      { name: 'p-값', value: <PValueBadge value={analysisResult.pValue} />, description: '양측 검정' },
+                      { name: '그룹 1 순위합', value: analysisResult.rankSum1.toFixed(1), description: '첫 번째 그룹 순위합' },
+                      { name: '그룹 2 순위합', value: analysisResult.rankSum2.toFixed(1), description: '두 번째 그룹 순위합' }
+                    ]}
+                    bordered
+                    compactMode
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -504,48 +483,43 @@ export default function MannWhitneyPage() {
                   <CardDescription>각 그룹의 중심경향성과 분산 지표</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="border p-2 text-left">집단</th>
-                          <th className="border p-2 text-right">N</th>
-                          <th className="border p-2 text-right">중위수</th>
-                          <th className="border p-2 text-right">평균</th>
-                          <th className="border p-2 text-right">Q1</th>
-                          <th className="border p-2 text-right">Q3</th>
-                          <th className="border p-2 text-right">IQR</th>
-                          <th className="border p-2 text-right">범위</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="border p-2 font-medium">그룹 1</td>
-                          <td className="border p-2 text-right">{analysisResult.nobs1}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group1.median.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group1.mean.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group1.q1.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group1.q3.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group1.iqr.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">
-                            {analysisResult.descriptives.group1.min.toFixed(2)} - {analysisResult.descriptives.group1.max.toFixed(2)}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2 font-medium">그룹 2</td>
-                          <td className="border p-2 text-right">{analysisResult.nobs2}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group2.median.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group2.mean.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group2.q1.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group2.q3.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">{analysisResult.descriptives.group2.iqr.toFixed(3)}</td>
-                          <td className="border p-2 text-right font-mono">
-                            {analysisResult.descriptives.group2.min.toFixed(2)} - {analysisResult.descriptives.group2.max.toFixed(2)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="집단별 기술통계량"
+                    columns={[
+                      { key: 'group', header: '집단', type: 'text', align: 'left' },
+                      { key: 'n', header: 'N', type: 'number', align: 'right' },
+                      { key: 'median', header: '중위수', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                      { key: 'mean', header: '평균', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                      { key: 'q1', header: 'Q1', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                      { key: 'q3', header: 'Q3', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                      { key: 'iqr', header: 'IQR', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                      { key: 'range', header: '범위', type: 'custom', align: 'right', formatter: (v: string) => v }
+                    ]}
+                    data={[
+                      {
+                        group: '그룹 1',
+                        n: analysisResult.nobs1,
+                        median: analysisResult.descriptives.group1.median,
+                        mean: analysisResult.descriptives.group1.mean,
+                        q1: analysisResult.descriptives.group1.q1,
+                        q3: analysisResult.descriptives.group1.q3,
+                        iqr: analysisResult.descriptives.group1.iqr,
+                        range: `${analysisResult.descriptives.group1.min.toFixed(2)} - ${analysisResult.descriptives.group1.max.toFixed(2)}`
+                      },
+                      {
+                        group: '그룹 2',
+                        n: analysisResult.nobs2,
+                        median: analysisResult.descriptives.group2.median,
+                        mean: analysisResult.descriptives.group2.mean,
+                        q1: analysisResult.descriptives.group2.q1,
+                        q3: analysisResult.descriptives.group2.q3,
+                        iqr: analysisResult.descriptives.group2.iqr,
+                        range: `${analysisResult.descriptives.group2.min.toFixed(2)} - ${analysisResult.descriptives.group2.max.toFixed(2)}`
+                      }
+                    ]}
+                    bordered
+                    compactMode
+                  />
 
                   <div className="mt-4 p-4 bg-muted rounded-lg">
                     <h4 className="font-medium mb-2">중위수 차이</h4>
