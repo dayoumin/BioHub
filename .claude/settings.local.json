@@ -110,7 +110,8 @@
       "Bash(npm run validate:mapping:*)",
       "Bash(tasklist:*)",
       "Bash(git status:*)",
-      "Bash(do echo \"=== $comp ===\")"
+      "Bash(do echo \"=== $comp ===\")",
+      "Bash(/tmp/full_diff.txt)"
     ],
     "deny": [],
     "ask": []
