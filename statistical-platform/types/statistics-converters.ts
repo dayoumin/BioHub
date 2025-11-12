@@ -9,6 +9,7 @@ import type {
   ANCOVAVariables,
   ANOVAVariables,
   ChiSquareIndependenceVariables,
+  BinomialTestVariables,
   CorrelationVariables,
   DiscriminantVariables,
   FrequencyTableVariables,
@@ -16,8 +17,10 @@ import type {
   KruskalWallisVariables,
   KSTestVariables,
   MannWhitneyVariables,
+  McNemarVariables,
   MANOVAVariables,
   MixedModelVariables,
+  MoodMedianVariables,
   NonParametricVariables,
   NormalityTestVariables,
   OneSampleTVariables,
@@ -110,7 +113,7 @@ export function toFriedmanVariables(vars: VariableAssignment): FriedmanVariables
 export function toKruskalWallisVariables(vars: VariableAssignment): KruskalWallisVariables {
   return {
     dependent: toSingleString(vars.dependent),
-    factor: toStringArray(vars.factor || vars.groups)
+    factor: toSingleString(vars.factor || vars.groups)
   }
 }
 
@@ -127,6 +130,11 @@ export function toMannWhitneyVariables(vars: VariableAssignment): MannWhitneyVar
   }
 }
 
+export function toMcNemarVariables(vars: VariableAssignment): McNemarVariables {
+  return {
+    dependent: toStringArray(vars.dependent || vars.variables)
+  }
+}
 export function toMANOVAVariables(vars: VariableAssignment): MANOVAVariables {
   return {
     dependent: toStringArray(vars.dependent),
@@ -185,7 +193,7 @@ export function toPCAVariables(vars: VariableAssignment): PCAVariables {
 
 export function toProportionTestVariables(vars: VariableAssignment): ProportionTestVariables {
   return {
-    factor: toStringArray(vars.factor || vars.groups || vars.variables)
+    dependent: toSingleString(vars.dependent || vars.variable)
   }
 }
 
@@ -236,3 +244,18 @@ export function isValidANCOVAVariables(vars: unknown): vars is ANCOVAVariables {
 }
 
 // ... (필요 시 다른 타입 가드 추가)
+
+// Binomial Test
+export function toBinomialTestVariables(vars: VariableAssignment): BinomialTestVariables {
+  return {
+    dependent: toSingleString(vars.dependent || vars.variable)
+  }
+}
+
+// Mood Median Test  
+export function toMoodMedianVariables(vars: VariableAssignment): MoodMedianVariables {
+  return {
+    factor: toSingleString(vars.factor || vars.grouping),
+    dependent: toSingleString(vars.dependent || vars.test)
+  }
+}

@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { McNemarVariables } from '@/types/statistics'
+import { toMcNemarVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -136,14 +137,14 @@ export default function McNemarTestPage() {
     return null
   }, [])
 
-  const runAnalysis = useCallback(async (variables: string[]) => {
-    if (!uploadedData || variables.length < 2) return
+  const runAnalysis = useCallback(async (variables: McNemarVariables) => {
+    if (!uploadedData || !variables.dependent || variables.dependent.length < 2) return
 
     actions.startAnalysis()
 
     try {
-      const variable1 = variables[0]
-      const variable2 = variables[1]
+      const variable1 = variables.dependent[0]
+      const variable2 = variables.dependent[1]
 
       // 1️⃣ 이진 데이터 추출 및 2x2 분할표 생성
       const pairs = uploadedData.data.map(row => {
@@ -242,17 +243,12 @@ export default function McNemarTestPage() {
     }
   }, [uploadedData, convertToBinary, actions])
 
-  const handleVariableSelection = createVariableSelectionHandler<unknown>(
-    actions.setSelectedVariables as ((mapping: unknown) => void) | undefined,
+  const handleVariableSelection = createVariableSelectionHandler<McNemarVariables>(
+    (vars) => actions.setSelectedVariables?.(vars ? toMcNemarVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
-      if (!variables || typeof variables !== 'object') return
-
-      // Extract variable names from the selection object
-      const variableSelection = variables as { variables: string[] }
-      const selectedVars = variableSelection.variables || []
-
-      // 자동으로 분석 실행
-      runAnalysis(selectedVars)
+      if (variables.dependent && variables.dependent.length === 2) {
+        void runAnalysis(variables)
+      }
     },
     'mcnemar'
   )

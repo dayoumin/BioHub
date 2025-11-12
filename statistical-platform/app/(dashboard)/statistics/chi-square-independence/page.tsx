@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ChiSquareIndependenceVariables } from '@/types/statistics'
 import { toChiSquareIndependenceVariables, type VariableAssignment } from '@/types/statistics-converters'
@@ -32,7 +32,6 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -101,37 +100,6 @@ export default function ChiSquareIndependencePage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
-
-  // Initialize Pyodide - 메모리 누수 방지
-  useEffect(() => {
-    let isMounted = true
-    const abortController = new AbortController()
-
-    const initPyodide = async () => {
-      try {
-        if (abortController.signal.aborted) return
-        await pyodideStats.initialize()
-        if (isMounted && !abortController.signal.aborted) {
-          setPyodide(pyodideStats)
-        }
-      } catch (err) {
-        if (isMounted && !abortController.signal.aborted) {
-          console.error('Pyodide 초기화 실패:', err)
-          actions.setError('통계 엔진을 초기화할 수 없습니다.')
-        }
-      }
-    }
-
-    initPyodide()
-
-    return () => {
-      isMounted = false
-      abortController.abort()
-    }
-  }, [actions])
-
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
     {
@@ -189,7 +157,7 @@ export default function ChiSquareIndependencePage() {
   )
 
   const runAnalysis = useCallback(async (variables: ChiSquareIndependenceVariables) => {
-    if (!uploadedData || !pyodide || !variables.row || !variables.column) {
+    if (!uploadedData || !variables.row || !variables.column) {
       actions.setError('분석을 실행할 수 없습니다. 두 개의 범주형 변수를 선택해주세요.')
       return
     }
@@ -220,8 +188,24 @@ export default function ChiSquareIndependencePage() {
         }
       })
 
-      // Call Pyodide function with number[][]
-      const pyodideResult = await pyodide.chiSquareIndependenceTest(matrix)
+      // Call PyodideCoreService (싱글톤)
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      const pyodideResult = await pyodideCore.callWorkerMethod<{
+        chiSquare: number
+        pValue: number
+        degreesOfFreedom: number
+        cramersV: number
+        reject: boolean
+        observedMatrix: number[][]
+        expectedMatrix: number[][]
+      }>(
+        2, // Worker 2 - hypothesis tests
+        'chi_square_independence_test',
+        { observed_matrix: matrix }
+      )
 
       // Transform Pyodide result to page interface
       const totalN = pyodideResult.observedMatrix.flat().reduce((sum, val) => sum + val, 0)
@@ -308,14 +292,19 @@ export default function ChiSquareIndependencePage() {
     } finally {
       // isAnalyzing managed by hook
     }
-  }, [uploadedData, pyodide, actions])
+  }, [uploadedData, actions])
 
   const handleVariableSelection = useCallback(
     createVariableSelectionHandler<ChiSquareIndependenceVariables>(
-    (vars) => actions.setSelectedVariables?.(vars ? toChiSquareIndependenceVariables(vars as unknown as VariableAssignment) : null),
-      (variables) => {
-        if (variables.row && variables.column) {
-          runAnalysis(variables)
+      (vars) => {
+        const converted = vars ? toChiSquareIndependenceVariables(vars as unknown as VariableAssignment) : null
+        actions.setSelectedVariables?.(converted)
+      },
+      (vars) => {
+        // 두 번째 콜백에서도 converter 적용 (Section 17)
+        const converted = toChiSquareIndependenceVariables(vars as unknown as VariableAssignment)
+        if (converted.row && converted.column) {
+          runAnalysis(converted)
         }
       },
       'chi-square-independence'

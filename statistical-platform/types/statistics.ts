@@ -211,7 +211,7 @@ export interface MannWhitneyVariables {
 
 export interface KruskalWallisVariables {
   dependent: string // 1개
-  factor: string[] // 3개 이상 (variable-requirements.ts: role: 'factor')
+  factor: string // 1개 (variable-requirements.ts: role: 'factor', multiple: false) - 그룹값이 3개 이상
 }
 
 export interface WilcoxonVariables {
@@ -258,7 +258,7 @@ export interface KSTestVariables {
 
 // 비율 검정
 export interface ProportionTestVariables {
-  factor: string[] // 1-2개 (variable-requirements.ts: role: 'factor')
+  dependent: string // 1개 (variable-requirements.ts: role: 'dependent', multiple: false)
 }
 
 // 생존분석
