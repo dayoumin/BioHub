@@ -585,40 +585,31 @@ export default function ManovaPage() {
                   <CardDescription>4가지 다변량 검정 통계량</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="border border-gray-300 px-4 py-2 text-left">검정</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">통계량</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">근사 F</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">자유도</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">p-value</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">해석</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analysisResult.overallTests.map((test, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="border border-gray-300 px-4 py-2 font-medium">{test.test}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{test.statistic.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{test.approximate_f.toFixed(2)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              {test.numerator_df}, {test.denominator_df}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              <PValueBadge value={test.pValue} />
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              <Badge variant={test.pValue < 0.05 ? "default" : "outline"}>
-                                {test.pValue < 0.05 ? "유의함" : "유의하지 않음"}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="다변량 검정 통계량"
+                    columns={[
+                      { key: 'test', header: '검정', type: 'text', align: 'left' },
+                      { key: 'statistic', header: '통계량', type: 'number', align: 'center', formatter: (v) => v.toFixed(3) },
+                      { key: 'approximateF', header: '근사 F', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'df', header: '자유도', type: 'custom', align: 'center', formatter: (v: string) => v },
+                      { key: 'pValue', header: 'p-value', type: 'custom', align: 'center', formatter: (v) => v },
+                      { key: 'interpretation', header: '해석', type: 'custom', align: 'center', formatter: (v) => v }
+                    ]}
+                    data={analysisResult.overallTests.map(test => ({
+                      test: test.test,
+                      statistic: test.statistic,
+                      approximateF: test.approximate_f,
+                      df: `${test.numerator_df}, ${test.denominator_df}`,
+                      pValue: <PValueBadge value={test.pValue} />,
+                      interpretation: (
+                        <Badge variant={test.pValue < 0.05 ? "default" : "outline"}>
+                          {test.pValue < 0.05 ? "유의함" : "유의하지 않음"}
+                        </Badge>
+                      )
+                    }))}
+                    bordered
+                    compactMode
+                  />
 
                   <Alert className="mt-4">
                     <CheckCircle className="h-4 w-4" />
@@ -692,45 +683,38 @@ export default function ManovaPage() {
                   <CardDescription>각 종속변수별 ANOVA 결과</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="border border-gray-300 px-4 py-2 text-left">종속변수</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">제곱합</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">자유도</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">평균제곱</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">F</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">p-value</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">η²</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">검정력</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analysisResult.univariateTests.map((test, index) => {
-                          const effectSize = getEffectSizeInterpretation(test.etaSquared)
-                          return (
-                            <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-300 px-4 py-2 font-medium">{test.variable}</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">{test.sumSquares.toFixed(2)}</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">{test.degreesOfFreedom}</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">{test.meanSquare.toFixed(2)}</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{test.fStatistic.toFixed(2)}</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">
-                                <PValueBadge value={test.pValue} />
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">
-                                <Badge variant="outline" className={`${effectSize.color} ${effectSize.bg}`}>
-                                  {test.etaSquared.toFixed(3)}
-                                </Badge>
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">{test.observedPower.toFixed(3)}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="일변량 ANOVA 결과"
+                    columns={[
+                      { key: 'variable', header: '종속변수', type: 'text', align: 'left' },
+                      { key: 'sumSquares', header: '제곱합', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'df', header: '자유도', type: 'number', align: 'center' },
+                      { key: 'meanSquare', header: '평균제곱', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'fStatistic', header: 'F', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'pValue', header: 'p-value', type: 'custom', align: 'center', formatter: (v) => v },
+                      { key: 'etaSquared', header: 'η²', type: 'custom', align: 'center', formatter: (v) => v },
+                      { key: 'power', header: '검정력', type: 'number', align: 'center', formatter: (v) => v.toFixed(3) }
+                    ]}
+                    data={analysisResult.univariateTests.map(test => {
+                      const effectSize = getEffectSizeInterpretation(test.etaSquared)
+                      return {
+                        variable: test.variable,
+                        sumSquares: test.sumSquares,
+                        df: test.degreesOfFreedom,
+                        meanSquare: test.meanSquare,
+                        fStatistic: test.fStatistic,
+                        pValue: <PValueBadge value={test.pValue} />,
+                        etaSquared: (
+                          <Badge variant="outline" className={`${effectSize.color} ${effectSize.bg}`}>
+                            {test.etaSquared.toFixed(3)}
+                          </Badge>
+                        ),
+                        power: test.observedPower
+                      }
+                    })}
+                    bordered
+                    compactMode
+                  />
 
                   <Alert className="mt-4">
                     <Info className="h-4 w-4" />
