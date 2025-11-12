@@ -112,29 +112,86 @@ export default function ProportionTestPage() {
 
   // 분석 실행
   const handleAnalysis = useCallback(async () => {
+    if (!uploadedData || !selectedVariables) {
+      actions.setError('데이터와 변수를 확인해주세요.')
+      return
+    }
+
     actions.startAnalysis()
 
     try {
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-      const successCount = 67
-      const totalCount = 120
-      const observedProp = successCount / totalCount
+      // PyodideCore 서비스 임포트
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // 변수 추출
+      const variableName = Array.isArray(selectedVariables.dependent)
+        ? selectedVariables.dependent[0]
+        : selectedVariables.dependent
+
+      if (!variableName) {
+        actions.setError('변수를 선택해주세요.')
+        return
+      }
+
+      // 데이터에서 성공 횟수 계산
+      const values = uploadedData.data
+        .map((row: Record<string, unknown>) => row[variableName])
+        .filter((v: unknown) => v !== null && v !== undefined && v !== '')
+
+      if (values.length < 10) {
+        actions.setError('최소 10개 이상의 관측치가 필요합니다.')
+        return
+      }
+
+      // 성공 값 추정 (1, true, "yes", "success" 등)
+      const successValue = 1 // 기본값, 실제로는 사용자가 지정해야 함
+      const successCount = values.filter((v: unknown) => v === successValue || v === true || v === 'yes' || v === '1').length
+      const totalCount = values.length
+
+      // Worker 1 (descriptive), method: 'proportion_test' 호출
+      interface ProportionTestResult {
+        sampleProportion: number
+        pValueExact: number
+        ciLower?: number
+        ciUpper?: number
+        zStatistic?: number
+      }
+
+      const result = await pyodideCore.callWorkerMethod<ProportionTestResult>(
+        1,
+        'proportion_test',
+        {
+          successCount,
+          totalCount,
+          nullProportion: parseFloat(testProportion)
+        }
+      )
+
+      const observedProp = result.sampleProportion
       const testProp = parseFloat(testProportion)
+      const pValue = result.pValueExact
+      const zStat = result.zStatistic ?? (observedProp - testProp) / Math.sqrt(testProp * (1 - testProp) / totalCount)
+      const ciLower = result.ciLower ?? observedProp - 1.96 * Math.sqrt(observedProp * (1 - observedProp) / totalCount)
+      const ciUpper = result.ciUpper ?? observedProp + 1.96 * Math.sqrt(observedProp * (1 - observedProp) / totalCount)
 
       const mockResults: ProportionTestResults = {
-        variable: '성공여부',
+        variable: variableName,
         successCount,
         totalCount,
         observedProportion: observedProp,
         testProportion: testProp,
-        zStatistic: 1.89,
-        pValue: 0.059,
+        zStatistic: zStat,
+        pValue,
         confidenceLevel: parseFloat(confidenceLevel),
-        ciLower: 0.467,
-        ciUpper: 0.641,
+        ciLower,
+        ciUpper,
         method: method === 'normal' ? 'Normal approximation (Wilson Score)' : 'Exact binomial test',
-        interpretation: 'p > 0.05이므로 귀무가설을 기각할 수 없습니다',
-        conclusion: `표본 비율 ${(observedProp * 100).toFixed(1)}%가 검정 비율 ${(testProp * 100).toFixed(1)}%와 통계적으로 유의한 차이가 없습니다`,
+        interpretation: pValue < 0.05 ? 'p < 0.05이므로 귀무가설을 기각합니다' : 'p ≥ 0.05이므로 귀무가설을 기각할 수 없습니다',
+        conclusion: pValue < 0.05
+          ? `표본 비율 ${(observedProp * 100).toFixed(1)}%가 검정 비율 ${(testProp * 100).toFixed(1)}%와 통계적으로 유의한 차이가 있습니다`
+          : `표본 비율 ${(observedProp * 100).toFixed(1)}%가 검정 비율 ${(testProp * 100).toFixed(1)}%와 통계적으로 유의한 차이가 없습니다`,
         effectSize: Math.abs(observedProp - testProp) / Math.sqrt(testProp * (1 - testProp)),
         continuityCorrection: totalCount < 50
       }
@@ -144,7 +201,7 @@ export default function ProportionTestPage() {
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }, [actions, setActiveTab, testProportion, confidenceLevel, method])
+  }, [actions, setActiveTab, testProportion, confidenceLevel, method, uploadedData, selectedVariables])
 
   // 단계 변경 처리
   const handleStepChange = useCallback((step: number) => {

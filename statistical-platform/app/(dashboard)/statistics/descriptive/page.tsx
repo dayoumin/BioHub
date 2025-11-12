@@ -128,67 +128,108 @@ export default function DescriptiveStatsPage() {
 
   // 분석 실행
   const handleAnalysis = useCallback(async () => {
-    try {
-      actions.startAnalysis()
+    if (!uploadedData || !selectedVariables || !_pyodideService) {
+      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      return
+    }
 
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-      const mockResults: DescriptiveResults = {
-        variables: [
-          {
-            variable: '키(cm)',
-            n: 150,
-            mean: 170.5,
-            median: 171.0,
-            mode: '170',
-            std: 8.2,
-            variance: 67.24,
-            min: 155.0,
-            max: 185.0,
-            range: 30.0,
-            q1: 165.0,
-            q3: 176.0,
-            iqr: 11.0,
-            skewness: -0.12,
-            kurtosis: -0.45,
-            se: 0.67,
-            ci_lower: 169.2,
-            ci_upper: 171.8,
-            missing: 0
-          },
-          {
-            variable: '몸무게(kg)',
-            n: 148,
-            mean: 68.3,
-            median: 67.5,
-            mode: '67',
-            std: 12.4,
-            variance: 153.76,
-            min: 45.0,
-            max: 95.0,
-            range: 50.0,
-            q1: 60.0,
-            q3: 75.0,
-            iqr: 15.0,
-            skewness: 0.25,
-            kurtosis: -0.33,
-            se: 1.02,
-            ci_lower: 66.3,
-            ci_upper: 70.3,
-            missing: 2
-          }
-        ],
-        totalCases: 150,
-        validCases: 148,
-        missingCases: 2,
+    actions.startAnalysis()
+
+    try {
+      const data = uploadedData.data
+      const variables = selectedVariables as VariableAssignment
+      const variableNames = variables.dependent as string[]
+
+      if (!variableNames || variableNames.length === 0) {
+        actions.setError('분석할 변수를 선택해주세요.')
+        return
+      }
+
+      const variableResults: DescriptiveStats[] = []
+      let totalCases = data.length
+      let totalMissing = 0
+
+      // 각 변수에 대해 기술통계 계산
+      for (const varName of variableNames) {
+        // 데이터 추출 (결측치 제거)
+        const values = data
+          .map(row => row[varName])
+          .filter(v => v !== null && v !== undefined && v !== '' && typeof v === 'number') as number[]
+
+        if (values.length === 0) {
+          continue
+        }
+
+        const missing = totalCases - values.length
+
+        // PyodideCore 호출
+        const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+
+        const result = await pyodideCore.callWorkerMethod<{
+          count: number
+          mean: number
+          median: number
+          mode: number | string
+          std: number
+          variance: number
+          min: number
+          max: number
+          range: number
+          q1: number
+          q3: number
+          iqr: number
+          skewness: number
+          kurtosis: number
+          se: number
+          ci_lower: number
+          ci_upper: number
+        }>(
+          1, // Worker 1 (Descriptive)
+          'descriptive_stats',
+          { data: values, confidence_level: parseFloat(confidenceLevel) / 100 }
+        )
+
+        variableResults.push({
+          variable: varName,
+          n: result.count,
+          mean: result.mean,
+          median: result.median,
+          mode: String(result.mode),
+          std: result.std,
+          variance: result.variance,
+          min: result.min,
+          max: result.max,
+          range: result.range,
+          q1: result.q1,
+          q3: result.q3,
+          iqr: result.iqr,
+          skewness: result.skewness,
+          kurtosis: result.kurtosis,
+          se: result.se,
+          ci_lower: result.ci_lower,
+          ci_upper: result.ci_upper,
+          missing
+        })
+
+        totalMissing += missing
+      }
+
+      const analysisResult: DescriptiveResults = {
+        variables: variableResults,
+        totalCases,
+        validCases: totalCases - totalMissing,
+        missingCases: totalMissing,
         analysisDate: new Date().toLocaleString('ko-KR')
       }
 
-      actions.completeAnalysis(mockResults, 4)
+      actions.completeAnalysis(analysisResult, 4)
       setActiveTab('summary')
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }, [actions, setActiveTab])
+  }, [uploadedData, selectedVariables, _pyodideService, confidenceLevel, actions, setActiveTab])
 
   // 단계 변경 처리
   const handleStepChange = useCallback((step: number) => {

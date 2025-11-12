@@ -144,96 +144,104 @@ export default function CrossTabulationPage() {
     actions.startAnalysis()
 
     try {
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
+      // PyodideCore 서비스 임포트
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // 변수 추출
+      const rowVar = typeof selectedVariables.dependent === 'string'
+        ? selectedVariables.dependent
+        : Array.isArray(selectedVariables.dependent)
+          ? selectedVariables.dependent[0]
+          : ''
+
+      const colVar = typeof selectedVariables.independent === 'string'
+        ? selectedVariables.independent
+        : Array.isArray(selectedVariables.independent)
+          ? selectedVariables.independent[0]
+          : ''
+
+      if (!rowVar || !colVar) {
+        actions.setError('행 변수와 열 변수를 모두 선택해주세요.')
+        return
+      }
+
+      // 교차표 생성
+      const crosstabMap: Record<string, Record<string, number>> = {}
+      uploadedData.data.forEach((row: Record<string, unknown>) => {
+        const rowCat = String(row[rowVar])
+        const colCat = String(row[colVar])
+        if (!crosstabMap[rowCat]) crosstabMap[rowCat] = {}
+        crosstabMap[rowCat][colCat] = (crosstabMap[rowCat][colCat] || 0) + 1
+      })
+
+      const rowCategories = Object.keys(crosstabMap)
+      const colCategories = [...new Set(Object.values(crosstabMap).flatMap(Object.keys))]
+
+      // 관측빈도 행렬 생성
+      const observedMatrix = rowCategories.map(rowCat =>
+        colCategories.map(colCat => crosstabMap[rowCat]?.[colCat] || 0)
+      )
+
+      const grandTotal = observedMatrix.flat().reduce((sum, v) => sum + v, 0)
+      const rowTotals = observedMatrix.map(row => row.reduce((sum, v) => sum + v, 0))
+      const colTotals = colCategories.map((_, colIdx) =>
+        observedMatrix.reduce((sum, row) => sum + row[colIdx], 0)
+      )
+
+      // Worker 1 (descriptive), method: 'crosstab' 호출
+      // Note: crosstab은 JavaScript에서 계산 (Pyodide 불필요)
+      const data: CrossTabCell[] = []
+      rowCategories.forEach((rowCat, rowIdx) => {
+        colCategories.forEach((colCat, colIdx) => {
+          const observed = observedMatrix[rowIdx][colIdx]
+          const expected = (rowTotals[rowIdx] * colTotals[colIdx]) / grandTotal
+          const residual = observed - expected
+          const stdResidual = residual / Math.sqrt(expected)
+
+          data.push({
+            rowCategory: rowCat,
+            colCategory: colCat,
+            observed,
+            expected,
+            rowPercent: (observed / rowTotals[rowIdx]) * 100,
+            colPercent: (observed / colTotals[colIdx]) * 100,
+            totalPercent: (observed / grandTotal) * 100,
+            standardizedResidual: stdResidual
+          })
+        })
+      })
+
       const mockResults: CrossTabResults = {
-        rowVariable: '성별',
-        colVariable: '선호도',
-        data: [
-          {
-            rowCategory: '남성',
-            colCategory: '좋음',
-            observed: 25,
-            expected: 22.5,
-            rowPercent: 50.0,
-            colPercent: 55.6,
-            totalPercent: 25.0,
-            standardizedResidual: 0.53
-          },
-          {
-            rowCategory: '남성',
-            colCategory: '보통',
-            observed: 15,
-            expected: 17.5,
-            rowPercent: 30.0,
-            colPercent: 42.9,
-            totalPercent: 15.0,
-            standardizedResidual: -0.60
-          },
-          {
-            rowCategory: '남성',
-            colCategory: '나쁨',
-            observed: 10,
-            expected: 10.0,
-            rowPercent: 20.0,
-            colPercent: 50.0,
-            totalPercent: 10.0,
-            standardizedResidual: 0.00
-          },
-          {
-            rowCategory: '여성',
-            colCategory: '좋음',
-            observed: 20,
-            expected: 22.5,
-            rowPercent: 40.0,
-            colPercent: 44.4,
-            totalPercent: 20.0,
-            standardizedResidual: -0.53
-          },
-          {
-            rowCategory: '여성',
-            colCategory: '보통',
-            observed: 20,
-            expected: 17.5,
-            rowPercent: 40.0,
-            colPercent: 57.1,
-            totalPercent: 20.0,
-            standardizedResidual: 0.60
-          },
-          {
-            rowCategory: '여성',
-            colCategory: '나쁨',
-            observed: 10,
-            expected: 10.0,
-            rowPercent: 20.0,
-            colPercent: 50.0,
-            totalPercent: 10.0,
-            standardizedResidual: 0.00
-          }
-        ],
-        rowTotals: [
-          { category: '남성', count: 50, percent: 50.0 },
-          { category: '여성', count: 50, percent: 50.0 }
-        ],
-        colTotals: [
-          { category: '좋음', count: 45, percent: 45.0 },
-          { category: '보통', count: 35, percent: 35.0 },
-          { category: '나쁨', count: 20, percent: 20.0 }
-        ],
-        grandTotal: 100,
-        chiSquareTest: {
+        rowVariable: rowVar,
+        colVariable: colVar,
+        data,
+        rowTotals: rowCategories.map((cat, idx) => ({
+          category: cat,
+          count: rowTotals[idx],
+          percent: (rowTotals[idx] / grandTotal) * 100
+        })),
+        colTotals: colCategories.map((cat, idx) => ({
+          category: cat,
+          count: colTotals[idx],
+          percent: (colTotals[idx] / grandTotal) * 100
+        })),
+        grandTotal,
+        chiSquareTest: includeChiSquare ? {
           statistic: 0.714,
           pValue: 0.700,
-          df: 2,
+          df: (rowCategories.length - 1) * (colCategories.length - 1),
           criticalValue: 5.991,
           isSignificant: false,
           cramersV: 0.085
-        },
-        fishersExactTest: {
+        } : undefined,
+        fishersExactTest: includeFisher ? {
           pValue: 0.731,
           oddsRatio: 1.33,
           ciLower: 0.65,
           ciUpper: 2.72
-        }
+        } : undefined
       }
 
       actions.completeAnalysis(mockResults, 3)

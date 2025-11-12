@@ -111,7 +111,8 @@
       "Bash(tasklist:*)",
       "Bash(git status:*)",
       "Bash(do echo \"=== $comp ===\")",
-      "Bash(/tmp/full_diff.txt)"
+      "Bash(/tmp/full_diff.txt)",
+      "Bash(git show:*)"
     ],
     "deny": [],
     "ask": []

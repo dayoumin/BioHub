@@ -120,30 +120,75 @@ export default function FrequencyTablePage() {
 
   // 분석 실행
   const handleAnalysis = useCallback(async () => {
+    if (!uploadedData || !selectedVariables) {
+      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      return
+    }
+
     actions.startAnalysis()
 
     try {
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-      const mockResults: FrequencyResults = {
-        variable: '교육수준',
-        data: [
-          { value: '고등학교', frequency: 45, percent: 30.0, validPercent: 30.0, cumulativePercent: 30.0 },
-          { value: '대학교', frequency: 75, percent: 50.0, validPercent: 50.0, cumulativePercent: 80.0 },
-          { value: '대학원', frequency: 25, percent: 16.7, validPercent: 16.7, cumulativePercent: 96.7 },
-          { value: '기타', frequency: 5, percent: 3.3, validPercent: 3.3, cumulativePercent: 100.0 }
-        ],
-        totalCount: 150,
-        validCount: 150,
-        missingCount: 0,
-        uniqueValues: 4
+      const data = uploadedData.data
+      const variables = selectedVariables as FrequencyTableVariables
+      const varName = variables.dependent?.[0]
+
+      if (!varName) {
+        actions.setError('분석할 변수를 선택해주세요.')
+        return
       }
 
-      actions.completeAnalysis(mockResults, 4)
+      // 빈도 계산
+      const frequencyMap = new Map<string, number>()
+      let totalCount = 0
+      let missingCount = 0
+
+      for (const row of data) {
+        const value = row[varName]
+        if (value === null || value === undefined || value === '') {
+          missingCount++
+        } else {
+          const key = String(value)
+          frequencyMap.set(key, (frequencyMap.get(key) || 0) + 1)
+          totalCount++
+        }
+      }
+
+      const validCount = totalCount
+      totalCount += missingCount
+
+      // 빈도 데이터 생성
+      const frequencyData: FrequencyData[] = []
+      let cumulativePercent = 0
+
+      for (const [value, frequency] of frequencyMap.entries()) {
+        const percent = (frequency / totalCount) * 100
+        const validPercent = (frequency / validCount) * 100
+        cumulativePercent += validPercent
+
+        frequencyData.push({
+          value,
+          frequency,
+          percent,
+          validPercent,
+          cumulativePercent
+        })
+      }
+
+      const analysisResult: FrequencyResults = {
+        variable: varName,
+        data: frequencyData,
+        totalCount,
+        validCount,
+        missingCount,
+        uniqueValues: frequencyMap.size
+      }
+
+      actions.completeAnalysis(analysisResult, 4)
       setActiveTab('summary')
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }, [actions, setActiveTab])
+  }, [uploadedData, selectedVariables, actions, setActiveTab])
 
   // 단계 변경 처리
   const handleStepChange = useCallback((step: number) => {

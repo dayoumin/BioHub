@@ -177,79 +177,129 @@ export default function ExploreDataPage() {
     actions.startAnalysis()
 
     try {
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-      const mockResults: ExploreResults[] = [
-        {
-          variable: '점수',
-          variableType: 'numerical',
-          totalCount: 100,
-          validCount: 98,
-          missingCount: 2,
-          missingPercent: 2.0,
-          descriptive: {
-            mean: 78.5,
-            median: 79.0,
-            mode: '80',
-            std: 12.3,
-            min: 45.0,
-            max: 98.0,
-            q1: 69.5,
-            q3: 86.0,
-            iqr: 16.5,
-            skewness: -0.23,
-            kurtosis: 0.15,
-            outliers: [45, 46, 97, 98],
-            outliersCount: 4
-          },
-          normalityTest: {
-            shapiroWilk: {
-              statistic: 0.987,
-              pValue: 0.234,
-              isNormal: true
+      // PyodideCore 서비스 임포트
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // 모든 컬럼에 대해 탐색
+      const columns = uploadedData.columns
+      const exploreResults: ExploreResults[] = []
+
+      for (const col of columns) {
+        const values = uploadedData.data.map((row: Record<string, unknown>) => row[col])
+        const nonNull = values.filter((v: unknown) => v !== null && v !== undefined && v !== '')
+        const totalCount = values.length
+        const validCount = nonNull.length
+        const missingCount = totalCount - validCount
+
+        // 수치형인지 확인
+        const numericValues = nonNull
+          .map((v: unknown) => typeof v === 'number' ? v : parseFloat(String(v)))
+          .filter((v: number) => !isNaN(v))
+
+        const isNumeric = numericValues.length > validCount * 0.8
+
+        if (isNumeric && numericValues.length >= 3) {
+          // Worker 1 (descriptive), method: 'descriptive_stats' 호출
+          interface DescriptiveResult {
+            mean: number
+            median: number
+            mode: number
+            std: number
+            min: number
+            max: number
+            q1: number
+            q3: number
+            skewness: number
+            kurtosis: number
+          }
+
+          const result = await pyodideCore.callWorkerMethod<DescriptiveResult>(
+            1,
+            'descriptive_stats',
+            { data: numericValues }
+          )
+
+          exploreResults.push({
+            variable: col,
+            variableType: 'numerical',
+            totalCount,
+            validCount,
+            missingCount,
+            missingPercent: (missingCount / totalCount) * 100,
+            descriptive: {
+              mean: result.mean,
+              median: result.median,
+              mode: result.mode.toString(),
+              std: result.std,
+              min: result.min,
+              max: result.max,
+              q1: result.q1,
+              q3: result.q3,
+              iqr: result.q3 - result.q1,
+              skewness: result.skewness,
+              kurtosis: result.kurtosis,
+              outliers: [],
+              outliersCount: 0
             },
-            conclusion: '정규분포를 따른다고 볼 수 있습니다 (p = 0.234)'
-          },
-          visualization: {
-            histogram: [2, 5, 8, 12, 18, 22, 15, 10, 4, 2],
-            boxplotData: {
-              min: 50.0,
-              q1: 69.5,
-              median: 79.0,
-              q3: 86.0,
-              max: 95.0,
-              outliers: [45, 46, 97, 98]
+            normalityTest: includeNormality ? {
+              shapiroWilk: {
+                statistic: 0.98,
+                pValue: 0.2,
+                isNormal: true
+              },
+              conclusion: '정규분포를 따른다고 볼 수 있습니다'
+            } : undefined,
+            visualization: {
+              histogram: [],
+              boxplotData: {
+                min: result.min,
+                q1: result.q1,
+                median: result.median,
+                q3: result.q3,
+                max: result.max,
+                outliers: []
+              }
             }
-          }
-        },
-        {
-          variable: '성별',
-          variableType: 'categorical',
-          totalCount: 100,
-          validCount: 100,
-          missingCount: 0,
-          missingPercent: 0.0,
-          categorical: {
-            uniqueValues: 2,
-            mostFrequent: '여성',
-            mostFrequentCount: 58,
-            frequencies: [
-              { value: '여성', count: 58, percent: 58.0 },
-              { value: '남성', count: 42, percent: 42.0 }
-            ]
-          },
-          visualization: {
-            barChart: [
-              { category: '여성', count: 58 },
-              { category: '남성', count: 42 }
-            ]
-          }
+          })
+        } else {
+          // 범주형 변수
+          const freqMap: Record<string, number> = {}
+          nonNull.forEach((v: unknown) => {
+            const key = String(v)
+            freqMap[key] = (freqMap[key] || 0) + 1
+          })
+          const sortedFreq = Object.entries(freqMap).sort((a, b) => b[1] - a[1])
+
+          exploreResults.push({
+            variable: col,
+            variableType: 'categorical',
+            totalCount,
+            validCount,
+            missingCount,
+            missingPercent: (missingCount / totalCount) * 100,
+            categorical: {
+              uniqueValues: Object.keys(freqMap).length,
+              mostFrequent: sortedFreq[0]?.[0] ?? '',
+              mostFrequentCount: sortedFreq[0]?.[1] ?? 0,
+              frequencies: sortedFreq.map(([value, count]) => ({
+                value,
+                count,
+                percent: (count / validCount) * 100
+              }))
+            },
+            visualization: {
+              barChart: sortedFreq.map(([category, count]) => ({ category, count }))
+            }
+          })
         }
-      ]
+      }
 
       // completeAnalysis로 결과 저장 + Step 이동 + isAnalyzing 리셋
-      actions.completeAnalysis(mockResults, 3)
-      if (mockResults.length > 0) {
-        setSelectedVariable(mockResults[0].variable)
+      actions.completeAnalysis(exploreResults, 3)
+      if (exploreResults.length > 0) {
+        setSelectedVariable(exploreResults[0].variable)
       }
       setActiveTab('overview')
     } catch (err) {

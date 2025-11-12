@@ -205,26 +205,76 @@ export default function ChiSquareGoodnessPage() {
     actions.startAnalysis()
 
     try {
-      // Mock result for now (실제로는 Pyodide 사용 예정)
+      // PyodideCore 서비스 임포트
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // 변수 추출
+      const variableName = selectedVariables.dependent[0]
+
+      // 빈도 계산
+      const freqMap: Record<string, number> = {}
+      uploadedData.data.forEach((row: Record<string, unknown>) => {
+        const val = String(row[variableName])
+        freqMap[val] = (freqMap[val] || 0) + 1
+      })
+
+      const categories = Object.keys(freqMap)
+      const observed = Object.values(freqMap)
+      const totalN = observed.reduce((sum, v) => sum + v, 0)
+
+      // 기댓값 계산
+      const expected = useUniformDistribution
+        ? Array(categories.length).fill(totalN / categories.length)
+        : categories.map(cat => (expectedProportions[cat] || 1 / categories.length) * totalN)
+
+      // Worker 2 (hypothesis), method: 'chi_square_goodness' 호출
+      interface ChiSquareResult {
+        statistic: number
+        pValue: number
+        df: number
+        cramersV?: number
+      }
+
+      const result = await pyodideCore.callWorkerMethod<ChiSquareResult>(
+        2,
+        'chi_square_goodness',
+        {
+          observed,
+          expected
+        }
+      )
+
+      const categoriesData: CategoryData[] = categories.map((cat, i) => {
+        const obs = observed[i]
+        const exp = expected[i]
+        const residual = obs - exp
+        const stdResidual = residual / Math.sqrt(exp)
+        return {
+          category: cat,
+          observed: obs,
+          expected: exp,
+          residual,
+          standardizedResidual: stdResidual,
+          contribution: (residual * residual) / exp
+        }
+      })
+
       const mockResult: ChiSquareGoodnessResult = {
-        statistic: 12.456,
-        pValue: 0.0062,
-        degreesOfFreedom: 3,
-        categories: [
-          { category: 'A', observed: 25, expected: 20, residual: 5, standardizedResidual: 1.118, contribution: 1.25 },
-          { category: 'B', observed: 18, expected: 20, residual: -2, standardizedResidual: -0.447, contribution: 0.2 },
-          { category: 'C', observed: 22, expected: 20, residual: 2, standardizedResidual: 0.447, contribution: 0.2 },
-          { category: 'D', observed: 15, expected: 20, residual: -5, standardizedResidual: -1.118, contribution: 1.25 }
-        ],
+        statistic: result.statistic,
+        pValue: result.pValue,
+        degreesOfFreedom: result.df,
+        categories: categoriesData,
         effectSize: {
-          cramersV: 0.395,
-          interpretation: '중간 효과크기'
+          cramersV: result.cramersV ?? Math.sqrt(result.statistic / totalN),
+          interpretation: (result.cramersV ?? 0) >= 0.5 ? '강한 효과크기' : (result.cramersV ?? 0) >= 0.3 ? '중간 효과크기' : '작은 효과크기'
         },
         expectedModel: useUniformDistribution ? 'uniform' : 'specified',
-        totalN: 80,
+        totalN,
         interpretation: {
-          summary: 'χ²(3) = 12.456, p = 0.0062. 관측빈도가 기댓빈도와 통계적으로 유의한 차이가 있습니다.',
-          categories: 'A와 D 범주에서 기댓값과의 편차가 크게 나타났습니다.',
+          summary: `χ²(${result.df}) = ${result.statistic.toFixed(3)}, p = ${result.pValue.toFixed(4)}. 관측빈도가 기댓빈도와 ${result.pValue < 0.05 ? '통계적으로 유의한 차이가 있습니다' : '통계적으로 유의한 차이가 없습니다'}.`,
+          categories: '범주별 잔차를 확인하세요.',
           recommendations: [
             '표본 크기가 충분한지 확인하세요 (각 범주 최소 5개)',
             '기댓값 설정이 연구 목적에 부합하는지 검토하세요',

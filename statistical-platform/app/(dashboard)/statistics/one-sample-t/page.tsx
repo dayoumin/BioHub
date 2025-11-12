@@ -120,29 +120,96 @@ export default function OneSampleTPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
+    if (!uploadedData || !selectedVariables) {
+      actions.setError('데이터와 변수를 확인해주세요.')
+      return
+    }
+
     try {
       actions.startAnalysis()
 
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
+      // PyodideCore 서비스 임포트
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // 변수에서 데이터 추출
+      const variableName = Array.isArray(selectedVariables.dependent)
+        ? selectedVariables.dependent[0]
+        : selectedVariables.dependent
+
+      if (!variableName) {
+        actions.setError('변수를 선택해주세요.')
+        return
+      }
+
+      // 데이터에서 값 추출 및 결측치 필터링
+      const values = uploadedData.data
+        .map((row: Record<string, unknown>) => {
+          const val = row[variableName]
+          return typeof val === 'number' ? val : typeof val === 'string' ? parseFloat(val) : NaN
+        })
+        .filter((v: number) => !isNaN(v) && v !== null && v !== undefined)
+
+      if (values.length < 2) {
+        actions.setError('최소 2개 이상의 유효한 데이터가 필요합니다.')
+        return
+      }
+
+      // Worker 2 (hypothesis), method: 'one_sample_t_test' 호출
+      interface OneSampleTResult {
+        statistic: number
+        pValue: number
+        sampleMean: number
+        sampleStd?: number
+        ciLower?: number
+        ciUpper?: number
+        effectSize?: number
+      }
+
+      const result = await pyodideCore.callWorkerMethod<OneSampleTResult>(
+        2,
+        'one_sample_t_test',
+        {
+          data: values,
+          popmean: parseFloat(testValue),
+          alpha: 1 - parseFloat(confidenceLevel) / 100
+        }
+      )
+
+      // 통계량 계산
+      const n = values.length
+      const mean = result.sampleMean
+      const std = result.sampleStd ?? 0
+      const se = std / Math.sqrt(n)
+      const df = n - 1
+      const tStat = result.statistic
+      const pVal = result.pValue
+      const ciLower = result.ciLower ?? mean - 1.96 * se
+      const ciUpper = result.ciUpper ?? mean + 1.96 * se
+      const effectSize = result.effectSize ?? Math.abs(mean - parseFloat(testValue)) / std
+
       const mockResults: OneSampleTResults = {
-        variable: '점수',
-        sampleSize: 30,
-        sampleMean: 75.8,
-        sampleStd: 8.2,
+        variable: variableName,
+        sampleSize: n,
+        sampleMean: mean,
+        sampleStd: std,
         testValue: parseFloat(testValue),
-        tStatistic: 3.47,
-        degreesOfFreedom: 29,
-        pValue: 0.002,
+        tStatistic: tStat,
+        degreesOfFreedom: df,
+        pValue: pVal,
         confidenceLevel: parseFloat(confidenceLevel),
-        ciLower: 72.7,
-        ciUpper: 78.9,
-        effectSize: 0.63,
-        meanDifference: 75.8 - parseFloat(testValue),
-        seRror: 1.50,
-        interpretation: 'p < 0.05이므로 귀무가설을 기각합니다.',
-        conclusion: `표본 평균 ${75.8}이 검정값 ${parseFloat(testValue)}과 통계적으로 유의한 차이가 있습니다.`,
+        ciLower,
+        ciUpper,
+        effectSize,
+        meanDifference: mean - parseFloat(testValue),
+        seRror: se,
+        interpretation: pVal < 0.05 ? 'p < 0.05이므로 귀무가설을 기각합니다.' : 'p ≥ 0.05이므로 귀무가설을 기각할 수 없습니다.',
+        conclusion: pVal < 0.05
+          ? `표본 평균 ${mean.toFixed(2)}이 검정값 ${parseFloat(testValue)}과 통계적으로 유의한 차이가 있습니다.`
+          : `표본 평균 ${mean.toFixed(2)}이 검정값 ${parseFloat(testValue)}과 통계적으로 유의한 차이가 없습니다.`,
         assumptions: {
-          normality: true,
+          normality: n >= 30,
           independence: true,
           randomSample: true
         }
@@ -152,7 +219,7 @@ export default function OneSampleTPage() {
       setActiveTab('summary')
     } catch (error) {
       console.error('분석 중 오류:', error)
-      actions.setError('분석 중 오류가 발생했습니다.')
+      actions.setError(error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.')
     }
   }
 

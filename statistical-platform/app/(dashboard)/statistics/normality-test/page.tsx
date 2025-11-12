@@ -41,10 +41,10 @@ interface NormalityResults {
   variable: string
   sampleSize: number
   shapiroWilk: NormalityTestResult
-  andersonDarling: NormalityTestResult
-  dagostinoK2: NormalityTestResult
-  jarqueBera: NormalityTestResult
-  lilliefors: NormalityTestResult
+  andersonDarling?: NormalityTestResult
+  dagostinoK2?: NormalityTestResult
+  jarqueBera?: NormalityTestResult
+  lilliefors?: NormalityTestResult
   overallConclusion: 'normal' | 'not_normal' | 'mixed'
   descriptiveStats: {
     mean: number
@@ -114,70 +114,91 @@ export default function NormalityTestPage() {
 
   // 분석 실행
   const handleAnalysis = async () => {
+    if (!uploadedData || !selectedVariables) {
+      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+      return
+    }
+
     try {
       actions.startAnalysis()
 
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
-      const mockResults: NormalityResults = {
-        variable: '점수',
-        sampleSize: 50,
+      const data = uploadedData.data
+      const varName = (selectedVariables as { dependent?: string }).dependent
+
+      if (!varName) {
+        actions.setError('분석할 변수를 선택해주세요.')
+        return
+      }
+
+      // 데이터 추출 (결측치 제거)
+      const values = data
+        .map(row => row[varName])
+        .filter(v => v !== null && v !== undefined && v !== '' && typeof v === 'number') as number[]
+
+      if (values.length < 3) {
+        actions.setError('정규성 검정을 위해서는 최소 3개 이상의 데이터가 필요합니다.')
+        return
+      }
+
+      // PyodideCore 호출
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      const result = await pyodideCore.callWorkerMethod<{
+        statistic: number
+        pValue: number
+        isNormal: boolean
+      }>(
+        1, // Worker 1 (Descriptive - normality_test)
+        'normality_test',
+        { data: values, alpha: 0.05 }
+      )
+
+      // 기술통계 계산
+      const mean = values.reduce((a, b) => a + b, 0) / values.length
+      const variance = values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length
+      const std = Math.sqrt(variance)
+      const skewness = values.reduce((a, b) => a + Math.pow((b - mean) / std, 3), 0) / values.length
+      const kurtosis = values.reduce((a, b) => a + Math.pow((b - mean) / std, 4), 0) / values.length - 3
+      const min = Math.min(...values)
+      const max = Math.max(...values)
+
+      const conclusion = result.isNormal ? 'normal' : 'not_normal'
+      const interpretation = result.pValue >= 0.05
+        ? 'p > 0.05이므로 정규분포를 따른다고 볼 수 있습니다'
+        : 'p < 0.05이므로 정규분포를 따르지 않습니다'
+      const recommendation = result.isNormal
+        ? '모수적 검정 사용 가능'
+        : '비모수적 검정 권장'
+
+      const analysisResult: NormalityResults = {
+        variable: varName,
+        sampleSize: values.length,
         shapiroWilk: {
           test: 'Shapiro-Wilk',
-          statistic: 0.962,
-          pValue: 0.123,
-          conclusion: 'normal',
-          interpretation: 'p > 0.05이므로 정규분포를 따른다고 볼 수 있습니다',
-          recommendation: '모수적 검정 사용 가능'
+          statistic: result.statistic,
+          pValue: result.pValue,
+          conclusion,
+          interpretation,
+          recommendation
         },
-        andersonDarling: {
-          test: 'Anderson-Darling',
-          statistic: 0.445,
-          pValue: 0.287,
-          critical_value: 0.787,
-          conclusion: 'normal',
-          interpretation: '통계량이 임계값보다 작으므로 정규분포를 따릅니다',
-          recommendation: '정규성 가정 충족'
-        },
-        dagostinoK2: {
-          test: 'D\'Agostino-Pearson K²',
-          statistic: 2.142,
-          pValue: 0.343,
-          conclusion: 'normal',
-          interpretation: '왜도와 첨도가 정상 범위 내에 있습니다',
-          recommendation: '정규분포로 간주 가능'
-        },
-        jarqueBera: {
-          test: 'Jarque-Bera',
-          statistic: 1.876,
-          pValue: 0.391,
-          conclusion: 'normal',
-          interpretation: '잔차가 정규분포를 따른다고 볼 수 있습니다',
-          recommendation: '회귀분석 적용 가능'
-        },
-        lilliefors: {
-          test: 'Lilliefors',
-          statistic: 0.089,
-          pValue: 0.156,
-          conclusion: 'normal',
-          interpretation: '표준화된 분포가 정규분포와 유사합니다',
-          recommendation: 'Kolmogorov-Smirnov 대안으로 적합'
-        },
-        overallConclusion: 'normal',
+        overallConclusion: conclusion,
         descriptiveStats: {
-          mean: 75.2,
-          std: 8.9,
-          skewness: 0.14,
-          kurtosis: -0.23,
-          min: 58.1,
-          max: 94.7
+          mean,
+          std,
+          skewness,
+          kurtosis,
+          min,
+          max
         }
       }
 
-      actions.completeAnalysis(mockResults, 4)
+      actions.completeAnalysis(analysisResult, 4)
       setActiveTab('summary')
     } catch (error) {
       console.error('정규성 검정 중 오류:', error)
-      actions.setError('분석 중 오류가 발생했습니다.')
+      actions.setError(error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.')
     }
   }
 
@@ -206,7 +227,7 @@ export default function NormalityTestPage() {
       results.lilliefors
     ] : [results.shapiroWilk, results.andersonDarling, results.dagostinoK2]
 
-    const data = tests.map(test => ({
+    const data = tests.filter((test): test is NormalityTestResult => test !== undefined).map(test => ({
       test: test.test,
       statistic: test.statistic.toFixed(3),
       pValue: test.pValue < 0.001 ? '< 0.001' : test.pValue.toFixed(3),
@@ -271,7 +292,7 @@ export default function NormalityTestPage() {
     if (!results) return null
 
     const normalTests = [results.shapiroWilk, results.andersonDarling, results.dagostinoK2, results.jarqueBera, results.lilliefors]
-      .filter(test => test.conclusion === 'normal').length
+      .filter((test): test is NormalityTestResult => test !== undefined && test.conclusion === 'normal').length
 
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

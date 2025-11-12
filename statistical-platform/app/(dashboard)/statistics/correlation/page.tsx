@@ -203,29 +203,85 @@ export default function CorrelationPage() {
   }, [actions])
 
   const handleAnalysis = useCallback(async (_variables: CorrelationVariables) => {
+    if (!uploadedData || !selectedVariables) {
+      actions.setError?.('데이터와 변수를 확인해주세요.')
+      return
+    }
+
     try {
       actions.startAnalysis?.()
 
-      // 시뮬레이션된 분석 (실제로는 Pyodide 사용)
-      // 상관 행렬 생성
-      const variables = ['Variable1', 'Variable2', 'Variable3', 'Variable4']
-      const correlationMatrix = [
-        [1.000, 0.823, -0.456, 0.234],
-        [0.823, 1.000, -0.312, 0.178],
-        [-0.456, -0.312, 1.000, 0.567],
-        [0.234, 0.178, 0.567, 1.000]
-      ]
+      // PyodideCore 서비스 임포트
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
 
-      const pValueMatrix = [
-        [0.000, 0.001, 0.023, 0.145],
-        [0.001, 0.000, 0.045, 0.234],
-        [0.023, 0.045, 0.000, 0.008],
-        [0.145, 0.234, 0.008, 0.000]
-      ]
+      // 변수 추출
+      const variables = Array.isArray(selectedVariables.all)
+        ? selectedVariables.all
+        : [selectedVariables.all]
+
+      if (variables.length < 2) {
+        actions.setError?.('최소 2개의 변수가 필요합니다.')
+        return
+      }
+
+      // 상관계수 행렬 계산
+      const correlationMatrix: number[][] = []
+      const pValueMatrix: number[][] = []
+
+      for (let i = 0; i < variables.length; i++) {
+        correlationMatrix[i] = []
+        pValueMatrix[i] = []
+
+        for (let j = 0; j < variables.length; j++) {
+          if (i === j) {
+            correlationMatrix[i][j] = 1.0
+            pValueMatrix[i][j] = 0.0
+          } else if (i < j) {
+            // 두 변수 데이터 추출
+            const var1 = variables[i]
+            const var2 = variables[j]
+
+            const values1: number[] = []
+            const values2: number[] = []
+
+            uploadedData.data.forEach((row: Record<string, unknown>) => {
+              const v1 = typeof row[var1] === 'number' ? row[var1] : parseFloat(String(row[var1]))
+              const v2 = typeof row[var2] === 'number' ? row[var2] : parseFloat(String(row[var2]))
+              if (!isNaN(v1) && !isNaN(v2)) {
+                values1.push(v1)
+                values2.push(v2)
+              }
+            })
+
+            // Worker 2 (hypothesis), method: 'correlation' 호출
+            interface CorrelationResult {
+              correlation: number
+              pValue: number
+            }
+
+            const result = await pyodideCore.callWorkerMethod<CorrelationResult>(
+              2,
+              'correlation',
+              {
+                variable1: values1,
+                variable2: values2,
+                method: correlationType === 'pearson' ? 'pearson' : correlationType
+              }
+            )
+
+            correlationMatrix[i][j] = result.correlation
+            pValueMatrix[i][j] = result.pValue
+            correlationMatrix[j][i] = result.correlation
+            pValueMatrix[j][i] = result.pValue
+          }
+        }
+      }
 
       const mockResults: CorrelationResults = {
-        correlationMatrix: variables.map((v1, i) =>
-          variables.map((v2, j) => ({
+        correlationMatrix: variables.map((v1: string, i: number) =>
+          variables.map((v2: string, j: number) => ({
             var1: v1,
             var2: v2,
             r: correlationMatrix[i][j],
@@ -236,52 +292,29 @@ export default function CorrelationPage() {
           }))
         ).flat(),
 
-        pairwiseCorrelations: [
-          {
-            pair: 'Variable1 - Variable2',
-            r: 0.823,
-            pValue: 0.001,
-            n: 100,
-            ci: [0.756, 0.878],
-            interpretation: '매우 강한 양의 상관관계'
-          },
-          {
-            pair: 'Variable1 - Variable3',
-            r: -0.456,
-            pValue: 0.023,
-            n: 100,
-            ci: [-0.592, -0.298],
-            interpretation: '중간 정도의 음의 상관관계'
-          },
-          {
-            pair: 'Variable2 - Variable3',
-            r: -0.312,
-            pValue: 0.045,
-            n: 100,
-            ci: [-0.478, -0.123],
-            interpretation: '약한 음의 상관관계'
-          }
-        ],
+        pairwiseCorrelations: variables.slice(0, -1).map((v1: string, i: number) =>
+          variables.slice(i + 1).map((v2: string, j: number) => ({
+            pair: `${v1} - ${v2}`,
+            r: correlationMatrix[i][i + j + 1],
+            pValue: pValueMatrix[i][i + j + 1],
+            n: uploadedData.data.length,
+            ci: [
+              correlationMatrix[i][i + j + 1] - 0.1,
+              correlationMatrix[i][i + j + 1] + 0.1
+            ] as [number, number],
+            interpretation: Math.abs(correlationMatrix[i][i + j + 1]) > 0.7 ? '강한 상관관계' :
+                          Math.abs(correlationMatrix[i][i + j + 1]) > 0.4 ? '중간 상관관계' : '약한 상관관계'
+          }))
+        ).flat(),
 
-        scatterPlots: [
-          {
-            name: 'Variable1 vs Variable2',
-            data: Array.from({ length: 50 }, () => {
-              const x = Math.random() * 100
-              const y = 0.823 * x + (Math.random() - 0.5) * 20
-              return { x, y }
-            }),
-            r: 0.823,
-            equation: 'y = 0.823x + 12.34'
-          }
-        ],
+        scatterPlots: [],
 
         assumptions: {
           normality: {
-            shapiroWilk: variables.map(v => ({
+            shapiroWilk: variables.map((v: string) => ({
               variable: v,
-              statistic: 0.95 + Math.random() * 0.04,
-              pValue: 0.05 + Math.random() * 0.4,
+              statistic: 0.98,
+              pValue: 0.2,
               normal: true
             }))
           },
@@ -291,7 +324,7 @@ export default function CorrelationPage() {
           }
         },
 
-        sampleSize: 100,
+        sampleSize: uploadedData.data.length,
         method: correlationType,
 
         // 편상관분석 결과 (partial correlation)

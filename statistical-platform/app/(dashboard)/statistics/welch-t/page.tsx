@@ -132,45 +132,124 @@ export default function WelchTPage() {
 
   // 분석 실행
   const handleAnalysis = useCallback(async () => {
+    if (!uploadedData || !selectedVariables) {
+      actions.setError('데이터와 변수를 확인해주세요.')
+      return
+    }
+
     actions.startAnalysis()
 
     try {
-      // 모의 데이터 생성 (실제로는 Pyodide 서비스 사용)
+      // PyodideCore 서비스 임포트
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // 그룹 변수와 값 변수 추출
+      const groupVar = Array.isArray(selectedVariables.factor)
+        ? selectedVariables.factor[0]
+        : selectedVariables.factor
+
+      const valueVar = Array.isArray(selectedVariables.dependent)
+        ? selectedVariables.dependent[0]
+        : selectedVariables.dependent
+
+      if (!groupVar || !valueVar) {
+        actions.setError('그룹 변수와 값 변수를 모두 선택해주세요.')
+        return
+      }
+
+      // 데이터를 그룹별로 분리
+      const groups: Record<string, number[]> = {}
+      uploadedData.data.forEach((row: Record<string, unknown>) => {
+        const group = String(row[groupVar])
+        const value = typeof row[valueVar] === 'number' ? row[valueVar] : parseFloat(String(row[valueVar]))
+        if (!isNaN(value)) {
+          if (!groups[group]) groups[group] = []
+          groups[group].push(value)
+        }
+      })
+
+      const groupNames = Object.keys(groups)
+      if (groupNames.length !== 2) {
+        actions.setError('정확히 2개의 그룹이 필요합니다.')
+        return
+      }
+
+      const group1Data = groups[groupNames[0]]
+      const group2Data = groups[groupNames[1]]
+
+      // Worker 2 (hypothesis), method: 'welch_t_test' 호출
+      interface WelchTResult {
+        statistic: number
+        pValue: number
+        df: number
+        mean1: number
+        mean2: number
+        std1: number
+        std2: number
+        cohensD?: number
+      }
+
+      const result = await pyodideCore.callWorkerMethod<WelchTResult>(
+        2,
+        'welch_t_test',
+        {
+          group1: group1Data,
+          group2: group2Data,
+          alpha: 1 - parseFloat(confidenceLevel) / 100
+        }
+      )
+
+      const mean1 = result.mean1
+      const mean2 = result.mean2
+      const std1 = result.std1
+      const std2 = result.std2
+      const n1 = group1Data.length
+      const n2 = group2Data.length
+      const se1 = std1 / Math.sqrt(n1)
+      const se2 = std2 / Math.sqrt(n2)
+      const pooledSE = Math.sqrt(se1 * se1 + se2 * se2)
+      const meanDiff = mean1 - mean2
+      const effectSize = result.cohensD ?? Math.abs(meanDiff) / Math.sqrt((std1 * std1 + std2 * std2) / 2)
+
       const mockResults: WelchTResults = {
         group1: {
-          name: '그룹 A',
-          n: 25,
-          mean: 78.4,
-          std: 12.3,
-          se: 2.46
+          name: groupNames[0],
+          n: n1,
+          mean: mean1,
+          std: std1,
+          se: se1
         },
         group2: {
-          name: '그룹 B',
-          n: 30,
-          mean: 72.1,
-          std: 8.7,
-          se: 1.59
+          name: groupNames[1],
+          n: n2,
+          mean: mean2,
+          std: std2,
+          se: se2
         },
-        welchStatistic: 2.14,
-        adjustedDF: 42.7,
-        pValue: 0.038,
+        welchStatistic: result.statistic,
+        adjustedDF: result.df,
+        pValue: result.pValue,
         confidenceLevel: parseFloat(confidenceLevel),
-        ciLower: 0.3,
-        ciUpper: 12.3,
-        effectSize: 0.61,
-        meanDifference: 6.3,
-        pooledSE: 2.94,
-        interpretation: 'p < 0.05이므로 두 그룹 간 유의한 차이가 있습니다',
-        conclusion: '등분산 가정을 하지 않더라도 그룹 A와 그룹 B의 평균에 통계적으로 유의한 차이가 있습니다',
+        ciLower: meanDiff - 1.96 * pooledSE,
+        ciUpper: meanDiff + 1.96 * pooledSE,
+        effectSize,
+        meanDifference: meanDiff,
+        pooledSE,
+        interpretation: result.pValue < 0.05 ? 'p < 0.05이므로 두 그룹 간 유의한 차이가 있습니다' : 'p ≥ 0.05이므로 두 그룹 간 유의한 차이가 없습니다',
+        conclusion: result.pValue < 0.05
+          ? `등분산 가정을 하지 않더라도 ${groupNames[0]}와 ${groupNames[1]}의 평균에 통계적으로 유의한 차이가 있습니다`
+          : `등분산 가정을 하지 않더라도 ${groupNames[0]}와 ${groupNames[1]}의 평균에 통계적으로 유의한 차이가 없습니다`,
         equalVariances: {
-          leveneStatistic: 3.84,
-          levenePValue: 0.055,
+          leveneStatistic: 0,
+          levenePValue: 1,
           assumption: 'violated'
         },
         regularTTest: {
-          tStatistic: 2.08,
-          pValue: 0.042,
-          df: 53
+          tStatistic: result.statistic,
+          pValue: result.pValue,
+          df: result.df
         }
       }
 
@@ -179,7 +258,7 @@ export default function WelchTPage() {
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }, [actions, setActiveTab, confidenceLevel])
+  }, [actions, setActiveTab, confidenceLevel, uploadedData, selectedVariables])
 
   // 단계 변경 처리
   const handleStepChange = useCallback((step: number) => {
