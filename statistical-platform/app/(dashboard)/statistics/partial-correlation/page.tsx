@@ -8,6 +8,7 @@ import { toPartialCorrelationVariables, type VariableAssignment } from '@/types/
 import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import type { PyodideInterface } from '@/types/pyodide'
 import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -465,48 +466,45 @@ json.dumps(results)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-4 py-2 text-left">변수 1</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">변수 2</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">편상관계수</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">t 통계량</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">p값</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">자유도</th>
-                        <th className="border border-gray-300 px-4 py-2 text-center">강도</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {results.correlations.map((corr, index) => {
-                        const strength = getCorrelationStrength(corr.partial_corr)
-                        return (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-medium">{corr.variable1}</td>
-                            <td className="border border-gray-300 px-4 py-2 font-medium">{corr.variable2}</td>
-                            <td className={`border border-gray-300 px-4 py-2 text-right font-semibold ${strength.color}`}>
-                              {corr.partial_corr.toFixed(3)}
-                              {corr.p_value < 0.05 && <span className="text-red-500">*</span>}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{corr.t_stat.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">
-                              <span className={corr.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
-                                {corr.p_value.toFixed(4)}
-                              </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">{corr.df}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              <Badge className={`${strength.bgColor} ${strength.color} border-0`}>
-                                {strength.level}
-                              </Badge>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <StatisticsTable
+                  title="편상관계수"
+                  columns={[
+                    { key: 'variable1', header: '변수 1', type: 'text', align: 'left' },
+                    { key: 'variable2', header: '변수 2', type: 'text', align: 'left' },
+                    { key: 'partialCorr', header: '편상관계수', type: 'custom', align: 'right', formatter: (v) => v },
+                    { key: 'tStat', header: 't 통계량', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                    { key: 'pValue', header: 'p값', type: 'custom', align: 'right', formatter: (v) => v },
+                    { key: 'df', header: '자유도', type: 'number', align: 'right' },
+                    { key: 'strength', header: '강도', type: 'custom', align: 'center', formatter: (v) => v }
+                  ] as const}
+                  data={results.correlations.map((corr, index) => {
+                    const strength = getCorrelationStrength(corr.partial_corr)
+                    return {
+                      variable1: corr.variable1,
+                      variable2: corr.variable2,
+                      partialCorr: (
+                        <span className={`font-semibold ${strength.color}`}>
+                          {corr.partial_corr.toFixed(3)}
+                          {corr.p_value < 0.05 && <span className="text-red-500">*</span>}
+                        </span>
+                      ),
+                      tStat: corr.t_stat,
+                      pValue: (
+                        <span className={corr.p_value < 0.05 ? 'text-muted-foreground font-medium' : ''}>
+                          {corr.p_value.toFixed(4)}
+                        </span>
+                      ),
+                      df: corr.df,
+                      strength: (
+                        <Badge className={`${strength.bgColor} ${strength.color} border-0`}>
+                          {strength.level}
+                        </Badge>
+                      )
+                    }
+                  })}
+                  bordered
+                  compactMode
+                />
                 <p className="text-xs text-gray-500 mt-2">* p &lt; 0.05에서 통계적으로 유의</p>
               </CardContent>
             </Card>
@@ -521,59 +519,48 @@ json.dumps(results)
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-4 py-2 text-left">변수 쌍</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">단순상관</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">편상관</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">차이</th>
-                        <th className="border border-gray-300 px-4 py-2 text-center">해석</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {results.correlations.map((corr, index) => {
-                        const zeroOrder = results.zero_order_correlations[index]
-                        const difference = corr.partial_corr - zeroOrder.correlation
-                        const absChange = Math.abs(difference)
+                <StatisticsTable
+                  title="편상관 vs 단순상관 비교"
+                  columns={[
+                    { key: 'variablePair', header: '변수 쌍', type: 'text', align: 'left' },
+                    { key: 'zeroOrder', header: '단순상관', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                    { key: 'partial', header: '편상관', type: 'number', align: 'right', formatter: (v: number) => v.toFixed(3) },
+                    { key: 'difference', header: '차이', type: 'custom', align: 'right', formatter: (v) => v },
+                    { key: 'interpretation', header: '해석', type: 'custom', align: 'center', formatter: (v) => v }
+                  ] as const}
+                  data={results.correlations.map((corr, index) => {
+                    const zeroOrder = results.zero_order_correlations[index]
+                    const difference = corr.partial_corr - zeroOrder.correlation
+                    const absChange = Math.abs(difference)
 
-                        let changeInterpretation = { text: '변화 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
-                        if (absChange > 0.2) {
-                          changeInterpretation = { text: '큰 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
-                        } else if (absChange > 0.1) {
-                          changeInterpretation = { text: '중간 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
-                        } else if (absChange > 0.05) {
-                          changeInterpretation = { text: '작은 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
-                        }
+                    let changeInterpretation = { text: '변화 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
+                    if (absChange > 0.2) {
+                      changeInterpretation = { text: '큰 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
+                    } else if (absChange > 0.1) {
+                      changeInterpretation = { text: '중간 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
+                    } else if (absChange > 0.05) {
+                      changeInterpretation = { text: '작은 변화', color: 'text-muted-foreground', bg: 'bg-muted' }
+                    }
 
-                        return (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2">
-                              {corr.variable1} - {corr.variable2}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right">
-                              {zeroOrder.correlation.toFixed(3)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-semibold">
-                              {corr.partial_corr.toFixed(3)}
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-medium">
-                              <span className={changeInterpretation.color}>
-                                {difference > 0 ? '+' : ''}{difference.toFixed(3)}
-                              </span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              <Badge className={`${changeInterpretation.bg} ${changeInterpretation.color} border-0`}>
-                                {changeInterpretation.text}
-                              </Badge>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                    return {
+                      variablePair: `${corr.variable1} - ${corr.variable2}`,
+                      zeroOrder: zeroOrder.correlation,
+                      partial: corr.partial_corr,
+                      difference: (
+                        <span className={`font-medium ${changeInterpretation.color}`}>
+                          {difference > 0 ? '+' : ''}{difference.toFixed(3)}
+                        </span>
+                      ),
+                      interpretation: (
+                        <Badge className={`${changeInterpretation.bg} ${changeInterpretation.color} border-0`}>
+                          {changeInterpretation.text}
+                        </Badge>
+                      )
+                    }
+                  })}
+                  bordered
+                  compactMode
+                />
               </CardContent>
             </Card>
           </TabsContent>
