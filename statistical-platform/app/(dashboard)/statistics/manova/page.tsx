@@ -738,46 +738,37 @@ export default function ManovaPage() {
                   <CardDescription>단변량 검정에 대한 다중비교 (Bonferroni 보정)</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="border border-gray-300 px-4 py-2 text-left">종속변수</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">비교</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">평균차</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">표준오차</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">p값</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">보정된 p값</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">Cohen&apos;s d</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analysisResult.postHoc.slice(0, 6).map((test, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="border border-gray-300 px-4 py-2 font-medium">{test.variable}</td>
-                            <td className="border border-gray-300 px-4 py-2">{test.comparison}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{test.meanDiff.toFixed(2)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{test.standardError.toFixed(2)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              <PValueBadge value={test.pValue} />
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              <PValueBadge value={test.adjustedPValue} />
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              <Badge variant="outline" className={
-                                Math.abs(test.cohensD) >= 0.8 ? 'text-muted-foreground bg-muted' :
-                                Math.abs(test.cohensD) >= 0.5 ? 'text-muted-foreground bg-muted' :
-                                Math.abs(test.cohensD) >= 0.2 ? 'text-muted-foreground bg-muted' : 'text-gray-600 bg-gray-50'
-                              }>
-                                {test.cohensD.toFixed(2)}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="사후검정 결과"
+                    columns={[
+                      { key: 'variable', header: '종속변수', type: 'text', align: 'left' },
+                      { key: 'comparison', header: '비교', type: 'text', align: 'left' },
+                      { key: 'meanDiff', header: '평균차', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'standardError', header: '표준오차', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'pValue', header: 'p값', type: 'custom', align: 'center', formatter: (v) => v },
+                      { key: 'adjustedPValue', header: '보정된 p값', type: 'custom', align: 'center', formatter: (v) => v },
+                      { key: 'cohensD', header: "Cohen's d", type: 'custom', align: 'center', formatter: (v) => v }
+                    ]}
+                    data={analysisResult.postHoc.slice(0, 6).map(test => ({
+                      variable: test.variable,
+                      comparison: test.comparison,
+                      meanDiff: test.meanDiff,
+                      standardError: test.standardError,
+                      pValue: <PValueBadge value={test.pValue} />,
+                      adjustedPValue: <PValueBadge value={test.adjustedPValue} />,
+                      cohensD: (
+                        <Badge variant="outline" className={
+                          Math.abs(test.cohensD) >= 0.8 ? 'text-muted-foreground bg-muted' :
+                          Math.abs(test.cohensD) >= 0.5 ? 'text-muted-foreground bg-muted' :
+                          Math.abs(test.cohensD) >= 0.2 ? 'text-muted-foreground bg-muted' : 'text-gray-600 bg-gray-50'
+                        }>
+                          {test.cohensD.toFixed(2)}
+                        </Badge>
+                      )
+                    }))}
+                    bordered
+                    compactMode
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -793,36 +784,29 @@ export default function ManovaPage() {
                   <CardDescription>각 집단의 종속변수별 기본 통계량</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="border border-gray-300 px-4 py-2 text-center">집단</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">종속변수</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">N</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">평균</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">표준편차</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">표준오차</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">95% 신뢰구간</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analysisResult.descriptiveStats.map((stat, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="border border-gray-300 px-4 py-2 text-center font-medium">{stat.group}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{stat.variable}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{stat.n}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{stat.mean.toFixed(2)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{stat.std.toFixed(2)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{stat.se.toFixed(2)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              [{stat.ci95Lower.toFixed(2)}, {stat.ci95Upper.toFixed(2)}]
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="집단별 기술통계"
+                    columns={[
+                      { key: 'group', header: '집단', type: 'text', align: 'center' },
+                      { key: 'variable', header: '종속변수', type: 'text', align: 'center' },
+                      { key: 'n', header: 'N', type: 'number', align: 'center' },
+                      { key: 'mean', header: '평균', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'std', header: '표준편차', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'se', header: '표준오차', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'ci95', header: '95% 신뢰구간', type: 'custom', align: 'center', formatter: (v: string) => v }
+                    ]}
+                    data={analysisResult.descriptiveStats.map(stat => ({
+                      group: stat.group,
+                      variable: stat.variable,
+                      n: stat.n,
+                      mean: stat.mean,
+                      std: stat.std,
+                      se: stat.se,
+                      ci95: `[${stat.ci95Lower.toFixed(2)}, ${stat.ci95Upper.toFixed(2)}]`
+                    }))}
+                    bordered
+                    compactMode
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -839,38 +823,29 @@ export default function ManovaPage() {
                   <CardDescription>판별함수의 고유값과 설명력</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="border border-gray-300 px-4 py-2 text-center">함수</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">고유값</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">정준상관</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">Wilks&apos; Λ</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">F</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">p-value</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">분산 설명 (%)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analysisResult.canonicalAnalysis.map((analysis, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="border border-gray-300 px-4 py-2 text-center font-medium">{index + 1}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{analysis.eigenvalue.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{analysis.canonicalCorrelation.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{analysis.wilksLambda.toFixed(3)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">{analysis.fStatistic.toFixed(2)}</td>
-                            <td className="border border-gray-300 px-4 py-2 text-center">
-                              <PValueBadge value={analysis.pValue} />
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-center font-semibold">
-                              {analysis.proportionOfVariance.toFixed(1)}%
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="정준 상관분석"
+                    columns={[
+                      { key: 'function', header: '함수', type: 'number', align: 'center' },
+                      { key: 'eigenvalue', header: '고유값', type: 'number', align: 'center', formatter: (v) => v.toFixed(3) },
+                      { key: 'canonicalCorrelation', header: '정준상관', type: 'number', align: 'center', formatter: (v) => v.toFixed(3) },
+                      { key: 'wilksLambda', header: "Wilks' Λ", type: 'number', align: 'center', formatter: (v) => v.toFixed(3) },
+                      { key: 'fStatistic', header: 'F', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'pValue', header: 'p-value', type: 'custom', align: 'center', formatter: (v) => v },
+                      { key: 'proportionOfVariance', header: '분산 설명 (%)', type: 'custom', align: 'center', formatter: (v: string) => v }
+                    ]}
+                    data={analysisResult.canonicalAnalysis.map((analysis, index) => ({
+                      function: index + 1,
+                      eigenvalue: analysis.eigenvalue,
+                      canonicalCorrelation: analysis.canonicalCorrelation,
+                      wilksLambda: analysis.wilksLambda,
+                      fStatistic: analysis.fStatistic,
+                      pValue: <PValueBadge value={analysis.pValue} />,
+                      proportionOfVariance: `${analysis.proportionOfVariance.toFixed(1)}%`
+                    }))}
+                    bordered
+                    compactMode
+                  />
                 </CardContent>
               </Card>
 
@@ -1043,36 +1018,29 @@ export default function ManovaPage() {
                   <CardDescription>Mahalanobis 거리 기반 이상치 탐지</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="border border-gray-300 px-4 py-2 text-center">관측값</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">Mahalanobis 거리</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">p-value</th>
-                          <th className="border border-gray-300 px-4 py-2 text-center">이상치 여부</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {analysisResult.assumptions.outliers.multivariate
-                          .filter(outlier => outlier.isOutlier)
-                          .map((outlier, index) => (
-                            <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                              <td className="border border-gray-300 px-4 py-2 text-center font-medium">#{outlier.observation}</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">{outlier.mahalanobisDistance.toFixed(2)}</td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">
-                                <PValueBadge value={outlier.pValue} />
-                              </td>
-                              <td className="border border-gray-300 px-4 py-2 text-center">
-                                <Badge variant="outline" className="text-muted-foreground bg-muted">
-                                  이상치
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    title="다변량 이상치"
+                    columns={[
+                      { key: 'observation', header: '관측값', type: 'custom', align: 'center', formatter: (v: string) => v },
+                      { key: 'mahalanobisDistance', header: 'Mahalanobis 거리', type: 'number', align: 'center', formatter: (v) => v.toFixed(2) },
+                      { key: 'pValue', header: 'p-value', type: 'custom', align: 'center', formatter: (v) => v },
+                      { key: 'isOutlier', header: '이상치 여부', type: 'custom', align: 'center', formatter: (v) => v }
+                    ]}
+                    data={analysisResult.assumptions.outliers.multivariate
+                      .filter(outlier => outlier.isOutlier)
+                      .map(outlier => ({
+                        observation: `#${outlier.observation}`,
+                        mahalanobisDistance: outlier.mahalanobisDistance,
+                        pValue: <PValueBadge value={outlier.pValue} />,
+                        isOutlier: (
+                          <Badge variant="outline" className="text-muted-foreground bg-muted">
+                            이상치
+                          </Badge>
+                        )
+                      }))}
+                    bordered
+                    compactMode
+                  />
 
                   {analysisResult.assumptions.outliers.multivariate.filter(o => o.isOutlier).length > 0 && (
                     <Alert className="mt-4">
