@@ -300,7 +300,7 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ## 📋 현재 작업 상태
 
-**최신 상태** (2025-11-11):
+**최신 상태** (2025-11-12):
 - ✅ Phase 6 완료: PyodideCore 직접 연결
   - ✅ 10개 handler 완전 변환 (39개 메서드, 100%)
   - ✅ TypeScript 컴파일 에러: **0개** (core groups/handlers)
@@ -324,6 +324,10 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ DataValidationStep 리팩토링 (컴포넌트 분리)
   - ✅ AssumptionResultsPanel, NumericStatsTable 컴포넌트화
   - ✅ 125개 컴포넌트 테스트 작성 및 통과
+- ✅ **Phase 3 (StatisticsTable 확대) 완료 (95%)** (2025-11-11 ~ 2025-11-12):
+  - ✅ 8개 페이지, 19개 테이블 변환 (코드 평균 -30%)
+  - ✅ 내보내기 버튼 비활성화: 22개 페이지
+  - ✅ 4개 복잡한 페이지 스킵 (현재 상태 유지 결정)
 
 **다음 작업**:
 - 🔜 Phase 7 계획 수립 (Tauri 데스크탑 앱 or 추가 통계 메서드)
@@ -355,4 +359,4 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ---
 
-**Updated**: 2025-11-11 | **Version**: Phase 6 + Phase 2-2 + Phase A-3-R1 + Smart Flow Phase 4-6 Complete | **Next**: Phase 7 or 검증 자동화
+**Updated**: 2025-11-12 | **Version**: Phase 6 + Phase 2-2 + Phase A-3-R1 + Smart Flow Phase 4-6 + Phase 3 (StatisticsTable) Complete | **Next**: Phase 7 or 검증 자동화
