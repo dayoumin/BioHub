@@ -30,6 +30,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
 // Services & Types
