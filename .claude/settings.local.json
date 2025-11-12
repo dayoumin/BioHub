@@ -108,7 +108,9 @@
       "Bash(then echo \"$file\")",
       "Bash(npx tsx:*)",
       "Bash(npm run validate:mapping:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(git status:*)",
+      "Bash(do echo \"=== $comp ===\")"
     ],
     "deny": [],
     "ask": []

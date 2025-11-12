@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Activity,
   BarChart3,
@@ -857,10 +858,17 @@ export default function ANCOVAPage() {
               이전: 변수 선택
             </Button>
             <div className="space-x-2">
-              <Button variant="outline">
-                <Download className="w-4 h-4 mr-2" />
-                결과 내보내기
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" disabled>
+                    <Download className="w-4 h-4 mr-2" />
+                    결과 내보내기
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>향후 제공 예정입니다</p>
+                </TooltipContent>
+              </Tooltip>
               <Button onClick={() => actions.reset()}>
                 새로운 분석
               </Button>
