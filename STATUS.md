@@ -1,7 +1,7 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-11-06 10:30
-**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅
+**최종 업데이트**: 2025-11-12 15:30
+**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅
 
 ---
 
@@ -72,6 +72,29 @@
   10. **Optional chaining**: 안전하게 사용
   11. **Early return**: null/undefined 처리
 - **최종 커밋**: `5308546` - refactor(correlation): Phase 2-2 코드 품질 개선 완료
+
+**Phase 3: StatisticsTable 공통 컴포넌트 확대 적용** ✅ **95% 완료** (2025-11-11 ~ 2025-11-12)
+- **목표**: 개별 통계 페이지의 테이블 UI 일관성 향상 및 코드 중복 제거
+- **변환 완료**: **8개 페이지, 19개 테이블** ✅
+  - anova (1), regression (2), friedman (3)
+  - kruskal-wallis (3), wilcoxon (2), ancova (3)
+  - manova (6), mann-whitney (2), reliability (1), partial-correlation (2)
+- **코드 감소**: 평균 **-30%** (유지보수성 향상)
+- **내보내기 버튼 비활성화**: **22개 페이지** (Tooltip "향후 제공 예정입니다")
+- **스킵된 복잡한 페이지** (4개, 전체 45개 중 9%):
+  - chi-square-goodness (진행바, tfoot)
+  - chi-square-independence (동적 2×k 분할표)
+  - mood-median (2×k 동적 컬럼)
+  - mcnemar (2×2 colSpan/rowSpan)
+  - **결정**: 현재 상태 유지 (복잡도 대비 ROI 낮음)
+- **주요 패턴**:
+  - `bordered` prop: 격자 스타일 일괄 적용
+  - `type: 'custom', formatter: (v) => v`: React 노드 렌더링
+  - `as const`: TypeScript 타입 추론 강화
+  - 동적 Badge/span: 조건부 스타일링
+- **자동화 스크립트**: 5개 Python 스크립트 (테이블 변환, 버튼 비활성화, 포맷팅)
+- **TypeScript**: 0 errors ✓ (전 과정)
+- **최종 커밋**: `e47dc58` - feat(phase3): partial-correlation 2개 테이블 변환 (2025-11-12)
 
 ---
 
