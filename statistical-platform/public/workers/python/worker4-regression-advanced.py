@@ -1310,3 +1310,194 @@ def discriminant_analysis(data, groups):
         'interpretation': interpretation
     }
 
+
+def dose_response_analysis(dose_data, response_data, model_type='logistic4', constraints=None):
+    """
+    Dose-response curve fitting using scipy.optimize.curve_fit
+
+    Parameters:
+    - dose_data: List of dose/concentration values
+    - response_data: List of corresponding response values
+    - model_type: Type of model ('logistic4', 'logistic3', 'weibull', 'gompertz', 'biphasic')
+    - constraints: Optional dict with 'bottom' and 'top' constraints
+
+    Returns:
+    - Dictionary with model parameters, fitted values, residuals, statistics
+    """
+    from scipy import optimize, stats
+    import warnings
+    warnings.filterwarnings('ignore')
+
+    # Convert to numpy arrays
+    dose_array = np.array(dose_data, dtype=float)
+    response_array = np.array(response_data, dtype=float)
+
+    # Remove NaN values
+    valid_indices = ~(np.isnan(dose_array) | np.isnan(response_array))
+    dose_array = dose_array[valid_indices]
+    response_array = response_array[valid_indices]
+
+    if len(dose_array) < 5:
+        raise ValueError(f"Dose-response analysis requires at least 5 data points, got {len(dose_array)}")
+
+    # Model definitions
+    def logistic4_model(x, a, b, c, d):
+        return d + (a - d) / (1 + (x / c) ** b)
+
+    def logistic3_model(x, a, b, c):
+        return a / (1 + (x / c) ** b)
+
+    def weibull_model(x, a, b, c, d):
+        with np.errstate(over='ignore', invalid='ignore'):
+            result = d + (a - d) * np.exp(-np.exp(b * (np.log(x + 1e-10) - np.log(c + 1e-10))))
+            return np.nan_to_num(result, nan=d, posinf=a, neginf=d)
+
+    def gompertz_model(x, a, b, c):
+        with np.errstate(over='ignore', invalid='ignore'):
+            result = a * np.exp(-np.exp(b * (c - x)))
+            return np.nan_to_num(result, nan=0, posinf=a, neginf=0)
+
+    def biphasic_model(x, a1, b1, c1, a2, b2, c2, d):
+        return d + (a1 - d) / (1 + (x / c1) ** b1) + (a2 - d) / (1 + (x / c2) ** b2)
+
+    # Initial parameter estimates
+    y_max = float(np.max(response_array))
+    y_min = float(np.min(response_array))
+    x_mid = float(np.median(dose_array))
+    x_min = float(np.min(dose_array[dose_array > 0])) if np.any(dose_array > 0) else 1e-10
+    x_max = float(np.max(dose_array))
+
+    # Model selection and parameter setup
+    if model_type == 'logistic4':
+        model_func = logistic4_model
+        initial_guess = [y_max, 1.0, x_mid, y_min]
+        bounds = ([0, 0.1, x_min, 0], [2*y_max, 10, x_max, y_max])
+        param_names = ['top', 'hill_slope', 'ec50', 'bottom']
+
+    elif model_type == 'logistic3':
+        model_func = logistic3_model
+        initial_guess = [y_max, 1.0, x_mid]
+        bounds = ([0, 0.1, x_min], [2*y_max, 10, x_max])
+        param_names = ['top', 'hill_slope', 'ec50']
+
+    elif model_type == 'weibull':
+        model_func = weibull_model
+        initial_guess = [y_max, 1.0, x_mid, y_min]
+        bounds = ([0, 0.1, x_min, 0], [2*y_max, 5, x_max, y_max])
+        param_names = ['top', 'slope', 'inflection', 'bottom']
+
+    elif model_type == 'gompertz':
+        model_func = gompertz_model
+        initial_guess = [y_max, 1.0, x_mid]
+        bounds = ([0, 0.1, x_min], [2*y_max, 5, x_max])
+        param_names = ['asymptote', 'growth_rate', 'inflection']
+
+    elif model_type == 'biphasic':
+        model_func = biphasic_model
+        initial_guess = [y_max*0.6, 1.0, x_mid*0.5, y_max*0.4, 1.0, x_mid*2, y_min]
+        bounds = ([0, 0.1, x_min, 0, 0.1, x_min, 0],
+                 [y_max, 10, x_max, y_max, 10, x_max, y_max])
+        param_names = ['top1', 'hill1', 'ec50_1', 'top2', 'hill2', 'ec50_2', 'bottom']
+
+    else:
+        raise ValueError(f"Unknown model type: {model_type}")
+
+    # Apply constraints if provided
+    if constraints:
+        bounds_lower = list(bounds[0])
+        bounds_upper = list(bounds[1])
+
+        if constraints.get('bottom') is not None and 'bottom' in param_names:
+            idx = param_names.index('bottom')
+            constraint_val = float(constraints['bottom'])
+            bounds_lower[idx] = constraint_val
+            bounds_upper[idx] = constraint_val
+
+        if constraints.get('top') is not None and 'top' in param_names:
+            idx = param_names.index('top')
+            constraint_val = float(constraints['top'])
+            bounds_lower[idx] = constraint_val
+            bounds_upper[idx] = constraint_val
+
+        bounds = (bounds_lower, bounds_upper)
+
+    # Fit the model
+    try:
+        popt, pcov = optimize.curve_fit(
+            model_func, dose_array, response_array,
+            p0=initial_guess, bounds=bounds, maxfev=5000
+        )
+    except Exception as e:
+        raise ValueError(f"Model fitting failed: {str(e)}")
+
+    # Calculate fitted values and residuals
+    fitted_values = model_func(dose_array, *popt)
+    residuals = response_array - fitted_values
+
+    # Statistics
+    ss_res = float(np.sum(residuals ** 2))
+    ss_tot = float(np.sum((response_array - np.mean(response_array)) ** 2))
+    r_squared = float(1 - (ss_res / ss_tot)) if ss_tot > 0 else 0.0
+
+    n = len(response_array)
+    k = len(popt)
+    aic = float(n * np.log(ss_res / n) + 2 * k) if ss_res > 0 else float('inf')
+    bic = float(n * np.log(ss_res / n) + k * np.log(n)) if ss_res > 0 else float('inf')
+
+    # Confidence intervals (95%)
+    param_errors = np.sqrt(np.diag(pcov))
+    confidence_intervals = {}
+    for i, name in enumerate(param_names):
+        ci_lower = float(popt[i] - 1.96 * param_errors[i])
+        ci_upper = float(popt[i] + 1.96 * param_errors[i])
+        confidence_intervals[name] = [ci_lower, ci_upper]
+
+    # Goodness of fit test (Chi-square)
+    expected = fitted_values
+    observed = response_array
+    chi_square = float(np.sum((observed - expected) ** 2 / (expected + 1e-10)))
+    df = n - k
+    p_value = float(1 - stats.chi2.cdf(chi_square, df)) if df > 0 else 1.0
+
+    # Extract parameters
+    parameters = {}
+    for i, name in enumerate(param_names):
+        parameters[name] = float(popt[i])
+
+    # Special parameters (EC50, IC50, etc.)
+    result_dict = {
+        'model': model_type,
+        'parameters': parameters,
+        'fitted_values': fitted_values.tolist(),
+        'residuals': residuals.tolist(),
+        'r_squared': r_squared,
+        'aic': aic,
+        'bic': bic,
+        'confidence_intervals': confidence_intervals,
+        'goodness_of_fit': {
+            'chi_square': chi_square,
+            'p_value': p_value,
+            'degrees_freedom': int(df)
+        }
+    }
+
+    # Add special parameters
+    if 'ec50' in parameters:
+        result_dict['ec50'] = parameters['ec50']
+        result_dict['ed50'] = parameters['ec50']
+
+    if 'hill_slope' in parameters:
+        result_dict['hill_slope'] = parameters['hill_slope']
+
+    if 'top' in parameters:
+        result_dict['top'] = parameters['top']
+
+    if 'bottom' in parameters:
+        result_dict['bottom'] = parameters['bottom']
+
+    # IC50 calculation (inhibition curve)
+    if 'top' in parameters and 'bottom' in parameters and 'ec50' in parameters:
+        result_dict['ic50'] = parameters['ec50']
+
+    return result_dict
+

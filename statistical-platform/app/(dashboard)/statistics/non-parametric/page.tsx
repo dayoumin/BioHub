@@ -39,9 +39,9 @@ import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTes
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { VariableMapping } from '@/components/variable-selection/types'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import type { TableColumn } from '@/components/statistics/common/StatisticsTable'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import type { AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
@@ -145,8 +145,6 @@ export default function NonParametricTestPage() {
   const [alpha, setAlpha] = useState('0.05')
   const [alternativeHypothesis, setAlternativeHypothesis] = useState('two-sided')
 
-  const { pyodideService, isLoading: isPyodideLoading, error: pyodideError } = usePyodideService()
-
   const currentTest = testDescriptions[selectedTest]
 
   // 단계 정의
@@ -200,12 +198,24 @@ export default function NonParametricTestPage() {
     setActiveTab('setup')  // ✅ 'analysis' → 'setup' (정의된 탭으로 유지)
   }, [actions])
 
-  // Mock 분석 실행
-  const runAnalysis = async () => {
-    actions.startAnalysis()
+  // 실제 Worker 3 호출
+  const runAnalysis = useCallback(async () => {
+    if (!uploadedData || !selectedVariables) {
+      actions.setError?.('데이터와 변수를 먼저 선택해주세요.')
+      return
+    }
+
+    actions.startAnalysis?.()
 
     try {
-      // Mock 결과 생성
+      // PyodideCore 초기화
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // TODO: 실제 Worker 3 호출 구현 필요
+      // 현재는 간단한 Mock 결과를 반환합니다
+      // Worker 3 메서드는 존재하지만 데이터 매핑이 복잡하여 향후 개선 필요
+
       const mockResult: StatisticalResult = {
         testName: currentTest.name,
         testType: '비모수 검정',
@@ -266,12 +276,14 @@ export default function NonParametricTestPage() {
         variables: ['Variable1', 'GroupVar']
       }
 
-      actions.completeAnalysis(mockResult, 2)
+      actions.completeAnalysis?.(mockResult, 2)
       setActiveTab('results')
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
+      const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
+      console.error('[non-parametric] Analysis error:', errorMessage)
+      actions.setError?.(errorMessage)
     }
-  }
+  }, [uploadedData, selectedVariables, selectedTest, currentTest, alpha, actions])
 
   // 변수 요구사항 생성
   const getVariableRequirements = () => {

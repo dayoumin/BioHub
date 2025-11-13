@@ -17,9 +17,8 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
-import type { PyodideInterface } from '@/types/pyodide'
-import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 interface DoseResponseResult {
   model: string
@@ -120,193 +119,58 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
     setError(null)
 
     try {
+      // PyodideCore 초기화
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
       // Extract column data
-      const doseData = uploadedData.data.map(row => row[doseColumn])
-      const responseData = uploadedData.data.map(row => row[responseColumn])
+      const doseData = uploadedData.data.map(row => {
+        const value = (row as Record<string, unknown>)[doseColumn]
+        return typeof value === 'number' ? value : parseFloat(String(value)) || 0
+      })
+      const responseData = uploadedData.data.map(row => {
+        const value = (row as Record<string, unknown>)[responseColumn]
+        return typeof value === 'number' ? value : parseFloat(String(value)) || 0
+      })
 
-      const pythonCode = `
-import numpy as np
-import scipy.optimize as opt
-from scipy import stats
-import warnings
-warnings.filterwarnings('ignore')
+      // Prepare parameters
+      interface DoseResponseParams {
+        dose_data: number[]
+        response_data: number[]
+        model_type: string
+        constraints?: Record<string, number>
+      }
 
-# 데이터 준비
-dose_data = ${JSON.stringify(doseData)}
-response_data = ${JSON.stringify(responseData)}
+      const params: DoseResponseParams = {
+        dose_data: doseData,
+        response_data: responseData,
+        model_type: selectedModel
+      }
 
-# 결측값 제거
-dose_array = np.array([x for x in dose_data if x is not None and not np.isnan(x)])
-response_array = np.array([x for x in response_data if x is not None and not np.isnan(x)])
+      if (constraintsEnabled && (bottomConstraint || topConstraint)) {
+        const constraintsObj: Record<string, number> = {}
+        if (bottomConstraint) {
+          constraintsObj.bottom = parseFloat(bottomConstraint)
+        }
+        if (topConstraint) {
+          constraintsObj.top = parseFloat(topConstraint)
+        }
+        params.constraints = constraintsObj
+      }
 
-if len(dose_array) != len(response_array):
-    min_len = min(len(dose_array), len(response_array))
-    dose_array = dose_array[:min_len]
-    response_array = response_array[:min_len]
-
-if len(dose_array) < 5:
-    raise ValueError("용량-반응 분석에는 최소 5개의 데이터 포인트가 필요합니다.")
-
-# 용량 데이터 로그 변환 (0 값 처리)
-log_dose = np.log10(dose_array + np.min(dose_array[dose_array > 0]) / 1000)
-
-model_type = "${selectedModel}"
-
-def logistic4_model(x, a, b, c, d):
-    return d + (a - d) / (1 + (x / c) ** b)
-
-def logistic3_model(x, a, b, c):
-    return a / (1 + (x / c) ** b)
-
-def weibull_model(x, a, b, c, d):
-    return d + (a - d) * np.exp(-np.exp(b * (np.log(x) - np.log(c))))
-
-def gompertz_model(x, a, b, c):
-    return a * np.exp(-np.exp(b * (c - x)))
-
-def biphasic_model(x, a1, b1, c1, a2, b2, c2, d):
-    return d + (a1 - d) / (1 + (x / c1) ** b1) + (a2 - d) / (1 + (x / c2) ** b2)
-
-# 모델 선택 및 초기 추정값
-y_max = np.max(response_array)
-y_min = np.min(response_array)
-x_mid = np.median(dose_array)
-
-try:
-    if model_type == "logistic4":
-        model_func = logistic4_model
-        initial_guess = [y_max, 1.0, x_mid, y_min]
-        bounds = ([0, 0.1, np.min(dose_array), 0],
-                 [2*y_max, 10, np.max(dose_array), y_max])
-        param_names = ['top', 'hill_slope', 'ec50', 'bottom']
-
-    elif model_type == "logistic3":
-        model_func = logistic3_model
-        initial_guess = [y_max, 1.0, x_mid]
-        bounds = ([0, 0.1, np.min(dose_array)],
-                 [2*y_max, 10, np.max(dose_array)])
-        param_names = ['top', 'hill_slope', 'ec50']
-
-    elif model_type == "weibull":
-        model_func = weibull_model
-        initial_guess = [y_max, 1.0, x_mid, y_min]
-        bounds = ([0, 0.1, np.min(dose_array), 0],
-                 [2*y_max, 5, np.max(dose_array), y_max])
-        param_names = ['top', 'slope', 'inflection', 'bottom']
-
-    elif model_type == "gompertz":
-        model_func = gompertz_model
-        initial_guess = [y_max, 1.0, x_mid]
-        bounds = ([0, 0.1, np.min(dose_array)],
-                 [2*y_max, 5, np.max(dose_array)])
-        param_names = ['asymptote', 'growth_rate', 'inflection']
-
-    else:  # biphasic
-        model_func = biphasic_model
-        initial_guess = [y_max*0.6, 1.0, x_mid*0.5, y_max*0.4, 1.0, x_mid*2, y_min]
-        bounds = ([0, 0.1, np.min(dose_array), 0, 0.1, np.min(dose_array), 0],
-                 [y_max, 10, np.max(dose_array), y_max, 10, np.max(dose_array), y_max])
-        param_names = ['top1', 'hill1', 'ec50_1', 'top2', 'hill2', 'ec50_2', 'bottom']
-
-    # 제약 조건 적용
-    constraints_enabled = ${constraintsEnabled}
-    if constraints_enabled:
-        bottom_constraint = ${bottomConstraint ? parseFloat(bottomConstraint) : 'None'}
-        top_constraint = ${topConstraint ? parseFloat(topConstraint) : 'None'}
-
-        if bottom_constraint is not None and len(bounds[0]) > 3:
-            bounds[0][3] = bottom_constraint  # bottom 최소값
-            bounds[1][3] = bottom_constraint  # bottom 최대값
-        if top_constraint is not None:
-            bounds[0][0] = top_constraint    # top 최소값
-            bounds[1][0] = top_constraint    # top 최대값
-
-    # 모델 피팅
-    popt, pcov = opt.curve_fit(model_func, dose_array, response_array,
-                               p0=initial_guess, bounds=bounds, maxfev=5000)
-
-    # 예측값 및 잔차
-    fitted_values = model_func(dose_array, *popt)
-    residuals = response_array - fitted_values
-
-    # 통계량 계산
-    ss_res = np.sum(residuals ** 2)
-    ss_tot = np.sum((response_array - np.mean(response_array)) ** 2)
-    r_squared = 1 - (ss_res / ss_tot)
-
-    n = len(response_array)
-    k = len(popt)
-    aic = n * np.log(ss_res / n) + 2 * k
-    bic = n * np.log(ss_res / n) + k * np.log(n)
-
-    # 신뢰구간
-    param_errors = np.sqrt(np.diag(pcov))
-    confidence_intervals = {}
-    for i, name in enumerate(param_names):
-        ci_lower = popt[i] - 1.96 * param_errors[i]
-        ci_upper = popt[i] + 1.96 * param_errors[i]
-        confidence_intervals[name] = [float(ci_lower), float(ci_upper)]
-
-    # 적합도 검정 (카이제곱)
-    expected = fitted_values
-    observed = response_array
-    chi_square = np.sum((observed - expected) ** 2 / (expected + 1e-10))
-    df = n - k
-    p_value = 1 - stats.chi2.cdf(chi_square, df) if df > 0 else 1.0
-
-    # 매개변수 딕셔너리
-    parameters = {}
-    for i, name in enumerate(param_names):
-        parameters[name] = float(popt[i])
-
-    # 특별한 매개변수들 (EC50, IC50 등)
-    special_params = {}
-    if 'ec50' in parameters:
-        special_params['ec50'] = parameters['ec50']
-        special_params['ed50'] = parameters['ec50']
-    if 'hill_slope' in parameters:
-        special_params['hill_slope'] = parameters['hill_slope']
-    if 'top' in parameters:
-        special_params['top'] = parameters['top']
-    if 'bottom' in parameters:
-        special_params['bottom'] = parameters['bottom']
-
-    # IC50 계산 (억제 곡선인 경우)
-    if 'top' in parameters and 'bottom' in parameters and 'ec50' in parameters:
-        ic50_response = (parameters['top'] + parameters['bottom']) / 2
-        special_params['ic50'] = parameters['ec50']  # 간단한 근사
-
-except Exception as e:
-    raise ValueError(f"모델 피팅 실패: {str(e)}")
-
-{
-    'model': model_type,
-    'parameters': parameters,
-    'fitted_values': fitted_values.tolist(),
-    'residuals': residuals.tolist(),
-    'r_squared': float(r_squared),
-    'aic': float(aic),
-    'bic': float(bic),
-    **special_params,
-    'confidence_intervals': confidence_intervals,
-    'goodness_of_fit': {
-        'chi_square': float(chi_square),
-        'p_value': float(p_value),
-        'degrees_freedom': int(df)
-    }
-}
-`
-
-      // Load Pyodide with required packages
-      const pyodide: PyodideInterface = await loadPyodideWithPackages(['scipy', 'numpy'])
-
-      // Run analysis
-      const resultProxy = pyodide.runPython(pythonCode)
-      const analysisResult = resultProxy.toJs({ dict_converter: Object.fromEntries }) as DoseResponseResult
+      // Call Worker 4 dose_response_analysis method
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const analysisResult = await pyodideCore.callWorkerMethod<DoseResponseResult>(
+        4,
+        'dose_response_analysis',
+        params as any
+      )
 
       setResult(analysisResult)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
+      console.error('[dose-response] Analysis error:', errorMessage)
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
