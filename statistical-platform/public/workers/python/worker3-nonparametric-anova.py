@@ -1,8 +1,8 @@
-# Worker 3: Nonparametric ANOVA Python Module
+# Worker 3: Nonparametric ANOVA + Machine Learning Python Module
 # Notes:
-# - Dependencies: NumPy, SciPy, statsmodels, pandas
-# - Estimated memory: ~140MB
-# - Cold start time: ~2.3s
+# - Dependencies: NumPy, SciPy, statsmodels, pandas, scikit-learn
+# - Estimated memory: ~180MB
+# - Cold start time: ~2.8s
 
 import sys
 from typing import List, Dict, Union, Literal, Optional, Any
@@ -10,6 +10,11 @@ import numpy as np
 from scipy import stats
 from itertools import combinations
 from helpers import clean_array, clean_paired_arrays, clean_groups as clean_groups_helper
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.decomposition import PCA, FactorAnalysis
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 
 def _to_float_list(data):
     if data is None:

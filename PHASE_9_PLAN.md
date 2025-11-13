@@ -1,21 +1,41 @@
 # Phase 9: 계산 방법 표준화 계획
 
 **작성일**: 2025-11-12
-**최종 업데이트**: 2025-11-13 11:30
-**상태**: ✅ Batch 1 완료 (4개), ✅ Batch 2 완료 (6개), 🔜 Batch 3-4 대기 중
+**최종 업데이트**: 2025-11-13 13:15
+**상태**: ✅ Batch 1 완료 (10개), ✅ Batch 2 완료 (6개), 🔜 Batch 3-4 대기 중
 **목표**: 모든 통계 페이지를 PyodideCore 표준으로 통합 (일관성 확보)
 
 ---
 
 ## ✅ 완료 현황
 
-### Batch 1: pyodideStats → PyodideCore (2025-11-12) ✅
+### Batch 1: pyodideStats → PyodideCore (2025-11-12 ~ 2025-11-13) ✅
+**Phase 1 (2025-11-12, 4개)**:
 - ✅ **friedman** (Worker 1) - `friedman_test`
 - ✅ **kruskal-wallis** (Worker 1) - `kruskal_wallis_test`
 - ✅ **reliability** (Worker 1) - `cronbach_alpha_analysis`
 - ✅ **wilcoxon** (Worker 1) - `wilcoxon_test`
-- **커밋**: `2be8c81` - feat: Phase 7+8 완료 - Mock 제거 및 코드 일관성 100% 달성
-- **PyodideCore**: 18 → 22개 (50%)
+
+**Phase 2 (2025-11-13, 6개)**:
+- ✅ **t-test** (Worker 2) - `t_test_two_sample`
+- ✅ **ancova** (Worker 2) - `ancova_analysis`
+- ✅ **poisson** (Worker 2) - `poisson_regression`
+- ✅ **ordinal-regression** (Worker 2) - `ordinal_regression`
+- ✅ **mixed-model** (Worker 2) - `mixed_model`
+- ✅ **manova** (Worker 2) - `manova`
+
+**커밋** (8개):
+- `40ef4ee` - friedman 변환
+- `c4b42ab` - kruskal-wallis, reliability, wilcoxon (3개)
+- `8f2e9db` - t-test 변환
+- `000703b` - ancova 변환 완료 (30개, 68%)
+- `0218071` - poisson 변환 완료 (31개, 70%)
+- `1af38e6` - ordinal-regression 변환 완료 (32개, 73%)
+- `d2d956f` - mixed-model 변환 완료 (33개, 75%)
+- `61e515b` - manova 변환 완료 - Batch 1 100% 달성! (34개, 77%)
+
+**PyodideCore**: 18 → **34개 (77%)**
+**pyodideStats 제거**: 10 → **0개 (100% 제거 완료!)**
 
 ### Batch 2: Legacy Pyodide → PyodideCore (2025-11-13) ✅
 - ✅ **ks-test** (Worker 1) - `ks_test_one_sample`, `ks_test_two_sample`
@@ -24,13 +44,14 @@
 - ✅ **partial-correlation** (Worker 2) - `partial_correlation_analysis` (scipy)
 - ✅ **stepwise** (Worker 2) - `stepwise_regression_forward` (statsmodels)
 - ✅ **response-surface** (Worker 2) - `response_surface_analysis` (statsmodels)
-- **커밋**: `3ce46bb` - feat(phase9-batch2): Batch 2 완료 - 6개 페이지 PyodideCore 변환 (29개, 66%)
-- **PyodideCore**: 22 → 29개 (66%)
+
+**커밋**: `3ce46bb` - Batch 2 완료 (29개, 66%)
+**PyodideCore**: 22 → 29개 (66%) → **Batch 1에서 34개 (77%)로 추가 증가**
 
 ### 통계 신뢰성 확보 ⭐
 - ✅ **CLAUDE.md Section 2 준수**: 통계 알고리즘 직접 구현 금지
 - ✅ **검증된 라이브러리 사용**:
-  - `statsmodels.api.OLS` (stepwise, response-surface)
+  - `statsmodels` (poisson, ordinal-regression, mixed-model, manova, stepwise, response-surface)
   - `scipy.stats` (ks-test, mann-kendall, partial-correlation)
   - `pingouin` (friedman, kruskal-wallis, wilcoxon)
 
