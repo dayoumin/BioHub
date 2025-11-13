@@ -794,3 +794,217 @@ def stepwise_regression_forward(data, dependent_var, predictor_vars, significanc
         }
 
 
+
+
+def response_surface_analysis(data, dependent_var, predictor_vars, model_type='second_order', include_interaction=True, include_quadratic=True):
+    """
+    반응표면 분석 (statsmodels 기반 - 검증된 통계 라이브러리 사용)
+
+    ✅ CLAUDE.md 준수: 통계 알고리즘 직접 구현 금지, statsmodels 사용
+
+    Args:
+        data: 데이터 (List[Dict])
+        dependent_var: 종속변수명
+        predictor_vars: 예측변수명 리스트
+        model_type: 모델 유형 ('first_order', 'first_order_interaction', 'second_order', 'custom')
+        include_interaction: 교호작용 포함 여부 (custom 모드)
+        include_quadratic: 2차 항 포함 여부 (custom 모드)
+
+    Returns:
+        Dict with response surface analysis results
+    """
+    import pandas as pd
+    import numpy as np
+    import statsmodels.api as sm
+    from scipy import stats
+
+    df = pd.DataFrame(data)
+
+    # 데이터 준비
+    all_vars = [dependent_var] + predictor_vars
+    df_clean = df[all_vars].dropna()
+
+    if len(df_clean) < 10:
+        raise ValueError("반응표면 분석에는 최소 10개의 관측값이 필요합니다.")
+
+    y = df_clean[dependent_var].values
+    X_original = df_clean[predictor_vars].values
+    n_obs, n_predictors = X_original.shape
+
+    # 변수명 생성
+    var_names = [f'x{i+1}' for i in range(n_predictors)]
+
+    # DataFrame으로 변환 (statsmodels 사용을 위해)
+    X_df = pd.DataFrame(X_original, columns=var_names)
+
+    # 모델 유형에 따른 설계 행렬 생성 (statsmodels 사용)
+    formula_terms = []
+
+    # 1차 항 (항상 포함)
+    formula_terms.extend(var_names)
+
+    # 2차 항 생성
+    if model_type == "first_order":
+        # 1차 항만
+        pass
+    elif model_type == "first_order_interaction":
+        # 1차 항 + 교호작용
+        if n_predictors >= 2:
+            for i in range(n_predictors):
+                for j in range(i+1, n_predictors):
+                    X_df[f'{var_names[i]}_{var_names[j]}'] = X_df[var_names[i]] * X_df[var_names[j]]
+                    formula_terms.append(f'{var_names[i]}_{var_names[j]}')
+    elif model_type == "second_order":
+        # 1차 항 + 교호작용 + 제곱항
+        if n_predictors >= 2:
+            for i in range(n_predictors):
+                for j in range(i+1, n_predictors):
+                    X_df[f'{var_names[i]}_{var_names[j]}'] = X_df[var_names[i]] * X_df[var_names[j]]
+                    formula_terms.append(f'{var_names[i]}_{var_names[j]}')
+        for i in range(n_predictors):
+            X_df[f'{var_names[i]}_sq'] = X_df[var_names[i]] ** 2
+            formula_terms.append(f'{var_names[i]}_sq')
+    else:  # custom
+        if include_interaction and n_predictors >= 2:
+            for i in range(n_predictors):
+                for j in range(i+1, n_predictors):
+                    X_df[f'{var_names[i]}_{var_names[j]}'] = X_df[var_names[i]] * X_df[var_names[j]]
+                    formula_terms.append(f'{var_names[i]}_{var_names[j]}')
+        if include_quadratic:
+            for i in range(n_predictors):
+                X_df[f'{var_names[i]}_sq'] = X_df[var_names[i]] ** 2
+                formula_terms.append(f'{var_names[i]}_sq')
+
+    # statsmodels OLS 모델 적합 (검증된 통계 라이브러리)
+    X_with_const = sm.add_constant(X_df[formula_terms])
+    model = sm.OLS(y, X_with_const).fit()
+
+    # 예측 및 잔차
+    y_pred = model.fittedvalues
+    residuals = model.resid
+
+    # 통계량 (statsmodels에서 자동 계산)
+    r2 = float(model.rsquared)
+    adjusted_r2 = float(model.rsquared_adj)
+    f_statistic = float(model.fvalue)
+    f_pvalue = float(model.f_pvalue)
+
+    # 계수 딕셔너리 (camelCase 변환)
+    coefficients = {}
+    coefficients['intercept'] = float(model.params['const'])
+
+    # 변수명을 원래 형식으로 매핑
+    for i, var in enumerate(var_names):
+        if var in model.params:
+            coefficients[f'X{i+1}'] = float(model.params[var])
+
+    # 교호작용 항
+    if n_predictors >= 2:
+        for i in range(n_predictors):
+            for j in range(i+1, n_predictors):
+                interaction_key = f'{var_names[i]}_{var_names[j]}'
+                if interaction_key in model.params:
+                    coefficients[f'X{i+1} X{j+1}'] = float(model.params[interaction_key])
+
+    # 제곱 항
+    for i in range(n_predictors):
+        sq_key = f'{var_names[i]}_sq'
+        if sq_key in model.params:
+            coefficients[f'X{i+1}^2'] = float(model.params[sq_key])
+
+    # ANOVA 테이블 (statsmodels에서 자동 계산)
+    ss_total = float(model.centered_tss)
+    ss_regression = float(model.ess)
+    ss_residual = float(model.ssr)
+
+    df_regression = int(model.df_model)
+    df_residual = int(model.df_resid)
+    df_total = df_regression + df_residual
+
+    ms_regression = ss_regression / df_regression if df_regression > 0 else 0.0
+    ms_residual = ss_residual / df_residual if df_residual > 0 else 0.0
+
+    anova_table = {
+        'source': ['Regression', 'Residual', 'Total'],
+        'df': [df_regression, df_residual, df_total],
+        'ss': [float(ss_regression), float(ss_residual), float(ss_total)],
+        'ms': [float(ms_regression), float(ms_residual), float(ss_total/df_total) if df_total > 0 else 0.0],
+        'fValue': [float(f_statistic), 0.0, 0.0],
+        'pValue': [float(f_pvalue), 0.0, 0.0]
+    }
+
+    # 최적화 분석 (2차 모델인 경우에만)
+    optimization_result = {
+        'stationaryPoint': [],
+        'stationaryPointResponse': 0.0,
+        'nature': 'not_applicable',
+        'canonicalAnalysis': {
+            'eigenvalues': []
+        }
+    }
+
+    if (model_type == "second_order" or (model_type == "custom" and include_quadratic)) and n_predictors == 2:
+        try:
+            # 계수 추출
+            b1 = coefficients.get('X1', 0)
+            b2 = coefficients.get('X2', 0)
+            b11 = coefficients.get('X1^2', 0)
+            b22 = coefficients.get('X2^2', 0)
+            b12 = coefficients.get('X1 X2', 0)
+
+            # 헤시안 행렬
+            if abs(b11) > 1e-10 or abs(b22) > 1e-10:
+                H = np.array([[2*b11, b12], [b12, 2*b22]])
+                gradient = np.array([b1, b2])
+
+                try:
+                    stationary_point = -0.5 * np.linalg.solve(H, gradient)
+                    eigenvals = np.linalg.eigvals(H)
+
+                    optimization_result['stationaryPoint'] = stationary_point.tolist()
+                    optimization_result['canonicalAnalysis']['eigenvalues'] = eigenvals.tolist()
+
+                    # 임계점 성질 판단
+                    if all(eig < -1e-10 for eig in eigenvals):
+                        nature = 'maximum'
+                    elif all(eig > 1e-10 for eig in eigenvals):
+                        nature = 'minimum'
+                    else:
+                        nature = 'saddle_point'
+
+                    optimization_result['nature'] = nature
+
+                    # 임계점에서의 반응값 계산
+                    x1_stat, x2_stat = stationary_point
+                    response_at_stationary = (coefficients['intercept'] +
+                                            b1 * x1_stat + b2 * x2_stat +
+                                            b11 * x1_stat**2 + b22 * x2_stat**2 +
+                                            b12 * x1_stat * x2_stat)
+                    optimization_result['stationaryPointResponse'] = float(response_at_stationary)
+
+                except np.linalg.LinAlgError:
+                    optimization_result['nature'] = 'singular_matrix'
+
+        except Exception:
+            optimization_result['nature'] = 'analysis_failed'
+
+    # 적합도 결여 검정
+    lack_of_fit_result = {
+        'lackOfFitF': 0.0,
+        'lackOfFitP': 1.0,
+        'pureErrorAvailable': False
+    }
+
+    return {
+        'modelType': model_type,
+        'coefficients': coefficients,
+        'fittedValues': y_pred.tolist(),
+        'residuals': residuals.tolist(),
+        'rSquared': float(r2),
+        'adjustedRSquared': float(adjusted_r2),
+        'fStatistic': float(f_statistic),
+        'fPvalue': float(f_pvalue),
+        'anovaTable': anova_table,
+        'optimization': optimization_result,
+        'designAdequacy': lack_of_fit_result
+    }

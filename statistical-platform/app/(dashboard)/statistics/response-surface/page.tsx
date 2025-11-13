@@ -17,8 +17,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import type { VariableAssignment } from '@/types/statistics-converters'
 import { useStatisticsPage , type UploadedData } from '@/hooks/use-statistics-page'
-import type { PyodideInterface } from '@/types/pyodide'
-import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 interface ResponseSurfaceResult {
   model_type: string
@@ -146,210 +145,83 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
     }
 
     try {
-      const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'pandas', 'scipy'])
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
 
-      const predictorData = (typedVariables.factor || typedVariables.independent).map((factorName: string) => {
-        return uploadedData.data.map(row => row[factorName])
+      const predictorVars = typedVariables.factor || typedVariables.independent
+
+      const result = await pyodideCore.callWorkerMethod<{
+        modelType: string
+        coefficients: { [key: string]: number }
+        fittedValues: number[]
+        residuals: number[]
+        rSquared: number
+        adjustedRSquared: number
+        fStatistic: number
+        fPvalue: number
+        anovaTable: {
+          source: string[]
+          df: number[]
+          ss: number[]
+          ms: number[]
+          fValue: number[]
+          pValue: number[]
+        }
+        optimization: {
+          stationaryPoint: number[]
+          stationaryPointResponse: number
+          nature: string
+          canonicalAnalysis: {
+            eigenvalues: number[]
+          }
+        }
+        designAdequacy: {
+          lackOfFitF: number
+          lackOfFitP: number
+          pureErrorAvailable: boolean
+        }
+      }>(2, 'response_surface_analysis', {
+        data: uploadedData.data as never,
+        dependent_var: typedVariables.dependent,
+        predictor_vars: predictorVars as never,
+        model_type: selectedModel,
+        include_interaction: includeInteraction,
+        include_quadratic: includeQuadratic
       })
-      const responseData = uploadedData.data.map(row => row[typedVariables.dependent])
 
-      const pythonCode = `
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
-from scipy import stats
-import itertools
-import warnings
-import { type UploadedData } from '@/hooks/use-statistics-page'
-warnings.filterwarnings('ignore')
+      // Convert camelCase to snake_case for ResponseSurfaceResult interface
+      const analysisResult: ResponseSurfaceResult = {
+        model_type: result.modelType,
+        coefficients: result.coefficients,
+        fitted_values: result.fittedValues,
+        residuals: result.residuals,
+        r_squared: result.rSquared,
+        adjusted_r_squared: result.adjustedRSquared,
+        f_statistic: result.fStatistic,
+        f_pvalue: result.fPvalue,
+        anova_table: {
+          source: result.anovaTable.source,
+          df: result.anovaTable.df,
+          ss: result.anovaTable.ss,
+          ms: result.anovaTable.ms,
+          f_value: result.anovaTable.fValue,
+          p_value: result.anovaTable.pValue
+        },
+        optimization: {
+          stationary_point: result.optimization.stationaryPoint,
+          stationary_point_response: result.optimization.stationaryPointResponse,
+          nature: result.optimization.nature,
+          canonical_analysis: {
+            eigenvalues: result.optimization.canonicalAnalysis.eigenvalues
+          }
+        },
+        design_adequacy: {
+          lack_of_fit_f: result.designAdequacy.lackOfFitF,
+          lack_of_fit_p: result.designAdequacy.lackOfFitP,
+          pure_error_available: result.designAdequacy.pureErrorAvailable
+        }
+      }
 
-# 데이터 준비
-predictor_data = ${JSON.stringify(predictorData)}
-response_data = ${JSON.stringify(responseData)}
-
-# 데이터 정리
-n_predictors = len(predictor_data)
-n_obs = len(response_data)
-
-# 예측변수 배열 생성
-X_arrays = []
-for i in range(n_predictors):
-    data = predictor_data[i]
-    clean_data = [x for x in data if x is not None and not np.isnan(x)]
-    X_arrays.append(clean_data[:n_obs])
-
-# 길이 맞추기
-min_length = min(len(arr) for arr in X_arrays + [response_data])
-X_arrays = [arr[:min_length] for arr in X_arrays]
-y_clean = [x for x in response_data[:min_length] if x is not None and not np.isnan(x)]
-
-if len(y_clean) < min_length:
-    min_length = len(y_clean)
-    X_arrays = [arr[:min_length] for arr in X_arrays]
-
-X = np.column_stack(X_arrays)
-y = np.array(y_clean)
-
-if X.shape[0] < 10:
-    raise ValueError("반응표면 분석에는 최소 10개의 관측값이 필요합니다.")
-
-# 모델 설정
-model_type = "${selectedModel}"
-include_interaction = ${includeInteraction}
-include_quadratic = ${includeQuadratic}
-
-# 설계 행렬 생성
-if model_type == "first_order":
-    poly_features = PolynomialFeatures(degree=1, include_bias=True, interaction_only=False)
-elif model_type == "first_order_interaction":
-    poly_features = PolynomialFeatures(degree=2, include_bias=True, interaction_only=True)
-elif model_type == "second_order":
-    poly_features = PolynomialFeatures(degree=2, include_bias=True, interaction_only=False)
-else:  # custom
-    if include_quadratic:
-        poly_features = PolynomialFeatures(degree=2, include_bias=True, interaction_only=not include_interaction)
-    elif include_interaction:
-        poly_features = PolynomialFeatures(degree=2, include_bias=True, interaction_only=True)
-    else:
-        poly_features = PolynomialFeatures(degree=1, include_bias=True, interaction_only=False)
-
-X_poly = poly_features.fit_transform(X)
-feature_names = poly_features.get_feature_names_out([f'X{i+1}' for i in range(n_predictors)])
-
-# 모델 적합
-model = LinearRegression()
-model.fit(X_poly, y)
-
-# 예측 및 잔차
-y_pred = model.predict(X_poly)
-residuals = y - y_pred
-
-# 통계량
-r2 = r2_score(y, y_pred)
-n, p = X_poly.shape
-adjusted_r2 = 1 - (1 - r2) * (n - 1) / (n - p - 1)
-
-# ANOVA 분석
-ss_total = np.sum((y - np.mean(y)) ** 2)
-ss_regression = np.sum((y_pred - np.mean(y)) ** 2)
-ss_residual = np.sum(residuals ** 2)
-
-df_regression = p - 1
-df_residual = n - p
-df_total = n - 1
-
-ms_regression = ss_regression / df_regression
-ms_residual = ss_residual / df_residual
-
-f_statistic = ms_regression / ms_residual
-f_pvalue = 1 - stats.f.cdf(f_statistic, df_regression, df_residual)
-
-# 계수 딕셔너리
-coefficients = {}
-coefficients['intercept'] = float(model.intercept_)
-for i, name in enumerate(feature_names[1:], 1):  # Skip intercept
-    coefficients[name] = float(model.coef_[i])
-
-# 최적화 분석 (2차 모델인 경우에만)
-optimization_result = {
-    'stationary_point': [],
-    'stationary_point_response': 0,
-    'nature': 'not_applicable',
-    'canonical_analysis': {
-        'eigenvalues': []
-    }
-}
-
-if model_type == "second_order" or (model_type == "custom" and include_quadratic):
-    try:
-        # 2차 모델의 경우 임계점 분석
-        # 단순화된 2변수 케이스 처리
-        if n_predictors == 2:
-            # 계수 추출 (간단한 케이스)
-            b1 = coefficients.get('X1', 0)
-            b2 = coefficients.get('X2', 0)
-            b11 = coefficients.get('X1^2', 0)
-            b22 = coefficients.get('X2^2', 0)
-            b12 = coefficients.get('X1 X2', 0)
-
-            # 헤시안 행렬
-            if abs(b11) > 1e-10 or abs(b22) > 1e-10:
-                H = np.array([[2*b11, b12], [b12, 2*b22]])
-                gradient = np.array([b1, b2])
-
-                try:
-                    stationary_point = -0.5 * np.linalg.solve(H, gradient)
-                    eigenvals = np.linalg.eigvals(H)
-
-                    optimization_result['stationary_point'] = stationary_point.tolist()
-                    optimization_result['canonical_analysis']['eigenvalues'] = eigenvals.tolist()
-
-                    # 임계점 성질 판단
-                    if all(eig < -1e-10 for eig in eigenvals):
-                        nature = 'maximum'
-                    elif all(eig > 1e-10 for eig in eigenvals):
-                        nature = 'minimum'
-                    else:
-                        nature = 'saddle_point'
-
-                    optimization_result['nature'] = nature
-
-                    # 임계점에서의 반응값 계산 (근사)
-                    x1_stat, x2_stat = stationary_point
-                    response_at_stationary = (coefficients['intercept'] +
-                                            b1 * x1_stat + b2 * x2_stat +
-                                            b11 * x1_stat**2 + b22 * x2_stat**2 +
-                                            b12 * x1_stat * x2_stat)
-                    optimization_result['stationary_point_response'] = float(response_at_stationary)
-
-                except np.linalg.LinAlgError:
-                    optimization_result['nature'] = 'singular_matrix'
-
-    except Exception:
-        optimization_result['nature'] = 'analysis_failed'
-
-# 적합도 결여 검정 (간단한 버전)
-lack_of_fit_result = {
-    'lack_of_fit_f': 0.0,
-    'lack_of_fit_p': 1.0,
-    'pure_error_available': False
-}
-
-# ANOVA 테이블
-anova_table = {
-    'source': ['Regression', 'Residual', 'Total'],
-    'df': [int(df_regression), int(df_residual), int(df_total)],
-    'ss': [float(ss_regression), float(ss_residual), float(ss_total)],
-    'ms': [float(ms_regression), float(ms_residual), float(ss_total/df_total)],
-    'f_value': [float(f_statistic), 0.0, 0.0],
-    'p_value': [float(f_pvalue), 0.0, 0.0]
-}
-
-{
-    'model_type': model_type,
-    'coefficients': coefficients,
-    'fitted_values': y_pred.tolist(),
-    'residuals': residuals.tolist(),
-    'r_squared': float(r2),
-    'adjusted_r_squared': float(adjusted_r2),
-    'f_statistic': float(f_statistic),
-    'f_pvalue': float(f_pvalue),
-    'anova_table': anova_table,
-    'optimization': optimization_result,
-    'design_adequacy': lack_of_fit_result
-}
-`
-
-      pyodide.globals.set('predictor_data', predictorData)
-      pyodide.globals.set('response_data', responseData)
-      pyodide.globals.set('selectedModel', selectedModel)
-      pyodide.globals.set('includeInteraction', includeInteraction)
-      pyodide.globals.set('includeQuadratic', includeQuadratic)
-
-      const resultStr = pyodide.runPython(pythonCode)
-      const analysisResult: ResponseSurfaceResult = JSON.parse(resultStr)
       setResult(analysisResult)
 
       if (actions.completeAnalysis) {
