@@ -232,3 +232,145 @@ def kolmogorov_smirnov_test(data: List[Union[float, int, None]]) -> Dict[str, Un
         'isNormal': bool(p_value > 0.05)
     }
 
+
+def ks_test_one_sample(values: List[Union[float, int]]) -> Dict[str, Union[float, int, bool, str, Dict]]:
+    """
+    Kolmogorov-Smirnov one-sample test (normality test)
+    """
+    values = np.array(values)
+    n = len(values)
+
+    if n < 3:
+        raise ValueError("K-S test requires at least 3 observations")
+
+    mean = float(np.mean(values))
+    std = float(np.std(values, ddof=1))
+
+    # K-S test against normal distribution
+    statistic, pvalue = stats.kstest(values, 'norm', args=(mean, std))
+
+    # Critical value at α = 0.05
+    critical_value = 1.36 / np.sqrt(n)
+
+    return {
+        'testType': 'one-sample',
+        'statisticKS': float(statistic),
+        'pValue': float(pvalue),
+        'criticalValue': float(critical_value),
+        'significant': bool(statistic > critical_value),
+        'sampleSizes': {
+            'n1': int(n)
+        },
+        'distributionInfo': {
+            'expectedDistribution': 'normal',
+            'observedMean': float(mean),
+            'observedStd': float(std),
+            'expectedMean': float(mean),
+            'expectedStd': float(std)
+        }
+    }
+
+
+def ks_test_two_sample(values1: List[Union[float, int]], values2: List[Union[float, int]]) -> Dict[str, Union[float, int, bool, Dict]]:
+    """
+    Kolmogorov-Smirnov two-sample test
+    """
+    values1 = np.array(values1)
+    values2 = np.array(values2)
+    n1 = len(values1)
+    n2 = len(values2)
+
+    if n1 < 3 or n2 < 3:
+        raise ValueError("K-S test requires at least 3 observations in each sample")
+
+    # Two-sample K-S test
+    statistic, pvalue = stats.ks_2samp(values1, values2)
+
+    # Critical value at α = 0.05
+    critical_value = 1.36 * np.sqrt((n1 + n2) / (n1 * n2))
+
+    # Effect size (Cohen's d)
+    mean1 = float(np.mean(values1))
+    mean2 = float(np.mean(values2))
+    pooled_std = float(np.sqrt(((n1 - 1) * np.var(values1, ddof=1) + (n2 - 1) * np.var(values2, ddof=1)) / (n1 + n2 - 2)))
+    effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
+
+    return {
+        'testType': 'two-sample',
+        'statisticKS': float(statistic),
+        'pValue': float(pvalue),
+        'criticalValue': float(critical_value),
+        'significant': bool(statistic > critical_value),
+        'effectSize': float(effect_size),
+        'sampleSizes': {
+            'n1': int(n1),
+            'n2': int(n2)
+        }
+    }
+
+
+def mann_kendall_test(data: List[Union[float, int]]) -> Dict[str, Union[str, float, int]]:
+    """
+    Mann-Kendall trend test for time series data
+    """
+    data = np.array(data)
+    n = len(data)
+
+    if n < 3:
+        raise ValueError("Mann-Kendall test requires at least 3 observations")
+
+    # Calculate S statistic
+    s = 0
+    for i in range(n-1):
+        for j in range(i+1, n):
+            s += np.sign(data[j] - data[i])
+
+    # Calculate variance of S
+    var_s = n * (n - 1) * (2 * n + 5) / 18
+
+    # Calculate standardized test statistic Z
+    if s > 0:
+        z = (s - 1) / np.sqrt(var_s)
+    elif s < 0:
+        z = (s + 1) / np.sqrt(var_s)
+    else:
+        z = 0
+
+    # Calculate p-value (two-tailed test)
+    p = 2 * (1 - stats.norm.cdf(abs(z)))
+
+    # Calculate Kendall's tau
+    tau, _ = stats.kendalltau(range(n), data)
+
+    # Calculate slope (Sen's slope estimator)
+    slopes = []
+    for i in range(n-1):
+        for j in range(i+1, n):
+            if j != i:
+                slope = (data[j] - data[i]) / (j - i)
+                slopes.append(slope)
+    sen_slope = np.median(slopes) if slopes else 0
+
+    # Calculate intercept
+    intercept = np.median(data) - sen_slope * np.median(range(n))
+
+    # Determine trend
+    alpha = 0.05
+    if p < alpha:
+        if z > 0:
+            trend = 'increasing'
+        else:
+            trend = 'decreasing'
+    else:
+        trend = 'no trend'
+
+    return {
+        'trend': trend,
+        'tau': float(tau),
+        'zScore': float(z),
+        'pValue': float(p),
+        'senSlope': float(sen_slope),
+        'intercept': float(intercept),
+        'n': int(n)
+    }
+
