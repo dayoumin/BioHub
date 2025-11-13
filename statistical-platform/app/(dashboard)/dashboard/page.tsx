@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Sparkles, Star, ChevronDown, ChevronUp, Clock } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, useCallback } from "react"
-import { STATISTICS_MENU } from "@/lib/statistics/menu-config"
+import { STATISTICS_MENU, DATA_TOOLS_MENU } from "@/lib/statistics/menu-config"
 import { cn } from "@/lib/utils"
 
 export default function DashboardPage() {
@@ -56,8 +56,9 @@ export default function DashboardPage() {
     setSelectedCategory((prev) => (prev === categoryId ? null : categoryId))
   }, [])
 
-  // 모든 메뉴 아이템 평탄화
-  const allItems = STATISTICS_MENU.flatMap((category) => category.items)
+  // 모든 메뉴 아이템 평탄화 (통계 + 데이터 도구)
+  const allMenus = [...STATISTICS_MENU, ...DATA_TOOLS_MENU]
+  const allItems = allMenus.flatMap((category) => category.items)
   const favoriteItems = allItems.filter((item) => favorites.includes(item.id))
   const recentItems = allItems.filter((item) => recentlyUsed.includes(item.id)).slice(0, 5)
 
@@ -110,7 +111,7 @@ export default function DashboardPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
-                    {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title} 분석 방법
+                    {allMenus.find(cat => cat.id === selectedCategory)?.title} 분석 방법
                   </h3>
                   <Button
                     variant="ghost"
@@ -121,7 +122,7 @@ export default function DashboardPage() {
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.items.map((item) => {
+                  {allMenus.find(cat => cat.id === selectedCategory)?.items.map((item) => {
                     const isFavorite = favorites.includes(item.id)
 
                     return (
@@ -242,11 +243,58 @@ export default function DashboardPage() {
 
       {/* 5. 통계 분석 카테고리 */}
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-center">통계 분석 카테고리</h2>
+        <h2 className="text-2xl font-bold text-center">통계 분석</h2>
 
         {/* 카테고리 아이콘 그리드 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
           {STATISTICS_MENU.map((category) => {
+            const Icon = category.icon
+            const isSelected = selectedCategory === category.id
+
+            return (
+              <Card
+                key={category.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:shadow-lg",
+                  isSelected && "ring-2 ring-primary"
+                )}
+                onClick={() => toggleCategory(category.id)}
+              >
+                <CardContent className="p-6 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center",
+                      isSelected ? "bg-primary/20" : "bg-muted"
+                    )}>
+                      <Icon className={cn(
+                        "h-6 w-6",
+                        isSelected ? "text-primary" : "text-muted-foreground"
+                      )} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">{category.title}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{category.description}</p>
+                    </div>
+                    {isSelected ? (
+                      <ChevronUp className="h-4 w-4 text-primary" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 6. 데이터 도구 카테고리 */}
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-center">데이터 도구</h2>
+
+        {/* 데이터 도구 아이콘 그리드 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          {DATA_TOOLS_MENU.map((category) => {
             const Icon = category.icon
             const isSelected = selectedCategory === category.id
 

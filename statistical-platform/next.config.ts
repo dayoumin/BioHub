@@ -13,6 +13,22 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
+  // Redirects for moved pages (frequency-table, cross-tabulation)
+  async redirects() {
+    return [
+      {
+        source: '/statistics/frequency-table',
+        destination: '/data-tools/frequency-table',
+        permanent: true,
+      },
+      {
+        source: '/statistics/cross-tabulation',
+        destination: '/data-tools/cross-tabulation',
+        permanent: true,
+      },
+    ]
+  },
+
   experimental: {
     optimizePackageImports: ['lucide-react', '@/components/ui']
   },

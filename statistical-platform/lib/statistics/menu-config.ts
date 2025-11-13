@@ -73,24 +73,6 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         implemented: true
       },
       {
-        id: 'frequency-table',
-        href: '/statistics/frequency-table',
-        title: '빈도표',
-        subtitle: '범주형 데이터 빈도 분석',
-        category: 'descriptive',
-        icon: Grid3X3,
-        implemented: true
-      },
-      {
-        id: 'cross-tabulation',
-        href: '/statistics/cross-tabulation',
-        title: '교차표',
-        subtitle: '두 범주형 변수 교차 분석',
-        category: 'descriptive',
-        icon: Grid3X3,
-        implemented: true
-      },
-      {
         id: 'reliability',
         href: '/statistics/reliability',
         title: '신뢰도 분석',
@@ -519,6 +501,40 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
   }
 ]
 
+/**
+ * 데이터 도구 메뉴 (통계 분석 아님)
+ * - 단순 카운팅 및 요약 도구
+ * - 통계 라이브러리 불필요
+ */
+export const DATA_TOOLS_MENU: StatisticsCategory[] = [
+  {
+    id: 'data-tools',
+    title: '데이터 도구',
+    description: '데이터 요약 및 정리 도구',
+    icon: Grid3X3,
+    items: [
+      {
+        id: 'frequency-table',
+        href: '/data-tools/frequency-table',
+        title: '빈도표',
+        subtitle: '범주형 데이터 빈도 분석',
+        category: 'data-tools',
+        icon: Grid3X3,
+        implemented: true
+      },
+      {
+        id: 'cross-tabulation',
+        href: '/data-tools/cross-tabulation',
+        title: '교차표',
+        subtitle: '두 범주형 변수 교차 분석',
+        category: 'data-tools',
+        icon: Grid3X3,
+        implemented: true
+      }
+    ]
+  }
+]
+
 // 모든 메뉴 아이템을 플랫 리스트로 반환
 export function getAllMenuItems(): StatisticsMenuItem[] {
   return STATISTICS_MENU.flatMap(category => category.items)
@@ -550,6 +566,12 @@ export const STATISTICS_SUMMARY = {
 
 // 고급 방식으로 구현된 페이지들
 export const ADVANCED_PAGES = [
-  'frequency-table'
   // 향후 추가될 고급 페이지들
 ]
+
+// 데이터 도구 통계 정보
+export const DATA_TOOLS_SUMMARY = {
+  totalTools: DATA_TOOLS_MENU.flatMap(category => category.items).length,
+  implementedTools: DATA_TOOLS_MENU.flatMap(category => category.items).filter(item => item.implemented).length,
+  categories: DATA_TOOLS_MENU.length
+}
