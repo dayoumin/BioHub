@@ -32,7 +32,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
@@ -129,38 +129,22 @@ export default function MixedModelPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  // Pyodide ready state
+  const [pyodideReady, setPyodideReady] = useState(false)
 
-  // Initialize Pyodide - 메모리 누수 방지
+  // Initialize PyodideCore
   useEffect(() => {
-    let isMounted = true
-    const abortController = new AbortController()
-
     const initPyodide = async () => {
       try {
-        if (abortController.signal.aborted) return
-        await pyodideStats.initialize()
-        if (isMounted && !abortController.signal.aborted) {
-          setPyodide(pyodideStats)
-        }
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
       } catch (err) {
-        if (isMounted && !abortController.signal.aborted) {
-          console.error('Pyodide 초기화 실패:', err)
-          if (actions?.setError) {
-            actions.setError('통계 엔진을 초기화할 수 없습니다.')
-          }
-        }
+        console.error('PyodideCore 초기화 실패:', err)
       }
     }
-
     initPyodide()
-
-    return () => {
-      isMounted = false
-      abortController.abort()
-    }
-  }, [actions])
+  }, [])
 
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
@@ -233,7 +217,7 @@ export default function MixedModelPage() {
   )
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
-    if (!pyodide || !uploadedData) {
+    if (!pyodideReady || !uploadedData || !selectedVariables) {
       if (actions?.setError) {
         actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
       }
@@ -248,122 +232,22 @@ export default function MixedModelPage() {
     }
 
     try {
-      // Mock Mixed Model 결과
-      const mockResult: MixedModelResult = {
-        fixedEffects: [
-          { effect: "Intercept", coefficient: 45.23, standardError: 3.45, tValue: 13.12, pValue: 0.0001, ci95Lower: 38.47, ci95Upper: 51.99, significance: true },
-          { effect: "Treatment", coefficient: 8.67, standardError: 2.18, tValue: 3.98, pValue: 0.0001, ci95Lower: 4.39, ci95Upper: 12.95, significance: true },
-          { effect: "Time", coefficient: 2.34, standardError: 0.89, tValue: 2.63, pValue: 0.009, ci95Lower: 0.59, ci95Upper: 4.09, significance: true },
-          { effect: "Treatment × Time", coefficient: 1.78, standardError: 1.24, tValue: 1.44, pValue: 0.151, ci95Lower: -0.65, ci95Upper: 4.21, significance: false }
-        ],
-        randomEffects: [
-          {
-            group: "Subject",
-            variance: 125.67,
-            standardDeviation: 11.21,
-            correlations: [
-              { effect1: "Intercept", effect2: "Time", correlation: -0.34 }
-            ]
-          },
-          {
-            group: "School",
-            variance: 78.45,
-            standardDeviation: 8.86
-          }
-        ],
-        varianceComponents: [
-          { component: "Subject (Intercept)", variance: 125.67, proportion: 0.456, standardError: 23.45, zValue: 5.36, pValue: 0.0001 },
-          { component: "Subject (Time)", variance: 45.32, proportion: 0.164, standardError: 12.78, zValue: 3.55, pValue: 0.0002 },
-          { component: "School", variance: 78.45, proportion: 0.284, standardError: 18.67, zValue: 4.20, pValue: 0.0001 },
-          { component: "Residual", variance: 26.78, proportion: 0.097, standardError: 4.23, zValue: 6.33, pValue: 0.0001 }
-        ],
-        modelFit: {
-          logLikelihood: -1234.56,
-          aic: 2489.12,
-          bic: 2523.45,
-          deviance: 2469.12,
-          marginalRSquared: 0.234,
-          conditionalRSquared: 0.567,
-          icc: 0.403
-        },
-        residualAnalysis: {
-          normality: {
-            shapiroW: 0.987,
-            pValue: 0.234,
-            assumptionMet: true
-          },
-          homoscedasticity: {
-            leveneStatistic: 1.45,
-            pValue: 0.178,
-            assumptionMet: true
-          },
-          independence: {
-            durbinWatson: 1.98,
-            pValue: 0.456,
-            assumptionMet: true
-          }
-        },
-        predictedValues: [
-          { observation: 1, observed: 52.3, fitted: 50.8, residual: 1.5, standardizedResidual: 0.29 },
-          { observation: 2, observed: 48.9, fitted: 51.2, residual: -2.3, standardizedResidual: -0.44 },
-          { observation: 3, observed: 55.7, fitted: 54.1, residual: 1.6, standardizedResidual: 0.31 },
-          { observation: 4, observed: 47.2, fitted: 48.8, residual: -1.6, standardizedResidual: -0.31 },
-          { observation: 5, observed: 59.1, fitted: 57.3, residual: 1.8, standardizedResidual: 0.35 }
-        ],
-        randomEffectsTable: [
-          {
-            group: "Subject",
-            subject: 1,
-            intercept: -2.34,
-            slopes: [{ variable: "Time", slope: 0.67 }]
-          },
-          {
-            group: "Subject",
-            subject: 2,
-            intercept: 4.12,
-            slopes: [{ variable: "Time", slope: -0.89 }]
-          },
-          {
-            group: "Subject",
-            subject: 3,
-            intercept: -1.78,
-            slopes: [{ variable: "Time", slope: 1.23 }]
-          },
-          {
-            group: "School",
-            subject: "A",
-            intercept: 3.45
-          },
-          {
-            group: "School",
-            subject: "B",
-            intercept: -2.16
-          }
-        ],
-        interpretation: {
-          summary: "선형 혼합 모형 결과, 고정효과와 무선효과가 모두 유의하며 모형이 데이터를 잘 설명합니다 (조건부 R² = 0.567).",
-          fixedEffectsInterpretation: [
-            "처치 효과가 유의합니다 (β = 8.67, p < 0.001): 처치군이 통제군보다 8.67점 높습니다",
-            "시간 효과가 유의합니다 (β = 2.34, p = 0.009): 시간이 1단위 증가할 때마다 2.34점 증가",
-            "처치와 시간의 상호작용은 유의하지 않습니다 (p = 0.151)"
-          ],
-          randomEffectsInterpretation: [
-            "개체 간 변동이 상당합니다 (SD = 11.21): 개인차가 크게 존재",
-            "학교 간 변동도 존재합니다 (SD = 8.86): 학교별 차이가 있음",
-            "개체의 절편과 기울기 간 음의 상관 (-0.34): 기저 수준이 높은 개체는 시간에 따른 증가율이 낮음"
-          ],
-          varianceExplained: "전체 변동 중 40.3%가 집단 수준 변동(ICC), 23.4%가 고정효과로 설명됩니다.",
-          recommendations: [
-            "무선효과가 유의하므로 다수준 모형이 적절합니다",
-            "개체별 예측 궤적을 활용한 개인화된 해석 가능",
-            "학교 수준 변수 추가 고려 필요",
-            "시간에 따른 비선형 패턴 탐색 권장"
-          ]
+      const pyodideCore = PyodideCoreService.getInstance()
+
+      // Call Worker 2 mixed_model method
+      const workerResult = await pyodideCore.callWorkerMethod<MixedModelResult>(
+        2,
+        'mixed_model',
+        {
+          dependent_var: selectedVariables.dependent,
+          fixed_effects: selectedVariables.factor,
+          random_effects: selectedVariables.blocking || [],
+          data: uploadedData.data as never
         }
-      }
+      )
 
       if (actions?.completeAnalysis) {
-        actions.completeAnalysis(mockResult, 3)
+        actions.completeAnalysis(workerResult, 2)
       }
     } catch (err) {
       console.error('Mixed Model 분석 실패:', err)
@@ -373,7 +257,7 @@ export default function MixedModelPage() {
     } finally {
       // isAnalyzing managed by hook
     }
-  }, [uploadedData, pyodide, actions])
+  }, [uploadedData, pyodideReady, selectedVariables, actions])
 
   const handleVariableSelection = useCallback(
     createVariableSelectionHandler<MixedModelVariables>(
