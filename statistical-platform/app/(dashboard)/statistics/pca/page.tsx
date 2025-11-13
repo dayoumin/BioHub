@@ -31,6 +31,7 @@ import {
 import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 // 데이터 인터페이스
 // 로컬 인터페이스 제거: types/statistics.ts의 PCAVariables 사용
@@ -342,35 +343,52 @@ export default function PCAPage() {
   }, [calculateCovarianceMatrix, calculateEigenDecomposition, calculateKMO])
 
   const runAnalysis = useCallback(async (variables: PCAVariables) => {
-    if (!uploadedData) return
-
-    if (!actions.startAnalysis) {
-      console.error('[pca] startAnalysis not available')
+    if (!uploadedData?.data) {
+      actions.setError?.('데이터를 먼저 업로드해주세요.')
       return
     }
 
-    actions.startAnalysis()
+    if (!variables.all || variables.all.length < 2) {
+      actions.setError?.('PCA를 위해서는 최소 2개 이상의 변수가 필요합니다.')
+      return
+    }
+
+    actions.startAnalysis?.()
 
     try {
-      const result = calculatePCA(uploadedData.data, variables.all)
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
 
-      if (!actions.completeAnalysis) {
-        console.error('[pca] completeAnalysis not available')
+      // Extract numeric data matrix
+      const numericData = uploadedData.data.map(row =>
+        variables.all.map(v => {
+          const value = (row as Record<string, unknown>)[v]
+          return typeof value === 'number' ? value : parseFloat(String(value)) || 0
+        })
+      ).filter(row => row.every(val => !isNaN(val)))
+
+      if (numericData.length === 0) {
+        actions.setError?.('유효한 숫자 데이터가 없습니다.')
         return
       }
 
-      actions.completeAnalysis(result, 3)
-    } catch (error) {
-      console.error('PCA 분석 중 오류:', error)
+      // Call Worker 4 pca_analysis method
+      const result = await pyodideCore.callWorkerMethod<PCAResult>(
+        4,
+        'pca_analysis',
+        {
+          data: numericData,
+          n_components: null  // null = extract all components
+        }
+      )
 
-      if (!actions.setError) {
-        console.error('[pca] setError not available')
-        return
-      }
-
-      actions.setError('PCA 분석 중 오류가 발생했습니다.')
+      actions.completeAnalysis?.(result, 3)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'PCA 분석 중 오류가 발생했습니다.'
+      console.error('[pca] Analysis error:', errorMessage)
+      actions.setError?.(errorMessage)
     }
-  }, [uploadedData, calculatePCA, actions])
+  }, [uploadedData, actions])
 
   const handleVariableSelection = useCallback((assignment: VariableAssignment) => {
     if (!actions.setSelectedVariables) {

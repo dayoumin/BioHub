@@ -30,6 +30,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 // 데이터 인터페이스
 // 로컬 인터페이스 제거: types/statistics.ts의 DiscriminantVariables 사용
@@ -139,234 +140,60 @@ export default function DiscriminantPage() {
     'discriminant'
   )
 
-  // 행렬 계산 유틸리티 함수들
-  const calculateMean = useCallback((data: number[]): number => {
-    return data.reduce((sum, val) => sum + val, 0) / data.length
-  }, [])
-
-  const _calculateCovariance = useCallback((x: number[], y: number[]): number => {
-    const meanX = calculateMean(x)
-    const meanY = calculateMean(y)
-    const n = x.length
-
-    let sum = 0
-    for (let i = 0; i < n; i++) {
-      sum += (x[i] - meanX) * (y[i] - meanY)
-    }
-
-    return sum / (n - 1)
-  }, [calculateMean])
-
-  // 그룹별 평균 계산
-  const calculateGroupMeans = useCallback((
-    data: Record<string, unknown>[],
-    groupVariable: string,
-    variables: string[]
-  ): Record<string, Record<string, number>> => {
-    const groups = [...new Set(data.map(row => String(row[groupVariable])))]
-    const groupMeans: Record<string, Record<string, number>> = {}
-
-    groups.forEach(group => {
-      const groupData = data.filter(row => String(row[groupVariable]) === group)
-      groupMeans[group] = {}
-
-      variables.forEach(variable => {
-        const values = groupData.map(row => Number(row[variable]) || 0)
-        groupMeans[group][variable] = calculateMean(values)
-      })
-    })
-
-    return groupMeans
-  }, [calculateMean])
-
-  // 실제 판별분석 계산 로직
-  const calculateDiscriminantAnalysis = useCallback((
-    data: Record<string, unknown>[],
-    dependentVariable: string,
-    independentVariables: string[]
-  ): DiscriminantResult => {
-    // 데이터 준비
-    const validData = data.filter(row =>
-      row[dependentVariable] &&
-      independentVariables.every(variable =>
-        row[variable] !== null && row[variable] !== undefined && !isNaN(Number(row[variable]))
-      )
-    )
-
-    const n = validData.length
-    const groups = [...new Set(validData.map(row => String(row[dependentVariable])))]
-    const numGroups = groups.length
-    const numVariables = independentVariables.length
-
-    if (n < numGroups * 3 || numGroups < 2) {
-      throw new Error('판별분석을 위해서는 각 그룹당 최소 3개 관측치가 필요합니다')
-    }
-
-    // 그룹별 평균 계산
-    const groupMeans = calculateGroupMeans(validData, dependentVariable, independentVariables)
-
-    // 전체 평균 계산
-    const overallMeans: Record<string, number> = {}
-    independentVariables.forEach(variable => {
-      const allValues = validData.map(row => Number(row[variable]) || 0)
-      overallMeans[variable] = calculateMean(allValues)
-    })
-
-    // 그룹 내 분산-공분산 행렬 계산 (간단한 구현)
-    const withinGroupVariance = independentVariables.map(variable => {
-      let totalVariance = 0
-      groups.forEach(group => {
-        const groupData = validData.filter(row => String(row[dependentVariable]) === group)
-        const values = groupData.map(row => Number(row[variable]) || 0)
-        const groupMean = groupMeans[group][variable]
-
-        const variance = values.reduce((sum, val) => sum + Math.pow(val - groupMean, 2), 0)
-        totalVariance += variance
-      })
-
-      return totalVariance / (n - numGroups)
-    })
-
-    // 그룹 간 분산 계산
-    const betweenGroupVariance = independentVariables.map((variable, _index) => {
-      let variance = 0
-      groups.forEach(group => {
-        const groupSize = validData.filter(row => String(row[dependentVariable]) === group).length
-        const groupMean = groupMeans[group][variable]
-        const overallMean = overallMeans[variable]
-
-        variance += groupSize * Math.pow(groupMean - overallMean, 2)
-      })
-
-      return variance / (numGroups - 1)
-    })
-
-    // 판별함수 생성 (간단한 구현)
-    const numFunctions = Math.min(numGroups - 1, numVariables)
-    const functions: DiscriminantFunction[] = []
-
-    for (let i = 0; i < numFunctions; i++) {
-      const eigenvalue = betweenGroupVariance[i] / (withinGroupVariance[i] || 1)
-      const varianceExplained = (eigenvalue / betweenGroupVariance.reduce((sum, val) => sum + val, 0)) * 100
-      const canonicalCorrelation = Math.sqrt(eigenvalue / (1 + eigenvalue))
-
-      const coefficients: Record<string, number> = {}
-      independentVariables.forEach((variable, varIndex) => {
-        // 간단한 계수 계산 (실제로는 더 복잡한 행렬 계산 필요)
-        coefficients[variable] = (betweenGroupVariance[varIndex] / withinGroupVariance[varIndex]) *
-                                 Math.cos((i * Math.PI) / (numFunctions + 1))
-      })
-
-      functions.push({
-        functionNumber: i + 1,
-        eigenvalue,
-        varianceExplained,
-        cumulativeVariance: functions.reduce((sum, func) => sum + func.varianceExplained, 0) + varianceExplained,
-        canonicalCorrelation,
-        coefficients
-      })
-    }
-
-    // 그룹 중심점 계산
-    const groupCentroids: GroupCentroid[] = groups.map(group => ({
-      group,
-      centroids: functions.reduce((acc, func) => {
-        acc[`Function${func.functionNumber}`] =
-          independentVariables.reduce((score, variable) =>
-            score + func.coefficients[variable] * groupMeans[group][variable], 0)
-        return acc
-      }, {} as Record<string, number>)
-    }))
-
-    // 분류 결과 계산
-    const classificationResults: ClassificationResult[] = validData.map(row => {
-      const actualGroup = String(row[dependentVariable])
-
-      // 각 그룹까지의 거리 계산
-      const distances = groups.map(group => {
-        let distance = 0
-        independentVariables.forEach(variable => {
-          const value = Number(row[variable]) || 0
-          const groupMean = groupMeans[group][variable]
-          distance += Math.pow(value - groupMean, 2)
-        })
-        return { group, distance: Math.sqrt(distance) }
-      })
-
-      // 가장 가까운 그룹으로 분류
-      distances.sort((a, b) => a.distance - b.distance)
-      const predictedGroup = distances[0].group
-      const probability = 1 / (1 + distances[0].distance)
-
-      return {
-        originalGroup: actualGroup,
-        predictedGroup,
-        probability,
-        correct: actualGroup === predictedGroup
-      }
-    })
-
-    // 분류 정확도 계산
-    const accuracy = (classificationResults.filter(result => result.correct).length / classificationResults.length) * 100
-
-    // 혼동행렬 계산
-    const confusionMatrix: Record<string, Record<string, number>> = {}
-    groups.forEach(actualGroup => {
-      confusionMatrix[actualGroup] = {}
-      groups.forEach(predictedGroup => {
-        confusionMatrix[actualGroup][predictedGroup] = classificationResults.filter(
-          result => result.originalGroup === actualGroup && result.predictedGroup === predictedGroup
-        ).length
-      })
-    })
-
-    // 통계적 검정
-    const totalVariance = betweenGroupVariance.reduce((sum, val) => sum + val, 0)
-    const wilksLambda = withinGroupVariance.reduce((sum, val) => sum + val, 0) /
-                       (withinGroupVariance.reduce((sum, val) => sum + val, 0) + totalVariance)
-    const boxMStatistic = Math.log(1 + totalVariance) * (n - numGroups)
-
-    return {
-      functions,
-      totalVariance,
-      selectedFunctions: functions.filter(func => func.eigenvalue > 0.1).length,
-      groupCentroids,
-      classificationResults,
-      accuracy,
-      confusionMatrix,
-      equalityTests: {
-        boxM: {
-          statistic: boxMStatistic,
-          pValue: boxMStatistic > 10 ? 0.001 : 0.1,
-          significant: boxMStatistic > 10
-        },
-        wilksLambda: {
-          statistic: wilksLambda,
-          pValue: wilksLambda < 0.5 ? 0.001 : 0.1,
-          significant: wilksLambda < 0.5
-        }
-      },
-      interpretation: `${numFunctions}개의 판별함수가 생성되었으며, 분류 정확도는 ${accuracy.toFixed(1)}%입니다.`
-    }
-  }, [calculateGroupMeans, calculateMean])
-
+  // Discriminant analysis using PyodideCore (Worker 4)
   const runAnalysis = useCallback(async (variables: DiscriminantVariables) => {
-    if (!uploadedData) return
+    if (!uploadedData?.data) {
+      actions.setError?.('데이터를 먼저 업로드해주세요.')
+      return
+    }
 
-    actions.startAnalysis()
+    if (!variables.dependent || variables.independent.length === 0) {
+      actions.setError?.('종속변수와 독립변수를 모두 선택해주세요.')
+      return
+    }
+
+    actions.startAnalysis?.()
 
     try {
-      const result = calculateDiscriminantAnalysis(
-        uploadedData.data,
-        variables.dependent,
-        variables.independent
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // Prepare data: extract groups and numeric data matrix
+      const validData = uploadedData.data.filter(row =>
+        row[variables.dependent] &&
+        variables.independent.every(variable =>
+          row[variable] !== null && row[variable] !== undefined && !isNaN(Number(row[variable]))
+        )
       )
-      actions.completeAnalysis(result, 3)
-    } catch (error) {
-      console.error('판별분석 중 오류:', error)
-      actions.setError('판별분석 중 오류가 발생했습니다.')
+
+      if (validData.length === 0) {
+        actions.setError?.('유효한 데이터가 없습니다.')
+        return
+      }
+
+      const groups = validData.map(row => String(row[variables.dependent]))
+      const dataMatrix = validData.map(row =>
+        variables.independent.map(v => Number(row[v]) || 0)
+      )
+
+      // Call Worker 4 discriminant_analysis method
+      const result = await pyodideCore.callWorkerMethod<DiscriminantResult>(
+        4,
+        'discriminant_analysis',
+        {
+          data: dataMatrix,
+          groups: groups
+        }
+      )
+
+      actions.completeAnalysis?.(result, 3)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '판별분석 중 오류가 발생했습니다.'
+      console.error('[discriminant] Analysis error:', errorMessage)
+      actions.setError?.(errorMessage)
     }
-  }, [uploadedData, calculateDiscriminantAnalysis, actions])
+  }, [uploadedData, actions])
+
 
   const handleVariableSelection = useCallback((variables: VariableAssignment) => {
     const typedVariables = toDiscriminantVariables(variables)

@@ -15,6 +15,7 @@ import { CheckCircle, XCircle, Target, BarChart3, Activity, Zap, TrendingUp } fr
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 // 요인분석 결과 인터페이스
 interface FactorAnalysisResult {
@@ -330,32 +331,65 @@ export default function FactorAnalysisPage() {
   // 요인분석 실행
   const handleRunAnalysis = useCallback(async () => {
     if (!uploadedData?.data.length || !(selectedVariables?.dependent ?? []).length) {
-      actions.setError('데이터와 변수를 선택해주세요.')
+      actions.setError?.('데이터와 변수를 선택해주세요.')
       return
     }
 
     if ((selectedVariables?.dependent ?? []).length < 3) {
-      actions.setError('요인분석을 위해서는 최소 3개 이상의 변수가 필요합니다.')
+      actions.setError?.('요인분석을 위해서는 최소 3개 이상의 변수가 필요합니다.')
       return
     }
 
-    actions.startAnalysis()
+    if (analysisType === 'confirmatory') {
+      actions.setError?.('확인적 요인분석(CFA)은 추후 구현 예정입니다.')
+      return
+    }
+
+    actions.startAnalysis?.()
 
     try {
-      let result: FactorAnalysisResult
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
 
-      if (analysisType === 'exploratory') {
-        result = calculateExploratory(uploadedData.data, selectedVariables?.dependent ?? [])
-      } else {
-        // 확인적 요인분석 (CFA)는 추후 구현
-        throw new Error('확인적 요인분석(CFA)은 추후 구현 예정입니다.')
+      // Extract numeric data matrix
+      const numericData = uploadedData.data.map(row =>
+        (selectedVariables?.dependent ?? []).map(v => {
+          const value = (row as Record<string, unknown>)[v]
+          return typeof value === 'number' ? value : parseFloat(String(value)) || 0
+        })
+      ).filter(row => row.every(val => !isNaN(val)))
+
+      if (numericData.length === 0) {
+        actions.setError?.('유효한 숫자 데이터가 없습니다.')
+        return
       }
 
-      actions.completeAnalysis(result, 3)
+      // Determine number of factors
+      let finalNumFactors = numFactors
+      if (autoFactorSelection) {
+        // TODO: Implement automatic factor selection based on eigenvalues
+        finalNumFactors = Math.max(2, Math.min(5, Math.floor((selectedVariables?.dependent ?? []).length / 2)))
+      }
+
+      // Call Worker 4 factor_analysis_method
+      const result = await pyodideCore.callWorkerMethod<FactorAnalysisResult>(
+        4,
+        'factor_analysis_method',
+        {
+          data: numericData,
+          n_factors: finalNumFactors,
+          rotation: rotationMethod,
+          extraction: extractionMethod
+        }
+      )
+
+      actions.completeAnalysis?.(result, 3)
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
+      console.error('[factor-analysis] Analysis error:', errorMessage)
+      actions.setError?.(errorMessage)
     }
-  }, [uploadedData, selectedVariables, analysisType, calculateExploratory, actions])
+  }, [uploadedData, selectedVariables, analysisType, numFactors, autoFactorSelection, rotationMethod, extractionMethod, actions])
 
   // 변수 선택 페이지
   const variableSelectionStep = useMemo(() => (

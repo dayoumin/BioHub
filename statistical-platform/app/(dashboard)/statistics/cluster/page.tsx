@@ -15,6 +15,7 @@ import { CheckCircle, XCircle, Users, Target, Zap, BarChart3, Activity } from 'l
 import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 // 군집분석 결과 인터페이스
 interface ClusterAnalysisResult {
@@ -107,293 +108,61 @@ export default function ClusterAnalysisPage() {
     'cluster'
   )
 
-    // 유클리드 거리 계산
-  const euclideanDistance = useCallback((point1: number[], point2: number[]): number => {
-    return Math.sqrt(point1.reduce((sum, val, i) => sum + (val - point2[i]) ** 2, 0))
-  }, [])
-
-  // 간소화된 실루엣 스코어 계산
-  const calculateSilhouetteScore = useCallback((data: number[][], assignments: number[], k: number): number => {
-    if (k <= 1) return 0
-
-    let totalSilhouette = 0
-    const n = data.length
-
-    for (let i = 0; i < n; i++) {
-      const cluster = assignments[i]
-
-      // a(i): 같은 군집 내 평균 거리
-      const sameClusterPoints = data.filter((_, j) => assignments[j] === cluster && j !== i)
-      const a = sameClusterPoints.length > 0
-        ? sameClusterPoints.reduce((sum, point) => sum + euclideanDistance(data[i], point), 0) / sameClusterPoints.length
-        : 0
-
-      // b(i): 가장 가까운 다른 군집까지의 평균 거리
-      let minAvgDist = Infinity
-      for (let c = 0; c < k; c++) {
-        if (c !== cluster) {
-          const otherClusterPoints = data.filter((_, j) => assignments[j] === c)
-          if (otherClusterPoints.length > 0) {
-            const avgDist = otherClusterPoints.reduce((sum, point) => sum + euclideanDistance(data[i], point), 0) / otherClusterPoints.length
-            minAvgDist = Math.min(minAvgDist, avgDist)
-          }
-        }
-      }
-      const b = minAvgDist
-
-      const silhouette = (b - a) / Math.max(a, b)
-      totalSilhouette += silhouette
-    }
-
-    return totalSilhouette / n
-  }, [euclideanDistance])
-
-  // Davies-Bouldin 지수 계산
-  const calculateDaviesBouldinScore = useCallback((centroids: number[][], withinSS: number[], sizes: number[]): number => {
-    const k = centroids.length
-    let totalDB = 0
-
-    for (let i = 0; i < k; i++) {
-      let maxRatio = 0
-      const si = Math.sqrt(withinSS[i] / sizes[i])
-
-      for (let j = 0; j < k; j++) {
-        if (i !== j) {
-          const sj = Math.sqrt(withinSS[j] / sizes[j])
-          const dij = euclideanDistance(centroids[i], centroids[j])
-          if (dij > 0) {
-            const ratio = (si + sj) / dij
-            maxRatio = Math.max(maxRatio, ratio)
-          }
-        }
-      }
-      totalDB += maxRatio
-    }
-
-    return totalDB / k
-  }, [euclideanDistance])
-
-  // K-means 군집분석 계산
-  const calculateKMeans = useCallback((data: unknown[], variables: string[], k: number): ClusterAnalysisResult => {
-    // 데이터 전처리
-    const numericData = data.map(row => {
-      return variables.map(variable => {
-        const value = (row as Record<string, unknown>)[variable]
-        return typeof value === 'number' ? value : parseFloat(String(value)) || 0
-      })
-    }).filter(row => row.every(val => !isNaN(val)))
-
-    if (numericData.length < k) {
-      throw new Error(`데이터 개수(${numericData.length})가 군집 수(${k})보다 적습니다.`)
-    }
-
-    const n = numericData.length
-    const dimensions = variables.length
-
-    // 초기 중심점 설정 (K-means++)
-    const centroids: number[][] = []
-    const distances = new Array(n).fill(Infinity)
-
-    // 첫 번째 중심점을 무작위로 선택
-    centroids.push([...numericData[Math.floor(Math.random() * n)]])
-
-    // 나머지 중심점들을 K-means++ 방법으로 선택
-    for (let c = 1; c < k; c++) {
-      let totalDistance = 0
-      for (let i = 0; i < n; i++) {
-        let minDist = Infinity
-        for (let j = 0; j < centroids.length; j++) {
-          const dist = euclideanDistance(numericData[i], centroids[j])
-          minDist = Math.min(minDist, dist)
-        }
-        distances[i] = minDist * minDist
-        totalDistance += distances[i]
-      }
-
-      const random = Math.random() * totalDistance
-      let sum = 0
-      for (let i = 0; i < n; i++) {
-        sum += distances[i]
-        if (sum >= random) {
-          centroids.push([...numericData[i]])
-          break
-        }
-      }
-    }
-
-    // K-means 반복
-    const assignments = new Array(n)
-    let converged = false
-    let iterations = 0
-    const maxIterations = 100
-
-    while (!converged && iterations < maxIterations) {
-      converged = true
-      iterations++
-
-      // 각 점을 가장 가까운 중심점에 할당
-      for (let i = 0; i < n; i++) {
-        let minDist = Infinity
-        let newAssignment = 0
-
-        for (let c = 0; c < k; c++) {
-          const dist = euclideanDistance(numericData[i], centroids[c])
-          if (dist < minDist) {
-            minDist = dist
-            newAssignment = c
-          }
-        }
-
-        if (assignments[i] !== newAssignment) {
-          converged = false
-          assignments[i] = newAssignment
-        }
-      }
-
-      // 중심점 업데이트
-      for (let c = 0; c < k; c++) {
-        const clusterPoints = numericData.filter((_, i) => assignments[i] === c)
-        if (clusterPoints.length > 0) {
-          for (let d = 0; d < dimensions; d++) {
-            centroids[c][d] = clusterPoints.reduce((sum, point) => sum + point[d], 0) / clusterPoints.length
-          }
-        }
-      }
-    }
-
-    // 성능 지표 계산
-    const clusterSizes = new Array(k).fill(0)
-    const withinClusterSumSquares = new Array(k).fill(0)
-
-    for (let i = 0; i < n; i++) {
-      const cluster = assignments[i]
-      clusterSizes[cluster]++
-      withinClusterSumSquares[cluster] += euclideanDistance(numericData[i], centroids[cluster]) ** 2
-    }
-
-    const totalWithinSS = withinClusterSumSquares.reduce((sum, wss) => sum + wss, 0)
-
-    // 전체 평균 계산
-    const grandMean = new Array(dimensions).fill(0)
-    for (let d = 0; d < dimensions; d++) {
-      grandMean[d] = numericData.reduce((sum, point) => sum + point[d], 0) / n
-    }
-
-    const totalSS = numericData.reduce((sum, point) =>
-      sum + euclideanDistance(point, grandMean) ** 2, 0)
-    const betweenClusterSS = totalSS - totalWithinSS
-
-    // 성능 지표 계산
-    const silhouetteScore = calculateSilhouetteScore(numericData, assignments, k)
-    const calinski_harabasz_score = (n - k) * betweenClusterSS / ((k - 1) * totalWithinSS)
-    const davies_bouldin_score = calculateDaviesBouldinScore(centroids, withinClusterSumSquares, clusterSizes)
-
-    // 군집별 상세 통계
-    const clusterStatistics = centroids.map((centroid, c) => ({
-      cluster: c + 1,
-      size: clusterSizes[c],
-      centroid: centroid,
-      withinSS: withinClusterSumSquares[c],
-      avgSilhouette: silhouetteScore
-    }))
-
-    return {
-      method: 'kmeans',
-      numClusters: k,
-      clusterAssignments: assignments,
-      centroids,
-      inertia: totalWithinSS,
-      silhouetteScore,
-      calinski_harabasz_score,
-      davies_bouldin_score,
-      withinClusterSumSquares,
-      totalWithinSS,
-      betweenClusterSS,
-      totalSS,
-      clusterSizes,
-      clusterStatistics
-    }
-  }, [euclideanDistance, calculateSilhouetteScore, calculateDaviesBouldinScore])
-
-  // 최적 군집 수 결정 (엘보우 방법)
-  const findOptimalClusters = useCallback((data: unknown[], variables: string[]): { elbow: number, silhouette: number } => {
-    const numericData = data.map(row => {
-      return variables.map(variable => {
-        const value = (row as Record<string, unknown>)[variable]
-        return typeof value === 'number' ? value : parseFloat(String(value)) || 0
-      })
-    }).filter(row => row.every(val => !isNaN(val)))
-
-    const maxK = Math.min(10, Math.floor(numericData.length / 2))
-    const withinSS: number[] = []
-    const silhouetteScores: number[] = []
-
-    for (let k = 1; k <= maxK; k++) {
-      try {
-        const result = calculateKMeans(data, variables, k)
-        withinSS.push(result.totalWithinSS)
-        silhouetteScores.push(result.silhouetteScore)
-      } catch {
-        break
-      }
-    }
-
-    // 엘보우 방법으로 최적 K 찾기
-    let optimalElbow = 2
-    let maxDecrease = 0
-    for (let i = 1; i < withinSS.length - 1; i++) {
-      const decrease = withinSS[i - 1] - withinSS[i]
-      const nextDecrease = withinSS[i] - withinSS[i + 1]
-      const elbowScore = decrease - nextDecrease
-      if (elbowScore > maxDecrease) {
-        maxDecrease = elbowScore
-        optimalElbow = i + 1
-      }
-    }
-
-    // 실루엣 스코어가 최대인 K 찾기
-    let optimalSilhouette = 2
-    let maxSilhouette = -1
-    for (let i = 1; i < silhouetteScores.length; i++) {
-      if (silhouetteScores[i] > maxSilhouette) {
-        maxSilhouette = silhouetteScores[i]
-        optimalSilhouette = i + 1
-      }
-    }
-
-    return { elbow: optimalElbow, silhouette: optimalSilhouette }
-  }, [calculateKMeans])
-
-  // 군집분석 실행
+  // 군집분석 실행 (Worker 4 사용)
   const handleRunAnalysis = useCallback(async () => {
     if (!uploadedData?.data.length || !selectedVariables?.all || selectedVariables.all.length === 0) {
-      actions.setError('데이터와 변수를 선택해주세요.')
+      actions.setError?.('데이터와 변수를 선택해주세요.')
       return
     }
 
-    actions.startAnalysis()
+    if (selectedVariables.all.length < 2) {
+      actions.setError?.('최소 2개 이상의 변수를 선택해주세요.')
+      return
+    }
+
+    actions.startAnalysis?.()
 
     try {
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
+      // Extract numeric data matrix
+      const numericData = uploadedData.data.map(row =>
+        selectedVariables.all.map(v => {
+          const value = (row as Record<string, unknown>)[v]
+          return typeof value === 'number' ? value : parseFloat(String(value)) || 0
+        })
+      ).filter(row => row.every(val => !isNaN(val)))
+
+      if (numericData.length === 0) {
+        actions.setError?.('유효한 숫자 데이터가 없습니다.')
+        return
+      }
+
+      // Determine final number of clusters
       let finalNumClusters = numClusters
 
-      // 최적 군집 수 자동 결정
-      if (autoOptimalK) {
-        const optimal = findOptimalClusters(uploadedData.data, selectedVariables.all)
-        finalNumClusters = optimal.silhouette
-      }
+      // TODO: Implement optimal K selection in Worker 4 if needed
+      // For now, use user-specified numClusters
 
-      const result = calculateKMeans(uploadedData.data, selectedVariables.all, finalNumClusters)
+      // Call Worker 4 cluster_analysis method
+      const result = await pyodideCore.callWorkerMethod<ClusterAnalysisResult>(
+        4,
+        'cluster_analysis',
+        {
+          data: numericData,
+          method: 'kmeans',
+          num_clusters: finalNumClusters
+        }
+      )
 
-      if (autoOptimalK) {
-        const optimal = findOptimalClusters(uploadedData.data, selectedVariables.all)
-        result.optimalK = { ...optimal, gap: optimal.elbow }
-      }
-
-      actions.completeAnalysis(result, 3)
+      actions.completeAnalysis?.(result, 3)
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
+      const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
+      console.error('[cluster] Analysis error:', errorMessage)
+      actions.setError?.(errorMessage)
     }
-  }, [uploadedData, selectedVariables, numClusters, autoOptimalK, findOptimalClusters, calculateKMeans, actions])
+  }, [uploadedData, selectedVariables, numClusters, autoOptimalK, actions])
 
   // 변수 선택 페이지
   const variableSelectionStep = useMemo(() => (
