@@ -1,7 +1,7 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-11-12 15:30
-**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅
+**최종 업데이트**: 2025-11-12 19:00
+**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅ + **Phase 9 계획 수립 완료** 📋
 
 ---
 
@@ -99,6 +99,58 @@
 ---
 
 ## ✅ 최근 완료 작업
+
+### Phase 9 계획 수립: 계산 방법 표준화 (2025-11-12) 📋
+**우선순위**: 🔴 **Critical** (일관성 및 유지보수성)
+**상태**: ✅ **계획 완료 (내일 실행 예정)**
+
+**작업 개요**:
+- ✅ 검증 스크립트 작성: [test-statistics-pages.js](statistical-platform/scripts/test-statistics-pages.js) (312 lines)
+- ✅ 계산 방법 검증 완료: 44개 통계 페이지 자동 분석
+- ✅ 상세 계획 문서화: [PHASE_9_PLAN.md](PHASE_9_PLAN.md) (400+ lines)
+- ✅ 24개 페이지 변환 계획 수립 (4 Batches)
+
+**검증 결과**:
+```
+전체 페이지: 44개
+실제 계산: 40개 (91%)
+Mock 패턴: 0개 (0%) ✅
+
+계산 방법 분포:
+- PyodideCore: 18개 (41%) ✅ 표준
+- pyodideStats: 10개 (23%) 🔴 구식
+- Legacy Pyodide: 6개 (14%) 🔴 구식
+- JavaScript: 6개 (14%) 🟡 검토 필요
+- None: 4개 (9%) 🔴 미구현
+```
+
+**문제점**:
+- 3가지 다른 Pyodide 호출 방법 혼재 (일관성 없음)
+- 유지보수 어려움 (각 방법마다 다른 패턴)
+- 코드 품질: 최신 표준(PyodideCore)이 41%만 적용
+
+**Phase 9 목표**:
+- **PyodideCore**: 42개 (95%) - 통일된 표준
+- **JavaScript**: 2개 (5%) - 단순 계산만 (frequency-table, cross-tabulation)
+
+**변환 계획** (24개 페이지):
+1. **Batch 1**: pyodideStats → PyodideCore (10개, 1-2h)
+2. **Batch 2**: Legacy Pyodide → PyodideCore (6개, 1h)
+3. **Batch 3**: JavaScript → PyodideCore (4개, 2h, sklearn 사용)
+4. **Batch 4**: None → PyodideCore (4개, 2-3h, 새로운 구현)
+
+**예상 일정**:
+- Day 1: Batch 1-2 (16개 페이지)
+- Day 2: Batch 3-4 (8개 페이지)
+- Day 3: 최종 검증 + 문서 업데이트
+
+**생성 문서**:
+- [PHASE_9_PLAN.md](PHASE_9_PLAN.md) - 상세 변환 계획 (400+ lines)
+- [test-statistics-pages.js](statistical-platform/scripts/test-statistics-pages.js) - 자동 검증 스크립트
+
+**다음 단계**: 내일 Phase 9-1 시작 (pyodideStats 10개 페이지 변환)
+
+---
 
 ### methodId 표준화 및 Critical 버그 수정 (2025-11-06) 🔧
 **우선순위**: 🔴 **Critical** (데이터 로드 실패 버그)

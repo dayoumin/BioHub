@@ -34,7 +34,7 @@ import { StatisticsTable, type TableColumn } from '@/components/statistics/commo
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
@@ -96,17 +96,18 @@ export default function FriedmanPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  // PyodideCore instance
+  const [pyodideReady, setPyodideReady] = useState(false)
 
-  // Initialize Pyodide
+  // Initialize PyodideCore
   useEffect(() => {
     const initPyodide = async () => {
       try {
-        await pyodideStats.initialize()
-        setPyodide(pyodideStats)
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
       } catch (err) {
-        console.error('Pyodide 초기화 실패:', err)
+        console.error('PyodideCore 초기화 실패:', err)
         actions.setError?.('통계 엔진을 초기화할 수 없습니다.')
       }
     }
@@ -167,7 +168,7 @@ export default function FriedmanPage() {
   )
 
   const runAnalysis = useCallback(async (variables: FriedmanVariables) => {
-    if (!uploadedData || !pyodide || !variables.dependent) {
+    if (!uploadedData || !pyodideReady || !variables.dependent) {
       actions.setError?.('분석을 실행할 수 없습니다.')
       return
     }
@@ -203,8 +204,12 @@ export default function FriedmanPage() {
         })
       })
 
-      // Call friedmanTestWorker which returns basic result
-      const basicResult = await pyodide.friedmanTestWorker(conditionData)
+      // Call PyodideCore Worker 3 - friedman_test
+      const pyodideCore = PyodideCoreService.getInstance()
+      const basicResult = await pyodideCore.callWorkerMethod<{
+        statistic: number
+        pValue: number
+      }>(3, 'friedman_test', { groups: conditionData })
 
       // Calculate additional statistics for FriedmanResult
       const nBlocks = conditionData[0].length
@@ -272,7 +277,7 @@ export default function FriedmanPage() {
       console.error('Friedman 검정 실패:', err)
       actions.setError?.('Friedman 검정 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, pyodide, actions])
+  }, [uploadedData, pyodideReady, actions])
 
   const handleVariableSelection = createVariableSelectionHandler<FriedmanVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toFriedmanVariables(vars as unknown as VariableAssignment) : null),
