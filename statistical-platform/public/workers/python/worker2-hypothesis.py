@@ -433,3 +433,115 @@ def fisher_exact_test(
         'sampleSize': int(n)
     }
 
+def partial_correlation_analysis(data, analysis_vars, control_vars=None):
+    """
+    편상관 분석 (Partial Correlation Analysis)
+
+    Parameters:
+    - data: List[Dict] - 전체 데이터
+    - analysis_vars: List[str] - 분석할 변수들
+    - control_vars: List[str] - 통제변수들 (선택)
+
+    Returns:
+    - Dict with correlations, zeroOrderCorrelations, summary, and interpretation
+    """
+    import pandas as pd
+    import numpy as np
+    from scipy import stats
+    from itertools import combinations
+
+    df = pd.DataFrame(data)
+
+    # 기본값 처리
+    if control_vars is None:
+        control_vars = []
+
+    # 결측값 제거
+    all_vars = analysis_vars + control_vars
+    df_clean = df[all_vars].dropna()
+
+    def compute_partial_corr(df, x, y, controls):
+        """편상관계수 계산"""
+        if not controls:
+            # 통제변수가 없으면 단순 상관
+            corr, p_val = stats.pearsonr(df[x], df[y])
+            n = len(df)
+            t_stat = corr * np.sqrt((n-2)/(1-corr**2)) if abs(corr) != 1 else np.inf
+            return corr, p_val, t_stat, n-2
+
+        # 편상관 계산 (잔차 기반)
+        X_matrix = np.column_stack([df[controls].values, np.ones(len(df))])
+        x_resid = df[x] - X_matrix @ np.linalg.lstsq(X_matrix, df[x], rcond=None)[0]
+        y_resid = df[y] - X_matrix @ np.linalg.lstsq(X_matrix, df[y], rcond=None)[0]
+
+        # 잔차 간 상관
+        corr, p_val = stats.pearsonr(x_resid, y_resid)
+        n = len(df)
+        df_val = n - len(controls) - 2
+
+        if abs(corr) != 1:
+            t_stat = corr * np.sqrt(df_val / (1 - corr**2))
+        else:
+            t_stat = np.inf
+
+        return corr, p_val, t_stat, df_val
+
+    # 모든 변수 쌍에 대해 편상관 계산
+    correlations = []
+    zero_order_correlations = []
+
+    for x, y in combinations(analysis_vars, 2):
+        # 편상관
+        partial_corr, p_val, t_stat, df_val = compute_partial_corr(df_clean, x, y, control_vars)
+
+        correlations.append({
+            'variable1': x,
+            'variable2': y,
+            'partialCorr': float(partial_corr),
+            'pValue': float(p_val),
+            'tStat': float(t_stat),
+            'df': int(df_val),
+            'controlVars': control_vars.copy()
+        })
+
+        # 단순상관 (비교용)
+        zero_corr, zero_p = stats.pearsonr(df_clean[x], df_clean[y])
+        zero_order_correlations.append({
+            'variable1': x,
+            'variable2': y,
+            'correlation': float(zero_corr),
+            'pValue': float(zero_p)
+        })
+
+    # 요약 통계
+    partial_values = [c['partialCorr'] for c in correlations]
+    significant_count = sum(1 for c in correlations if c['pValue'] < 0.05)
+
+    summary = {
+        'nPairs': len(correlations),
+        'significantPairs': significant_count,
+        'meanPartialCorr': float(np.mean(np.abs(partial_values))) if partial_values else 0.0,
+        'maxPartialCorr': float(np.max(partial_values)) if partial_values else 0.0,
+        'minPartialCorr': float(np.min(partial_values)) if partial_values else 0.0
+    }
+
+    # 해석 생성
+    control_text = f" (통제변수: {', '.join(control_vars)})" if control_vars else ""
+    interpretation = {
+        'summary': f'{len(analysis_vars)}개 변수 간 {summary["nPairs"]}개 쌍의 편상관을 분석했습니다{control_text}. {significant_count}개 쌍이 통계적으로 유의했습니다.',
+        'recommendations': [
+            '편상관계수는 통제변수의 영향을 제거한 순수한 관계를 나타냅니다.',
+            '절대값이 0.7 이상이면 강한 상관, 0.5-0.7은 중간 상관입니다.',
+            '편상관과 단순상관을 비교하여 통제변수의 효과를 파악하세요.',
+            '유의한 편상관은 다른 변수의 영향을 받지 않는 독립적 관계입니다.',
+            '편상관이 음수라면 통제 후 역방향 관계가 나타납니다.'
+        ]
+    }
+
+    return {
+        'correlations': correlations,
+        'zeroOrderCorrelations': zero_order_correlations,
+        'summary': summary,
+        'interpretation': interpretation
+    }
+
