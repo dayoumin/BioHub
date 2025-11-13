@@ -1,8 +1,40 @@
 # Phase 9: 계산 방법 표준화 계획
 
 **작성일**: 2025-11-12
-**상태**: 계획 수립 완료, 내일 실행 예정
+**최종 업데이트**: 2025-11-13 11:30
+**상태**: ✅ Batch 1 완료 (4개), ✅ Batch 2 완료 (6개), 🔜 Batch 3-4 대기 중
 **목표**: 모든 통계 페이지를 PyodideCore 표준으로 통합 (일관성 확보)
+
+---
+
+## ✅ 완료 현황
+
+### Batch 1: pyodideStats → PyodideCore (2025-11-12) ✅
+- ✅ **friedman** (Worker 1) - `friedman_test`
+- ✅ **kruskal-wallis** (Worker 1) - `kruskal_wallis_test`
+- ✅ **reliability** (Worker 1) - `cronbach_alpha_analysis`
+- ✅ **wilcoxon** (Worker 1) - `wilcoxon_test`
+- **커밋**: `2be8c81` - feat: Phase 7+8 완료 - Mock 제거 및 코드 일관성 100% 달성
+- **PyodideCore**: 18 → 22개 (50%)
+
+### Batch 2: Legacy Pyodide → PyodideCore (2025-11-13) ✅
+- ✅ **ks-test** (Worker 1) - `ks_test_one_sample`, `ks_test_two_sample`
+- ✅ **mann-kendall** (Worker 1) - `mann_kendall_test`
+- ✅ **means-plot** (Worker 1) - `means_plot_data`
+- ✅ **partial-correlation** (Worker 2) - `partial_correlation_analysis` (scipy)
+- ✅ **stepwise** (Worker 2) - `stepwise_regression_forward` (statsmodels)
+- ✅ **response-surface** (Worker 2) - `response_surface_analysis` (statsmodels)
+- **커밋**: `3ce46bb` - feat(phase9-batch2): Batch 2 완료 - 6개 페이지 PyodideCore 변환 (29개, 66%)
+- **PyodideCore**: 22 → 29개 (66%)
+
+### 통계 신뢰성 확보 ⭐
+- ✅ **CLAUDE.md Section 2 준수**: 통계 알고리즘 직접 구현 금지
+- ✅ **검증된 라이브러리 사용**:
+  - `statsmodels.api.OLS` (stepwise, response-surface)
+  - `scipy.stats` (ks-test, mann-kendall, partial-correlation)
+  - `pingouin` (friedman, kruskal-wallis, wilcoxon)
+
+---
 
 ---
 

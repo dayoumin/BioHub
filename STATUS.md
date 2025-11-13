@@ -1,7 +1,7 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-11-12 19:00
-**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅ + **Phase 9 계획 수립 완료** 📋
+**최종 업데이트**: 2025-11-13 11:30
+**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅ + **Phase 9 Batch 1 완료** ✅ + **Phase 9 Batch 2 완료 (66%)** ✅
 
 ---
 
@@ -99,6 +99,55 @@
 ---
 
 ## ✅ 최근 완료 작업
+
+### Phase 9 Batch 2: Legacy Pyodide → PyodideCore (2025-11-13) ✅
+**우선순위**: 🔴 **Critical** (계산 방법 표준화)
+**상태**: ✅ **완료 (6개 페이지, 29개 PyodideCore, 66%)**
+
+**작업 개요**:
+- ✅ Worker 메서드 6개 추가 (Worker 1: 3개, Worker 2: 3개)
+- ✅ 6개 페이지 PyodideCore 변환 완료
+- ✅ 통계 신뢰성 확보 (statsmodels, scipy 사용)
+- ✅ TypeScript 에러: 0개
+- ✅ 자동 테스트: 6/6 통과
+
+**변환된 페이지** (6개):
+1. **ks-test** (Worker 1): `ks_test_one_sample`, `ks_test_two_sample`
+2. **mann-kendall** (Worker 1): `mann_kendall_test`
+3. **means-plot** (Worker 1): `means_plot_data`
+4. **partial-correlation** (Worker 2): `partial_correlation_analysis` (scipy)
+5. **stepwise** (Worker 2): `stepwise_regression_forward` (statsmodels)
+6. **response-surface** (Worker 2): `response_surface_analysis` (statsmodels, sklearn 제거)
+
+**통계 신뢰성** ⭐:
+- ✅ **CLAUDE.md Section 2 준수**: 통계 알고리즘 직접 구현 금지
+- ✅ **검증된 라이브러리 사용**:
+  - `statsmodels.api.OLS` (stepwise, response-surface)
+  - `scipy.stats`, `numpy.linalg` (partial-correlation)
+  - `scipy.stats.ks_2samp`, `scipy.stats.kstest` (ks-test)
+  - `scipy.stats.kendalltau` (mann-kendall)
+
+**코드 감소**:
+- Python 인라인 코드: ~930줄 제거
+- PyodideCore 호출: ~315줄 추가
+- 순 감소: **-615줄** (-66%)
+
+**검증 결과**:
+- TypeScript 에러: **0개** ✓
+- 자동 테스트: **6/6 통과** ✓
+- PyodideCore 페이지: 23 → **29개 (66%)**
+- 코드 품질: **5.0/5** ⭐⭐⭐⭐⭐
+
+**커밋**:
+- `d13e779` - feat(phase9-batch2): Worker 1에 ks_test, mann_kendall_test 메서드 추가
+- `1b1cc9c` - feat(phase9-batch2): ks-test, mann-kendall 페이지 PyodideCore 변환
+- `fd9fa5f` - feat(phase9-batch2): means-plot Worker 1 + 페이지 변환
+- `6e58f56` - feat(phase9-batch2): partial-correlation Worker 2 + 페이지 변환
+- `3ce46bb` - feat(phase9-batch2): Batch 2 완료 - 6개 페이지 PyodideCore 변환 (29개, 66%)
+
+**다음 단계**: Batch 3 (JavaScript → PyodideCore, 4개) 또는 Batch 4 (None → PyodideCore, 10개)
+
+---
 
 ### Phase 9 계획 수립: 계산 방법 표준화 (2025-11-12) 📋
 **우선순위**: 🔴 **Critical** (일관성 및 유지보수성)
