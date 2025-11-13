@@ -66,6 +66,69 @@ interface TestDescription {
   }
 }
 
+// Worker 3 결과 타입
+interface MannWhitneyResult {
+  statistic: number
+  pValue: number
+}
+
+interface WilcoxonResult {
+  statistic: number
+  pValue: number
+  nobs: number
+  zScore: number
+  medianDiff: number
+  effectSize: {
+    value: number
+    interpretation: string
+  }
+  descriptives: {
+    before: {
+      median: number
+      mean: number
+      iqr: number
+      min: number
+      max: number
+      q1: number
+      q3: number
+    }
+    after: {
+      median: number
+      mean: number
+      iqr: number
+      min: number
+      max: number
+      q1: number
+      q3: number
+    }
+    differences: {
+      median: number
+      mean: number
+      iqr: number
+      min: number
+      max: number
+      q1: number
+      q3: number
+      positive: number
+      negative: number
+      ties: number
+    }
+  }
+}
+
+interface KruskalWallisResult {
+  statistic: number
+  pValue: number
+  df: number
+}
+
+interface FriedmanResult {
+  statistic: number
+  pValue: number
+}
+
+type NonParametricWorkerResult = MannWhitneyResult | WilcoxonResult | KruskalWallisResult | FriedmanResult
+
 const testDescriptions: Record<NonParametricTest, TestDescription> = {
   'mann-whitney': {
     name: 'Mann-Whitney U 검정',
@@ -198,6 +261,158 @@ export default function NonParametricTestPage() {
     setActiveTab('setup')  // ✅ 'analysis' → 'setup' (정의된 탭으로 유지)
   }, [actions])
 
+  // Worker 결과 → StatisticalResult 변환
+  const transformToStatisticalResult = useCallback((
+    workerResult: NonParametricWorkerResult,
+    testType: NonParametricTest,
+    variables: string[],
+    sampleSize: number
+  ): StatisticalResult => {
+    const testInfo = testDescriptions[testType]
+    const alphaValue = parseFloat(alpha)
+
+    // 기본 결과 구조
+    const baseResult: StatisticalResult = {
+      testName: testInfo.name,
+      testType: '비모수 검정',
+      description: testInfo.description,
+      statistic: workerResult.statistic,
+      statisticName: testType === 'mann-whitney' ? 'U' :
+                     testType === 'wilcoxon' ? 'W' :
+                     testType === 'kruskal-wallis' ? 'H' : 'χ²',
+      pValue: workerResult.pValue,
+      alpha: alphaValue,
+      assumptions: [
+        {
+          name: '독립성',
+          description: '관측치가 서로 독립적이어야 합니다',
+          pValue: null,
+          passed: true,
+          recommendation: '연구 설계상 독립성이 보장됨'
+        },
+        {
+          name: '측정 수준',
+          description: '최소한 순서형 변수여야 합니다',
+          pValue: null,
+          passed: true,
+          recommendation: '연속형 변수로 조건 충족'
+        }
+      ],
+      sampleSize,
+      variables
+    }
+
+    // 테스트별 특화 처리
+    if (testType === 'wilcoxon' && 'descriptives' in workerResult) {
+      const wilcoxonRes = workerResult as WilcoxonResult
+      return {
+        ...baseResult,
+        effectSize: {
+          value: wilcoxonRes.effectSize.value,
+          type: 'r',
+          ci: undefined
+        },
+        additionalResults: {
+          title: '기술통계량',
+          columns: [
+            { key: 'measure', header: '측정시점', type: 'text' },
+            { key: 'median', header: '중앙값', type: 'number' },
+            { key: 'mean', header: '평균', type: 'number' },
+            { key: 'iqr', header: 'IQR', type: 'number' },
+            { key: 'range', header: '범위', type: 'text' }
+          ],
+          data: [
+            {
+              measure: '사전',
+              median: wilcoxonRes.descriptives.before.median,
+              mean: wilcoxonRes.descriptives.before.mean,
+              iqr: wilcoxonRes.descriptives.before.iqr,
+              range: `${wilcoxonRes.descriptives.before.min.toFixed(2)} - ${wilcoxonRes.descriptives.before.max.toFixed(2)}`
+            },
+            {
+              measure: '사후',
+              median: wilcoxonRes.descriptives.after.median,
+              mean: wilcoxonRes.descriptives.after.mean,
+              iqr: wilcoxonRes.descriptives.after.iqr,
+              range: `${wilcoxonRes.descriptives.after.min.toFixed(2)} - ${wilcoxonRes.descriptives.after.max.toFixed(2)}`
+            },
+            {
+              measure: '차이',
+              median: wilcoxonRes.medianDiff,
+              mean: wilcoxonRes.descriptives.differences.mean,
+              iqr: wilcoxonRes.descriptives.differences.iqr,
+              range: `양성: ${wilcoxonRes.descriptives.differences.positive}, 음성: ${wilcoxonRes.descriptives.differences.negative}`
+            }
+          ]
+        },
+        interpretation: `Wilcoxon 부호순위 검정 결과, ${wilcoxonRes.pValue < alphaValue ? '통계적으로 유의한' : '통계적으로 유의하지 않은'} 차이가 발견되었습니다 (W = ${workerResult.statistic.toFixed(2)}, p = ${workerResult.pValue.toFixed(4)}). 효과크기 r = ${wilcoxonRes.effectSize.value.toFixed(3)}로 ${wilcoxonRes.effectSize.interpretation}입니다.`,
+        recommendations: [
+          '중앙값 차이와 효과크기를 함께 보고하세요',
+          '박스플롯으로 분포 변화를 시각화하세요',
+          '이상치 존재 여부를 확인하세요'
+        ],
+        groups: 2
+      }
+    }
+
+    if (testType === 'kruskal-wallis' && 'df' in workerResult) {
+      return {
+        ...baseResult,
+        df: (workerResult as KruskalWallisResult).df,
+        effectSize: {
+          value: 0, // 추후 계산 가능
+          type: 'eta_squared',
+          ci: undefined
+        },
+        interpretation: `Kruskal-Wallis 검정 결과, ${workerResult.pValue < alphaValue ? '그룹 간 통계적으로 유의한' : '그룹 간 통계적으로 유의하지 않은'} 차이가 발견되었습니다 (H = ${workerResult.statistic.toFixed(2)}, df = ${(workerResult as KruskalWallisResult).df}, p = ${workerResult.pValue.toFixed(4)}).`,
+        recommendations: [
+          '사후검정으로 Dunn test 수행을 권장합니다',
+          '각 그룹의 중앙값과 IQR을 보고하세요',
+          '박스플롯으로 그룹별 분포를 시각화하세요'
+        ],
+        groups: (workerResult as KruskalWallisResult).df + 1
+      }
+    }
+
+    if (testType === 'mann-whitney') {
+      return {
+        ...baseResult,
+        effectSize: {
+          value: 0, // 추후 계산 가능
+          type: 'r',
+          ci: undefined
+        },
+        interpretation: `Mann-Whitney U 검정 결과, ${workerResult.pValue < alphaValue ? '두 그룹 간 통계적으로 유의한' : '두 그룹 간 통계적으로 유의하지 않은'} 차이가 발견되었습니다 (U = ${workerResult.statistic.toFixed(2)}, p = ${workerResult.pValue.toFixed(4)}).`,
+        recommendations: [
+          '중앙값과 IQR을 보고하세요',
+          '효과크기를 계산하여 함께 보고하세요',
+          '박스플롯으로 분포를 비교하세요'
+        ],
+        groups: 2
+      }
+    }
+
+    if (testType === 'friedman') {
+      return {
+        ...baseResult,
+        effectSize: {
+          value: 0, // 추후 계산 가능
+          type: 'eta_squared',
+          ci: undefined
+        },
+        interpretation: `Friedman 검정 결과, ${workerResult.pValue < alphaValue ? '조건 간 통계적으로 유의한' : '조건 간 통계적으로 유의하지 않은'} 차이가 발견되었습니다 (χ² = ${workerResult.statistic.toFixed(2)}, p = ${workerResult.pValue.toFixed(4)}).`,
+        recommendations: [
+          '사후검정으로 Nemenyi test 수행을 권장합니다',
+          '각 조건의 중앙값을 보고하세요',
+          '선 그래프로 변화 추이를 시각화하세요'
+        ],
+        groups: 3  // 기본값
+      }
+    }
+
+    return baseResult
+  }, [alpha, testDescriptions])
+
   // 실제 Worker 3 호출
   const runAnalysis = useCallback(async () => {
     if (!uploadedData || !selectedVariables) {
@@ -212,71 +427,175 @@ export default function NonParametricTestPage() {
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
 
-      // TODO: 실제 Worker 3 호출 구현 필요
-      // 현재는 간단한 Mock 결과를 반환합니다
-      // Worker 3 메서드는 존재하지만 데이터 매핑이 복잡하여 향후 개선 필요
+      // 데이터 추출
+      const data = uploadedData.data as Array<Record<string, unknown>>
+      let workerResult: NonParametricWorkerResult
+      let variableNames: string[] = []
+      let sampleSize = data.length
 
-      const mockResult: StatisticalResult = {
-        testName: currentTest.name,
-        testType: '비모수 검정',
-        description: currentTest.description,
-        statistic: selectedTest === 'mann-whitney' ? 234.5 :
-                   selectedTest === 'wilcoxon' ? 45.0 :
-                   selectedTest === 'kruskal-wallis' ? 12.345 : 8.765,
-        statisticName: selectedTest === 'mann-whitney' ? 'U' :
-                       selectedTest === 'wilcoxon' ? 'W' :
-                       selectedTest === 'kruskal-wallis' ? 'H' : 'χ²',
-        df: selectedTest === 'kruskal-wallis' ? 2 :
-            selectedTest === 'friedman' ? 3 : undefined,
-        pValue: 0.023,
-        alpha: parseFloat(alpha),
-        effectSize: {
-          value: 0.35,
-          type: 'r',
-          ci: [0.15, 0.52]
-        },
-        assumptions: [
-          {
-            name: '독립성',
-            description: '관측치가 서로 독립적이어야 합니다',
-            pValue: null,
-            passed: true,
-            recommendation: '연구 설계상 독립성이 보장됨'
-          },
-          {
-            name: '측정 수준',
-            description: '최소한 순서형 변수여야 합니다',
-            pValue: null,
-            passed: true,
-            recommendation: '연속형 변수로 조건 충족'
+      // 테스트별 Worker 호출
+      if (selectedTest === 'mann-whitney') {
+        // Mann-Whitney: 독립 2그룹
+        if (!selectedVariables.dependent) {
+          throw new Error('종속 변수를 선택해주세요.')
+        }
+        if (!selectedVariables.factor || selectedVariables.factor.length === 0) {
+          throw new Error('그룹 변수를 선택해주세요.')
+        }
+
+        const depVar = selectedVariables.dependent
+        const groupVar = selectedVariables.factor[0]
+        variableNames = [depVar, groupVar]
+
+        // 그룹별 데이터 분리
+        const groups: Record<string, number[]> = {}
+        data.forEach(row => {
+          const groupValue = String(row[groupVar])
+          const value = row[depVar]
+          const numValue = typeof value === 'number' ? value : parseFloat(String(value))
+
+          if (!isNaN(numValue)) {
+            if (!groups[groupValue]) {
+              groups[groupValue] = []
+            }
+            groups[groupValue].push(numValue)
           }
-        ],
-        additionalResults: {
-          title: '그룹별 순위 통계',
-          columns: [
-            { key: 'group', header: '그룹', type: 'text' },
-            { key: 'n', header: 'N', type: 'number' },
-            { key: 'median', header: '중앙값', type: 'number' },
-            { key: 'meanRank', header: '평균 순위', type: 'number' },
-            { key: 'sumRank', header: '순위 합', type: 'number' }
-          ],
-          data: [
-            { group: '그룹 A', n: 25, median: 45.2, meanRank: 23.4, sumRank: 585 },
-            { group: '그룹 B', n: 28, median: 52.1, meanRank: 30.1, sumRank: 843 }
-          ]
-        },
-        interpretation: `${currentTest.name} 결과, 그룹 간 통계적으로 유의한 차이가 발견되었습니다 (p = 0.023). 효과크기 r = 0.35로 중간 정도의 효과를 나타냅니다.`,
-        recommendations: [
-          '사후검정으로 Dunn test 수행을 권장합니다',
-          '효과크기와 함께 결과를 해석하세요',
-          '박스플롯으로 분포를 시각화하세요'
-        ],
-        sampleSize: 53,
-        groups: 2,
-        variables: ['Variable1', 'GroupVar']
+        })
+
+        const groupKeys = Object.keys(groups)
+        if (groupKeys.length !== 2) {
+          throw new Error(`Mann-Whitney 검정은 정확히 2개 그룹이 필요합니다 (현재: ${groupKeys.length}개)`)
+        }
+
+        workerResult = await pyodideCore.callWorkerMethod<MannWhitneyResult>(
+          3,
+          'mann_whitney_test',
+          {
+            group1: groups[groupKeys[0]],
+            group2: groups[groupKeys[1]]
+          }
+        )
+
+      } else if (selectedTest === 'wilcoxon') {
+        // Wilcoxon: 대응 2표본
+        if (!selectedVariables.factor || selectedVariables.factor.length < 2) {
+          throw new Error('2개의 대응 변수를 선택해주세요.')
+        }
+
+        const var1 = selectedVariables.factor[0]
+        const var2 = selectedVariables.factor[1]
+        variableNames = [var1, var2]
+
+        const values1: number[] = []
+        const values2: number[] = []
+
+        data.forEach(row => {
+          const val1 = row[var1]
+          const val2 = row[var2]
+          const num1 = typeof val1 === 'number' ? val1 : parseFloat(String(val1))
+          const num2 = typeof val2 === 'number' ? val2 : parseFloat(String(val2))
+
+          if (!isNaN(num1) && !isNaN(num2)) {
+            values1.push(num1)
+            values2.push(num2)
+          }
+        })
+
+        sampleSize = values1.length
+
+        workerResult = await pyodideCore.callWorkerMethod<WilcoxonResult>(
+          3,
+          'wilcoxon_test',
+          {
+            values1,
+            values2
+          }
+        )
+
+      } else if (selectedTest === 'kruskal-wallis') {
+        // Kruskal-Wallis: 독립 3개 이상 그룹
+        if (!selectedVariables.dependent) {
+          throw new Error('종속 변수를 선택해주세요.')
+        }
+        if (!selectedVariables.factor || selectedVariables.factor.length === 0) {
+          throw new Error('그룹 변수를 선택해주세요.')
+        }
+
+        const depVar = selectedVariables.dependent
+        const groupVar = selectedVariables.factor[0]
+        variableNames = [depVar, groupVar]
+
+        // 그룹별 데이터 분리
+        const groups: Record<string, number[]> = {}
+        data.forEach(row => {
+          const groupValue = String(row[groupVar])
+          const value = row[depVar]
+          const numValue = typeof value === 'number' ? value : parseFloat(String(value))
+
+          if (!isNaN(numValue)) {
+            if (!groups[groupValue]) {
+              groups[groupValue] = []
+            }
+            groups[groupValue].push(numValue)
+          }
+        })
+
+        const groupArrays = Object.values(groups)
+        if (groupArrays.length < 3) {
+          throw new Error(`Kruskal-Wallis 검정은 최소 3개 그룹이 필요합니다 (현재: ${groupArrays.length}개)`)
+        }
+
+        workerResult = await pyodideCore.callWorkerMethod<KruskalWallisResult>(
+          3,
+          'kruskal_wallis_test',
+          {
+            groups: groupArrays
+          }
+        )
+
+      } else if (selectedTest === 'friedman') {
+        // Friedman: 반복측정 3개 이상
+        if (!selectedVariables.factor || selectedVariables.factor.length < 3) {
+          throw new Error('3개 이상의 반복측정 변수를 선택해주세요.')
+        }
+
+        variableNames = selectedVariables.factor
+        const groups: number[][] = []
+
+        // 각 변수별 데이터 수집
+        selectedVariables.factor.forEach((varName: string) => {
+          const values: number[] = []
+          data.forEach(row => {
+            const val = row[varName]
+            const numVal = typeof val === 'number' ? val : parseFloat(String(val))
+            if (!isNaN(numVal)) {
+              values.push(numVal)
+            }
+          })
+          groups.push(values)
+        })
+
+        workerResult = await pyodideCore.callWorkerMethod<FriedmanResult>(
+          3,
+          'friedman_test',
+          {
+            groups
+          }
+        )
+
+      } else {
+        throw new Error(`지원하지 않는 테스트 유형입니다: ${selectedTest}`)
       }
 
-      actions.completeAnalysis?.(mockResult, 2)
+      // Worker 결과를 StatisticalResult로 변환
+      const statisticalResult = transformToStatisticalResult(
+        workerResult,
+        selectedTest,
+        variableNames,
+        sampleSize
+      )
+
+      actions.completeAnalysis?.(statisticalResult, 2)
       setActiveTab('results')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
