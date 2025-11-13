@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { KSTestVariables } from '@/types/statistics'
-import { toKSTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,8 +25,7 @@ import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/sta
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
-import type { PyodideInterface } from '@/types/pyodide'
-import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 // 데이터 인터페이스
@@ -110,162 +108,82 @@ export default function KolmogorovSmirnovTestPage() {
     actions.setCurrentStep?.(2)
   }, [actions])
 
-  // 일표본 K-S 검정 (정규분포 가정) - scipy 사용
+  // 일표본 K-S 검정 (정규분포 가정) - PyodideCore Worker 1
   const calculateOneSampleKS = useCallback(async (
     values: number[],
-    variable: string,
-    pyodide: PyodideInterface
+    variable: string
   ): Promise<KSTestResult> => {
-    const n = values.length
-
-    // Python에 데이터 전달
-    pyodide.globals.set('js_values', values)
-
-    // scipy를 사용한 K-S 검정
-    const result = await pyodide.runPythonAsync(`
-from scipy import stats
-import numpy as np
-
-values = np.array(js_values)
-n = len(values)
-mean = float(np.mean(values))
-std = float(np.std(values, ddof=1))
-
-# K-S 검정 (정규분포 가정)
-statistic, pvalue = stats.kstest(values, 'norm', args=(mean, std))
-
-# 임계값 계산 (α = 0.05)
-critical_value = 1.36 / np.sqrt(n)
-
-{
-  'testType': 'one-sample',
-  'variable1': '${variable}',
-  'statisticKS': float(statistic),
-  'pValue': float(pvalue),
-  'criticalValue': float(critical_value),
-  'significant': bool(statistic > critical_value),
-  'interpretation': 'データが正規分布に従わない' if statistic > critical_value else 'データが正規分布に従う',
-  'sampleSizes': {
-    'n1': int(n)
-  },
-  'distributionInfo': {
-    'expectedDistribution': '정규분포',
-    'observedMean': float(mean),
-    'observedStd': float(std),
-    'expectedMean': float(mean),
-    'expectedStd': float(std)
-  }
-}
-    `)
-
-    const jsResult = result.toJs({ dict_converter: Object.fromEntries })
+    const pyodideCore = PyodideCoreService.getInstance()
+    const result = await pyodideCore.callWorkerMethod<{
+      testType: string
+      statisticKS: number
+      pValue: number
+      criticalValue: number
+      significant: boolean
+      sampleSizes: { n1: number }
+      distributionInfo: {
+        expectedDistribution: string
+        observedMean: number
+        observedStd: number
+        expectedMean: number
+        expectedStd: number
+      }
+    }>(1, 'ks_test_one_sample', { values })
 
     return {
-      testType: jsResult.testType as 'one-sample',
-      variable1: jsResult.variable1 as string,
-      statisticKS: jsResult.statisticKS as number,
-      pValue: jsResult.pValue as number,
-      criticalValue: jsResult.criticalValue as number,
-      significant: jsResult.significant as boolean,
-      interpretation: jsResult.significant
+      testType: 'one-sample',
+      variable1: variable,
+      statisticKS: result.statisticKS,
+      pValue: result.pValue,
+      criticalValue: result.criticalValue,
+      significant: result.significant,
+      interpretation: result.significant
         ? '데이터가 정규분포를 따르지 않는 것으로 보임'
         : '데이터가 정규분포를 따르는 것으로 보임',
-      sampleSizes: {
-        n1: jsResult.sampleSizes.n1 as number
-      },
-      distributionInfo: {
-        expectedDistribution: jsResult.distributionInfo.expectedDistribution as string,
-        observedMean: jsResult.distributionInfo.observedMean as number,
-        observedStd: jsResult.distributionInfo.observedStd as number,
-        expectedMean: jsResult.distributionInfo.expectedMean as number,
-        expectedStd: jsResult.distributionInfo.expectedStd as number
-      }
+      sampleSizes: result.sampleSizes,
+      distributionInfo: result.distributionInfo
     }
   }, [])
 
-  // 이표본 K-S 검정 - scipy 사용
+  // 이표본 K-S 검정 - PyodideCore Worker 1
   const calculateTwoSampleKS = useCallback(async (
     values1: number[],
     values2: number[],
     variable1: string,
-    variable2: string,
-    pyodide: PyodideInterface
+    variable2: string
   ): Promise<KSTestResult> => {
-    const n1 = values1.length
-    const n2 = values2.length
-
-    // Python에 데이터 전달
-    pyodide.globals.set('js_values1', values1)
-    pyodide.globals.set('js_values2', values2)
-
-    // scipy를 사용한 이표본 K-S 검정
-    const result = await pyodide.runPythonAsync(`
-from scipy import stats
-import numpy as np
-import { type UploadedData } from '@/hooks/use-statistics-page'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-values1 = np.array(js_values1)
-values2 = np.array(js_values2)
-n1 = len(values1)
-n2 = len(values2)
-
-# 이표본 K-S 검정
-statistic, pvalue = stats.ks_2samp(values1, values2)
-
-# 임계값 계산 (α = 0.05)
-critical_value = 1.36 * np.sqrt((n1 + n2) / (n1 * n2))
-
-# 효과크기 (Cohen's d)
-mean1 = float(np.mean(values1))
-mean2 = float(np.mean(values2))
-pooled_std = float(np.sqrt(((n1 - 1) * np.var(values1, ddof=1) + (n2 - 1) * np.var(values2, ddof=1)) / (n1 + n2 - 2)))
-effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
-
-{
-  'testType': 'two-sample',
-  'variable1': '${variable1}',
-  'variable2': '${variable2}',
-  'statisticKS': float(statistic),
-  'pValue': float(pvalue),
-  'criticalValue': float(critical_value),
-  'significant': bool(statistic > critical_value),
-  'interpretation': '두 집단의 분포가 유의하게 다름' if statistic > critical_value else '두 집단의 분포가 유의하게 다르지 않음',
-  'effectSize': float(effect_size),
-  'sampleSizes': {
-    'n1': int(n1),
-    'n2': int(n2)
-  }
-}
-    `)
-
-    const jsResult = result.toJs({ dict_converter: Object.fromEntries })
+    const pyodideCore = PyodideCoreService.getInstance()
+    const result = await pyodideCore.callWorkerMethod<{
+      testType: string
+      statisticKS: number
+      pValue: number
+      criticalValue: number
+      significant: boolean
+      effectSize: number
+      sampleSizes: { n1: number; n2: number }
+    }>(1, 'ks_test_two_sample', { values1, values2 })
 
     return {
-      testType: jsResult.testType as 'two-sample',
-      variable1: jsResult.variable1 as string,
-      variable2: jsResult.variable2 as string,
-      statisticKS: jsResult.statisticKS as number,
-      pValue: jsResult.pValue as number,
-      criticalValue: jsResult.criticalValue as number,
-      significant: jsResult.significant as boolean,
-      interpretation: jsResult.significant
+      testType: 'two-sample',
+      variable1,
+      variable2,
+      statisticKS: result.statisticKS,
+      pValue: result.pValue,
+      criticalValue: result.criticalValue,
+      significant: result.significant,
+      interpretation: result.significant
         ? '두 집단의 분포가 유의하게 다름'
         : '두 집단의 분포가 유의하게 다르지 않음',
-      effectSize: jsResult.effectSize as number,
-      sampleSizes: {
-        n1: jsResult.sampleSizes.n1 as number,
-        n2: jsResult.sampleSizes.n2 as number
-      }
+      effectSize: result.effectSize,
+      sampleSizes: result.sampleSizes
     }
   }, [])
 
-  // 실제 K-S 검정 계산 로직 - Pyodide 사용
+  // 실제 K-S 검정 계산 로직 - PyodideCore
   const calculateKSTest = useCallback(async (
     data: unknown[],
     variable1: string,
-    variable2: string | undefined,
-    pyodide: PyodideInterface
+    variable2: string | undefined
   ): Promise<KSTestResult> => {
     const values1 = data.map(row => (row as Record<string, unknown>)[variable1])
       .filter(val => val != null && typeof val === 'number') as number[]
@@ -275,10 +193,10 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
       const values2 = data.map(row => (row as Record<string, unknown>)[variable2])
         .filter(val => val != null && typeof val === 'number') as number[]
 
-      return await calculateTwoSampleKS(values1, values2, variable1, variable2, pyodide)
+      return await calculateTwoSampleKS(values1, values2, variable1, variable2)
     } else {
       // 일표본 K-S 검정 (정규분포와 비교)
-      return await calculateOneSampleKS(values1, variable1, pyodide)
+      return await calculateOneSampleKS(values1, variable1)
     }
   }, [calculateOneSampleKS, calculateTwoSampleKS])
 
@@ -288,11 +206,8 @@ effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
     try {
       actions.startAnalysis()
 
-      // Pyodide 로딩 (scipy 패키지 포함)
-      const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'scipy'])
-
       const variable2 = variables.variables.length > 1 ? variables.variables[1] : undefined
-      const result = await calculateKSTest(uploadedData.data, variables.variables[0], variable2, pyodide)
+      const result = await calculateKSTest(uploadedData.data, variables.variables[0], variable2)
 
       actions.completeAnalysis(result, 3)
     } catch (error) {

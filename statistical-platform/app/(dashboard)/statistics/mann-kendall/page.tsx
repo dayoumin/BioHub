@@ -15,8 +15,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { VariableMapping } from '@/components/variable-selection/types'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
-import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
-import type { PyodideInterface } from '@/types/pyodide'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 interface MannKendallResult {
   trend: 'increasing' | 'decreasing' | 'no trend'
@@ -85,98 +84,37 @@ const MannKendallTest: React.FC<MannKendallTestProps> = ({
 
     try {
       const targetVariable = dependentVars[0]
-      const timeData = uploadedData.data.map(row => {
+      const data = uploadedData.data.map(row => {
         const value = row[targetVariable]
         return typeof value === 'number' ? value : null
       }).filter((v): v is number => v !== null)
 
-      // Pyodide 로드 및 실행
-      const pyodide: PyodideInterface = await loadPyodideWithPackages(['numpy', 'scipy'])
+      // PyodideCore Worker 1 호출
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
 
-      // Python 글로벌 스코프에 데이터 설정
-      pyodide.globals.set('js_timeData', timeData)
-      pyodide.globals.set('js_testType', selectedTest)
+      const result = await pyodideCore.callWorkerMethod<{
+        trend: string
+        tau: number
+        zScore: number
+        pValue: number
+        senSlope: number
+        intercept: number
+        n: number
+      }>(1, 'mann_kendall_test', { data })
 
-      const pythonCode = `
-import numpy as np
-from scipy import stats
-
-# 데이터 준비
-data = np.array(js_timeData)
-data = np.array([x for x in data if x is not None and not np.isnan(x)])
-
-if len(data) < 4:
-    raise ValueError("Mann-Kendall 검정에는 최소 4개의 관측값이 필요합니다.")
-
-n = len(data)
-
-# Calculate S statistic
-S = 0
-for i in range(n-1):
-    for j in range(i+1, n):
-        S += np.sign(data[j] - data[i])
-
-# Calculate variance of S
-var_s = n * (n - 1) * (2 * n + 5) / 18
-
-# Calculate standardized test statistic Z
-if S > 0:
-    z = (S - 1) / np.sqrt(var_s)
-elif S < 0:
-    z = (S + 1) / np.sqrt(var_s)
-else:
-    z = 0
-
-# Calculate p-value (two-tailed test)
-p = 2 * (1 - stats.norm.cdf(abs(z)))
-
-# Calculate Kendall's tau
-tau, _ = stats.kendalltau(range(n), data)
-
-# Calculate slope (Sen's slope estimator)
-slopes = []
-for i in range(n-1):
-    for j in range(i+1, n):
-        if j != i:
-            slope = (data[j] - data[i]) / (j - i)
-            slopes.append(slope)
-sen_slope = np.median(slopes) if slopes else 0
-
-# Calculate intercept
-intercept = np.median(data) - sen_slope * np.median(range(n))
-
-# Determine trend
-alpha = 0.05
-if p < alpha:
-    if z > 0:
-        trend = 'increasing'
-    else:
-        trend = 'decreasing'
-else:
-    trend = 'no trend'
-
-{
-    'trend': trend,
-    'h': bool(p < alpha),
-    'p': float(p),
-    'z': float(z),
-    'tau': float(tau),
-    's': int(S),
-    'var_s': float(var_s),
-    'slope': float(sen_slope),
-    'intercept': float(intercept)
-}
-`
-
-      const resultProxy = await pyodide.runPythonAsync(pythonCode)
-      const analysisResult = resultProxy.toJs() as unknown
-
-      // Type guard for result validation
-      if (!analysisResult || typeof analysisResult !== 'object') {
-        throw new Error('Invalid result format')
+      const typedResult: MannKendallResult = {
+        trend: result.trend as 'increasing' | 'decreasing' | 'no trend',
+        h: result.pValue < 0.05,
+        p: result.pValue,
+        z: result.zScore,
+        tau: result.tau,
+        s: 0, // Worker에서 반환하지 않으므로 0으로 설정
+        var_s: 0, // Worker에서 반환하지 않으므로 0으로 설정
+        slope: result.senSlope,
+        intercept: result.intercept
       }
 
-      const typedResult = analysisResult as MannKendallResult
       setResult(typedResult)
       onAnalysisComplete(typedResult)
     } catch (err) {
