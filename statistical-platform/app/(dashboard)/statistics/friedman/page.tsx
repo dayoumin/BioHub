@@ -168,18 +168,12 @@ export default function FriedmanPage() {
   )
 
   const runAnalysis = useCallback(async (variables: FriedmanVariables) => {
-    if (!uploadedData || !pyodideReady || !variables.dependent) {
-      actions.setError?.('분석을 실행할 수 없습니다.')
+    if (!uploadedData || !pyodideReady || !variables.within || variables.within.length < 3) {
+      actions.setError?.('분석을 실행할 수 없습니다. 최소 3개 이상의 반복측정 변수가 필요합니다.')
       return
     }
 
-    // dependent is string (single)
-    const dependentVars = variables.within || []
-
-    if (dependentVars.length < 3) {
-      actions.setError?.('최소 3개 이상의 반복측정 변수가 필요합니다.')
-      return
-    }
+    const dependentVars = variables.within
 
     actions.startAnalysis?.()
 
@@ -282,12 +276,10 @@ export default function FriedmanPage() {
   const handleVariableSelection = createVariableSelectionHandler<FriedmanVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toFriedmanVariables(vars as unknown as VariableAssignment) : null),
     (variables) => {
-      // Handle both string and string[] types
-      const dependentCount = Array.isArray(variables.dependent)
-        ? variables.dependent.length
-        : variables.dependent ? 1 : 0
+      // Check within array for Friedman (role: 'within' in variable-requirements.ts)
+      const withinCount = variables.within?.length || 0
 
-      if (dependentCount >= 3) {
+      if (withinCount >= 3) {
         runAnalysis(variables)
       }
     },

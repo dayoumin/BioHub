@@ -8,8 +8,7 @@ import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/St
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import type { PyodideInterface } from '@/types/pyodide'
-import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -112,98 +111,59 @@ export default function MeansPlotPage() {
     try {
       actions.startAnalysis()
 
-      // Pyodide로 분석 실행 (React 18 Automatic Batching 활용)
-        // Load Pyodide with required packages
-        const pyodide: PyodideInterface = await loadPyodideWithPackages([
-          'numpy',
-          'pandas',
-          'scipy'
-        ])
+      // PyodideCore Worker 1 호출
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
 
-        pyodide.globals.set('data', uploadedData.data)
-        pyodide.globals.set('dependent_var', variables.dependent[0])
-        pyodide.globals.set('factor_var', variables.factor[0])
+      const result = await pyodideCore.callWorkerMethod<{
+        descriptives: {
+          [key: string]: {
+            group: string
+            mean: number
+            std: number
+            sem: number
+            count: number
+            ciLower: number
+            ciUpper: number
+          }
+        }
+        plotData: Array<{
+          group: string
+          mean: number
+          error: number
+          count: number
+        }>
+        interpretation: {
+          summary: string
+          recommendations: string[]
+        }
+      }>(1, 'means_plot_data', {
+        data: uploadedData.data,
+        dependent_var: variables.dependent[0],
+        factor_var: variables.factor[0]
+      })
 
-        const pythonCode = `
-import pandas as pd
-import numpy as np
-from scipy import stats
-import json
+      // Python에서 snake_case로 반환된 필드명을 camelCase로 변환
+      const descriptives: MeansPlotResults['descriptives'] = {}
+      for (const [key, value] of Object.entries(result.descriptives)) {
+        descriptives[key] = {
+          group: value.group,
+          mean: value.mean,
+          std: value.std,
+          sem: value.sem,
+          count: value.count,
+          ci_lower: value.ciLower,
+          ci_upper: value.ciUpper
+        }
+      }
 
-df = pd.DataFrame(data)
+      const analysisResults: MeansPlotResults = {
+        descriptives,
+        plot_data: result.plotData,
+        interpretation: result.interpretation
+      }
 
-# 종속변수와 요인변수
-dependent = dependent_var
-factor = factor_var
-
-# 결측값 제거
-df_clean = df[[dependent, factor]].dropna()
-
-# 집단별 기술통계량 계산
-groups = df_clean.groupby(factor)[dependent]
-
-descriptives = {}
-plot_data = []
-
-for name, group in groups:
-    mean_val = group.mean()
-    std_val = group.std()
-    count_val = len(group)
-    sem_val = std_val / np.sqrt(count_val)
-
-    # 95% 신뢰구간 계산
-    t_critical = stats.t.ppf(0.975, count_val - 1)
-    margin_error = t_critical * sem_val
-    ci_lower = mean_val - margin_error
-    ci_upper = mean_val + margin_error
-
-    descriptives[str(name)] = {
-        'group': str(name),
-        'mean': float(mean_val),
-        'std': float(std_val),
-        'sem': float(sem_val),
-        'count': int(count_val),
-        'ci_lower': float(ci_lower),
-        'ci_upper': float(ci_upper)
-    }
-
-    plot_data.append({
-        'group': str(name),
-        'mean': float(mean_val),
-        'error': float(sem_val),
-        'count': int(count_val)
-    })
-
-# 해석 생성
-total_groups = len(descriptives)
-means = [desc['mean'] for desc in descriptives.values()]
-max_mean = max(means)
-min_mean = min(means)
-mean_diff = max_mean - min_mean
-
-interpretation = {
-    'summary': f'{total_groups}개 집단의 평균값을 비교했습니다. 가장 높은 평균은 {max_mean:.3f}, 가장 낮은 평균은 {min_mean:.3f}로 차이는 {mean_diff:.3f}입니다.',
-    'recommendations': [
-        '오차막대는 표준오차(SEM)를 나타냅니다.',
-        '집단 간 평균 차이가 통계적으로 유의한지 확인하려면 ANOVA를 실시하세요.',
-        '95% 신뢰구간이 겹치지 않으면 집단 간 차이가 있을 가능성이 높습니다.',
-        '표본 크기가 작은 집단은 해석 시 주의가 필요합니다.'
-    ]
-}
-
-results = {
-    'descriptives': descriptives,
-    'plot_data': plot_data,
-    'interpretation': interpretation
-}
-
-json.dumps(results)
-`
-
-        const result = pyodide.runPython(pythonCode)
-        const analysisResults: MeansPlotResults = JSON.parse(result)
-
-        actions.completeAnalysis(analysisResults, 4)
+      actions.completeAnalysis(analysisResults, 4)
       } catch (err) {
         actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
