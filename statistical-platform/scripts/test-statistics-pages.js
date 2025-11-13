@@ -281,8 +281,8 @@ function main() {
 
   // 요약
   log('=' .repeat(80), 'gray')
-  log('\n📊 검증 요약 (통계 분석 페이지만):\n', 'cyan')
-  log(`전체 페이지: ${totalPages}개 (데이터 도구 2개 제외)`, 'blue')
+  log('\n📊 검증 요약 (통계 페이지만):\n', 'cyan')
+  log(`통계 페이지: ${totalPages}개 (전체 44개 중 데이터 도구 2개 제외)`, 'blue')
   log(`실제 계산: ${realCalcPages}개 (${Math.round(realCalcPages/totalPages*100)}%)`, realCalcPages === totalPages ? 'green' : 'yellow')
   log(`Mock 패턴: ${mockPages}개 (${Math.round(mockPages/totalPages*100)}%)`, mockPages === 0 ? 'green' : 'red')
   log(`완전 통과: ${passedPages}개 (${Math.round(passedPages/totalPages*100)}%)`, passedPages === totalPages ? 'green' : 'yellow')
@@ -293,7 +293,7 @@ function main() {
   log(`  - Groups: ${groupsCount}개 (${Math.round(groupsCount/totalPages*100)}%)`, groupsCount === 0 ? 'green' : 'yellow')
   log(`  - None: ${noneCount}개 (${Math.round(noneCount/totalPages*100)}%)`, noneCount === 0 ? 'green' : 'red')
 
-  log('\n💡 참고: frequency-table, cross-tabulation은 데이터 도구로 분류 (검증 제외)', 'gray')
+  log('\n💡 참고: 전체 44개 = 통계 42개 + 데이터 도구 2개 (frequency-table, cross-tabulation)', 'gray')
 
   // 실패한 페이지 목록
   const failedPages = results.filter(r => !r.passed)
