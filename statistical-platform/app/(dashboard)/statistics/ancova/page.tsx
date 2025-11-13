@@ -33,7 +33,7 @@ import { StatisticsTable, type TableColumn } from '@/components/statistics/commo
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -127,35 +127,22 @@ export default function ANCOVAPage() {
   })
   const { currentStep, uploadedData, selectedVariables: _selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  // PyodideCore state
+  const [pyodideReady, setPyodideReady] = useState(false)
 
-  // Initialize Pyodide - 메모리 누수 방지
+  // Initialize PyodideCore
   useEffect(() => {
-    let isMounted = true
-    const abortController = new AbortController()
-
     const initPyodide = async () => {
       try {
-        if (abortController.signal.aborted) return
-        await pyodideStats.initialize()
-        if (isMounted && !abortController.signal.aborted) {
-          setPyodide(pyodideStats)
-        }
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
       } catch (err) {
-        if (isMounted && !abortController.signal.aborted) {
-          console.error('Pyodide 초기화 실패:', err)
-          actions.setError('통계 엔진을 초기화할 수 없습니다.')
-        }
+        console.error('PyodideCore 초기화 실패:', err)
+        actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
-
     initPyodide()
-
-    return () => {
-      isMounted = false
-      abortController.abort()
-    }
   }, [actions])
 
   // Steps configuration - useMemo로 성능 최적화
@@ -213,111 +200,34 @@ export default function ANCOVAPage() {
   )
 
   const runAnalysis = useCallback(async (variables: ANCOVAVariables) => {
-    if (!uploadedData || !pyodide || !variables.dependent || !variables.factor?.length || !variables.covariate?.length) {
-      actions.setError('분석을 실행할 수 없습니다. 종속변수, 요인, 공변량을 모두 선택해주세요.')
+    if (!uploadedData || !pyodideReady || !variables.dependent || !variables.factor?.length || !variables.covariate?.length) {
+      actions.setError?.('분석을 실행할 수 없습니다. 종속변수, 요인, 공변량을 모두 선택해주세요.')
       return
     }
 
-    // AbortController로 비동기 작업 취소 지원
-    const abortController = new AbortController()
-    actions.startAnalysis()
+    actions.startAnalysis?.()
 
     try {
-      if (abortController.signal.aborted) return
+      const pyodideCore = PyodideCoreService.getInstance()
 
-      // Mock 데이터로 시연 (실제로는 Pyodide 통계 엔진 사용)
-      if (abortController.signal.aborted) return
-
-      const mockResult: ANCOVAResult = {
-        mainEffects: [
-          {
-            factor: "treatment",
-            statistic: 18.47,
-            pValue: 0.0001,
-            degreesOfFreedom: [2, 87],
-            partialEtaSquared: 0.298,
-            observedPower: 0.99
-          }
-        ],
-        covariates: [
-          {
-            covariate: "pretest_score",
-            statistic: 45.23,
-            pValue: 0.0001,
-            degreesOfFreedom: [1, 87],
-            partialEtaSquared: 0.342,
-            coefficient: 0.68,
-            standardError: 0.10
-          }
-        ],
-        adjustedMeans: [
-          { group: "Control", adjustedMean: 78.5, standardError: 1.2, ci95Lower: 76.1, ci95Upper: 80.9 },
-          { group: "Treatment A", adjustedMean: 82.3, standardError: 1.1, ci95Lower: 80.1, ci95Upper: 84.5 },
-          { group: "Treatment B", adjustedMean: 85.7, standardError: 1.3, ci95Lower: 83.1, ci95Upper: 88.3 }
-        ],
-        postHoc: [
-          { comparison: "Control vs Treatment A", meanDiff: -3.8, standardError: 1.6, tValue: -2.38, pValue: 0.019, adjustedPValue: 0.057, cohensD: 0.51, lowerCI: -7.0, upperCI: -0.6 },
-          { comparison: "Control vs Treatment B", meanDiff: -7.2, standardError: 1.7, tValue: -4.24, pValue: 0.0001, adjustedPValue: 0.0003, cohensD: 0.91, lowerCI: -10.6, upperCI: -3.8 },
-          { comparison: "Treatment A vs Treatment B", meanDiff: -3.4, standardError: 1.5, tValue: -2.27, pValue: 0.025, adjustedPValue: 0.075, cohensD: 0.48, lowerCI: -6.4, upperCI: -0.4 }
-        ],
-        assumptions: {
-          homogeneityOfSlopes: {
-            statistic: 0.92,
-            pValue: 0.401,
-            assumptionMet: true
-          },
-          homogeneityOfVariance: {
-            leveneStatistic: 1.45,
-            pValue: 0.241,
-            assumptionMet: true
-          },
-          normalityOfResiduals: {
-            shapiroW: 0.978,
-            pValue: 0.156,
-            assumptionMet: true
-          },
-          linearityOfCovariate: {
-            correlations: [
-              { group: "Control", correlation: 0.72 },
-              { group: "Treatment A", correlation: 0.68 },
-              { group: "Treatment B", correlation: 0.74 }
-            ],
-            assumptionMet: true
-          }
-        },
-        modelFit: {
-          rSquared: 0.456,
-          adjustedRSquared: 0.438,
-          fStatistic: 22.15,
-          modelPValue: 0.0001,
-          residualStandardError: 6.8
-        },
-        interpretation: {
-          summary: "공변량 통제 후 집단 간 유의한 차이가 있습니다 (F(2,87) = 18.47, p &lt; 0.001, η²p = 0.298).",
-          covariateEffect: "사전 점수는 사후 점수에 강한 영향을 미칩니다 (β = 0.68, p &lt; 0.001).",
-          groupDifferences: "Treatment B가 가장 높은 수정된 평균을 보이며, Control과 유의한 차이가 있습니다.",
-          recommendations: [
-            "공변량 통제로 검정력이 크게 향상되었습니다",
-            "Treatment B가 가장 효과적인 것으로 나타났습니다",
-            "모든 가정이 만족되어 결과를 신뢰할 수 있습니다",
-            "사전 점수를 통제했으므로 순수한 처치 효과를 확인했습니다"
-          ]
+      // Call Worker 2 ancova_analysis method
+      const workerResult = await pyodideCore.callWorkerMethod<ANCOVAResult>(
+        2,
+        'ancova_analysis',
+        {
+          dependent_var: variables.dependent,
+          factor_vars: variables.factor,
+          covariate_vars: variables.covariate,
+          data: uploadedData.data as never
         }
-      }
+      )
 
-      actions.completeAnalysis(mockResult, 3)
+      actions.completeAnalysis(workerResult, 3)
     } catch (err) {
-      if (!abortController.signal.aborted) {
-        console.error('ANCOVA 분석 실패:', err)
-        actions.setError('ANCOVA 분석 중 오류가 발생했습니다.')
-      }
+      console.error('ANCOVA 분석 실패:', err)
+      actions.setError?.(err instanceof Error ? err.message : 'ANCOVA 분석 중 오류가 발생했습니다.')
     }
-
-    // 컴포넌트 언마운트 시 작업 취소를 위한 cleanup 함수 반환
-    return () => {
-      abortController.abort()
-    }
-  }, [uploadedData, pyodide, actions])
+  }, [uploadedData, pyodideReady, actions])
 
   const handleVariableSelection = useCallback((vars: VariableAssignment) => {
     const typedVars = toANCOVAVariables(vars)

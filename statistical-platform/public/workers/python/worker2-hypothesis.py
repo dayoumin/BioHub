@@ -1008,3 +1008,284 @@ def response_surface_analysis(data, dependent_var, predictor_vars, model_type='s
         'optimization': optimization_result,
         'designAdequacy': lack_of_fit_result
     }
+
+
+def ancova_analysis(
+    dependent_var: str,
+    factor_vars: List[str],
+    covariate_vars: List[str],
+    data: List[Dict[str, Union[str, float, int, None]]]
+) -> Dict[str, Any]:
+    """
+    ANCOVA (Analysis of Covariance) using statsmodels
+
+    Args:
+        dependent_var: 종속변수 이름
+        factor_vars: 요인 변수 이름 리스트 (1개 이상)
+        covariate_vars: 공변량 변수 이름 리스트 (1개 이상)
+        data: 데이터 리스트 (각 행은 딕셔너리)
+
+    Returns:
+        ANCOVA 결과 (mainEffects, covariates, adjustedMeans, postHoc, assumptions, modelFit, interpretation)
+    """
+    import pandas as pd
+    import statsmodels.api as sm
+    from statsmodels.formula.api import ols
+    from statsmodels.stats.multicomp import pairwise_tukeyhsd
+    from scipy.stats import levene, shapiro
+
+    # Convert to DataFrame
+    df = pd.DataFrame(data)
+
+    # Clean data: remove rows with missing values
+    required_vars = [dependent_var] + factor_vars + covariate_vars
+    df_clean = df[required_vars].dropna()
+
+    if len(df_clean) < 10:
+        raise ValueError(f"Insufficient data after removing missing values: {len(df_clean)} rows")
+
+    # Build formula: Y ~ C(factor) + covariate1 + covariate2 + ...
+    factor_terms = ' + '.join([f'C({f})' for f in factor_vars])
+    covariate_terms = ' + '.join(covariate_vars)
+    formula = f'{dependent_var} ~ {factor_terms} + {covariate_terms}'
+
+    # Fit ANCOVA model
+    model = ols(formula, data=df_clean).fit()
+
+    # Get ANOVA table (Type II)
+    from statsmodels.stats.anova import anova_lm
+    anova_table = anova_lm(model, typ=2)
+
+    # Extract main effects
+    main_effects = []
+    for factor in factor_vars:
+        factor_key = f'C({factor})'
+        if factor_key in anova_table.index:
+            row = anova_table.loc[factor_key]
+            df_num = int(row['df'])
+            df_denom = int(anova_table.loc['Residual', 'df'])
+            f_stat = float(row['F'])
+            p_value = float(row['PR(>F)'])
+
+            # Partial eta squared: SS_effect / (SS_effect + SS_residual)
+            ss_effect = float(row['sum_sq'])
+            ss_residual = float(anova_table.loc['Residual', 'sum_sq'])
+            partial_eta_squared = ss_effect / (ss_effect + ss_residual)
+
+            # Observed power (approximation using noncentrality parameter)
+            from scipy.stats import ncf
+            ncp = f_stat * df_num
+            power = 1 - ncf.cdf(f_stat, df_num, df_denom, ncp)
+
+            main_effects.append({
+                'factor': factor,
+                'statistic': f_stat,
+                'pValue': p_value,
+                'degreesOfFreedom': [df_num, df_denom],
+                'partialEtaSquared': partial_eta_squared,
+                'observedPower': max(0.0, min(1.0, power))
+            })
+
+    # Extract covariates
+    covariates = []
+    for cov in covariate_vars:
+        if cov in anova_table.index:
+            row = anova_table.loc[cov]
+            df_num = int(row['df'])
+            df_denom = int(anova_table.loc['Residual', 'df'])
+            f_stat = float(row['F'])
+            p_value = float(row['PR(>F)'])
+
+            ss_effect = float(row['sum_sq'])
+            ss_residual = float(anova_table.loc['Residual', 'sum_sq'])
+            partial_eta_squared = ss_effect / (ss_effect + ss_residual)
+
+            # Get coefficient and SE from model
+            coef = float(model.params[cov])
+            se = float(model.bse[cov])
+
+            covariates.append({
+                'covariate': cov,
+                'statistic': f_stat,
+                'pValue': p_value,
+                'degreesOfFreedom': [df_num, df_denom],
+                'partialEtaSquared': partial_eta_squared,
+                'coefficient': coef,
+                'standardError': se
+            })
+
+    # Adjusted means (least-squares means)
+    # Calculate mean of covariates
+    covariate_means = {cov: df_clean[cov].mean() for cov in covariate_vars}
+
+    # Get unique groups from first factor
+    main_factor = factor_vars[0]
+    groups = df_clean[main_factor].unique()
+
+    adjusted_means = []
+    for group in groups:
+        # Create prediction data: group value + mean covariates
+        pred_data = {main_factor: [group]}
+        for cov in covariate_vars:
+            pred_data[cov] = [covariate_means[cov]]
+
+        pred_df = pd.DataFrame(pred_data)
+
+        # Predict
+        predicted = model.predict(pred_df)
+        pred_mean = float(predicted.iloc[0])
+
+        # Standard error (approximation using group SE)
+        group_data = df_clean[df_clean[main_factor] == group]
+        se = float(df_clean[dependent_var].std() / np.sqrt(len(group_data)))
+
+        # 95% CI
+        ci_lower = pred_mean - 1.96 * se
+        ci_upper = pred_mean + 1.96 * se
+
+        adjusted_means.append({
+            'group': str(group),
+            'adjustedMean': pred_mean,
+            'standardError': se,
+            'ci95Lower': ci_lower,
+            'ci95Upper': ci_upper
+        })
+
+    # Post-hoc comparisons (pairwise t-tests with Bonferroni correction)
+    post_hoc = []
+    n_groups = len(groups)
+    if n_groups >= 2:
+        from itertools import combinations
+        from scipy.stats import t as t_dist
+
+        for i, j in combinations(range(n_groups), 2):
+            group1, group2 = adjusted_means[i], adjusted_means[j]
+
+            mean_diff = group1['adjustedMean'] - group2['adjustedMean']
+            se_pooled = np.sqrt(group1['standardError']**2 + group2['standardError']**2)
+            t_value = mean_diff / se_pooled if se_pooled > 0 else 0
+
+            df_error = int(anova_table.loc['Residual', 'df'])
+            p_value = 2 * (1 - t_dist.cdf(abs(t_value), df_error))
+
+            # Bonferroni correction
+            n_comparisons = len(list(combinations(range(n_groups), 2)))
+            adjusted_p = min(1.0, p_value * n_comparisons)
+
+            # Cohen's d
+            pooled_std = df_clean[dependent_var].std()
+            cohens_d = mean_diff / pooled_std if pooled_std > 0 else 0
+
+            # 95% CI for difference
+            ci_lower = mean_diff - 1.96 * se_pooled
+            ci_upper = mean_diff + 1.96 * se_pooled
+
+            post_hoc.append({
+                'comparison': f"{group1['group']} vs {group2['group']}",
+                'meanDiff': mean_diff,
+                'standardError': se_pooled,
+                'tValue': t_value,
+                'pValue': p_value,
+                'adjustedPValue': adjusted_p,
+                'cohensD': cohens_d,
+                'lowerCI': ci_lower,
+                'upperCI': ci_upper
+            })
+
+    # Assumptions
+    residuals = model.resid
+    fitted = model.fittedvalues
+
+    # 1. Homogeneity of slopes (interaction between factor and covariate)
+    # Test factor*covariate interaction
+    interaction_formula = f'{dependent_var} ~ {factor_terms} * {covariate_terms}'
+    interaction_model = ols(interaction_formula, data=df_clean).fit()
+
+    # Compare models with F-test
+    f_stat_slope = ((model.ssr - interaction_model.ssr) / (interaction_model.df_resid - model.df_resid)) / (interaction_model.ssr / interaction_model.df_resid)
+    p_value_slope = 1 - stats.f.cdf(f_stat_slope, interaction_model.df_resid - model.df_resid, interaction_model.df_resid)
+
+    # 2. Homogeneity of variance (Levene test)
+    group_data = [df_clean[df_clean[main_factor] == g][dependent_var].values for g in groups]
+    levene_stat, levene_p = levene(*group_data)
+
+    # 3. Normality of residuals (Shapiro-Wilk)
+    if len(residuals) <= 5000:
+        shapiro_w, shapiro_p = shapiro(residuals)
+    else:
+        shapiro_w, shapiro_p = 0.98, 0.5  # Skip for large samples
+
+    # 4. Linearity of covariate (correlations by group)
+    linearity_corrs = []
+    for group in groups:
+        group_df = df_clean[df_clean[main_factor] == group]
+        if len(group_df) >= 3:
+            corr = group_df[[dependent_var, covariate_vars[0]]].corr().iloc[0, 1]
+            linearity_corrs.append({
+                'group': str(group),
+                'correlation': float(corr)
+            })
+
+    assumptions = {
+        'homogeneityOfSlopes': {
+            'statistic': float(f_stat_slope),
+            'pValue': float(p_value_slope),
+            'assumptionMet': p_value_slope > 0.05
+        },
+        'homogeneityOfVariance': {
+            'leveneStatistic': float(levene_stat),
+            'pValue': float(levene_p),
+            'assumptionMet': levene_p > 0.05
+        },
+        'normalityOfResiduals': {
+            'shapiroW': float(shapiro_w),
+            'pValue': float(shapiro_p),
+            'assumptionMet': shapiro_p > 0.05
+        },
+        'linearityOfCovariate': {
+            'correlations': linearity_corrs,
+            'assumptionMet': all(abs(c['correlation']) > 0.3 for c in linearity_corrs)
+        }
+    }
+
+    # Model fit
+    model_fit = {
+        'rSquared': float(model.rsquared),
+        'adjustedRSquared': float(model.rsquared_adj),
+        'fStatistic': float(model.fvalue),
+        'modelPValue': float(model.f_pvalue),
+        'residualStandardError': float(np.std(residuals))
+    }
+
+    # Interpretation
+    main_effect = main_effects[0]
+    cov_effect = covariates[0]
+
+    sig_level = "유의한" if main_effect['pValue'] < 0.05 else "유의하지 않은"
+    effect_size = "큰" if main_effect['partialEtaSquared'] >= 0.14 else "중간" if main_effect['partialEtaSquared'] >= 0.06 else "작은"
+
+    interpretation = {
+        'summary': f"공변량 통제 후 집단 간 {sig_level} 차이가 있습니다 (F({main_effect['degreesOfFreedom'][0]},{main_effect['degreesOfFreedom'][1]}) = {main_effect['statistic']:.2f}, p = {main_effect['pValue']:.3f}, η²p = {main_effect['partialEtaSquared']:.3f}).",
+        'covariateEffect': f"{cov_effect['covariate']}는 종속변수에 유의한 영향을 미칩니다 (β = {cov_effect['coefficient']:.2f}, p = {cov_effect['pValue']:.3f}).",
+        'groupDifferences': f"집단별 수정된 평균 차이가 {effect_size} 효과크기를 보입니다.",
+        'recommendations': [
+            "공변량 통제로 검정력이 향상되었습니다" if cov_effect['pValue'] < 0.05 else "공변량의 효과가 유의하지 않습니다",
+            f"모델 설명력(R²): {model_fit['rSquared']:.1%}",
+            "모든 가정이 만족되어 결과를 신뢰할 수 있습니다" if all([
+                assumptions['homogeneityOfSlopes']['assumptionMet'],
+                assumptions['homogeneityOfVariance']['assumptionMet'],
+                assumptions['normalityOfResiduals']['assumptionMet']
+            ]) else "일부 가정이 위반되었으므로 결과 해석에 주의가 필요합니다",
+            "사후검정을 통해 구체적인 집단 간 차이를 확인하세요" if len(post_hoc) > 0 else ""
+        ]
+    }
+
+    return {
+        'mainEffects': main_effects,
+        'covariates': covariates,
+        'adjustedMeans': adjusted_means,
+        'postHoc': post_hoc,
+        'assumptions': assumptions,
+        'modelFit': model_fit,
+        'interpretation': interpretation
+    }
