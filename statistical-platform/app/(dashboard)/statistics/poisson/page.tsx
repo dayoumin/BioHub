@@ -33,7 +33,7 @@ import {
   ScatterChart,
   Scatter
 } from 'recharts'
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import {
   Calculator,
@@ -182,25 +182,16 @@ export default function PoissonRegressionPage() {
   ]
 
   useEffect(() => {
-    let isMounted = true
-
-    const initializePyodide = async () => {
+    const initPyodide = async () => {
       try {
-        await pyodideStats.initialize()
-        if (isMounted) {
-          setPyodideReady(true)
-        }
-
-      } catch (error) {
-        console.error('Pyodide 초기화 실패:', error)
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
+      } catch (err) {
+        console.error('PyodideCore 초기화 실패:', err)
       }
     }
-
-    initializePyodide()
-
-    return () => {
-      isMounted = false
-    }
+    initPyodide()
   }, [])
 
   const availableVariables = useMemo(() => {
@@ -259,164 +250,20 @@ export default function PoissonRegressionPage() {
     actions.startAnalysis()
 
     try {
-      // Mock implementation - will be replaced with actual Pyodide + statsmodels call
-      const mockResult: PoissonRegressionResult = {
-        model_info: {
-          model_type: 'Poisson GLM',
-          link_function: 'log',
-          distribution: 'Poisson',
-          n_observations: 200,
-          n_predictors: 3,
-          convergence: true,
-          iterations: 6,
-          log_likelihood: -245.67
-        },
-        coefficients: [
-          {
-            variable: 'intercept',
-            coefficient: 1.245,
-            std_error: 0.158,
-            z_value: 7.88,
-            p_value: 0.000,
-            ci_lower: 0.935,
-            ci_upper: 1.555,
-            exp_coefficient: 3.472,
-            irr_ci_lower: 2.547,
-            irr_ci_upper: 4.737
-          },
-          {
-            variable: 'age',
-            coefficient: 0.025,
-            std_error: 0.008,
-            z_value: 3.12,
-            p_value: 0.002,
-            ci_lower: 0.009,
-            ci_upper: 0.041,
-            exp_coefficient: 1.025,
-            irr_ci_lower: 1.009,
-            irr_ci_upper: 1.042
-          },
-          {
-            variable: 'treatment',
-            coefficient: -0.452,
-            std_error: 0.142,
-            z_value: -3.18,
-            p_value: 0.001,
-            ci_lower: -0.730,
-            ci_upper: -0.174,
-            exp_coefficient: 0.636,
-            irr_ci_lower: 0.482,
-            irr_ci_upper: 0.840
-          },
-          {
-            variable: 'exposure_time',
-            coefficient: 0.083,
-            std_error: 0.025,
-            z_value: 3.32,
-            p_value: 0.001,
-            ci_lower: 0.034,
-            ci_upper: 0.132,
-            exp_coefficient: 1.087,
-            irr_ci_lower: 1.035,
-            irr_ci_upper: 1.141
-          }
-        ],
-        model_fit: {
-          deviance: 187.45,
-          pearson_chi2: 192.33,
-          aic: 499.34,
-          bic: 512.78,
-          pseudo_r_squared_mcfadden: 0.134,
-          pseudo_r_squared_deviance: 0.156,
-          dispersion_parameter: 0.98
-        },
-        assumptions: {
-          overdispersion: {
-            test_name: 'Overdispersion Test',
-            statistic: 192.33,
-            p_value: 0.245,
-            dispersion_ratio: 0.98,
-            assumption_met: true
-          },
-          linearity: {
-            test_name: 'Link Test',
-            p_value: 0.634,
-            assumption_met: true
-          },
-          independence: {
-            durbin_watson: 2.15,
-            assumption_met: true
-          }
-        },
-        predicted_values: [
-          {
-            observation: 1,
-            actual_count: 3,
-            predicted_count: 2.85,
-            residual: 0.15,
-            pearson_residual: 0.089,
-            deviance_residual: 0.091
-          },
-          {
-            observation: 2,
-            actual_count: 7,
-            predicted_count: 6.23,
-            residual: 0.77,
-            pearson_residual: 0.309,
-            deviance_residual: 0.295
-          },
-          {
-            observation: 3,
-            actual_count: 12,
-            predicted_count: 11.67,
-            residual: 0.33,
-            pearson_residual: 0.097,
-            deviance_residual: 0.095
-          }
-        ],
-        goodness_of_fit: {
-          pearson_gof: {
-            statistic: 192.33,
-            df: 196,
-            p_value: 0.578
-          },
-          deviance_gof: {
-            statistic: 187.45,
-            df: 196,
-            p_value: 0.643
-          }
-        },
-        rate_ratios: [
-          {
-            variable: 'age',
-            rate_ratio: 1.025,
-            ci_lower: 1.009,
-            ci_upper: 1.042,
-            interpretation: '나이가 1세 증가할 때마다 발생률이 2.5% 증가'
-          },
-          {
-            variable: 'treatment',
-            rate_ratio: 0.636,
-            ci_lower: 0.482,
-            ci_upper: 0.840,
-            interpretation: '치료군에서 대조군 대비 발생률이 36.4% 감소'
-          },
-          {
-            variable: 'exposure_time',
-            rate_ratio: 1.087,
-            ci_lower: 1.035,
-            ci_upper: 1.141,
-            interpretation: '노출시간이 1시간 증가할 때마다 발생률이 8.7% 증가'
-          }
-        ]
-      }
+      const pyodideCore = PyodideCoreService.getInstance()
 
-      if (!actions.completeAnalysis) {
-        console.error('[poisson] completeAnalysis not available')
-        return
-      }
+      // Call Worker 2 poisson_regression method
+      const workerResult = await pyodideCore.callWorkerMethod<PoissonRegressionResult>(
+        2,
+        'poisson_regression',
+        {
+          dependent_var: selectedDependent,
+          independent_vars: selectedIndependent,
+          data: uploadedData.data as never
+        }
+      )
 
-      actions.completeAnalysis(mockResult, 2)
+      actions.completeAnalysis(workerResult, 2)
     } catch (error) {
       console.error('분석 중 오류:', error)
 
