@@ -8,8 +8,7 @@ import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/St
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-import type { PyodideInterface } from '@/types/pyodide'
-import { loadPyodideWithPackages } from '@/lib/utils/pyodide-loader'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -162,285 +161,109 @@ export default function StepwiseRegressionPage() {
     actions.startAnalysis()
 
     try {
-      // Load Pyodide with required packages
-      const pyodide: PyodideInterface = await loadPyodideWithPackages([
-        'numpy',
-        'pandas',
-        'scipy',
-        'statsmodels'
-      ])
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
 
-      pyodide.globals.set('data', data)
-      pyodide.globals.set('dependent_var', variables.dependent[0])
-      pyodide.globals.set('predictor_vars', [...variables.factor, ...(variables.covariate || [])])
+      const predictorVars = [...variables.factor, ...(variables.covariate || [])]
 
-      const pythonCode = `
-import pandas as pd
-import numpy as np
-from scipy import stats
-import statsmodels.api as sm
-from statsmodels.stats.diagnostic import het_breuschpagan
-from statsmodels.stats.stattools import durbin_watson
-from statsmodels.stats.outliers_influence import variance_inflation_factor
-from statsmodels.tsa.stattools import jarque_bera
-import json
-import warnings
-warnings.filterwarnings('ignore')
-
-df = pd.DataFrame(data)
-
-# 변수 정의
-dependent = dependent_var
-predictors = predictor_vars
-
-# 결측값 제거
-all_vars = [dependent] + predictors
-df_clean = df[all_vars].dropna()
-
-y = df_clean[dependent].values
-X_full = df_clean[predictors]
-
-def calculate_aic(n, mse, num_params):
-    """AIC 계산"""
-    return n * np.log(mse) + 2 * num_params
-
-def calculate_bic(n, mse, num_params):
-    """BIC 계산"""
-    return n * np.log(mse) + num_params * np.log(n)
-
-def forward_selection(X, y, significance_level=0.05):
-    """전진선택법 구현"""
-    initial_features = []
-    remaining_features = list(X.columns)
-    step_history = []
-
-    step = 1
-    while remaining_features:
-        # 각 남은 변수에 대해 F 통계량 계산
-        best_pval = float('inf')
-        best_feature = None
-        best_f_stat = None
-
-        for feature in remaining_features:
-            test_features = initial_features + [feature]
-            X_test = sm.add_constant(X[test_features])
-
-            try:
-                model = sm.OLS(y, X_test).fit()
-                if len(initial_features) == 0:
-                    # 첫 번째 변수
-                    f_stat = model.fvalue
-                    p_val = model.f_pvalue
-                else:
-                    # F-change 계산
-                    X_prev = sm.add_constant(X[initial_features])
-                    model_prev = sm.OLS(y, X_prev).fit()
-
-                    sse_full = model.ssr
-                    sse_reduced = model_prev.ssr
-                    df_diff = 1
-                    df_error = len(y) - len(test_features) - 1
-
-                    f_stat = ((sse_reduced - sse_full) / df_diff) / (sse_full / df_error)
-                    p_val = 1 - stats.f.cdf(f_stat, df_diff, df_error)
-
-                if p_val < best_pval:
-                    best_pval = p_val
-                    best_feature = feature
-                    best_f_stat = f_stat
-            except:
-                continue
-
-        if best_pval < significance_level and best_feature:
-            initial_features.append(best_feature)
-            remaining_features.remove(best_feature)
-
-            # 모델 통계 계산
-            X_current = sm.add_constant(X[initial_features])
-            model_current = sm.OLS(y, X_current).fit()
-
-            step_history.append({
-                'step': step,
-                'action': 'add',
-                'variable': best_feature,
-                'r_squared': float(model_current.rsquared),
-                'adj_r_squared': float(model_current.rsquared_adj),
-                'f_change': float(best_f_stat),
-                'f_change_p': float(best_pval),
-                'criterion_value': float(model_current.aic)
-            })
-            step += 1
-        else:
-            break
-
-    return initial_features, step_history
-
-# 단계적 회귀분석 실행
-selected_features, step_history = forward_selection(X_full, y)
-
-# 최종 모델
-if selected_features:
-    X_final = sm.add_constant(X_full[selected_features])
-    final_model = sm.OLS(y, X_final).fit()
-
-    # 계수 정보
-    coefficients = []
-    for i, var in enumerate(['const'] + selected_features):
-        if var == 'const':
-            coefficients.append({
-                'variable': '상수',
-                'coefficient': float(final_model.params[i]),
-                'std_error': float(final_model.bse[i]),
-                't_statistic': float(final_model.tvalues[i]),
-                'p_value': float(final_model.pvalues[i]),
-                'beta': 0.0,
-                'vif': 0.0
-            })
-        else:
-            # 표준화 계수 계산
-            std_y = np.std(y)
-            std_x = np.std(X_full[var])
-            beta = final_model.params[i] * (std_x / std_y)
-
-            # VIF 계산 (2개 이상 변수일 때만)
-            if len(selected_features) > 1:
-                try:
-                    vif_data = X_final.iloc[:, 1:]  # 상수항 제외
-                    vif = variance_inflation_factor(vif_data.values, selected_features.index(var))
-                except:
-                    vif = 1.0
-            else:
-                vif = 1.0
-
-            coefficients.append({
-                'variable': var,
-                'coefficient': float(final_model.params[i]),
-                'std_error': float(final_model.bse[i]),
-                't_statistic': float(final_model.tvalues[i]),
-                'p_value': float(final_model.pvalues[i]),
-                'beta': float(beta),
-                'vif': float(vif)
-            })
-
-    # 모델 진단
-    residuals = final_model.resid
-
-    # Durbin-Watson 통계
-    dw_stat = durbin_watson(residuals)
-
-    # Jarque-Bera 정규성 검정
-    jb_stat, jb_p = jarque_bera(residuals)
-
-    # Breusch-Pagan 등분산성 검정
-    try:
-        lm, lm_p, fvalue, f_p = het_breuschpagan(residuals, X_final)
-        bp_p = f_p
-    except:
-        bp_p = 1.0
-
-    # 조건수 (다중공선성)
-    try:
-        condition_num = np.linalg.cond(X_final)
-    except:
-        condition_num = 1.0
-
-    # 제외된 변수들
-    excluded_vars = [var for var in predictors if var not in selected_features]
-    excluded_variables = []
-
-    for var in excluded_vars:
-        # 부분상관 및 t통계량 계산
-        X_test = sm.add_constant(X_full[selected_features + [var]])
-        try:
-            model_test = sm.OLS(y, X_test).fit()
-            t_stat = model_test.tvalues[-1]
-            p_val = model_test.pvalues[-1]
-
-            # 부분상관계수 계산 (근사)
-            partial_corr = t_stat / np.sqrt(t_stat**2 + model_test.df_resid)
-
-            excluded_variables.append({
-                'variable': var,
-                'partial_corr': float(partial_corr),
-                't_for_inclusion': float(t_stat),
-                'p_value': float(p_val)
-            })
-        except:
-            excluded_variables.append({
-                'variable': var,
-                'partial_corr': 0.0,
-                't_for_inclusion': 0.0,
-                'p_value': 1.0
-            })
-
-    # 해석 생성
-    r2_percent = final_model.rsquared * 100
-    interpretation = {
-        'summary': f'단계적 회귀분석을 통해 {len(selected_features)}개 변수가 선택되었습니다. 최종 모델의 설명력(R²)은 {r2_percent:.1f}%입니다.',
-        'recommendations': [
-            '선택된 변수들의 회귀계수가 모두 유의한지 확인하세요.',
-            '모델 가정(정규성, 등분산성, 선형성)을 검토하세요.',
-            'VIF 값이 10 이상인 변수는 다중공선성을 의심해보세요.',
-            '단계적 회귀는 표본에 의존적이므로 교차검증을 권장합니다.',
-            '실무적 중요성과 통계적 유의성을 구분하여 해석하세요.'
-        ]
-    }
-
-    results = {
-        'final_model': {
-            'variables': selected_features,
-            'r_squared': float(final_model.rsquared),
-            'adj_r_squared': float(final_model.rsquared_adj),
-            'f_statistic': float(final_model.fvalue),
-            'f_p_value': float(final_model.f_pvalue),
-            'aic': float(final_model.aic),
-            'bic': float(final_model.bic),
-            'rmse': float(np.sqrt(final_model.mse_resid))
-        },
-        'step_history': step_history,
-        'coefficients': coefficients,
-        'model_diagnostics': {
-            'durbin_watson': float(dw_stat),
-            'jarque_bera_p': float(jb_p),
-            'breusch_pagan_p': float(bp_p),
-            'condition_number': float(condition_num)
-        },
-        'excluded_variables': excluded_variables,
-        'interpretation': interpretation
-    }
-else:
-    # 변수가 선택되지 않은 경우
-    results = {
-        'final_model': {
-            'variables': [],
-            'r_squared': 0.0,
-            'adj_r_squared': 0.0,
-            'f_statistic': 0.0,
-            'f_p_value': 1.0,
-            'aic': 0.0,
-            'bic': 0.0,
-            'rmse': 0.0
-        },
-        'step_history': [],
-        'coefficients': [],
-        'model_diagnostics': {
-            'durbin_watson': 0.0,
-            'jarque_bera_p': 1.0,
-            'breusch_pagan_p': 1.0,
-            'condition_number': 1.0
-        },
-        'excluded_variables': [],
-        'interpretation': {
-            'summary': '선택된 변수가 없습니다. 유의수준을 조정하거나 다른 변수를 고려해보세요.',
-            'recommendations': ['유의수준 기준을 완화해보세요.', '다른 예측변수를 고려해보세요.']
+      const result = await pyodideCore.callWorkerMethod<{
+        finalModel: {
+          variables: string[]
+          rSquared: number
+          adjRSquared: number
+          fStatistic: number
+          fPValue: number
+          aic: number
+          bic: number
+          rmse: number
         }
-    }
+        stepHistory: Array<{
+          step: number
+          action: string
+          variable: string
+          rSquared: number
+          adjRSquared: number
+          fChange: number
+          fChangeP: number
+          criterionValue: number
+        }>
+        coefficients: Array<{
+          variable: string
+          coefficient: number
+          stdError: number
+          tStatistic: number
+          pValue: number
+          beta: number
+          vif: number
+        }>
+        modelDiagnostics: {
+          durbinWatson: number
+          jarqueBeraP: number
+          breuschPaganP: number
+          conditionNumber: number
+        }
+        excludedVariables: Array<{
+          variable: string
+          partialCorr: number
+          tForInclusion: number
+          pValue: number
+        }>
+        interpretation: {
+          summary: string
+          recommendations: string[]
+        }
+      }>(2, 'stepwise_regression_forward', {
+        data: data as never,
+        dependent_var: variables.dependent[0],
+        predictor_vars: predictorVars as never,
+        significance_level: 0.05
+      })
 
-json.dumps(results)
-`
-
-      const result = pyodide.runPython(pythonCode)
-      const results: StepwiseResults = JSON.parse(result)
+      // Convert camelCase to snake_case for StepwiseResults interface
+      const results: StepwiseResults = {
+        final_model: {
+          variables: result.finalModel.variables,
+          r_squared: result.finalModel.rSquared,
+          adj_r_squared: result.finalModel.adjRSquared,
+          f_statistic: result.finalModel.fStatistic,
+          f_p_value: result.finalModel.fPValue,
+          aic: result.finalModel.aic,
+          bic: result.finalModel.bic,
+          rmse: result.finalModel.rmse
+        },
+        step_history: result.stepHistory.map(step => ({
+          step: step.step,
+          action: step.action as 'add' | 'remove',
+          variable: step.variable,
+          r_squared: step.rSquared,
+          adj_r_squared: step.adjRSquared,
+          f_change: step.fChange,
+          f_change_p: step.fChangeP,
+          criterion_value: step.criterionValue
+        })),
+        coefficients: result.coefficients.map(coef => ({
+          variable: coef.variable,
+          coefficient: coef.coefficient,
+          std_error: coef.stdError,
+          t_statistic: coef.tStatistic,
+          p_value: coef.pValue,
+          beta: coef.beta,
+          vif: coef.vif
+        })),
+        model_diagnostics: {
+          durbin_watson: result.modelDiagnostics.durbinWatson,
+          jarque_bera_p: result.modelDiagnostics.jarqueBeraP,
+          breusch_pagan_p: result.modelDiagnostics.breuschPaganP,
+          condition_number: result.modelDiagnostics.conditionNumber
+        },
+        excluded_variables: result.excludedVariables.map(ev => ({
+          variable: ev.variable,
+          partial_corr: ev.partialCorr,
+          t_for_inclusion: ev.tForInclusion,
+          p_value: ev.pValue
+        })),
+        interpretation: result.interpretation
+      }
 
       actions.completeAnalysis(results, 4)
     } catch (err) {

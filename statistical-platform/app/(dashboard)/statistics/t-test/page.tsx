@@ -30,7 +30,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import type { VariableAssignment } from '@/types/statistics-converters'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
@@ -106,16 +106,17 @@ export default function TTestPage() {
   const [testValue, setTestValue] = useState<number>(0)
 
   // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  const [pyodideReady, setPyodideReady] = useState(false)
 
-  // Initialize Pyodide
+  // Initialize PyodideCore
   useEffect(() => {
     const initPyodide = async () => {
       try {
-        await pyodideStats.initialize()
-        setPyodide(pyodideStats)
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
       } catch (err) {
-        console.error('Pyodide 초기화 실패:', err)
+        console.error('PyodideCore 초기화 실패:', err)
         actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
@@ -198,9 +199,9 @@ export default function TTestPage() {
     't-test'
   )
 
-  // 분석 실행
+  // 분석 실행 - PyodideCore Worker 2
   const runAnalysis = async (variables: VariableAssignment) => {
-    if (!pyodide) {
+    if (!pyodideReady) {
       actions.setError?.('통계 엔진이 초기화되지 않았습니다. 잠시 후 다시 시도해주세요.')
       return
     }
@@ -212,33 +213,100 @@ export default function TTestPage() {
     actions.startAnalysis?.()
 
     try {
-      // 모의 결과 생성 (실제로는 Pyodide 사용)
-      const mockResult: TTestResult = {
-        type: activeTab,
-        statistic: -2.156,
-        pvalue: 0.0412,
-        df: 28,
-        ci_lower: -4.82,
-        ci_upper: -0.18,
-        mean_diff: -2.5,
-        effect_size: {
-          cohens_d: 0.79,
-          interpretation: '중간 효과'
-        },
-        assumptions: {
-          normality: { passed: true, pvalue: 0.234 },
-          equal_variance: { passed: true, pvalue: 0.567 }
-        },
-        sample_stats: {
-          group1: { mean: 75.4, std: 8.2, n: 15 },
-          group2: { mean: 77.9, std: 7.8, n: 15 }
+      const pyodideCore = PyodideCoreService.getInstance()
+      let result: TTestResult
+
+      if (activeTab === 'two-sample') {
+        // Two-sample t-test
+        const group1Var = variables.group1?.[0] || variables.independent?.[0]
+        const group2Var = variables.group2?.[0] || variables.independent?.[1]
+
+        if (!group1Var || !group2Var) {
+          throw new Error('두 개의 그룹 변수를 선택해주세요.')
         }
+
+        const group1Data = uploadedData.data
+          .map(row => row[group1Var])
+          .filter((val): val is number => typeof val === 'number' && !isNaN(val))
+
+        const group2Data = uploadedData.data
+          .map(row => row[group2Var])
+          .filter((val): val is number => typeof val === 'number' && !isNaN(val))
+
+        const workerResult = await pyodideCore.callWorkerMethod<{
+          statistic: number
+          p_value: number
+          df: number
+          ci_lower: number
+          ci_upper: number
+          mean1: number
+          mean2: number
+          std1: number
+          std2: number
+          n1: number
+          n2: number
+          cohens_d: number
+          normality1_p: number
+          normality2_p: number
+          levene_p: number
+        }>(2, 't_test_two_sample', {
+          group1: group1Data,
+          group2: group2Data,
+          equal_var: true
+        })
+
+        result = {
+          type: 'two-sample',
+          statistic: workerResult.statistic,
+          pvalue: workerResult.p_value,
+          df: workerResult.df,
+          ci_lower: workerResult.ci_lower,
+          ci_upper: workerResult.ci_upper,
+          mean_diff: workerResult.mean1 - workerResult.mean2,
+          effect_size: {
+            cohens_d: workerResult.cohens_d,
+            interpretation: getEffectSizeInterpretation(workerResult.cohens_d)
+          },
+          assumptions: {
+            normality: {
+              passed: workerResult.normality1_p > 0.05 && workerResult.normality2_p > 0.05,
+              pvalue: Math.min(workerResult.normality1_p, workerResult.normality2_p)
+            },
+            equal_variance: {
+              passed: workerResult.levene_p > 0.05,
+              pvalue: workerResult.levene_p
+            }
+          },
+          sample_stats: {
+            group1: {
+              mean: workerResult.mean1,
+              std: workerResult.std1,
+              n: workerResult.n1
+            },
+            group2: {
+              mean: workerResult.mean2,
+              std: workerResult.std2,
+              n: workerResult.n2
+            }
+          }
+        }
+      } else {
+        // TODO: Implement one-sample and paired t-tests
+        throw new Error('현재 two-sample t-test만 지원됩니다.')
       }
 
-      actions.completeAnalysis(mockResult, 3)
+      actions.completeAnalysis(result, 3)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
+  }
+
+  const getEffectSizeInterpretation = (d: number): string => {
+    const absD = Math.abs(d)
+    if (absD < 0.2) return '매우 작은 효과'
+    if (absD < 0.5) return '작은 효과'
+    if (absD < 0.8) return '중간 효과'
+    return '큰 효과'
   }
 
   // 결과 해석
