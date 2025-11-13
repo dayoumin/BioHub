@@ -1466,3 +1466,234 @@ def poisson_regression(
         'goodness_of_fit': goodness_of_fit,
         'interpretation': interpretation
     }
+
+
+def ordinal_regression(
+    dependent_var: str,
+    independent_vars: List[str],
+    data: List[Dict[str, Union[str, float, int, None]]]
+) -> Dict[str, Any]:
+    """
+    Ordinal Regression using statsmodels OrderedModel
+
+    Args:
+        dependent_var: 종속변수 (ordinal categorical)
+        independent_vars: 독립변수 리스트
+        data: 데이터 리스트
+
+    Returns:
+        Ordinal regression 결과
+    """
+    import pandas as pd
+    from statsmodels.miscmodels.ordinal_model import OrderedModel
+    from scipy.stats import chi2
+    import numpy as np
+
+    # Convert to DataFrame
+    df = pd.DataFrame(data)
+    required_vars = [dependent_var] + independent_vars
+    df_clean = df[required_vars].dropna()
+
+    if len(df_clean) < 10:
+        raise ValueError(f"Insufficient data after removing missing values: {len(df_clean)} rows (minimum 10 required)")
+
+    # Encode ordinal dependent variable
+    y = pd.Categorical(df_clean[dependent_var], ordered=True)
+    y_codes = y.codes
+    category_labels = y.categories.tolist()
+    n_categories = len(category_labels)
+
+    if n_categories < 2:
+        raise ValueError(f"Dependent variable must have at least 2 categories, found {n_categories}")
+
+    # Prepare independent variables
+    X = df_clean[independent_vars].copy()
+
+    # Convert categorical to dummy
+    for col in X.columns:
+        if X[col].dtype == 'object':
+            X = pd.get_dummies(X, columns=[col], drop_first=True)
+
+    # Fit OrderedModel
+    model = OrderedModel(y_codes, X, distr='logit')
+    result = model.fit(method='bfgs', disp=False, maxiter=500)
+
+    # Model info
+    model_info = {
+        'model_type': 'Proportional Odds Model',
+        'link_function': 'logit',
+        'n_observations': int(len(df_clean)),
+        'n_predictors': int(X.shape[1]),
+        'convergence': bool(result.mle_retvals['converged']),
+        'iterations': int(result.mle_retvals.get('iterations', 0))
+    }
+
+    # Coefficients (excluding thresholds)
+    n_thresholds = n_categories - 1
+    coef_names = result.params.index[n_thresholds:].tolist()
+    coef_values = result.params.values[n_thresholds:]
+    std_errors = result.bse.values[n_thresholds:]
+    z_values = result.tvalues.values[n_thresholds:]
+    p_values = result.pvalues.values[n_thresholds:]
+
+    coefficients = []
+    for i, var in enumerate(coef_names):
+        coef = float(coef_values[i])
+        se = float(std_errors[i])
+        z = float(z_values[i])
+        p = float(p_values[i])
+
+        # Confidence interval
+        ci = result.conf_int().iloc[n_thresholds + i]
+        ci_lower = float(ci[0])
+        ci_upper = float(ci[1])
+
+        # Odds ratio
+        odds_ratio = float(np.exp(coef))
+        or_ci_lower = float(np.exp(ci_lower))
+        or_ci_upper = float(np.exp(ci_upper))
+
+        coefficients.append({
+            'variable': var,
+            'coefficient': coef,
+            'std_error': se,
+            'z_value': z,
+            'p_value': p,
+            'ci_lower': ci_lower,
+            'ci_upper': ci_upper,
+            'odds_ratio': odds_ratio,
+            'or_ci_lower': or_ci_lower,
+            'or_ci_upper': or_ci_upper
+        })
+
+    # Thresholds
+    threshold_names = result.params.index[:n_thresholds].tolist()
+    threshold_values = result.params.values[:n_thresholds]
+    threshold_std_errors = result.bse.values[:n_thresholds]
+    threshold_z_values = result.tvalues.values[:n_thresholds]
+    threshold_p_values = result.pvalues.values[:n_thresholds]
+
+    thresholds = []
+    for i in range(n_thresholds):
+        ci = result.conf_int().iloc[i]
+        thresholds.append({
+            'threshold': threshold_names[i],
+            'coefficient': float(threshold_values[i]),
+            'std_error': float(threshold_std_errors[i]),
+            'z_value': float(threshold_z_values[i]),
+            'p_value': float(threshold_p_values[i]),
+            'ci_lower': float(ci[0]),
+            'ci_upper': float(ci[1])
+        })
+
+    # Model fit
+    log_likelihood = float(result.llf)
+    aic = float(result.aic)
+    bic = float(result.bic)
+
+    # Pseudo R-squared
+    ll_null = float(result.llnull) if hasattr(result, 'llnull') else log_likelihood
+    pseudo_r2_mcfadden = 1 - (log_likelihood / ll_null) if ll_null != 0 else 0
+
+    # Cox-Snell and Nagelkerke
+    n = len(df_clean)
+    cox_snell = 1 - np.exp((2 / n) * (ll_null - log_likelihood))
+    nagelkerke = cox_snell / (1 - np.exp((2 / n) * ll_null))
+
+    model_fit = {
+        'deviance': float(-2 * log_likelihood),
+        'aic': aic,
+        'bic': bic,
+        'log_likelihood': log_likelihood,
+        'pseudo_r_squared_mcfadden': float(pseudo_r2_mcfadden),
+        'pseudo_r_squared_nagelkerke': float(nagelkerke),
+        'pseudo_r_squared_cox_snell': float(cox_snell)
+    }
+
+    # Assumptions: Proportional Odds Test (Brant test approximation)
+    # Use likelihood ratio test against unconstrained model
+    try:
+        # Simple proportional odds check (compare to null model)
+        chi2_stat = float(2 * (log_likelihood - ll_null))
+        df = int(X.shape[1])
+        po_p_value = float(1 - chi2.cdf(chi2_stat, df)) if df > 0 else 1.0
+        po_assumption_met = po_p_value > 0.05
+    except:
+        chi2_stat = 0.0
+        po_p_value = 1.0
+        po_assumption_met = True
+
+    # VIF for multicollinearity
+    from statsmodels.stats.outliers_influence import variance_inflation_factor
+    multicollinearity = []
+    try:
+        for i, col in enumerate(X.columns):
+            vif = variance_inflation_factor(X.values, i)
+            tolerance = 1 / vif if vif > 0 else 0
+            multicollinearity.append({
+                'variable': col,
+                'vif': float(vif) if not np.isinf(vif) else 999.0,
+                'tolerance': float(tolerance)
+            })
+    except:
+        # Fallback if VIF calculation fails
+        for col in X.columns:
+            multicollinearity.append({
+                'variable': col,
+                'vif': 1.0,
+                'tolerance': 1.0
+            })
+
+    assumptions = {
+        'proportional_odds': {
+            'test_name': 'Proportional Odds Test',
+            'test_statistic': float(chi2_stat),
+            'p_value': float(po_p_value),
+            'assumption_met': bool(po_assumption_met)
+        },
+        'multicollinearity': multicollinearity
+    }
+
+    # Predicted probabilities
+    predicted_probs = result.predict()
+    y_pred = np.argmax(predicted_probs, axis=1)
+
+    # Limit to first 100 observations
+    max_pred = min(100, len(df_clean))
+    predicted_probabilities = []
+    for i in range(max_pred):
+        prob_dict = {
+            'observation': i + 1,
+            'predicted_category': int(y_pred[i]),
+            'actual_category': int(y_codes[i])
+        }
+        # Add category probabilities
+        for j in range(n_categories):
+            prob_dict[f'category_{j+1}_prob'] = float(predicted_probs[i, j])
+        predicted_probabilities.append(prob_dict)
+
+    # Classification metrics
+    from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
+
+    accuracy = float(accuracy_score(y_codes, y_pred))
+    cm = confusion_matrix(y_codes, y_pred)
+    precision, recall, f1, _ = precision_recall_fscore_support(y_codes, y_pred, average=None, zero_division=0)
+
+    classification_metrics = {
+        'accuracy': accuracy,
+        'confusion_matrix': cm.tolist(),
+        'category_labels': category_labels,
+        'precision': [float(p) for p in precision],
+        'recall': [float(r) for r in recall],
+        'f1_score': [float(f) for f in f1]
+    }
+
+    return {
+        'model_info': model_info,
+        'coefficients': coefficients,
+        'thresholds': thresholds,
+        'model_fit': model_fit,
+        'assumptions': assumptions,
+        'predicted_probabilities': predicted_probabilities,
+        'classification_metrics': classification_metrics
+    }

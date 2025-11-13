@@ -30,7 +30,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import {
@@ -169,25 +169,16 @@ export default function OrdinalRegressionPage() {
   ]
 
   useEffect(() => {
-    let isMounted = true
-
-    const initializePyodide = async () => {
+    const initPyodide = async () => {
       try {
-        await pyodideStats.initialize()
-        if (isMounted) {
-          setPyodideReady(true)
-        }
-
-      } catch (error) {
-        console.error('Pyodide 초기화 실패:', error)
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
+      } catch (err) {
+        console.error('PyodideCore 초기화 실패:', err)
       }
     }
-
-    initializePyodide()
-
-    return () => {
-      isMounted = false
-    }
+    initPyodide()
   }, [])
 
   const availableVariables = useMemo(() => {
@@ -230,142 +221,20 @@ export default function OrdinalRegressionPage() {
     actions.startAnalysis()
 
     try {
-      // Mock implementation - will be replaced with actual Pyodide + statsmodels call
-      const mockResult: OrdinalRegressionResult = {
-        model_info: {
-          model_type: 'Proportional Odds Model',
-          link_function: 'logit',
-          n_observations: 150,
-          n_predictors: 3,
-          convergence: true,
-          iterations: 12
-        },
-        coefficients: [
-          {
-            variable: 'age',
-            coefficient: 0.045,
-            std_error: 0.015,
-            z_value: 3.00,
-            p_value: 0.003,
-            ci_lower: 0.016,
-            ci_upper: 0.074,
-            odds_ratio: 1.046,
-            or_ci_lower: 1.016,
-            or_ci_upper: 1.077
-          },
-          {
-            variable: 'income',
-            coefficient: 0.002,
-            std_error: 0.001,
-            z_value: 2.45,
-            p_value: 0.014,
-            ci_lower: 0.000,
-            ci_upper: 0.004,
-            odds_ratio: 1.002,
-            or_ci_lower: 1.000,
-            or_ci_upper: 1.004
-          },
-          {
-            variable: 'education',
-            coefficient: 0.512,
-            std_error: 0.178,
-            z_value: 2.87,
-            p_value: 0.004,
-            ci_lower: 0.163,
-            ci_upper: 0.861,
-            odds_ratio: 1.669,
-            or_ci_lower: 1.177,
-            or_ci_upper: 2.365
-          }
-        ],
-        thresholds: [
-          {
-            threshold: '불만족|보통',
-            coefficient: -2.15,
-            std_error: 0.45,
-            z_value: -4.78,
-            p_value: 0.000,
-            ci_lower: -3.03,
-            ci_upper: -1.27
-          },
-          {
-            threshold: '보통|만족',
-            coefficient: 0.85,
-            std_error: 0.42,
-            z_value: 2.02,
-            p_value: 0.043,
-            ci_lower: 0.03,
-            ci_upper: 1.67
-          }
-        ],
-        model_fit: {
-          deviance: 298.45,
-          aic: 306.45,
-          bic: 318.12,
-          log_likelihood: -149.23,
-          pseudo_r_squared_mcfadden: 0.142,
-          pseudo_r_squared_nagelkerke: 0.198,
-          pseudo_r_squared_cox_snell: 0.165
-        },
-        assumptions: {
-          proportional_odds: {
-            test_name: 'Test of Parallel Lines',
-            test_statistic: 5.67,
-            p_value: 0.225,
-            assumption_met: true
-          },
-          multicollinearity: [
-            { variable: 'age', vif: 1.23, tolerance: 0.813 },
-            { variable: 'income', vif: 1.45, tolerance: 0.690 },
-            { variable: 'education', vif: 1.18, tolerance: 0.847 }
-          ]
-        },
-        predicted_probabilities: [
-          {
-            observation: 1,
-            category_1_prob: 0.15,
-            category_2_prob: 0.45,
-            category_3_prob: 0.40,
-            predicted_category: 2,
-            actual_category: 2
-          },
-          {
-            observation: 2,
-            category_1_prob: 0.25,
-            category_2_prob: 0.35,
-            category_3_prob: 0.40,
-            predicted_category: 3,
-            actual_category: 3
-          },
-          {
-            observation: 3,
-            category_1_prob: 0.60,
-            category_2_prob: 0.30,
-            category_3_prob: 0.10,
-            predicted_category: 1,
-            actual_category: 1
-          }
-        ],
-        classification_metrics: {
-          accuracy: 0.73,
-          confusion_matrix: [
-            [45, 8, 2],
-            [12, 38, 10],
-            [3, 7, 25]
-          ],
-          category_labels: ['불만족', '보통', '만족'],
-          precision: [0.75, 0.72, 0.68],
-          recall: [0.82, 0.63, 0.71],
-          f1_score: [0.78, 0.67, 0.69]
+      const pyodideCore = PyodideCoreService.getInstance()
+
+      // Call Worker 2 ordinal_regression method
+      const workerResult = await pyodideCore.callWorkerMethod<OrdinalRegressionResult>(
+        2,
+        'ordinal_regression',
+        {
+          dependent_var: selectedDependent,
+          independent_vars: selectedIndependent,
+          data: uploadedData.data as never
         }
-      }
+      )
 
-      if (!actions.completeAnalysis) {
-        console.error('[ordinal-regression] completeAnalysis not available')
-        return
-      }
-
-      actions.completeAnalysis(mockResult, 2)
+      actions.completeAnalysis(workerResult, 2)
     } catch (error) {
       console.error('분석 중 오류:', error)
 
