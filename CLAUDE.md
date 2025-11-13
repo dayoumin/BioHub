@@ -52,7 +52,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **목표**: SPSS/R Studio 급 고급 통계 소프트웨어
 - **대상**: 수산과학 연구자, 통계 전문가, 데이터 분석가
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
-- **현재**: Phase 6 완료 (PyodideCore 직접 연결, Facade 제거 완료)
+- **현재**: Phase 9 완료 (95%) - 계산 방법 표준화 + 데이터 도구 분리
+- **전체 페이지**: 44개 (통계 42개 + 데이터 도구 2개)
 
 ## ⚠️ AI 코딩 엄격 규칙 (CRITICAL)
 
@@ -76,7 +77,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 3. 통계 페이지 코딩 표준 (CRITICAL)
 
-**45개 통계 페이지 일관성 유지 필수!**
+**42개 통계 페이지 일관성 유지 필수!**
+- **전체 프로젝트**: 44개 (통계 42개 + 데이터 도구 2개)
+- **통계 페이지**: PyodideCore 표준 (40/42 = 95%)
+- **데이터 도구**: JavaScript 단순 카운팅 (2개)
 
 ⚠️ **상세 규칙**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md)
 
@@ -89,6 +93,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ✅ **변수 role 매핑**: variable-requirements.ts와 types/statistics.ts 일치 (위 "현재 중요 규칙" 참조)
 - ✅ **타입 중앙 정의**: types/statistics.ts 단일 정의 (페이지별 재정의 금지)
 - ✅ **공통 컴포넌트 사용**: StatisticsTable, EffectSizeCard 등 활용
+- ✅ **PyodideCore 사용**: 모든 통계 계산은 검증된 라이브러리 (SciPy, statsmodels, sklearn)
 
 **참고 문서**:
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방
@@ -300,7 +305,14 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ## 📋 현재 작업 상태
 
-**최신 상태** (2025-11-12):
+**최신 상태** (2025-11-13):
+- ✅ **Phase 9 완료 (95%)**: 계산 방법 표준화 + 데이터 도구 분리
+  - ✅ **전체 프로젝트**: 44개 (통계 42개 + 데이터 도구 2개)
+  - ✅ **PyodideCore**: 40/42 통계 페이지 (95%) 목표 달성!
+  - ✅ **Batch 1-4**: 23개 페이지 변환 완료 (pyodideStats, Legacy, JavaScript, None)
+  - ✅ **데이터 도구 분리**: frequency-table, cross-tabulation → /data-tools/
+  - ✅ **코드 감소**: -2,005줄 / **Worker 메서드 추가**: 17개
+  - ✅ **통계 신뢰성**: statsmodels, SciPy, sklearn 100% 사용
 - ✅ Phase 6 완료: PyodideCore 직접 연결
   - ✅ 10개 handler 완전 변환 (39개 메서드, 100%)
   - ✅ TypeScript 컴파일 에러: **0개** (core groups/handlers)
@@ -308,31 +320,18 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 - ✅ Phase 1 완료: setTimeout 패턴 제거
   - ✅ 27/27 페이지 (100%) 표준 패턴으로 전환
   - ✅ isAnalyzing Critical 버그 10개 수정
-- ✅ Phase 2-2 완료: 코드 품질 개선 (2025-11-04)
-  - ✅ **41/41 페이지 (100%)** 완료
+- ✅ Phase 2-2 완료: 코드 품질 개선
+  - ✅ **42/42 통계 페이지 (100%)** 완료
   - ✅ TypeScript 에러: 717 → 0 (-100%, 완전 제거)
   - ✅ 코드 품질: 3.5/5 → 4.97/5 (+42% 향상)
-- ✅ **Phase A-3-R1 완료** (2025-11-11): 변수 role 매핑 표준화 + Critical 버그 수정
-  - ✅ **Phase A-3**: 6개 인터페이스 수정 (Section 17-18 준수)
-    - FrequencyTableVariables, PartialCorrelationVariables, RunsTestVariables
-    - MoodMedianVariables, BinomialTestVariables, FactorAnalysisVariables
-  - ✅ **Phase A-3-R1**: Critical 버그 수정 (외부 코드 리뷰 피드백)
-    - chi-square-independence: 2-role 특수 케이스 복구 (row/column)
-    - binomial-test, runs-test: handleVariableChange fallback 추가
-  - ✅ TypeScript 에러: 0개, 개발 서버: 정상 실행
-- ✅ **Smart Flow Phase 4-6 완료** (2025-11-11):
-  - ✅ DataValidationStep 리팩토링 (컴포넌트 분리)
-  - ✅ AssumptionResultsPanel, NumericStatsTable 컴포넌트화
-  - ✅ 125개 컴포넌트 테스트 작성 및 통과
-- ✅ **Phase 3 (StatisticsTable 확대) 완료 (95%)** (2025-11-11 ~ 2025-11-12):
+- ✅ **Phase 3 (StatisticsTable 확대) 완료 (95%)**:
   - ✅ 8개 페이지, 19개 테이블 변환 (코드 평균 -30%)
   - ✅ 내보내기 버튼 비활성화: 22개 페이지
-  - ✅ 4개 복잡한 페이지 스킵 (현재 상태 유지 결정)
 
 **다음 작업**:
-- 🔜 Phase 7 계획 수립 (Tauri 데스크탑 앱 or 추가 통계 메서드)
-- 🔜 검증 자동화 스크립트 (선택, 재발 방지)
-- 🔜 Phase 8 RAG 시스템 (선택)
+- 🔜 Phase 10: 남은 2개 통계 페이지 (non-parametric, regression) PyodideCore 변환
+- 🔜 Phase 11: Tauri 데스크탑 앱
+- 🔜 Phase 12: RAG 시스템 고도화
 
 **📝 상세 작업 기록**: [dailywork.md](dailywork.md) | [STATUS.md](STATUS.md)
 
@@ -359,4 +358,4 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ---
 
-**Updated**: 2025-11-12 | **Version**: Phase 6 + Phase 2-2 + Phase A-3-R1 + Smart Flow Phase 4-6 + Phase 3 (StatisticsTable) Complete | **Next**: Phase 7 or 검증 자동화
+**Updated**: 2025-11-13 | **Version**: Phase 9 (95% Complete) - 계산 방법 표준화 + 데이터 도구 분리 | **Next**: Phase 10 (남은 2개 페이지) or Phase 11 (Tauri 앱)

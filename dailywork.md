@@ -1,3 +1,146 @@
+## 2025-11-13 (수)
+
+### ✅ Phase 9: 데이터 도구 분리 완료 (통계 vs 도구 명확한 구분)
+
+**목표**: frequency-table, cross-tabulation을 통계 분석에서 데이터 도구로 재분류
+
+#### 1. 근본 문제 인식
+
+**문제점**:
+- frequency-table, cross-tabulation이 `/statistics/`에 위치
+- 이 2개 페이지는 **통계 검정 없이 단순 카운팅만** 수행
+- PyodideCore 불필요 (SciPy/statsmodels 사용 안 함)
+- Phase 9 목표 혼란: "42/44 (95%)" vs "40/42 (95%)"
+
+**근본 원인**:
+- 통계 분석 vs 데이터 요약 도구 구분 기준 불명확
+- descriptive는 scipy/numpy 사용 (skewness, kurtosis, CI) → 통계 ✅
+- frequency-table은 JavaScript Map만 사용 → 데이터 도구 ✅
+
+#### 2. 데이터 도구 분리 작업 (60분)
+
+**작업 내용**:
+
+1. **디렉토리 구조 변경**:
+   ```bash
+   mkdir app/(dashboard)/data-tools
+   git mv app/(dashboard)/statistics/frequency-table app/(dashboard)/data-tools/
+   git mv app/(dashboard)/statistics/cross-tabulation app/(dashboard)/data-tools/
+   ```
+
+2. **menu-config.ts 업데이트** (Lines 522-554):
+   - `DATA_TOOLS_MENU` 새로 생성
+   - frequency-table, cross-tabulation 항목 추가
+   - STATISTICS_MENU에서 제거
+
+3. **dashboard/page.tsx 업데이트** (Lines 59-63, 290-335):
+   - `allMenus = [...STATISTICS_MENU, ...DATA_TOOLS_MENU]`
+   - 데이터 도구 섹션 추가 (6번째 섹션)
+
+4. **next.config.ts 리다이렉트 추가** (Lines 17-30):
+   - `/statistics/frequency-table` → `/data-tools/frequency-table` (301)
+   - `/statistics/cross-tabulation` → `/data-tools/cross-tabulation` (301)
+
+5. **검증 스크립트 메시지 명확화** (Lines 285, 296):
+   - "통계 페이지: 42개 (전체 44개 중 데이터 도구 2개 제외)"
+   - 참고 메시지 추가
+
+**커밋**:
+- `5539714` - refactor: 데이터 도구 분리 - 통계 vs 도구 명확한 분류
+- `6930ccb` - fix: 검증 스크립트 메시지 명확화
+
+#### 3. 문서 업데이트 (45분)
+
+**업데이트 파일** (4개):
+
+1. **STATUS.md** (Lines 76-92):
+   - Phase 9: "41/44 (93%)" → "40/42 통계 (95%)"
+   - 전체 프로젝트 구조 명시: 44개 = 통계 42개 + 데이터 도구 2개
+
+2. **PHASE_9_PLAN.md**:
+   - 검증 결과 섹션: 초기 상태 명시, 분류 혼란 문제 추가
+   - 목표 섹션: 전체 44개 구조 명확화
+   - "Keep JavaScript" → "데이터 도구 분리 완료" 섹션
+   - 검증 기준: 42개 통계 vs 2개 데이터 도구 구분
+
+3. **PHASE_9_PROGRESS.md**:
+   - 진행 상황: 40/42 통계 (95%) 목표 달성 표시
+   - 목표 대비 진행률: 모든 Batch 100% 달성
+
+4. **PHASE_9_DATA_TOOLS_SEPARATION_SUMMARY.md** (신규, 450줄):
+   - 데이터 도구 분리 전체 과정 문서화
+   - 통계 vs 데이터 도구 구분 기준 상세 설명
+   - 코드 변경 사항, 커밋 기록, 검증 결과
+   - 숫자 명확화 (44개 vs 42개 vs 40개)
+
+5. **CLAUDE.md** (Lines 49-56, 78-96, 306-334):
+   - 프로젝트 개요: 전체 44개 구조 명시
+   - 통계 페이지 표준: 42개로 정정
+   - 현재 작업 상태: Phase 9 완료 (95%) 반영
+
+**커밋**:
+- 자동 스테이징 및 커밋 완료
+
+#### 4. 검증 결과
+
+**TypeScript**:
+```bash
+npx tsc --noEmit
+# 결과: 0 errors ✓
+```
+
+**자동 검증 스크립트**:
+```bash
+node scripts/test-statistics-pages.js
+# 결과:
+# - 통계 페이지: 42개 (전체 44개 중 데이터 도구 2개 제외)
+# - PyodideCore: 40개 (95%)
+# - None: 2개 (5%)
+```
+
+**개발 서버**:
+```bash
+npm run dev
+# 결과: 정상 실행 ✓
+# - /data-tools/frequency-table ✓
+# - /statistics/frequency-table → 301 → /data-tools/frequency-table ✓
+```
+
+#### 5. Git 작업
+
+**커밋 푸시**:
+```bash
+git push
+# To https://github.com/dayoumin/Statistics.git
+#    6e58f56..9c95234  master -> master
+# 19개 커밋 푸시 완료 ✓
+```
+
+#### 6. 성과 요약
+
+**숫자 명확화**:
+- ✅ 전체 프로젝트: 44개 (통계 42개 + 데이터 도구 2개)
+- ✅ Phase 9 목표: 40/42 통계 페이지 (95%)
+- ✅ 데이터 도구: 2개 (frequency-table, cross-tabulation)
+
+**문서 일관성**:
+- ✅ 모든 문서에 동일한 용어 사용
+- ✅ 혼란 제거 (44 vs 42 vs 40)
+- ✅ 향후 재발 방지
+
+**프로젝트 구조 개선**:
+- ✅ 통계 분석 (/statistics/): 검증된 라이브러리 사용
+- ✅ 데이터 도구 (/data-tools/): 단순 카운팅만
+- ✅ 사용자 이해도 향상
+
+**시간**:
+- 디렉토리 이동 + 코드 수정: 60분
+- 문서 업데이트: 45분
+- 검증 + Git: 15분
+- **총**: 120분
+
+---
+
 ## 2025-11-12 (수)
 
 ### ✅ Phase 3: StatisticsTable 확대 적용 계속 (4개 페이지, 11개 테이블)
