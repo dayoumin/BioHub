@@ -138,7 +138,7 @@ export default function MeansPlotPage() {
           recommendations: string[]
         }
       }>(1, 'means_plot_data', {
-        data: uploadedData.data,
+        data: uploadedData.data as never,
         dependent_var: variables.dependent[0],
         factor_var: variables.factor[0]
       })
