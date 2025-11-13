@@ -206,7 +206,6 @@ export default function NonParametricTestPage() {
   const [selectedTest, setSelectedTest] = useState<NonParametricTest>('mann-whitney')
   const [activeTab, setActiveTab] = useState('setup')
   const [alpha, setAlpha] = useState('0.05')
-  const [alternativeHypothesis, setAlternativeHypothesis] = useState('two-sided')
 
   const currentTest = testDescriptions[selectedTest]
 
@@ -769,19 +768,6 @@ export default function NonParametricTestPage() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="alternative">대립가설</Label>
-                    <Select value={alternativeHypothesis} onValueChange={setAlternativeHypothesis}>
-                      <SelectTrigger id="alternative">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="two-sided">양측검정</SelectItem>
-                        <SelectItem value="greater">단측검정 (크다)</SelectItem>
-                        <SelectItem value="less">단측검정 (작다)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
 
                 {/* 추가 옵션 */}

@@ -113,7 +113,9 @@
       "Bash(do echo \"=== $comp ===\")",
       "Bash(/tmp/full_diff.txt)",
       "Bash(git show:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(timeout:*)",
+      "Bash(timeout /t 5 /nobreak)"
     ],
     "deny": [],
     "ask": []

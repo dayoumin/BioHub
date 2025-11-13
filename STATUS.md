@@ -73,21 +73,23 @@
   11. **Early return**: null/undefined 처리
 - **최종 커밋**: `5308546` - refactor(correlation): Phase 2-2 코드 품질 개선 완료
 
-**Phase 9: 계산 방법 표준화** 🚀 **진행 중 (93%)** (2025-11-12 ~ 진행 중)
-- **목표**: PyodideCore 표준으로 모든 통계 페이지 통합 (42/44 = 95%)
-- **완료 현황**: **41/44 페이지 (93%)** ✅
+**Phase 9: 계산 방법 표준화 + 데이터 도구 분리** 🚀 **진행 중 (95%)** (2025-11-12 ~ 진행 중)
+- **목표**: PyodideCore 표준으로 모든 통계 페이지 통합 (40/42 = 95%)
+- **완료 현황**: **40/42 통계 페이지 (95%)** ✅
+  - **전체 프로젝트**: 44개 (통계 42개 + 데이터 도구 2개)
   - **Batch 1 완료**: pyodideStats → PyodideCore (**10개**, 100% 제거 완료!)
   - **Batch 2 완료**: Legacy Pyodide → PyodideCore (**6개**, 100% 제거 완료!)
   - **Batch 3 완료**: JavaScript → PyodideCore (**4개**, sklearn 사용 완료!) ✅
   - **Batch 4 완료**: None → PyodideCore (**3개**, dose-response, power-analysis 완료 / non-parametric 부분 완료) ✅
+  - **데이터 도구 분리**: frequency-table, cross-tabulation → /data-tools/ 이동 ✅
 - **pyodideStats 완전 제거**: 10개 → **0개** (100%) 🎉
-- **JavaScript 직접 구현 제거**: 4개 → **0개** (100%) 🎉
+- **JavaScript 통계 구현 제거**: 4개 → **0개** (100%) 🎉
 - **코드 감소**: 총 **-2,005줄** (Batch 1: -750 / Batch 2: -615 / Batch 3: -420 / Batch 4: -220)
 - **Worker 메서드 추가**: **17개** (Worker 1: 4개 / Worker 2: 7개 / Worker 3: 1개 / Worker 4: 5개)
 - **통계 신뢰성**: statsmodels, SciPy, **sklearn** 100% 사용 ✅
 - **TypeScript 에러**: **0개** ✓
 - **코드 품질**: **4.5/5** ⭐⭐⭐⭐✩ (Batch 4)
-- **최종 커밋**: `22d8308` - feat(phase9-batch4): 3개 페이지 PyodideCore 전환 완료
+- **최종 커밋**: `6930ccb` - fix: 검증 스크립트 메시지 명확화 (전체 44개 = 통계 42개 + 도구 2개)
 
 **Phase 3: StatisticsTable 공통 컴포넌트 확대 적용** ✅ **95% 완료** (2025-11-11 ~ 2025-11-12)
 - **목표**: 개별 통계 페이지의 테이블 UI 일관성 향상 및 코드 중복 제거

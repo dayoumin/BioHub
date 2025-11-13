@@ -699,20 +699,116 @@ export default function DoseResponsePage() {
         </div>
       )}
 
-      {currentStep === 3 && (
+      {currentStep === 3 && results && (
         <div className="space-y-6">
+          {/* 주요 결과 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">모델 적합도</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{results.r_squared?.toFixed(4) || 'N/A'}</div>
+                <p className="text-xs text-muted-foreground">R² (결정계수)</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">EC50</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{results.ec50?.toFixed(6) || 'N/A'}</div>
+                <p className="text-xs text-muted-foreground">50% 효과 농도</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">모델</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{results.model || 'N/A'}</div>
+                <p className="text-xs text-muted-foreground">선택된 모델</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 모델 매개변수 */}
           <Card>
             <CardHeader>
-              <CardTitle>결과 해석</CardTitle>
+              <CardTitle>모델 매개변수</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-4">
-                용량-반응 분석 결과를 해석하고 EC50, IC50 등 핵심 매개변수의 의미를 이해합니다.
-              </p>
-            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {results.parameters && Object.entries(results.parameters).map(([key, value]) => (
+                  <div key={key} className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">{key}</p>
+                    <p className="text-lg font-semibold">
+                      {typeof value === 'number' ? value.toFixed(6) : String(value)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 모델 평가 지표 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>모델 평가</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">AIC</p>
+                  <p className="text-lg font-semibold">{results.aic?.toFixed(4) || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">낮을수록 좋음</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">BIC</p>
+                  <p className="text-lg font-semibold">{results.bic?.toFixed(4) || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">낮을수록 좋음</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Residuals</p>
+                  <p className="text-lg font-semibold">{results.residuals?.length || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">잔차 개수</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 신뢰구간 */}
+          {results.confidence_intervals && (
+            <Card>
+              <CardHeader>
+                <CardTitle>신뢰구간 (95%)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {Object.entries(results.confidence_intervals).map(([param, ci]) => (
+                    <div key={param} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <span className="font-medium">{param}</span>
+                      <span className="text-sm">
+                        [{Array.isArray(ci) ? `${ci[0]?.toFixed(6)} ~ ${ci[1]?.toFixed(6)}` : 'N/A'}]
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 결과 해석 가이드 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>결과 해석 가이드</CardTitle>
+            </CardHeader>
+            <CardContent>
               <Alert>
                 <Info className="h-4 w-4" />
-                <AlertTitle>결과 해석 가이드</AlertTitle>
+                <AlertTitle>주요 지표 해석</AlertTitle>
                 <AlertDescription className="space-y-2">
                   <div>• <strong>EC50/IC50</strong>: 50% 효과를 나타내는 농도 (효력 지표)</div>
                   <div>• <strong>Hill 기울기</strong>: 곡선의 가파른 정도 (협력성 지표)</div>
@@ -721,7 +817,21 @@ export default function DoseResponsePage() {
                 </AlertDescription>
               </Alert>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">모델 적합도 평가</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm">
+                    <ul className="space-y-1">
+                      <li>• R² ≥ 0.95: 매우 우수</li>
+                      <li>• R² ≥ 0.90: 우수</li>
+                      <li>• R² ≥ 0.80: 양호</li>
+                      <li>• R² &lt; 0.80: 개선 필요</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">주요 매개변수</CardTitle>
@@ -735,22 +845,7 @@ export default function DoseResponsePage() {
                     </ul>
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">모델 평가</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm">
-                    <ul className="space-y-1">
-                      <li>• R² ≥ 0.95: 매우 우수</li>
-                      <li>• R² ≥ 0.90: 우수</li>
-                      <li>• R² ≥ 0.80: 양호</li>
-                      <li>• R² &lt; 0.80: 개선 필요</li>
-                    </ul>
-                  </CardContent>
-                </Card>
               </div>
-            </div>
             </CardContent>
           </Card>
         </div>

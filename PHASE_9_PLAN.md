@@ -71,24 +71,27 @@
   - JavaScript 계산 패턴 검출
   - Mock 데이터 패턴 검출
 
-### 검증 결과
+### 검증 결과 (초기 상태, 2025-11-12)
 ```
-전체 페이지: 44개
-실제 계산 구현: 40개 (91%)
+전체 프로젝트: 44개 (통계 42개 + 데이터 도구 2개)
+통계 페이지: 42개
+실제 계산 구현: 40개 (95%)
 Mock 패턴: 0개 (0%) ✅
 
 계산 방법 분포:
-- PyodideCore: 18개 (41%) ✅ 표준
-- JavaScript: 6개 (14%) 🟡 검토 필요
-- pyodideStats: 10개 (23%) 🔴 구식, 변환 필요
+- PyodideCore: 18개 (43%) ✅ 표준
+- JavaScript (통계): 4개 (10%) 🟡 sklearn 변환 필요
+- JavaScript (데이터 도구): 2개 (5%) ✅ 유지 (frequency-table, cross-tabulation)
+- pyodideStats: 10개 (24%) 🔴 구식, 변환 필요
 - Legacy Pyodide: 6개 (14%) 🔴 구식, 변환 필요
-- None: 4개 (9%) 🔴 미구현
+- None: 4개 (10%) 🔴 미구현
 ```
 
 ### 문제점
 - **일관성 없음**: 3가지 다른 Pyodide 호출 방법 혼재
 - **유지보수 어려움**: 각 방법마다 다른 패턴
-- **코드 품질**: 최신 표준(PyodideCore)이 41%만 적용
+- **코드 품질**: 최신 표준(PyodideCore)이 43%만 적용
+- **분류 혼란**: frequency-table, cross-tabulation이 통계 분석으로 분류됨
 
 ---
 
@@ -97,14 +100,18 @@ Mock 패턴: 0개 (0%) ✅
 ### 최종 목표 분포
 | 계산 방법 | 목표 수 | 비율 | 설명 |
 |----------|---------|------|------|
-| **PyodideCore** | 42개 | 95% | 모든 통계 계산 표준 |
-| **JavaScript** | 2개 | 5% | 단순 계산만 (frequency-table, cross-tabulation) |
+| **PyodideCore (통계)** | 40개 | 95% | 모든 통계 계산 표준 |
+| **JavaScript (데이터 도구)** | 2개 | 5% | 단순 카운팅 (frequency-table, cross-tabulation) |
+| **전체 프로젝트** | 42개 | 100% | 통계 40개 + 데이터 도구 2개 |
+
+**참고**: 전체 프로젝트는 44개 (통계 42개 + 데이터 도구 2개)이지만, Phase 9 범위는 42개 통계 페이지입니다.
 
 ### 달성 기준
 - ✅ 일관성: 모든 통계 계산이 PyodideCore 사용
 - ✅ 타입 안전성: TypeScript 컴파일 에러 0개
 - ✅ 실제 동작: 모든 페이지 실제 계산 가능
-- ✅ 검증 통과: test-statistics-pages.js 95% PyodideCore
+- ✅ 검증 통과: test-statistics-pages.js 95% PyodideCore (40/42)
+- ✅ 데이터 도구 분리: frequency-table, cross-tabulation → /data-tools/
 
 ---
 
@@ -230,13 +237,21 @@ const result = await pyodideService.callWorkerMethod<RegressionResult>(
 
 ---
 
-### Keep JavaScript (2개)
-**유지 이유**: scipy 모듈이 필요 없는 단순 계산
+### 데이터 도구 분리 (2개) ✅ **완료**
+**분리 이유**: 통계 분석이 아닌 데이터 요약 도구
 
-| # | 페이지 | 계산 방법 | 유지 이유 |
-|---|--------|----------|----------|
-| 1 | frequency-table | JavaScript (Map) | 단순 빈도 계산 |
-| 2 | cross-tabulation | JavaScript (2D Map) | 단순 교차표 생성 |
+| # | 페이지 | 위치 | 계산 방법 | 분리 이유 |
+|---|--------|------|----------|-----------|
+| 1 | frequency-table | /data-tools/ | JavaScript (Map) | 단순 빈도 계산, 통계 검정 없음 |
+| 2 | cross-tabulation | /data-tools/ | JavaScript (2D Map) | 단순 교차표 생성, 통계 검정 없음 |
+
+**완료 사항**:
+- ✅ /data-tools/ 디렉토리 생성
+- ✅ git mv로 페이지 이동
+- ✅ menu-config.ts에 DATA_TOOLS_MENU 추가
+- ✅ dashboard/page.tsx에 데이터 도구 섹션 추가
+- ✅ next.config.ts에 301 리다이렉트 추가
+- ✅ 검증 스크립트 메시지 명확화
 
 ---
 
@@ -273,12 +288,14 @@ const result = await pyodideService.callWorkerMethod<RegressionResult>(
 ### 자동 검증
 ```bash
 node scripts/test-statistics-pages.js
-# 목표: PyodideCore 42개 (95%), JavaScript 2개 (5%)
+# 목표: PyodideCore 40개 (95%), None 2개 (5%)
+# 참고: 전체 44개 = 통계 42개 + 데이터 도구 2개
 ```
 
 ### 수동 검증
-- 사용자가 44개 페이지 하나씩 확인
+- 사용자가 42개 통계 페이지 하나씩 확인
 - 실제 데이터 업로드 → 계산 → 결과 확인
+- 데이터 도구 2개는 별도 검증
 
 ---
 
@@ -320,21 +337,22 @@ node scripts/test-statistics-pages.js
 ## 🎯 최종 목표 (Phase 9 완료 후)
 
 ### 코드 일관성
-- ✅ PyodideCore: 42개 (95%)
-- ✅ JavaScript: 2개 (5%)
+- ✅ PyodideCore (통계): 40개 (95%)
+- ✅ JavaScript (데이터 도구): 2개 (5%)
 - ✅ 단일 표준 패턴
 - ✅ 유지보수 용이
 
 ### 품질 지표
 - ✅ TypeScript 에러: 0개
 - ✅ Mock 패턴: 0개
-- ✅ 실제 계산: 44개 (100%)
+- ✅ 실제 계산: 42개 통계 페이지 (100%)
 - ✅ 자동 검증: test-statistics-pages.js 통과
 
 ### 사용자 경험
 - ✅ 모든 통계 기능 동작
 - ✅ 동일한 사용 패턴
 - ✅ 안정적인 계산 결과
+- ✅ 통계 vs 데이터 도구 명확한 분리
 
 ---
 

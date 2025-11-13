@@ -824,27 +824,23 @@ json.dumps(result)
     // 배열 검증
     if (Array.isArray(param)) {
       param.forEach((item, index) => {
-        if (typeof item === 'number' && (isNaN(item) || !isFinite(item))) {
-          throw new Error(`${prefix}[${index}]가 유효하지 않은 숫자입니다 (NaN 또는 Infinity)`)
-        }
-
-        // 2D 배열 검증
-        if (Array.isArray(item)) {
-          item.forEach((subItem, subIndex) => {
-            if (typeof subItem === 'number' && (isNaN(subItem) || !isFinite(subItem))) {
-              throw new Error(
-                `${prefix}[${index}][${subIndex}]가 유효하지 않은 숫자입니다 (NaN 또는 Infinity)`
-              )
-            }
-          })
-        }
+        // 재귀적 검증
+        this.validateWorkerParam(item, `${prefix}[${index}]`)
       })
       return
     }
 
-    // 그 외 타입은 허용하지 않음
+    // 객체 검증 (재귀적)
+    if (typeof param === 'object' && param !== null) {
+      Object.entries(param).forEach(([key, value]) => {
+        this.validateWorkerParam(value, paramName ? `${paramName}.${key}` : key)
+      })
+      return
+    }
+
+    // 그 외 타입은 허용하지 않음 (function, symbol 등)
     throw new Error(
-      `${prefix}가 지원하지 않는 타입입니다 (number | string | boolean | Array만 허용)`
+      `${prefix}가 지원하지 않는 타입입니다 (${typeof param})`
     )
   }
 
