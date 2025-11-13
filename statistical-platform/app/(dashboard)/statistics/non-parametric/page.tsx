@@ -405,7 +405,7 @@ export default function NonParametricTestPage() {
           '각 조건의 중앙값을 보고하세요',
           '선 그래프로 변화 추이를 시각화하세요'
         ],
-        groups: 3  // 기본값
+        groups: variables.length  // 실제 반복측정 변수 개수
       }
     }
 

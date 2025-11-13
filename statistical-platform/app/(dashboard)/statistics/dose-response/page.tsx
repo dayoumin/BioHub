@@ -118,6 +118,7 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
 
     // Start analysis (set isAnalyzing = true)
     actions.startAnalysis?.()
+    setIsLoading(true)
     setError(null)
 
     try {
@@ -168,6 +169,8 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
       console.error('[dose-response] Analysis error:', errorMessage)
       setError(errorMessage)
       actions.setError?.(errorMessage)
+    } finally {
+      setIsLoading(false)
     }
   }, [uploadedData, doseColumn, responseColumn, selectedModel, constraintsEnabled, bottomConstraint, topConstraint, actions])
 

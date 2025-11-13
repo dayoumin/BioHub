@@ -362,8 +362,48 @@ Bug #6: non-parametric alternativeHypothesis 미사용 ✅
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
+### Session 4: Additional Critical Bugs 수정 (2025-11-13)
+외부 코드 리뷰에서 발견된 2개의 추가 Critical 버그 수정
+
+#### Bug #7 (NEW): dose-response isLoading 미사용 ✅ FIXED
+**문제**:
+- Line 95: `const [isLoading, setIsLoading] = useState(false)` 선언됨
+- Lines 103-172: `handleAnalysis`에서 `setIsLoading` 호출 없음
+- Lines 224-232: 버튼이 `isLoading`으로 비활성화 체크
+- **결과**: 버튼이 절대 비활성화 안 됨 → 중복 Worker 호출 가능 → 성능 저하 및 예상치 못한 동작
+
+**수정**:
+- Line 121: `setIsLoading(true)` 추가 (분석 시작 시)
+- Line 172: `finally { setIsLoading(false) }` 추가 (분석 완료/에러 시)
+- 중복 호출 방지 로직 정상 작동
+
+**변경 파일**:
+- [dose-response/page.tsx](statistical-platform/app/(dashboard)/statistics/dose-response/page.tsx) Lines 121, 171-173
+
+#### Bug #8 (NEW): Friedman groups 하드코딩 ✅ FIXED
+**문제**:
+- Line 501: `variableNames = selectedVariables.factor` (실제 변수 개수 캡처)
+- Line 348: `groups: 3 // 기본값` (항상 3개로 고정)
+- **결과**: 4개 이상 반복측정 시 UI에 "3개 그룹"으로 표시 → 사용자 혼란
+
+**수정**:
+- Line 408: `groups: 3` → `groups: variables.length`
+- 실제 반복측정 변수 개수를 정확히 반영
+
+**변경 파일**:
+- [non-parametric/page.tsx](statistical-platform/app/(dashboard)/statistics/non-parametric/page.tsx) Line 408
+
+#### 검증 결과
+- **TypeScript 에러**: 0개 ✅
+- **통합 테스트**: 17/17 passed (100%) ✅
+  - Bug #7 검증: 6개 테스트 (isLoading 상태 관리, 중복 호출 방지)
+  - Bug #8 검증: 6개 테스트 (Friedman groups 동적 계산, 3/4/5/10개 변수)
+  - 통합 시나리오: 3개 테스트
+  - 회귀 검증: 2개 테스트
+- **테스트 파일**: [batch4-additional-bugs.test.ts](statistical-platform/__tests__/statistics/batch4-additional-bugs.test.ts)
+
 ---
 
 **작성일**: 2025-11-13
-**최종 상태**: 6개 Critical 버그 모두 해결 완료 (Session 1-3)
-**테스트**: 41/41 passed (27 + 14)
+**최종 상태**: 8개 Critical 버그 모두 해결 완료 (Session 1-4)
+**테스트**: 58/58 passed (27 + 14 + 17)
