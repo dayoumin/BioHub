@@ -34,7 +34,7 @@ import { StatisticsTable, type TableColumn } from '@/components/statistics/commo
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -155,36 +155,22 @@ export default function ManovaPage() {
   })
   const { currentStep, uploadedData, selectedVariables: _selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  // Pyodide ready state
+  const [pyodideReady, setPyodideReady] = useState(false)
 
-  // Initialize Pyodide - 메모리 누수 방지
+  // Initialize PyodideCore
   useEffect(() => {
-    let isMounted = true
-    const abortController = new AbortController()
-
     const initPyodide = async () => {
       try {
-        if (abortController.signal.aborted) return
-        await pyodideStats.initialize()
-        if (isMounted && !abortController.signal.aborted) {
-          setPyodide(pyodideStats)
-        }
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
       } catch (err) {
-        if (isMounted && !abortController.signal.aborted) {
-          console.error('Pyodide 초기화 실패:', err)
-          actions.setError('통계 엔진을 초기화할 수 없습니다.')
-        }
+        console.error('PyodideCore 초기화 실패:', err)
       }
     }
-
     initPyodide()
-
-    return () => {
-      isMounted = false
-      abortController.abort()
-    }
-  }, [actions])
+  }, [])
 
   // Steps configuration - useMemo로 성능 최적화
   const steps: StatisticsStep[] = useMemo(() => [
@@ -250,8 +236,8 @@ export default function ManovaPage() {
     'manova'
   )
 
-  const runAnalysis = useCallback(async (_variables: MANOVAVariables) => {
-    if (!pyodide || !uploadedData) {
+  const runAnalysis = useCallback(async (variables: MANOVAVariables) => {
+    if (!pyodideReady || !uploadedData) {
       actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
       return
     }
@@ -259,124 +245,26 @@ export default function ManovaPage() {
     actions.startAnalysis()
 
     try {
-      // Mock MANOVA 결과
-      const mockResult: ManovaResult = {
-        overallTests: [
-          { test: "Pillai&apos;s Trace", statistic: 0.423, approximate_f: 5.68, numerator_df: 6, denominator_df: 174, pValue: 0.0001 },
-          { test: "Wilks&apos; Lambda", statistic: 0.603, approximate_f: 6.12, numerator_df: 6, denominator_df: 172, pValue: 0.0001 },
-          { test: "Hotelling&apos;s Trace", statistic: 0.632, approximate_f: 6.58, numerator_df: 6, denominator_df: 170, pValue: 0.0001 },
-          { test: "Roy&apos;s Max Root", statistic: 0.465, approximate_f: 13.45, numerator_df: 3, denominator_df: 87, pValue: 0.0001 }
-        ],
-        univariateTests: [
-          { variable: "Math Score", sumSquares: 2850.45, degreesOfFreedom: 2, meanSquare: 1425.23, fStatistic: 18.47, pValue: 0.0001, etaSquared: 0.298, observedPower: 0.995 },
-          { variable: "Reading Score", sumSquares: 1980.32, degreesOfFreedom: 2, meanSquare: 990.16, fStatistic: 12.84, pValue: 0.0001, etaSquared: 0.227, observedPower: 0.988 },
-          { variable: "Science Score", sumSquares: 1650.78, degreesOfFreedom: 2, meanSquare: 825.39, fStatistic: 10.71, pValue: 0.0001, etaSquared: 0.197, observedPower: 0.982 }
-        ],
-        canonicalAnalysis: [
-          { eigenvalue: 0.465, canonicalCorrelation: 0.563, wilksLambda: 0.603, fStatistic: 6.58, pValue: 0.0001, proportionOfVariance: 73.6 },
-          { eigenvalue: 0.167, canonicalCorrelation: 0.378, wilksLambda: 0.857, fStatistic: 2.34, pValue: 0.045, proportionOfVariance: 26.4 }
-        ],
-        discriminantFunctions: [
-          {
-            function: 1,
-            coefficients: [
-              { variable: "Math Score", coefficient: 0.642 },
-              { variable: "Reading Score", coefficient: 0.478 },
-              { variable: "Science Score", coefficient: 0.593 }
-            ],
-            groupCentroids: [
-              { group: "Group A", centroid: -1.23 },
-              { group: "Group B", centroid: 0.45 },
-              { group: "Group C", centroid: 0.78 }
-            ]
-          },
-          {
-            function: 2,
-            coefficients: [
-              { variable: "Math Score", coefficient: 0.289 },
-              { variable: "Reading Score", coefficient: -0.734 },
-              { variable: "Science Score", coefficient: 0.456 }
-            ],
-            groupCentroids: [
-              { group: "Group A", centroid: 0.67 },
-              { group: "Group B", centroid: -0.92 },
-              { group: "Group C", centroid: 0.25 }
-            ]
-          }
-        ],
-        descriptiveStats: [
-          { group: "Group A", variable: "Math Score", n: 30, mean: 78.5, std: 8.2, se: 1.5, ci95Lower: 75.4, ci95Upper: 81.6 },
-          { group: "Group A", variable: "Reading Score", n: 30, mean: 82.1, std: 7.8, se: 1.4, ci95Lower: 79.2, ci95Upper: 85.0 },
-          { group: "Group A", variable: "Science Score", n: 30, mean: 75.3, std: 9.1, se: 1.7, ci95Lower: 71.9, ci95Upper: 78.7 },
-          { group: "Group B", variable: "Math Score", n: 30, mean: 85.2, std: 7.9, se: 1.4, ci95Lower: 82.3, ci95Upper: 88.1 },
-          { group: "Group B", variable: "Reading Score", n: 30, mean: 88.9, std: 8.4, se: 1.5, ci95Lower: 85.8, ci95Upper: 92.0 },
-          { group: "Group B", variable: "Science Score", n: 30, mean: 81.8, std: 8.7, se: 1.6, ci95Lower: 78.6, ci95Upper: 85.0 },
-          { group: "Group C", variable: "Math Score", n: 30, mean: 72.1, std: 9.5, se: 1.7, ci95Lower: 68.6, ci95Upper: 75.6 },
-          { group: "Group C", variable: "Reading Score", n: 30, mean: 76.8, std: 8.9, se: 1.6, ci95Lower: 73.5, ci95Upper: 80.1 },
-          { group: "Group C", variable: "Science Score", n: 30, mean: 69.5, std: 10.2, se: 1.9, ci95Lower: 65.7, ci95Upper: 73.3 }
-        ],
-        postHoc: [
-          { variable: "Math Score", comparison: "Group A vs Group B", meanDiff: -6.7, standardError: 2.1, tValue: -3.19, pValue: 0.002, adjustedPValue: 0.006, cohensD: 0.85, lowerCI: -10.9, upperCI: -2.5 },
-          { variable: "Math Score", comparison: "Group A vs Group C", meanDiff: 6.4, standardError: 2.1, tValue: 3.05, pValue: 0.003, adjustedPValue: 0.009, cohensD: 0.73, lowerCI: 2.2, upperCI: 10.6 },
-          { variable: "Math Score", comparison: "Group B vs Group C", meanDiff: 13.1, standardError: 2.1, tValue: 6.24, pValue: 0.0001, adjustedPValue: 0.0001, cohensD: 1.58, lowerCI: 8.9, upperCI: 17.3 },
-          { variable: "Reading Score", comparison: "Group A vs Group B", meanDiff: -6.8, standardError: 2.0, tValue: -3.40, pValue: 0.001, adjustedPValue: 0.003, cohensD: 0.84, lowerCI: -10.8, upperCI: -2.8 },
-          { variable: "Reading Score", comparison: "Group A vs Group C", meanDiff: 5.3, standardError: 2.0, tValue: 2.65, pValue: 0.009, adjustedPValue: 0.027, cohensD: 0.61, lowerCI: 1.3, upperCI: 9.3 },
-          { variable: "Reading Score", comparison: "Group B vs Group C", meanDiff: 12.1, standardError: 2.0, tValue: 6.05, pValue: 0.0001, adjustedPValue: 0.0001, cohensD: 1.45, lowerCI: 8.1, upperCI: 16.1 }
-        ],
-        assumptions: {
-          multivariateNormality: {
-            test: "Mardia&apos;s Test",
-            statistic: 12.45,
-            pValue: 0.087,
-            assumptionMet: true
-          },
-          homogeneityOfCovariance: {
-            boxM: 18.67,
-            fStatistic: 2.03,
-            pValue: 0.124,
-            assumptionMet: true
-          },
-          sphericity: null,
-          outliers: {
-            multivariate: [
-              { observation: 23, mahalanobisDistance: 15.67, pValue: 0.023, isOutlier: true },
-              { observation: 56, mahalanobisDistance: 14.89, pValue: 0.031, isOutlier: true },
-              { observation: 78, mahalanobisDistance: 16.23, pValue: 0.018, isOutlier: true }
-            ]
-          }
-        },
-        modelFit: {
-          pillaiTrace: 0.423,
-          wilksLambda: 0.603,
-          hotellingTrace: 0.632,
-          royMaxRoot: 0.465,
-          rSquaredMultivariate: 0.397,
-          effectSize: 0.63
-        },
-        interpretation: {
-          summary: "다변량 검정 결과 집단 간 유의한 차이가 있습니다 (Wilks&apos; Λ = 0.603, F(6, 172) = 6.12, p &lt; 0.001).",
-          overallEffect: "중간에서 큰 크기의 다변량 효과가 관찰됩니다 (η²multivariate = 0.397).",
-          univariateEffects: [
-            "Math Score에서 가장 강한 집단 간 차이 (F = 18.47, p &lt; 0.001, η² = 0.298)",
-            "Reading Score에서도 유의한 집단 간 차이 (F = 12.84, p &lt; 0.001, η² = 0.227)",
-            "Science Score에서 중간 정도의 집단 간 차이 (F = 10.71, p &lt; 0.001, η² = 0.197)"
-          ],
-          discriminantInterpretation: "첫 번째 판별함수가 전체 분산의 73.6%를 설명하며, 주로 Math와 Science 점수에서 집단을 구분합니다.",
-          recommendations: [
-            "다변량 효과가 유의하므로 단변량 분석도 신뢰할 수 있습니다",
-            "Group B가 모든 영역에서 가장 높은 성과를 보입니다",
-            "다변량 이상치 3개를 추가 검토할 필요가 있습니다",
-            "판별함수를 활용하여 집단 분류 모델을 구축할 수 있습니다"
-          ]
-        }
-      }
+      const pyodideCore = PyodideCoreService.getInstance()
 
-      actions.completeAnalysis(mockResult, 3)
+      // Call Worker 2 manova method
+      const workerResult = await pyodideCore.callWorkerMethod<ManovaResult>(
+        2,
+        'manova',
+        {
+          dependent_vars: variables.dependent,
+          factor_vars: variables.factor,
+          data: uploadedData.data as never
+        }
+      )
+
+      actions.completeAnalysis(workerResult, 2)
     } catch (err) {
       console.error('MANOVA 분석 실패:', err)
       actions.setError('MANOVA 분석 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, pyodide, actions])
+  }, [uploadedData, pyodideReady, actions])
+
 
   const handleVariableSelection = createVariableSelectionHandler<MANOVAVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toMANOVAVariables(vars as unknown as VariableAssignment) : null),
