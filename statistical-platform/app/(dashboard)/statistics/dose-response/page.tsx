@@ -49,6 +49,7 @@ interface DoseResponseResult {
 interface DoseResponseAnalysisProps {
   selectedModel: string
   uploadedData: UploadedData | null
+  actions: ReturnType<typeof useStatisticsPage<DoseResponseResult, DoseResponseVariables>>['actions']
 }
 
 const DOSE_RESPONSE_MODELS = {
@@ -89,7 +90,7 @@ const DOSE_RESPONSE_MODELS = {
   }
 }
 
-const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedModel, uploadedData }) => {
+const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedModel, uploadedData, actions }) => {
   const [result, setResult] = useState<DoseResponseResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -115,7 +116,8 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
       return
     }
 
-    setIsLoading(true)
+    // Start analysis (set isAnalyzing = true)
+    actions.startAnalysis?.()
     setError(null)
 
     try {
@@ -134,14 +136,7 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
       })
 
       // Prepare parameters
-      interface DoseResponseParams {
-        dose_data: number[]
-        response_data: number[]
-        model_type: string
-        constraints?: Record<string, number>
-      }
-
-      const params: DoseResponseParams = {
+      const params: Record<string, number[] | string | Record<string, number>> = {
         dose_data: doseData,
         response_data: responseData,
         model_type: selectedModel
@@ -159,22 +154,22 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
       }
 
       // Call Worker 4 dose_response_analysis method
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const analysisResult = await pyodideCore.callWorkerMethod<DoseResponseResult>(
         4,
         'dose_response_analysis',
-        params as any
+        params
       )
 
       setResult(analysisResult)
+      // Complete analysis (set results in store, advance to step 3)
+      actions.completeAnalysis?.(analysisResult, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       console.error('[dose-response] Analysis error:', errorMessage)
       setError(errorMessage)
-    } finally {
-      setIsLoading(false)
+      actions.setError?.(errorMessage)
     }
-  }, [uploadedData, doseColumn, responseColumn, selectedModel, constraintsEnabled, bottomConstraint, topConstraint])
+  }, [uploadedData, doseColumn, responseColumn, selectedModel, constraintsEnabled, bottomConstraint, topConstraint, actions])
 
   const getModelQuality = (rSquared: number) => {
     if (rSquared >= 0.95) return { label: '매우 우수', color: 'bg-muted text-muted-foreground border' }
@@ -697,6 +692,7 @@ export default function DoseResponsePage() {
               <DoseResponseAnalysis
                 selectedModel={selectedModel}
                 uploadedData={uploadedData || null}
+                actions={actions}
               />
             </CardContent>
           </Card>

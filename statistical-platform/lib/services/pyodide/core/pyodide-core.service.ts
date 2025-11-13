@@ -35,6 +35,7 @@ import type { WorkerRequest, WorkerResponse } from './pyodide-worker'
 /**
  * Worker 메서드 호출 파라미터 타입
  * JSON 직렬화 가능한 타입만 허용
+ * 재귀적 Record 타입 지원 (constraints, nested objects)
  */
 export type WorkerMethodParam =
   | number
@@ -45,6 +46,7 @@ export type WorkerMethodParam =
   | number[][]
   | (number | string)[]
   | null
+  | { [key: string]: WorkerMethodParam }
 
 /**
  * Worker 메서드 호출 옵션
