@@ -35,7 +35,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -95,17 +95,18 @@ export default function ReliabilityAnalysisPage() {
     confidence: 95
   })
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  // Pyodide ready state
+  const [pyodideReady, setPyodideReady] = useState(false)
 
   // Initialize Pyodide
   useEffect(() => {
     const initPyodide = async () => {
       try {
-        await pyodideStats.initialize()
-        setPyodide(pyodideStats)
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
       } catch (err) {
-        console.error('Pyodide 초기화 실패:', err)
+        console.error('PyodideCore 초기화 실패:', err)
         actions.setError?.('통계 엔진을 초기화할 수 없습니다.')
       }
     }
@@ -186,7 +187,7 @@ export default function ReliabilityAnalysisPage() {
   }, [actions])
 
   const runAnalysis = async (variables: VariableAssignment) => {
-    if (!uploadedData || !pyodide || !variables.variables || variables.variables.length < 2) {
+    if (!uploadedData || !pyodideReady || !variables.variables || variables.variables.length < 2) {
       if (actions.setError) {
         actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       }
@@ -197,6 +198,8 @@ export default function ReliabilityAnalysisPage() {
     actions.setError('')
 
     try {
+      const pyodideCore = PyodideCoreService.getInstance()
+
       // Extract variable names array
       const variableNames: string[] = Array.isArray(variables.variables)
         ? variables.variables
@@ -223,8 +226,11 @@ export default function ReliabilityAnalysisPage() {
         itemsMatrix.push(rowData)
       }
 
-      // Call pyodideStats.cronbachAlpha with numeric matrix
-      const pyodideResult = await pyodide.cronbachAlpha(itemsMatrix)
+      // Call Worker 1 cronbach_alpha method
+      const pyodideResult = await pyodideCore.callWorkerMethod<{
+        alpha: number
+        itemTotalCorrelations?: number[]
+      }>(1, 'cronbach_alpha', { items_matrix: itemsMatrix })
 
       // Transform to ReliabilityResult format
       const result: ReliabilityResult = {

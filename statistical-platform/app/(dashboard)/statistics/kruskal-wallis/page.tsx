@@ -32,7 +32,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 
 // Services & Types
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
@@ -96,17 +96,18 @@ export default function KruskalWallisPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  // Pyodide ready state
+  const [pyodideReady, setPyodideReady] = useState(false)
 
   // Initialize Pyodide
   useEffect(() => {
     const initPyodide = async () => {
       try {
-        await pyodideStats.initialize()
-        setPyodide(pyodideStats)
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
       } catch (err) {
-        console.error('Pyodide 초기화 실패:', err)
+        console.error('PyodideCore 초기화 실패:', err)
         actions.setError?.('통계 엔진을 초기화할 수 없습니다.')
       }
     }
@@ -178,7 +179,7 @@ export default function KruskalWallisPage() {
   )
 
   const runAnalysis = async (variables: KruskalWallisVariables) => {
-    if (!uploadedData || !pyodide || !variables.dependent || !variables.factor) {
+    if (!uploadedData || !pyodideReady || !variables.dependent || !variables.factor) {
       actions.setError?.('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
@@ -186,6 +187,7 @@ export default function KruskalWallisPage() {
     actions.startAnalysis?.()
 
     try {
+      const pyodideCore = PyodideCoreService.getInstance()
       const valueColumn = variables.dependent
       const groupColumn = variables.factor
 
@@ -210,18 +212,29 @@ export default function KruskalWallisPage() {
         return
       }
 
-      // Pyodide Worker 호출
-      const basicResult = await pyodide.kruskalWallisTestWorker(groupArrays)
+      // Pyodide Worker 3 호출 - kruskal_wallis_test
+      const basicResult = await pyodideCore.callWorkerMethod<{
+        statistic: number
+        pValue: number
+        df: number
+      }>(3, 'kruskal_wallis_test', { groups: groupArrays })
 
-      // 기술통계량 계산 - Use numpy for accurate percentiles
+      // 기술통계량 계산 - Worker 1 호출
       const descriptives: Record<string, GroupDescriptives> = {}
 
       for (let idx = 0; idx < groupNames.length; idx++) {
         const name = groupNames[idx]
         const arr = groupArrays[idx]
 
-        // Calculate descriptive statistics with numpy through pyodideStats
-        const stats = await pyodide.calculateDescriptiveStats(arr)
+        // Calculate descriptive statistics with Worker 1
+        const stats = await pyodideCore.callWorkerMethod<{
+          mean: number
+          median: number
+          min: number
+          max: number
+          q1: number
+          q3: number
+        }>(1, 'descriptive_stats', { data: arr })
 
         descriptives[name] = {
           median: stats.median,

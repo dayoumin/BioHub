@@ -34,7 +34,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
 import type { UploadedData } from '@/hooks/use-statistics-page'
-import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // Data interfaces
@@ -104,17 +104,18 @@ export default function WilcoxonPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Pyodide instance
-  const [pyodide, setPyodide] = useState<typeof pyodideStats | null>(null)
+  // Pyodide ready state
+  const [pyodideReady, setPyodideReady] = useState(false)
 
   // Initialize Pyodide
   useEffect(() => {
     const initPyodide = async () => {
       try {
-        await pyodideStats.initialize()
-        setPyodide(pyodideStats)
+        const pyodideCore = PyodideCoreService.getInstance()
+        await pyodideCore.initialize()
+        setPyodideReady(true)
       } catch (err) {
-        console.error('Pyodide 초기화 실패:', err)
+        console.error('PyodideCore 초기화 실패:', err)
         actions.setError('통계 엔진을 초기화할 수 없습니다.')
       }
     }
@@ -163,7 +164,7 @@ export default function WilcoxonPage() {
   )
 
   const runAnalysis = useCallback(async (variables: WilcoxonVariables) => {
-    if (!uploadedData || !variables.dependent || variables.dependent.length !== 2) {
+    if (!uploadedData || !pyodideReady || !variables.dependent || variables.dependent.length !== 2) {
       actions.setError('분석을 실행할 수 없습니다. 사전-사후 두 변수를 선택해주세요.')
       return
     }
@@ -171,6 +172,8 @@ export default function WilcoxonPage() {
     actions.startAnalysis()
 
     try {
+      const pyodideCore = PyodideCoreService.getInstance()
+
       // Extract data for the two paired variables
       const var1Name = variables.dependent[0]
       const var2Name = variables.dependent[1]
@@ -195,15 +198,19 @@ export default function WilcoxonPage() {
         return
       }
 
-      // Call the real Wilcoxon Signed-Rank Test
-      const result = await pyodideStats.wilcoxonSignedRankTest(values1, values2)
+      // Call Worker 3 wilcoxon_test method
+      const result = await pyodideCore.callWorkerMethod<WilcoxonResult>(
+        3,
+        'wilcoxon_test',
+        { values1, values2 }
+      )
 
       actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Wilcoxon 부호순위 검정 실패:', err)
       actions.setError(err instanceof Error ? err.message : 'Wilcoxon 부호순위 검정 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, actions])
+  }, [uploadedData, pyodideReady, actions])
 
   const handleVariableSelection = createVariableSelectionHandler<WilcoxonVariables>(
     (vars) => actions.setSelectedVariables?.(vars ? toWilcoxonVariables(vars as unknown as VariableAssignment) : null),
