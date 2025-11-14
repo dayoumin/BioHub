@@ -231,15 +231,16 @@ async function handleLoadWorker(requestId: string, workerNum: number): Promise<v
 
     const pythonCode = await response.text()
 
-    // 3. Execute Python code
-    await pyodide.runPythonAsync(pythonCode)
-
-    // 4. Load additional packages if needed
+    // 3. Load additional packages BEFORE executing code (Worker 3/4 import 위해 필수)
     const additionalPackages = getAdditionalPackages(workerNum)
     if (additionalPackages.length > 0) {
       console.log(`[PyodideWorker] Loading additional packages for worker${workerNum}:`, additionalPackages)
       await pyodide.loadPackage(additionalPackages)
+      console.log(`[PyodideWorker] ✓ Additional packages loaded`)
     }
+
+    // 4. Execute Python code (이제 statsmodels/sklearn import 가능)
+    await pyodide.runPythonAsync(pythonCode)
 
     loadedWorkers.add(workerNum)
     console.log(`[PyodideWorker] ✓ Worker${workerNum} (${fileName}) loaded`)

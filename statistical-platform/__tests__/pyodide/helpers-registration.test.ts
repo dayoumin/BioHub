@@ -110,17 +110,17 @@ describe('helpers.py Module Registration', () => {
 
       // Mock Pyodide initialization
       const mockPyodide = {
-        loadPackage: jest.fn(() => {
+        loadPackage: jest.fn((_packages: string | string[]) => {
           initSteps.push('loadPackage')
           return Promise.resolve()
         }),
-        runPythonAsync: jest.fn(() => {
+        runPythonAsync: jest.fn((_code: string) => {
           initSteps.push('runPythonAsync')
           return Promise.resolve('')
         }),
         version: '0.26.4',
         FS: {
-          writeFile: jest.fn(() => {
+          writeFile: jest.fn((_path: string, _data: string | Uint8Array) => {
             initSteps.push('writeFile')
           }),
           readFile: jest.fn(),
@@ -343,7 +343,7 @@ def clean_groups(groups):
     it('should throw error if FS.writeFile fails', () => {
       const mockPyodide = {
         FS: {
-          writeFile: jest.fn(() => {
+          writeFile: jest.fn((_path: string, _data: string | Uint8Array) => {
             throw new Error('Permission denied')
           }),
           readFile: jest.fn(),

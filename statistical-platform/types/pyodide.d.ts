@@ -8,7 +8,12 @@ export interface PyodideInterface {
   runPython: (code: string) => any
   runPythonAsync: (code: string) => Promise<any>
   globals: any
-  FS: any
+  FS: {
+    writeFile(path: string, data: string | Uint8Array): void
+    readFile(path: string, options?: { encoding?: string }): string | Uint8Array
+    unlink(path: string): void
+    mkdir(path: string): void
+  }
   loadedPackages: Record<string, string>
   isPyProxy: (obj: any) => boolean
   version: string

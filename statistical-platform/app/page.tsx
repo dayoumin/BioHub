@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Star } from "lucide-react"
+import { Star, Pin } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, useCallback } from "react"
 import { STATISTICS_MENU } from "@/lib/statistics/menu-config"
@@ -64,7 +64,7 @@ export default function HomePage() {
         <h2 className="text-2xl font-bold text-center">통계 분석 카테고리</h2>
 
         {/* 카테고리 버튼 그리드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-4xl mx-auto">
+        <div className="flex flex-wrap justify-center gap-2 max-w-4xl mx-auto">
           {STATISTICS_MENU.map((category) => {
             const Icon = category.icon
             const isSelected = selectedCategory === category.id
@@ -74,7 +74,7 @@ export default function HomePage() {
                 key={category.id}
                 variant={isSelected ? "default" : "outline"}
                 className={cn(
-                  "h-auto py-2 px-3 flex items-center justify-center gap-1.5 transition-all",
+                  "h-auto py-2 px-4 flex items-center justify-center gap-1.5 transition-all whitespace-nowrap",
                   !isSelected && "hover:bg-accent"
                 )}
                 onClick={() => toggleCategory(category.id)}
@@ -128,9 +128,9 @@ export default function HomePage() {
                               }}
                               aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
                             >
-                              <Star className={cn(
+                              <Pin className={cn(
                                 'h-3 w-3',
-                                isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                                isFavorite ? 'fill-white text-white' : 'text-muted-foreground'
                               )} />
                             </Button>
                           </div>
@@ -159,7 +159,7 @@ export default function HomePage() {
       {/* 4. 내 통계 도구 */}
       <div className="space-y-4 max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+          <Pin className="h-6 w-6 text-white" />
           내 통계 도구
         </h2>
 
@@ -173,10 +173,10 @@ export default function HomePage() {
           )}>
             {favorites.length === 0 ? (
               <div className="text-center">
-                <Star className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <Pin className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
                 <p className="text-sm text-muted-foreground">
-                  카테고리에서 분석 방법을 선택하고 별표를 클릭하세요
+                  카테고리에서 분석 방법을 선택하고 핀 아이콘을 클릭하세요
                 </p>
               </div>
             ) : (
@@ -204,7 +204,7 @@ export default function HomePage() {
                           }}
                           aria-label="즐겨찾기 해제"
                         >
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <Pin className="h-3 w-3 fill-white text-white" />
                         </Button>
                       </div>
                       {item.implemented ? (

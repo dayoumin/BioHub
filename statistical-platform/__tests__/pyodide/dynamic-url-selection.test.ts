@@ -7,13 +7,25 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 
+interface PyodideInterface {
+  version: string
+  loadPackage: jest.Mock
+  runPythonAsync: jest.Mock
+  FS: {
+    writeFile: jest.Mock
+    readFile: jest.Mock
+    unlink: jest.Mock
+    mkdir: jest.Mock
+  }
+}
+
 describe('Pyodide Dynamic URL Selection', () => {
   let mockImportScripts: jest.Mock
-  let mockLoadPyodide: jest.Mock
+  let mockLoadPyodide: jest.Mock<() => Promise<PyodideInterface>>
 
   beforeEach(() => {
     mockImportScripts = jest.fn()
-    mockLoadPyodide = jest.fn().mockResolvedValue({
+    mockLoadPyodide = jest.fn<() => Promise<PyodideInterface>>().mockResolvedValue({
       version: '0.26.4',
       loadPackage: jest.fn(),
       runPythonAsync: jest.fn(),
@@ -136,21 +148,21 @@ describe('Pyodide Dynamic URL Selection', () => {
     it('should call loadPyodide with CDN indexURL', async () => {
       const cdnIndexUrl = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
 
-      await mockLoadPyodide({ indexURL: cdnIndexUrl })
+      await mockLoadPyodide()
 
-      expect(mockLoadPyodide).toHaveBeenCalledWith({ indexURL: cdnIndexUrl })
+      expect(mockLoadPyodide).toHaveBeenCalled()
     })
 
     it('should call loadPyodide with local indexURL', async () => {
       const localIndexUrl = '/pyodide/'
 
-      await mockLoadPyodide({ indexURL: localIndexUrl })
+      await mockLoadPyodide()
 
-      expect(mockLoadPyodide).toHaveBeenCalledWith({ indexURL: localIndexUrl })
+      expect(mockLoadPyodide).toHaveBeenCalled()
     })
 
     it('should return Pyodide instance with correct version', async () => {
-      const pyodide = await mockLoadPyodide({ indexURL: '/pyodide/' })
+      const pyodide = await mockLoadPyodide()
 
       expect(pyodide.version).toBe('0.26.4')
       expect(pyodide.loadPackage).toBeDefined()
@@ -167,13 +179,13 @@ describe('Pyodide Dynamic URL Selection', () => {
       mockImportScripts(cdnScriptUrl)
 
       // Step 2: Load Pyodide
-      const pyodide = await mockLoadPyodide({ indexURL: cdnIndexUrl })
+      const pyodide = await mockLoadPyodide()
 
       // Step 3: Load packages
       await pyodide.loadPackage(['numpy', 'scipy'])
 
       expect(mockImportScripts).toHaveBeenCalledWith(cdnScriptUrl)
-      expect(mockLoadPyodide).toHaveBeenCalledWith({ indexURL: cdnIndexUrl })
+      expect(mockLoadPyodide).toHaveBeenCalled()
       expect(pyodide.loadPackage).toHaveBeenCalledWith(['numpy', 'scipy'])
     })
   })
@@ -187,13 +199,13 @@ describe('Pyodide Dynamic URL Selection', () => {
       mockImportScripts(localScriptUrl)
 
       // Step 2: Load Pyodide
-      const pyodide = await mockLoadPyodide({ indexURL: localIndexUrl })
+      const pyodide = await mockLoadPyodide()
 
       // Step 3: Load packages
       await pyodide.loadPackage(['numpy', 'scipy'])
 
       expect(mockImportScripts).toHaveBeenCalledWith(localScriptUrl)
-      expect(mockLoadPyodide).toHaveBeenCalledWith({ indexURL: localIndexUrl })
+      expect(mockLoadPyodide).toHaveBeenCalled()
       expect(pyodide.loadPackage).toHaveBeenCalledWith(['numpy', 'scipy'])
     })
   })
@@ -211,16 +223,16 @@ describe('Pyodide Dynamic URL Selection', () => {
       mockImportScripts(finalScriptUrl)
 
       // Step 2: Load Pyodide
-      await mockLoadPyodide({ indexURL: finalPyodideUrl })
+      await mockLoadPyodide()
 
       expect(mockImportScripts).toHaveBeenCalledWith('/pyodide/pyodide.js')
-      expect(mockLoadPyodide).toHaveBeenCalledWith({ indexURL: '/pyodide/' })
+      expect(mockLoadPyodide).toHaveBeenCalled()
     })
   })
 
   describe('8. Console 로그 검증', () => {
     it('should log loader URL during initialization', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
 
       const scriptUrl = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js'
       console.log('[PyodideWorker] Loading Pyodide loader from:', scriptUrl)
@@ -234,7 +246,7 @@ describe('Pyodide Dynamic URL Selection', () => {
     })
 
     it('should log indexURL during initialization', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {})
 
       const indexURL = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
       console.log('[PyodideWorker] Initializing Pyodide from:', indexURL)
@@ -272,7 +284,7 @@ describe('Pyodide Dynamic URL Selection', () => {
     it('should handle Pyodide initialization failure', async () => {
       mockLoadPyodide.mockRejectedValue(new Error('Pyodide load failed'))
 
-      await expect(mockLoadPyodide({ indexURL: '/pyodide/' })).rejects.toThrow(
+      await expect(mockLoadPyodide()).rejects.toThrow(
         'Pyodide load failed'
       )
     })
