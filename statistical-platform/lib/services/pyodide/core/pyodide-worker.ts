@@ -17,10 +17,18 @@
  * 3. ✅ helpers.py 먼저 로드
  * 4. ✅ 로컬 Pyodide 사용 (/pyodide/)
  * 5. ✅ Progress 버그 수정 (bridge에서 처리)
+ *
+ * 🧪 테스트 가능성:
+ * - 핵심 로직은 pyodide-init-logic.ts에서 추출
+ * - Jest에서 직접 테스트 가능 (회귀 방지)
  */
 
 /// <reference lib="webworker" />
 declare const self: DedicatedWorkerGlobalScope
+
+// ⚠️ Worker 컨텍스트이므로 ES Module import 사용 불가
+// 대신 postMessage로 초기화 로직 함수들을 전달받거나,
+// 동일한 로직을 pyodide-init-logic.ts에서 복사해 사용
 
 // Pyodide 타입 선언
 declare function loadPyodide(options: {
@@ -81,6 +89,52 @@ const WORKER_FILE_NAMES: Record<number, string> = {
   2: 'worker2-hypothesis',
   3: 'worker3-nonparametric-anova',
   4: 'worker4-regression-advanced'
+}
+
+// ============================================================================
+// Helper Functions (pyodide-init-logic.ts와 동일한 로직)
+// ============================================================================
+
+/**
+ * helpers.py를 Pyodide 가상 파일시스템에 등록하고 실행
+ * (pyodide-init-logic.ts의 registerHelpersModule와 동일)
+ */
+async function registerHelpersModule(
+  pyodideInstance: PyodideInterface,
+  helpersCode: string
+): Promise<void> {
+  // 1. helpers.py를 가상 파일시스템에 등록
+  pyodideInstance.FS.writeFile('/helpers.py', helpersCode)
+
+  // 2. helpers.py 실행 (import 가능하게 만듦)
+  await pyodideInstance.runPythonAsync(helpersCode)
+}
+
+/**
+ * Worker별 추가 패키지 매핑
+ * (pyodide-init-logic.ts의 getAdditionalPackages와 동일)
+ */
+function getAdditionalPackages(workerNum: number): string[] {
+  const packageMap: Record<number, string[]> = {
+    1: [], // worker1-descriptive.py (numpy, scipy만 사용)
+    2: [], // worker2-hypothesis.py (numpy, scipy만 사용)
+    3: ['statsmodels'], // worker3-nonparametric-anova.py (Mood's median test)
+    4: ['statsmodels', 'scikit-learn'] // worker4-regression-advanced.py (stepwise + cluster/factor)
+  }
+
+  return packageMap[workerNum] || []
+}
+
+/**
+ * Python Worker 파일명 가져오기
+ * (pyodide-init-logic.ts의 getWorkerFileName과 동일)
+ */
+function getWorkerFileName(workerNum: number): string {
+  const fileName = WORKER_FILE_NAMES[workerNum]
+  if (!fileName) {
+    throw new Error(`Invalid worker number: ${workerNum}`)
+  }
+  return fileName
 }
 
 // ============================================================================
@@ -180,11 +234,8 @@ async function handleInit(
 
     const helpersCode = await helpersResponse.text()
 
-    // Register helpers.py in Pyodide's virtual filesystem
-    pyodide.FS.writeFile('/helpers.py', helpersCode)
-
-    // Execute helpers.py to make it importable
-    await pyodide.runPythonAsync(helpersCode)
+    // Register helpers.py using extracted function (테스트 가능)
+    await registerHelpersModule(pyodide, helpersCode)
     console.log('[PyodideWorker] ✓ helpers.py loaded and registered')
 
     isInitialized = true
@@ -215,11 +266,8 @@ async function handleLoadWorker(requestId: string, workerNum: number): Promise<v
   try {
     console.log(`[PyodideWorker] Loading Python module: worker${workerNum}...`)
 
-    // 1. Get correct file name (Issue 2 해결)
-    const fileName = WORKER_FILE_NAMES[workerNum]
-    if (!fileName) {
-      throw new Error(`Invalid worker number: ${workerNum}`)
-    }
+    // 1. Get correct file name using extracted function (테스트 가능)
+    const fileName = getWorkerFileName(workerNum)
 
     // 2. Fetch Python script
     const scriptUrl = `/workers/python/${fileName}.py`
@@ -253,30 +301,6 @@ async function handleLoadWorker(requestId: string, workerNum: number): Promise<v
   }
 }
 
-/**
- * Worker별 추가 패키지 매핑
- *
- * ⚠️ 참고: "worker"는 Python 모듈 파일(worker1-4.py)을 의미
- * 실제 Web Worker가 아님
- *
- * Worker 1: Descriptive (10개 메서드) → numpy, scipy
- * Worker 2: Hypothesis (8개 메서드) → numpy, scipy
- * Worker 3: Nonparametric + ANOVA (18개 메서드) → numpy, scipy, statsmodels
- * Worker 4: Regression + Advanced (24개 메서드) → numpy, scipy, statsmodels, sklearn
- */
-function getAdditionalPackages(workerNum: number): string[] {
-  switch (workerNum) {
-    case 1:
-    case 2:
-      return [] // numpy, scipy는 이미 로드됨
-    case 3:
-      return ['statsmodels']
-    case 4:
-      return ['statsmodels', 'scikit-learn']
-    default:
-      return []
-  }
-}
 
 // ============================================================================
 // Call Method Handler

@@ -90,38 +90,39 @@ export default function HomePage() {
       {/* 3. 선택된 카테고리의 분석 방법들 (내 통계 도구 상단에 표시) */}
       {selectedCategory && (
         <div className="max-w-4xl mx-auto">
-          <Card className="border-primary/50 shadow-lg">
-            <CardContent className="p-6">
-              <div className="space-y-4">
+          <Card className="border-primary/50 shadow-sm">
+            <CardContent className="p-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title} 분석 방법
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title}
                   </h3>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setSelectedCategory(null)}
+                    className="h-7"
                   >
                     닫기
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.items.map((item) => {
                     const isFavorite = favorites.includes(item.id)
                     return (
-                      <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
+                      <div key={item.id} className="group relative border rounded-xl p-3 hover:shadow-lg hover:border-primary/50 transition-all duration-200 bg-card">
                         <div className="space-y-2">
                           <div className="flex items-start justify-between gap-1">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-xs leading-tight truncate">{item.title}</h4>
                               {item.subtitle && (
-                                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
                               )}
                             </div>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 flex-shrink-0"
+                              className="h-6 w-6 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 toggleFavorite(item.id)
@@ -164,40 +165,40 @@ export default function HomePage() {
         </h2>
 
         <Card className={cn(
-          "transition-all",
+          "transition-all shadow-sm",
           favorites.length === 0 ? "text-center bg-muted/30" : ""
         )}>
           <CardContent className={cn(
             "flex items-center justify-center",
-            favorites.length === 0 ? "min-h-[280px]" : "min-h-[280px] p-4"
+            favorites.length === 0 ? "min-h-[180px]" : "p-4"
           )}>
             {favorites.length === 0 ? (
               <div className="text-center">
-                <Pin className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
-                <p className="text-sm text-muted-foreground">
+                <Pin className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                <h3 className="text-base font-semibold mb-1">즐겨찾기한 통계가 없습니다</h3>
+                <p className="text-xs text-muted-foreground">
                   카테고리에서 분석 방법을 선택하고 핀 아이콘을 클릭하세요
                 </p>
               </div>
             ) : (
               <div className={cn(
-                "grid grid-cols-2 md:grid-cols-4 gap-3 w-full",
-                favorites.length > 8 && "max-h-[560px] overflow-y-auto pr-2"
+                "grid grid-cols-2 md:grid-cols-4 gap-4 w-full",
+                favorites.length > 8 && "max-h-[480px] overflow-y-auto pr-2"
               )}>
                 {favoriteItems.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
+                  <div key={item.id} className="group relative border rounded-xl p-3 hover:shadow-lg hover:border-primary/50 transition-all duration-200 bg-card">
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-1">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-xs leading-tight truncate">{item.title}</h4>
                           {item.subtitle && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
                           )}
                         </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 flex-shrink-0"
+                          className="h-6 w-6 flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity"
                           onClick={(e) => {
                             e.stopPropagation()
                             toggleFavorite(item.id)
