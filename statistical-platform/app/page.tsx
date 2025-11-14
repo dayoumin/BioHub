@@ -47,7 +47,7 @@ export default function HomePage() {
   const favoriteItems = allItems.filter((item) => favorites.includes(item.id))
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto py-8">
+    <div className="space-y-8 max-w-5xl mx-auto pt-12 pb-8">
       {/* 1. 스마트 분석 버튼 */}
       <Link href="/smart-analysis" className="block max-w-xl mx-auto">
         <Button
