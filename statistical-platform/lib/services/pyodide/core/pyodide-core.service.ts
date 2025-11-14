@@ -182,13 +182,13 @@ export interface StatisticsResult {
  *
  * - Worker 1: 추가 패키지 없음 (NumPy + SciPy만 사용)
  * - Worker 2: statsmodels + pandas (partial correlation 등)
- * - Worker 3: statsmodels + pandas (ANOVA, post-hoc 등)
+ * - Worker 3: statsmodels + pandas + scikit-learn (ANOVA, post-hoc, clustering, PCA 등)
  * - Worker 4: statsmodels + scikit-learn (회귀, PCA 등)
  */
 export const WORKER_EXTRA_PACKAGES = Object.freeze<Record<1 | 2 | 3 | 4, readonly string[]>>({
   1: [],
   2: ['statsmodels', 'pandas'],
-  3: ['statsmodels', 'pandas'],
+  3: ['statsmodels', 'pandas', 'scikit-learn'],
   4: ['statsmodels', 'scikit-learn']
 })
 
