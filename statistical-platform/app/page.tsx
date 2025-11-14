@@ -1,8 +1,7 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Star } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect, useCallback } from "react"
@@ -88,7 +87,76 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 3. 내 통계 도구 */}
+      {/* 3. 선택된 카테고리의 분석 방법들 (내 통계 도구 상단에 표시) */}
+      {selectedCategory && (
+        <div className="max-w-4xl mx-auto">
+          <Card className="border-primary/50 shadow-lg">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title} 분석 방법
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedCategory(null)}
+                  >
+                    닫기
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.items.map((item) => {
+                    const isFavorite = favorites.includes(item.id)
+                    return (
+                      <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-1">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
+                              {item.subtitle && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleFavorite(item.id)
+                              }}
+                              aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                            >
+                              <Star className={cn(
+                                'h-3 w-3',
+                                isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
+                              )} />
+                            </Button>
+                          </div>
+                          {item.implemented ? (
+                            <Link href={item.href}>
+                              <Button size="sm" variant="outline" className="w-full h-7 text-xs">
+                                분석 시작
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
+                              준비 중
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 4. 내 통계 도구 */}
       <div className="space-y-4 max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
@@ -158,60 +226,6 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* 4. 선택된 카테고리의 분석 방법들 */}
-      {selectedCategory && (
-        <div className="space-y-4 max-w-4xl mx-auto">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title} 분석 방법
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.items.map((item) => {
-              const isFavorite = favorites.includes(item.id)
-              return (
-                <div key={item.id} className="border rounded-lg p-3 hover:shadow-md hover:border-primary/50 transition-all">
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-1">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-xs leading-tight">{item.title}</h4>
-                        {item.subtitle && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{item.subtitle}</p>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 flex-shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggleFavorite(item.id)
-                        }}
-                        aria-label={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
-                      >
-                        <Star className={cn(
-                          'h-3 w-3',
-                          isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
-                        )} />
-                      </Button>
-                    </div>
-                    {item.implemented ? (
-                      <Link href={item.href}>
-                        <Button size="sm" variant="outline" className="w-full h-7 text-xs">
-                          분석 시작
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
-                        준비 중
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       {/* 하단 안내 */}
       <div className="text-center text-sm text-muted-foreground pt-8">
