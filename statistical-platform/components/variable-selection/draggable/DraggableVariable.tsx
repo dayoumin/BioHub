@@ -12,7 +12,7 @@
  * CLAUDE.md 규칙: any 금지, unknown + 타입 가드 사용
  */
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Badge } from '@/components/ui/badge'
@@ -53,9 +53,24 @@ export function DraggableVariable({
     }
   })
 
-  // 드래그 중 스타일 (애니메이션 제거하여 원위치 복귀 방지)
-  const style = transform ? {
-    transform: CSS.Translate.toString(transform),
+  // 드래그 종료 직후 상태 추적 (원위치 애니메이션 방지)
+  const [wasJustDropped, setWasJustDropped] = useState(false)
+
+  useEffect(() => {
+    if (!isDragging && transform) {
+      // 드래그 종료 직후 (transform은 아직 있지만 isDragging=false)
+      setWasJustDropped(true)
+      // 다음 렌더 사이클에서 리셋 (50ms 후)
+      const timer = setTimeout(() => setWasJustDropped(false), 50)
+      return () => clearTimeout(timer)
+    }
+  }, [isDragging, transform])
+
+  // 드래그 중 또는 드롭 직후 스타일
+  const style = (transform || wasJustDropped) ? {
+    transform: transform ? CSS.Translate.toString(transform) : undefined,
+    // 드래그 중에만 보이고, 드롭 후 즉시 숨김 (원위치 애니메이션 방지)
+    visibility: (isDragging ? 'visible' : 'hidden') as 'visible' | 'hidden',
   } : undefined
 
   return (
