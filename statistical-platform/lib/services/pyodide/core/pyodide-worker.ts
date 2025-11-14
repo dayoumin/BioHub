@@ -31,6 +31,12 @@ interface PyodideInterface {
   loadPackage(packages: string | string[]): Promise<void>
   runPythonAsync(code: string): Promise<string>
   version: string
+  FS: {
+    writeFile(path: string, data: string | Uint8Array): void
+    readFile(path: string, options?: { encoding?: string }): string | Uint8Array
+    unlink(path: string): void
+    mkdir(path: string): void
+  }
 }
 
 // ============================================================================
@@ -65,7 +71,7 @@ interface WorkerResponse {
 
 let pyodide: PyodideInterface | null = null
 let isInitialized = false
-let loadedWorkers: Set<number> = new Set()
+const loadedWorkers: Set<number> = new Set()
 
 // Python Worker 파일명 매핑
 const WORKER_FILE_NAMES: Record<number, string> = {
@@ -151,7 +157,7 @@ async function handleInit(requestId: string): Promise<void> {
     await pyodide.loadPackage(['numpy', 'scipy'])
     console.log('[PyodideWorker] ✓ Core packages loaded')
 
-    // 3. Load helpers.py first (Issue 3 해결)
+    // 3. Load helpers.py first and register it as a module
     console.log('[PyodideWorker] Loading helpers.py...')
     const helpersResponse = await fetch('/workers/python/helpers.py')
 
@@ -160,8 +166,13 @@ async function handleInit(requestId: string): Promise<void> {
     }
 
     const helpersCode = await helpersResponse.text()
+
+    // Register helpers.py in Pyodide's virtual filesystem
+    pyodide.FS.writeFile('/helpers.py', helpersCode)
+
+    // Execute helpers.py to make it importable
     await pyodide.runPythonAsync(helpersCode)
-    console.log('[PyodideWorker] ✓ helpers.py loaded')
+    console.log('[PyodideWorker] ✓ helpers.py loaded and registered')
 
     isInitialized = true
     console.log('[PyodideWorker] ✓ Pyodide initialized')
