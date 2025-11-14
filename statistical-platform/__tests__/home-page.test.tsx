@@ -37,7 +37,7 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       render(<HomePage />)
 
       // 카테고리 선택
-      const categoryButton = screen.getByText('기초 분석')
+      const categoryButton = screen.getByText('평균 비교')
       fireEvent.click(categoryButton)
 
       // 즐겨찾기 버튼 찾기 (첫 번째 분석 방법)
@@ -54,7 +54,7 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
 
     it('PC 재시작 시나리오: localStorage에서 즐겨찾기 복원', () => {
       // 1단계: 기존 즐겨찾기 설정 (PC 껐다 켜기 전)
-      localStorageMock.setItem('statPlatform_favorites', JSON.stringify(['descriptive', 't-test']))
+      localStorageMock.setItem('statPlatform_favorites', JSON.stringify(['t-test', 'anova']))
 
       // 2단계: 페이지 재렌더링 (PC 재시작 후)
       render(<HomePage />)
@@ -69,7 +69,7 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
 
     it('즐겨찾기 해제 시 localStorage에서 제거되어야 함', async () => {
       // 초기 즐겨찾기 설정
-      localStorageMock.setItem('statPlatform_favorites', JSON.stringify(['descriptive']))
+      localStorageMock.setItem('statPlatform_favorites', JSON.stringify(['t-test']))
       render(<HomePage />)
 
       // 즐겨찾기 해제 버튼 클릭
@@ -89,12 +89,12 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       render(<HomePage />)
 
       // 카테고리 선택
-      const categoryButtons = screen.getAllByText('기초 분석')
-      fireEvent.click(categoryButtons[0]) // 첫 번째 버튼 클릭
+      const categoryButton = screen.getByText('평균 비교')
+      fireEvent.click(categoryButton)
 
       // 선택된 카테고리 섹션이 표시되어야 함 (UI 개선: "분석 방법" 텍스트 제거됨)
       // 버튼과 제목 두 곳에 나타나므로 getAllByText 사용
-      const categoryTitles = screen.getAllByText('기초 분석')
+      const categoryTitles = screen.getAllByText('평균 비교')
       expect(categoryTitles.length).toBeGreaterThanOrEqual(2)
       expect(screen.getByText('닫기')).toBeInTheDocument()
 
@@ -106,11 +106,11 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       render(<HomePage />)
 
       // 카테고리 선택
-      const categoryButton = screen.getByText('기초 분석')
+      const categoryButton = screen.getByText('평균 비교')
       fireEvent.click(categoryButton)
 
       // 카테고리 섹션이 표시됨을 확인
-      const categoryTitle = screen.getAllByText('기초 분석')
+      const categoryTitle = screen.getAllByText('평균 비교')
       expect(categoryTitle.length).toBeGreaterThan(0)
 
       // 닫기 버튼 클릭
@@ -133,7 +133,7 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
 
     it('즐겨찾기가 있을 때 목록 표시', () => {
       // 초기 즐겨찾기 설정
-      localStorageMock.setItem('statPlatform_favorites', JSON.stringify(['descriptive']))
+      localStorageMock.setItem('statPlatform_favorites', JSON.stringify(['t-test']))
       render(<HomePage />)
 
       // 안내 메시지가 없어야 함

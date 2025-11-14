@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
   // Static HTML export 설정 (서버 불필요)
@@ -13,21 +12,8 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
-  // Redirects for moved pages (frequency-table, cross-tabulation)
-  async redirects() {
-    return [
-      {
-        source: '/statistics/frequency-table',
-        destination: '/data-tools/frequency-table',
-        permanent: true,
-      },
-      {
-        source: '/statistics/cross-tabulation',
-        destination: '/data-tools/cross-tabulation',
-        permanent: true,
-      },
-    ]
-  },
+  // Note: redirects() is not compatible with output: 'export'
+  // Redirects for moved pages are handled client-side in the pages themselves
 
   experimental: {
     optimizePackageImports: ['lucide-react', '@/components/ui']
