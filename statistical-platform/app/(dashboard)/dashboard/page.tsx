@@ -200,7 +200,6 @@ export default function DashboardPage() {
         {favorites.length === 0 ? (
           <Card className="text-center py-12 bg-muted/30">
             <CardContent>
-              <Star className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
               <p className="text-sm text-muted-foreground">
                 아래 카테고리에서 분석 방법을 선택하고 별표를 클릭하세요
