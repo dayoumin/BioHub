@@ -915,7 +915,17 @@ json.dumps(result)
           console.error('[PyodideCore] Worker error:', error)
         }
 
-        await this.sendWorkerRequest('init', {}, WORKER_INIT_TIMEOUT_MS)
+        // Get environment-specific Pyodide URLs
+        const { scriptURL, indexURL } = getPyodideCDNUrls()
+
+        await this.sendWorkerRequest(
+          'init',
+          {
+            pyodideUrl: indexURL,
+            scriptUrl: scriptURL
+          },
+          WORKER_INIT_TIMEOUT_MS
+        )
         this.workerInitialized = true
       } catch (error) {
         this.terminateWorker()

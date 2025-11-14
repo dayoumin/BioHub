@@ -52,6 +52,8 @@ interface WorkerRequest {
   workerNum?: number
   method?: string
   params?: Record<string, unknown>
+  pyodideUrl?: string  // Pyodide indexURL (환경별 자동 선택)
+  scriptUrl?: string   // Pyodide loader script URL (환경별 자동 선택)
 }
 
 /**
@@ -82,25 +84,24 @@ const WORKER_FILE_NAMES: Record<number, string> = {
 }
 
 // ============================================================================
-// Pyodide Loader 로드 (Issue 1 해결)
+// Pyodide Loader 로드 (동적 - 환경별 자동 선택)
 // ============================================================================
 
-// 로컬 Pyodide 로더 로드
-importScripts('/pyodide/pyodide.js')
-
-console.log('[PyodideWorker] Pyodide loader loaded from /pyodide/pyodide.js')
+// Pyodide 로더는 init 메시지에서 동적으로 로드됨
+// - Vercel: CDN에서 로드
+// - 내부망: /pyodide/에서 로드
 
 // ============================================================================
 // Message Handler
 // ============================================================================
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const { id, type, workerNum, method, params } = event.data
+  const { id, type, workerNum, method, params, pyodideUrl, scriptUrl } = event.data
 
   try {
     switch (type) {
       case 'init':
-        await handleInit(id)
+        await handleInit(id, pyodideUrl, scriptUrl)
         break
 
       case 'loadWorker':
@@ -132,18 +133,30 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
 // Init Handler
 // ============================================================================
 
-async function handleInit(requestId: string): Promise<void> {
+async function handleInit(
+  requestId: string,
+  pyodideUrl?: string,
+  scriptUrl?: string
+): Promise<void> {
   if (isInitialized) {
     sendSuccess(requestId, { status: 'already_initialized' })
     return
   }
 
   try {
-    console.log('[PyodideWorker] Initializing Pyodide...')
+    // 0. Load Pyodide loader script dynamically (환경별 자동 선택)
+    const finalScriptUrl = scriptUrl || '/pyodide/pyodide.js'
+    const finalPyodideUrl = pyodideUrl || '/pyodide/'
 
-    // 1. Load Pyodide from local (Issue 4 해결)
+    console.log('[PyodideWorker] Loading Pyodide loader from:', finalScriptUrl)
+    importScripts(finalScriptUrl)
+    console.log('[PyodideWorker] ✓ Pyodide loader loaded')
+
+    console.log('[PyodideWorker] Initializing Pyodide from:', finalPyodideUrl)
+
+    // 1. Load Pyodide with dynamic URL (환경별 자동 선택)
     pyodide = await loadPyodide({
-      indexURL: '/pyodide/'  // ✅ 로컬 경로 사용
+      indexURL: finalPyodideUrl
     })
 
     if (!pyodide) {
