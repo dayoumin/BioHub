@@ -49,19 +49,19 @@ export default function HomePage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-8">
       {/* 1. 스마트 분석 버튼 */}
-      <Link href="/smart-analysis" className="block max-w-lg mx-auto">
+      <Link href="/smart-analysis" className="block max-w-xl mx-auto">
         <Button
           size="lg"
-          className="w-full h-20 text-xl font-bold gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all"
+          className="w-full h-24 text-2xl font-bold gap-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-xl hover:shadow-2xl transition-all"
         >
-          <Star className="h-7 w-7" />
+          <Star className="h-8 w-8" />
           스마트 분석 시작하기
         </Button>
       </Link>
 
       {/* 2. 통계 분석 카테고리 */}
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-center">통계 분석 카테고리</h2>
+        <h2 className="text-3xl font-bold text-center">통계 분석 카테고리</h2>
 
         {/* 카테고리 버튼 그리드 */}
         <div className="flex flex-wrap justify-center gap-2 max-w-4xl mx-auto">
@@ -79,8 +79,8 @@ export default function HomePage() {
                 )}
                 onClick={() => toggleCategory(category.id)}
               >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                <div className="text-sm font-semibold">{category.title}</div>
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                <div className="text-base font-semibold">{category.title}</div>
               </Button>
             )
           })}
@@ -94,7 +94,7 @@ export default function HomePage() {
             <CardContent className="p-4">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold flex items-center gap-2">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
                     {STATISTICS_MENU.find(cat => cat.id === selectedCategory)?.title}
                   </h3>
                   <Button
@@ -114,9 +114,9 @@ export default function HomePage() {
                         <div className="space-y-2">
                           <div className="flex items-start justify-between gap-1">
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-sm leading-tight truncate">{item.title}</h4>
+                              <h4 className="font-semibold text-base leading-tight truncate">{item.title}</h4>
                               {item.subtitle && (
-                                <p className="text-xs text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
+                                <p className="text-sm text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
                               )}
                             </div>
                             <Button
@@ -159,8 +159,8 @@ export default function HomePage() {
 
       {/* 4. 내 통계 도구 */}
       <div className="space-y-4 max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Pin className="h-6 w-6" />
+        <h2 className="text-3xl font-bold flex items-center gap-2">
+          <Pin className="h-7 w-7" />
           내 통계 도구
         </h2>
 
@@ -175,8 +175,8 @@ export default function HomePage() {
             {favorites.length === 0 ? (
               <div className="text-center">
                 <Pin className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-xl font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
+                <p className="text-base text-muted-foreground">
                   카테고리에서 분석 방법을 선택하고 핀 아이콘을 클릭하세요
                 </p>
               </div>
@@ -190,9 +190,9 @@ export default function HomePage() {
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-1">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm leading-tight truncate">{item.title}</h4>
+                          <h4 className="font-semibold text-base leading-tight truncate">{item.title}</h4>
                           {item.subtitle && (
-                            <p className="text-xs text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
+                            <p className="text-sm text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
                           )}
                         </div>
                         <Button
