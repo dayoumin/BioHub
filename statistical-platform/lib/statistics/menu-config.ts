@@ -49,41 +49,6 @@ export interface StatisticsCategory {
  */
 export const STATISTICS_MENU: StatisticsCategory[] = [
   {
-    id: 'descriptive',
-    title: '기초 분석',
-    description: '데이터 탐색 및 기술통계',
-    icon: FileText,
-    items: [
-      {
-        id: 'explore-data',
-        href: '/statistics/explore-data',
-        title: '데이터 탐색',
-        subtitle: '데이터 개요 및 시각화',
-        category: 'descriptive',
-        icon: FileText,
-        implemented: true
-      },
-      {
-        id: 'descriptive',
-        href: '/statistics/descriptive',
-        title: '기술통계',
-        subtitle: '평균, 표준편차, 분포',
-        category: 'descriptive',
-        icon: Calculator,
-        implemented: true
-      },
-      {
-        id: 'reliability',
-        href: '/statistics/reliability',
-        title: '신뢰도 분석',
-        subtitle: 'Cronbach Alpha 등',
-        category: 'descriptive',
-        icon: CheckCircle2,
-        implemented: true
-      }
-    ]
-  },
-  {
     id: 'compare',
     title: '평균 비교',
     description: '집단 간 평균 차이 검정',

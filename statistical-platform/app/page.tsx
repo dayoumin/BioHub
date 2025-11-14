@@ -49,12 +49,12 @@ export default function HomePage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-8">
       {/* 1. 스마트 분석 버튼 */}
-      <Link href="/smart-analysis" className="block max-w-md mx-auto">
+      <Link href="/smart-analysis" className="block max-w-lg mx-auto">
         <Button
           size="lg"
-          className="w-full h-16 text-lg font-semibold gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-md hover:shadow-lg transition-all"
+          className="w-full h-20 text-xl font-bold gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all"
         >
-          <Star className="h-6 w-6" />
+          <Star className="h-7 w-7" />
           스마트 분석 시작하기
         </Button>
       </Link>
