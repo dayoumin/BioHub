@@ -116,7 +116,11 @@
       "Bash(git restore:*)",
       "Bash(timeout:*)",
       "Bash(timeout /t 5 /nobreak)",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(timeout /t 15 /nobreak)",
+      "Bash(ping:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(timeout /t 10 /nobreak)"
     ],
     "deny": [],
     "ask": []

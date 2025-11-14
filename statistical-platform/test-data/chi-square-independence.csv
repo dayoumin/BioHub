@@ -1,0 +1,8 @@
+treatment,outcome
+Control,Success
+Control,Success
+Control,Failure
+Treatment,Success
+Treatment,Success
+Treatment,Success
+Treatment,Failure

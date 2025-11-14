@@ -234,7 +234,7 @@ export default function OrdinalRegressionPage() {
         }
       )
 
-      actions.completeAnalysis(workerResult, 2)
+      actions.completeAnalysis(workerResult, 3)
     } catch (error) {
       console.error('분석 중 오류:', error)
 

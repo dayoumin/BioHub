@@ -147,12 +147,17 @@ export default function RegressionPage() {
     }
   }
 
-  // Helper function: Extract value from unknown row object
-  const extractRowValue = (row: unknown, col: string): unknown => {
+  // Helper function: Extract numeric value from unknown row object
+  const extractRowValue = (row: unknown, col: string): number | null => {
     if (typeof row === 'object' && row !== null && col in row) {
-      return (row as Record<string, unknown>)[col]
+      const value = (row as Record<string, unknown>)[col]
+      if (typeof value === 'number') return value
+      if (typeof value === 'string') {
+        const num = parseFloat(value)
+        return isNaN(num) ? null : num
+      }
     }
-    return undefined
+    return null
   }
 
   // Helper function: Simple Linear Regression
@@ -172,10 +177,7 @@ export default function RegressionPage() {
       const xVal = extractRowValue(row, xVariable)
       const yVal = extractRowValue(row, yVariable)
 
-      if (
-        xVal !== null && xVal !== undefined && typeof xVal === 'number' && !isNaN(xVal) &&
-        yVal !== null && yVal !== undefined && typeof yVal === 'number' && !isNaN(yVal)
-      ) {
+      if (xVal !== null && yVal !== null) {
         xData.push(xVal)
         yData.push(yVal)
       }

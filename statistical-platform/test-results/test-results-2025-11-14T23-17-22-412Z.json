@@ -1,0 +1,467 @@
+[
+  {
+    "page": "ancova",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\ancova.csv",
+    "config": {
+      "factor": "group",
+      "dependent": "value",
+      "covariate": "covariate"
+    }
+  },
+  {
+    "page": "anova",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\anova.csv",
+    "config": {
+      "factor": "group",
+      "dependent": "value"
+    }
+  },
+  {
+    "page": "binomial-test",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\binomial-test.csv",
+    "config": {
+      "variable": "outcome"
+    }
+  },
+  {
+    "page": "chi-square",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\chi-square.csv",
+    "config": {
+      "row": "row",
+      "col": "col"
+    }
+  },
+  {
+    "page": "chi-square-goodness",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\chi-square-goodness.csv",
+    "config": {
+      "variable": "category"
+    }
+  },
+  {
+    "page": "chi-square-independence",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\chi-square-independence.csv",
+    "config": {
+      "row": "treatment",
+      "col": "outcome"
+    }
+  },
+  {
+    "page": "cluster",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\cluster.csv",
+    "config": {
+      "variables": [
+        "x1",
+        "x2"
+      ]
+    }
+  },
+  {
+    "page": "cochran-q",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\cochran-q.csv",
+    "config": {
+      "columns": [
+        "time1",
+        "time2",
+        "time3"
+      ]
+    }
+  },
+  {
+    "page": "correlation",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\correlation.csv",
+    "config": {
+      "variable1": "x",
+      "variable2": "y"
+    }
+  },
+  {
+    "page": "descriptive",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\descriptive.csv",
+    "config": {
+      "variables": [
+        "value"
+      ]
+    }
+  },
+  {
+    "page": "discriminant",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\discriminant.csv",
+    "config": {
+      "group": "group",
+      "predictors": [
+        "x1",
+        "x2"
+      ]
+    }
+  },
+  {
+    "page": "dose-response",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\dose-response.csv",
+    "config": {
+      "dose": "dose",
+      "response": "response"
+    }
+  },
+  {
+    "page": "explore-data",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\explore-data.csv",
+    "config": {
+      "variables": [
+        "x1",
+        "x2",
+        "x3"
+      ]
+    }
+  },
+  {
+    "page": "factor-analysis",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\factor-analysis.csv",
+    "config": {
+      "variables": [
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+      ]
+    }
+  },
+  {
+    "page": "friedman",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\friedman.csv",
+    "config": {
+      "columns": [
+        "time1",
+        "time2",
+        "time3"
+      ]
+    }
+  },
+  {
+    "page": "kruskal-wallis",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\kruskal-wallis.csv",
+    "config": {
+      "group": "group",
+      "value": "value"
+    }
+  },
+  {
+    "page": "ks-test",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\ks-test.csv",
+    "config": {
+      "variable": "value"
+    }
+  },
+  {
+    "page": "mann-kendall",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\mann-kendall.csv",
+    "config": {
+      "time": "time",
+      "value": "value"
+    }
+  },
+  {
+    "page": "mann-whitney",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\mann-whitney.csv",
+    "config": {
+      "group": "group",
+      "value": "value"
+    }
+  },
+  {
+    "page": "manova",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\manova.csv",
+    "config": {
+      "factor": "group",
+      "dependents": [
+        "y1",
+        "y2"
+      ]
+    }
+  },
+  {
+    "page": "mcnemar",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\mcnemar.csv",
+    "config": {
+      "before": "before",
+      "after": "after"
+    }
+  },
+  {
+    "page": "means-plot",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\means-plot.csv",
+    "config": {
+      "group": "group",
+      "value": "value"
+    }
+  },
+  {
+    "page": "mixed-model",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\mixed-model.csv",
+    "config": {
+      "subject": "subject",
+      "group": "group",
+      "time": "time",
+      "value": "value"
+    }
+  },
+  {
+    "page": "mood-median",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\mood-median.csv",
+    "config": {
+      "group": "group",
+      "value": "value"
+    }
+  },
+  {
+    "page": "non-parametric",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\non-parametric.csv",
+    "config": {
+      "variable": "value"
+    }
+  },
+  {
+    "page": "normality-test",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\normality-test.csv",
+    "config": {
+      "variable": "value"
+    }
+  },
+  {
+    "page": "one-sample-t",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\one-sample-t.csv",
+    "config": {
+      "variable": "value"
+    }
+  },
+  {
+    "page": "ordinal-regression",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\ordinal-regression.csv",
+    "config": {
+      "predictors": [
+        "x1",
+        "x2"
+      ],
+      "dependent": "y"
+    }
+  },
+  {
+    "page": "partial-correlation",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\partial-correlation.csv",
+    "config": {
+      "variable1": "x",
+      "variable2": "y",
+      "control": "z"
+    }
+  },
+  {
+    "page": "pca",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\pca.csv",
+    "config": {
+      "variables": [
+        "x1",
+        "x2",
+        "x3",
+        "x4"
+      ]
+    }
+  },
+  {
+    "page": "poisson",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\poisson.csv",
+    "config": {
+      "predictors": [
+        "x1",
+        "x2"
+      ],
+      "dependent": "count"
+    }
+  },
+  {
+    "page": "power-analysis",
+    "status": "success",
+    "duration": 0,
+    "csvPath": null,
+    "config": {
+      "effectSize": 0.5,
+      "alpha": 0.05,
+      "power": 0.8
+    }
+  },
+  {
+    "page": "proportion-test",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\proportion-test.csv",
+    "config": {
+      "group": "group",
+      "outcome": "outcome"
+    }
+  },
+  {
+    "page": "regression",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\regression.csv",
+    "config": {
+      "predictors": [
+        "x1",
+        "x2"
+      ],
+      "dependent": "y"
+    }
+  },
+  {
+    "page": "reliability",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\reliability.csv",
+    "config": {
+      "items": [
+        "item1",
+        "item2",
+        "item3",
+        "item4"
+      ]
+    }
+  },
+  {
+    "page": "response-surface",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\response-surface.csv",
+    "config": {
+      "factors": [
+        "x1",
+        "x2"
+      ],
+      "response": "response"
+    }
+  },
+  {
+    "page": "runs-test",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\runs-test.csv",
+    "config": {
+      "variable": "value"
+    }
+  },
+  {
+    "page": "sign-test",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\sign-test.csv",
+    "config": {
+      "before": "before",
+      "after": "after"
+    }
+  },
+  {
+    "page": "stepwise",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\stepwise.csv",
+    "config": {
+      "predictors": [
+        "x1",
+        "x2",
+        "x3"
+      ],
+      "dependent": "y"
+    }
+  },
+  {
+    "page": "t-test",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\t-test.csv",
+    "config": {
+      "group": "group",
+      "value": "value"
+    }
+  },
+  {
+    "page": "welch-t",
+    "status": "success",
+    "duration": 1,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\welch-t.csv",
+    "config": {
+      "group": "group",
+      "value": "value"
+    }
+  },
+  {
+    "page": "wilcoxon",
+    "status": "success",
+    "duration": 0,
+    "csvPath": "D:\\Projects\\Statistics\\statistical-platform\\test-data\\wilcoxon.csv",
+    "config": {
+      "before": "before",
+      "after": "after"
+    }
+  }
+]

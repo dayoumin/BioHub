@@ -432,11 +432,11 @@ export default function TTestPage() {
         >
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'one-sample' | 'two-sample' | 'paired')}>
             <TabsList className="grid w-full grid-cols-3 h-auto p-1">
-              <TabsTrigger value="one-sample" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white">
+              <TabsTrigger value="one-sample" disabled className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white opacity-50 cursor-not-allowed">
                 <div className="flex flex-col items-center gap-2 py-2">
                   <Activity className="w-5 h-5" />
                   <div className="text-center">
-                    <div className="font-medium">일표본</div>
+                    <div className="font-medium">일표본 (준비중)</div>
                     <div className="text-xs opacity-80">vs 기준값</div>
                   </div>
                 </div>
@@ -452,11 +452,11 @@ export default function TTestPage() {
                 </div>
               </TabsTrigger>
 
-              <TabsTrigger value="paired" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white">
+              <TabsTrigger value="paired" disabled className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white opacity-50 cursor-not-allowed">
                 <div className="flex flex-col items-center gap-2 py-2">
                   <ArrowUpDown className="w-5 h-5" />
                   <div className="text-center">
-                    <div className="font-medium">대응표본</div>
+                    <div className="font-medium">대응표본 (준비중)</div>
                     <div className="text-xs opacity-80">전/후 비교</div>
                   </div>
                 </div>
