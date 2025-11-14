@@ -79,8 +79,8 @@ export default function HomePage() {
                 )}
                 onClick={() => toggleCategory(category.id)}
               >
-                <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                <div className="text-xs font-semibold">{category.title}</div>
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                <div className="text-sm font-semibold">{category.title}</div>
               </Button>
             )
           })}
@@ -114,9 +114,9 @@ export default function HomePage() {
                         <div className="space-y-2">
                           <div className="flex items-start justify-between gap-1">
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-xs leading-tight truncate">{item.title}</h4>
+                              <h4 className="font-semibold text-sm leading-tight truncate">{item.title}</h4>
                               {item.subtitle && (
-                                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
                               )}
                             </div>
                             <Button
@@ -137,12 +137,12 @@ export default function HomePage() {
                           </div>
                           {item.implemented ? (
                             <Link href={item.href}>
-                              <Button size="sm" variant="outline" className="w-full h-7 text-xs">
+                              <Button size="sm" variant="outline" className="w-full h-8 text-sm">
                                 분석 시작
                               </Button>
                             </Link>
                           ) : (
-                            <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
+                            <Button size="sm" variant="outline" className="w-full h-8 text-sm" disabled>
                               준비 중
                             </Button>
                           )}
@@ -175,8 +175,8 @@ export default function HomePage() {
             {favorites.length === 0 ? (
               <div className="text-center">
                 <Pin className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <h3 className="text-base font-semibold mb-1">즐겨찾기한 통계가 없습니다</h3>
-                <p className="text-xs text-muted-foreground">
+                <h3 className="text-lg font-semibold mb-2">즐겨찾기한 통계가 없습니다</h3>
+                <p className="text-sm text-muted-foreground">
                   카테고리에서 분석 방법을 선택하고 핀 아이콘을 클릭하세요
                 </p>
               </div>
@@ -190,9 +190,9 @@ export default function HomePage() {
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-1">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-xs leading-tight truncate">{item.title}</h4>
+                          <h4 className="font-semibold text-sm leading-tight truncate">{item.title}</h4>
                           {item.subtitle && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 leading-tight line-clamp-2">{item.subtitle}</p>
                           )}
                         </div>
                         <Button
@@ -210,12 +210,12 @@ export default function HomePage() {
                       </div>
                       {item.implemented ? (
                         <Link href={item.href}>
-                          <Button size="sm" variant="outline" className="w-full h-7 text-xs">
+                          <Button size="sm" variant="outline" className="w-full h-8 text-sm">
                             분석 시작
                           </Button>
                         </Link>
                       ) : (
-                        <Button size="sm" variant="outline" className="w-full h-7 text-xs" disabled>
+                        <Button size="sm" variant="outline" className="w-full h-8 text-sm" disabled>
                           준비 중
                         </Button>
                       )}

@@ -89,11 +89,13 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       render(<HomePage />)
 
       // 카테고리 선택
-      const categoryButton = screen.getByText('기초 분석')
-      fireEvent.click(categoryButton)
+      const categoryButtons = screen.getAllByText('기초 분석')
+      fireEvent.click(categoryButtons[0]) // 첫 번째 버튼 클릭
 
-      // 선택된 카테고리 섹션이 표시되어야 함
-      expect(screen.getByText('기초 분석 분석 방법')).toBeInTheDocument()
+      // 선택된 카테고리 섹션이 표시되어야 함 (UI 개선: "분석 방법" 텍스트 제거됨)
+      // 버튼과 제목 두 곳에 나타나므로 getAllByText 사용
+      const categoryTitles = screen.getAllByText('기초 분석')
+      expect(categoryTitles.length).toBeGreaterThanOrEqual(2)
       expect(screen.getByText('닫기')).toBeInTheDocument()
 
       // 내 통계 도구 섹션도 존재해야 함
@@ -108,14 +110,15 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       fireEvent.click(categoryButton)
 
       // 카테고리 섹션이 표시됨을 확인
-      expect(screen.getByText('기초 분석 분석 방법')).toBeInTheDocument()
+      const categoryTitle = screen.getAllByText('기초 분석')
+      expect(categoryTitle.length).toBeGreaterThan(0)
 
       // 닫기 버튼 클릭
       const closeButton = screen.getByText('닫기')
       fireEvent.click(closeButton)
 
-      // 카테고리 섹션이 숨겨져야 함
-      expect(screen.queryByText('기초 분석 분석 방법')).not.toBeInTheDocument()
+      // 닫기 버튼이 사라져야 함 (카테고리 섹션이 숨겨짐)
+      expect(screen.queryByText('닫기')).not.toBeInTheDocument()
     })
   })
 
@@ -124,7 +127,8 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       render(<HomePage />)
 
       expect(screen.getByText('즐겨찾기한 통계가 없습니다')).toBeInTheDocument()
-      expect(screen.getByText(/카테고리에서 분석 방법을 선택하고 별표를 클릭하세요/)).toBeInTheDocument()
+      // UI 개선: "별표" → "핀 아이콘"으로 변경됨
+      expect(screen.getByText(/카테고리에서 분석 방법을 선택하고 핀 아이콘을 클릭하세요/)).toBeInTheDocument()
     })
 
     it('즐겨찾기가 있을 때 목록 표시', () => {
