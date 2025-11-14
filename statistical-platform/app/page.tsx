@@ -130,7 +130,7 @@ export default function HomePage() {
                             >
                               <Pin className={cn(
                                 'h-3 w-3',
-                                isFavorite ? 'fill-white text-white' : 'text-muted-foreground'
+                                isFavorite ? 'fill-current' : 'text-muted-foreground'
                               )} />
                             </Button>
                           </div>
@@ -159,7 +159,7 @@ export default function HomePage() {
       {/* 4. 내 통계 도구 */}
       <div className="space-y-4 max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Pin className="h-6 w-6 text-white" />
+          <Pin className="h-6 w-6" />
           내 통계 도구
         </h2>
 
@@ -204,7 +204,7 @@ export default function HomePage() {
                           }}
                           aria-label="즐겨찾기 해제"
                         >
-                          <Pin className="h-3 w-3 fill-white text-white" />
+                          <Pin className="h-3 w-3 fill-current" />
                         </Button>
                       </div>
                       {item.implemented ? (
