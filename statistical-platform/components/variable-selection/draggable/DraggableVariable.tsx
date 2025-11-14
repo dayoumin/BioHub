@@ -53,7 +53,7 @@ export function DraggableVariable({
     }
   })
 
-  // 드래그 중 스타일
+  // 드래그 중 스타일 (애니메이션 제거하여 원위치 복귀 방지)
   const style = transform ? {
     transform: CSS.Translate.toString(transform),
   } : undefined
@@ -62,23 +62,23 @@ export function DraggableVariable({
     <div
       ref={setNodeRef}
       style={style}
+      {...listeners}
+      {...attributes}
       className={cn(
         'group relative flex items-center gap-3 p-3 border rounded-md',
-        'transition-all duration-200',
+        // transition 제거 - 드래그 후 원위치 애니메이션 방지
         isDragging
-          ? 'opacity-50 shadow-lg border-primary bg-primary/5 cursor-grabbing'
+          ? 'opacity-30 cursor-grabbing'
           : 'hover:bg-muted/50 hover:border-muted-foreground/30 cursor-grab',
         isDisabled && 'opacity-40 cursor-not-allowed',
         className
       )}
     >
-      {/* 드래그 핸들 */}
+      {/* 드래그 핸들 (시각적 표시만) */}
       <div
-        {...listeners}
-        {...attributes}
         className={cn(
-          'flex-shrink-0 text-muted-foreground transition-colors',
-          !isDisabled && 'group-hover:text-foreground cursor-grab active:cursor-grabbing'
+          'flex-shrink-0 text-muted-foreground',
+          !isDisabled && 'group-hover:text-foreground'
         )}
       >
         <GripVertical className="w-4 h-4" />

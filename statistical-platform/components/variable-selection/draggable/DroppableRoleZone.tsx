@@ -6,16 +6,17 @@
  * 기능:
  * - 역할별 드롭존 UI 표시 (종속변수, 독립변수 등)
  * - 드롭 가능하도록 useDroppable hook 사용
- * - 드롭 시 시각적 피드백 제공
+ * - 드롭 시 시각적 피드백 제공 (애니메이션 + 아이콘)
  * - 할당된 변수 Badge로 표시
  *
  * 디자인 참고: Jamovi 변수 할당 영역
  * CLAUDE.md 규칙: any 금지, unknown + 타입 가드 사용
  */
 
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { Badge } from '@/components/ui/badge'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { VariableRequirement } from '@/lib/statistics/variable-requirements'
 
@@ -53,6 +54,41 @@ export function DroppableRoleZone({
     }
   })
 
+  // 새로 추가된 변수 추적 (애니메이션용)
+  const [newlyAdded, setNewlyAdded] = useState<string | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevVariablesRef = useRef<string[]>(assignedVariables)
+
+  // 변수 추가 감지
+  useEffect(() => {
+    const added = assignedVariables.find(
+      variable => !prevVariablesRef.current.includes(variable)
+    )
+    if (added) {
+      // ���� Ÿ�̸Ӱ� ������ ��� (�ߺ� ���� ����)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+
+      setNewlyAdded(added)
+      // �� Ÿ�̸� ����
+      timeoutRef.current = setTimeout(() => {
+        setNewlyAdded(null)
+        timeoutRef.current = null
+      }, 1000)
+    }
+    prevVariablesRef.current = assignedVariables
+
+    // cleanup: ������Ʈ unmount �� Ÿ�̸� ��� (�޸� ���� ����)
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+    }
+  }, [assignedVariables])
+
+
   return (
     <div className={cn('space-y-2', className)}>
       {/* 라벨 */}
@@ -61,6 +97,11 @@ export function DroppableRoleZone({
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
+        {assignedVariables.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {assignedVariables.length}개 선택됨
+          </span>
+        )}
       </div>
 
       {/* 드롭존 */}
@@ -90,24 +131,30 @@ export function DroppableRoleZone({
         ) : (
           // 할당된 변수 표시
           <div className="flex flex-wrap gap-2">
-            {assignedVariables.map(varName => (
-              <Badge
-                key={varName}
-                variant="secondary"
-                className="gap-2 px-3 py-1.5"
-              >
-                <span>{varName}</span>
-                {onRemoveVariable && (
-                  <button
-                    onClick={() => onRemoveVariable(varName)}
-                    className="hover:text-destructive transition-colors"
-                    aria-label={`${varName} 제거`}
-                  >
-                    ×
-                  </button>
-                )}
-              </Badge>
-            ))}
+            {assignedVariables.map(varName => {
+              const isNew = varName === newlyAdded
+              return (
+                <Badge
+                  key={varName}
+                  variant="secondary"
+                  className={cn(
+                    'gap-1.5 px-3 py-1.5 transition-all',
+                    isNew && 'bg-primary/10 border-primary/50'
+                  )}
+                >
+                  <span>{varName}</span>
+                  {onRemoveVariable && (
+                    <button
+                      onClick={() => onRemoveVariable(varName)}
+                      className="hover:text-destructive transition-colors"
+                      aria-label={`${varName} 제거`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </Badge>
+              )
+            })}
           </div>
         )}
       </div>
