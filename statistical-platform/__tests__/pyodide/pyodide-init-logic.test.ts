@@ -175,9 +175,9 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
       expect(packages).toEqual([])
     })
 
-    it('should return statsmodels for Worker 3', () => {
+    it('should return statsmodels and scikit-learn for Worker 3', () => {
       const packages = getAdditionalPackages(3)
-      expect(packages).toEqual(['statsmodels'])
+      expect(packages).toEqual(['statsmodels', 'scikit-learn'])
     })
 
     it('should return statsmodels and scikit-learn for Worker 4', () => {
@@ -193,8 +193,9 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
     it('회귀 방지: Worker 3 패키지 변경 시 감지', () => {
       const packages = getAdditionalPackages(3)
 
-      // Worker 3는 반드시 statsmodels를 포함해야 함 (Mood's median test)
+      // Worker 3는 반드시 statsmodels + scikit-learn을 포함해야 함 (KMeans, PCA, LDA)
       expect(packages).toContain('statsmodels')
+      expect(packages).toContain('scikit-learn')
     })
 
     it('회귀 방지: Worker 4 패키지 변경 시 감지', () => {
@@ -323,7 +324,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
 
       // 4. Worker 3 추가 패키지 확인
       const packages = getAdditionalPackages(3)
-      expect(packages).toEqual(['statsmodels'])
+      expect(packages).toEqual(['statsmodels', 'scikit-learn'])
     })
 
     it('Worker 4 초기화 플로우', async () => {

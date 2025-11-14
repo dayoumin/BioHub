@@ -100,7 +100,7 @@ export function validateInitialization(
  *
  * @example
  * ```typescript
- * const packages = getAdditionalPackages(3)  // ['statsmodels']
+ * const packages = getAdditionalPackages(3)  // ['statsmodels', 'scikit-learn']
  * await pyodide.loadPackage(packages)
  * ```
  */
@@ -108,7 +108,7 @@ export function getAdditionalPackages(workerNum: number): string[] {
   const packageMap: Record<number, string[]> = {
     1: [], // worker1-descriptive.py (numpy, scipy만 사용)
     2: [], // worker2-hypothesis.py (numpy, scipy만 사용)
-    3: ['statsmodels'], // worker3-nonparametric-anova.py (Mood's median test)
+    3: ['statsmodels', 'scikit-learn'], // worker3-nonparametric-anova.py (KMeans, PCA, LDA, Factor Analysis)
     4: ['statsmodels', 'scikit-learn'] // worker4-regression-advanced.py (stepwise regression + cluster/factor)
   }
 
