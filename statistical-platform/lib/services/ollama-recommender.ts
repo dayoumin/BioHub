@@ -66,13 +66,29 @@ Available methods:
 
   /**
    * Ollama 서버 상태 확인
+   *
+   * 웹 환경(Vercel)에서는 localhost 접근 불가하므로 체크 스킵
    */
   async checkHealth(): Promise<boolean> {
+    // 웹 환경 감지 (Vercel 등)
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname
+      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        // 웹 환경에서는 localhost Ollama 접근 불가
+        return false
+      }
+    }
+
     try {
-      const response = await fetch(`${this.config.host}/api/tags`)
+      const response = await fetch(`${this.config.host}/api/tags`, {
+        signal: AbortSignal.timeout(2000), // 2초 타임아웃
+      })
       return response.ok
     } catch (error) {
-      console.error('Ollama server not available:', error)
+      // 에러 로그 최소화 (개발 환경에서만 표시)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Ollama] 서버 연결 실패 (로컬 환경에서만 사용 가능)')
+      }
       return false
     }
   }

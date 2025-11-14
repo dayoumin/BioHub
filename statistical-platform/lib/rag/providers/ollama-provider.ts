@@ -146,6 +146,14 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   async initialize(): Promise<void> {
     console.log('[OllamaProvider] 초기화 시작...')
 
+    // 0. 웹 환경 체크 (Vercel 등)
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname
+      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        throw new Error('RAG 챗봇은 로컬 환경에서만 사용 가능합니다. Ollama를 localhost에서 실행해주세요.')
+      }
+    }
+
     // 1. Ollama 서버 연결 확인
     try {
       const controller = new AbortController()

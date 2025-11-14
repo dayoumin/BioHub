@@ -73,6 +73,15 @@ export function RAGChatInterface({
   // Ollama 연결 상태 체크
   useEffect(() => {
     const checkOllama = async () => {
+      // 웹 환경(Vercel)에서는 localhost 접근 불가
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname
+        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+          setOllamaStatus('unavailable')
+          return
+        }
+      }
+
       const ollamaEndpoint = process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434'
 
       try {
@@ -568,32 +577,12 @@ export function RAGChatInterface({
                           </a>
                         </li>
                         <li>
-                          <div className="mt-1">터미널에서 모델 다운로드 (PC 사양에 맞게 선택):</div>
-                          <div className="ml-4 mt-2 space-y-2">
-                            <div>
-                              <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
-                                💻 <strong>RAM 8GB 이하</strong> (가벼운 모델, ~400MB):
-                              </div>
-                              <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
-                                ollama pull qwen3-embedding:0.6b && ollama pull qwen3:0.6b
-                              </code>
-                            </div>
-                            <div>
-                              <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
-                                💻 <strong>RAM 16GB</strong> (권장, ~2.7GB):
-                              </div>
-                              <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
-                                ollama pull qwen3-embedding:0.6b && ollama pull qwen3:4b
-                              </code>
-                            </div>
-                            <div>
-                              <div className="text-xs text-amber-700 dark:text-amber-300 mb-1">
-                                💻 <strong>RAM 32GB 이상</strong> (최고 성능, ~5GB):
-                              </div>
-                              <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs">
-                                ollama pull qwen3-embedding:0.6b && ollama pull qwen3:8b
-                              </code>
-                            </div>
+                          <div className="mt-1">터미널에서 모델 다운로드:</div>
+                          <code className="block px-2 py-1 bg-amber-100 dark:bg-amber-900 rounded text-xs mt-1">
+                            ollama pull qwen3-embedding:0.6b && ollama pull qwen3:4b
+                          </code>
+                          <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                            💡 GPU RAM 16GB 권장 (~2.7GB 사용)
                           </div>
                         </li>
                         <li>페이지 새로고침</li>

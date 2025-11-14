@@ -87,8 +87,18 @@ export async function checkDoclingAvailable(): Promise<boolean> {
 
 /**
  * Ollama 서버 가용성 체크 (기본: localhost:11434)
+ *
+ * 웹 환경(Vercel)에서는 localhost 접근 불가하므로 체크 스킵
  */
 export async function checkOllamaAvailable(): Promise<boolean> {
+  const env = detectEnvironment()
+
+  // 웹 환경에서는 localhost Ollama 접근 불가 (CORS 차단)
+  if (env === 'web') {
+    return false
+  }
+
+  // 로컬 환경에서만 체크
   const ollamaEndpoint = process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434'
   return fetchWithRetry(`${ollamaEndpoint}/api/tags`)
 }
