@@ -57,14 +57,19 @@ Available methods:
   /**
    * Ollama 서버 상태 확인
    *
-   * 웹 환경(Vercel)에서는 localhost 접근 불가하므로 체크 스킵
+   * 로직:
+   * - NEXT_PUBLIC_OLLAMA_ENDPOINT 설정됨 → 어디서든 체크 시도
+   * - 설정 없음 + localhost → 체크 시도
+   * - 설정 없음 + 원격 → 차단
    */
   async checkHealth(): Promise<boolean> {
-    // 웹 환경 감지 (Vercel 등)
+    // Ollama 가용성 체크 (endpoint 기반)
     if (typeof window !== 'undefined') {
+      const hasExplicitEndpoint = !!process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT
       const hostname = window.location.hostname
-      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-        // 웹 환경에서는 localhost Ollama 접근 불가
+      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1'
+
+      if (!hasExplicitEndpoint && !isLocalhost) {
         return false
       }
     }

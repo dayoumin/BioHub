@@ -129,6 +129,16 @@ function formatUserMessage(
   errorType: RAGErrorResult['errorType'],
   context: string
 ): string {
+  // Provider에서 온 사용자 친화적 에러 메시지 감지
+  // (예: "RAG 챗봇은 로컬 환경에서만 사용 가능합니다...")
+  if (
+    errorMessage.includes('RAG 챗봇') ||
+    errorMessage.includes('NEXT_PUBLIC_OLLAMA_ENDPOINT') ||
+    errorMessage.includes('localhost에서 실행')
+  ) {
+    return errorMessage // Provider 메시지 그대로 전달
+  }
+
   switch (errorType) {
     case 'model_not_found':
       return 'AI 모델을 찾을 수 없습니다. 설정에서 모델을 선택해주세요.'

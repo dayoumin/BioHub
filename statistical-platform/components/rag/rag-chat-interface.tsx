@@ -35,6 +35,7 @@ import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexe
 import type { ChatSession, ChatMessage } from '@/lib/types/chat'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import { cn } from '@/lib/utils'
+import { detectEnvironment } from '@/lib/utils/environment-detector'
 
 interface QuickPrompt {
   icon: string
@@ -73,13 +74,15 @@ export function RAGChatInterface({
   // Ollama 연결 상태 체크
   useEffect(() => {
     const checkOllama = async () => {
-      // 웹 환경(Vercel)에서는 localhost 접근 불가
-      if (typeof window !== 'undefined') {
-        const hostname = window.location.hostname
-        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-          setOllamaStatus('unavailable')
-          return
-        }
+      // Ollama 가용성 체크 (endpoint 기반)
+      // - NEXT_PUBLIC_OLLAMA_ENDPOINT 설정됨 → 어디서든 체크 시도
+      // - 설정 없음 + localhost → 체크 시도
+      // - 설정 없음 + 원격 → 차단
+      const hasExplicitEndpoint = !!process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT
+
+      if (!hasExplicitEndpoint && detectEnvironment() === 'web') {
+        setOllamaStatus('unavailable')
+        return
       }
 
       const ollamaEndpoint = process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT || 'http://localhost:11434'

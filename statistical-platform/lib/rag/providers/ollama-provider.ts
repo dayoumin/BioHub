@@ -33,6 +33,7 @@ import {
 } from '../utils/sql-indexeddb'
 import { chunkDocument, estimateTokens } from '../utils/chunking'
 import { vectorToBlob } from '../utils/blob-utils'
+import { detectEnvironment } from '@/lib/utils/environment-detector'
 
 /**
  * SQLite BLOB을 float 배열로 변환
@@ -146,12 +147,14 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   async initialize(): Promise<void> {
     console.log('[OllamaProvider] 초기화 시작...')
 
-    // 0. 웹 환경 체크 (Vercel 등)
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname
-      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-        throw new Error('RAG 챗봇은 로컬 환경에서만 사용 가능합니다. Ollama를 localhost에서 실행해주세요.')
-      }
+    // 0. Ollama 가용성 체크 (endpoint 기반)
+    // - NEXT_PUBLIC_OLLAMA_ENDPOINT 설정됨 → 어디서든 허용
+    // - 설정 없음 + localhost → 허용
+    // - 설정 없음 + 원격 → 차단
+    const hasExplicitEndpoint = !!process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT
+
+    if (!hasExplicitEndpoint && detectEnvironment() === 'web') {
+      throw new Error('RAG 챗봇은 로컬 환경에서만 사용 가능합니다. NEXT_PUBLIC_OLLAMA_ENDPOINT를 설정하거나 localhost에서 실행해주세요.')
     }
 
     // 1. Ollama 서버 연결 확인
