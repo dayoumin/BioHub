@@ -36,6 +36,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { extractRowValue } from '@/lib/utils/data-extraction'
 
 // Data interfaces
 interface DataRow {
@@ -182,12 +183,11 @@ export default function WilcoxonPage() {
       const values2: number[] = []
 
       for (const row of uploadedData.data) {
-        const val1 = row[var1Name]
-        const val2 = row[var2Name]
+        const val1 = extractRowValue(row, var1Name)
+        const val2 = extractRowValue(row, var2Name)
 
         // Only include pairs where both values are valid numbers
-        if (typeof val1 === 'number' && typeof val2 === 'number' &&
-            !isNaN(val1) && !isNaN(val2)) {
+        if (val1 !== null && val2 !== null) {
           values1.push(val1)
           values2.push(val2)
         }

@@ -16,6 +16,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { VariableMapping } from '@/components/variable-selection/types'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { extractRowValue } from '@/lib/utils/data-extraction'
 
 interface MannKendallResult {
   trend: 'increasing' | 'decreasing' | 'no trend'
@@ -85,8 +86,7 @@ const MannKendallTest: React.FC<MannKendallTestProps> = ({
     try {
       const targetVariable = dependentVars[0]
       const data = uploadedData.data.map(row => {
-        const value = row[targetVariable]
-        return typeof value === 'number' ? value : null
+        return extractRowValue(row, targetVariable)
       }).filter((v): v is number => v !== null)
 
       // PyodideCore Worker 1 호출

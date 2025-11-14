@@ -36,6 +36,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { extractRowValue } from '@/lib/utils/data-extraction'
 
 // Data interfaces
 interface DataRow {
@@ -182,10 +183,9 @@ export default function MannWhitneyPage() {
       const groups = new Map<string | number, number[]>()
       for (const row of data) {
         const groupValue = row[groupVar]
-        const depValue = row[dependentVar]
+        const depValue = extractRowValue(row, dependentVar)
 
-        if (groupValue !== null && groupValue !== undefined &&
-            typeof depValue === 'number' && !isNaN(depValue)) {
+        if (groupValue !== null && groupValue !== undefined && depValue !== null) {
           const key = String(groupValue)
           if (!groups.has(key)) {
             groups.set(key, [])

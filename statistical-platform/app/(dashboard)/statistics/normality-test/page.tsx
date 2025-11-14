@@ -26,6 +26,7 @@ import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { extractColumnData } from '@/lib/utils/data-extraction'
 
 interface NormalityTestResult {
   test: string
@@ -131,9 +132,7 @@ export default function NormalityTestPage() {
       }
 
       // 데이터 추출 (결측치 제거)
-      const values = data
-        .map(row => row[varName])
-        .filter(v => v !== null && v !== undefined && v !== '' && typeof v === 'number') as number[]
+      const values = extractColumnData(data, varName)
 
       if (values.length < 3) {
         actions.setError('정규성 검정을 위해서는 최소 3개 이상의 데이터가 필요합니다.')
