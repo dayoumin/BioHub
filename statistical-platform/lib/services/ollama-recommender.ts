@@ -25,16 +25,6 @@ export class OllamaRecommender {
     temperature: 0.3, // 낮게 설정 (일관성 중요)
     maxTokens: 500
   }
-  
-  // 사용 가능한 모델 우선순위 (성능 순)
-  private modelPriority = [
-    'deepseek-r1:7b',      // 최신, 7.6B, 추론 능력 우수
-    'qwen3:4b',            // 4B, 한국어 지원 우수
-    'gemma3:4b',           // 4.3B, Google 모델
-    'qwen3:4b-q4_K_M',     // 4B 경량화 버전
-    'gemma3:1b',           // 1B, 가장 가벼움
-    'gemma3:270m'          // 268M, 초경량
-  ]
 
   private systemPrompt = `You are a statistical analysis expert assistant. 
 Your task is to recommend appropriate statistical methods based on user's research questions and data characteristics.
