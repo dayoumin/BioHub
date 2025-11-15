@@ -48,6 +48,8 @@ export interface RAGContext {
   searchMode?: SearchMode
   /** 검색 모드 (대체 이름) */
   mode?: SearchMode
+  /** LLM Reranking 사용 여부 (기본: true) */
+  useReranking?: boolean
 }
 
 export interface RAGResponse {

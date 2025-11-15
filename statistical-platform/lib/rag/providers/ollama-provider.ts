@@ -900,6 +900,14 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         }))
       }
 
+      // LLM Reranking (Top-20 → Top-5)
+      // 검색 결과가 topK보다 많으면 Reranking 수행
+      const useReranking = context.useReranking !== false // 기본값: true
+      if (useReranking && searchResults.length > this.topK) {
+        console.log(`[OllamaProvider] Reranking 활성화: ${searchResults.length}개 → ${this.topK}개`)
+        searchResults = await this.rerank(context.query, searchResults, this.topK)
+      }
+
       // 관련 문서 컨텍스트 생성
       const contextText = this.buildContext(searchResults, context)
 
@@ -1235,9 +1243,10 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       }
     }
 
-    // 스코어 순 정렬 후 Top-K
+    // 스코어 순 정렬 후 후보 개수만큼 반환 (Reranking을 위해)
     results.sort((a, b) => b.score - a.score)
-    return results.slice(0, this.topK)
+    const candidateLimit = this.topK * 4
+    return results.slice(0, candidateLimit)
   }
 
   /**
@@ -1329,14 +1338,15 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         })
       }
 
-      // 7. 점수 순 정렬 후 Top-K
+      // 7. 점수 순 정렬 후 후보 개수만큼 반환 (Reranking을 위해)
       results.sort((a, b) => b.score - a.score)
       const totalTime = Date.now() - startTime
+      const candidateLimit = this.topK * 4
       console.log(
         `[OllamaProvider] Vector 검색 완료: ${totalTime}ms (${allEmbeddings.length}개 청크 → ${results.length}개 문서)`
       )
 
-      return results.slice(0, this.topK)
+      return results.slice(0, candidateLimit)
     } catch (error) {
       console.error('[OllamaProvider] Vector 검색 실패:', error)
       // Fallback: 빈 배열 반환 (query에서 Fallback 처리)
@@ -1385,6 +1395,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       this.documents.forEach((doc) => docMap.set(doc.doc_id, doc))
 
       // 5. RRF 점수 기준 정렬
+      // Reranking을 위해 topK의 4배 (보통 20개) 가져오기
+      const candidateLimit = this.topK * 4
       const hybridResults: SearchResult[] = Array.from(rrfScores.entries())
         .map(([doc_id, score]) => {
           const doc = docMap.get(doc_id)
@@ -1402,7 +1414,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           }
         })
         .sort((a, b) => b.score - a.score)
-        .slice(0, this.topK)
+        .slice(0, candidateLimit)
 
       console.log(`[OllamaProvider] Hybrid 검색 완료: ${hybridResults.length}개 문서 (FTS5: ${fts5Results.length}, Vector: ${vectorResults.length})`)
       return hybridResults
@@ -1495,6 +1507,117 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         throw error
       }
       throw new Error('임베딩 생성 중 알 수 없는 오류 발생')
+    }
+  }
+
+  /**
+   * LLM Reranking (Top-20 → Top-5)
+   *
+   * 검색 결과를 LLM으로 재순위화하여 정확도 향상
+   *
+   * @param query - 사용자 질문
+   * @param candidates - 검색 결과 후보 (Top-20)
+   * @param topK - 최종 반환할 개수 (기본: 5)
+   * @returns 재순위화된 상위 K개 결과
+   */
+  private async rerank(
+    query: string,
+    candidates: SearchResult[],
+    topK: number = 5
+  ): Promise<SearchResult[]> {
+    // 후보가 topK 이하면 그대로 반환
+    if (candidates.length <= topK) {
+      return candidates
+    }
+
+    console.log(`[OllamaProvider] Reranking ${candidates.length}개 → ${topK}개...`)
+
+    try {
+      // 1. 각 문서에 번호 부여 (1부터 시작)
+      const numberedDocs = candidates.map((doc, i) => ({
+        number: i + 1,
+        doc
+      }))
+
+      // 2. LLM Reranking 프롬프트 생성
+      const prompt = `질문: ${query}
+
+다음 문서들을 위 질문과의 관련성 순으로 정렬하세요.
+가장 관련성이 높은 문서를 1순위로 하여 상위 ${topK}개만 선택하세요.
+
+${numberedDocs.map(({ number, doc }) =>
+  `[${number}] ${doc.title}\n${doc.content.slice(0, 200)}...`
+).join('\n\n')}
+
+답변 형식: 숫자만 쉼표로 구분 (예: 5,2,8,1,3)
+상위 ${topK}개 문서 번호:`
+
+      // 3. Ollama API 호출 (Reranking)
+      const response = await fetch(`${this.ollamaEndpoint}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.inferenceModel,
+          prompt,
+          stream: false,
+          options: {
+            temperature: 0, // 결정론적 순위
+            num_predict: 100 // 짧은 응답 (숫자만)
+          }
+        })
+      })
+
+      if (!response.ok) {
+        console.warn('[OllamaProvider] ⚠️ Reranking 실패, 원본 순서 유지')
+        return candidates.slice(0, topK)
+      }
+
+      const data = (await response.json()) as GenerateResponse
+      const ranking = data.response.trim()
+
+      // 4. 응답 파싱: "5,2,8,1,3" → [5, 2, 8, 1, 3]
+      const indices = ranking
+        .split(',')
+        .map((n) => parseInt(n.trim()))
+        .filter((n) => !isNaN(n) && n >= 1 && n <= candidates.length)
+
+      // 5. 파싱 실패 시 원본 순서 반환
+      if (indices.length === 0) {
+        console.warn('[OllamaProvider] ⚠️ Reranking 응답 파싱 실패, 원본 순서 유지')
+        console.log(`[OllamaProvider] 응답: ${ranking}`)
+        return candidates.slice(0, topK)
+      }
+
+      // 6. 재순위화된 결과 생성 (중복 제거)
+      const rerankedResults: SearchResult[] = []
+      const usedIndices = new Set<number>()
+
+      for (const idx of indices) {
+        if (usedIndices.has(idx)) continue
+        if (rerankedResults.length >= topK) break
+
+        const doc = candidates[idx - 1] // 1-based → 0-based
+        if (doc) {
+          rerankedResults.push(doc)
+          usedIndices.add(idx)
+        }
+      }
+
+      // 7. topK개를 못 채웠으면 원본에서 추가
+      if (rerankedResults.length < topK) {
+        for (let i = 0; i < candidates.length && rerankedResults.length < topK; i++) {
+          if (!usedIndices.has(i + 1)) {
+            rerankedResults.push(candidates[i])
+          }
+        }
+      }
+
+      console.log(`[OllamaProvider] ✓ Reranking 완료: ${rerankedResults.length}개`)
+      return rerankedResults
+
+    } catch (error) {
+      console.warn('[OllamaProvider] ⚠️ Reranking 에러, 원본 순서 유지:', error)
+      return candidates.slice(0, topK)
     }
   }
 
