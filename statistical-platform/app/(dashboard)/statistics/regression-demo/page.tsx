@@ -26,7 +26,8 @@ import {
   Network,
   Binary,
   Upload,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react'
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -452,15 +453,30 @@ export default function RegressionDemoPage() {
           )}
 
           {/* 분석하기 버튼 */}
-          <Button
-            onClick={handleAnalysis}
-            disabled={isAnalyzing || !selectedVariables?.independent || !selectedVariables?.dependent}
-            size="lg"
-            className="w-full md:w-auto shadow-lg"
-          >
-            {isAnalyzing ? '분석 중...' : '분석하기'}
-            <Play className="ml-2 h-4 w-4" />
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleAnalysis}
+              disabled={isAnalyzing || !selectedVariables?.independent || !selectedVariables?.dependent}
+              size="lg"
+              className="flex-1 md:flex-none md:w-auto shadow-lg"
+            >
+              {isAnalyzing ? '분석 중...' : results ? '다시 분석하기' : '분석하기'}
+              <Play className="ml-2 h-4 w-4" />
+            </Button>
+
+            {/* 이미 결과가 있으면 "결과 보기" 버튼 표시 */}
+            {results && !isAnalyzing && (
+              <Button
+                onClick={() => actions.setCurrentStep(4)}
+                variant="outline"
+                size="lg"
+                className="flex-1 md:flex-none md:w-auto"
+              >
+                결과 보기
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
