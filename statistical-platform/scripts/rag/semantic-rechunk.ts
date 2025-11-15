@@ -10,6 +10,8 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
 import initSqlJs from 'sql.js'
 import * as fs from 'fs'
 import * as path from 'path'
+import { HWPChunkingStrategy } from '../../lib/rag/strategies/chunking/hwp-chunking'
+import type { Chunk } from '../../lib/rag/strategies/base-strategy'
 
 // 설정
 const CONFIG = {
@@ -40,6 +42,7 @@ interface Document {
   library: string
   category: string | null
   summary: string | null
+  filePath?: string  // HWP 파일 경로 (옵셔널)
 }
 
 /**
@@ -173,6 +176,27 @@ async function loadDocuments(): Promise<Document[]> {
 }
 
 /**
+ * 파일 타입 감지
+ */
+function detectFileType(document: Document): 'hwp' | 'markdown' {
+  // 1. filePath가 있으면 확장자로 판단
+  if (document.filePath) {
+    const ext = path.extname(document.filePath).toLowerCase()
+    if (ext === '.hwp' || ext === '.hwpx') {
+      return 'hwp'
+    }
+  }
+
+  // 2. doc_id에 파일 타입 힌트가 있는 경우 (예: hwp_doc_001)
+  if (document.doc_id.startsWith('hwp_')) {
+    return 'hwp'
+  }
+
+  // 3. 기본값: markdown
+  return 'markdown'
+}
+
+/**
  * 문서 재청킹 + 임베딩 생성
  */
 async function rechunkDocuments(
@@ -183,28 +207,63 @@ async function rechunkDocuments(
   const chunkedDocs: ChunkedDocument[] = []
   let processedCount = 0
 
+  // HWP 청킹 전략 초기화 (lazy)
+  let hwpStrategy: HWPChunkingStrategy | null = null
+
   for (const doc of documents) {
     processedCount++
     console.log(`  [${processedCount}/${documents.length}] ${doc.library}/${doc.title}`)
 
     try {
-      // 1. 텍스트 분할 (RecursiveCharacterTextSplitter)
-      const chunks = await textSplitter.splitText(doc.content)
+      // 1. 파일 타입 감지
+      const fileType = detectFileType(doc)
+      let chunks: Array<{ content: string; chunkIndex: number; totalChunks: number }>
+
+      if (fileType === 'hwp') {
+        // HWP 청킹 전략 사용
+        console.log(`    → HWP 청킹 전략 사용`)
+
+        if (!hwpStrategy) {
+          hwpStrategy = new HWPChunkingStrategy()
+        }
+
+        // Document 타입 변환 (null → undefined)
+        const hwpDoc = {
+          ...doc,
+          category: doc.category ?? undefined,
+          summary: doc.summary ?? undefined
+        }
+
+        const hwpChunks: Chunk[] = await hwpStrategy.chunk(hwpDoc)
+        chunks = hwpChunks.map(chunk => ({
+          content: chunk.content,
+          chunkIndex: chunk.chunkIndex,
+          totalChunks: chunk.totalChunks
+        }))
+      } else {
+        // 기본 RecursiveCharacterTextSplitter 사용 (Markdown/Text)
+        console.log(`    → Recursive Character Splitter 사용`)
+
+        const textChunks = await textSplitter.splitText(doc.content)
+        chunks = textChunks.map((content, index) => ({
+          content,
+          chunkIndex: index,
+          totalChunks: textChunks.length
+        }))
+      }
 
       // 2. 각 청크에 대해 임베딩 생성
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i]
-
+      for (const chunk of chunks) {
         // 임베딩 생성 (Ollama API 호출)
-        const embedding = await embeddings.embedQuery(chunk)
+        const embedding = await embeddings.embedQuery(chunk.content)
 
         chunkedDocs.push({
-          doc_id: `${doc.doc_id}_chunk_${i}`,
+          doc_id: `${doc.doc_id}_chunk_${chunk.chunkIndex}`,
           parent_doc_id: doc.doc_id,
           title: doc.title,
-          content: chunk,
-          chunk_index: i,
-          total_chunks: chunks.length,
+          content: chunk.content,
+          chunk_index: chunk.chunkIndex,
+          total_chunks: chunk.totalChunks,
           library: doc.library,
           category: doc.category,
           summary: doc.summary,
