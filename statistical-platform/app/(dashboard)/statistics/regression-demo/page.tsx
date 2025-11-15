@@ -1,16 +1,17 @@
 'use client'
 
 /**
- * 회귀분석 페이지 - ThreePanelLayout 완성형
+ * 회귀분석 페이지 - TwoPanelLayout (데이터 하단 배치)
  *
- * 기존 regression 페이지의 모든 기능을 3-Panel 레이아웃으로 구현
+ * 기존 regression 페이지의 모든 기능을 2-Panel 레이아웃으로 구현
+ * 데이터 미리보기를 하단에 배치하여 메인 영역 확보
  * 다른 통계 페이지 마이그레이션의 기준이 되는 템플릿
  */
 
 import { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RegressionVariables } from '@/types/statistics'
-import { ThreePanelLayout } from '@/components/statistics/layouts/ThreePanelLayout'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -269,21 +270,74 @@ export default function RegressionDemoPage() {
     }
   }, [uploadedData, selectedVariables, actions, handleSimpleRegression])
 
-  // Right panel configuration
-  const rightPanelConfig = {
-    mode: currentStep < 4 ? 'preview' as const : 'results' as const,
-    previewData: uploadedData?.data,
-    results: results
-  }
+  // Steps with completed state
+  const stepsWithCompleted = STEPS.map(step => ({
+    ...step,
+    completed: step.id === 1 ? !!regressionType :
+              step.id === 2 ? !!uploadedData :
+              step.id === 3 ? !!selectedVariables :
+              step.id === 4 ? !!results : false
+  }))
+
+  // Bottom preview configuration
+  const bottomPreview = (currentStep === 2 || currentStep === 3) && uploadedData ? {
+    data: uploadedData.data,
+    fileName: uploadedData.fileName,
+    maxRows: 100,
+    onOpenNewWindow: () => {
+      const dataWindow = window.open('', '_blank', 'width=1200,height=800')
+      if (dataWindow) {
+        const columns = Object.keys(uploadedData.data[0] || {})
+        const html = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>데이터 미리보기 - ${uploadedData.fileName}</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; }
+              table { border-collapse: collapse; width: 100%; font-size: 12px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f0f0f0; font-weight: 600; position: sticky; top: 0; }
+              tr:nth-child(even) { background-color: #f9f9f9; }
+              .header { margin-bottom: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>${uploadedData.fileName}</h2>
+              <p>${uploadedData.data.length.toLocaleString()}행 × ${columns.length}열</p>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  ${columns.map(col => `<th>${col}</th>`).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${uploadedData.data.map((row, idx) => `
+                  <tr>
+                    <td>${idx + 1}</td>
+                    ${columns.map(col => `<td>${row[col]}</td>`).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </body>
+          </html>
+        `
+        dataWindow.document.write(html)
+        dataWindow.document.close()
+      }
+    }
+  } : undefined
 
   return (
-    <ThreePanelLayout
+    <TwoPanelLayout
       currentStep={currentStep}
-      steps={STEPS}
+      steps={stepsWithCompleted}
       onStepChange={actions.setCurrentStep}
-      rightPanel={rightPanelConfig}
-      renderPreview={(data) => <DataPreviewPanel data={data} defaultExpanded={true} />}
-      renderResults={(res) => <ResultsPanel results={res as LinearRegressionResults} />}
+      bottomPreview={bottomPreview}
     >
       {/* Step 1: 회귀 유형 선택 */}
       {currentStep === 1 && (
@@ -387,62 +441,59 @@ export default function RegressionDemoPage() {
             </p>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">변수 할당</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* 독립변수 선택 */}
-              <div className="space-y-2">
-                <Label>독립변수 (X)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {uploadedData.columns.map((header: string) => (
-                    <Badge
-                      key={header}
-                      variant={selectedVariables?.independent?.includes(header) ? 'default' : 'outline'}
-                      className="cursor-pointer"
-                      onClick={() => {
-                        const current = selectedVariables?.independent || []
-                        const updated = current.includes(header)
-                          ? current.filter(h => h !== header)
-                          : regressionType === 'simple'
-                          ? [header]
-                          : [...current, header]
-                        handleVariableSelect({ ...selectedVariables, independent: updated })
-                      }}
-                    >
-                      {header}
-                      {selectedVariables?.independent?.includes(header) && (
-                        <CheckCircle className="ml-1 h-3 w-3" />
-                      )}
-                    </Badge>
-                  ))}
-                </div>
+          <div className="space-y-4">
+            {/* 독립변수 선택 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">독립변수 (X)</Label>
+              <div className="flex flex-wrap gap-2">
+                {uploadedData.columns.map((header: string) => (
+                  <Badge
+                    key={header}
+                    variant={selectedVariables?.independent?.includes(header) ? 'default' : 'outline'}
+                    className="cursor-pointer max-w-[200px] truncate"
+                    title={header}
+                    onClick={() => {
+                      const current = selectedVariables?.independent || []
+                      const updated = current.includes(header)
+                        ? current.filter(h => h !== header)
+                        : regressionType === 'simple'
+                        ? [header]
+                        : [...current, header]
+                      handleVariableSelect({ ...selectedVariables, independent: updated })
+                    }}
+                  >
+                    {header}
+                    {selectedVariables?.independent?.includes(header) && (
+                      <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                    )}
+                  </Badge>
+                ))}
               </div>
+            </div>
 
-              {/* 종속변수 선택 */}
-              <div className="space-y-2">
-                <Label>종속변수 (Y)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {uploadedData.columns.map((header: string) => (
-                    <Badge
-                      key={header}
-                      variant={selectedVariables?.dependent === header ? 'default' : 'outline'}
-                      className="cursor-pointer"
-                      onClick={() => {
-                        handleVariableSelect({ ...selectedVariables, dependent: header })
-                      }}
-                    >
-                      {header}
-                      {selectedVariables?.dependent === header && (
-                        <CheckCircle className="ml-1 h-3 w-3" />
-                      )}
-                    </Badge>
-                  ))}
-                </div>
+            {/* 종속변수 선택 */}
+            <div className="space-y-2">
+              <Label className="text-base font-semibold">종속변수 (Y)</Label>
+              <div className="flex flex-wrap gap-2">
+                {uploadedData.columns.map((header: string) => (
+                  <Badge
+                    key={header}
+                    variant={selectedVariables?.dependent === header ? 'default' : 'outline'}
+                    className="cursor-pointer max-w-[200px] truncate"
+                    title={header}
+                    onClick={() => {
+                      handleVariableSelect({ ...selectedVariables, dependent: header })
+                    }}
+                  >
+                    {header}
+                    {selectedVariables?.dependent === header && (
+                      <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                    )}
+                  </Badge>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* 에러 메시지 */}
           {error && (
@@ -486,19 +537,14 @@ export default function RegressionDemoPage() {
           <div>
             <h2 className="text-xl font-semibold mb-2">분석 완료</h2>
             <p className="text-sm text-muted-foreground">
-              회귀분석 결과가 우측 패널에 표시됩니다
+              회귀분석 결과를 확인하세요
             </p>
           </div>
 
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>
-              분석이 성공적으로 완료되었습니다. 우측 결과 패널을 확인하세요.
-            </AlertDescription>
-          </Alert>
+          <ResultsPanel results={results as LinearRegressionResults} />
         </div>
       )}
-    </ThreePanelLayout>
+    </TwoPanelLayout>
   )
 }
 
