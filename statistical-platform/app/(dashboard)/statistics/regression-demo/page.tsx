@@ -125,10 +125,10 @@ export default function RegressionDemoPage() {
     actions.setCurrentStep(2)
   }, [actions])
 
-  const handleDataUpload = useCallback((data: Array<Record<string, unknown>>) => {
+  const handleDataUpload = useCallback((file: File, data: Array<Record<string, unknown>>) => {
     const columns = data.length > 0 ? Object.keys(data[0]) : []
     if (actions.setUploadedData) {
-      actions.setUploadedData({ data, fileName: 'uploaded.csv', columns })
+      actions.setUploadedData({ data, fileName: file.name, columns })
     }
     actions.setCurrentStep(3)
   }, [actions])

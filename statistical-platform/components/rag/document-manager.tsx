@@ -28,9 +28,11 @@ import {
   X,
   FileText,
   Database,
+  Upload,
 } from 'lucide-react'
 import { RAGService } from '@/lib/rag/rag-service'
 import type { Document } from '@/lib/rag/providers/base-provider'
+import { FileUploader } from './file-uploader'
 
 interface DocumentWithSource extends Document {
   source: 'original' | 'user' // 원본 DB vs 사용자 추가
@@ -43,6 +45,7 @@ export function DocumentManager() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRebuilding, setIsRebuilding] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showFileUploader, setShowFileUploader] = useState(false)
 
   // Progress UI 상태
   const [rebuildProgress, setRebuildProgress] = useState({
@@ -99,10 +102,11 @@ export function DocumentManager() {
     loadDocuments()
   }, [loadDocuments])
 
-  // 새 문서 추가 모드
+  // 새 문서 추가 모드 (수동 입력)
   const handleNewDocument = useCallback(() => {
     setSelectedDoc(null)
     setIsEditing(true)
+    setShowFileUploader(false)
     setFormData({
       doc_id: '',
       title: '',
@@ -112,6 +116,44 @@ export function DocumentManager() {
       summary: '',
     })
   }, [])
+
+  // 파일 업로드 모드
+  const handleFileUpload = useCallback(() => {
+    setSelectedDoc(null)
+    setIsEditing(false)
+    setShowFileUploader(true)
+  }, [])
+
+  // 파일 업로더로부터 문서 추가
+  const handleDocumentFromFile = useCallback(
+    async (doc: Document) => {
+      try {
+        console.log('[DocumentManager] 파일 업로드로 문서 추가:', doc.doc_id)
+
+        const ragService = RAGService.getInstance()
+        await ragService.initialize()
+
+        // 문서 추가
+        await ragService.addDocument(doc)
+
+        console.log('[DocumentManager] 문서 추가 완료:', doc.doc_id)
+
+        // 목록 새로고침
+        await loadDocuments()
+
+        // 파일 업로더 닫기
+        setShowFileUploader(false)
+
+        alert(`문서 "${doc.title}"이(가) 추가되었습니다.`)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류'
+        setError(errorMessage)
+        console.error('[DocumentManager] 파일 업로드 문서 추가 실패:', err)
+        alert(`문서 추가 실패: ${errorMessage}`)
+      }
+    },
+    [loadDocuments]
+  )
 
   // 문서 선택
   const handleSelectDocument = useCallback((doc: DocumentWithSource) => {
@@ -356,10 +398,16 @@ export function DocumentManager() {
               <Database className="h-5 w-5" />
               문서 목록
             </h2>
-            <Button size="sm" onClick={handleNewDocument} disabled={isLoading}>
-              <Plus className="h-4 w-4 mr-1" />
-              추가
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleFileUpload} disabled={isLoading} variant="default">
+                <Upload className="h-4 w-4 mr-1" />
+                업로드
+              </Button>
+              <Button size="sm" onClick={handleNewDocument} disabled={isLoading} variant="outline">
+                <Plus className="h-4 w-4 mr-1" />
+                수동 입력
+              </Button>
+            </div>
           </div>
 
           {error && (
@@ -506,9 +554,16 @@ export function DocumentManager() {
         </div>
       </aside>
 
-      {/* 우측: 문서 상세/편집 */}
+      {/* 우측: 문서 상세/편집/파일 업로드 */}
       <main className="flex-1 p-6 overflow-auto">
-        {selectedDoc || isEditing ? (
+        {showFileUploader ? (
+          <div className="max-w-4xl mx-auto">
+            <FileUploader
+              onDocumentAdded={handleDocumentFromFile}
+              onClose={() => setShowFileUploader(false)}
+            />
+          </div>
+        ) : selectedDoc || isEditing ? (
           <div className="max-w-4xl mx-auto space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">
