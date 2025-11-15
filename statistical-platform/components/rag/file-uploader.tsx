@@ -78,7 +78,19 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
 
     // doc_id: user_{timestamp}_{filename}
     const timestamp = Date.now()
-    const doc_id = `user_${timestamp}_${fileNameWithoutExt.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+    const sanitized = fileNameWithoutExt.replace(/[^a-zA-Z0-9_-]/g, '_')
+
+    // 한글 등 비ASCII 문자가 대부분인 경우 UUID 사용
+    const meaningfulChars = sanitized.replace(/[_-]/g, '')
+    let doc_id: string
+
+    if (meaningfulChars.length < 3) {
+      // 의미 있는 문자가 3개 미만 → UUID 사용
+      const uuid = Math.random().toString(36).substring(2, 10) // 8자 랜덤 문자열
+      doc_id = `user_${timestamp}_${uuid}`
+    } else {
+      doc_id = `user_${timestamp}_${sanitized}`
+    }
 
     return {
       doc_id,
@@ -102,6 +114,17 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
       if (!supportedFormats.includes(ext)) {
         alert(
           `지원하지 않는 파일 형식입니다.\n\n지원 형식: ${supportedFormats.join(', ')}`
+        )
+        return
+      }
+
+      // 파일 크기 제한 (50MB)
+      const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+      if (file.size > MAX_FILE_SIZE) {
+        alert(
+          `파일 크기가 너무 큽니다.\n\n` +
+            `현재 크기: ${(file.size / 1024 / 1024).toFixed(1)}MB\n` +
+            `최대 크기: ${MAX_FILE_SIZE / 1024 / 1024}MB`
         )
         return
       }
