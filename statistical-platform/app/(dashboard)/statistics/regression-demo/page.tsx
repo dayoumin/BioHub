@@ -72,7 +72,8 @@ export default function RegressionDemoPage() {
 
   const { state, actions } = useStatisticsPage<RegressionResults, RegressionVariables>({
     withUploadedData: true,
-    withError: true
+    withError: true,
+    initialStep: 1
   })
   const { currentStep, uploadedData, selectedVariables, results, error, isAnalyzing } = state
 
@@ -364,7 +365,8 @@ export default function RegressionDemoPage() {
 
           <DataUploadStep
             onUploadComplete={handleDataUpload}
-            onNext={() => {}}
+            onNext={() => actions.setCurrentStep(3)}
+            canGoNext={!!uploadedData}
           />
         </div>
       )}

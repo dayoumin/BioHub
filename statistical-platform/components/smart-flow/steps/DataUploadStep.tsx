@@ -402,6 +402,20 @@ export function DataUploadStep({
           <li>• 결측값은 빈 셀로 표시해주세요</li>
         </ul>
       </div>
+
+      {/* 업로드 완료 후 다음 버튼 */}
+      {uploadedFileName && canGoNext && onNext && (
+        <div className="flex justify-between items-center pt-4 border-t">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="text-green-600 font-medium">✓</span>
+            업로드 완료: {uploadedFileName}
+          </div>
+          <Button onClick={onNext} className="gap-2">
+            다음 단계로
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
