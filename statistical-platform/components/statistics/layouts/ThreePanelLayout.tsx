@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode } from 'react'
+import React, { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -141,14 +141,14 @@ export function ThreePanelLayout({
             </>
           )}
 
-          {rightPanel.mode === 'results' && rightPanel.results && (
-            <>
+          {rightPanel.mode === 'results' && rightPanel.results !== undefined && (
+            <div key="results-panel">
               {renderResults ? (
-                renderResults(rightPanel.results)
+                <>{renderResults(rightPanel.results)}</>
               ) : (
                 <DefaultResults results={rightPanel.results} />
               )}
-            </>
+            </div>
           )}
 
           {/* 데이터 없을 때 */}

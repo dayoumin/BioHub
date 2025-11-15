@@ -486,9 +486,10 @@ const KPI_DESIGN = {
     value: 'text-2xl font-bold font-mono',   // 24px
   },
   colors: {
-    significant: 'bg-green-500/10 border-green-500/20',
-    notSignificant: 'bg-red-500/10 border-red-500/20',
-    neutral: 'bg-blue-500/10 border-blue-500/20',
+    // colors.stats 토큰과 일치 (위 1.3 참조)
+    significant: 'bg-green-600/10 border-green-600/20',        // p < 0.05 (유의함)
+    notSignificant: 'bg-slate-400/10 border-slate-400/20',     // p >= 0.05 (유의하지 않음, 중립)
+    neutral: 'bg-blue-500/10 border-blue-500/20',              // 일반 정보
   }
 }
 ```
@@ -922,7 +923,15 @@ interface ThreePanelLayoutProps {
 
 ## 5. 마이그레이션 계획
 
-### 5.1 Phase 7-1: 코어 레이아웃 구축 (9일)
+### 5.1 Phase 7-1: 코어 레이아웃 구축 (8일)
+
+**총 예상 기간**: 8일
+- 7-1-1: 1-2일 (ThreePanelLayout)
+- 7-1-2: 1일 (StepSidebar + ResizablePanel)
+- 7-1-3: 2-3일 (ResultsPanel + KPICard + StatTable)
+- 7-1-4: 1일 (DataPreviewPanel 통합)
+- 7-1-5: 1일 (반응형 + 접근성)
+- **합계**: 6-8일 → **버퍼 포함 8일**
 
 #### 7-1-1: ThreePanelLayout 컴포넌트 생성 (1-2일)
 
