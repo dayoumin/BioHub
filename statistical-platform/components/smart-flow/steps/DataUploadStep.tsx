@@ -127,6 +127,7 @@ export function DataUploadStep({
         } else {
           // 일반 처리 (작은 파일)
           Papa.parse(file, {
+            encoding: 'UTF-8', // UTF-8 인코딩 명시
             complete: (result) => {
               if (result.errors.length > 0) {
                 const errorMessages = result.errors.map(e => e.message).join(', ')

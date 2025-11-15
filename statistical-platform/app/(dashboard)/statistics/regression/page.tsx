@@ -44,6 +44,7 @@ import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
 
 type LinearRegressionResults = {
   coefficients: Array<{ name: string; estimate: number; stdError: number; tValue: number; pValue: number; ci: number[] }>
@@ -167,7 +168,12 @@ export default function RegressionPage() {
     data: UploadedData
   ): Promise<LinearRegressionResults> => {
     // 1️⃣ 데이터 추출
-    const xVariable = vars.independent[0]
+    // independent가 string이면 배열로 변환
+    const independentVars = Array.isArray(vars.independent)
+      ? vars.independent
+      : [vars.independent]
+
+    const xVariable = independentVars[0]
     const yVariable = vars.dependent
 
     const xData: number[] = []
@@ -264,7 +270,11 @@ export default function RegressionPage() {
   ): Promise<LinearRegressionResults> => {
     // 1️⃣ 데이터 추출
     const yVariable = vars.dependent
-    const xVariables = vars.independent
+
+    // independent가 string이면 배열로 변환
+    const xVariables = Array.isArray(vars.independent)
+      ? vars.independent
+      : [vars.independent]
 
     const yData: number[] = []
     const XData: number[][] = []
@@ -372,7 +382,11 @@ export default function RegressionPage() {
   ): Promise<LogisticRegressionResults> => {
     // 1️⃣ 데이터 추출
     const yVariable = vars.dependent
-    const xVariables = vars.independent
+
+    // independent가 string이면 배열로 변환
+    const xVariables = Array.isArray(vars.independent)
+      ? vars.independent
+      : [vars.independent]
 
     const yData: number[] = []
     const XData: number[][] = []
@@ -1062,7 +1076,12 @@ export default function RegressionPage() {
       )}
       {currentStep === 0 && renderMethodSelection()}
       {currentStep === 1 && renderDataUpload()}
-      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 2 && uploadedData && (
+        <>
+          <DataPreviewPanel data={uploadedData.data} className="mb-4" />
+          {renderVariableSelection()}
+        </>
+      )}
       {currentStep === 3 && renderResults()}
     </StatisticsPageLayout>
   )

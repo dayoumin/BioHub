@@ -27,6 +27,7 @@
     "analyze:metadata": "bash scripts/statistics/analyze-metadata.sh",
     "analyze:steps": "node scripts/statistics/analyze-step-patterns.js",
     "verify:rag": "node scripts/rag/verify-stores.js",
+    "rag:semantic-rechunk": "tsx scripts/rag/semantic-rechunk.ts",
     "setup:sql-wasm": "node scripts/build/download-sql-wasm.js",
     "setup:pyodide": "node scripts/build/download-pyodide.js"
   },
@@ -35,6 +36,9 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@jlongster/sql.js": "^1.6.7",
+    "@langchain/community": "^1.0.3",
+    "@langchain/core": "^1.0.5",
+    "@langchain/ollama": "^1.0.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-collapsible": "^1.1.12",
@@ -62,6 +66,7 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.2",
     "katex": "^0.16.25",
+    "langchain": "^1.0.4",
     "lucide-react": "^0.543.0",
     "next": "15.5.2",
     "next-themes": "^0.4.6",
@@ -112,6 +117,7 @@
     "pyodide": "^0.28.3",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.1",
+    "tsx": "^4.20.6",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5"
   }

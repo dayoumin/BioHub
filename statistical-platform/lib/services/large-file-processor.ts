@@ -84,6 +84,7 @@ export class LargeFileProcessor {
         header: true,
         dynamicTyping: true,
         skipEmptyLines: true,
+        encoding: 'UTF-8', // UTF-8 인코딩 명시
         chunkSize: chunkSize * 50, // 바이트 단위로 변환 (행당 약 50바이트 가정)
         chunk: (results, parser) => {
           // 메모리 체크
@@ -187,6 +188,7 @@ export class LargeFileProcessor {
         header: true,
         dynamicTyping: true,
         skipEmptyLines: true,
+        encoding: 'UTF-8', // UTF-8 인코딩 명시
         step: (results) => {
           totalRows++
 
@@ -240,6 +242,7 @@ export class LargeFileProcessor {
         header: true,
         dynamicTyping: true,
         skipEmptyLines: true,
+        encoding: 'UTF-8', // UTF-8 인코딩 명시
         chunk: (results) => {
           const chunkData = results.data as DataRow[]
 
