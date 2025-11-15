@@ -8,6 +8,7 @@ import * as path from 'path'
 import type { DocumentParser, ParserRegistry as IParserRegistry } from './base-parser'
 import { HWPParser } from './hwp-parser'
 import { MarkdownParser } from './markdown-parser'
+import { PDFParser } from './pdf-parser'
 
 /**
  * 파서 레지스트리 싱글톤
@@ -20,6 +21,7 @@ export class ParserRegistry implements IParserRegistry {
     // 기본 파서 등록
     this.register(new HWPParser())
     this.register(new MarkdownParser())
+    this.register(new PDFParser())  // Docling 기반 PDF 파서
   }
 
   /**

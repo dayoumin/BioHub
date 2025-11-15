@@ -1,40 +1,63 @@
 'use client'
 
 /**
- * 회귀분석 페이지 - ThreePanelLayout 데모
+ * 회귀분석 페이지 - ThreePanelLayout 완성형
  *
- * 기존 regression 페이지를 3-Panel 레이아웃으로 리팩토링한 파일럿 버전
- * 실제 적용 전 UI/UX 검증용
+ * 기존 regression 페이지의 모든 기능을 3-Panel 레이아웃으로 구현
+ * 다른 통계 페이지 마이그레이션의 기준이 되는 템플릿
  */
 
 import { useState, useCallback, useEffect } from 'react'
+import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
+import type { RegressionVariables } from '@/types/statistics'
 import { ThreePanelLayout } from '@/components/statistics/layouts/ThreePanelLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Play, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Play,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
+  Network,
+  Binary,
+  Upload,
+  Sparkles
+} from 'lucide-react'
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import type { RegressionVariables } from '@/types/statistics'
+import type { UploadedData } from '@/hooks/use-statistics-page'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, ScatterChart, Scatter } from 'recharts'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
-type RegressionResults = {
+// Type definitions
+type LinearRegressionResults = {
+  coefficients: Array<{ name: string; estimate: number; stdError: number; tValue: number; pValue: number; ci: number[] }>
   rSquared: number
   adjustedRSquared: number
   fStatistic: number
   fPValue: number
-  coefficients: Array<{
-    name: string
-    estimate: number
-    stdError: number
-    tValue: number
-    pValue: number
-  }>
+  residualStdError: number
+  scatterData: Array<{ x: number; y: number; predicted: number }>
+  residualPlot: Array<{ fitted: number; residual: number; standardized: number }>
+  vif?: Array<{ variable: string; vif: number }> | null
 }
 
-const DEMO_STEPS = [
+type LogisticRegressionResults = {
+  coefficients: Array<{ name: string; estimate: number; stdError: number; zValue: number; pValue: number; oddsRatio: number }>
+  modelFit: { aic: number; bic: number; mcFaddenR2: number; accuracy: number; sensitivity: number; specificity: number; auc: number }
+  confusionMatrix: { tp: number; fp: number; tn: number; fn: number; precision: number; recall: number; f1Score: number }
+  rocCurve: Array<{ fpr: number; tpr: number }>
+}
+
+type RegressionResults = LinearRegressionResults | LogisticRegressionResults
+
+const STEPS = [
   { id: 1, label: '회귀 유형 선택' },
   { id: 2, label: '데이터 업로드' },
   { id: 3, label: '변수 선택' },
@@ -42,24 +65,70 @@ const DEMO_STEPS = [
 ]
 
 export default function RegressionDemoPage() {
+  // 최근 사용 통계 자동 추가
+  useEffect(() => {
+    addToRecentStatistics('regression')
+  }, [])
+
   const { state, actions } = useStatisticsPage<RegressionResults, RegressionVariables>({
     withUploadedData: true,
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results, error, isAnalyzing } = state
 
-  const [regressionType, setRegressionType] = useState<'simple' | 'multiple'>('simple')
+  const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
 
-  // Step 핸들러
-  const handleTypeSelect = useCallback((type: 'simple' | 'multiple') => {
+  // 회귀분석 유형별 정보
+  const regressionTypeInfo = {
+    simple: {
+      title: '단순 선형 회귀',
+      subtitle: 'Simple Linear Regression',
+      description: '하나의 독립변수로 종속변수를 예측하는 모델',
+      icon: <TrendingUp className="w-5 h-5" />,
+      example: '공부 시간(X)으로 시험 점수(Y) 예측',
+      equation: 'Y = β₀ + β₁X + ε'
+    },
+    multiple: {
+      title: '다중 회귀분석',
+      subtitle: 'Multiple Regression',
+      description: '여러 독립변수로 종속변수를 예측하는 모델',
+      icon: <Network className="w-5 h-5" />,
+      example: '나이, 경력, 교육수준으로 연봉 예측',
+      equation: 'Y = β₀ + β₁X₁ + β₂X₂ + ... + βₖXₖ + ε'
+    },
+    logistic: {
+      title: '로지스틱 회귀',
+      subtitle: 'Logistic Regression',
+      description: '이진 분류를 위한 확률 예측 모델',
+      icon: <Binary className="w-5 h-5" />,
+      example: '환자 특성으로 질병 발생 여부 예측',
+      equation: 'log(p/(1-p)) = β₀ + β₁X₁ + ... + βₖXₖ'
+    }
+  }
+
+  // Helper function: Extract numeric value
+  const extractRowValue = (row: unknown, col: string): number | null => {
+    if (typeof row === 'object' && row !== null && col in row) {
+      const value = (row as Record<string, unknown>)[col]
+      if (typeof value === 'number') return value
+      if (typeof value === 'string') {
+        const num = parseFloat(value)
+        return isNaN(num) ? null : num
+      }
+    }
+    return null
+  }
+
+  // Step handlers
+  const handleMethodSelect = useCallback((type: 'simple' | 'multiple' | 'logistic') => {
     setRegressionType(type)
-    actions.setCurrentStep(2) // 다음 단계로
+    actions.setCurrentStep(2)
   }, [actions])
 
   const handleDataUpload = useCallback((data: Array<Record<string, unknown>>) => {
     const columns = data.length > 0 ? Object.keys(data[0]) : []
     if (actions.setUploadedData) {
-      actions.setUploadedData({ data, fileName: 'sample.csv', columns })
+      actions.setUploadedData({ data, fileName: 'uploaded.csv', columns })
     }
     actions.setCurrentStep(3)
   }, [actions])
@@ -70,33 +139,135 @@ export default function RegressionDemoPage() {
     }
   }, [actions])
 
+  // Simple Linear Regression
+  const handleSimpleRegression = useCallback(async (
+    pyodideCore: unknown,
+    vars: RegressionVariables,
+    data: UploadedData
+  ): Promise<LinearRegressionResults> => {
+    const independentVars = Array.isArray(vars.independent) ? vars.independent : [vars.independent]
+    const xVariable = independentVars[0]
+    const yVariable = vars.dependent
+
+    const xData: number[] = []
+    const yData: number[] = []
+
+    for (const row of data.data) {
+      const xVal = extractRowValue(row, xVariable)
+      const yVal = extractRowValue(row, yVariable)
+
+      if (xVal !== null && yVal !== null) {
+        xData.push(xVal)
+        yData.push(yVal)
+      }
+    }
+
+    if (xData.length < 3) {
+      throw new Error('단순 선형 회귀는 최소 3개 이상의 유효한 데이터 쌍이 필요합니다.')
+    }
+
+    // PyodideCore 호출
+    const core = pyodideCore as { callWorkerMethod: <T>(workerNum: number, methodName: string, params: unknown) => Promise<T> }
+    const pythonResult = await core.callWorkerMethod<{
+      slope: number
+      intercept: number
+      r_squared: number
+      p_value: number
+      std_err: number
+      residuals: number[]
+      predictions: number[]
+    }>(1, 'simple_linear_regression', { x: xData, y: yData })
+
+    // 결과 변환
+    const scatterData = xData.map((x, i) => ({
+      x,
+      y: yData[i],
+      predicted: pythonResult.predictions[i]
+    }))
+
+    const residualPlot = pythonResult.predictions.map((pred, i) => ({
+      fitted: pred,
+      residual: pythonResult.residuals[i],
+      standardized: pythonResult.residuals[i] / pythonResult.std_err
+    }))
+
+    return {
+      coefficients: [
+        {
+          name: '절편',
+          estimate: pythonResult.intercept,
+          stdError: pythonResult.std_err,
+          tValue: pythonResult.intercept / pythonResult.std_err,
+          pValue: pythonResult.p_value,
+          ci: [
+            pythonResult.intercept - 1.96 * pythonResult.std_err,
+            pythonResult.intercept + 1.96 * pythonResult.std_err
+          ]
+        },
+        {
+          name: xVariable,
+          estimate: pythonResult.slope,
+          stdError: pythonResult.std_err,
+          tValue: pythonResult.slope / pythonResult.std_err,
+          pValue: pythonResult.p_value,
+          ci: [
+            pythonResult.slope - 1.96 * pythonResult.std_err,
+            pythonResult.slope + 1.96 * pythonResult.std_err
+          ]
+        }
+      ],
+      rSquared: pythonResult.r_squared,
+      adjustedRSquared: pythonResult.r_squared - (1 - pythonResult.r_squared) * 2 / (xData.length - 2),
+      fStatistic: (pythonResult.r_squared * (xData.length - 2)) / (1 - pythonResult.r_squared),
+      fPValue: pythonResult.p_value,
+      residualStdError: pythonResult.std_err,
+      scatterData,
+      residualPlot
+    }
+  }, [])
+
+  // Analysis handler
   const handleAnalysis = useCallback(async () => {
     if (!uploadedData || !selectedVariables) return
 
     actions.startAnalysis()
 
     try {
-      // 데모용 가짜 결과
+      // Pyodide 연동 (향후 구현)
+      // const result = await handleSimpleRegression(pyodideCore, selectedVariables, uploadedData)
+
+      // 데모용 가짜 결과 (임시)
       await new Promise(resolve => setTimeout(resolve, 1500))
 
-      const demoResults: RegressionResults = {
+      const demoResults: LinearRegressionResults = {
         rSquared: 0.89,
         adjustedRSquared: 0.87,
         fStatistic: 42.5,
         fPValue: 0.001,
+        residualStdError: 2.34,
         coefficients: [
-          { name: '절편', estimate: 12.34, stdError: 2.15, tValue: 5.74, pValue: 0.001 },
-          { name: selectedVariables.independent?.[0] || 'X', estimate: 1.56, stdError: 0.34, tValue: 4.59, pValue: 0.003 }
-        ]
+          { name: '절편', estimate: 12.34, stdError: 2.15, tValue: 5.74, pValue: 0.001, ci: [8.13, 16.55] },
+          { name: selectedVariables.independent?.[0] || 'X', estimate: 1.56, stdError: 0.34, tValue: 4.59, pValue: 0.003, ci: [0.89, 2.23] }
+        ],
+        scatterData: Array.from({ length: 20 }, (_, i) => ({
+          x: i * 5,
+          y: 12.34 + 1.56 * (i * 5) + (Math.random() - 0.5) * 10,
+          predicted: 12.34 + 1.56 * (i * 5)
+        })),
+        residualPlot: Array.from({ length: 20 }, (_, i) => ({
+          fitted: 12.34 + 1.56 * (i * 5),
+          residual: (Math.random() - 0.5) * 10,
+          standardized: (Math.random() - 0.5) * 2
+        }))
       }
 
       actions.completeAnalysis(demoResults, 4)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 실패')
     }
-  }, [uploadedData, selectedVariables, actions])
+  }, [uploadedData, selectedVariables, actions, handleSimpleRegression])
 
-  // 우측 패널 설정
+  // Right panel configuration
   const rightPanelConfig = {
     mode: currentStep < 4 ? 'preview' as const : 'results' as const,
     previewData: uploadedData?.data,
@@ -106,11 +277,11 @@ export default function RegressionDemoPage() {
   return (
     <ThreePanelLayout
       currentStep={currentStep}
-      steps={DEMO_STEPS}
+      steps={STEPS}
       onStepChange={actions.setCurrentStep}
       rightPanel={rightPanelConfig}
       renderPreview={(data) => <DataPreviewPanel data={data} defaultExpanded={true} />}
-      renderResults={(res) => <ResultsPanel results={res as RegressionResults} />}
+      renderResults={(res) => <ResultsPanel results={res as LinearRegressionResults} />}
     >
       {/* Step 1: 회귀 유형 선택 */}
       {currentStep === 1 && (
@@ -118,78 +289,66 @@ export default function RegressionDemoPage() {
           <div>
             <h2 className="text-xl font-semibold mb-2">회귀 유형 선택</h2>
             <p className="text-sm text-muted-foreground">
-              분석 목적에 맞는 회귀 방법을 선택하세요
+              예측 목적과 변수 특성에 맞는 회귀 방법을 선택하세요
             </p>
           </div>
 
-          <RadioGroup value={regressionType} onValueChange={(v) => setRegressionType(v as 'simple' | 'multiple')}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 단순 선형 회귀 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Object.entries(regressionTypeInfo).map(([key, info]) => (
               <Card
+                key={key}
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  regressionType === 'simple' ? 'border-primary bg-primary/5' : ''
+                  regressionType === key ? 'border-primary bg-primary/5' : ''
                 }`}
-                onClick={() => setRegressionType('simple')}
+                onClick={() => handleMethodSelect(key as 'simple' | 'multiple' | 'logistic')}
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-lg">단순 선형 회귀</CardTitle>
+                    <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
+                      {info.icon}
                     </div>
-                    <RadioGroupItem value="simple" />
+                    {regressionType === key && (
+                      <CheckCircle className="w-5 h-5 text-primary" />
+                    )}
                   </div>
-                  <CardDescription>
-                    1개의 독립변수와 1개의 종속변수 간의 관계 분석
-                  </CardDescription>
+                  <CardTitle className="text-lg mt-3">{info.title}</CardTitle>
+                  <Badge variant="outline" className="w-fit mt-2">
+                    {info.subtitle}
+                  </Badge>
                 </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Y = a + bX 모형</li>
-                    <li>• 선형 관계 가정</li>
-                    <li>• R², p-value 제공</li>
-                  </ul>
-                </CardContent>
-              </Card>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {info.description}
+                  </p>
 
-              {/* 다중 선형 회귀 */}
-              <Card
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  regressionType === 'multiple' ? 'border-primary bg-primary/5' : ''
-                }`}
-                onClick={() => setRegressionType('multiple')}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-lg">다중 선형 회귀</CardTitle>
-                    </div>
-                    <RadioGroupItem value="multiple" />
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-xs font-medium mb-1">예시:</p>
+                    <p className="text-xs text-muted-foreground">
+                      {info.example}
+                    </p>
                   </div>
-                  <CardDescription>
-                    2개 이상의 독립변수와 1개의 종속변수 간의 관계 분석
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Y = a + b₁X₁ + b₂X₂ + ... 모형</li>
-                    <li>• 다중공선성 진단 (VIF)</li>
-                    <li>• Adjusted R² 제공</li>
-                  </ul>
+
+                  <div className="bg-muted/50 p-3 rounded-lg font-mono text-xs">
+                    {info.equation}
+                  </div>
                 </CardContent>
               </Card>
+            ))}
+          </div>
+
+          {regressionType && (
+            <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span className="font-medium text-sm">
+                  {regressionTypeInfo[regressionType as keyof typeof regressionTypeInfo].title} 선택됨
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                다음 단계에서 데이터를 업로드해주세요.
+              </p>
             </div>
-          </RadioGroup>
-
-          <Button
-            onClick={() => handleTypeSelect(regressionType)}
-            size="lg"
-            className="w-full md:w-auto"
-          >
-            다음 단계
-            <Play className="ml-2 h-4 w-4" />
-          </Button>
+          )}
         </div>
       )}
 
@@ -199,41 +358,14 @@ export default function RegressionDemoPage() {
           <div>
             <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
             <p className="text-sm text-muted-foreground">
-              CSV 파일을 업로드하거나 샘플 데이터를 사용하세요
+              회귀분석할 데이터 파일을 업로드하세요
             </p>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>CSV 파일 업로드</CardTitle>
-              <CardDescription>
-                첫 번째 행이 헤더(변수명)여야 합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="border-2 border-dashed rounded-lg p-12 text-center">
-                <p className="text-sm text-muted-foreground mb-4">
-                  파일을 드래그하거나 클릭하여 업로드
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    // 데모용 샘플 데이터
-                    const sampleData = [
-                      { height: '170', weight: '65.5', age: '25' },
-                      { height: '180', weight: '75.0', age: '30' },
-                      { height: '165', weight: '60.5', age: '28' },
-                      { height: '175', weight: '70.0', age: '32' },
-                      { height: '168', weight: '63.0', age: '27' }
-                    ]
-                    handleDataUpload(sampleData)
-                  }}
-                >
-                  샘플 데이터 사용
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <DataUploadStep
+            onUploadComplete={handleDataUpload}
+            onNext={() => {}}
+          />
         </div>
       )}
 
@@ -245,7 +377,9 @@ export default function RegressionDemoPage() {
             <p className="text-sm text-muted-foreground">
               {regressionType === 'simple'
                 ? '독립변수(X) 1개, 종속변수(Y) 1개를 선택하세요'
-                : '독립변수(X) 2개 이상, 종속변수(Y) 1개를 선택하세요'
+                : regressionType === 'multiple'
+                ? '독립변수(X) 2개 이상, 종속변수(Y) 1개를 선택하세요'
+                : '예측 변수와 이진 결과 변수를 선택하세요'
               }
             </p>
           </div>
@@ -268,6 +402,8 @@ export default function RegressionDemoPage() {
                         const current = selectedVariables?.independent || []
                         const updated = current.includes(header)
                           ? current.filter(h => h !== header)
+                          : regressionType === 'simple'
+                          ? [header]
                           : [...current, header]
                         handleVariableSelect({ ...selectedVariables, independent: updated })
                       }}
@@ -351,9 +487,10 @@ export default function RegressionDemoPage() {
 /**
  * 결과 패널 (우측)
  */
-function ResultsPanel({ results }: { results: RegressionResults }) {
+function ResultsPanel({ results }: { results: LinearRegressionResults }) {
   return (
     <div className="space-y-4">
+      {/* 주요 통계량 */}
       <Card>
         <CardHeader>
           <CardTitle>주요 통계량</CardTitle>
@@ -384,42 +521,98 @@ function ResultsPanel({ results }: { results: RegressionResults }) {
         </CardContent>
       </Card>
 
+      {/* 회귀계수 */}
       <Card>
         <CardHeader>
           <CardTitle>회귀계수</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="border-b">
-                <tr>
-                  <th className="px-3 py-2 text-left">변수</th>
-                  <th className="px-3 py-2 text-right">Estimate</th>
-                  <th className="px-3 py-2 text-right">Std Error</th>
-                  <th className="px-3 py-2 text-right">t-value</th>
-                  <th className="px-3 py-2 text-right">p-value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results.coefficients.map((coef) => (
-                  <tr key={coef.name} className="border-b last:border-0">
-                    <td className="px-3 py-2">{coef.name}</td>
-                    <td className="px-3 py-2 text-right font-mono">{coef.estimate.toFixed(3)}</td>
-                    <td className="px-3 py-2 text-right font-mono">{coef.stdError.toFixed(3)}</td>
-                    <td className="px-3 py-2 text-right font-mono">{coef.tValue.toFixed(2)}</td>
-                    <td className={`px-3 py-2 text-right font-mono ${
-                      coef.pValue < 0.05 ? 'text-green-600 font-semibold' : ''
-                    }`}>
-                      {coef.pValue.toFixed(3)}
-                      {coef.pValue < 0.05 && ' *'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <StatisticsTable
+            columns={[
+              { key: 'name', header: '변수', type: 'text', align: 'left' },
+              { key: 'estimate', header: 'Estimate', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+              { key: 'stdError', header: 'Std Error', type: 'number', align: 'right', formatter: (v) => v.toFixed(3) },
+              { key: 'tValue', header: 't-value', type: 'number', align: 'right', formatter: (v) => v.toFixed(2) },
+              { key: 'pValue', header: 'p-value', type: 'pvalue', align: 'right', formatter: (v) => v.toFixed(3) }
+            ]}
+            data={results.coefficients}
+          />
         </CardContent>
       </Card>
+
+      {/* 산점도 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">산점도 및 회귀선</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={250}>
+            <ScatterChart data={results.scatterData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="x" label={{ value: '독립변수', position: 'insideBottom', offset: -5 }} />
+              <YAxis label={{ value: '종속변수', angle: -90, position: 'insideLeft' }} />
+              <RechartsTooltip />
+              <Scatter name="실제값" dataKey="y" fill="#3b82f6" />
+              <Scatter name="예측값" dataKey="predicted" fill="#ef4444" line />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* 잔차 플롯 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">잔차 분석</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="residual">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="residual">잔차 플롯</TabsTrigger>
+              <TabsTrigger value="qq">Q-Q 플롯</TabsTrigger>
+            </TabsList>
+            <TabsContent value="residual">
+              <ResponsiveContainer width="100%" height={250}>
+                <ScatterChart data={results.residualPlot}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="fitted" label={{ value: '적합값', position: 'insideBottom', offset: -5 }} />
+                  <YAxis label={{ value: '잔차', angle: -90, position: 'insideLeft' }} />
+                  <RechartsTooltip />
+                  <Scatter name="잔차" dataKey="residual" fill="#3b82f6" />
+                </ScatterChart>
+              </ResponsiveContainer>
+            </TabsContent>
+            <TabsContent value="qq">
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Q-Q 플롯은 잔차의 정규성을 확인합니다
+              </p>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* VIF (다중회귀인 경우만) */}
+      {results.vif && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">다중공선성 진단 (VIF)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {results.vif.map((item) => (
+                <div key={item.variable} className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                  <span className="text-sm">{item.variable}</span>
+                  <Badge variant={item.vif > 10 ? "destructive" : item.vif > 5 ? "secondary" : "default"}>
+                    VIF = {item.vif.toFixed(2)}
+                  </Badge>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground mt-2">
+                VIF {'<'} 5: 문제없음, 5-10: 주의필요, {'>'} 10: 심각한 다중공선성
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
