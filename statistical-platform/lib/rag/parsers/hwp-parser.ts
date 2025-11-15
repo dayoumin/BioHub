@@ -1,7 +1,7 @@
 /**
  * HWP/HWPX 파서
  *
- * hwp.js를 사용하여 HWP 파일에서 텍스트를 추출
+ * node-hwp를 사용하여 HWP 파일에서 텍스트를 추출
  * 파싱 책임만 담당 (청킹은 별도 전략에서 처리)
  */
 
@@ -15,86 +15,66 @@ export class HWPParser implements DocumentParser {
    * HWP 파일에서 텍스트 추출
    */
   async parse(filePath: string): Promise<string> {
-    try {
-      // 1. HWP 파일 로드 (동적 import)
+    return new Promise((resolve, reject) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const HWPDocument = (await import('hwp.js')) as any
-      const hwpDoc = await HWPDocument.default.load(filePath)
+      import('node-hwp')
+        .then((hwpModule) => {
+          const hwp = hwpModule.default || hwpModule
 
-      // 2. 텍스트 추출
-      const extractedText = this.extractText(hwpDoc)
+          // node-hwp API: hwp.open(filePath, callback)
+          hwp.open(filePath, (err: Error | null, doc: unknown) => {
+            if (err) {
+              console.error('[HWPParser] Error parsing HWP file:', err)
+              reject(
+                new Error(`Failed to parse HWP file: ${err.message}`)
+              )
+              return
+            }
 
-      return extractedText
-    } catch (error) {
-      console.error('[HWPParser] Error parsing HWP file:', error)
-      throw new Error(
-        `Failed to parse HWP file: ${error instanceof Error ? error.message : String(error)}`
-      )
-    }
+            try {
+              // HWPML to text conversion
+              const extractedText = this.extractText(doc)
+              resolve(extractedText)
+            } catch (extractError) {
+              console.error('[HWPParser] Error extracting text:', extractError)
+              reject(extractError)
+            }
+          })
+        })
+        .catch((importError) => {
+          console.error('[HWPParser] Error importing node-hwp:', importError)
+          reject(new Error(`Failed to import node-hwp: ${importError instanceof Error ? importError.message : String(importError)}`))
+        })
+    })
   }
 
   /**
-   * HWP 문서에서 텍스트 추출
+   * HWP 문서에서 텍스트 추출 (HWPML → Text)
+   * node-hwp의 doc.toHML() 사용
    */
   private extractText(hwpDoc: unknown): string {
-    const sections: string[] = []
-
     try {
-      // HWP 문서의 섹션 순회
-      const doc = hwpDoc as { sections?: Array<{ paragraphs?: unknown[] }> }
-      if (doc.sections) {
-        for (const section of doc.sections) {
-          const sectionText: string[] = []
+      // node-hwp doc object has toHML() method
+      const doc = hwpDoc as { toHML?: () => string }
 
-          // 각 섹션의 문단 추출
-          if (section.paragraphs) {
-            for (const paragraph of section.paragraphs) {
-              const paragraphText = this.extractParagraphText(paragraph)
-              if (paragraphText.trim()) {
-                sectionText.push(paragraphText)
-              }
-            }
-          }
-
-          if (sectionText.length > 0) {
-            sections.push(sectionText.join('\n\n'))
-          }
-        }
+      if (typeof doc.toHML !== 'function') {
+        throw new Error('Invalid HWP document: toHML() method not found')
       }
+
+      // Get HWPML (XML format)
+      const hwpml = doc.toHML()
+
+      // Simple XML to text conversion
+      // Remove XML tags and extract text content
+      const text = hwpml
+        .replace(/<[^>]+>/g, ' ') // Remove XML tags
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim()
+
+      return text
     } catch (error) {
-      console.warn('[HWPParser] Error extracting text from HWP:', error)
-    }
-
-    return sections.join('\n\n\n')
-  }
-
-  /**
-   * 문단에서 텍스트 추출
-   */
-  private extractParagraphText(paragraph: unknown): string {
-    try {
-      // hwp.js의 Paragraph 타입은 복잡하므로 unknown으로 처리
-      const para = paragraph as {
-        content?: Array<{ text?: string; value?: string }>
-        text?: string
-      }
-
-      // 방법 1: content 배열에서 추출
-      if (para.content && Array.isArray(para.content)) {
-        return para.content
-          .map((item) => item.text || item.value || '')
-          .join('')
-      }
-
-      // 방법 2: text 필드 직접 사용
-      if (para.text) {
-        return para.text
-      }
-
-      return ''
-    } catch (error) {
-      console.warn('[HWPParser] Error extracting paragraph text:', error)
-      return ''
+      console.error('[HWPParser] Error extracting text from HWP:', error)
+      throw error
     }
   }
 
@@ -106,8 +86,8 @@ export class HWPParser implements DocumentParser {
       name: 'hwp-parser',
       version: '1.0.0',
       supportedFormats: this.supportedFormats,
-      description: 'HWP/HWPX file parser using hwp.js',
-      url: 'https://github.com/hahnlee/hwp.js'
+      description: 'HWP/HWPX file parser using node-hwp',
+      url: 'https://github.com/123jimin/node-hwp'
     }
   }
 }

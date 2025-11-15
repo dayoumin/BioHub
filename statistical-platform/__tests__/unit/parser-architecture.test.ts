@@ -18,7 +18,7 @@ describe('Parser Architecture', () => {
       expect(metadata.name).toBe('hwp-parser')
       expect(metadata.version).toBe('1.0.0')
       expect(metadata.supportedFormats).toEqual(['.hwp', '.hwpx'])
-      expect(metadata.url).toBe('https://github.com/hahnlee/hwp.js')
+      expect(metadata.url).toBe('https://github.com/123jimin/node-hwp')
     })
 
     it('should support .hwp and .hwpx formats', () => {
