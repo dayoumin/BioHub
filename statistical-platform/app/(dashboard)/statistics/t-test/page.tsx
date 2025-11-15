@@ -218,8 +218,19 @@ export default function TTestPage() {
 
       if (activeTab === 'two-sample') {
         // Two-sample t-test
-        const group1Var = variables.group1?.[0] || variables.independent?.[0]
-        const group2Var = variables.group2?.[0] || variables.independent?.[1]
+        // 배열 정규화: string | string[] → string[]
+        const group1Vars = variables.group1
+          ? (Array.isArray(variables.group1) ? variables.group1 : [variables.group1])
+          : []
+        const group2Vars = variables.group2
+          ? (Array.isArray(variables.group2) ? variables.group2 : [variables.group2])
+          : []
+        const independentVars = variables.independent
+          ? (Array.isArray(variables.independent) ? variables.independent : [variables.independent])
+          : []
+
+        const group1Var = group1Vars[0] || independentVars[0]
+        const group2Var = group2Vars[0] || independentVars[1]
 
         if (!group1Var || !group2Var) {
           throw new Error('두 개의 그룹 변수를 선택해주세요.')

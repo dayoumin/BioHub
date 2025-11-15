@@ -138,7 +138,11 @@ export default function McNemarTestPage() {
   }, [])
 
   const runAnalysis = useCallback(async (variables: McNemarVariables) => {
-    if (!uploadedData || !variables.dependent || variables.dependent.length < 2) return
+    // 배열 경계 검사
+    if (!uploadedData || !Array.isArray(variables.dependent) || variables.dependent.length < 2) {
+      actions.setError('McNemar 검정은 2개의 이진 변수가 필요합니다.')
+      return
+    }
 
     actions.startAnalysis()
 

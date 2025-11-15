@@ -158,13 +158,26 @@ export default function StepwiseRegressionPage() {
   }, [actions])
 
   const runStepwiseAnalysis = useCallback(async (variables: StepwiseVariables) => {
+    // 배열 정규화: string | string[] → string[]
+    const dependentVars = Array.isArray(variables.dependent)
+      ? variables.dependent
+      : [variables.dependent]
+    const factorVars = Array.isArray(variables.factor)
+      ? variables.factor
+      : [variables.factor]
+
+    if (dependentVars.length === 0 || factorVars.length === 0) {
+      actions.setError('종속변수와 예측변수가 필요합니다.')
+      return
+    }
+
     actions.startAnalysis()
 
     try {
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
 
-      const predictorVars = [...variables.factor, ...(variables.covariate || [])]
+      const predictorVars = [...factorVars, ...(variables.covariate || [])]
 
       const result = await pyodideCore.callWorkerMethod<{
         finalModel: {
@@ -214,7 +227,7 @@ export default function StepwiseRegressionPage() {
         }
       }>(2, 'stepwise_regression_forward', {
         data: data as never,
-        dependent_var: variables.dependent[0],
+        dependent_var: dependentVars[0],
         predictor_vars: predictorVars as never,
         significance_level: 0.05
       })

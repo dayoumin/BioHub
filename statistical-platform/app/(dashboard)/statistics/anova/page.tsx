@@ -220,14 +220,19 @@ export default function ANOVAPage() {
     data: Array<Record<string, string | number | null | undefined>>
   ) => {
     try {
-      // 1️⃣ 변수 검증
-      if (variables.factor.length < 2) {
+      // 1️⃣ 배열 정규화: string | string[] → string[]
+      const factorVars = Array.isArray(variables.factor)
+        ? variables.factor
+        : [variables.factor]
+
+      // 변수 검증
+      if (factorVars.length < 2) {
         throw new Error('Two-Way ANOVA는 2개의 요인 변수가 필요합니다')
       }
 
       const dependentVar = variables.dependent
-      const factor1Var = variables.factor[0]
-      const factor2Var = variables.factor[1]
+      const factor1Var = factorVars[0]
+      const factor2Var = factorVars[1]
 
       // 2️⃣ 데이터 추출 및 정렬
       const dataValues: number[] = []
@@ -374,15 +379,20 @@ export default function ANOVAPage() {
     data: Array<Record<string, string | number | null | undefined>>
   ) => {
     try {
-      // 1️⃣ 변수 검증
-      if (variables.factor.length < 3) {
+      // 1️⃣ 배열 정규화: string | string[] → string[]
+      const factorVars = Array.isArray(variables.factor)
+        ? variables.factor
+        : [variables.factor]
+
+      // 변수 검증
+      if (factorVars.length < 3) {
         throw new Error('Three-Way ANOVA는 3개의 요인 변수가 필요합니다')
       }
 
       const dependentVar = variables.dependent
-      const factor1Var = variables.factor[0]
-      const factor2Var = variables.factor[1]
-      const factor3Var = variables.factor[2]
+      const factor1Var = factorVars[0]
+      const factor2Var = factorVars[1]
+      const factor3Var = factorVars[2]
 
       // 2️⃣ 데이터 추출
       const dataValues: number[] = []
@@ -509,10 +519,19 @@ export default function ANOVAPage() {
       }
 
       // ========== One-Way ANOVA (기존 로직) ==========
+      // 배열 정규화: string | string[] → string[]
+      const factorVars = Array.isArray(variables.factor)
+        ? variables.factor
+        : [variables.factor]
+
+      if (factorVars.length === 0) {
+        throw new Error('최소 1개의 요인 변수가 필요합니다')
+      }
+
       const groups: number[][] = []
       const groupNames: string[] = []
 
-      const factorVariable = variables.factor[0]
+      const factorVariable = factorVars[0]
       const dependentVariable = variables.dependent
 
       // 그룹별로 데이터 분리

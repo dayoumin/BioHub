@@ -173,6 +173,12 @@ export default function WilcoxonPage() {
     actions.startAnalysis()
 
     try {
+      // 배열 경계 검사
+      if (!Array.isArray(variables.dependent) || variables.dependent.length < 2) {
+        actions.setError('Wilcoxon 부호순위 검정은 2개의 변수가 필요합니다.')
+        return
+      }
+
       const pyodideCore = PyodideCoreService.getInstance()
 
       // Extract data for the two paired variables

@@ -175,9 +175,19 @@ export default function MannWhitneyPage() {
     actions.startAnalysis()
 
     try {
+      // 배열 정규화: string | string[] → string[]
+      const factorVars = Array.isArray(variables.factor)
+        ? variables.factor
+        : [variables.factor]
+
+      if (factorVars.length === 0) {
+        actions.setError('최소 1개의 그룹 변수가 필요합니다.')
+        return
+      }
+
       const data = uploadedData.data
       const dependentVar = variables.dependent
-      const groupVar = variables.factor[0]
+      const groupVar = factorVars[0]
 
       // 그룹별로 데이터 분리
       const groups = new Map<string | number, number[]>()

@@ -109,6 +109,19 @@ export default function MeansPlotPage() {
     if (!uploadedData) return
 
     try {
+      // 배열 정규화: string | string[] → string[]
+      const dependentVars = Array.isArray(variables.dependent)
+        ? variables.dependent
+        : [variables.dependent]
+      const factorVars = Array.isArray(variables.factor)
+        ? variables.factor
+        : [variables.factor]
+
+      if (dependentVars.length === 0 || factorVars.length === 0) {
+        actions.setError('종속변수와 요인변수가 필요합니다.')
+        return
+      }
+
       actions.startAnalysis()
 
       // PyodideCore Worker 1 호출
@@ -139,8 +152,8 @@ export default function MeansPlotPage() {
         }
       }>(1, 'means_plot_data', {
         data: uploadedData.data as never,
-        dependent_var: variables.dependent[0],
-        factor_var: variables.factor[0]
+        dependent_var: dependentVars[0],
+        factor_var: factorVars[0]
       })
 
       // Python에서 snake_case로 반환된 필드명을 camelCase로 변환
