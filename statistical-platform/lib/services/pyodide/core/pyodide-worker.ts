@@ -226,7 +226,9 @@ async function handleInit(
 
     // 3. Load helpers.py first and register it as a module
     console.log('[PyodideWorker] Loading helpers.py...')
-    const helpersResponse = await fetch('/workers/python/helpers.py')
+    const helpersUrl = `${self.location.origin}/workers/python/helpers.py`
+    console.log('[PyodideWorker] helpers.py URL:', helpersUrl)
+    const helpersResponse = await fetch(helpersUrl)
 
     if (!helpersResponse.ok) {
       throw new Error(`Failed to load helpers.py: ${helpersResponse.statusText}`)
@@ -270,7 +272,8 @@ async function handleLoadWorker(requestId: string, workerNum: number): Promise<v
     const fileName = getWorkerFileName(workerNum)
 
     // 2. Fetch Python script
-    const scriptUrl = `/workers/python/${fileName}.py`
+    const scriptUrl = `${self.location.origin}/workers/python/${fileName}.py`
+    console.log(`[PyodideWorker] Loading ${fileName}.py from:`, scriptUrl)
     const response = await fetch(scriptUrl)
 
     if (!response.ok) {

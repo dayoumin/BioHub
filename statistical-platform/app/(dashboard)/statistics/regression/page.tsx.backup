@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RegressionVariables } from '@/types/statistics'
 import { motion } from 'framer-motion'
@@ -33,8 +33,7 @@ import {
   Activity,
   Binary
 } from 'lucide-react'
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { detectVariableType } from '@/lib/services/variable-type-detector'
@@ -68,6 +67,8 @@ type LogisticRegressionResults = {
 
 type RegressionResults = LinearRegressionResults | LogisticRegressionResults
 
+// 로컬 타입 제거: types/statistics.ts의 RegressionVariables 사용
+
 export default function RegressionPage() {
   // 최근 사용 통계 자동 추가
   useEffect(() => {
@@ -84,23 +85,40 @@ export default function RegressionPage() {
   // Page-specific state
   const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '회귀분석', href: '/statistics/regression' }
-  ], [])
-
-  // Steps configuration - 0-based indexing
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '회귀 유형 선택', completed: currentStep > 0 },
-    { id: 1, label: '데이터 업로드', completed: currentStep > 1 },
-    { id: 2, label: '변수 선택', completed: currentStep > 2 },
-    { id: 3, label: '결과 확인', completed: currentStep > 3 }
-  ], [currentStep])
+  // 회귀분석 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'method',
+      number: 1,
+      title: '회귀 유형 선택',
+      description: '분석 목적에 맞는 회귀 방법 선택',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: '분석할 데이터 파일 업로드',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '종속변수와 독립변수 선택',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '결과 확인',
+      description: '분석 결과 및 모델 평가',
+      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'pending'
+    }
+  ]
 
   // 회귀분석 유형별 정보
-  const regressionTypeInfo = useMemo(() => ({
+  const regressionTypeInfo = {
     simple: {
       title: '단순 선형 회귀',
       subtitle: 'Simple Linear Regression',
@@ -128,10 +146,10 @@ export default function RegressionPage() {
       assumptions: ['독립성', '선형성(로짓)', '큰 표본'],
       equation: 'log(p/(1-p)) = β₀ + β₁X₁ + ... + βₖXₖ'
     }
-  }), [])
+  }
 
   // Helper function: Extract numeric value from unknown row object
-  const extractRowValue = useCallback((row: unknown, col: string): number | null => {
+  const extractRowValue = (row: unknown, col: string): number | null => {
     if (typeof row === 'object' && row !== null && col in row) {
       const value = (row as Record<string, unknown>)[col]
       if (typeof value === 'number') return value
@@ -141,7 +159,7 @@ export default function RegressionPage() {
       }
     }
     return null
-  }, [])
+  }
 
   // Helper function: Simple Linear Regression
   const handleSimpleRegression = useCallback(async (
@@ -150,6 +168,7 @@ export default function RegressionPage() {
     data: UploadedData
   ): Promise<LinearRegressionResults> => {
     // 1️⃣ 데이터 추출
+    // independent가 string이면 배열로 변환
     const independentVars = Array.isArray(vars.independent)
       ? vars.independent
       : [vars.independent]
@@ -211,19 +230,22 @@ export default function RegressionPage() {
       }
     ]
 
+    // Scatter data 생성 (실제 데이터 + predicted line)
     const scatterData = xData.map((x, i) => ({
       x,
       y: yData[i],
       predicted: pythonResult.intercept + pythonResult.slope * x
     }))
 
+    // Residual plot 생성
     const residualPlot = xData.map((x, i) => {
       const fitted = pythonResult.intercept + pythonResult.slope * x
       const residual = yData[i] - fitted
-      const standardized = residual / pythonResult.stdErr
+      const standardized = residual / pythonResult.stdErr // 간단한 근사
       return { fitted, residual, standardized }
     })
 
+    // F-statistic 계산 (R² 기반)
     const fStatistic = (pythonResult.rSquared / (1 - pythonResult.rSquared)) * df
     const adjustedRSquared = 1 - (1 - pythonResult.rSquared) * ((pythonResult.nPairs - 1) / df)
 
@@ -246,7 +268,10 @@ export default function RegressionPage() {
     vars: RegressionVariables,
     data: UploadedData
   ): Promise<LinearRegressionResults> => {
+    // 1️⃣ 데이터 추출
     const yVariable = vars.dependent
+
+    // independent가 string이면 배열로 변환
     const xVariables = Array.isArray(vars.independent)
       ? vars.independent
       : [vars.independent]
@@ -284,6 +309,7 @@ export default function RegressionPage() {
       throw new Error(`다중 회귀는 최소 ${minRequired}개 이상의 유효한 데이터가 필요합니다.`)
     }
 
+    // 2️⃣ PyodideCore 호출
     const core = pyodideCore as { callWorkerMethod: <T>(workerNum: number, methodName: string, params: unknown) => Promise<T> }
     const pythonResult = await core.callWorkerMethod<{
       coefficients: number[]
@@ -302,6 +328,7 @@ export default function RegressionPage() {
       nPredictors: number
     }>(4, 'multiple_regression', { X: XData, y: yData })
 
+    // 3️⃣ 결과 매핑
     const coefficientNames = ['(Intercept)', ...xVariables]
 
     const coefficients = pythonResult.coefficients.map((coef, i) => ({
@@ -313,8 +340,10 @@ export default function RegressionPage() {
       ci: [pythonResult.ciLower[i], pythonResult.ciUpper[i]]
     }))
 
+    // Residual plot 생성 (첫 번째 독립변수 기준)
     const residualPlot = yData.map((y, i) => {
-      let predicted = pythonResult.coefficients[0]
+      // Predicted value 계산
+      let predicted = pythonResult.coefficients[0] // intercept
       for (let j = 0; j < pythonResult.nPredictors; j++) {
         predicted += pythonResult.coefficients[j + 1] * XData[i][j]
       }
@@ -326,9 +355,10 @@ export default function RegressionPage() {
       }
     })
 
+    // VIF 결과 매핑 (Intercept 제외)
     const vifResults = xVariables.map((varName, i) => ({
       variable: varName,
-      vif: pythonResult.vif[i + 1]
+      vif: pythonResult.vif[i + 1] // Skip intercept (index 0)
     }))
 
     return {
@@ -350,7 +380,10 @@ export default function RegressionPage() {
     vars: RegressionVariables,
     data: UploadedData
   ): Promise<LogisticRegressionResults> => {
+    // 1️⃣ 데이터 추출
     const yVariable = vars.dependent
+
+    // independent가 string이면 배열로 변환
     const xVariables = Array.isArray(vars.independent)
       ? vars.independent
       : [vars.independent]
@@ -387,6 +420,7 @@ export default function RegressionPage() {
       throw new Error('로지스틱 회귀는 최소 2개 이상의 유효한 데이터가 필요합니다.')
     }
 
+    // 2️⃣ PyodideCore 호출
     const core = pyodideCore as { callWorkerMethod: <T>(workerNum: number, methodName: string, params: unknown) => Promise<T> }
     const pythonResult = await core.callWorkerMethod<{
       coefficients: number[]
@@ -418,6 +452,7 @@ export default function RegressionPage() {
       nPredictors: number
     }>(4, 'logistic_regression', { X: XData, y: yData })
 
+    // 3️⃣ 결과 매핑
     const coefficientNames = ['(Intercept)', ...xVariables]
 
     const coefficients = pythonResult.coefficients.map((coef, i) => ({
@@ -448,28 +483,23 @@ export default function RegressionPage() {
   const handleMethodSelect = useCallback((type: 'simple' | 'multiple' | 'logistic') => {
     setRegressionType(type)
     actions.setCurrentStep?.(1)
-  }, [actions])
+  }, [actions, setRegressionType])
 
-  const handleDataUpload = useCallback(
-    createDataUploadHandler(
-      actions.setUploadedData,
-      () => {
-        actions.setCurrentStep?.(2)
-      },
-      'regression'
-    ),
-    [actions]
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep?.(2)
+    },
+    'regression'
   )
 
-  const handleVariableSelection = useCallback(
-    createVariableSelectionHandler<RegressionVariables | null>(
-      actions.setSelectedVariables,
-      (variables) => {
-        handleAnalysis(variables)
-      },
-      'regression'
-    ),
-    [actions]
+  const handleVariableSelection = createVariableSelectionHandler<RegressionVariables | null>(
+    actions.setSelectedVariables,
+    (variables) => {
+      // 자동으로 분석 실행
+      handleAnalysis(variables)
+    },
+    'regression'
   )
 
   const handleAnalysis = useCallback(async (variables: unknown) => {
@@ -486,12 +516,14 @@ export default function RegressionPage() {
     try {
       actions.startAnalysis?.()
 
+      // Type guard for RegressionVariables
       if (!variables || typeof variables !== 'object') {
         throw new Error('변수 선택이 올바르지 않습니다.')
       }
 
       const vars = variables as RegressionVariables
 
+      // PyodideCore 초기화
       const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
@@ -499,10 +531,13 @@ export default function RegressionPage() {
       let result: RegressionResults
 
       if (regressionType === 'simple') {
+        // Simple Linear Regression
         result = await handleSimpleRegression(pyodideCore, vars, uploadedData)
       } else if (regressionType === 'multiple') {
+        // Multiple Regression
         result = await handleMultipleRegression(pyodideCore, vars, uploadedData)
       } else {
+        // Logistic Regression
         result = await handleLogisticRegression(pyodideCore, vars, uploadedData)
       }
 
@@ -512,10 +547,14 @@ export default function RegressionPage() {
       console.error('Analysis error:', err)
       actions.setError?.(errorMessage)
     }
-  }, [actions, uploadedData, regressionType, handleSimpleRegression, handleMultipleRegression, handleLogisticRegression])
+  }, [actions, uploadedData, regressionType])
 
-  const renderMethodSelection = useCallback(() => (
-    <div className="space-y-6">
+  const renderMethodSelection = () => (
+    <StepCard
+      title="회귀분석 방법 선택"
+      description="예측 목적과 변수 특성에 맞는 회귀 방법을 선택하세요"
+      icon={<TrendingUp className="w-5 h-5 text-primary" />}
+    >
       <div className="grid md:grid-cols-3 gap-4">
         {Object.entries(regressionTypeInfo).map(([key, info]) => (
           <motion.div
@@ -579,12 +618,12 @@ export default function RegressionPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-primary/5 border border-primary/20 rounded-lg"
+          className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg"
         >
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="font-medium text-sm">
-              {regressionTypeInfo[regressionType as 'simple' | 'multiple' | 'logistic']?.title} 선택됨
+              {regressionType && regressionTypeInfo[regressionType as 'simple' | 'multiple' | 'logistic']?.title} 선택됨
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -592,24 +631,33 @@ export default function RegressionPage() {
           </p>
         </motion.div>
       )}
-    </div>
-  ), [regressionType, regressionTypeInfo, handleMethodSelect])
+    </StepCard>
+  )
 
-  const renderDataUpload = useCallback(() => (
-    <div className="space-y-4">
+  const renderDataUpload = () => (
+    <StepCard
+      title="데이터 업로드"
+      description="회귀분석할 데이터 파일을 업로드하세요"
+      icon={<Upload className="w-5 h-5 text-primary" />}
+    >
       <DataUploadStep
         onUploadComplete={handleDataUpload}
         onNext={() => {}}
       />
-    </div>
-  ), [handleDataUpload])
+    </StepCard>
+  )
 
-  const renderVariableSelection = useCallback(() => {
+  const renderVariableSelection = () => {
     if (!uploadedData) return null
 
+    // regressionType 검증
     if (!regressionType) {
       return (
-        <div className="space-y-4">
+        <StepCard
+          title="회귀 유형 미선택"
+          description="먼저 회귀분석 유형을 선택해주세요"
+          icon={<Users className="w-5 h-5 text-primary" />}
+        >
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>회귀 유형을 선택해주세요</AlertTitle>
@@ -617,17 +665,37 @@ export default function RegressionPage() {
               Step 1에서 단순 회귀, 다중 회귀, 또는 로지스틱 회귀 중 하나를 선택해야 합니다.
             </AlertDescription>
           </Alert>
-          <div className="flex justify-start">
+          <div className="mt-4 flex justify-start">
             <Button variant="outline" onClick={() => actions.setCurrentStep?.(0)}>
               이전: 회귀 유형 선택
             </Button>
           </div>
-        </div>
+        </StepCard>
       )
     }
 
+    // 변수 타입 자동 감지 (Helper 함수 사용)
+    const columns = Object.keys(uploadedData.data[0] || {})
+    const variables = columns.map(col => ({
+      name: col,
+      type: detectVariableType(
+        uploadedData.data.map((row: unknown) => extractRowValue(row, col)),
+        col
+      ),
+      stats: {
+        missing: 0,
+        unique: [...new Set(uploadedData.data.map((row: unknown) => extractRowValue(row, col)))].length,
+        min: Math.min(...uploadedData.data.map((row: unknown) => Number(extractRowValue(row, col)) || 0)),
+        max: Math.max(...uploadedData.data.map((row: unknown) => Number(extractRowValue(row, col)) || 0))
+      }
+    }))
+
     return (
-      <div className="space-y-4">
+      <StepCard
+        title="변수 선택"
+        description="회귀분석에 사용할 종속변수와 독립변수를 선택하세요"
+        icon={<Users className="w-5 h-5 text-primary" />}
+      >
         <VariableSelectorModern
           methodId={regressionType === 'simple' ? 'simple-regression' :
                     regressionType === 'multiple' ? 'multiple-regression' :
@@ -635,11 +703,11 @@ export default function RegressionPage() {
           data={uploadedData.data}
           onVariablesSelected={(vars) => handleVariableSelection(vars as unknown as RegressionVariables | null)}
         />
-      </div>
+      </StepCard>
     )
-  }, [uploadedData, regressionType, handleVariableSelection, actions])
+  }
 
-  const renderLinearResults = useCallback(() => {
+  const renderLinearResults = () => {
     if (!results) return null
 
     const linearResults = results as LinearRegressionResults
@@ -647,6 +715,7 @@ export default function RegressionPage() {
 
     return (
       <div className="space-y-6">
+        {/* 모델 요약 */}
         <Alert className="border-green-500 bg-muted">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>모델 요약</AlertTitle>
@@ -672,6 +741,7 @@ export default function RegressionPage() {
           </AlertDescription>
         </Alert>
 
+        {/* 회귀계수 */}
         <StatisticsTable
           title="회귀계수 및 통계적 유의성"
           columns={[
@@ -702,6 +772,7 @@ export default function RegressionPage() {
           compactMode
         />
 
+        {/* 산점도 및 회귀선 */}
         {regressionType === 'simple' && scatterData && (
           <Card>
             <CardHeader>
@@ -722,6 +793,7 @@ export default function RegressionPage() {
           </Card>
         )}
 
+        {/* 다중공선성 진단 (다중회귀) */}
         {vif && (
           <Card>
             <CardHeader>
@@ -749,6 +821,7 @@ export default function RegressionPage() {
           </Card>
         )}
 
+        {/* 잔차 플롯 */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">잔차 분석</CardTitle>
@@ -780,15 +853,16 @@ export default function RegressionPage() {
         </Card>
       </div>
     )
-  }, [results, regressionType])
+  }
 
-  const renderLogisticResults = useCallback(() => {
+  const renderLogisticResults = () => {
     if (!results) return null
 
     const { coefficients, modelFit, confusionMatrix, rocCurve } = results as LogisticRegressionResults
 
     return (
       <div className="space-y-6">
+        {/* 모델 성능 요약 */}
         <Alert className="border-green-500 bg-muted">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>모델 성능</AlertTitle>
@@ -810,6 +884,7 @@ export default function RegressionPage() {
           </AlertDescription>
         </Alert>
 
+        {/* 회귀계수 및 오즈비 */}
         <StatisticsTable
           title="로지스틱 회귀계수 및 오즈비"
           columns={[
@@ -834,6 +909,7 @@ export default function RegressionPage() {
           compactMode
         />
 
+        {/* 혼동 행렬 */}
         <div className="grid md:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
@@ -891,6 +967,7 @@ export default function RegressionPage() {
           </Card>
         </div>
 
+        {/* ROC 곡선 */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">ROC 곡선</CardTitle>
@@ -913,59 +990,82 @@ export default function RegressionPage() {
         </Card>
       </div>
     )
-  }, [results])
+  }
 
-  const renderResults = useCallback(() => {
+  const renderResults = () => {
     if (!results) return null
 
     const currentTypeInfo = regressionType ? regressionTypeInfo[regressionType as 'simple' | 'multiple' | 'logistic'] : null
     if (!currentTypeInfo) return null
 
     return (
-      <div className="space-y-6">
+      <StepCard
+        title="회귀분석 결과"
+        description={`${currentTypeInfo.title} 분석이 완료되었습니다`}
+        icon={<TrendingUp className="w-5 h-5 text-primary" />}
+      >
         {regressionType === 'logistic' ? renderLogisticResults() : renderLinearResults()}
 
+        {/* 액션 버튼 */}
         <div className="flex gap-3 justify-center pt-6">
-          <UITooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" disabled>
-                <FileText className="w-4 h-4 mr-2" />
-                보고서 생성
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>향후 제공 예정입니다</p>
-            </TooltipContent>
-          </UITooltip>
-          <UITooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" disabled>
-                <Download className="w-4 h-4 mr-2" />
-                결과 다운로드
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>향후 제공 예정입니다</p>
-            </TooltipContent>
-          </UITooltip>
+                      <UITooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <FileText className="w-4 h-4 mr-2" />
+                  보고서 생성
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>향후 제공 예정입니다</p>
+              </TooltipContent>
+            </UITooltip>
+                      <UITooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <Download className="w-4 h-4 mr-2" />
+                  결과 다운로드
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>향후 제공 예정입니다</p>
+              </TooltipContent>
+            </UITooltip>
         </div>
-      </div>
+      </StepCard>
     )
-  }, [results, regressionType, regressionTypeInfo, renderLinearResults, renderLogisticResults])
+  }
+
 
   return (
-    <TwoPanelLayout
-      analysisTitle="회귀분석"
-      analysisSubtitle="Regression Analysis"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="회귀분석"
+      subtitle="Regression Analysis - 변수 간 관계 모델링 및 예측"
+      icon={<TrendingUp className="w-6 h-6" />}
+      methodInfo={{
+        formula: regressionType === 'logistic'
+          ? 'log(p/(1-p)) = β₀ + β₁X₁ + ... + βₖXₖ'
+          : 'Y = β₀ + β₁X₁ + ... + βₖXₖ + ε',
+        assumptions: regressionType === 'logistic'
+          ? ['독립성', '선형성(로짓)', '큰 표본']
+          : ['선형성', '정규성', '등분산성', '독립성'],
+        sampleSize: regressionType === 'logistic'
+          ? '변수당 최소 10-20개 이벤트'
+          : '변수당 최소 20개 관측치',
+        usage: regressionType === 'logistic'
+          ? '이진 분류 및 확률 예측'
+          : '연속형 종속변수 예측 및 영향력 분석'
+      }}
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions?.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
+      onStepChange={actions.setCurrentStep}
+      onRun={() => handleAnalysis(selectedVariables)}
+      onReset={() => {
+        actions.reset()
+        setRegressionType('')
+      }}
+      isRunning={isAnalyzing}
+      showProgress={true}
+      showTips={true}
     >
       {error && (
         <Alert variant="destructive" className="mb-4">
@@ -976,17 +1076,13 @@ export default function RegressionPage() {
       )}
       {currentStep === 0 && renderMethodSelection()}
       {currentStep === 1 && renderDataUpload()}
-      {currentStep === 2 && renderVariableSelection()}
-      {currentStep === 3 && renderResults()}
-
-      {isAnalyzing && (
-        <div className="flex items-center justify-center p-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>회귀분석을 수행하고 있습니다...</p>
-          </div>
-        </div>
+      {currentStep === 2 && uploadedData && (
+        <>
+          <DataPreviewPanel data={uploadedData.data} className="mb-4" />
+          {renderVariableSelection()}
+        </>
       )}
-    </TwoPanelLayout>
+      {currentStep === 3 && renderResults()}
+    </StatisticsPageLayout>
   )
 }
