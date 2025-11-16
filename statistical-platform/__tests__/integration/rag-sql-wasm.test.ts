@@ -30,7 +30,7 @@ describe('RAG 시스템 sql.js WASM 통합 테스트', () => {
     })
 
     it('sql.js가 정상적으로 초기화되어야 함 (Node.js 환경)', async () => {
-      const initSqlJs = require('sql.js')
+      const initSqlJs = require('@jlongster/sql.js')
       const path = require('path')
 
       // Node.js 환경에서는 실제 파일 경로 사용
@@ -45,7 +45,7 @@ describe('RAG 시스템 sql.js WASM 통합 테스트', () => {
     }, 10000)
 
     it('SQLite DB를 생성하고 쿼리를 실행할 수 있어야 함', async () => {
-      const initSqlJs = require('sql.js')
+      const initSqlJs = require('@jlongster/sql.js')
       const path = require('path')
 
       const SQL = await initSqlJs({
@@ -93,7 +93,7 @@ describe('RAG 시스템 sql.js WASM 통합 테스트', () => {
 
   describe('RAG 문서 저장/검색 시뮬레이션', () => {
     it('문서를 저장하고 검색할 수 있어야 함', async () => {
-      const initSqlJs = require('sql.js')
+      const initSqlJs = require('@jlongster/sql.js')
       const path = require('path')
 
       const SQL = await initSqlJs({
@@ -161,7 +161,7 @@ describe('RAG 시스템 sql.js WASM 통합 테스트', () => {
     }, 10000)
 
     it('BLOB 데이터(임베딩)를 저장하고 읽을 수 있어야 함', async () => {
-      const initSqlJs = require('sql.js')
+      const initSqlJs = require('@jlongster/sql.js')
       const path = require('path')
 
       const SQL = await initSqlJs({
