@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,50 +21,31 @@ import {
   Layers
 } from 'lucide-react'
 
-import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import type { CochranQVariables } from '@/types/statistics'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
-// ============================================================================
-// 타입 정의
-// ============================================================================
-
-/**
- * Cochran Q Test 결과
- */
+// Cochran Q Test 결과
 interface CochranQTestResult {
-  /** Q 통계량 */
   qStatistic: number
-  /** p-value */
   pValue: number
-  /** 자유도 */
   df: number
-  /** 유의성 여부 */
   significant: boolean
-  /** 해석 */
   interpretation: string
-  /** 피험자 수 */
   nSubjects: number
-  /** 조건 수 */
   nConditions: number
-  /** 조건별 성공률 */
   conditionSuccessRates: Array<{
     condition: string
     successRate: number
     successCount: number
   }>
-  /** 분할표 (n × k) */
   contingencyTable: number[][]
 }
-
-// ============================================================================
-// 메인 컴포넌트
-// ============================================================================
 
 export default function CochranQTestPage() {
   // 최근 사용 통계 자동 추가
@@ -75,57 +56,62 @@ export default function CochranQTestPage() {
   // useStatisticsPage hook
   const { state, actions } = useStatisticsPage<CochranQTestResult, CochranQVariables>({
     withUploadedData: true,
-    withError: true
+    withError: true,
+    initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
-  // 단계 정의
-  const steps: StatisticsStep[] = [
+  // Breadcrumbs (useMemo)
+  const breadcrumbs = useMemo(() => [
+    { label: '통계 분석', href: '/statistics' },
+    { label: 'Cochran Q 검정', href: '/statistics/cochran-q' }
+  ], [])
+
+  // 단계 정의 (useMemo)
+  const STEPS: TwoPanelStep[] = useMemo(() => [
     {
       id: 'intro',
       number: 1,
       title: 'Cochran Q 검정 소개',
       description: '반복측정 이진 데이터 분석 개념',
-      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending',
+      isDataStep: false
     },
     {
       id: 'upload',
       number: 2,
       title: '데이터 업로드',
       description: '분석할 데이터 파일 업로드',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending',
+      isDataStep: true
     },
     {
       id: 'variables',
       number: 3,
       title: '변수 선택',
       description: '피험자 및 조건 변수 선택 (3개 이상)',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending',
+      isDataStep: false
     },
     {
       id: 'results',
       number: 4,
       title: '결과 해석',
       description: 'Cochran Q 검정 결과 확인',
-      status: currentStep === 3 ? 'current' : 'pending'
+      status: currentStep === 3 ? 'current' : 'pending',
+      isDataStep: false
     }
-  ]
-
-  // ============================================================================
-  // 핸들러 함수
-  // ============================================================================
+  ], [currentStep])
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
     () => {
-      actions.setCurrentStep?.(2)
+      actions.setCurrentStep?.(1)
     },
     'cochran-q'
   )
 
-  /**
-   * 이진값 변환 헬퍼
-   */
+  // 이진값 변환 헬퍼
   const convertToBinary = useCallback((value: unknown): number | null => {
     if (value === null || value === undefined) return null
 
@@ -151,38 +137,16 @@ export default function CochranQTestPage() {
     return null
   }, [])
 
-  /**
-   * 변수 선택 핸들러
-   */
-  const handleVariableSelection = useCallback((variables: unknown) => {
-    if (!variables || typeof variables !== 'object') return
-
-    const vars = variables as { independent?: string; dependent?: string[] }
-
-    if (vars.independent && vars.dependent && vars.dependent.length >= 3) {
-      const cochranVars: CochranQVariables = {
-        independent: vars.independent,
-        dependent: vars.dependent
-      }
-
-      actions.setSelectedVariables?.(cochranVars)
-      actions.setCurrentStep?.(3)
-    }
-  }, [actions])
-
-  /**
-   * 분석 실행 핸들러
-   */
-  const runAnalysis = useCallback(async () => {
-    if (!uploadedData || !selectedVariables) return
+  // 분석 실행
+  const runAnalysis = useCallback(async (variables: CochranQVariables) => {
+    if (!uploadedData) return
 
     actions.startAnalysis?.()
 
     try {
-      const { independent: subjectVar, dependent: conditionVars } = selectedVariables
+      const { independent: subjectVar, dependent: conditionVars } = variables
 
       // 1️⃣ 데이터 추출 및 2D 행렬 생성
-      // subjects를 기준으로 정렬하여 행 순서 보장
       const subjectData = new Map<string | number, number[]>()
 
       for (const row of uploadedData.data) {
@@ -259,9 +223,9 @@ export default function CochranQTestPage() {
 
       let interpretation: string
       if (significant) {
-        interpretation = `조건 간 성공률에 유의한 차이가 있습니다 (Q = ${pythonResult.qStatistic.toFixed(2)}, p = ${pythonResult.pValue.toFixed(3)}). 적어도 한 조건의 성공률이 다른 조건과 다릅니다.`
+        interpretation = `조건 간 유의한 차이가 있습니다 (p = ${pythonResult.pValue.toFixed(3)})`
       } else {
-        interpretation = `조건 간 성공률에 유의한 차이가 없습니다 (Q = ${pythonResult.qStatistic.toFixed(2)}, p = ${pythonResult.pValue.toFixed(3)}). 모든 조건의 성공률이 유사합니다.`
+        interpretation = `조건 간 유의한 차이가 없습니다 (p = ${pythonResult.pValue.toFixed(3)})`
       }
 
       const result: CochranQTestResult = {
@@ -276,276 +240,506 @@ export default function CochranQTestPage() {
         contingencyTable: dataMatrix
       }
 
-      if (!actions.completeAnalysis) {
-        console.error('[cochran-q] completeAnalysis not available')
-        return
-      }
-
-      actions.completeAnalysis(result, 3)
-    } catch (error) {
-      console.error('Cochran Q 검정 분석 중 오류:', error)
-
-      if (!actions.setError) {
-        console.error('[cochran-q] setError not available')
-        return
-      }
-
-      const errorMessage = error instanceof Error ? error.message : 'Cochran Q 검정 분석 중 오류가 발생했습니다.'
-      actions.setError(errorMessage)
+      actions.completeAnalysis?.(result, 2)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Cochran Q 검정 분석 중 오류가 발생했습니다.'
+      actions.setError?.(errorMessage)
     }
-  }, [uploadedData, selectedVariables, convertToBinary, actions])
+  }, [uploadedData, convertToBinary, actions])
 
-  // ============================================================================
-  // JSX 렌더링
-  // ============================================================================
+  // Badge 기반 변수 선택 핸들러 (Critical Bug 예방)
+  const handleIndependentSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { independent: '', dependent: [] }
+    const newIndependent = current.independent === varName ? '' : varName
 
-  return (
-    <StatisticsPageLayout
-      title="Cochran Q 검정"
-      subtitle="Cochran Q Test - 반복측정 이진 자료 분석"
-      icon={<Calculator className="w-6 h-6" />}
-      methodInfo={{
-        formula: 'Q = (k-1)[k∑R²ᵢ - (∑Rᵢ)²] / [k∑Cⱼ - ∑C²ⱼ]',
-        assumptions: ['반복측정 설계', '이진 자료 (0/1)', '최소 2명 피험자, 3개 조건'],
-        sampleSize: '피험자 2명 이상, 조건 3개 이상',
-        usage: '임상시험 다중약물 비교, 교육 연구, 품질 관리'
-      }}
-      steps={steps}
-      currentStep={currentStep}
-    >
-      {/* Step 0: 소개 */}
-      {currentStep === 0 && (
-        <StepCard
-          icon={<Info className="w-6 h-6" />}
-          title="Cochran Q 검정이란?"
-          description="반복측정 이진 데이터 분석 방법"
+    actions.setSelectedVariables?.({
+      independent: newIndependent,
+      dependent: current.dependent || []
+    })
+    // ❌ NO setCurrentStep here - Critical Bug 예방!
+  }, [selectedVariables, actions])
+
+  const handleDependentSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { independent: '', dependent: [] }
+    const currentDependent = Array.isArray(current.dependent) ? current.dependent : []
+    const isSelected = currentDependent.includes(varName)
+
+    const newDependent = isSelected
+      ? currentDependent.filter(v => v !== varName)
+      : [...currentDependent, varName]
+
+    actions.setSelectedVariables?.({
+      independent: current.independent || '',
+      dependent: newDependent
+    })
+    // ❌ NO setCurrentStep here - Critical Bug 예방!
+  }, [selectedVariables, actions])
+
+  // "다음 단계" 버튼: Step 변경 + 분석 실행
+  const handleNextStep = useCallback(async () => {
+    if (selectedVariables?.independent &&
+        selectedVariables?.dependent &&
+        selectedVariables.dependent.length >= 3) {
+      actions.setCurrentStep?.(3)
+      await runAnalysis(selectedVariables)
+    }
+  }, [selectedVariables, actions, runAnalysis])
+
+  const renderMethodIntroduction = useCallback(() => (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              Cochran Q 검정이란?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              동일한 피험자에게 <strong>3개 이상의 조건</strong>에서 측정한
+              <strong>이진 변수의 차이</strong>를 검정하는 비모수 방법입니다.
+            </p>
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-xs font-medium mb-1">검정 통계량</p>
+              <p className="text-xs text-muted-foreground">
+                Q = (k-1) × [k×Σ(Cⱼ)² - (ΣCⱼ)²] / [k×ΣRᵢ - Σ(Rᵢ)²]<br/>
+                k: 조건 수, Cⱼ: 조건별 성공 수, Rᵢ: 피험자별 성공 수
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              사용 사례
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">3번 이상 반복측정 효과 비교</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">다중 치료법 성공률 비교</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">시간대별 반응률 차이 검정</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">평가자 간 일치도 분석</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>가정 및 조건</AlertTitle>
+        <AlertDescription>
+          <ul className="mt-2 space-y-1 text-sm">
+            <li>• 반복측정 이진 데이터 (repeated measures binary data)</li>
+            <li>• 동일한 피험자에서 3개 이상의 조건 측정</li>
+            <li>• 각 조건은 이진값 (0/1, Yes/No, Success/Failure)</li>
+            <li>• 독립성 가정 (피험자 간 독립)</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
+      <Alert className="bg-blue-50 border-blue-200">
+        <Info className="h-4 w-4 text-blue-600" />
+        <AlertTitle className="text-blue-900">McNemar vs Cochran Q</AlertTitle>
+        <AlertDescription className="text-blue-800">
+          <ul className="mt-2 space-y-1 text-sm">
+            <li>• <strong>McNemar</strong>: 2개 조건 비교 (사전-사후)</li>
+            <li>• <strong>Cochran Q</strong>: 3개 이상 조건 비교 (반복측정)</li>
+            <li>• Cochran Q는 McNemar의 일반화된 형태입니다</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
+      <div className="text-center">
+        <Button
+          onClick={() => actions.setCurrentStep?.(1)}
+          className="w-full md:w-auto"
         >
-          <div className="space-y-4">
+          데이터 업로드하기
+        </Button>
+      </div>
+    </div>
+  ), [actions])
+
+  const renderDataUpload = useCallback(() => (
+    <DataUploadStep
+      onUploadComplete={handleDataUpload}
+      onPrevious={() => {
+        if (actions.setCurrentStep) {
+          actions.setCurrentStep(0)
+        }
+      }}
+    />
+  ), [handleDataUpload, actions])
+
+  const renderVariableSelection = useCallback(() => {
+    if (!uploadedData) return null
+
+    const columns = Object.keys(uploadedData.data[0] || {})
+    const currentIndependent = selectedVariables?.independent || ''
+    const currentDependent = Array.isArray(selectedVariables?.dependent) ? selectedVariables.dependent : []
+
+    const isValid = currentIndependent && currentDependent.length >= 3
+
+    return (
+      <div className="space-y-6">
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>변수 선택 가이드</AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 space-y-1 text-sm">
+              <p>• <strong>피험자 변수</strong>: 개체 ID (예: 환자번호, 참가자ID)</p>
+              <p>• <strong>조건 변수</strong>: 3개 이상의 반복측정 이진 변수</p>
+              <p>• 각 조건은 0/1, Yes/No, Success/Failure 등 이진값이어야 합니다</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+
+        {/* 피험자 변수 선택 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              피험자 변수 (Subject ID)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {columns.map(header => {
+                const isSelected = currentIndependent === header
+                const isUsedInDependent = currentDependent.includes(header)
+                return (
+                  <Badge
+                    key={header}
+                    variant={isSelected ? 'default' : 'outline'}
+                    className={`cursor-pointer transition-all ${
+                      isUsedInDependent ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                    }`}
+                    onClick={() => !isUsedInDependent && handleIndependentSelect(header)}
+                    title={isUsedInDependent ? `${header} (조건 변수에서 사용 중)` : header}
+                  >
+                    {header}
+                  </Badge>
+                )
+              })}
+            </div>
+            {currentIndependent && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                선택됨: <strong>{currentIndependent}</strong>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 조건 변수 선택 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Layers className="w-4 h-4" />
+              조건 변수 (3개 이상 선택)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {columns.map(header => {
+                const isSelected = currentDependent.includes(header)
+                const isSameAsIndependent = currentIndependent === header
+                return (
+                  <Badge
+                    key={header}
+                    variant={isSelected ? 'default' : 'outline'}
+                    className={`cursor-pointer transition-all ${
+                      isSameAsIndependent ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'
+                    }`}
+                    onClick={() => !isSameAsIndependent && handleDependentSelect(header)}
+                    title={isSameAsIndependent ? `${header} (피험자 변수와 동일)` : header}
+                  >
+                    {header}
+                  </Badge>
+                )
+              })}
+            </div>
+            {currentDependent.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-muted-foreground">
+                  선택됨 ({currentDependent.length}개): <strong>{currentDependent.join(', ')}</strong>
+                </p>
+                {currentDependent.length < 3 && (
+                  <p className="text-xs text-orange-600">
+                    ⚠️ 최소 3개 이상 선택해야 합니다 (현재: {currentDependent.length}개)
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 검증 결과 */}
+        {!isValid && (currentIndependent || currentDependent.length > 0) && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>변수 선택 필요</AlertTitle>
+            <AlertDescription>
+              피험자 변수 1개와 조건 변수 3개 이상을 선택해주세요.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isValid && (
+          <Alert className="border-green-500 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertTitle className="text-green-600">변수 선택 완료</AlertTitle>
+            <AlertDescription className="text-green-600">
+              피험자 변수 1개와 조건 변수 {currentDependent.length}개가 선택되었습니다.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* 다음 단계 버튼 */}
+        <div className="flex justify-between pt-4">
+          <Button
+            variant="outline"
+            onClick={() => actions.setCurrentStep?.(1)}
+          >
+            이전 단계
+          </Button>
+          <Button
+            onClick={handleNextStep}
+            disabled={!isValid || isAnalyzing}
+          >
+            {isAnalyzing ? '분석 중...' : '다음 단계'}
+          </Button>
+        </div>
+      </div>
+    )
+  }, [uploadedData, selectedVariables, handleIndependentSelect, handleDependentSelect, handleNextStep, isAnalyzing, actions])
+
+  const renderResults = useCallback(() => {
+    if (!results) return null
+
+    const {
+      qStatistic,
+      pValue,
+      df,
+      significant,
+      interpretation,
+      nSubjects,
+      nConditions,
+      conditionSuccessRates
+    } = results
+
+    return (
+      <div className="space-y-6">
+        {/* 주요 결과 요약 */}
+        <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>검정 결과</AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 space-y-2">
+              <p className="font-medium">
+                Q = {qStatistic.toFixed(4)}, df = {df}, p = {pValue.toFixed(3)}
+              </p>
+              <p>
+                {significant
+                  ? "❌ 조건 간 유의한 차이가 있습니다 (p < 0.05)"
+                  : "✅ 조건 간 유의한 차이가 없습니다 (p ≥ 0.05)"}
+              </p>
+              <p className="text-sm text-muted-foreground">{interpretation}</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+
+        {/* 검정 통계량 */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">검정 통계량</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <p className="font-medium">Cochran Q</p>
+                <p className="text-2xl font-bold text-primary">{qStatistic.toFixed(4)}</p>
+              </div>
+              <Separator />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>p-value</span>
+                  <Badge variant={significant ? "destructive" : "default"}>
+                    {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>자유도</span>
+                  <Badge variant="outline">{df}</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">표본 정보</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>피험자 수</span>
+                  <Badge>{nSubjects}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>조건 수</span>
+                  <Badge>{nConditions}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>총 관측치</span>
+                  <Badge variant="secondary">{nSubjects * nConditions}</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 조건별 성공률 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">조건별 성공률</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300 text-sm">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border border-gray-300 p-3 text-left">조건</th>
+                    <th className="border border-gray-300 p-3 text-center">성공 수</th>
+                    <th className="border border-gray-300 p-3 text-center">성공률</th>
+                    <th className="border border-gray-300 p-3 text-center">실패 수</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {conditionSuccessRates.map((cond, idx) => (
+                    <tr key={idx}>
+                      <td className="border border-gray-300 p-3 font-medium">{cond.condition}</td>
+                      <td className="border border-gray-300 p-3 text-center">{cond.successCount}</td>
+                      <td className="border border-gray-300 p-3 text-center">
+                        <Badge variant="outline">{(cond.successRate * 100).toFixed(1)}%</Badge>
+                      </td>
+                      <td className="border border-gray-300 p-3 text-center">{nSubjects - cond.successCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 해석 가이드 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">결과 해석 가이드</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>검정 개요</AlertTitle>
+              <AlertTitle>Cochran Q 검정 해석</AlertTitle>
               <AlertDescription>
-                Cochran Q 검정은 동일한 피험자가 3개 이상의 조건에서 반복 측정된 이진 데이터(0/1, 성공/실패)의 성공률을 비교하는 비모수 검정입니다.
+                <div className="mt-2 space-y-2 text-sm">
+                  <p><strong>귀무가설(H₀):</strong> 모든 조건의 성공률이 동일하다</p>
+                  <p><strong>대립가설(H₁):</strong> 적어도 하나의 조건 성공률이 다르다</p>
+                  <p><strong>판단기준:</strong> p-value &lt; 0.05이면 귀무가설 기각</p>
+                </div>
               </AlertDescription>
             </Alert>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">사용 예시</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start space-x-2">
-                  <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <div>
-                    <p className="font-medium">임상 시험</p>
-                    <p className="text-sm text-muted-foreground">3가지 약물의 효과 비교 (효과 있음=1, 없음=0)</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <div>
-                    <p className="font-medium">교육 연구</p>
-                    <p className="text-sm text-muted-foreground">4가지 교수법에서 학생들의 정답률 비교</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <div>
-                    <p className="font-medium">품질 관리</p>
-                    <p className="text-sm text-muted-foreground">3가지 검사 방법의 합격률 비교</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2">사후 분석 (Post-hoc)</h4>
+              <p className="text-sm text-muted-foreground">
+                Cochran Q 검정이 유의하면, 어느 조건들 간에 차이가 있는지 확인하기 위해
+                McNemar 검정을 사용한 쌍별 비교(pairwise comparison)를 수행할 수 있습니다.
+              </p>
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">가정 및 요구사항</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <p className="text-sm"><strong>이진 데이터:</strong> 각 관측값은 0 또는 1 (성공/실패)</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <p className="text-sm"><strong>반복측정 설계:</strong> 동일 피험자가 모든 조건 경험</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <p className="text-sm"><strong>최소 피험자:</strong> 2명 이상</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <p className="text-sm"><strong>최소 조건:</strong> 3개 이상</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2">주의사항</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• 최소 3개 이상의 조건이 필요합니다</li>
+                <li>• 각 조건은 반드시 이진값이어야 합니다</li>
+                <li>• 피험자 간 독립성이 가정됩니다</li>
+                <li>• 표본 크기가 작으면 정확검정 고려 필요</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
 
-            <div className="flex justify-center pt-4">
-              <Button onClick={() => actions.setCurrentStep?.(1)} size="lg">
-                다음 단계: 데이터 업로드
-                <TrendingUp className="ml-2 h-4 w-4" />
+        {/* 액션 버튼 */}
+        <div className="flex gap-3 justify-center pt-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled>
+                <FileText className="w-4 h-4 mr-2" />
+                보고서 생성
               </Button>
-            </div>
-          </div>
-        </StepCard>
-      )}
-
-      {/* Step 1: 데이터 업로드 */}
-      {currentStep === 1 && (
-        <StepCard
-          icon={<Upload className="w-6 h-6" />}
-          title="데이터 업로드"
-          description="분석할 CSV 파일을 업로드하세요"
-        >
-          <DataUploadStep onUploadComplete={handleDataUpload} />
-        </StepCard>
-      )}
-
-      {/* Step 2: 변수 선택 */}
-      {currentStep === 2 && uploadedData && (
-        <StepCard
-          icon={<Users className="w-6 h-6" />}
-          title="변수 선택"
-          description="피험자 변수와 조건 변수를 선택하세요 (최소 3개 조건)"
-        >
-          <Alert className="mb-4">
-            <Info className="h-4 w-4" />
-            <AlertTitle>변수 선택 안내</AlertTitle>
-            <AlertDescription>
-              <strong>Independent (피험자 변수):</strong> 피험자를 구분하는 변수 (ID, 이름 등)<br />
-              <strong>Dependent (조건 변수):</strong> 이진 변수(0/1) 3개 이상 선택 (예: 약물A, 약물B, 약물C)
-            </AlertDescription>
-          </Alert>
-
-          <VariableSelectorModern
-            methodId="cochran-q"
-            data={uploadedData.data}
-            onVariablesSelected={handleVariableSelection}
-          />
-        </StepCard>
-      )}
-
-      {/* Step 3: 결과 */}
-      {currentStep === 3 && (
-        <StepCard
-          icon={<BarChart3 className="w-6 h-6" />}
-          title="분석 실행"
-          description="Cochran Q 검정을 실행하고 결과를 확인하세요"
-        >
-          {!results && (
-            <div className="text-center py-8">
-              <Button
-                onClick={runAnalysis}
-                size="lg"
-                disabled={isAnalyzing}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Calculator className="mr-2 h-5 w-5 animate-spin" />
-                    분석 중...
-                  </>
-                ) : (
-                  <>
-                    <Calculator className="mr-2 h-5 w-5" />
-                    Cochran Q 검정 실행
-                  </>
-                )}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>향후 제공 예정입니다</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled>
+                <Download className="w-4 h-4 mr-2" />
+                결과 다운로드
               </Button>
-            </div>
-          )}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>향후 제공 예정입니다</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+    )
+  }, [results])
 
-          {results && (
-            <div className="space-y-6">
-              {/* 검정 통계량 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calculator className="w-5 h-5" />
-                    검정 통계량
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">Q 통계량</p>
-                      <p className="text-2xl font-bold">{results.qStatistic.toFixed(3)}</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">p-value</p>
-                      <p className="text-2xl font-bold">{results.pValue.toFixed(4)}</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">자유도</p>
-                      <p className="text-2xl font-bold">{results.df}</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">유의성 (α=0.05)</p>
-                      <p className="text-2xl font-bold">
-                        {results.significant ? (
-                          <Badge variant="destructive">유의함</Badge>
-                        ) : (
-                          <Badge variant="secondary">유의하지 않음</Badge>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+  return (
+    <TwoPanelLayout
+      title="Cochran Q 검정"
+      subtitle="Cochran Q Test - 반복측정 이진 데이터 분석"
+      breadcrumbs={breadcrumbs}
+      currentStep={currentStep}
+      steps={STEPS}
+      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
+      bottomPreview={uploadedData && currentStep >= 1 ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        maxRows: 10
+      } : undefined}
+    >
+      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 3 && renderResults()}
 
-              {/* 조건별 성공률 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Layers className="w-5 h-5" />
-                    조건별 성공률
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {results.conditionSuccessRates.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                        <div>
-                          <p className="font-medium">{item.condition}</p>
-                          <p className="text-sm text-muted-foreground">
-                            성공: {item.successCount} / {results.nSubjects}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold">{(item.successRate * 100).toFixed(1)}%</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* 해석 */}
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>결과 해석</AlertTitle>
-                <AlertDescription>{results.interpretation}</AlertDescription>
-              </Alert>
-
-              {/* 표본 정보 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">표본 정보</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm">
-                    <strong>피험자 수:</strong> {results.nSubjects}명
-                  </p>
-                  <p className="text-sm">
-                    <strong>조건 수:</strong> {results.nConditions}개
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </StepCard>
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>오류</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
-    </StatisticsPageLayout>
+    </TwoPanelLayout>
   )
 }

@@ -1,38 +1,60 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+/**
+ * Proportion Test (일표본 비율 검정) 페이지
+ *
+ * **목적**: 한 집단의 성공 비율이 특정 값과 다른지 검정
+ *
+ * **핵심 기능**:
+ * - 단일 이진 변수 선택
+ * - 검정 비율(p₀) 설정
+ * - 대립가설 선택 (양측/단측)
+ * - 검정 방법 선택 (정규근사/정확검정)
+ * - Wilson Score 신뢰구간
+ *
+ * **Architecture**:
+ * - TwoPanelLayout (데이터 하단 배치)
+ * - PyodideCore 직접 연결 (worker1:proportion_test)
+ * - useStatisticsPage hook (useState 금지)
+ * - useCallback (모든 이벤트 핸들러)
+ */
+
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ProportionTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   PieChart,
   Target,
   BarChart3,
-  Play,
   Info,
   Calculator,
-  Percent
+  Percent,
+  Upload,
+  Settings,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react'
-import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import { VariableMapping } from '@/components/variable-selection/types'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
+
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
-import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { DataPreview } from '@/components/data-upload/DataPreview'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+
+// ============================================================================
+// 타입 정의
+// ============================================================================
 
 interface ProportionTestResults {
   variable: string
@@ -52,72 +74,85 @@ interface ProportionTestResults {
   continuityCorrection: boolean
 }
 
-export default function ProportionTestPage() {
+interface AnalysisOptions {
+  testProportion: string
+  confidenceLevel: string
+  alternative: string
+  method: string
+}
+
+// ============================================================================
+// 메인 컴포넌트
+// ============================================================================
+
+export default function ProportionTestPage(): React.ReactElement {
+  // ============================================================================
+  // Hooks
+  // ============================================================================
+
+  const { state, actions } = useStatisticsPage<ProportionTestResults, ProportionTestVariables>({
+    withUploadedData: true,
+    withError: true,
+    initialStep: 0
+  })
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
   // 최근 사용 통계 자동 추가
   useEffect(() => {
     addToRecentStatistics('one-sample-proportion')
   }, [])
 
-  const { state, actions } = useStatisticsPage<ProportionTestResults, ProportionTestVariables>({
-    withUploadedData: true,
-    withError: false
+  // ============================================================================
+  // State (Analysis Options)
+  // ============================================================================
+
+  const [analysisOptions, setAnalysisOptions] = React.useState<AnalysisOptions>({
+    testProportion: '0.5',
+    confidenceLevel: '95',
+    alternative: 'two-sided',
+    method: 'normal'
   })
-  const { currentStep, uploadedData, results, isAnalyzing, selectedVariables } = state
-  const variableMapping = selectedVariables || {}
-  const [activeTab, setActiveTab] = useState('summary')
-  const [testProportion, setTestProportion] = useState('0.5')
-  const [confidenceLevel, setConfidenceLevel] = useState('95')
-  const [alternative, setAlternative] = useState('two-sided')
-  const [method, setMethod] = useState('normal')
-  const { pyodideService: _pyodideService } = usePyodideService()
 
-  // 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'upload-data',
-      number: 0,
-      title: '데이터 업로드',
-      description: '분석할 CSV/Excel 파일 업로드',
-      status: uploadedData ? 'completed' : 'current'
-    },
-    {
-      id: 'select-variable',
-      number: 1,
-      title: '변수 선택',
-      description: '검정할 이분 변수 선택',
-      status: uploadedData && Object.keys(variableMapping).length > 0 ? 'completed' : (uploadedData ? 'current' : 'pending')
-    },
-    {
-      id: 'set-hypothesis',
-      number: 2,
-      title: '가설 설정',
-      description: '검정 비율 및 대립가설 설정',
-      status: Object.keys(variableMapping).length > 0 ? 'current' : 'pending'
-    },
-    {
-      id: 'run-analysis',
-      number: 3,
-      title: '분석 실행',
-      description: '일표본 비율 검정 수행',
-      status: results ? 'completed' : 'pending'
-    },
-    {
-      id: 'view-results',
-      number: 4,
-      title: '결과 해석',
-      description: '검정 결과 및 신뢰구간',
-      status: results ? 'current' : 'pending'
-    }
-  ]
+  const [activeTab, setActiveTab] = React.useState('summary')
 
-  // 분석 실행
-  const handleAnalysis = useCallback(async () => {
-    if (!uploadedData || !selectedVariables) {
-      actions.setError('데이터와 변수를 확인해주세요.')
-      return
-    }
+  // ============================================================================
+  // Breadcrumbs
+  // ============================================================================
 
-    actions.startAnalysis()
+  const breadcrumbs = useMemo(() => [
+    { label: '홈', href: '/' },
+    { label: '통계 분석', href: '/statistics' },
+    { label: '일표본 비율 검정', href: '/statistics/proportion-test' }
+  ], [])
+
+  // ============================================================================
+  // Event Handlers
+  // ============================================================================
+
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep?.(1)
+    },
+    'proportion-test'
+  )
+
+  const handleVariableSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { dependent: '' }
+    const newDependent = current.dependent === varName ? '' : varName
+
+    actions.setSelectedVariables?.({
+      dependent: newDependent
+    })
+
+    // ❌ NO setCurrentStep here - Critical Bug 예방!
+  }, [selectedVariables, actions])
+
+  const runAnalysis = useCallback(async (variables: ProportionTestVariables) => {
+    if (!uploadedData) return
+    if (!variables.dependent) return
+
+    actions.startAnalysis?.()
 
     try {
       // PyodideCore 서비스 임포트
@@ -125,15 +160,7 @@ export default function ProportionTestPage() {
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
 
-      // 변수 추출
-      const variableName = Array.isArray(selectedVariables.dependent)
-        ? selectedVariables.dependent[0]
-        : selectedVariables.dependent
-
-      if (!variableName) {
-        actions.setError('변수를 선택해주세요.')
-        return
-      }
+      const variableName = variables.dependent
 
       // 데이터에서 성공 횟수 계산
       const values = uploadedData.data
@@ -141,12 +168,12 @@ export default function ProportionTestPage() {
         .filter((v: unknown) => v !== null && v !== undefined && v !== '')
 
       if (values.length < 10) {
-        actions.setError('최소 10개 이상의 관측치가 필요합니다.')
+        actions.setError?.('최소 10개 이상의 관측치가 필요합니다.')
         return
       }
 
       // 성공 값 추정 (1, true, "yes", "success" 등)
-      const successValue = 1 // 기본값, 실제로는 사용자가 지정해야 함
+      const successValue = 1 // 기본값
       const successCount = values.filter((v: unknown) => v === successValue || v === true || v === 'yes' || v === '1').length
       const totalCount = values.length
 
@@ -160,23 +187,23 @@ export default function ProportionTestPage() {
       }
 
       const result = await pyodideCore.callWorkerMethod<ProportionTestResult>(
-        1,
+        1, // worker1-descriptive
         'proportion_test',
         {
           successCount,
           totalCount,
-          nullProportion: parseFloat(testProportion)
+          nullProportion: parseFloat(analysisOptions.testProportion)
         }
       )
 
       const observedProp = result.sampleProportion
-      const testProp = parseFloat(testProportion)
+      const testProp = parseFloat(analysisOptions.testProportion)
       const pValue = result.pValueExact
       const zStat = result.zStatistic ?? (observedProp - testProp) / Math.sqrt(testProp * (1 - testProp) / totalCount)
       const ciLower = result.ciLower ?? observedProp - 1.96 * Math.sqrt(observedProp * (1 - observedProp) / totalCount)
       const ciUpper = result.ciUpper ?? observedProp + 1.96 * Math.sqrt(observedProp * (1 - observedProp) / totalCount)
 
-      const mockResults: ProportionTestResults = {
+      const finalResults: ProportionTestResults = {
         variable: variableName,
         successCount,
         totalCount,
@@ -184,10 +211,10 @@ export default function ProportionTestPage() {
         testProportion: testProp,
         zStatistic: zStat,
         pValue,
-        confidenceLevel: parseFloat(confidenceLevel),
+        confidenceLevel: parseFloat(analysisOptions.confidenceLevel),
         ciLower,
         ciUpper,
-        method: method === 'normal' ? 'Normal approximation (Wilson Score)' : 'Exact binomial test',
+        method: analysisOptions.method === 'normal' ? 'Normal approximation (Wilson Score)' : 'Exact binomial test',
         interpretation: pValue < 0.05 ? 'p < 0.05이므로 귀무가설을 기각합니다' : 'p ≥ 0.05이므로 귀무가설을 기각할 수 없습니다',
         conclusion: pValue < 0.05
           ? `표본 비율 ${(observedProp * 100).toFixed(1)}%가 검정 비율 ${(testProp * 100).toFixed(1)}%와 통계적으로 유의한 차이가 있습니다`
@@ -196,180 +223,422 @@ export default function ProportionTestPage() {
         continuityCorrection: totalCount < 50
       }
 
-      actions.completeAnalysis(mockResults, 4)
+      actions.completeAnalysis?.(finalResults, 3)
       setActiveTab('summary')
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
+      actions.setError?.(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }, [actions, setActiveTab, testProportion, confidenceLevel, method, uploadedData, selectedVariables])
+  }, [uploadedData, analysisOptions, actions])
 
-  // 단계 변경 처리
-  const handleStepChange = useCallback((step: number) => {
-    if (step <= currentStep + 1) {
-      actions.setCurrentStep(step)
+  const handleNextStep = useCallback(async () => {
+    if (selectedVariables?.dependent) {
+      actions.setCurrentStep?.(3)
+      await runAnalysis(selectedVariables)
     }
-  }, [actions, currentStep])
+  }, [selectedVariables, actions, runAnalysis])
 
-  // 초기화
-  const handleReset = useCallback(() => {
-    actions.reset()
-    setTestProportion('0.5')
-    setActiveTab('summary')
-  }, [actions, setTestProportion, setActiveTab])
+  // ============================================================================
+  // Steps 정의 (TwoPanelLayout)
+  // ============================================================================
 
-  // 변수 선택 핸들러 (공통 유틸 사용)
-  const handleVariablesSelected = createVariableSelectionHandler(
-    actions.setSelectedVariables,
-    (mapping) => {
-      if (Object.keys(mapping as unknown as VariableMapping).length > 0) {
-        actions.setCurrentStep(1)
-      }
+  const STEPS: TwoPanelStep[] = useMemo(() => [
+    {
+      id: 'intro',
+      label: '검정 소개',
+      description: '일표본 비율 검정 개요',
+      icon: Info,
+      content: renderMethodIntroduction
     },
-    'proportion-test'
-  )
+    {
+      id: 'upload',
+      label: '데이터 업로드',
+      description: 'CSV 파일 업로드',
+      icon: Upload,
+      content: renderDataUpload
+    },
+    {
+      id: 'variables',
+      label: '변수 및 옵션 설정',
+      description: '변수 선택 및 가설 설정',
+      icon: Settings,
+      content: renderVariableSelection
+    },
+    {
+      id: 'results',
+      label: '결과',
+      description: '검정 결과 확인',
+      icon: BarChart3,
+      content: renderResults
+    }
+  ], [])
 
-  // 검정 결과 테이블 렌더링
-  const renderTestResultsTable = () => {
-    if (!results) return null
+  // ============================================================================
+  // Render 함수들
+  // ============================================================================
 
-    const data = [{
-      statistic: 'Z 통계량',
-      value: results.zStatistic.toFixed(3),
-      interpretation: results.zStatistic > 1.96 || results.zStatistic < -1.96 ?
-        '임계값 ±1.96을 초과' : '임계값 ±1.96 이내'
-    }, {
-      statistic: 'p-값',
-      value: results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3),
-      interpretation: results.pValue < 0.05 ? '통계적으로 유의함' : '통계적으로 유의하지 않음'
-    }, {
-      statistic: '효과크기 (h)',
-      value: results.effectSize.toFixed(3),
-      interpretation: results.effectSize < 0.2 ? '작은 효과' :
-                      results.effectSize < 0.5 ? '중간 효과' :
-                      results.effectSize < 0.8 ? '큰 효과' : '매우 큰 효과'
-    }, {
-      statistic: '검정 방법',
-      value: results.method,
-      interpretation: results.continuityCorrection ? '연속성 보정 적용됨' : '정규 근사 사용'
-    }]
+  const renderMethodIntroduction = useCallback(() => (
+    <div className="space-y-6">
+      <Card className="p-6">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-primary/10 rounded-lg">
+            <PieChart className="w-8 h-8 text-primary" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold mb-2">일표본 비율 검정이란?</h2>
+            <p className="text-muted-foreground">
+              한 집단의 성공 비율이 특정 값과 다른지 검정하는 방법입니다.
+            </p>
+          </div>
+        </div>
+      </Card>
 
-    const columns = [
-      { key: 'statistic', header: '통계량', type: 'text' as const },
-      { key: 'value', header: '값', type: 'text' as const },
-      { key: 'interpretation', header: '해석', type: 'text' as const }
-    ]
+      <Card className="p-6">
+        <h3 className="font-semibold text-lg mb-3">주요 특징</h3>
+        <ul className="space-y-2">
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <span className="text-sm">이분 변수 (성공/실패) 분석</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <span className="text-sm">검정 비율(p₀) 설정 가능</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <span className="text-sm">양측/단측 검정 지원</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <span className="text-sm">Wilson Score 신뢰구간 (정확함)</span>
+          </li>
+        </ul>
+      </Card>
+
+      <Card className="p-6 bg-blue-50 dark:bg-blue-950">
+        <h3 className="font-semibold text-lg mb-3">검정 통계량</h3>
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-lg font-mono text-center">
+          Z = (p̂ - p₀) / √(p₀(1-p₀)/n)
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          <strong>가정</strong>: 이항분포, 독립적 시행, 각 시행의 성공확률 동일
+        </p>
+      </Card>
+
+      <Button onClick={() => { actions.setCurrentStep?.(1) }} className="w-full" size="lg">
+        다음 단계로
+      </Button>
+    </div>
+  ), [actions])
+
+  const renderDataUpload = useCallback(() => (
+    <DataUploadStep onUploadComplete={handleDataUpload} />
+  ), [handleDataUpload])
+
+  const renderVariableSelection = useCallback(() => {
+    if (!uploadedData) return null
+
+    const currentDependent = selectedVariables?.dependent || ''
 
     return (
-      <StatisticsTable
-        columns={columns}
-        data={data}
-        title="일표본 비율 검정 결과"
-      />
-    )
-  }
+      <div className="space-y-6">
+        {/* 변수 선택 */}
+        <Card className="p-6">
+          <h3 className="font-semibold text-lg mb-4">변수 선택</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            비율 검정을 수행할 이분 변수를 선택하세요.
+          </p>
 
-  // 기술통계 테이블 렌더링
-  const renderDescriptiveTable = () => {
-    if (!results) return null
+          <div className="flex flex-wrap gap-2">
+            {uploadedData.columns.map((col: string) => {
+              const isSelected = currentDependent === col
 
-    const data = [{
-      category: '성공',
-      count: results.successCount,
-      proportion: (results.observedProportion * 100).toFixed(1) + '%',
-      expected: (results.testProportion * results.totalCount).toFixed(0),
-      expectedProp: (results.testProportion * 100).toFixed(1) + '%'
-    }, {
-      category: '실패',
-      count: results.totalCount - results.successCount,
-      proportion: ((1 - results.observedProportion) * 100).toFixed(1) + '%',
-      expected: ((1 - results.testProportion) * results.totalCount).toFixed(0),
-      expectedProp: ((1 - results.testProportion) * 100).toFixed(1) + '%'
-    }]
+              return (
+                <Badge
+                  key={col}
+                  variant={isSelected ? 'default' : 'outline'}
+                  className="cursor-pointer px-4 py-2"
+                  onClick={() => { handleVariableSelect(col) }}
+                >
+                  {col}
+                  {isSelected && <CheckCircle2 className="w-4 h-4 ml-2" />}
+                </Badge>
+              )
+            })}
+          </div>
 
-    const columns = [
-      { key: 'category', header: '범주', type: 'text' as const },
-      { key: 'count', header: '관측빈도', type: 'number' as const },
-      { key: 'proportion', header: '관측비율', type: 'text' as const },
-      { key: 'expected', header: '기대빈도', type: 'text' as const },
-      { key: 'expectedProp', header: '기대비율', type: 'text' as const }
-    ]
-
-    return (
-      <StatisticsTable
-        columns={columns}
-        data={data}
-        title="관측값 vs 기댓값"
-      />
-    )
-  }
-
-  // 요약 카드 렌더링
-  const renderSummaryCards = () => {
-    if (!results) return null
-
-    const significanceLevel = (100 - results.confidenceLevel) / 100
-    const isSignificant = results.pValue < significanceLevel
-
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">표본크기</p>
-                <p className="text-2xl font-bold">{results.totalCount}</p>
-              </div>
-              <Target className="w-8 h-8 text-muted-foreground/20" />
-            </div>
-          </CardContent>
+          {!currentDependent && (
+            <Alert className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                이분 변수 1개를 선택해주세요.
+              </AlertDescription>
+            </Alert>
+          )}
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">성공 횟수</p>
-                <p className="text-2xl font-bold">{results.successCount}</p>
-              </div>
-              <Calculator className="w-8 h-8 text-muted-foreground/20" />
-            </div>
-          </CardContent>
-        </Card>
+        {/* 가설 및 옵션 설정 */}
+        {currentDependent && (
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold mb-4">가설 및 검정 옵션 설정</h3>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">관측 비율</p>
-                <p className="text-2xl font-bold">{(results.observedProportion * 100).toFixed(1)}%</p>
-              </div>
-              <Percent className="w-8 h-8 text-muted-foreground/20" />
-            </div>
-          </CardContent>
-        </Card>
+            <div className="space-y-4">
+              {/* 검정 비율 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="test-proportion">검정 비율 (p₀)</Label>
+                  <Input
+                    id="test-proportion"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={analysisOptions.testProportion}
+                    onChange={(e) => {
+                      setAnalysisOptions(prev => ({
+                        ...prev,
+                        testProportion: e.target.value
+                      }))
+                    }}
+                    placeholder="예: 0.5"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    0과 1 사이의 값 (예: 50% = 0.5)
+                  </p>
+                </div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">p-값</p>
-                <p className="text-2xl font-bold">
-                  {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
+                <div className="space-y-2">
+                  <Label>검정 방법</Label>
+                  <Select
+                    value={analysisOptions.method}
+                    onValueChange={(value) => {
+                      setAnalysisOptions(prev => ({
+                        ...prev,
+                        method: value
+                      }))
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">정규 근사 (빠름)</SelectItem>
+                      <SelectItem value="exact">정확 검정 (정확함)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 대립가설 및 신뢰수준 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>대립가설</Label>
+                  <Select
+                    value={analysisOptions.alternative}
+                    onValueChange={(value) => {
+                      setAnalysisOptions(prev => ({
+                        ...prev,
+                        alternative: value
+                      }))
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="two-sided">p ≠ p₀ (양측검정)</SelectItem>
+                      <SelectItem value="greater">p &gt; p₀ (우측검정)</SelectItem>
+                      <SelectItem value="less">p &lt; p₀ (좌측검정)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>신뢰수준</Label>
+                  <Select
+                    value={analysisOptions.confidenceLevel}
+                    onValueChange={(value) => {
+                      setAnalysisOptions(prev => ({
+                        ...prev,
+                        confidenceLevel: value
+                      }))
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="90">90%</SelectItem>
+                      <SelectItem value="95">95%</SelectItem>
+                      <SelectItem value="99">99%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 가설 요약 */}
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <h4 className="font-semibold mb-2">가설 요약</h4>
+                <p className="text-sm">
+                  <strong>H₀:</strong> p = {analysisOptions.testProportion} ({(parseFloat(analysisOptions.testProportion) * 100).toFixed(0)}%)
+                </p>
+                <p className="text-sm">
+                  <strong>H₁:</strong> p {
+                    analysisOptions.alternative === 'two-sided' ? '≠' :
+                    analysisOptions.alternative === 'greater' ? '>' : '<'
+                  } {analysisOptions.testProportion} ({(parseFloat(analysisOptions.testProportion) * 100).toFixed(0)}%)
                 </p>
               </div>
-              <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-green-500/50' : 'text-red-500/50'}`} />
+
+              <Button
+                onClick={handleNextStep}
+                disabled={isAnalyzing || !currentDependent}
+                className="w-full"
+              >
+                {isAnalyzing ? '분석 중...' : '다음 단계'}
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </Card>
+        )}
       </div>
     )
-  }
+  }, [uploadedData, selectedVariables, analysisOptions, isAnalyzing, handleVariableSelect, handleNextStep])
 
-  // 신뢰구간 정보
-  const renderConfidenceInterval = () => {
+  const renderResults = useCallback(() => {
     if (!results) return null
 
-    return (
+    // 검정 결과 테이블
+    const renderTestResultsTable = () => {
+      const data = [{
+        statistic: 'Z 통계량',
+        value: results.zStatistic.toFixed(3),
+        interpretation: results.zStatistic > 1.96 || results.zStatistic < -1.96 ?
+          '임계값 ±1.96을 초과' : '임계값 ±1.96 이내'
+      }, {
+        statistic: 'p-값',
+        value: results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3),
+        interpretation: results.pValue < 0.05 ? '통계적으로 유의함' : '통계적으로 유의하지 않음'
+      }, {
+        statistic: '효과크기 (h)',
+        value: results.effectSize.toFixed(3),
+        interpretation: results.effectSize < 0.2 ? '작은 효과' :
+                        results.effectSize < 0.5 ? '중간 효과' :
+                        results.effectSize < 0.8 ? '큰 효과' : '매우 큰 효과'
+      }, {
+        statistic: '검정 방법',
+        value: results.method,
+        interpretation: results.continuityCorrection ? '연속성 보정 적용됨' : '정규 근사 사용'
+      }]
+
+      const columns = [
+        { key: 'statistic', header: '통계량', type: 'text' as const },
+        { key: 'value', header: '값', type: 'text' as const },
+        { key: 'interpretation', header: '해석', type: 'text' as const }
+      ]
+
+      return (
+        <StatisticsTable
+          columns={columns}
+          data={data}
+          title="일표본 비율 검정 결과"
+        />
+      )
+    }
+
+    // 기술통계 테이블
+    const renderDescriptiveTable = () => {
+      const data = [{
+        category: '성공',
+        count: results.successCount,
+        proportion: (results.observedProportion * 100).toFixed(1) + '%',
+        expected: (results.testProportion * results.totalCount).toFixed(0),
+        expectedProp: (results.testProportion * 100).toFixed(1) + '%'
+      }, {
+        category: '실패',
+        count: results.totalCount - results.successCount,
+        proportion: ((1 - results.observedProportion) * 100).toFixed(1) + '%',
+        expected: ((1 - results.testProportion) * results.totalCount).toFixed(0),
+        expectedProp: ((1 - results.testProportion) * 100).toFixed(1) + '%'
+      }]
+
+      const columns = [
+        { key: 'category', header: '범주', type: 'text' as const },
+        { key: 'count', header: '관측빈도', type: 'number' as const },
+        { key: 'proportion', header: '관측비율', type: 'text' as const },
+        { key: 'expected', header: '기대빈도', type: 'text' as const },
+        { key: 'expectedProp', header: '기대비율', type: 'text' as const }
+      ]
+
+      return (
+        <StatisticsTable
+          columns={columns}
+          data={data}
+          title="관측값 vs 기댓값"
+        />
+      )
+    }
+
+    // 요약 카드
+    const renderSummaryCards = () => {
+      const significanceLevel = (100 - results.confidenceLevel) / 100
+      const isSignificant = results.pValue < significanceLevel
+
+      return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">표본크기</p>
+                  <p className="text-2xl font-bold">{results.totalCount}</p>
+                </div>
+                <Target className="w-8 h-8 text-muted-foreground/20" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">성공 횟수</p>
+                  <p className="text-2xl font-bold">{results.successCount}</p>
+                </div>
+                <Calculator className="w-8 h-8 text-muted-foreground/20" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">관측 비율</p>
+                  <p className="text-2xl font-bold">{(results.observedProportion * 100).toFixed(1)}%</p>
+                </div>
+                <Percent className="w-8 h-8 text-muted-foreground/20" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">p-값</p>
+                  <p className="text-2xl font-bold">
+                    {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
+                  </p>
+                </div>
+                <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-green-500/50' : 'text-red-500/50'}`} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+
+    // 신뢰구간
+    const renderConfidenceInterval = () => (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -400,11 +669,9 @@ export default function ProportionTestPage() {
         </CardContent>
       </Card>
     )
-  }
 
-  // 검정 방법 설명
-  const renderMethodExplanation = () => {
-    return (
+    // 방법 설명
+    const renderMethodExplanation = () => (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -441,229 +708,61 @@ export default function ProportionTestPage() {
         </CardContent>
       </Card>
     )
-  }
+
+    return (
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="summary">요약</TabsTrigger>
+          <TabsTrigger value="results">검정결과</TabsTrigger>
+          <TabsTrigger value="confidence">신뢰구간</TabsTrigger>
+          <TabsTrigger value="methods">방법설명</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="summary" className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
+            {renderSummaryCards()}
+          </div>
+          <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
+            <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
+            <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
+            <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="results" className="space-y-6">
+          <div>
+            {renderDescriptiveTable()}
+          </div>
+          <div>
+            {renderTestResultsTable()}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="confidence" className="space-y-6">
+          {renderConfidenceInterval()}
+        </TabsContent>
+
+        <TabsContent value="methods" className="space-y-6">
+          {renderMethodExplanation()}
+        </TabsContent>
+      </Tabs>
+    )
+  }, [results, activeTab])
+
+  // ============================================================================
+  // JSX 렌더링
+  // ============================================================================
 
   return (
-    <StatisticsPageLayout
-      title="일표본 비율 검정"
-      subtitle="한 집단의 성공 비율이 특정 값과 다른지 검정"
-      icon={<PieChart className="w-6 h-6" />}
-      steps={steps}
+    <TwoPanelLayout
+      breadcrumbs={breadcrumbs}
       currentStep={currentStep}
-      onStepChange={handleStepChange}
-      onRun={handleAnalysis}
-      onReset={handleReset}
-      isRunning={isAnalyzing}
-      methodInfo={{
-        formula: "Z = (p̂ - p₀) / √(p₀(1-p₀)/n), Wilson Score CI",
-        assumptions: ["이항분포", "독립적인 시행", "각 시행의 성공확률 동일"],
-        sampleSize: "최소 5개 성공과 5개 실패",
-        usage: "성공률, 불량률, 찬성률 검정"
-      }}
-    >
-      <div className="space-y-6">
-        {/* 0단계: 데이터 업로드 */}
-        {currentStep === 0 && !uploadedData && (
-          <DataUploadStep
-            onUploadComplete={createDataUploadHandler(
-              actions.setUploadedData,
-              () => actions.setCurrentStep(1),
-              'proportion-test'
-            )}
-          />
-        )}
-
-        {/* 1단계: 변수 선택 */}
-        {currentStep === 1 && uploadedData && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChart className="w-5 h-5" />
-                검정할 변수 선택
-              </CardTitle>
-              <CardDescription>
-                비율 검정을 수행할 이분 변수(성공/실패, 예/아니오)를 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VariableSelectorModern
-                methodId="one-sample-proportion"
-                data={uploadedData.data}
-                onVariablesSelected={handleVariablesSelected}
-                onBack={() => actions.reset()}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 2단계: 가설 설정 */}
-        {currentStep === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                가설 및 검정 옵션 설정
-              </CardTitle>
-              <CardDescription>
-                검정할 비율값과 대립가설을 설정하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="test-proportion">검정 비율 (p₀)</Label>
-                  <Input
-                    id="test-proportion"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="1"
-                    value={testProportion}
-                    onChange={(e) => setTestProportion(e.target.value)}
-                    placeholder="예: 0.5"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    0과 1 사이의 값 (예: 50% = 0.5)
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>검정 방법</Label>
-                  <Select value={method} onValueChange={setMethod}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="normal">정규 근사 (빠름)</SelectItem>
-                      <SelectItem value="exact">정확 검정 (정확함)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>대립가설</Label>
-                  <Select value={alternative} onValueChange={setAlternative}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="two-sided">p ≠ p₀ (양측검정)</SelectItem>
-                      <SelectItem value="greater">p &gt; p₀ (우측검정)</SelectItem>
-                      <SelectItem value="less">p &lt; p₀ (좌측검정)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>신뢰수준</Label>
-                  <Select value={confidenceLevel} onValueChange={setConfidenceLevel}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="90">90%</SelectItem>
-                      <SelectItem value="95">95%</SelectItem>
-                      <SelectItem value="99">99%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <h4 className="font-semibold mb-2">가설 요약</h4>
-                <p className="text-sm">
-                  <strong>H₀:</strong> p = {testProportion} ({(parseFloat(testProportion) * 100).toFixed(0)}%)
-                </p>
-                <p className="text-sm">
-                  <strong>H₁:</strong> p {
-                    alternative === 'two-sided' ? '≠' :
-                    alternative === 'greater' ? '\u003E' : '\u003C'
-                  } {testProportion} ({(parseFloat(testProportion) * 100).toFixed(0)}%)
-                </p>
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <Button
-                  onClick={() => actions.setCurrentStep(3)}
-                  disabled={Object.keys(variableMapping).length === 0 || !testProportion}
-                >
-                  다음 단계
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 3단계: 분석 실행 */}
-        {currentStep === 3 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="w-5 h-5" />
-                분석 실행
-              </CardTitle>
-              <CardDescription>
-                설정된 가설로 일표본 비율 검정을 실행합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Button
-                  size="lg"
-                  onClick={handleAnalysis}
-                  disabled={isAnalyzing}
-                  className="px-8"
-                >
-                  {isAnalyzing ? '분석 중...' : '비율 검정 실행'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 4단계: 결과 확인 */}
-        {results && currentStep === 4 && (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="summary">요약</TabsTrigger>
-              <TabsTrigger value="results">검정결과</TabsTrigger>
-              <TabsTrigger value="confidence">신뢰구간</TabsTrigger>
-              <TabsTrigger value="methods">방법설명</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="summary" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
-                {renderSummaryCards()}
-              </div>
-              <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
-                <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
-                <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
-                <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="results" className="space-y-6">
-              <div>
-                {renderDescriptiveTable()}
-              </div>
-              <div>
-                {renderTestResultsTable()}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="confidence" className="space-y-6">
-              {renderConfidenceInterval()}
-            </TabsContent>
-
-            <TabsContent value="methods" className="space-y-6">
-              {renderMethodExplanation()}
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
-    </StatisticsPageLayout>
+      steps={STEPS}
+      onStepChange={(step: number) => { actions.setCurrentStep?.(step) }}
+      bottomPreview={uploadedData && currentStep >= 1 ? (
+        <DataPreview data={uploadedData} />
+      ) : null}
+    />
   )
 }
