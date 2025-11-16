@@ -1,20 +1,13 @@
 'use client'
 
-/**
- * 단계적 회귀분석 페이지 - TwoPanelLayout (데이터 하단 배치)
- *
- * Migration: StatisticsPageLayout → TwoPanelLayout
- * - Badge-based variable selection (dependent, factor, covariate)
- * - Critical Bug prevention (Badge clicks don't trigger step change)
- * - Separate analysis button ("다음 단계" triggers step + analysis)
- */
-
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+
+import React, { useState, useCallback, useEffect } from 'react'
 import type { StepwiseVariables } from '@/types/statistics'
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -22,10 +15,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Label } from '@/components/ui/label'
-import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus, Home, ChartBar, CheckCircle } from 'lucide-react'
-import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
-import { escapeHtml } from '@/lib/utils/html-escape'
+import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus } from 'lucide-react'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+
+// interface SelectedVariables {
+//   dependent: string[]
+//   factor: string[]
+//   covariate?: string[]
+// }
+// → types/statistics.ts의 StepwiseVariables 사용
 
 interface StepwiseResults {
   final_model: {
@@ -75,13 +73,6 @@ interface StepwiseResults {
   }
 }
 
-const STEPS = [
-  { id: 1, label: '분석 방법 소개' },
-  { id: 2, label: '데이터 업로드' },
-  { id: 3, label: '변수 선택' },
-  { id: 4, label: '분석 결과' }
-]
-
 export default function StepwiseRegressionPage() {
   // 최근 사용 통계 자동 추가
   useEffect(() => {
@@ -96,85 +87,77 @@ export default function StepwiseRegressionPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '단계적 회귀분석' }
-  ], [])
+  // Page-specific state
+  const [data, setData] = useState<any[]>([])
+  const [columns, setColumns] = useState<string[]>([])
+  const [selectedVariablesManual, setSelectedVariablesManual] = useState<{
+    dependent: string[]
+    factor: string[]
+    covariate: string[]
+  }>({
 
-  // Steps with completed state
-  const stepsWithCompleted = useMemo(() => STEPS.map(step => ({
-    ...step,
-    completed: step.id === 1 ? currentStep > 1 :
-              step.id === 2 ? !!uploadedData :
-              step.id === 3 ? !!selectedVariables :
-              step.id === 4 ? !!results : false
-  })), [currentStep, uploadedData, selectedVariables, results])
+    dependent: [],
+    factor: [],
+    covariate: []
+  })
 
-  // Handlers
-  const handleDataUpload = useCallback((file: File, data: Array<Record<string, unknown>>) => {
-    const columns = data.length > 0 ? Object.keys(data[0]) : []
-    if (actions.setUploadedData) {
-      actions.setUploadedData({ data, fileName: file.name, columns })
+  const steps = [
+    {
+      id: 'intro',
+      number: 1,
+      title: '단계적 회귀분석',
+      description: '통계적 기준에 따라 예측변수를 자동으로 선택하는 회귀분석을 수행합니다.',
+      status: (currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending') as 'pending' | 'current' | 'completed' | 'error'
+    },
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
+      status: (currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending') as 'pending' | 'current' | 'completed' | 'error'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '종속변수와 예측변수 후보들을 선택합니다.',
+      status: (currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'pending') as 'pending' | 'current' | 'completed' | 'error'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '분석 결과',
+      description: '단계적 선택 과정과 최종 회귀모델을 확인합니다.',
+      status: (currentStep === 4 ? 'current' : currentStep > 4 ? 'completed' : 'pending') as 'pending' | 'current' | 'completed' | 'error'
     }
-    actions.setCurrentStep(3)
+  ]
+
+  // Data upload handler using common utility
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    (uploadedData) => {
+      // Update legacy state for pyodide compatibility
+      setData(uploadedData.data)
+      setColumns(uploadedData.columns)
+      actions.setCurrentStep(3)
+    },
+    'stepwise'
+  )
+
+  const handleVariablesSelected = useCallback((variables: unknown) => {
+    if (!actions.setSelectedVariables) {
+      console.error('[stepwise] setSelectedVariables not available')
+      return
+    }
+
+    if (typeof variables === 'object' && variables !== null) {
+      actions.setSelectedVariables(variables as StepwiseVariables)
+      actions.setCurrentStep(4)
+      runStepwiseAnalysis(variables as StepwiseVariables)
+    }
   }, [actions])
 
-  // Variable selection handlers (Critical Bug prevention: NO setCurrentStep here)
-  const handleDependentSelect = useCallback((varName: string) => {
-    const current = selectedVariables || { dependent: [], factor: [], covariate: [] }
-    const currentDeps = Array.isArray(current.dependent) ? current.dependent : []
-    const isSelected = currentDeps.includes(varName)
-    const newDeps = isSelected
-      ? currentDeps.filter(v => v !== varName)
-      : [...currentDeps, varName]
-
-    if (actions.setSelectedVariables) {
-      actions.setSelectedVariables({
-        dependent: newDeps,
-        factor: current.factor || [],
-        covariate: current.covariate || []
-      })
-    }
-  }, [selectedVariables, actions])
-
-  const handleFactorSelect = useCallback((varName: string) => {
-    const current = selectedVariables || { dependent: [], factor: [], covariate: [] }
-    const currentFactors = Array.isArray(current.factor) ? current.factor : []
-    const isSelected = currentFactors.includes(varName)
-    const newFactors = isSelected
-      ? currentFactors.filter(v => v !== varName)
-      : [...currentFactors, varName]
-
-    if (actions.setSelectedVariables) {
-      actions.setSelectedVariables({
-        dependent: current.dependent || [],
-        factor: newFactors,
-        covariate: current.covariate || []
-      })
-    }
-  }, [selectedVariables, actions])
-
-  const handleCovariateSelect = useCallback((varName: string) => {
-    const current = selectedVariables || { dependent: [], factor: [], covariate: [] }
-    const currentCovs = Array.isArray(current.covariate) ? current.covariate : []
-    const isSelected = currentCovs.includes(varName)
-    const newCovs = isSelected
-      ? currentCovs.filter(v => v !== varName)
-      : [...currentCovs, varName]
-
-    if (actions.setSelectedVariables) {
-      actions.setSelectedVariables({
-        dependent: current.dependent || [],
-        factor: current.factor || [],
-        covariate: newCovs
-      })
-    }
-  }, [selectedVariables, actions])
-
   const runStepwiseAnalysis = useCallback(async (variables: StepwiseVariables) => {
-    if (!uploadedData) return
-
     // 배열 정규화: string | string[] → string[]
     const dependentVars = Array.isArray(variables.dependent)
       ? variables.dependent
@@ -243,7 +226,7 @@ export default function StepwiseRegressionPage() {
           recommendations: string[]
         }
       }>(2, 'stepwise_regression_forward', {
-        data: uploadedData.data as never,
+        data: data as never,
         dependent_var: dependentVars[0],
         predictor_vars: predictorVars as never,
         significance_level: 0.05
@@ -299,78 +282,16 @@ export default function StepwiseRegressionPage() {
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
-  }, [actions, uploadedData])
+  }, [actions, data])
 
-  // "다음 단계" button (triggers step change + analysis)
-  const handleNextStep = useCallback(async () => {
-    if (!selectedVariables?.dependent || selectedVariables.dependent.length === 0 ||
-        !selectedVariables?.factor || selectedVariables.factor.length === 0) {
-      actions.setError('종속변수와 독립변수를 각각 최소 1개 이상 선택해주세요.')
-      return
-    }
-    actions.setCurrentStep(4)
-    await runStepwiseAnalysis(selectedVariables)
-  }, [selectedVariables, actions, runStepwiseAnalysis])
-
-  const getModelFitInterpretation = useCallback((r2: number) => {
+  const getModelFitInterpretation = (r2: number) => {
     if (r2 >= 0.7) return { level: '우수', color: 'text-muted-foreground', bg: 'bg-muted' }
     if (r2 >= 0.5) return { level: '양호', color: 'text-muted-foreground', bg: 'bg-muted' }
     if (r2 >= 0.3) return { level: '보통', color: 'text-muted-foreground', bg: 'bg-muted' }
     return { level: '낮음', color: 'text-muted-foreground', bg: 'bg-muted' }
-  }, [])
+  }
 
-  // "새 창으로 보기" 핸들러
-  const handleOpenNewWindow = useCallback(() => {
-    if (!uploadedData) return
-
-    const dataWindow = window.open('', '_blank', 'width=1200,height=800')
-    if (dataWindow) {
-      const columns = uploadedData.columns
-      const html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>데이터 미리보기 - ${escapeHtml(uploadedData.fileName)}</title>
-          <style>
-            body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; }
-            table { border-collapse: collapse; width: 100%; font-size: 12px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f0f0f0; font-weight: 600; position: sticky; top: 0; }
-            tr:nth-child(even) { background-color: #f9f9f9; }
-            .header { margin-bottom: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>${escapeHtml(uploadedData.fileName)}</h2>
-            <p>${uploadedData.data.length.toLocaleString()}행 × ${columns.length}열</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                ${columns.map(col => `<th>${escapeHtml(col)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${uploadedData.data.map((row, idx) => `
-                <tr>
-                  <td>${idx + 1}</td>
-                  ${columns.map(col => `<td>${escapeHtml(String(row[col] ?? ''))}</td>`).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </body>
-        </html>
-      `
-      dataWindow.document.write(html)
-      dataWindow.document.close()
-    }
-  }, [uploadedData])
-
-  // Render functions (useCallback)
-  const renderMethodIntroduction = useCallback(() => (
+  const renderMethodIntroduction = () => (
     <div className="space-y-6">
       <div className="text-center">
         <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -453,9 +374,9 @@ export default function StepwiseRegressionPage() {
         </Button>
       </div>
     </div>
-  ), [actions])
+  )
 
-  const renderResults = useCallback(() => {
+  const renderResults = () => {
     if (isAnalyzing) {
       return (
         <div className="flex items-center justify-center py-8">
@@ -848,181 +769,31 @@ export default function StepwiseRegressionPage() {
         </Tabs>
       </div>
     )
-  }, [isAnalyzing, error, results, getModelFitInterpretation])
-
-  // Type-safe onStepChange handler
-  const handleStepChange = useCallback((step: number) => {
-    actions.setCurrentStep(step)
-  }, [actions])
+  }
 
   return (
-    <TwoPanelLayout
+    <StatisticsPageLayout
+      steps={steps}
       currentStep={currentStep}
-      steps={stepsWithCompleted}
-      onStepChange={handleStepChange}
-      analysisTitle="단계적 회귀분석"
-      analysisSubtitle="Stepwise Regression"
-      analysisIcon={<TrendingUp className="h-5 w-5 text-primary" />}
-      breadcrumbs={breadcrumbs}
-      bottomPreview={uploadedData ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        onOpenNewWindow: handleOpenNewWindow
-      } : undefined}
+      title="단계적 회귀분석"
+      description="통계적 기준에 따른 예측변수 자동 선택"
     >
-      {/* Step 1: 분석 방법 소개 */}
       {currentStep === 1 && renderMethodIntroduction()}
-
-      {/* Step 2: 데이터 업로드 */}
       {currentStep === 2 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
-            <p className="text-sm text-muted-foreground">
-              단계적 회귀분석할 데이터 파일을 업로드하세요
-            </p>
-          </div>
-
-          <DataUploadStep
-            onUploadComplete={handleDataUpload}
-            onNext={() => actions.setCurrentStep(3)}
-            canGoNext={!!uploadedData}
-          />
-
-          {/* 업로드된 데이터 미리보기 */}
-          {uploadedData && (
-            <DataPreviewPanel
-              data={uploadedData.data}
-              fileName={uploadedData.fileName}
-              defaultExpanded={true}
-              onOpenNewWindow={handleOpenNewWindow}
-            />
-          )}
-        </div>
+        <DataUploadStep
+          onUploadComplete={handleDataUpload}
+          onPrevious={() => actions.setCurrentStep(1)}
+        />
       )}
-
-      {/* Step 3: 변수 선택 */}
-      {currentStep === 3 && uploadedData && (
-        <div className="max-w-6xl mx-auto space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">변수 선택</h2>
-            <p className="text-sm text-muted-foreground">
-              종속변수, 독립변수(factor), 공변량(선택)을 지정하세요
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {/* 종속변수 선택 (numeric, multi-select, at least 1) */}
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">종속변수 (Dependent Variable)</Label>
-              <p className="text-xs text-muted-foreground">연속형 변수를 1개 이상 선택하세요</p>
-              <div className="flex flex-wrap gap-2">
-                {uploadedData.columns.map((header: string) => {
-                  const isSelected = selectedVariables?.dependent?.includes(header) || false
-                  return (
-                    <Badge
-                      key={header}
-                      variant={isSelected ? 'default' : 'outline'}
-                      className="cursor-pointer max-w-[200px] truncate"
-                      title={header}
-                      onClick={() => handleDependentSelect(header)}
-                    >
-                      {header}
-                      {isSelected && (
-                        <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
-                      )}
-                    </Badge>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* 독립변수 선택 (factor, multi-select, at least 1) */}
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">독립변수 (Factor Variables)</Label>
-              <p className="text-xs text-muted-foreground">예측변수 후보를 2개 이상 선택하세요</p>
-              <div className="flex flex-wrap gap-2">
-                {uploadedData.columns.map((header: string) => {
-                  const isSelected = selectedVariables?.factor?.includes(header) || false
-                  return (
-                    <Badge
-                      key={header}
-                      variant={isSelected ? 'default' : 'outline'}
-                      className="cursor-pointer max-w-[200px] truncate"
-                      title={header}
-                      onClick={() => handleFactorSelect(header)}
-                    >
-                      {header}
-                      {isSelected && (
-                        <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
-                      )}
-                    </Badge>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* 공변량 선택 (covariate, optional multi-select) */}
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">공변량 (Covariate, 선택 사항)</Label>
-              <p className="text-xs text-muted-foreground">추가 예측변수가 있다면 선택하세요 (선택 사항)</p>
-              <div className="flex flex-wrap gap-2">
-                {uploadedData.columns.map((header: string) => {
-                  const isSelected = selectedVariables?.covariate?.includes(header) || false
-                  return (
-                    <Badge
-                      key={header}
-                      variant={isSelected ? 'default' : 'outline'}
-                      className="cursor-pointer max-w-[200px] truncate"
-                      title={header}
-                      onClick={() => handleCovariateSelect(header)}
-                    >
-                      {header}
-                      {isSelected && (
-                        <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
-                      )}
-                    </Badge>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* 에러 메시지 */}
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {/* 다음 단계 버튼 (Critical Bug prevention: triggers step + analysis) */}
-          <div className="flex gap-3">
-            <Button
-              onClick={handleNextStep}
-              disabled={isAnalyzing ||
-                !selectedVariables?.dependent || selectedVariables.dependent.length === 0 ||
-                !selectedVariables?.factor || selectedVariables.factor.length === 0
-              }
-              size="lg"
-              className="flex-1 md:flex-none md:w-auto shadow-lg"
-            >
-              {isAnalyzing ? '분석 중...' : '다음 단계 (분석 실행)'}
-            </Button>
-          </div>
-
-          {/* 업로드된 데이터 미리보기 */}
-          <DataPreviewPanel
-            data={uploadedData.data}
-            fileName={uploadedData.fileName}
-            defaultExpanded={true}
-            onOpenNewWindow={handleOpenNewWindow}
-          />
-        </div>
+      {currentStep === 3 && (
+        <VariableSelectorModern
+          methodId="stepwise-regression"
+          data={data}
+          onVariablesSelected={handleVariablesSelected}
+          onBack={() => actions.setCurrentStep(2)}
+        />
       )}
-
-      {/* Step 4: 분석 결과 */}
       {currentStep === 4 && renderResults()}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
