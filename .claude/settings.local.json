@@ -120,7 +120,9 @@
       "Bash(timeout /t 15 /nobreak)",
       "Bash(ping:*)",
       "Bash(npx playwright install:*)",
-      "Bash(timeout /t 10 /nobreak)"
+      "Bash(timeout /t 10 /nobreak)",
+      "Bash(git -C statistical-platform add __tests__/components/memory-monitor.test.tsx __tests__/components/rag/rag-assistant-compact.test.tsx __tests__/unit/file-upload-flow.test.ts __tests__/unit/parser-architecture.test.ts __tests__/utils/html-escape.test.ts types/node-hwp.d.ts)",
+      "Bash(git -C statistical-platform status --short)"
     ],
     "deny": [],
     "ask": []
