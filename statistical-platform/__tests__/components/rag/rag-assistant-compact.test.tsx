@@ -228,7 +228,6 @@ describe('RAGAssistantCompact', () => {
         answer: 'This is a test answer',
         sources: [
           {
-            doc_id: 'doc-1',
             title: 'Test Document',
             content: 'Test content',
             score: 0.9
@@ -308,9 +307,9 @@ describe('RAGAssistantCompact', () => {
     })
 
     it('로딩 중 UI를 표시해야 함', async () => {
-      let resolveQuery: (value: unknown) => void = () => {}
+      let resolveQuery: ((value: RAGResponse | PromiseLike<RAGResponse>) => void) | null = null
 
-      mockQueryRAG.mockImplementation(() => new Promise(resolve => {
+      mockQueryRAG.mockImplementation(() => new Promise<RAGResponse>(resolve => {
         resolveQuery = resolve
       }))
 
@@ -334,11 +333,13 @@ describe('RAGAssistantCompact', () => {
       }, { timeout: 500 })
 
       // 프로미스 완료
-      resolveQuery({
-        answer: 'Test',
-        sources: [],
-        model: { provider: 'ollama' }
-      })
+      if (resolveQuery) {
+        resolveQuery({
+          answer: 'Test',
+          sources: [],
+          model: { provider: 'ollama' }
+        })
+      }
     })
 
     it('메시지를 IndexedDB에 저장해야 함', async () => {

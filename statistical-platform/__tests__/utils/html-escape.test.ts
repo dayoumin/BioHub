@@ -132,7 +132,11 @@ describe('escapeHtmlObject', () => {
  */
 describe('실제 사용 시나리오', () => {
   it('CSV 데이터를 안전하게 HTML 테이블로 변환한다', () => {
-    const csvData = [
+    type CsvRow = {
+      [key: string]: string
+    }
+
+    const csvData: CsvRow[] = [
       { name: '<script>alert(1)</script>', age: '25', score: '85 & 90' },
       { name: 'Alice', age: '30', score: '95' }
     ]

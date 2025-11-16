@@ -51,7 +51,7 @@ describe('Parser Architecture', () => {
     let registry: ParserRegistry
 
     beforeEach(() => {
-      registry = new ParserRegistry()
+      registry = ParserRegistry.getInstance()
       registry.clear() // 초기화
     })
 
@@ -132,7 +132,7 @@ describe('Parser Architecture', () => {
 
   describe('Parser Selection Logic', () => {
     it('should select HWPParser for HWP files', () => {
-      const registry = new ParserRegistry()
+      const registry = ParserRegistry.getInstance()
       registry.clear()
       registry.register(new HWPParser())
       registry.register(new MarkdownParser())
@@ -149,7 +149,7 @@ describe('Parser Architecture', () => {
     })
 
     it('should not select HWPParser for HWPX files', () => {
-      const registry = new ParserRegistry()
+      const registry = ParserRegistry.getInstance()
       registry.clear()
       registry.register(new HWPParser())
 
@@ -158,7 +158,7 @@ describe('Parser Architecture', () => {
     })
 
     it('should select MarkdownParser for text files', () => {
-      const registry = new ParserRegistry()
+      const registry = ParserRegistry.getInstance()
       registry.clear()
       registry.register(new HWPParser())
       registry.register(new MarkdownParser())

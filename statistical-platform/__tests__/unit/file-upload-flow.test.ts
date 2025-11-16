@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals'
+import type { Document } from '@/lib/rag/providers/base-provider'
 
 describe('File Upload Flow - Metadata Extraction', () => {
   it('should extract metadata from filename pattern: {library}-{category}-{title}.ext', () => {
@@ -171,7 +172,7 @@ describe('File Upload Flow - Document Creation', () => {
   })
 
   it('should handle optional fields', () => {
-    const document = {
+    const document: Document = {
       doc_id: 'user_1234567890_test',
       title: 'Test Document',
       library: 'custom',
