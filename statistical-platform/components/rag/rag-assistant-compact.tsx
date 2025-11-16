@@ -193,40 +193,31 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
     ? sessions.filter((s) => s.isFavorite)
     : sessions
 
+  const currentSession = sessions.find((s) => s.id === currentSessionId)
+
   return (
     <div className={cn('flex flex-col h-full bg-background', className)}>
-      {/* 상단 세션 목록 (간소화) */}
+      {/* 상단 세션 헤더 (최신 UI 패턴) */}
       <div className="h-12 flex-shrink-0 border-b bg-muted/30">
-        <div className="h-full flex items-center gap-2 px-2 overflow-x-auto">
+        <div className="h-full flex items-center gap-2 px-3 justify-between">
           {/* 새 대화 버튼 */}
           <Button
-            size="sm"
+            size="icon"
             variant="outline"
             onClick={() => void handleNewSession()}
-            className="flex-shrink-0 bg-background hover:bg-muted"
+            className="flex-shrink-0 bg-background hover:bg-muted h-8 w-8"
+            title="새 대화"
           >
-            <Plus className="h-3 w-3 mr-1" />
-            새 대화
+            <Plus className="h-4 w-4" />
           </Button>
 
-          {/* 세션 목록 (가로 스크롤) */}
-          {filteredSessions.length > 0 && (
-            <>
-              <div className="h-4 w-px bg-border" />
-              <div className="flex gap-1 overflow-x-auto flex-1">
-                {filteredSessions.slice(0, 5).map((session) => (
-                  <Button
-                    key={session.id}
-                    variant={currentSessionId === session.id ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => void handleSelectSession(session.id)}
-                    className="flex-shrink-0 text-xs max-w-[120px]"
-                  >
-                    <span className="truncate">{session.title}</span>
-                  </Button>
-                ))}
-              </div>
-            </>
+          {/* 현재 세션 제목 */}
+          {currentSession && (
+            <div className="flex-1 min-w-0 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground truncate" title={currentSession.title}>
+                {currentSession.title}
+              </span>
+            </div>
           )}
         </div>
       </div>

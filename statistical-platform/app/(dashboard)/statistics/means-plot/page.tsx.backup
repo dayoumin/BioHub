@@ -2,20 +2,24 @@
 
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import type { MeansPlotVariables } from '@/types/statistics'
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, AlertCircle, BarChart3, Target, CheckCircle } from 'lucide-react'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ErrorBar } from 'recharts'
+import { CheckCircle2, AlertCircle, BarChart3, Target } from 'lucide-react'
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ErrorBar, LineChart, Line } from 'recharts'
 
 // interface SelectedVariables {
 //   dependent: string[]
@@ -61,19 +65,36 @@ export default function MeansPlotPage() {
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
 
-  const steps = useMemo(() => {
-    const baseSteps = [
-      { id: 1, label: '방법 소개' },
-      { id: 2, label: '데이터 업로드' },
-      { id: 3, label: '변수 선택' },
-      { id: 4, label: '분석 결과' }
-    ]
-
-    return baseSteps.map((step, index) => ({
-      ...step,
-      completed: currentStep > index + 1 || (currentStep === 4 && results !== null)
-    }))
-  }, [currentStep, results])
+  const steps: StatisticsStep[] = [
+    {
+      id: 'intro',
+      number: 1,
+      title: '평균 도표 분석',
+      description: '집단별 평균값과 오차막대를 시각화하여 집단 간 차이를 탐색합니다.',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '종속변수와 요인변수를 선택합니다.',
+      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '분석 결과',
+      description: '평균 도표와 기술통계량을 확인합니다.',
+      status: currentStep === 4 ? 'current' : currentStep > 4 ? 'completed' : 'pending'
+    }
+  ]
 
   const handleDataUpload = useCallback((uploadedData: unknown[], uploadedColumns: string[]) => {
     actions.setUploadedData?.({
@@ -161,21 +182,13 @@ export default function MeansPlotPage() {
     }
   }, [uploadedData, actions])
 
-  const handleVariableSelect = useCallback((varName: string, role: 'dependent' | 'factor') => {
-    const current = selectedVariables || { dependent: [], factor: [] }
-    const currentArray = Array.isArray(current[role]) ? current[role] : []
+  const handleVariablesSelected = useCallback((variables: unknown) => {
+    if (!variables || typeof variables !== 'object') return
 
-    const isSelected = currentArray.includes(varName)
-    const newVars = isSelected
-      ? currentArray.filter((v: string) => v !== varName)
-      : [...currentArray, varName]
-
-    actions.setSelectedVariables?.({
-      ...current,
-      [role]: newVars
-    })
-    // ❌ setCurrentStep 제거: "다음 단계" 버튼이 Step 변경을 담당
-  }, [selectedVariables, actions])
+    actions.setSelectedVariables?.(variables as MeansPlotVariables)
+    actions.setCurrentStep?.(4)
+    runMeansPlotAnalysis(variables as MeansPlotVariables)
+  }, [actions, runMeansPlotAnalysis])
 
   const renderMethodIntroduction = () => (
     <div className="space-y-6">
@@ -406,145 +419,12 @@ export default function MeansPlotPage() {
     )
   }
 
-  // Step 3 변수 선택 UI
-  const renderVariableSelection = () => {
-    if (!uploadedData) return null
-
-    const numericColumns = uploadedData.columns.filter(col => {
-      const firstValue = uploadedData.data[0]?.[col]
-      return typeof firstValue === 'number' || !isNaN(Number(firstValue))
-    })
-
-    const categoricalColumns = uploadedData.columns.filter(col => {
-      const firstValue = uploadedData.data[0]?.[col]
-      return typeof firstValue === 'string' || isNaN(Number(firstValue))
-    })
-
-    const dependentVars = Array.isArray(selectedVariables?.dependent) ? selectedVariables.dependent : []
-    const factorVars = Array.isArray(selectedVariables?.factor) ? selectedVariables.factor : []
-
-    const canProceed = dependentVars.length > 0 && factorVars.length > 0
-
-    return (
-      <div className="space-y-6">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">변수 선택</h2>
-          <p className="text-gray-600">종속변수(연속형)와 요인변수(범주형)를 선택하세요</p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>종속변수 (Dependent Variable)</CardTitle>
-            <CardDescription>평균을 계산할 연속형 변수 (1개 선택)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {numericColumns.map((col) => {
-                const isSelected = dependentVars.includes(col)
-                return (
-                  <Badge
-                    key={col}
-                    variant={isSelected ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => {
-                      // 종속변수는 1개만 선택 가능
-                      const currentFactorVars = Array.isArray(selectedVariables?.factor) ? selectedVariables.factor : []
-                      actions.setSelectedVariables?.({
-                        dependent: [col],
-                        factor: currentFactorVars
-                      })
-                    }}
-                  >
-                    {col}
-                    {isSelected && <CheckCircle className="ml-1 h-3 w-3" />}
-                  </Badge>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>요인변수 (Factor Variable)</CardTitle>
-            <CardDescription>집단을 구분하는 범주형 변수 (1개 선택)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {categoricalColumns.map((col) => {
-                const isSelected = factorVars.includes(col)
-                return (
-                  <Badge
-                    key={col}
-                    variant={isSelected ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => {
-                      // 요인변수는 1개만 선택 가능
-                      const currentDependentVars = Array.isArray(selectedVariables?.dependent) ? selectedVariables.dependent : []
-                      actions.setSelectedVariables?.({
-                        dependent: currentDependentVars,
-                        factor: [col]
-                      })
-                    }}
-                  >
-                    {col}
-                    {isSelected && <CheckCircle className="ml-1 h-3 w-3" />}
-                  </Badge>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {canProceed && (
-          <Alert>
-            <CheckCircle2 className="h-4 w-4" />
-            <AlertDescription>
-              변수 선택이 완료되었습니다. 아래 버튼을 클릭하여 분석을 시작하세요.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="flex gap-4">
-          <Button
-            variant="outline"
-            onClick={() => actions.setCurrentStep(2)}
-            className="flex-1"
-          >
-            이전 단계
-          </Button>
-          <Button
-            onClick={() => {
-              if (selectedVariables) {
-                actions.setCurrentStep(4)
-                runMeansPlotAnalysis(selectedVariables)
-              }
-            }}
-            disabled={!canProceed}
-            className="flex-1"
-          >
-            다음 단계
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const breadcrumbs = [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '평균 도표' }
-  ]
-
   return (
-    <TwoPanelLayout
-      currentStep={currentStep}
+    <StatisticsPageLayout
       steps={steps}
-      onStepChange={actions.setCurrentStep}
-      analysisTitle="평균 도표"
-      analysisSubtitle="Means Plot"
-      analysisIcon={<BarChart3 className="h-5 w-5 text-primary" />}
-      breadcrumbs={breadcrumbs}
+      currentStep={currentStep}
+      title="평균 도표"
+      description="집단별 평균값과 오차막대 시각화"
     >
       {currentStep === 1 && renderMethodIntroduction()}
       {currentStep === 2 && (
@@ -553,8 +433,15 @@ export default function MeansPlotPage() {
           onNext={() => actions.setCurrentStep(3)}
         />
       )}
-      {currentStep === 3 && renderVariableSelection()}
+      {currentStep === 3 && uploadedData && (
+        <VariableSelectorModern
+          methodId="means-plot"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariablesSelected}
+          onBack={() => actions.setCurrentStep(2)}
+        />
+      )}
       {currentStep === 4 && renderResults()}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
