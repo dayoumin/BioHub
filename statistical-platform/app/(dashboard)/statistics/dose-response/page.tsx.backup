@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { DoseResponseVariables } from '@/types/statistics'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -11,9 +11,8 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
-import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info } from 'lucide-react'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -528,117 +527,30 @@ export default function DoseResponsePage() {
 
   const [selectedModel, setSelectedModel] = useState('logistic4')
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '용량-반응 분석', href: '/statistics/dose-response' }
-  ], [])
-
-  // Steps configuration (0-based indexing)
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '방법 소개', completed: currentStep > 0 },
-    { id: 1, label: '데이터 업로드', completed: currentStep > 1 },
-    { id: 2, label: '모델 선택 및 분석', completed: currentStep > 2 },
-    { id: 3, label: '결과 해석', completed: currentStep > 3 }
-  ], [currentStep])
-
-  // Render Method Introduction (Step 0)
-  const renderMethodIntroduction = useCallback(() => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>방법론 이해</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground mb-6">
-            용량-반응 분석은 약물, 독소, 또는 기타 화학물질의 용량과 생물학적 반응 간의 관계를 정량적으로 분석하는 방법입니다.
-          </p>
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" />
-                    언제 사용하나요?
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• 약물의 효력 및 독성 평가</li>
-                    <li>• EC50, IC50, ED50 값 결정</li>
-                    <li>• 용량-반응 곡선 모델링</li>
-                    <li>• 생물학적 활성 비교 연구</li>
-                  </ul>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="w-5 h-5" />
-                    주요 특징
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• S자형(시그모이드) 곡선 분석</li>
-                    <li>• 다양한 수학적 모델 지원</li>
-                    <li>• 신뢰구간 및 통계 검정</li>
-                    <li>• 매개변수 제약조건 설정 가능</li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>모델 선택</CardTitle>
-                <CardDescription>
-                  데이터의 특성과 연구 목적에 따라 적절한 모델을 선택하세요.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup
-                  value={selectedModel}
-                  onValueChange={setSelectedModel}
-                  className="space-y-3"
-                >
-                  {Object.entries(DOSE_RESPONSE_MODELS).map(([key, model]) => (
-                    <div key={key} className="flex items-start space-x-3 p-3 border rounded-lg">
-                      <RadioGroupItem value={key} id={key} className="mt-1" />
-                      <div className="space-y-1">
-                        <Label htmlFor={key} className="font-medium cursor-pointer">
-                          {model.name}
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          {model.description}
-                        </p>
-                        <p className="text-xs font-mono bg-muted/50 p-1 rounded">
-                          {model.equation}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          매개변수: {model.parameters.join(', ')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          적용: {model.applications}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
-      </Card>
-      <div className="flex justify-end">
-        <Button onClick={() => actions.setCurrentStep(1)}>
-          다음 단계
-          <CheckCircle className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  ), [selectedModel, actions])
+  // 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'upload-data',
+      number: 1,
+      title: '데이터 업로드',
+      description: 'CSV 또는 Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
+    },
+    {
+      id: 'model-selection',
+      number: 2,
+      title: '모델 선택',
+      description: '용량-반응 모델 선택',
+      status: currentStep >= 2 ? 'current' : 'pending'
+    },
+    {
+      id: 'view-results',
+      number: 3,
+      title: '결과 확인',
+      description: '모델 적합 결과 및 매개변수',
+      status: results ? 'completed' : 'pending'
+    }
+  ]
 
   // Event handlers
   // 데이터 업로드 핸들러 (공통 유틸 사용 + 커스텀 에러 처리)
@@ -654,23 +566,103 @@ export default function DoseResponsePage() {
   )
 
   return (
-    <TwoPanelLayout
-      analysisTitle="용량-반응 분석"
-      analysisSubtitle="Dose-Response Analysis"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="용량-반응 분석"
+      description="용량과 생물학적 반응 간의 관계를 수학적 모델로 분석하여 EC50, IC50 등 핵심 매개변수를 추정합니다"
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
     >
-      {/* Step 0: 방법 소개 */}
-      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 0 && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>방법론 이해</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-6">
+                용량-반응 분석은 약물, 독소, 또는 기타 화학물질의 용량과 생물학적 반응 간의 관계를 정량적으로 분석하는 방법입니다.
+              </p>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <StepCard
+                  icon={<TrendingUp className="w-5 h-5" />}
+                  title="언제 사용하나요?"
+                >
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• 약물의 효력 및 독성 평가</li>
+                    <li>• EC50, IC50, ED50 값 결정</li>
+                    <li>• 용량-반응 곡선 모델링</li>
+                    <li>• 생물학적 활성 비교 연구</li>
+                  </ul>
+                </StepCard>
+                <StepCard
+                  icon={<Activity className="w-5 h-5" />}
+                  title="주요 특징"
+                >
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li>• S자형(시그모이드) 곡선 분석</li>
+                    <li>• 다양한 수학적 모델 지원</li>
+                    <li>• 신뢰구간 및 통계 검정</li>
+                    <li>• 매개변수 제약조건 설정 가능</li>
+                  </ul>
+                </StepCard>
+              </div>
 
-      {/* Step 1: 데이터 업로드 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>모델 선택</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-base font-medium">용량-반응 모델</Label>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        데이터의 특성과 연구 목적에 따라 적절한 모델을 선택하세요.
+                      </p>
+                    </div>
+                    <RadioGroup
+                      value={selectedModel}
+                      onValueChange={setSelectedModel}
+                      className="space-y-3"
+                    >
+                      {Object.entries(DOSE_RESPONSE_MODELS).map(([key, model]) => (
+                        <div key={key} className="flex items-start space-x-3 p-3 border rounded-lg">
+                          <RadioGroupItem value={key} id={key} className="mt-1" />
+                          <div className="space-y-1">
+                            <Label htmlFor={key} className="font-medium cursor-pointer">
+                              {model.name}
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              {model.description}
+                            </p>
+                            <p className="text-xs font-mono bg-muted/50 p-1 rounded">
+                              {model.equation}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              매개변수: {model.parameters.join(', ')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              적용: {model.applications}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            </CardContent>
+          </Card>
+          <div className="flex justify-end">
+            <Button onClick={() => actions.setCurrentStep(1)}>
+              다음 단계
+              <CheckCircle className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {currentStep === 1 && (
         <div className="space-y-6">
           <Card>
@@ -690,7 +682,6 @@ export default function DoseResponsePage() {
         </div>
       )}
 
-      {/* Step 2: 모델 선택 및 분석 */}
       {currentStep === 2 && (
         <div className="space-y-6">
           <Card>
@@ -711,7 +702,6 @@ export default function DoseResponsePage() {
         </div>
       )}
 
-      {/* Step 3: 결과 해석 */}
       {currentStep === 3 && results && (
         <div className="space-y-6">
           {/* 주요 결과 */}
@@ -863,6 +853,6 @@ export default function DoseResponsePage() {
           </Card>
         </div>
       )}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
