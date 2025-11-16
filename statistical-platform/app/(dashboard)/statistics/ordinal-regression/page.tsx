@@ -3,7 +3,8 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { OrdinalRegressionVariables } from '@/types/statistics'
-import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
@@ -135,38 +136,20 @@ export default function OrdinalRegressionPage() {
   const [selectedIndependent, setSelectedIndependent] = useState<string[]>([])
   const [pyodideReady, setPyodideReady] = useState(false)
 
-  // 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'introduction',
-      number: 1,
-      title: '소개',
-      description: '순서형 회귀 소개',
-      status: currentStep >= 1 ? 'completed' : 'current'
-    },
-    {
-      id: 'upload-data',
-      number: 2,
-      title: '데이터 업로드',
-      description: 'CSV 또는 Excel 파일 업로드',
-      status: uploadedData ? 'completed' : currentStep >= 1 ? 'current' : 'pending'
-    },
-    {
-      id: 'select-variables',
-      number: 3,
-      title: '변수 선택',
-      description: '종속/독립 변수 선택',
-      status: selectedVariables && Object.keys(selectedVariables).length > 0 ? 'completed'
-              : currentStep >= 2 ? 'current' : 'pending'
-    },
-    {
-      id: 'view-results',
-      number: 4,
-      title: '결과 확인',
-      description: '순서형 회귀 결과',
-      status: results ? 'completed' : currentStep >= 3 ? 'current' : 'pending'
-    }
-  ]
+  // Breadcrumbs (useMemo)
+  const breadcrumbs = useMemo(() => [
+    { label: '홈', href: '/' },
+    { label: '통계 분석', href: '/statistics' },
+    { label: '서열 회귀분석', href: '/statistics/ordinal-regression' }
+  ], [])
+
+  // STEPS (useMemo, 0-based indexing)
+  const STEPS: TwoPanelStep[] = useMemo(() => [
+    { id: 0, label: '방법 소개', completed: currentStep > 0 },
+    { id: 1, label: '데이터 업로드', completed: currentStep > 1 },
+    { id: 2, label: '변수 선택', completed: currentStep > 2 },
+    { id: 3, label: '결과 확인', completed: currentStep > 3 }
+  ], [currentStep])
 
   useEffect(() => {
     const initPyodide = async () => {
@@ -206,7 +189,7 @@ export default function OrdinalRegressionPage() {
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
     () => {
-      actions.setCurrentStep(1)
+      actions.setCurrentStep?.(1)
     },
     'ordinal-regression'
   )
@@ -245,7 +228,7 @@ export default function OrdinalRegressionPage() {
 
       actions.setError('분석 중 오류가 발생했습니다.')
     }
-  }, [canProceedToAnalysis, uploadedData, pyodideReady, actions])
+  }, [canProceedToAnalysis, uploadedData, pyodideReady, selectedDependent, selectedIndependent, actions])
 
   const handleVariableSelection = useCallback(() => {
     if (canProceedToAnalysis) {
@@ -258,17 +241,19 @@ export default function OrdinalRegressionPage() {
     }
   }, [canProceedToAnalysis, actions])
 
-  const renderIntroductionStep = useCallback(() => (
-    <StepCard title="서열 회귀분석 소개">
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium mb-3">서열 회귀분석이란?</h3>
-          <p className="text-gray-600 mb-4">
+  const renderMethodIntroduction = useCallback(() => (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>서열 회귀분석이란?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-gray-600">
             종속변수가 순서가 있는 범주형 변수(ordinal variable)일 때 사용하는 회귀분석 방법입니다.
             일반적인 다항 로지스틱 회귀분석과 달리 범주 간의 순서 정보를 활용합니다.
           </p>
 
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
+          <div className="grid md:grid-cols-2 gap-4">
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="font-medium mb-2 flex items-center">
                 <TrendingUp className="w-4 h-4 mr-2" />
@@ -295,124 +280,109 @@ export default function OrdinalRegressionPage() {
               </ul>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div>
-          <h3 className="text-lg font-medium mb-3">일반 로지스틱 회귀 vs 서열 회귀</h3>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-medium text-gray-800 mb-2">다항 로지스틱 회귀</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 명목형 범주 (순서 없음)</li>
-                  <li>• 각 범주별 독립적 모델링</li>
-                  <li>• 많은 모수 추정 필요</li>
-                  <li>• 순서 정보 무시</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-medium text-gray-800 mb-2">서열 회귀분석</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 순서형 범주 (순서 있음)</li>
-                  <li>• 단일 모델로 모든 범주 예측</li>
-                  <li>• 효율적인 모수 추정</li>
-                  <li>• 순서 정보 활용</li>
-                </ul>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>일반 로지스틱 회귀 vs 서열 회귀</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium text-gray-800 mb-2">다항 로지스틱 회귀</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• 명목형 범주 (순서 없음)</li>
+                <li>• 각 범주별 독립적 모델링</li>
+                <li>• 많은 모수 추정 필요</li>
+                <li>• 순서 정보 무시</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-800 mb-2">서열 회귀분석</h4>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>• 순서형 범주 (순서 있음)</li>
+                <li>• 단일 모델로 모든 범주 예측</li>
+                <li>• 효율적인 모수 추정</li>
+                <li>• 순서 정보 활용</li>
+              </ul>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div>
-          <h3 className="text-lg font-medium mb-3">분석 절차</h3>
-          <div className="space-y-3">
-            {[
-              '종속변수의 순서 확인',
-              '독립변수 선택 및 전처리',
-              '비례 오즈 가정 검정',
-              '모델 적합 및 계수 해석',
-              '모델 진단 및 예측 성능 평가'
-            ].map((step, index) => (
-              <div key={index} className="flex items-center space-x-3">
-                <Badge variant="outline" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
-                  {index + 1}
-                </Badge>
-                <span className="text-sm">{step}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>분석 절차</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[
+            '종속변수의 순서 확인',
+            '독립변수 선택 및 전처리',
+            '비례 오즈 가정 검정',
+            '모델 적합 및 계수 해석',
+            '모델 진단 및 예측 성능 평가'
+          ].map((step, index) => (
+            <div key={index} className="flex items-center space-x-3">
+              <Badge variant="outline" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
+                {index + 1}
+              </Badge>
+              <span className="text-sm">{step}</span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            서열 회귀분석의 핵심 가정은 <strong>비례 오즈 가정</strong>입니다.
-            이는 독립변수의 효과가 모든 임계값에서 동일하다는 가정으로, 위반 시 부분 비례 오즈 모델을 고려해야 합니다.
-          </AlertDescription>
-        </Alert>
-
-        <div className="flex justify-end">
-          <Button onClick={() => {
-            if (!actions.setCurrentStep) {
-              console.error('[ordinal-regression] setCurrentStep not available')
-              return
-            }
-            actions.setCurrentStep(1)
-          }} className="flex items-center space-x-2">
-            <span>다음: 데이터 업로드</span>
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    </StepCard>
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          서열 회귀분석의 핵심 가정은 <strong>비례 오즈 가정</strong>입니다.
+          이는 독립변수의 효과가 모든 임계값에서 동일하다는 가정으로, 위반 시 부분 비례 오즈 모델을 고려해야 합니다.
+        </AlertDescription>
+      </Alert>
+    </div>
   ), [])
 
-  const renderDataUploadStep = useCallback(() => (
-    <StepCard title="데이터 업로드">
+  const renderDataUpload = useCallback(() => (
+    <div className="space-y-6">
       <DataUploadStep
         onUploadComplete={handleDataUpload}
-        onPrevious={() => {
-          if (!actions.setCurrentStep) {
-            console.error('[ordinal-regression] setCurrentStep not available')
-            return
-          }
-          actions.setCurrentStep(0)
-        }}
+        onPrevious={() => actions.setCurrentStep?.(0)}
       />
 
-      <div className="mt-6">
-        <h4 className="font-medium mb-3">서열 회귀분석 데이터 요구사항</h4>
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="space-y-4">
-            <div>
-              <h5 className="font-medium text-sm mb-2">종속변수 (순서형)</h5>
-              <div className="bg-white p-3 rounded border text-xs font-mono">
-                <div>satisfaction | education_level | income_group</div>
-                <div>1 (불만족)   | 1 (초졸)       | 1 (저소득)</div>
-                <div>2 (보통)     | 2 (중졸)       | 2 (중소득)</div>
-                <div>3 (만족)     | 3 (고졸)       | 3 (고소득)</div>
-                <div>            | 4 (대졸)       |          </div>
-              </div>
-            </div>
-
-            <div>
-              <h5 className="font-medium text-sm mb-2">독립변수 (연속형 또는 범주형)</h5>
-              <div className="bg-white p-3 rounded border text-xs font-mono">
-                <div>age | gender | experience | salary</div>
-                <div>25  | 1      | 2.5       | 35000</div>
-                <div>32  | 0      | 5.2       | 42000</div>
-                <div>28  | 1      | 3.1       | 38000</div>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>서열 회귀분석 데이터 요구사항</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <h5 className="font-medium text-sm mb-2">종속변수 (순서형)</h5>
+            <div className="bg-white p-3 rounded border text-xs font-mono">
+              <div>satisfaction | education_level | income_group</div>
+              <div>1 (불만족)   | 1 (초졸)       | 1 (저소득)</div>
+              <div>2 (보통)     | 2 (중졸)       | 2 (중소득)</div>
+              <div>3 (만족)     | 3 (고졸)       | 3 (고소득)</div>
+              <div>            | 4 (대졸)       |          </div>
             </div>
           </div>
 
-          <p className="text-xs text-gray-500 mt-3">
+          <div>
+            <h5 className="font-medium text-sm mb-2">독립변수 (연속형 또는 범주형)</h5>
+            <div className="bg-white p-3 rounded border text-xs font-mono">
+              <div>age | gender | experience | salary</div>
+              <div>25  | 1      | 2.5       | 35000</div>
+              <div>32  | 0      | 5.2       | 42000</div>
+              <div>28  | 1      | 3.1       | 38000</div>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-500">
             종속변수는 반드시 순서가 있는 범주형 변수여야 하며, 숫자 코딩 시 1, 2, 3... 순으로 입력해주세요.
           </p>
-        </div>
-      </div>
-    </StepCard>
-  ), [handleDataUpload])
+        </CardContent>
+      </Card>
+    </div>
+  ), [handleDataUpload, actions])
 
   const handleVariablesSelected = useCallback((mapping: unknown) => {
     // 1. Type guard
@@ -457,11 +427,13 @@ export default function OrdinalRegressionPage() {
     actions.setCurrentStep(2)
   }, [actions])
 
-  const renderVariableSelectionStep = useCallback(() => (
-    <StepCard title="변수 선택">
-      <div className="space-y-6">
-        <div>
-          <h4 className="font-medium mb-3">변수 선택 (종속변수 1개 + 독립변수 1개 이상)</h4>
+  const renderVariableSelection = useCallback(() => (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>변수 선택 (종속변수 1개 + 독립변수 1개 이상)</CardTitle>
+        </CardHeader>
+        <CardContent>
           {uploadedData && (
             <VariableSelectorModern
               methodId="ordinal-regression"
@@ -474,482 +446,477 @@ export default function OrdinalRegressionPage() {
             <br />
             독립변수: 연속형 또는 범주형 (예: 나이, 소득, 성별, 교육수준)
           </p>
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="bg-muted p-4 rounded-lg">
-          <h4 className="font-medium mb-2">변수 선택 가이드</h4>
+      <Card>
+        <CardHeader>
+          <CardTitle>변수 선택 가이드</CardTitle>
+        </CardHeader>
+        <CardContent>
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• <strong>종속변수</strong>: 반드시 순서가 있는 범주형 (3개 이상 범주 권장)</li>
             <li>• <strong>독립변수</strong>: 연속형, 이진형, 범주형 모두 가능</li>
             <li>• <strong>표본 크기</strong>: 범주당 최소 10-15개 관측치 필요</li>
             <li>• <strong>다중공선성</strong>: VIF &lt; 10 권장</li>
           </ul>
-        </div>
+        </CardContent>
+      </Card>
+    </div>
+  ), [uploadedData, handleVariablesSelected])
 
-        <div className="flex justify-start">
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (!actions.setCurrentStep) {
-                console.error('[ordinal-regression] setCurrentStep not available')
-                return
-              }
-              actions.setCurrentStep(0)
-            }}
-          >
-            이전: 소개
-          </Button>
-        </div>
-      </div>
-    </StepCard>
-  ), [uploadedData, handleVariablesSelected, actions])
-
-  const renderresults = useCallback(() => {
+  const renderResults = useCallback(() => {
     if (!results) {
       return (
-        <StepCard title="분석 실행">
-          <div className="text-center py-8">
-            <Button
-              onClick={runOrdinalRegression}
-              disabled={isAnalyzing || !pyodideReady}
-              size="lg"
-              className="flex items-center space-x-2"
-            >
-              {isAnalyzing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  <span>분석 중...</span>
-                </>
-              ) : (
-                <>
-                  <TrendingUp className="w-4 h-4" />
-                  <span>서열 회귀분석 실행</span>
-                </>
-              )}
-            </Button>
-          </div>
-        </StepCard>
+        <div className="text-center py-8">
+          <Button
+            onClick={runOrdinalRegression}
+            disabled={isAnalyzing || !pyodideReady}
+            size="lg"
+            className="flex items-center space-x-2"
+          >
+            {isAnalyzing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                <span>분석 중...</span>
+              </>
+            ) : (
+              <>
+                <TrendingUp className="w-4 h-4" />
+                <span>서열 회귀분석 실행</span>
+              </>
+            )}
+          </Button>
+        </div>
       )
     }
 
     return (
       <div className="space-y-6">
-        <StepCard title="서열 회귀분석 결과">
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="overview">개요</TabsTrigger>
-              <TabsTrigger value="coefficients">계수</TabsTrigger>
-              <TabsTrigger value="thresholds">임계값</TabsTrigger>
-              <TabsTrigger value="assumptions">가정검정</TabsTrigger>
-              <TabsTrigger value="predictions">예측</TabsTrigger>
-              <TabsTrigger value="interpretation">해석</TabsTrigger>
-            </TabsList>
+        <Card>
+          <CardHeader>
+            <CardTitle>서열 회귀분석 결과</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="overview">개요</TabsTrigger>
+                <TabsTrigger value="coefficients">계수</TabsTrigger>
+                <TabsTrigger value="thresholds">임계값</TabsTrigger>
+                <TabsTrigger value="assumptions">가정검정</TabsTrigger>
+                <TabsTrigger value="predictions">예측</TabsTrigger>
+                <TabsTrigger value="interpretation">해석</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="overview" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">모델 정보</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">모델 사양</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">모델 유형:</span>
-                        <span className="text-sm font-medium">{results.model_info.model_type}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">연결 함수:</span>
-                        <span className="text-sm font-medium">{results.model_info.link_function}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">관측치 수:</span>
-                        <span className="text-sm font-medium">{results.model_info.n_observations}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">예측변수 수:</span>
-                        <span className="text-sm font-medium">{results.model_info.n_predictors}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">수렴:</span>
-                        <span className="text-sm font-medium">
-                          {results.model_info.convergence ? '성공' : '실패'} ({results.model_info.iterations}회)
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-sm">모델 적합도</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm">AIC:</span>
-                        <span className="text-sm font-medium">{results.model_fit.aic.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">BIC:</span>
-                        <span className="text-sm font-medium">{results.model_fit.bic.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">McFadden R²:</span>
-                        <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Nagelkerke R²:</span>
-                        <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_nagelkerke.toFixed(3)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">정확도:</span>
-                        <span className="text-sm font-medium">{(results.classification_metrics.accuracy * 100).toFixed(1)}%</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="coefficients" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">회귀 계수</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>변수</TableHead>
-                      <TableHead>계수</TableHead>
-                      <TableHead>표준오차</TableHead>
-                      <TableHead>z</TableHead>
-                      <TableHead>p-value</TableHead>
-                      <TableHead>95% CI</TableHead>
-                      <TableHead>오즈비</TableHead>
-                      <TableHead>오즈비 CI</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {results.coefficients.map((coef, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{coef.variable}</TableCell>
-                        <TableCell>{coef.coefficient.toFixed(4)}</TableCell>
-                        <TableCell>{coef.std_error.toFixed(4)}</TableCell>
-                        <TableCell>{coef.z_value.toFixed(3)}</TableCell>
-                        <TableCell>
-                          <PValueBadge value={coef.p_value} />
-                        </TableCell>
-                        <TableCell>
-                          [{coef.ci_lower.toFixed(3)}, {coef.ci_upper.toFixed(3)}]
-                        </TableCell>
-                        <TableCell>{coef.odds_ratio.toFixed(3)}</TableCell>
-                        <TableCell>
-                          [{coef.or_ci_lower.toFixed(3)}, {coef.or_ci_upper.toFixed(3)}]
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-3">오즈비 시각화</h4>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={results.coefficients} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" domain={['dataMin - 0.1', 'dataMax + 0.1']} />
-                      <YAxis dataKey="variable" type="category" width={80} />
-                      <Tooltip
-                        formatter={(value: number) => [value.toFixed(3), 'Odds Ratio']}
-                        labelFormatter={(label: string) => `Variable: ${label}`}
-                      />
-                      <Bar dataKey="odds_ratio" fill="#3b82f6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="thresholds" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">임계값 (Cut-off Points)</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>임계값</TableHead>
-                      <TableHead>계수</TableHead>
-                      <TableHead>표준오차</TableHead>
-                      <TableHead>z</TableHead>
-                      <TableHead>p-value</TableHead>
-                      <TableHead>95% CI</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {results.thresholds.map((threshold, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{threshold.threshold}</TableCell>
-                        <TableCell>{threshold.coefficient.toFixed(4)}</TableCell>
-                        <TableCell>{threshold.std_error.toFixed(4)}</TableCell>
-                        <TableCell>{threshold.z_value.toFixed(3)}</TableCell>
-                        <TableCell>
-                          <PValueBadge value={threshold.p_value} />
-                        </TableCell>
-                        <TableCell>
-                          [{threshold.ci_lower.toFixed(3)}, {threshold.ci_upper.toFixed(3)}]
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                <Alert className="mt-4">
-                  <Info className="h-4 w-4" />
-                  <AlertDescription>
-                    임계값은 순서형 범주들을 구분하는 기준점입니다.
-                    예를 들어, &quot;불만족|보통&quot; 임계값은 불만족과 보통 사이의 경계를 나타냅니다.
-                  </AlertDescription>
-                </Alert>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="assumptions" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">비례 오즈 가정 검정</h4>
-                <Card>
-                  <CardContent className="pt-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h5 className="font-medium">{results.assumptions.proportional_odds.test_name}</h5>
-                          <p className="text-sm text-gray-600">
-                            독립변수의 효과가 모든 임계값에서 동일한지 검정
-                          </p>
+              <TabsContent value="overview" className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-3">모델 정보</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">모델 사양</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm">모델 유형:</span>
+                          <span className="text-sm font-medium">{results.model_info.model_type}</span>
                         </div>
-                        <div className="text-right">
-                          <div className="text-lg font-semibold">
-                            {results.assumptions.proportional_odds.test_statistic.toFixed(3)}
-                          </div>
-                          <PValueBadge value={results.assumptions.proportional_odds.p_value} />
+                        <div className="flex justify-between">
+                          <span className="text-sm">연결 함수:</span>
+                          <span className="text-sm font-medium">{results.model_info.link_function}</span>
                         </div>
-                      </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">관측치 수:</span>
+                          <span className="text-sm font-medium">{results.model_info.n_observations}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">예측변수 수:</span>
+                          <span className="text-sm font-medium">{results.model_info.n_predictors}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">수렴:</span>
+                          <span className="text-sm font-medium">
+                            {results.model_info.convergence ? '성공' : '실패'} ({results.model_info.iterations}회)
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                      <Alert>
-                        {results.assumptions.proportional_odds.assumption_met ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : (
-                          <AlertTriangle className="h-4 w-4" />
-                        )}
-                        <AlertDescription>
-                          {results.assumptions.proportional_odds.assumption_met ? (
-                            <span className="text-muted-foreground">
-                              비례 오즈 가정이 충족됩니다. 표준 서열 회귀모델을 사용할 수 있습니다.
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">
-                              비례 오즈 가정이 위반되었습니다. 부분 비례 오즈 모델을 고려하세요.
-                            </span>
-                          )}
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">모델 적합도</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm">AIC:</span>
+                          <span className="text-sm font-medium">{results.model_fit.aic.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">BIC:</span>
+                          <span className="text-sm font-medium">{results.model_fit.bic.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">McFadden R²:</span>
+                          <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Nagelkerke R²:</span>
+                          <span className="text-sm font-medium">{results.model_fit.pseudo_r_squared_nagelkerke.toFixed(3)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">정확도:</span>
+                          <span className="text-sm font-medium">{(results.classification_metrics.accuracy * 100).toFixed(1)}%</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
 
-              <div>
-                <h4 className="font-medium mb-3">다중공선성 진단</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>변수</TableHead>
-                      <TableHead>VIF</TableHead>
-                      <TableHead>Tolerance</TableHead>
-                      <TableHead>판정</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {results.assumptions.multicollinearity.map((vif, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">{vif.variable}</TableCell>
-                        <TableCell>{vif.vif.toFixed(3)}</TableCell>
-                        <TableCell>{vif.tolerance.toFixed(3)}</TableCell>
-                        <TableCell>
-                          <Badge variant={vif.vif < 5 ? "default" : vif.vif < 10 ? "secondary" : "destructive"}>
-                            {vif.vif < 5 ? '양호' : vif.vif < 10 ? '주의' : '위험'}
-                          </Badge>
-                        </TableCell>
+              <TabsContent value="coefficients" className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-3">회귀 계수</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>변수</TableHead>
+                        <TableHead>계수</TableHead>
+                        <TableHead>표준오차</TableHead>
+                        <TableHead>z</TableHead>
+                        <TableHead>p-value</TableHead>
+                        <TableHead>95% CI</TableHead>
+                        <TableHead>오즈비</TableHead>
+                        <TableHead>오즈비 CI</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="predictions" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">예측 확률</h4>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>관측치</TableHead>
-                      <TableHead>불만족 확률</TableHead>
-                      <TableHead>보통 확률</TableHead>
-                      <TableHead>만족 확률</TableHead>
-                      <TableHead>예측 범주</TableHead>
-                      <TableHead>실제 범주</TableHead>
-                      <TableHead>정확성</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {results.predicted_probabilities.slice(0, 10).map((pred, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{pred.observation}</TableCell>
-                        <TableCell>{(pred.category_1_prob * 100).toFixed(1)}%</TableCell>
-                        <TableCell>{(pred.category_2_prob * 100).toFixed(1)}%</TableCell>
-                        <TableCell>{(pred.category_3_prob * 100).toFixed(1)}%</TableCell>
-                        <TableCell>{pred.predicted_category}</TableCell>
-                        <TableCell>{pred.actual_category}</TableCell>
-                        <TableCell>
-                          {pred.predicted_category === pred.actual_category ? (
-                            <Badge variant="default">정확</Badge>
-                          ) : (
-                            <Badge variant="secondary">틀림</Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div>
-                <h4 className="font-medium mb-3">혼동 행렬</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>실제\예측</TableHead>
-                          <TableHead>불만족</TableHead>
-                          <TableHead>보통</TableHead>
-                          <TableHead>만족</TableHead>
+                    </TableHeader>
+                    <TableBody>
+                      {results.coefficients.map((coef, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{coef.variable}</TableCell>
+                          <TableCell>{coef.coefficient.toFixed(4)}</TableCell>
+                          <TableCell>{coef.std_error.toFixed(4)}</TableCell>
+                          <TableCell>{coef.z_value.toFixed(3)}</TableCell>
+                          <TableCell>
+                            <PValueBadge value={coef.p_value} />
+                          </TableCell>
+                          <TableCell>
+                            [{coef.ci_lower.toFixed(3)}, {coef.ci_upper.toFixed(3)}]
+                          </TableCell>
+                          <TableCell>{coef.odds_ratio.toFixed(3)}</TableCell>
+                          <TableCell>
+                            [{coef.or_ci_lower.toFixed(3)}, {coef.or_ci_upper.toFixed(3)}]
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {results.classification_metrics.confusion_matrix.map((row, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="font-medium">
-                              {results.classification_metrics.category_labels[i]}
-                            </TableCell>
-                            {row.map((cell, j) => (
-                              <TableCell key={j} className={i === j ? "bg-muted font-medium" : ""}>
-                                {cell}
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
 
-                  <div>
-                    <h5 className="font-medium mb-2">분류 성능 지표</h5>
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span>전체 정확도:</span>
-                        <span className="font-medium">{(results.classification_metrics.accuracy * 100).toFixed(1)}%</span>
-                      </div>
-                      {results.classification_metrics.category_labels.map((label, i) => (
-                        <div key={i}>
-                          <div className="text-sm font-medium text-gray-700">{label}</div>
-                          <div className="ml-4 space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span>정밀도:</span>
-                              <span>{(results.classification_metrics.precision[i] * 100).toFixed(1)}%</span>
+                <div>
+                  <h4 className="font-medium mb-3">오즈비 시각화</h4>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={results.coefficients} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" domain={['dataMin - 0.1', 'dataMax + 0.1']} />
+                        <YAxis dataKey="variable" type="category" width={80} />
+                        <Tooltip
+                          formatter={(value: number) => [value.toFixed(3), 'Odds Ratio']}
+                          labelFormatter={(label: string) => `Variable: ${label}`}
+                        />
+                        <Bar dataKey="odds_ratio" fill="#3b82f6" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="thresholds" className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-3">임계값 (Cut-off Points)</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>임계값</TableHead>
+                        <TableHead>계수</TableHead>
+                        <TableHead>표준오차</TableHead>
+                        <TableHead>z</TableHead>
+                        <TableHead>p-value</TableHead>
+                        <TableHead>95% CI</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results.thresholds.map((threshold, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{threshold.threshold}</TableCell>
+                          <TableCell>{threshold.coefficient.toFixed(4)}</TableCell>
+                          <TableCell>{threshold.std_error.toFixed(4)}</TableCell>
+                          <TableCell>{threshold.z_value.toFixed(3)}</TableCell>
+                          <TableCell>
+                            <PValueBadge value={threshold.p_value} />
+                          </TableCell>
+                          <TableCell>
+                            [{threshold.ci_lower.toFixed(3)}, {threshold.ci_upper.toFixed(3)}]
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <Alert className="mt-4">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      임계값은 순서형 범주들을 구분하는 기준점입니다.
+                      예를 들어, &quot;불만족|보통&quot; 임계값은 불만족과 보통 사이의 경계를 나타냅니다.
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="assumptions" className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-3">비례 오즈 가정 검정</h4>
+                  <Card>
+                    <CardContent className="pt-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h5 className="font-medium">{results.assumptions.proportional_odds.test_name}</h5>
+                            <p className="text-sm text-gray-600">
+                              독립변수의 효과가 모든 임계값에서 동일한지 검정
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-semibold">
+                              {results.assumptions.proportional_odds.test_statistic.toFixed(3)}
                             </div>
-                            <div className="flex justify-between text-sm">
-                              <span>재현율:</span>
-                              <span>{(results.classification_metrics.recall[i] * 100).toFixed(1)}%</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span>F1-점수:</span>
-                              <span>{(results.classification_metrics.f1_score[i] * 100).toFixed(1)}%</span>
-                            </div>
+                            <PValueBadge value={results.assumptions.proportional_odds.p_value} />
                           </div>
                         </div>
+
+                        <Alert>
+                          {results.assumptions.proportional_odds.assumption_met ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4" />
+                          )}
+                          <AlertDescription>
+                            {results.assumptions.proportional_odds.assumption_met ? (
+                              <span className="text-muted-foreground">
+                                비례 오즈 가정이 충족됩니다. 표준 서열 회귀모델을 사용할 수 있습니다.
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                비례 오즈 가정이 위반되었습니다. 부분 비례 오즈 모델을 고려하세요.
+                              </span>
+                            )}
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-3">다중공선성 진단</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>변수</TableHead>
+                        <TableHead>VIF</TableHead>
+                        <TableHead>Tolerance</TableHead>
+                        <TableHead>판정</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results.assumptions.multicollinearity.map((vif, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">{vif.variable}</TableCell>
+                          <TableCell>{vif.vif.toFixed(3)}</TableCell>
+                          <TableCell>{vif.tolerance.toFixed(3)}</TableCell>
+                          <TableCell>
+                            <Badge variant={vif.vif < 5 ? "default" : vif.vif < 10 ? "secondary" : "destructive"}>
+                              {vif.vif < 5 ? '양호' : vif.vif < 10 ? '주의' : '위험'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
                       ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="predictions" className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-3">예측 확률</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>관측치</TableHead>
+                        <TableHead>불만족 확률</TableHead>
+                        <TableHead>보통 확률</TableHead>
+                        <TableHead>만족 확률</TableHead>
+                        <TableHead>예측 범주</TableHead>
+                        <TableHead>실제 범주</TableHead>
+                        <TableHead>정확성</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results.predicted_probabilities.slice(0, 10).map((pred, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{pred.observation}</TableCell>
+                          <TableCell>{(pred.category_1_prob * 100).toFixed(1)}%</TableCell>
+                          <TableCell>{(pred.category_2_prob * 100).toFixed(1)}%</TableCell>
+                          <TableCell>{(pred.category_3_prob * 100).toFixed(1)}%</TableCell>
+                          <TableCell>{pred.predicted_category}</TableCell>
+                          <TableCell>{pred.actual_category}</TableCell>
+                          <TableCell>
+                            {pred.predicted_category === pred.actual_category ? (
+                              <Badge variant="default">정확</Badge>
+                            ) : (
+                              <Badge variant="secondary">틀림</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-3">혼동 행렬</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>실제\예측</TableHead>
+                            <TableHead>불만족</TableHead>
+                            <TableHead>보통</TableHead>
+                            <TableHead>만족</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {results.classification_metrics.confusion_matrix.map((row, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">
+                                {results.classification_metrics.category_labels[i]}
+                              </TableCell>
+                              {row.map((cell, j) => (
+                                <TableCell key={j} className={i === j ? "bg-muted font-medium" : ""}>
+                                  {cell}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    <div>
+                      <h5 className="font-medium mb-2">분류 성능 지표</h5>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span>전체 정확도:</span>
+                          <span className="font-medium">{(results.classification_metrics.accuracy * 100).toFixed(1)}%</span>
+                        </div>
+                        {results.classification_metrics.category_labels.map((label, i) => (
+                          <div key={i}>
+                            <div className="text-sm font-medium text-gray-700">{label}</div>
+                            <div className="ml-4 space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span>정밀도:</span>
+                                <span>{(results.classification_metrics.precision[i] * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span>재현율:</span>
+                                <span>{(results.classification_metrics.recall[i] * 100).toFixed(1)}%</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span>F1-점수:</span>
+                                <span>{(results.classification_metrics.f1_score[i] * 100).toFixed(1)}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="interpretation" className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-3">결과 해석</h4>
-                <div className="space-y-4">
-                  <Alert>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>모델 적합도:</strong> McFadden R² = {results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}으로,
-                      모델이 데이터의 {(results.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}%를 설명합니다.
-                      일반적으로 0.2 이상이면 양호한 적합도로 판단됩니다.
-                    </AlertDescription>
-                  </Alert>
+              <TabsContent value="interpretation" className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-3">결과 해석</h4>
+                  <div className="space-y-4">
+                    <Alert>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>모델 적합도:</strong> McFadden R² = {results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}으로,
+                        모델이 데이터의 {(results.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}%를 설명합니다.
+                        일반적으로 0.2 이상이면 양호한 적합도로 판단됩니다.
+                      </AlertDescription>
+                    </Alert>
 
-                  <Alert>
-                    <TrendingUp className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>계수 해석:</strong> 각 독립변수의 오즈비가 1보다 크면 해당 변수가 증가할 때
-                      더 높은 범주에 속할 가능성이 증가함을 의미합니다. 예를 들어,
-                      교육수준의 오즈비가 {results.coefficients.find(c => c.variable === 'education')?.odds_ratio.toFixed(2)}라면,
-                      교육수준이 한 단계 올라갈 때마다 더 높은 만족도를 가질 오즈가 {results.coefficients.find(c => c.variable === 'education')?.odds_ratio.toFixed(2)}배 증가합니다.
-                    </AlertDescription>
-                  </Alert>
+                    <Alert>
+                      <TrendingUp className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>계수 해석:</strong> 각 독립변수의 오즈비가 1보다 크면 해당 변수가 증가할 때
+                        더 높은 범주에 속할 가능성이 증가함을 의미합니다. 예를 들어,
+                        교육수준의 오즈비가 {results.coefficients.find(c => c.variable === 'education')?.odds_ratio.toFixed(2)}라면,
+                        교육수준이 한 단계 올라갈 때마다 더 높은 만족도를 가질 오즈가 {results.coefficients.find(c => c.variable === 'education')?.odds_ratio.toFixed(2)}배 증가합니다.
+                      </AlertDescription>
+                    </Alert>
 
-                  <Alert>
-                    <BarChart3 className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>예측 성능:</strong> 모델의 전체 정확도는 {(results.classification_metrics.accuracy * 100).toFixed(1)}%입니다.
-                      이는 실제 범주를 올바르게 예측한 비율을 나타냅니다.
-                      각 범주별로 정밀도와 재현율을 확인하여 특정 범주에서의 예측 성능을 파악할 수 있습니다.
-                    </AlertDescription>
-                  </Alert>
+                    <Alert>
+                      <BarChart3 className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>예측 성능:</strong> 모델의 전체 정확도는 {(results.classification_metrics.accuracy * 100).toFixed(1)}%입니다.
+                        이는 실제 범주를 올바르게 예측한 비율을 나타냅니다.
+                        각 범주별로 정밀도와 재현율을 확인하여 특정 범주에서의 예측 성능을 파악할 수 있습니다.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <h4 className="font-medium mb-3">실용적 함의</h4>
-                <div className="bg-muted p-4 rounded-lg">
-                  <ul className="space-y-2 text-sm">
-                    <li>• <strong>정책 결정:</strong> 각 변수의 영향력을 통해 만족도 향상을 위한 우선순위 설정</li>
-                    <li>• <strong>자원 배분:</strong> 가장 효과적인 변수에 집중적으로 투자</li>
-                    <li>• <strong>위험 관리:</strong> 낮은 만족도가 예측되는 집단에 대한 사전 대응</li>
-                    <li>• <strong>성과 모니터링:</strong> 모델을 통한 지속적인 만족도 예측 및 평가</li>
-                    <li>• <strong>개선 방안:</strong> 비례 오즈 가정 {results.assumptions.proportional_odds.assumption_met ? '충족' : '위반'} 상황에 따른 모델 개선 필요성</li>
-                  </ul>
+                <div>
+                  <h4 className="font-medium mb-3">실용적 함의</h4>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <ul className="space-y-2 text-sm">
+                      <li>• <strong>정책 결정:</strong> 각 변수의 영향력을 통해 만족도 향상을 위한 우선순위 설정</li>
+                      <li>• <strong>자원 배분:</strong> 가장 효과적인 변수에 집중적으로 투자</li>
+                      <li>• <strong>위험 관리:</strong> 낮은 만족도가 예측되는 집단에 대한 사전 대응</li>
+                      <li>• <strong>성과 모니터링:</strong> 모델을 통한 지속적인 만족도 예측 및 평가</li>
+                      <li>• <strong>개선 방안:</strong> 비례 오즈 가정 {results.assumptions.proportional_odds.assumption_met ? '충족' : '위반'} 상황에 따른 모델 개선 필요성</li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </StepCard>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     )
   }, [results, isAnalyzing, pyodideReady, runOrdinalRegression])
 
-  const stepComponents = [
-    { id: 'upload', title: '소개', component: renderIntroductionStep },
-    { id: 'variables', title: '데이터 업로드', component: renderDataUploadStep },
-    { id: 'analysis', title: '변수 선택', component: renderVariableSelectionStep },
-    { id: 'results', title: '분석 결과', component: renderresults }
-  ]
-
   return (
-    <StatisticsPageLayout
-      title="서열 회귀분석"
-      subtitle="Ordinal Regression"
-      steps={steps}
-      currentStep={currentStep + 1}
+    <TwoPanelLayout
+      analysisTitle="서열 회귀분석"
+      analysisSubtitle="Ordinal Regression"
+      breadcrumbs={breadcrumbs}
+      currentStep={currentStep}
+      steps={STEPS}
+      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
+      bottomPreview={uploadedData && currentStep >= 1 ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        maxRows: 5
+      } : undefined}
     >
-      {stepComponents[currentStep].component()}
-    </StatisticsPageLayout>
+      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 3 && renderResults()}
+    </TwoPanelLayout>
   )
 }
