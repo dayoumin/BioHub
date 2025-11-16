@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { DiscriminantVariables } from '@/types/statistics'
+import { toDiscriminantVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,15 +20,14 @@ import {
   Download,
   Info,
   Target,
-  Layers,
-  CheckCircle2
+  Layers
 } from 'lucide-react'
 
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -93,24 +93,44 @@ export default function DiscriminantPage() {
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<DiscriminantResult, DiscriminantVariables>({
     withUploadedData: true,
-    withError: true,
-    initialStep: 0
+    withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '판별분석' }
-  ], [])
+  // Page-specific state
 
-  // STEPS 정의 (Batch 3 표준)
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '방법 소개' },
-    { id: 1, label: '데이터 업로드' },
-    { id: 2, label: '변수 선택' },
-    { id: 3, label: '분석 결과' }
-  ], [])
+  // 판별분석 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'method',
+      number: 1,
+      title: '판별분석 소개',
+      description: '판별분석 개념과 활용법',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: '분석할 그룹화 데이터 업로드',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '그룹 변수와 판별 변수 선택',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '결과 해석',
+      description: '판별함수 및 분류 정확도 확인',
+      status: currentStep === 3 ? 'current' : 'pending'
+    }
+  ]
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
@@ -175,159 +195,149 @@ export default function DiscriminantPage() {
   }, [uploadedData, actions])
 
 
-  // 종속변수 선택 핸들러 (Badge 클릭)
-  const handleDependentSelect = useCallback((varName: string) => {
-    actions.setSelectedVariables?.({
-      dependent: varName,
-      independent: selectedVariables?.independent ?? []
-    })
-    // ❌ NO setCurrentStep here - Critical Bug 예방!
-  }, [selectedVariables, actions])
+  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
+    const typedVariables = toDiscriminantVariables(variables)
 
-  // 독립변수 선택 핸들러 (Badge 클릭)
-  const handleIndependentSelect = useCallback((varName: string) => {
-    const current = selectedVariables?.independent ?? []
-    const newIndependent = current.includes(varName)
-      ? current.filter(v => v !== varName)
-      : [...current, varName]
-    actions.setSelectedVariables?.({
-      dependent: selectedVariables?.dependent ?? '',
-      independent: newIndependent
-    })
-    // ❌ NO setCurrentStep here - Critical Bug 예방!
-  }, [selectedVariables, actions])
-
-  // 다음 단계 핸들러 (setCurrentStep + runAnalysis)
-  const handleNextStep = useCallback(async () => {
-    if (!selectedVariables?.dependent || !selectedVariables?.independent || selectedVariables.independent.length < 2) {
-      actions.setError?.('종속변수 1개와 독립변수 2개 이상을 선택해주세요.')
+    if (!actions.setSelectedVariables) {
+      console.error('[discriminant] setSelectedVariables not available')
       return
     }
-    actions.setCurrentStep?.(3)
-    await runAnalysis(selectedVariables)
-  }, [selectedVariables, actions, runAnalysis])
 
-  const renderMethodIntroduction = useCallback(() => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-2">판별분석 개요</h3>
-        <p className="text-sm text-muted-foreground">
-          여러 개의 연속형 변수를 사용하여 그룹을 구별하고 새로운 관찰치를 가장 적합한 그룹으로 분류하는 통계 기법입니다.
-        </p>
+    actions.setSelectedVariables(typedVariables)
+    runAnalysis(typedVariables)
+  }, [runAnalysis, actions])
+
+  const renderMethodIntroduction = () => (
+    <StepCard
+      title="판별분석 (Discriminant Analysis)"
+      description="기존 그룹을 구분하고 새로운 관찰치를 적절한 그룹으로 분류하는 다변량 분석 기법"
+      icon={<Info className="w-5 h-5 text-blue-500" />}
+    >
+      <div className="space-y-6">
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                판별분석이란?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                여러 개의 연속형 변수를 사용하여 <strong>그룹을 구별</strong>하고
+                새로운 관찰치를 가장 적합한 그룹으로 <strong>분류</strong>하는 통계 기법입니다.
+              </p>
+              <div className="bg-muted p-3 rounded-lg">
+                <p className="text-xs font-medium mb-1">핵심 개념</p>
+                <p className="text-xs text-muted-foreground">
+                  그룹 간 차이를 최대화하는 판별함수 생성<br/>
+                  베이즈 정리를 활용한 분류 확률 계산
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                활용 분야
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm">고객 세분화</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm">의료 진단 분류</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm">품질 등급 분류</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm">신용 위험 평가</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-sm">종 구분 및 분류</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>가정 및 조건</AlertTitle>
+          <AlertDescription>
+            <ul className="mt-2 space-y-1 text-sm">
+              <li>• 판별변수는 연속형 (최소 1개 이상)</li>
+              <li>• 그룹 변수는 범주형 (2개 이상 그룹)</li>
+              <li>• 각 그룹의 충분한 표본 크기</li>
+              <li>• 그룹 간 분산-공분산 행렬의 동질성</li>
+              <li>• 다변량 정규분포 가정</li>
+              <li>• 선형 관계 및 다중공선성 주의</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+
+        <div className="text-center">
+          <Button
+            onClick={() => actions.setCurrentStep(1)}
+            className="w-full md:w-auto"
+          >
+            데이터 업로드하기
+          </Button>
+        </div>
       </div>
+    </StepCard>
+  )
 
-      <div>
-        <h4 className="text-base font-semibold mb-2">주요 가정</h4>
-        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-          <li>판별변수는 연속형 (최소 1개 이상)</li>
-          <li>그룹 변수는 범주형 (2개 이상 그룹)</li>
-          <li>각 그룹의 충분한 표본 크기</li>
-          <li>그룹 간 분산-공분산 행렬의 동질성</li>
-        </ul>
-      </div>
+  const renderDataUpload = () => (
+    <StepCard
+      title="데이터 업로드"
+      description="판별분석을 수행할 그룹화된 데이터를 업로드하세요"
+      icon={<Upload className="w-5 h-5 text-primary" />}
+    >
+      <DataUploadStep onUploadComplete={handleDataUpload} />
+    </StepCard>
+  )
 
-      <div>
-        <h4 className="text-base font-semibold mb-2">활용 방법</h4>
-        <p className="text-sm text-muted-foreground">
-          고객 세분화, 의료 진단 분류, 품질 등급 분류, 신용 위험 평가, 종 구분 및 분류 등에 활용됩니다.
-        </p>
-      </div>
-    </div>
-  ), [])
-
-  const renderDataUpload = useCallback(() => (
-    <DataUploadStep
-      onUploadComplete={handleDataUpload}
-      onPrevious={() => actions.setCurrentStep?.(0)}
-      onNext={() => actions.setCurrentStep?.(2)}
-    />
-  ), [handleDataUpload, actions])
-
-  const renderVariableSelection = useCallback(() => {
+  const renderVariableSelection = () => {
     if (!uploadedData) return null
 
     return (
-      <div className="space-y-6">
-        <Alert>
+      <StepCard
+        title="변수 선택"
+        description="그룹 변수와 판별에 사용할 연속형 변수들을 선택하세요"
+        icon={<Users className="w-5 h-5 text-primary" />}
+      >
+        <Alert className="mb-4">
           <Info className="h-4 w-4" />
           <AlertTitle>변수 선택 가이드</AlertTitle>
           <AlertDescription>
             <div className="mt-2 space-y-1 text-sm">
-              <p>• <strong>종속변수 (그룹):</strong> 분류하고자 하는 범주형 변수 1개 (2개 이상 그룹)</p>
-              <p>• <strong>독립변수 (판별):</strong> 그룹을 구별하는데 사용할 연속형 변수 2개 이상</p>
+              <p>• <strong>그룹 변수:</strong> 분류하고자 하는 범주형 변수 (2개 이상 그룹)</p>
+              <p>• <strong>판별 변수:</strong> 그룹을 구별하는데 사용할 연속형 변수들</p>
               <p>• 그룹별로 충분한 관측치가 있는지 확인하세요</p>
             </div>
           </AlertDescription>
         </Alert>
-
-        <div className="space-y-4">
-          <div>
-            <h4 className="text-sm font-semibold mb-2">종속변수 (그룹 변수, 1개 선택)</h4>
-            <div className="flex flex-wrap gap-2">
-              {uploadedData.columns.map((column) => (
-                <Badge
-                  key={column}
-                  variant={selectedVariables?.dependent === column ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => handleDependentSelect(column)}
-                >
-                  {selectedVariables?.dependent === column && (
-                    <CheckCircle2 className="mr-1 h-3 w-3" />
-                  )}
-                  {column}
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold mb-2">독립변수 (판별 변수, 2개 이상 선택)</h4>
-            <div className="flex flex-wrap gap-2">
-              {uploadedData.columns.map((column) => (
-                <Badge
-                  key={column}
-                  variant={(selectedVariables?.independent ?? []).includes(column) ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => handleIndependentSelect(column)}
-                >
-                  {(selectedVariables?.independent ?? []).includes(column) && (
-                    <CheckCircle2 className="mr-1 h-3 w-3" />
-                  )}
-                  {column}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={() => actions.setCurrentStep?.(1)}>
-            이전
-          </Button>
-          <Button
-            onClick={handleNextStep}
-            disabled={
-              !selectedVariables?.dependent ||
-              !selectedVariables?.independent ||
-              selectedVariables.independent.length < 2 ||
-              isAnalyzing
-            }
-          >
-            {isAnalyzing ? '분석 중...' : '다음 단계'}
-          </Button>
-        </div>
-      </div>
+        <VariableSelectorModern
+          methodId="discriminant-analysis"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariableSelection}
+        />
+      </StepCard>
     )
-  }, [uploadedData, selectedVariables, error, isAnalyzing, handleDependentSelect, handleIndependentSelect, handleNextStep, actions])
+  }
 
-  const renderResults = useCallback(() => {
+  const renderResults = () => {
     if (!results) return null
 
     const {
@@ -343,7 +353,12 @@ export default function DiscriminantPage() {
     const groups = Object.keys(confusionMatrix)
 
     return (
-      <div className="space-y-6">
+      <StepCard
+        title="판별분석 결과"
+        description="그룹 분류 성능과 판별함수 정보"
+        icon={<TrendingUp className="w-5 h-5 text-primary" />}
+      >
+        <div className="space-y-6">
           {/* 주요 결과 요약 */}
           <Alert className="border-blue-500 bg-muted">
             <Activity className="h-4 w-4" />
@@ -642,28 +657,37 @@ export default function DiscriminantPage() {
               분류 결과 다운로드
             </Button>
           </div>
-      </div>
+        </div>
+      </StepCard>
     )
-  }, [results])
+  }
 
   return (
-    <TwoPanelLayout
-      analysisTitle="판별분석"
-      analysisSubtitle="Discriminant Analysis - 다변량 분류 및 그룹 예측"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="판별분석"
+      subtitle="Discriminant Analysis - 다변량 분류 및 그룹 예측"
+      icon={<Activity className="w-6 h-6" />}
+      methodInfo={{
+        formula: 'D = β₁X₁ + β₂X₂ + ... + βₚXₚ (판별함수)',
+        assumptions: ['연속형 판별변수', '범주형 그룹변수', '분산 동질성'],
+        sampleSize: '그룹당 최소 3배 이상',
+        usage: '분류, 진단, 그룹예측, 특성분석'
+      }}
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 10
-      } : undefined}
+      onStepChange={actions.setCurrentStep}
+      onRun={() => selectedVariables && runAnalysis(selectedVariables)}
+      onReset={() => {
+        actions.reset()
+      }}
+      isRunning={isAnalyzing}
+      showProgress={true}
+      showTips={true}
     >
       {currentStep === 0 && renderMethodIntroduction()}
       {currentStep === 1 && renderDataUpload()}
       {currentStep === 2 && renderVariableSelection()}
       {currentStep === 3 && renderResults()}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
