@@ -2,11 +2,12 @@
 
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import type { PartialCorrelationVariables } from '@/types/statistics'
-import type { VariableAssignment } from '@/types/statistics-converters'
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { toPartialCorrelationVariables, type VariableAssignment } from '@/types/statistics-converters'
+import { StatisticsPageLayout } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -17,8 +18,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp, CheckCircle } from 'lucide-react'
-import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp } from 'lucide-react'
+import type { StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface PartialCorrelationResults {
   correlations: Array<{
@@ -62,19 +64,36 @@ export default function PartialCorrelationPage() {
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
 
-  const steps = useMemo(() => {
-    const baseSteps = [
-      { id: 1, label: '방법 소개' },
-      { id: 2, label: '데이터 업로드' },
-      { id: 3, label: '변수 선택' },
-      { id: 4, label: '분석 결과' }
-    ]
-
-    return baseSteps.map((step, index) => ({
-      ...step,
-      completed: currentStep > index || (currentStep === 3 && results !== null)
-    }))
-  }, [currentStep, results])
+  const steps: StatisticsStep[] = [
+    {
+      id: 'method',
+      number: 1,
+      title: '편상관분석',
+      description: '제3변수의 영향을 통제한 후 두 변수 간의 순수한 상관관계를 분석합니다.',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: 'CSV 파일을 업로드하고 데이터를 확인합니다.',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '분석할 변수들과 통제할 변수들을 선택합니다.',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '분석 결과',
+      description: '편상관계수와 통계적 유의성을 확인합니다.',
+      status: currentStep === 3 ? 'current' : 'pending'
+    }
+  ]
 
   const runPartialCorrelationAnalysis = useCallback(async (variables: VariableAssignment) => {
     if (!uploadedData || !actions) return
@@ -164,28 +183,18 @@ export default function PartialCorrelationPage() {
     [actions]
   )
 
-  const handleAnalysis = useCallback(() => {
-    if (!selectedVariables || !actions) return
-    actions.setCurrentStep(3)
-    runPartialCorrelationAnalysis(selectedVariables as unknown as VariableAssignment)
-  }, [selectedVariables, actions, runPartialCorrelationAnalysis])
-
-  // Badge 기반 변수 선택 핸들러
-  const handleVariableSelect = useCallback((varName: string, role: 'dependent' | 'covariate') => {
-    const current = selectedVariables || { dependent: [], covariate: [] }
-    const currentArray = Array.isArray(current[role]) ? current[role] : []
-
-    const isSelected = currentArray.includes(varName)
-    const newVars = isSelected
-      ? currentArray.filter((v: string) => v !== varName)
-      : [...currentArray, varName]
-
-    actions.setSelectedVariables?.({
-      ...current,
-      [role]: newVars
-    })
-    // ❌ setCurrentStep 제거: "다음 단계" 버튼이 Step 변경을 담당
-  }, [selectedVariables, actions])
+  const handleVariablesSelected = useCallback(
+    createVariableSelectionHandler<PartialCorrelationVariables>(
+      (vars) => actions?.setSelectedVariables?.(vars ? toPartialCorrelationVariables(vars as unknown as VariableAssignment) : null),
+      (variables) => {
+        if (!actions) return
+        actions.setCurrentStep(3)
+        runPartialCorrelationAnalysis(variables as unknown as VariableAssignment)
+      },
+      'partial-correlation'
+    ),
+    [actions, runPartialCorrelationAnalysis]
+  )
 
   const getCorrelationStrength = useCallback((corr: number) => {
     const abs = Math.abs(corr)
@@ -294,134 +303,6 @@ export default function PartialCorrelationPage() {
       </div>
     </div>
   ), [handleIntroductionNext])
-
-  const renderVariableSelection = useCallback(() => {
-    if (!uploadedData) return null
-
-    const numericColumns = uploadedData.columns.filter((col: string) => {
-      const firstValue = uploadedData.data[0]?.[col]
-      return typeof firstValue === 'number'
-    })
-
-    const dependentVars = Array.isArray(selectedVariables?.dependent)
-      ? selectedVariables.dependent
-      : selectedVariables?.dependent
-        ? [selectedVariables.dependent]
-        : []
-    const covariateVars = Array.isArray(selectedVariables?.covariate)
-      ? selectedVariables.covariate
-      : selectedVariables?.covariate
-        ? [selectedVariables.covariate]
-        : []
-
-    const canProceed = dependentVars.length >= 2 && covariateVars.length >= 1
-
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">변수 선택</h2>
-          <p className="text-gray-600">분석할 변수들과 통제할 변수들을 선택하세요 (복수 선택 가능)</p>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>분석 변수 선택</CardTitle>
-            <CardDescription>
-              편상관분석을 수행할 연속형 변수를 2개 이상 선택하세요
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {numericColumns.map((col: string) => {
-                const isSelected = dependentVars.includes(col)
-                const isCovariate = covariateVars.includes(col)
-                return (
-                  <Badge
-                    key={col}
-                    variant={isSelected ? 'default' : 'outline'}
-                    className={`cursor-pointer ${isCovariate ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => {
-                      if (!isCovariate) {
-                        handleVariableSelect(col, 'dependent')
-                      }
-                    }}
-                  >
-                    {col}
-                    {isSelected && <CheckCircle className="ml-1 h-3 w-3" />}
-                  </Badge>
-                )
-              })}
-            </div>
-            {dependentVars.length > 0 && (
-              <div className="mt-3 p-2 bg-muted rounded text-sm">
-                <span className="font-medium">선택된 변수: </span>
-                {dependentVars.join(', ')}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>통제 변수 선택</CardTitle>
-            <CardDescription>
-              영향을 통제할 연속형 변수를 1개 이상 선택하세요
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {numericColumns.map((col: string) => {
-                const isSelected = covariateVars.includes(col)
-                const isDependent = dependentVars.includes(col)
-                return (
-                  <Badge
-                    key={col}
-                    variant={isSelected ? 'default' : 'outline'}
-                    className={`cursor-pointer ${isDependent ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => {
-                      if (!isDependent) {
-                        handleVariableSelect(col, 'covariate')
-                      }
-                    }}
-                  >
-                    {col}
-                    {isSelected && <CheckCircle className="ml-1 h-3 w-3" />}
-                  </Badge>
-                )
-              })}
-            </div>
-            {covariateVars.length > 0 && (
-              <div className="mt-3 p-2 bg-muted rounded text-sm">
-                <span className="font-medium">선택된 통제변수: </span>
-                {covariateVars.join(', ')}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {!canProceed && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              분석 변수를 2개 이상, 통제 변수를 1개 이상 선택해야 합니다.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={handleVariablesBack}>
-            이전 단계
-          </Button>
-          <Button
-            onClick={handleAnalysis}
-            disabled={!canProceed}
-          >
-            다음 단계
-          </Button>
-        </div>
-      </div>
-    )
-  }, [uploadedData, selectedVariables, handleVariableSelect, handleVariablesBack, handleAnalysis])
 
   const renderResults = useCallback(() => {
     if (isAnalyzing) {
@@ -688,28 +569,14 @@ export default function PartialCorrelationPage() {
         </Tabs>
       </div>
     )
-  }, [isAnalyzing, error, results, selectedVariables, getCorrelationStrength])
-
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '편상관분석' }
-  ], [])
+  }, [isAnalyzing, error, results, selectedVariables])
 
   return (
-    <TwoPanelLayout
-      currentStep={currentStep + 1}
+    <StatisticsPageLayout
       steps={steps}
-      onStepChange={(step) => actions.setCurrentStep(step - 1)}
-      analysisTitle="편상관분석"
-      analysisSubtitle="Partial Correlation"
-      analysisIcon={<Activity className="h-5 w-5 text-primary" />}
-      breadcrumbs={breadcrumbs}
-      bottomPreview={uploadedData ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 10
-      } : undefined}
+      currentStep={currentStep}
+      title="편상관분석"
+      description="제3변수의 영향을 통제한 순수한 상관관계 분석"
     >
       {currentStep === 0 && renderMethodIntroduction()}
       {currentStep === 1 && (
@@ -720,8 +587,15 @@ export default function PartialCorrelationPage() {
           totalSteps={4}
         />
       )}
-      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 2 && uploadedData && (
+        <VariableSelectorModern
+          methodId="partial-correlation"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariablesSelected}
+          onBack={handleVariablesBack}
+        />
+      )}
       {currentStep === 3 && renderResults()}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
