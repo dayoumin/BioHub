@@ -4,7 +4,8 @@ import "./globals.css"
 import { Header } from "@/components/layout/header"
 import { Toaster } from "@/components/ui/sonner"
 import { ClientProviders } from "@/components/providers/ClientProviders"
-import { FloatingChatbot } from "@/components/chatbot/floating-chatbot"
+import { UIProvider } from "@/contexts/ui-context"
+import { LayoutContent } from "@/components/layout/layout-content"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -39,12 +40,19 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className={inter.className}>
         <ClientProviders>
-          <div className="min-h-screen bg-background">
-            <Header />
-            <main>
-              {children}
-            </main>
-            <FloatingChatbot />
+          <UIProvider>
+            <div className="flex h-screen overflow-hidden">
+              {/* 메인 영역 */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <Header />
+                <main className="flex-1 overflow-hidden">
+                  {children}
+                </main>
+              </div>
+
+              {/* 우측 챗봇 패널 (조건부 렌더링) */}
+              <LayoutContent />
+            </div>
             <Toaster
               position="top-center"
               richColors
@@ -54,7 +62,7 @@ export default function RootLayout({
                 className: 'font-medium',
               }}
             />
-          </div>
+          </UIProvider>
         </ClientProviders>
       </body>
     </html>

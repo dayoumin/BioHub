@@ -1,10 +1,19 @@
 'use client'
 
 import React, { ReactNode, useState } from 'react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Check, ChevronRight, ExternalLink } from 'lucide-react'
+import { Check, ChevronRight, ExternalLink, ChevronLeft } from 'lucide-react'
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 
 export interface Step {
   id: number
@@ -12,11 +21,25 @@ export interface Step {
   completed?: boolean
 }
 
+export interface BreadcrumbItem {
+  label: string
+  href?: string
+  onClick?: () => void
+}
+
 export interface TwoPanelLayoutProps {
   // 좌측 사이드바
   currentStep: number
   steps: Step[]
   onStepChange?: (step: number) => void
+
+  // 분석 제목 (좌측 사이드바 상단)
+  analysisTitle?: string
+  analysisSubtitle?: string
+  analysisIcon?: ReactNode
+
+  // Breadcrumb (상단)
+  breadcrumbs?: BreadcrumbItem[]
 
   // 메인 콘텐츠
   children: ReactNode
@@ -49,24 +72,66 @@ export function TwoPanelLayout({
   currentStep,
   steps,
   onStepChange,
+  analysisTitle,
+  analysisSubtitle,
+  analysisIcon,
+  breadcrumbs,
   children,
   bottomPreview,
   className
 }: TwoPanelLayoutProps) {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(true)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   return (
     <div className={cn(
       "flex h-screen overflow-hidden bg-background",
       className
     )}>
-      {/* 좌측 사이드바 - Steps */}
-      <aside className="w-48 border-r border-border bg-muted/20 flex flex-col">
-        <div className="p-4 border-b border-border">
-          <h2 className="text-sm font-semibold text-muted-foreground">분석 단계</h2>
-        </div>
+      {/* 좌측 사이드바 - Steps (고정, 스크롤 안됨) */}
+      <aside className={cn(
+        "bg-muted/30 flex-shrink-0 flex flex-col shadow-sm transition-all duration-300 relative",
+        isSidebarCollapsed ? "w-16" : "w-60"
+      )}>
+        {/* 접기/펼치기 버튼 */}
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-6 z-10 bg-background border border-border rounded-full p-1 shadow-md hover:bg-muted transition-colors"
+          aria-label={isSidebarCollapsed ? "사이드바 펼치기" : "사이드바 접기"}
+        >
+          <ChevronLeft className={cn(
+            "h-4 w-4 transition-transform",
+            isSidebarCollapsed && "rotate-180"
+          )} />
+        </button>
 
-        <nav className="flex-1 p-2 space-y-1">
+        {/* 분석 제목 */}
+        {analysisTitle && !isSidebarCollapsed && (
+          <div className="p-4 bg-primary/5">
+            <div className="flex items-center gap-2 mb-1">
+              {analysisIcon}
+              <h2 className="text-lg font-bold text-foreground">{analysisTitle}</h2>
+            </div>
+            {analysisSubtitle && (
+              <p className="text-sm text-muted-foreground font-medium">{analysisSubtitle}</p>
+            )}
+          </div>
+        )}
+
+        {/* 접혔을 때: 아이콘만 표시 */}
+        {isSidebarCollapsed && analysisIcon && (
+          <div className="p-4 flex justify-center">
+            {analysisIcon}
+          </div>
+        )}
+
+        {!isSidebarCollapsed && (
+          <div className="p-4">
+            <h2 className="text-sm font-semibold text-muted-foreground">분석 단계</h2>
+          </div>
+        )}
+
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {steps.map((step) => {
             const isActive = step.id === currentStep
             const isCompleted = step.completed
@@ -78,18 +143,20 @@ export function TwoPanelLayout({
                 onClick={() => isClickable && onStepChange(step.id)}
                 disabled={!isClickable}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all",
+                  "w-full flex items-center gap-3 rounded-lg text-left transition-all",
+                  isSidebarCollapsed ? "px-2 py-2 justify-center" : "px-3 py-2.5",
                   "hover:bg-muted/50",
                   isActive && "bg-primary/10 border border-primary/20 shadow-sm",
                   !isClickable && "opacity-50 cursor-not-allowed",
                   isClickable && !isActive && "cursor-pointer"
                 )}
+                title={isSidebarCollapsed ? step.label : undefined}
               >
                 {/* 아이콘 */}
                 <div className={cn(
                   "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold",
                   isActive && "bg-primary text-primary-foreground",
-                  isCompleted && !isActive && "bg-green-500 text-white",
+                  isCompleted && !isActive && "bg-foreground text-background",
                   !isActive && !isCompleted && "bg-muted text-muted-foreground"
                 )}>
                   {isCompleted && !isActive ? (
@@ -99,18 +166,22 @@ export function TwoPanelLayout({
                   )}
                 </div>
 
-                {/* 라벨 */}
-                <span className={cn(
-                  "flex-1 text-sm font-medium",
-                  isActive && "text-foreground",
-                  !isActive && "text-muted-foreground"
-                )}>
-                  {step.label}
-                </span>
+                {/* 라벨 (펼쳐졌을 때만) */}
+                {!isSidebarCollapsed && (
+                  <>
+                    <span className={cn(
+                      "flex-1 text-sm font-medium",
+                      isActive && "text-foreground",
+                      !isActive && "text-muted-foreground"
+                    )}>
+                      {step.label}
+                    </span>
 
-                {/* 화살표 (현재 단계) */}
-                {isActive && (
-                  <ChevronRight className="h-4 w-4 text-primary" />
+                    {/* 화살표 (현재 단계) */}
+                    {isActive && (
+                      <ChevronRight className="h-4 w-4 text-primary" />
+                    )}
+                  </>
                 )}
               </button>
             )
@@ -120,9 +191,43 @@ export function TwoPanelLayout({
 
       {/* 메인 영역 */}
       <main className="flex-1 flex flex-col overflow-hidden">
+        {/* Breadcrumb */}
+        {breadcrumbs && breadcrumbs.length > 0 && (
+          <div className="bg-muted/10 px-8 py-3 shadow-sm">
+            <Breadcrumb>
+              <BreadcrumbList>
+                {breadcrumbs.map((item, index) => {
+                  const isLast = index === breadcrumbs.length - 1
+
+                  return (
+                    <React.Fragment key={index}>
+                      <BreadcrumbItem>
+                        {isLast ? (
+                          <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                        ) : item.href ? (
+                          <BreadcrumbLink asChild>
+                            <Link href={item.href}>{item.label}</Link>
+                          </BreadcrumbLink>
+                        ) : item.onClick ? (
+                          <BreadcrumbLink onClick={item.onClick}>
+                            {item.label}
+                          </BreadcrumbLink>
+                        ) : (
+                          <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                        )}
+                      </BreadcrumbItem>
+                      {!isLast && <BreadcrumbSeparator />}
+                    </React.Fragment>
+                  )
+                })}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+        )}
+
         {/* 메인 콘텐츠 */}
         <div className={cn(
-          "flex-1 overflow-y-auto p-8",
+          "flex-1 overflow-y-auto px-8 pt-6 pb-8 custom-scrollbar",
           bottomPreview && isPreviewExpanded && "pb-4"
         )}>
           {children}
@@ -131,11 +236,11 @@ export function TwoPanelLayout({
         {/* 하단 데이터 미리보기 */}
         {bottomPreview && (
           <div className={cn(
-            "border-t border-border bg-muted/10 transition-all duration-300",
+            "bg-muted/10 shadow-sm transition-all duration-300",
             isPreviewExpanded ? "h-[300px]" : "h-12"
           )}>
             {/* 헤더 */}
-            <div className="flex items-center justify-between px-6 py-2 border-b border-border/50">
+            <div className="flex items-center justify-between px-6 py-2">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsPreviewExpanded(!isPreviewExpanded)}

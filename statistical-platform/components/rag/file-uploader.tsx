@@ -15,13 +15,12 @@
 
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Upload, FileText, Loader2, CheckCircle2, XCircle, X } from 'lucide-react'
-import { defaultParserRegistry } from '@/lib/rag/parsers/parser-registry'
 import type { Document } from '@/lib/rag/providers/base-provider'
 
 interface FileUploadState {
@@ -46,11 +45,49 @@ interface FileUploaderProps {
 export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
   const [uploadState, setUploadState] = useState<FileUploadState | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  // ✅ Bug Fix 2: 기본값으로 초기화 (API 응답 전에도 작동)
+  // ✅ Bug Fix 4: .text, .markdown 추가 (getParserType과 일치)
+  const [supportedFormats, setSupportedFormats] = useState<string[]>([
+    '.hwp',
+    '.pdf',
+    '.md',
+    '.txt',
+    '.text',
+    '.markdown',
+  ])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 지원 파일 형식
-  const supportedFormats = defaultParserRegistry.getSupportedFormats()
+  // 지원 파일 형식을 API에서 가져오기 (Server-Side Parser Registry)
+  useEffect(() => {
+    fetch('/api/rag/supported-formats')
+      .then((res) => {
+        // ✅ Bug Fix 3: HTTP 에러 체크
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`)
+        }
+        return res.json()
+      })
+      .then((data) => {
+        // ✅ Bug Fix 3: 데이터 검증 후 업데이트
+        if (Array.isArray(data.supportedFormats) && data.supportedFormats.length > 0) {
+          setSupportedFormats(data.supportedFormats)
+        }
+      })
+      .catch((error) => {
+        console.error('[FileUploader] Failed to fetch supported formats:', error)
+        // ✅ Fallback은 이미 초기값으로 설정됨
+      })
+  }, [])
+
   const acceptedExtensions = supportedFormats.join(',')
+
+  /**
+   * 확장자 기반 파서 타입 결정 (Client-side)
+   */
+  function getParserType(ext: string): 'markdown' | 'server' {
+    const markdownExts = ['.md', '.txt', '.text', '.markdown']
+    return markdownExts.includes(ext) ? 'markdown' : 'server'
+  }
 
   /**
    * 파일명에서 메타데이터 자동 추출
@@ -142,15 +179,9 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
           metadata,
         })
 
-        // 3. 파일 파싱
-        const parser = defaultParserRegistry.getParser(ext)
-        if (!parser) {
-          throw new Error(`파서를 찾을 수 없습니다: ${ext}`)
-        }
-
-        // 파일을 임시 경로에 저장 후 파싱 (브라우저 환경에서는 File 객체 직접 전달)
-        // TODO: 서버 사이드 파싱 구현 필요
-        const text = await parseFileInBrowser(file, parser.name)
+        // 3. 파일 파싱 (✅ Bug Fix 1: Registry 없이 확장자만으로 결정)
+        const parserType = getParserType(ext)
+        const text = await parseFile(file, parserType)
 
         // 4. 파싱 성공
         setUploadState((prev) =>
@@ -182,11 +213,14 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
   )
 
   /**
-   * 서버 사이드 파일 파싱
+   * 파일 파싱 (Client + Server)
    */
-  async function parseFileInBrowser(file: File, parserName: string): Promise<string> {
+  async function parseFile(
+    file: File,
+    parserType: 'markdown' | 'server'
+  ): Promise<string> {
     // Markdown/Text 파일은 직접 읽기 (빠른 처리)
-    if (parserName === 'markdown-parser') {
+    if (parserType === 'markdown') {
       return await file.text()
     }
 

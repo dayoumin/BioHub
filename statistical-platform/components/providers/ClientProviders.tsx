@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
-import { MultiTabWarning } from '@/components/multi-tab-warning'
+import { MemoryMonitor } from '@/components/memory-monitor'
 import { ServiceWorkerProvider } from './ServiceWorkerProvider'
 import { PyodidePreloader } from './PyodidePreloader'
 
@@ -20,7 +20,7 @@ export function ClientProviders({ children }: ClientProvidersProps) {
     >
       <ServiceWorkerProvider />
       <PyodidePreloader />
-      <MultiTabWarning />
+      <MemoryMonitor />
       {children}
     </NextThemesProvider>
   )

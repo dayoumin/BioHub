@@ -27,9 +27,7 @@ import { HistorySection } from '@/components/chatbot/HistorySection'
 import { ProjectDialog } from '@/components/chatbot/ProjectDialog'
 import { MoveSessionDialog } from '@/components/chatbot/MoveSessionDialog'
 import { DeleteConfirmDialog } from '@/components/chatbot/DeleteConfirmDialog'
-import { ChatbotTabs } from '@/components/chatbot/chatbot-tabs'
-import { SettingsTab } from '@/components/chatbot/settings-tab'
-import { DocumentManager } from '@/components/rag/document-manager'
+import { DocumentManagerDialog } from '@/components/chatbot/document-manager-dialog'
 
 const QUICK_PROMPTS = [
   {

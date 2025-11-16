@@ -9,7 +9,7 @@ import type { DocumentParser, ParserMetadata } from './base-parser'
 
 export class HWPParser implements DocumentParser {
   name = 'hwp-parser'
-  supportedFormats = ['.hwp', '.hwpx']
+  supportedFormats = ['.hwp'] // node-hwp는 HWP5(바이너리), HML만 지원 (.hwpx 미지원)
 
   /**
    * HWP 파일에서 텍스트 추출
@@ -51,6 +51,11 @@ export class HWPParser implements DocumentParser {
   /**
    * HWP 문서에서 텍스트 추출 (HWPML → Text)
    * node-hwp의 doc.toHML() 사용
+   *
+   * 구조 보존 규칙:
+   * - 블록 태그 (</P>, </SECTION>) → \n\n (문단 구분)
+   * - 인라인 태그 → 공백
+   * - Chunker가 인식할 수 있도록 구조 유지
    */
   private extractText(hwpDoc: unknown): string {
     try {
@@ -64,11 +69,24 @@ export class HWPParser implements DocumentParser {
       // Get HWPML (XML format)
       const hwpml = doc.toHML()
 
-      // Simple XML to text conversion
-      // Remove XML tags and extract text content
-      const text = hwpml
-        .replace(/<[^>]+>/g, ' ') // Remove XML tags
-        .replace(/\s+/g, ' ') // Normalize whitespace
+      // XML to text conversion with structure preservation
+      let text = hwpml
+        // 1. 블록 레벨 태그 → \n\n (문단 구분)
+        .replace(/<\/(P|SECTION|TABLE|LIST)>/gi, '\n\n')
+        // 2. 줄바꿈 태그 → \n
+        .replace(/<BR\s*\/?>/gi, '\n')
+        // 3. 나머지 XML 태그 제거
+        .replace(/<[^>]+>/g, ' ')
+        // 4. HTML 엔티티 디코딩 (기본적인 것만)
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(parseInt(dec, 10)))
+        // 5. 연속된 공백/탭 → 단일 공백
+        .replace(/[ \t]+/g, ' ')
+        // 6. 연속된 줄바꿈 정리 (3개 이상 → 2개)
+        .replace(/\n{3,}/g, '\n\n')
         .trim()
 
       return text
@@ -86,7 +104,7 @@ export class HWPParser implements DocumentParser {
       name: 'hwp-parser',
       version: '1.0.0',
       supportedFormats: this.supportedFormats,
-      description: 'HWP/HWPX file parser using node-hwp',
+      description: 'HWP5 (binary) file parser using node-hwp (HWPX not supported)',
       url: 'https://github.com/123jimin/node-hwp'
     }
   }

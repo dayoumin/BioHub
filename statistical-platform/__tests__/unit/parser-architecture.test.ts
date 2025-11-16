@@ -17,14 +17,15 @@ describe('Parser Architecture', () => {
 
       expect(metadata.name).toBe('hwp-parser')
       expect(metadata.version).toBe('1.0.0')
-      expect(metadata.supportedFormats).toEqual(['.hwp', '.hwpx'])
+      expect(metadata.supportedFormats).toEqual(['.hwp']) // HWPX 미지원
       expect(metadata.url).toBe('https://github.com/123jimin/node-hwp')
+      expect(metadata.description).toContain('HWPX not supported')
     })
 
-    it('should support .hwp and .hwpx formats', () => {
+    it('should support .hwp format only (not .hwpx)', () => {
       const parser = new HWPParser()
       expect(parser.supportedFormats).toContain('.hwp')
-      expect(parser.supportedFormats).toContain('.hwpx')
+      expect(parser.supportedFormats).not.toContain('.hwpx') // node-hwp 미지원
     })
   })
 
@@ -114,7 +115,7 @@ describe('Parser Architecture', () => {
 
       const formats = registry.getSupportedFormats()
       expect(formats).toContain('.hwp')
-      expect(formats).toContain('.hwpx')
+      expect(formats).not.toContain('.hwpx') // node-hwp 미지원
       expect(formats).toContain('.md')
       expect(formats).toContain('.txt')
     })
@@ -138,7 +139,6 @@ describe('Parser Architecture', () => {
 
       const hwpFiles = [
         '/path/to/doc.hwp',
-        '/path/to/doc.hwpx',
         '/path/to/doc.HWP'
       ]
 
@@ -146,6 +146,15 @@ describe('Parser Architecture', () => {
         const parser = registry.getParser(filePath)
         expect(parser?.name).toBe('hwp-parser')
       })
+    })
+
+    it('should not select HWPParser for HWPX files', () => {
+      const registry = new ParserRegistry()
+      registry.clear()
+      registry.register(new HWPParser())
+
+      const parser = registry.getParser('/path/to/doc.hwpx')
+      expect(parser).toBeNull() // HWPX 미지원
     })
 
     it('should select MarkdownParser for text files', () => {

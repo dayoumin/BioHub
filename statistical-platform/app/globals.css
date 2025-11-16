@@ -202,8 +202,20 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  /* Grok 스타일 - 전역 스크롤바 완전 숨김 */
+  html,
   body {
     @apply bg-background text-foreground;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0;
+    height: 0;
   }
 }
 
@@ -534,5 +546,22 @@
 
   .btn-experimental:hover {
     background: linear-gradient(to right, var(--track-analysis-hover-from), var(--track-analysis-hover-to));
+  }
+
+  /* Custom Scrollbar - Grok 스타일 (완전 숨김) */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  /* Firefox */
+  .custom-scrollbar {
+    scrollbar-width: none;
+  }
+
+  /* IE/Edge */
+  .custom-scrollbar {
+    -ms-overflow-style: none;
   }
 }

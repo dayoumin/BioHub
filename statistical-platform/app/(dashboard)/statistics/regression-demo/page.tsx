@@ -12,6 +12,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RegressionVariables } from '@/types/statistics'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { escapeHtml } from '@/lib/utils/html-escape'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -279,65 +280,71 @@ export default function RegressionDemoPage() {
               step.id === 4 ? !!results : false
   }))
 
-  // Bottom preview configuration
-  const bottomPreview = (currentStep === 2 || currentStep === 3) && uploadedData ? {
-    data: uploadedData.data,
-    fileName: uploadedData.fileName,
-    maxRows: 100,
-    onOpenNewWindow: () => {
-      const dataWindow = window.open('', '_blank', 'width=1200,height=800')
-      if (dataWindow) {
-        const columns = Object.keys(uploadedData.data[0] || {})
-        const html = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>데이터 미리보기 - ${uploadedData.fileName}</title>
-            <style>
-              body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; }
-              table { border-collapse: collapse; width: 100%; font-size: 12px; }
-              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-              th { background-color: #f0f0f0; font-weight: 600; position: sticky; top: 0; }
-              tr:nth-child(even) { background-color: #f9f9f9; }
-              .header { margin-bottom: 20px; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h2>${uploadedData.fileName}</h2>
-              <p>${uploadedData.data.length.toLocaleString()}행 × ${columns.length}열</p>
-            </div>
-            <table>
-              <thead>
+  // "새 창으로 보기" 핸들러
+  const handleOpenNewWindow = useCallback(() => {
+    if (!uploadedData) return
+
+    const dataWindow = window.open('', '_blank', 'width=1200,height=800')
+    if (dataWindow) {
+      const columns = Object.keys(uploadedData.data[0] || {})
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>데이터 미리보기 - ${escapeHtml(uploadedData.fileName)}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; }
+            table { border-collapse: collapse; width: 100%; font-size: 12px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f0f0f0; font-weight: 600; position: sticky; top: 0; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .header { margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>${escapeHtml(uploadedData.fileName)}</h2>
+            <p>${uploadedData.data.length.toLocaleString()}행 × ${columns.length}열</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                ${columns.map(col => `<th>${escapeHtml(col)}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${uploadedData.data.map((row, idx) => `
                 <tr>
-                  <th>#</th>
-                  ${columns.map(col => `<th>${col}</th>`).join('')}
+                  <td>${idx + 1}</td>
+                  ${columns.map(col => `<td>${escapeHtml(row[col])}</td>`).join('')}
                 </tr>
-              </thead>
-              <tbody>
-                ${uploadedData.data.map((row, idx) => `
-                  <tr>
-                    <td>${idx + 1}</td>
-                    ${columns.map(col => `<td>${row[col]}</td>`).join('')}
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </body>
-          </html>
-        `
-        dataWindow.document.write(html)
-        dataWindow.document.close()
-      }
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `
+      dataWindow.document.write(html)
+      dataWindow.document.close()
     }
-  } : undefined
+  }, [uploadedData])
+
+  // Breadcrumb 설정 (2단계: 홈 → 회귀분석 데모)
+  const breadcrumbs = [
+    { label: '홈', href: '/' },
+    { label: '회귀분석 데모' }
+  ]
 
   return (
     <TwoPanelLayout
       currentStep={currentStep}
       steps={stepsWithCompleted}
       onStepChange={actions.setCurrentStep}
-      bottomPreview={bottomPreview}
+      analysisTitle="회귀분석"
+      analysisSubtitle="Regression"
+      analysisIcon={<TrendingUp className="h-5 w-5 text-primary" />}
+      breadcrumbs={breadcrumbs}
     >
       {/* Step 1: 회귀 유형 선택 */}
       {currentStep === 1 && (
@@ -423,12 +430,22 @@ export default function RegressionDemoPage() {
             onNext={() => actions.setCurrentStep(3)}
             canGoNext={!!uploadedData}
           />
+
+          {/* 업로드된 데이터 미리보기 */}
+          {uploadedData && (
+            <DataPreviewPanel
+              data={uploadedData.data}
+              fileName={uploadedData.fileName}
+              defaultExpanded={true}
+              onOpenNewWindow={handleOpenNewWindow}
+            />
+          )}
         </div>
       )}
 
       {/* Step 3: 변수 선택 */}
       {currentStep === 3 && uploadedData && (
-        <div className="space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-2">변수 선택</h2>
             <p className="text-sm text-muted-foreground">
@@ -528,12 +545,20 @@ export default function RegressionDemoPage() {
               </Button>
             )}
           </div>
+
+          {/* 업로드된 데이터 미리보기 */}
+          <DataPreviewPanel
+            data={uploadedData.data}
+            fileName={uploadedData.fileName}
+            defaultExpanded={true}
+            onOpenNewWindow={handleOpenNewWindow}
+          />
         </div>
       )}
 
       {/* Step 4: 분석 결과 */}
       {currentStep === 4 && results && (
-        <div className="space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-2">분석 완료</h2>
             <p className="text-sm text-muted-foreground">

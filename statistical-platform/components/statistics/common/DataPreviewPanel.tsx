@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ChevronDown, ChevronUp, Database, BarChart3, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Database, BarChart3, AlertCircle, CheckCircle2, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { extractColumnData } from '@/lib/utils/data-extraction'
 
@@ -16,6 +16,8 @@ interface DataPreviewPanelProps {
   className?: string
   defaultExpanded?: boolean
   maxPreviewRows?: number
+  fileName?: string
+  onOpenNewWindow?: () => void
 }
 
 interface ColumnStats {
@@ -35,7 +37,9 @@ export function DataPreviewPanel({
   data,
   className,
   defaultExpanded = false,
-  maxPreviewRows = 100
+  maxPreviewRows = 10000, // 기본값 크게 증가 (전체 데이터 표시)
+  fileName,
+  onOpenNewWindow
 }: DataPreviewPanelProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
@@ -149,22 +153,35 @@ export function DataPreviewPanel({
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="gap-2 hover:bg-primary/10 transition-colors"
-          >
-            {isExpanded ? (
-              <>
-                접기 <ChevronUp className="h-4 w-4" />
-              </>
-            ) : (
-              <>
-                펼치기 <ChevronDown className="h-4 w-4" />
-              </>
+          <div className="flex items-center gap-2">
+            {onOpenNewWindow && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenNewWindow}
+                className="gap-2 hover:bg-primary/10 transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                새 창으로 보기
+              </Button>
             )}
-          </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="gap-2 hover:bg-primary/10 transition-colors"
+            >
+              {isExpanded ? (
+                <>
+                  접기 <ChevronUp className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  펼치기 <ChevronDown className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -195,12 +212,12 @@ export function DataPreviewPanel({
                   <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                   <p className="text-sm text-amber-900 dark:text-amber-100">
                     처음 <strong>{maxPreviewRows.toLocaleString()}개 행</strong>만 표시됩니다.
-                    전체 데이터는 분석에 사용됩니다.
+                    스크롤하여 더 많은 데이터를 확인하세요.
                   </p>
                 </div>
               )}
 
-              <ScrollArea className="h-[400px] w-full rounded-lg border border-border/50 bg-background/50 backdrop-blur-sm">
+              <ScrollArea className="h-[600px] w-full rounded-lg border border-border/50 bg-background/50 backdrop-blur-sm">
                 <Table>
                   <TableHeader className="sticky top-0 bg-muted/95 backdrop-blur-md z-10">
                     <TableRow className="hover:bg-muted/80">
