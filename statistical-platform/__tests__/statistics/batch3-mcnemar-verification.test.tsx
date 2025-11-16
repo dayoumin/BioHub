@@ -27,11 +27,11 @@ describe('Batch 3-5: mcnemar 페이지 마이그레이션 검증', () => {
 
   describe('1. 필수 항목 - 레이아웃 변경', () => {
     it('TwoPanelLayout을 import 해야 함', () => {
-      expect(fileContent).toMatch(/import TwoPanelLayout from ['"]@\/components\/statistics\/layouts\/TwoPanelLayout['"]/)
+      expect(fileContent).toMatch(/import \{ TwoPanelLayout \} from ['"]@\/components\/statistics\/layouts\/TwoPanelLayout['"]/)
     })
 
-    it('TwoPanelStep 타입을 import 해야 함', () => {
-      expect(fileContent).toMatch(/import type \{ TwoPanelStep \} from ['"]@\/components\/statistics\/layouts\/TwoPanelLayout['"]/)
+    it('Step 타입을 import 해야 함', () => {
+      expect(fileContent).toMatch(/import type \{ Step as TwoPanelStep \} from ['"]@\/components\/statistics\/layouts\/TwoPanelLayout['"]/)
     })
 
     it('StatisticsPageLayout을 사용하지 않아야 함', () => {
