@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ResponseSurfaceVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,14 +11,10 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Activity, CheckCircle, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
-
-// Components
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-
 import type { VariableAssignment } from '@/types/statistics-converters'
 import { useStatisticsPage , type UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -507,32 +503,6 @@ export default function ResponseSurfacePage() {
   const [includeInteraction, setIncludeInteraction] = useState(true)
   const [includeQuadratic, setIncludeQuadratic] = useState(true)
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '반응표면 분석', href: '/statistics/response-surface' }
-  ], [])
-
-  // Steps configuration (0-based indexing)
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    {
-      id: 0,
-      label: '방법 소개',
-      completed: currentStep > 0
-    },
-    {
-      id: 1,
-      label: '데이터 업로드',
-      completed: currentStep > 1
-    },
-    {
-      id: 2,
-      label: '변수 선택 및 분석',
-      completed: currentStep > 2
-    }
-  ], [currentStep])
-
   const handleDataUploadComplete = useCallback((file: File, data: unknown[]) => {
     const uploadedData: UploadedData = {
       data: data as Record<string, unknown>[],
@@ -551,7 +521,31 @@ export default function ResponseSurfacePage() {
     actions.setCurrentStep(2)
   }, [actions])
 
-  const renderMethodIntroduction = useCallback(() => (
+  const steps = [
+    {
+      id: 'step-1',
+      number: 1,
+      title: "방법론 이해",
+      description: "반응표면 분석은 여러 독립변수가 종속변수에 미치는 영향을 다항식으로 모델링하여 최적화를 수행하는 통계 기법입니다.",
+      status: (currentStep === 1 ? 'current' : (currentStep > 1 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
+    },
+    {
+      id: 'step-2',
+      number: 2,
+      title: "데이터 업로드",
+      description: "여러 요인(독립변수)과 해당하는 반응값(종속변수) 데이터를 업로드하세요.",
+      status: (currentStep === 2 ? 'current' : (currentStep > 2 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
+    },
+    {
+      id: 'step-3',
+      number: 3,
+      title: "변수 선택 및 분석",
+      description: "예측변수(요인)들과 반응변수를 선택하고 선택한 모델로 분석을 실행합니다.",
+      status: (currentStep === 3 ? 'current' : (currentStep > 3 ? 'completed' : 'pending')) as 'pending' | 'current' | 'completed' | 'error'
+    }
+  ]
+
+  const renderMethodIntroduction = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -661,36 +655,28 @@ export default function ResponseSurfacePage() {
       </Card>
 
       <div className="flex justify-center">
-        <Button onClick={() => actions.setCurrentStep(1)} size="lg">
-          다음: 데이터 업로드
+        <Button onClick={() => actions.setCurrentStep(2)} size="lg">
+          데이터 업로드하기
         </Button>
       </div>
     </div>
-  ), [actions, selectedModel, setSelectedModel, includeInteraction, setIncludeInteraction, includeQuadratic, setIncludeQuadratic])
+  )
 
   return (
-    <TwoPanelLayout
-      analysisTitle="반응표면 분석"
-      analysisSubtitle="Response Surface Methodology"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
+      title="반응표면 분석"
+      description="다변수 최적화를 통해 여러 요인이 반응에 미치는 영향을 분석하고 최적 조건을 찾습니다"
     >
-      {currentStep === 0 && renderMethodIntroduction()}
-      {currentStep === 1 && (
+      {currentStep === 1 && renderMethodIntroduction()}
+      {currentStep === 2 && (
         <DataUploadStep
           onUploadComplete={handleDataUploadComplete}
-          currentStep={1}
-          totalSteps={3}
+          onPrevious={() => actions.setCurrentStep(1)}
         />
       )}
-      {currentStep === 2 && (
+      {currentStep === 3 && (
         <ResponseSurfaceAnalysis
           selectedModel={selectedModel}
           includeInteraction={includeInteraction}
@@ -703,6 +689,6 @@ export default function ResponseSurfacePage() {
           }}
         />
       )}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
