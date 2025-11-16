@@ -132,20 +132,68 @@ vercel deploy --prod
 
 ### 배포 명령어
 ```bash
-# 1. Pyodide 다운로드
-npm run setup:pyodide
+# === 준비 단계 (외부 인터넷 연결 환경) ===
 
-# 2. 오프라인 빌드
+# 1. CDN 파일 다운로드
+npm run setup:pyodide       # Pyodide (200MB)
+npm run setup:sql-wasm      # SQL.js WASM (1MB)
+
+# 2. Ollama 설치 파일 다운로드
+# https://ollama.com/download
+
+# 3. Ollama 모델 다운로드
+ollama pull qwen3-embedding:0.6b  # 임베딩 모델 (~800MB)
+ollama pull qwen3:4b              # 생성 모델 (~2.5GB)
+
+# === 빌드 단계 ===
+
+# 4. 오프라인 빌드
 NEXT_PUBLIC_PYODIDE_USE_LOCAL=true npm run build
 
-# 3. 정적 파일 생성
+# 5. 정적 파일 생성
 npm run export
 
-# 4. 서버 배포
-sudo cp -r out/* /var/www/html/
+# 6. 패키징 (USB 전달용)
+zip -r statistics-platform.zip out/ public/pyodide/ public/sql-wasm/
 
-# 5. Nginx 재시작
+# === 대상 환경 배포 (폐쇄망/오프라인) ===
+
+# 7. USB에서 압축 해제
+unzip statistics-platform.zip
+
+# 8. 웹 서버 배포
+sudo cp -r out/* /var/www/html/
+sudo cp -r public/pyodide /var/www/html/
+sudo cp -r public/sql-wasm /var/www/html/
+
+# 9. Ollama 설치 (USB에서)
+# Windows: OllamaSetup.exe 실행
+# Mac: Ollama.dmg 실행
+# Linux: sudo dpkg -i ollama.deb
+
+# 10. 모델 파일 복사
+# Windows: USB:\models\ → C:\Users\[사용자]\.ollama\models\
+# Mac/Linux: cp -r /mnt/usb/models/* ~/.ollama/models/
+
+# 11. Ollama 서비스 시작
+ollama serve
+
+# 12. Nginx 재시작
 sudo systemctl restart nginx
+```
+
+**📦 전달 파일 구성** (USB/네트워크 드라이브):
+```
+statistics-platform/
+├── statistics-platform.zip       # 웹 앱 (250MB)
+├── OllamaSetup.exe               # Ollama 설치 파일 (Windows)
+├── Ollama.dmg                    # Ollama 설치 파일 (Mac)
+├── ollama.deb                    # Ollama 설치 파일 (Linux)
+└── models/                       # Ollama 모델 파일
+    ├── qwen3-embedding:0.6b/     # 임베딩 모델 (~800MB)
+    └── qwen3:4b/                 # 생성 모델 (~2.5GB)
+
+총 크기: ~3.5GB
 ```
 
 ---

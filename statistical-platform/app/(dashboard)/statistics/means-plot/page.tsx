@@ -71,7 +71,7 @@ export default function MeansPlotPage() {
 
     return baseSteps.map((step, index) => ({
       ...step,
-      completed: currentStep > index + 1 || (currentStep === 4 && results !== null)
+      completed: currentStep > index || (currentStep === 3 && results !== null)
     }))
   }, [currentStep, results])
 

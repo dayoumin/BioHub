@@ -61,6 +61,8 @@ export interface RAGResponse {
     content: string
     score: number
   }>
+  /** LLM이 실제 답변에 사용한 문서 인덱스 (0-based, Perplexity 스타일) */
+  citedDocIds?: number[]
   /** 사용된 모델 정보 */
   model: {
     provider: string

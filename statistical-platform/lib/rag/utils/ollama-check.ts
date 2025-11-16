@@ -43,17 +43,21 @@ export async function checkOllamaStatus(endpoint: string = 'http://localhost:114
 
     status.isAvailable = true
 
-    // 2. 임베딩 모델 확인 (qwen3-embedding, nomic-embed-text, mxbai-embed-large)
-    const embeddingModels = ['qwen3-embedding', 'nomic-embed-text', 'mxbai-embed-large', 'all-minilm']
+    // 2. 임베딩 모델 확인 (embedding, embed가 포함된 모델)
+    const embeddingKeywords = ['embedding', 'embed']
     status.hasEmbeddingModel = data.models.some((m) =>
-      embeddingModels.some((em) => m.name.toLowerCase().includes(em))
+      embeddingKeywords.some((keyword) => m.name.toLowerCase().includes(keyword))
     )
 
-    // 3. 추론 모델 확인 (qwen, gemma, mistral, llama)
+    // 3. 추론 모델 확인 (임베딩 모델 제외)
     const inferenceModels = ['qwen', 'gemma', 'mistral', 'llama', 'neural-chat']
-    status.hasInferenceModel = data.models.some((m) =>
-      inferenceModels.some((im) => m.name.toLowerCase().includes(im))
-    )
+    status.hasInferenceModel = data.models.some((m) => {
+      const modelName = m.name.toLowerCase()
+      // 임베딩 모델이 아니면서 추론 모델 키워드를 포함하는 경우
+      const isEmbedding = embeddingKeywords.some((keyword) => modelName.includes(keyword))
+      const isInference = inferenceModels.some((im) => modelName.includes(im))
+      return !isEmbedding && isInference
+    })
 
     return status
   } catch (err) {

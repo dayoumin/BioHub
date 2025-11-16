@@ -63,7 +63,7 @@ export default function MannKendallPage() {
   const { state, actions } = useStatisticsPage<MannKendallResult, MannKendallVariables>({
     withUploadedData: true,
     withError: true,
-    initialStep: 1
+    initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, error, isAnalyzing } = state
 
@@ -77,11 +77,11 @@ export default function MannKendallPage() {
   // Steps with completed state
   const stepsWithCompleted = useMemo(() => STEPS.map(step => ({
     ...step,
-    completed: step.id === 1 ? true :
+    completed: step.id === 1 ? currentStep > 0 :
               step.id === 2 ? !!uploadedData :
               step.id === 3 ? !!selectedVariables :
               step.id === 4 ? !!results : false
-  })), [uploadedData, selectedVariables, results])
+  })), [currentStep, uploadedData, selectedVariables, results])
 
   // Handler: Data upload
   const handleDataUpload = useCallback((file: File, data: Array<Record<string, unknown>>) => {
@@ -89,7 +89,7 @@ export default function MannKendallPage() {
     if (actions.setUploadedData) {
       actions.setUploadedData({ data, fileName: file.name, columns })
     }
-    actions.setCurrentStep(3)
+    actions.setCurrentStep(2)
   }, [actions])
 
   // Handler: Variable selection (single column)
@@ -166,7 +166,7 @@ export default function MannKendallPage() {
         intercept: result.intercept
       }
 
-      actions.completeAnalysis(typedResult, 4)
+      actions.completeAnalysis(typedResult, 3)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       actions.setError(errorMsg)
@@ -282,7 +282,7 @@ export default function MannKendallPage() {
       </Alert>
 
       <div className="flex justify-end">
-        <Button onClick={() => actions.setCurrentStep(2)} size="lg">
+        <Button onClick={() => actions.setCurrentStep(1)} size="lg">
           다음 단계: 데이터 업로드
           <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
@@ -302,7 +302,7 @@ export default function MannKendallPage() {
 
       <DataUploadStep
         onUploadComplete={handleDataUpload}
-        onNext={() => actions.setCurrentStep(3)}
+        onNext={() => actions.setCurrentStep(2)}
         canGoNext={!!uploadedData}
       />
     </div>
@@ -396,7 +396,7 @@ export default function MannKendallPage() {
           {/* 이미 결과가 있으면 "결과 보기" 버튼 표시 */}
           {results && !isAnalyzing && (
             <Button
-              onClick={() => actions.setCurrentStep(4)}
+              onClick={() => actions.setCurrentStep(3)}
               variant="outline"
               size="lg"
               className="flex-1 md:flex-none md:w-auto"
@@ -691,23 +691,23 @@ export default function MannKendallPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep}
+      currentStep={currentStep + 1}
       steps={stepsWithCompleted}
       onStepChange={handleStepChange}
       analysisTitle="Mann-Kendall 추세 검정"
       analysisSubtitle="Trend Test"
       analysisIcon={<TrendingUp className="h-5 w-5 text-primary" />}
       breadcrumbs={breadcrumbs}
-      bottomPreview={uploadedData && currentStep >= 3 ? {
+      bottomPreview={uploadedData && currentStep >= 2 ? {
         data: uploadedData.data,
         fileName: uploadedData.fileName,
         maxRows: 10
       } : undefined}
     >
-      {currentStep === 1 && renderMethodIntroduction()}
-      {currentStep === 2 && renderDataUpload()}
-      {currentStep === 3 && renderVariableSelection()}
-      {currentStep === 4 && renderResults()}
+      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 3 && renderResults()}
     </TwoPanelLayout>
   )
 }

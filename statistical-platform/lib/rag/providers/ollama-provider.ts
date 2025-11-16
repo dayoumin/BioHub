@@ -913,9 +913,11 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
       // 추론 모델로 응답 생성
       console.log('[OllamaProvider] 응답 생성 중...')
-      const answer = await this.generateAnswer(contextText, context.query)
+      const { answer, citedDocIds } = await this.generateAnswer(contextText, context.query)
 
       const responseTime = Date.now() - startTime
+
+      console.log(`[OllamaProvider] ✓ 답변 생성 완료 (사용 문서: ${citedDocIds.length}개 / ${searchResults.length}개)`)
 
       return {
         answer,
@@ -924,6 +926,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           content: result.content.slice(0, 200) + '...',
           score: result.score
         })),
+        citedDocIds, // ✅ Perplexity 스타일: LLM이 실제 사용한 문서 인덱스
         model: {
           provider: `Ollama (Local - ${searchMode.toUpperCase()}${usedFallback ? ' [Fallback]' : ''})`,
           embedding: this.embeddingModel,
@@ -1625,10 +1628,10 @@ ${numberedDocs.map(({ number, doc }) =>
    * 컨텍스트 생성 (검색 결과 + 메서드 정보)
    */
   private buildContext(searchResults: SearchResult[], context: RAGContext): string {
-    let contextText = '다음은 관련 문서입니다:\n\n'
+    let contextText = '다음은 관련 문서입니다 (번호를 기억하세요):\n\n'
 
     searchResults.forEach((result, index) => {
-      contextText += `[문서 ${index + 1}] ${result.title}\n`
+      contextText += `[${index + 1}] ${result.title}\n`
       contextText += `${result.content}\n\n`
     })
 
@@ -1641,8 +1644,9 @@ ${numberedDocs.map(({ number, doc }) =>
 
   /**
    * 답변 생성 (Ollama 추론 모델)
+   * @returns {answer: string, citedDocIds: number[]} - 답변과 사용된 문서 인덱스
    */
-  private async generateAnswer(contextText: string, query: string): Promise<string> {
+  private async generateAnswer(contextText: string, query: string): Promise<{ answer: string; citedDocIds: number[] }> {
     const systemPrompt = `당신은 통계 분석 분야의 경험 많은 튜터입니다.
 아래 제공된 한국 통계 교육 자료를 바탕으로, 사용자의 질문에 명확하고 친근하게 답변해주세요.
 
@@ -1651,6 +1655,7 @@ ${numberedDocs.map(({ number, doc }) =>
 ───────────────────────────────────
 • 제공된 자료를 최우선으로 활용하되, 관련 없으면 자유롭게 설명
 • 자료에 없는 내용은 "문서에 따르면..." 또는 "일반적으로..." 로 구분
+• **중요**: 답변에 실제 사용한 문서 번호를 마지막에 <cited_docs>태그로 명시하세요
 
 
 💬 답변 스타일 가이드
@@ -1675,17 +1680,14 @@ ${numberedDocs.map(({ number, doc }) =>
 • 길고 복잡한 문장
 
 
-📖 답변 구조 예시
+📖 답변 형식 (필수!)
 ───────────────────────────────────
-1. 직관적 요약 (1-2문장)
-   → "T-검정은 두 그룹의 평균 차이를 비교하는 방법입니다"
+답변 내용...
 
-2. 상세 설명 (마크다운으로 정리)
-   → ## 언제 사용할까?
-   → ## 단계별 진행법
+<cited_docs>1,3,5</cited_docs>
 
-3. 실무 팁 또는 주의사항
-   → "💡 팁: 사전에 정규성 검정을 하면 더 정확합니다"`
+**설명**: 답변에 실제 참조한 문서 번호를 쉼표로 구분하여 cited_docs 태그에 넣으세요.
+예시: [1], [2] 문서 사용 시 → <cited_docs>1,2</cited_docs>`
 
     const prompt = `${systemPrompt}
 
@@ -1727,7 +1729,29 @@ ${contextText}
     // 패턴 4: 줄 시작의 -sensitive 제거
     answer = answer.replace(/^-?sensitive\s*/im, '')
 
-    return answer.trim()
+    // <cited_docs> 태그 파싱 (Perplexity 스타일 - 답변에 사용된 문서 추적)
+    const citedDocsMatch = answer.match(/<cited_docs>([\d,\s]+)<\/cited_docs>/i)
+    let citedDocIds: number[] = []
+
+    if (citedDocsMatch) {
+      // "1,3,5" → [1, 3, 5]로 변환 (0-based index로 변환: 1 → 0, 3 → 2)
+      const parsed = citedDocsMatch[1]
+        .split(',')
+        .map(n => parseInt(n.trim()) - 1) // 1-based → 0-based
+        .filter(n => !isNaN(n) && n >= 0)
+
+      // 유효한 번호가 하나라도 있을 때만 태그 제거
+      if (parsed.length > 0) {
+        citedDocIds = parsed
+        // <cited_docs> 태그 제거 (사용자에게 보이지 않도록)
+        answer = answer.replace(/<cited_docs>[\s\S]*?<\/cited_docs>/gi, '')
+      }
+    }
+
+    return {
+      answer: answer.trim(),
+      citedDocIds
+    }
   }
 
   /**

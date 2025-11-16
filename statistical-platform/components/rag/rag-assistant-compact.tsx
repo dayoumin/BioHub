@@ -48,6 +48,23 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null)
+  const [showSetupDialog, setShowSetupDialog] = useState(false)
+
+  // Ollama 상태 체크
+  useEffect(() => {
+    const checkOllama = async () => {
+      const status = await checkOllamaStatus()
+      setOllamaStatus(status)
+
+      // Ollama가 사용 불가능하거나 모델이 없으면 설치 안내 표시
+      if (!status.isAvailable || !status.hasEmbeddingModel || !status.hasInferenceModel) {
+        setShowSetupDialog(true)
+      }
+    }
+
+    void checkOllama()
+  }, [])
 
   // 세션 초기화 및 로드
   useEffect(() => {
@@ -195,10 +212,25 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
     ? sessions.filter((s) => s.isFavorite)
     : sessions
 
+  // Ollama 재시도 핸들러
+  const handleRetryOllama = useCallback(async () => {
+    const status = await checkOllamaStatus()
+    setOllamaStatus(status)
+
+    if (status.isAvailable && status.hasEmbeddingModel && status.hasInferenceModel) {
+      setShowSetupDialog(false)
+    } else {
+      setError('Ollama 연결 실패: ' + (status.error || '모델이 설치되지 않았습니다'))
+    }
+  }, [])
+
   const currentSession = sessions.find((s) => s.id === currentSessionId)
 
   return (
     <div className={cn('flex flex-col h-full bg-background', className)}>
+      {/* Ollama 설치 안내 다이얼로그 */}
+      <OllamaSetupDialog open={showSetupDialog} onOpenChange={setShowSetupDialog} onRetry={handleRetryOllama} />
+
       {/* 상단 세션 헤더 (최신 UI 패턴) */}
       <div className="h-12 flex-shrink-0 border-b bg-muted/30">
         <div className="h-full flex items-center gap-2 px-3 justify-between">
@@ -265,34 +297,46 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
         /* 대화 있을 때: 기존 레이아웃 */
         <>
           {/* 대화 내역 */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, idx) => (
-              <div key={idx} className="space-y-2">
-                {/* 사용자 질문 */}
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">질문:</p>
-                  <p className="text-sm">{msg.query}</p>
+              <div key={idx} className="space-y-3">
+                {/* 사용자 질문 - 우측 정렬 (ChatGPT 스타일) */}
+                <div className="flex justify-end">
+                  <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%] shadow-sm">
+                    <p className="text-sm leading-relaxed">{msg.query}</p>
+                  </div>
                 </div>
 
-                {/* AI 답변 */}
-                <div className="bg-primary/5 rounded-lg p-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">답변:</p>
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown
-                      remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
-                      rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
-                    >
-                      {msg.response.answer.replace(/<think>[\s\S]*?<\/think>/g, '')}
-                    </ReactMarkdown>
-                  </div>
+                {/* AI 답변 - 좌측 정렬 */}
+                <div className="flex justify-start">
+                  <div className="bg-muted/70 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[90%] shadow-sm">
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown
+                        remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
+                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                      >
+                        {msg.response.answer.replace(/<think>[\s\S]*?<\/think>/g, '')}
+                      </ReactMarkdown>
+                    </div>
 
-                  {/* 참조 문서 (Fallback 제외: score > 0.5) */}
-                  {msg.response.sources && msg.response.sources.filter(s => (s as any).score > 0.5).length > 0 && (
-                    <ChatSourcesDisplay
-                      sources={msg.response.sources.filter(s => (s as any).score > 0.5)}
-                      defaultExpanded={false}
-                    />
-                  )}
+                    {/* 참조 문서 (Perplexity 스타일: LLM 사용 문서만 표시) */}
+                    {msg.response.sources && (() => {
+                      // citedDocIds가 있으면 해당 인덱스의 문서만, 없으면 score > 0.5 필터링
+                      const citedDocIds = msg.response.citedDocIds
+                      const filteredSources = citedDocIds && citedDocIds.length > 0
+                        ? msg.response.sources.filter((_, idx) => citedDocIds.includes(idx))
+                        : msg.response.sources.filter(s => (s as any).score > 0.5)
+
+                      return filteredSources.length > 0 ? (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <ChatSourcesDisplay
+                            sources={filteredSources}
+                            defaultExpanded={false}
+                          />
+                        </div>
+                      ) : null
+                    })()}
+                  </div>
                 </div>
               </div>
             ))}

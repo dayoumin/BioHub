@@ -92,7 +92,7 @@ export default function StepwiseRegressionPage() {
   const { state, actions } = useStatisticsPage<StepwiseResults, StepwiseVariables>({
     withUploadedData: true,
     withError: true,
-    initialStep: 1
+    initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
@@ -105,7 +105,7 @@ export default function StepwiseRegressionPage() {
   // Steps with completed state
   const stepsWithCompleted = useMemo(() => STEPS.map(step => ({
     ...step,
-    completed: step.id === 1 ? currentStep > 1 :
+    completed: step.id === 1 ? currentStep > 0 :
               step.id === 2 ? !!uploadedData :
               step.id === 3 ? !!selectedVariables :
               step.id === 4 ? !!results : false
@@ -117,7 +117,7 @@ export default function StepwiseRegressionPage() {
     if (actions.setUploadedData) {
       actions.setUploadedData({ data, fileName: file.name, columns })
     }
-    actions.setCurrentStep(3)
+    actions.setCurrentStep(2)
   }, [actions])
 
   // Variable selection handlers (Critical Bug prevention: NO setCurrentStep here)
@@ -295,7 +295,7 @@ export default function StepwiseRegressionPage() {
         interpretation: result.interpretation
       }
 
-      actions.completeAnalysis(results, 4)
+      actions.completeAnalysis(results, 3)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
@@ -308,7 +308,7 @@ export default function StepwiseRegressionPage() {
       actions.setError('종속변수와 독립변수를 각각 최소 1개 이상 선택해주세요.')
       return
     }
-    actions.setCurrentStep(4)
+    actions.setCurrentStep(3)
     await runStepwiseAnalysis(selectedVariables)
   }, [selectedVariables, actions, runStepwiseAnalysis])
 
@@ -448,7 +448,7 @@ export default function StepwiseRegressionPage() {
       </Alert>
 
       <div className="flex justify-center">
-        <Button onClick={() => actions.setCurrentStep(2)} size="lg">
+        <Button onClick={() => actions.setCurrentStep(1)} size="lg">
           데이터 업로드하기
         </Button>
       </div>
@@ -857,7 +857,7 @@ export default function StepwiseRegressionPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep}
+      currentStep={currentStep + 1}
       steps={stepsWithCompleted}
       onStepChange={handleStepChange}
       analysisTitle="단계적 회귀분석"
@@ -870,11 +870,11 @@ export default function StepwiseRegressionPage() {
         onOpenNewWindow: handleOpenNewWindow
       } : undefined}
     >
-      {/* Step 1: 분석 방법 소개 */}
-      {currentStep === 1 && renderMethodIntroduction()}
+      {/* Step 0: 분석 방법 소개 */}
+      {currentStep === 0 && renderMethodIntroduction()}
 
-      {/* Step 2: 데이터 업로드 */}
-      {currentStep === 2 && (
+      {/* Step 1: 데이터 업로드 */}
+      {currentStep === 1 && (
         <div className="space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
@@ -885,7 +885,7 @@ export default function StepwiseRegressionPage() {
 
           <DataUploadStep
             onUploadComplete={handleDataUpload}
-            onNext={() => actions.setCurrentStep(3)}
+            onNext={() => actions.setCurrentStep(2)}
             canGoNext={!!uploadedData}
           />
 
@@ -901,8 +901,8 @@ export default function StepwiseRegressionPage() {
         </div>
       )}
 
-      {/* Step 3: 변수 선택 */}
-      {currentStep === 3 && uploadedData && (
+      {/* Step 2: 변수 선택 */}
+      {currentStep === 2 && uploadedData && (
         <div className="max-w-6xl mx-auto space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-2">변수 선택</h2>
@@ -1021,8 +1021,8 @@ export default function StepwiseRegressionPage() {
         </div>
       )}
 
-      {/* Step 4: 분석 결과 */}
-      {currentStep === 4 && renderResults()}
+      {/* Step 3: 분석 결과 */}
+      {currentStep === 3 && renderResults()}
     </TwoPanelLayout>
   )
 }
