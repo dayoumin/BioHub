@@ -196,14 +196,14 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
   return (
     <div className={cn('flex flex-col h-full bg-background', className)}>
       {/* 상단 세션 목록 (간소화) */}
-      <div className="flex-shrink-0 border-b bg-muted/30">
-        <div className="flex items-center gap-2 p-2 overflow-x-auto">
+      <div className="h-12 flex-shrink-0 border-b bg-muted/30">
+        <div className="h-full flex items-center gap-2 px-2 overflow-x-auto">
           {/* 새 대화 버튼 */}
           <Button
             size="sm"
-            variant="default"
+            variant="outline"
             onClick={() => void handleNewSession()}
-            className="flex-shrink-0"
+            className="flex-shrink-0 bg-background hover:bg-muted"
           >
             <Plus className="h-3 w-3 mr-1" />
             새 대화
@@ -231,95 +231,124 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
         </div>
       </div>
 
-      {/* 대화 내역 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
+      {messages.length === 0 ? (
+        /* 대화 없을 때: 중앙 배치 */
+        <div className="flex-1 flex flex-col items-center justify-center p-4 gap-6">
+          <div className="text-center text-muted-foreground text-sm max-w-md">
             <p>질문을 입력해주세요.</p>
             <p className="text-xs mt-2">
               예: "t-test의 가정은 무엇인가요?"
             </p>
           </div>
-        ) : (
-          messages.map((msg, idx) => (
-            <div key={idx} className="space-y-2">
-              {/* 사용자 질문 */}
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-1">질문:</p>
-                <p className="text-sm">{msg.query}</p>
-              </div>
 
-              {/* AI 답변 */}
-              <div className="bg-primary/5 rounded-lg p-3">
-                <p className="text-xs font-medium text-muted-foreground mb-2">답변:</p>
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <ReactMarkdown
-                    remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
-                    rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
-                  >
-                    {msg.response.answer}
-                  </ReactMarkdown>
+          {/* 입력 영역 - 중앙 */}
+          <div className="w-full max-w-2xl">
+            <div className="relative">
+              <Textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={RAG_UI_CONFIG.placeholders.query}
+                rows={3}
+                disabled={isLoading}
+                className="resize-none w-full text-sm pr-12"
+              />
+              <Button
+                onClick={() => void handleSubmit()}
+                disabled={isLoading || !query.trim()}
+                size="icon"
+                className="absolute bottom-2 right-2 h-8 w-8"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* 대화 있을 때: 기존 레이아웃 */
+        <>
+          {/* 대화 내역 */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {messages.map((msg, idx) => (
+              <div key={idx} className="space-y-2">
+                {/* 사용자 질문 */}
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">질문:</p>
+                  <p className="text-sm">{msg.query}</p>
                 </div>
 
-                {/* 참조 문서 */}
-                {msg.response.sources && msg.response.sources.length > 0 && (
-                  <ChatSourcesDisplay
-                    sources={msg.response.sources}
-                    defaultExpanded={false}
-                  />
-                )}
+                {/* AI 답변 */}
+                <div className="bg-primary/5 rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">답변:</p>
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                    <ReactMarkdown
+                      remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
+                      rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                    >
+                      {msg.response.answer}
+                    </ReactMarkdown>
+                  </div>
+
+                  {/* 참조 문서 */}
+                  {msg.response.sources && msg.response.sources.length > 0 && (
+                    <ChatSourcesDisplay
+                      sources={msg.response.sources}
+                      defaultExpanded={false}
+                    />
+                  )}
+                </div>
               </div>
+            ))}
+
+            {/* 로딩 중 */}
+            {isLoading && (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>생각 중...</span>
+              </div>
+            )}
+
+            {/* 에러 메시지 */}
+            {error && (
+              <div className="flex items-start gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded-lg">
+                <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <span className="flex-1">{error}</span>
+              </div>
+            )}
+          </div>
+
+          {/* 입력 영역 - 하단 */}
+          <div className="p-4 border-t bg-muted/30">
+            <div className="relative">
+              <Textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={RAG_UI_CONFIG.placeholders.query}
+                rows={3}
+                disabled={isLoading}
+                className="resize-none w-full text-sm pr-12"
+              />
+              <Button
+                onClick={() => void handleSubmit()}
+                disabled={isLoading || !query.trim()}
+                size="icon"
+                className="absolute bottom-2 right-2 h-8 w-8"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-          ))
-        )}
-
-        {/* 로딩 중 */}
-        {isLoading && (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>생각 중...</span>
           </div>
-        )}
-
-        {/* 에러 메시지 */}
-        {error && (
-          <div className="flex items-start gap-2 text-destructive text-sm bg-destructive/10 p-3 rounded-lg">
-            <XCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-            <span className="flex-1">{error}</span>
-          </div>
-        )}
-      </div>
-
-      {/* 입력 영역 */}
-      <div className="p-4 border-t bg-muted/30 space-y-2">
-        <Textarea
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={RAG_UI_CONFIG.placeholders.query}
-          rows={2}
-          disabled={isLoading}
-          className="resize-none w-full text-sm"
-        />
-        <Button
-          onClick={() => void handleSubmit()}
-          disabled={isLoading || !query.trim()}
-          className="w-full"
-          size="sm"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              생각 중...
-            </>
-          ) : (
-            <>
-              <Send className="mr-2 h-4 w-4" />
-              전송
-            </>
-          )}
-        </Button>
-      </div>
+        </>
+      )}
     </div>
   )
 }

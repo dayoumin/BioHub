@@ -193,7 +193,7 @@ export function TwoPanelLayout({
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Breadcrumb */}
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <div className="bg-muted/10 px-8 py-3 shadow-sm">
+          <div className="bg-muted/10 px-8 h-12 shadow-sm flex items-center">
             <Breadcrumb>
               <BreadcrumbList>
                 {breadcrumbs.map((item, index) => {

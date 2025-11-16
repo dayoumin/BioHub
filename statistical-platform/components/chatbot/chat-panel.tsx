@@ -95,19 +95,18 @@ export function ChatPanel({ className }: ChatPanelProps) {
 
       {/* 헤더 */}
       <div className={cn(
-        "flex items-center justify-between border-b bg-muted/30 flex-shrink-0",
-        isChatPanelCollapsed ? "p-2" : isVeryNarrow ? "p-2" : "p-3"
+        "flex items-center justify-between bg-background flex-shrink-0",
+        isChatPanelCollapsed ? "h-[66px] px-2" : "h-[66px] px-3"
       )}>
         {!isChatPanelCollapsed ? (
           <>
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
+            <div className="flex items-center justify-center min-w-0 flex-1">
               {!isNarrow && (
                 <h2 className={cn(
-                  "font-semibold truncate",
+                  "font-semibold text-center",
                   isVeryNarrow ? "text-xs" : "text-base"
                 )}>
-                  AI 통계 분석 도우미
+                  AI 통계 챗봇
                 </h2>
               )}
             </div>

@@ -183,18 +183,14 @@ describe('ChatPanel', () => {
 
       renderWithProvider(<ChatPanel />)
 
-      expect(screen.getByText('AI 통계 분석 도우미')).toBeInTheDocument()
+      expect(screen.getByText('AI 통계 챗봇')).toBeInTheDocument()
     })
 
     it('너비 400px 미만에서 제목이 숨겨져야 함', () => {
       // 기본 너비는 384px이므로 제목이 숨겨짐
       renderWithProvider(<ChatPanel />)
 
-      expect(screen.queryByText('AI 통계 분석 도우미')).not.toBeInTheDocument()
-      // 하지만 녹색 dot은 표시되어야 함
-      const { container } = renderWithProvider(<ChatPanel />)
-      const greenDot = container.querySelector('.bg-green-500')
-      expect(greenDot).toBeInTheDocument()
+      expect(screen.queryByText('AI 통계 챗봇')).not.toBeInTheDocument()
     })
   })
 
