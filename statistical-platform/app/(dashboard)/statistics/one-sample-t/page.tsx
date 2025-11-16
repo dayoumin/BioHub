@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { OneSampleTVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Select,
   SelectContent,
@@ -20,21 +21,16 @@ import {
   Calculator,
   Target,
   BarChart3,
-  Play,
   Info,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  CheckCircle,
+  CheckCircle2
 } from 'lucide-react'
-import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-import type { VariableAssignment } from '@/types/statistics-converters'
-import { VariableMapping } from '@/components/variable-selection/types'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import type { UploadedData } from '@/hooks/use-statistics-page'
-import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface OneSampleTResults {
   variable: string
@@ -60,8 +56,6 @@ interface OneSampleTResults {
   }
 }
 
-// 로컬 인터페이스 제거: types/statistics.ts의 OneSampleTVariables 사용
-
 export default function OneSampleTPage() {
   // 최근 사용 통계 자동 추가
   useEffect(() => {
@@ -70,56 +64,38 @@ export default function OneSampleTPage() {
 
   const { state, actions } = useStatisticsPage<OneSampleTResults, OneSampleTVariables>({
     withUploadedData: true,
-    withError: false
+    withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [testValue, setTestValue] = useState('0')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
   const [alternative, setAlternative] = useState('two-sided')
-  const { pyodideService: _pyodideService } = usePyodideService()
 
-  // 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'upload-data',
-      number: 0,
-      title: '데이터 업로드',
-      description: '분석할 데이터 파일 업로드',
-      status: uploadedData ? 'completed' : 'current'
-    },
-    {
-      id: 'select-variable',
-      number: 1,
-      title: '변수 선택',
-      description: '검정할 수치형 변수 선택',
-      status: selectedVariables ? 'completed' : uploadedData ? 'current' : 'pending'
-    },
-    {
-      id: 'set-hypothesis',
-      number: 2,
-      title: '가설 설정',
-      description: '검정값 및 대립가설 설정',
-      status: selectedVariables ? 'current' : 'pending'
-    },
-    {
-      id: 'run-analysis',
-      number: 3,
-      title: '분석 실행',
-      description: '일표본 t-검정 수행',
-      status: results ? 'completed' : 'pending'
-    },
-    {
-      id: 'view-results',
-      number: 4,
-      title: '결과 해석',
-      description: '검정 결과 및 통계적 해석',
-      status: results ? 'current' : 'pending'
-    }
-  ]
+  const steps = useMemo(() => {
+    const baseSteps = [
+      { id: 1, label: '방법 소개' },
+      { id: 2, label: '데이터 업로드' },
+      { id: 3, label: '변수 및 가설 설정' },
+      { id: 4, label: '분석 결과' }
+    ]
+
+    return baseSteps.map((step, index) => ({
+      ...step,
+      completed: currentStep > index + 1 || (currentStep === 4 && results !== null)
+    }))
+  }, [currentStep, results])
+
+  const handleDataUpload = useCallback((uploadedData: unknown[], uploadedColumns: string[]) => {
+    actions.setUploadedData?.({
+      data: uploadedData as Record<string, unknown>[],
+      fileName: 'uploaded-file.csv',
+      columns: uploadedColumns
+    })
+  }, [actions])
 
   // 분석 실행
-  const handleAnalysis = async () => {
+  const handleAnalysis = useCallback(async () => {
     if (!uploadedData || !selectedVariables) {
       actions.setError('데이터와 변수를 확인해주세요.')
       return
@@ -221,21 +197,7 @@ export default function OneSampleTPage() {
       console.error('분석 중 오류:', error)
       actions.setError(error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.')
     }
-  }
-
-  // 단계 변경 처리
-  const handleStepChange = (step: number) => {
-    if (step <= currentStep + 1) {
-      actions.setCurrentStep(step)
-    }
-  }
-
-  // 초기화
-  const handleReset = () => {
-    actions.reset()
-    setTestValue('0')
-    setActiveTab('summary')
-  }
+  }, [uploadedData, selectedVariables, testValue, confidenceLevel, actions])
 
   // 검정 결과 테이블 렌더링
   const renderTestResultsTable = () => {
@@ -416,218 +378,320 @@ export default function OneSampleTPage() {
     )
   }
 
-  return (
-    <StatisticsPageLayout
-      title="일표본 t-검정"
-      subtitle="한 집단의 평균이 특정 값과 다른지 검정"
-      icon={<Calculator className="w-6 h-6" />}
-      steps={steps}
-      currentStep={currentStep}
-      onStepChange={handleStepChange}
-      onRun={handleAnalysis}
-      onReset={handleReset}
-      isRunning={isAnalyzing}
-      methodInfo={{
-        formula: "t = (x̄ - μ₀) / (s/√n)",
-        assumptions: ["정규분포 또는 n≥30", "독립적인 관측값", "무작위 표본"],
-        sampleSize: "최소 5개 (30개 이상 권장)",
-        usage: "평균이 특정 기준값과 다른지 검정"
-      }}
-    >
-      <div className="space-y-6">
-        {/* 0단계: 데이터 업로드 */}
-        {currentStep === 0 && !uploadedData && (
-          <DataUploadStep
-            onUploadComplete={createDataUploadHandler(
-              actions.setUploadedData,
-              () => actions.setCurrentStep(0),
-              'one-sample-t'
-            )}
-          />
-        )}
-
-        {/* 1단계: 변수 선택 */}
-        {currentStep === 0 && uploadedData && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                검정할 변수 선택
-              </CardTitle>
-              <CardDescription>
-                일표본 t-검정을 수행할 수치형 변수를 하나 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VariableSelectorModern
-                methodId="one-sample-t"
-                data={uploadedData.data}
-                onVariablesSelected={createVariableSelectionHandler(
-                  actions.setSelectedVariables,
-                  (variables) => {
-                    if (Object.keys(variables as unknown as Record<string, unknown>).length > 0) {
-                      actions.setCurrentStep?.(1)
-                    }
-                  },
-                  'one-sample-t'
-                )}
-                onBack={() => {
-                  actions.reset()
-                }}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 2단계: 가설 설정 */}
-        {currentStep === 1 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="w-5 h-5" />
-                가설 및 검정 옵션 설정
-              </CardTitle>
-              <CardDescription>
-                귀무가설의 검정값과 대립가설을 설정하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="test-value">검정값 (μ₀)</Label>
-                  <Input
-                    id="test-value"
-                    type="number"
-                    step="any"
-                    value={testValue}
-                    onChange={(e) => setTestValue(e.target.value)}
-                    placeholder="예: 0"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    귀무가설: μ = μ₀
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>대립가설</Label>
-                  <Select value={alternative} onValueChange={setAlternative}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="two-sided">μ ≠ μ₀ (양측검정)</SelectItem>
-                      <SelectItem value="greater">μ &gt; μ₀ (우측검정)</SelectItem>
-                      <SelectItem value="less">μ &lt; μ₀ (좌측검정)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>신뢰수준</Label>
-                  <Select value={confidenceLevel} onValueChange={setConfidenceLevel}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="90">90%</SelectItem>
-                      <SelectItem value="95">95%</SelectItem>
-                      <SelectItem value="99">99%</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <h4 className="font-semibold mb-2">가설 요약</h4>
-                <p className="text-sm">
-                  <strong>H₀:</strong> μ = {testValue} (귀무가설)
-                </p>
-                <p className="text-sm">
-                  <strong>H₁:</strong> μ {
-                    alternative === 'two-sided' ? '≠' :
-                    alternative === 'greater' ? '>' : '<'
-                  } {testValue} (대립가설)
-                </p>
-                <p className="text-sm">
-                  <strong>α:</strong> {(100 - parseFloat(confidenceLevel)) / 100} (유의수준)
-                </p>
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <Button
-                  onClick={() => actions.setCurrentStep(3)}
-                  disabled={!selectedVariables || !testValue}
-                >
-                  다음 단계
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 3단계: 분석 실행 */}
-        {currentStep === 3 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="w-5 h-5" />
-                분석 실행
-              </CardTitle>
-              <CardDescription>
-                설정된 가설로 일표본 t-검정을 실행합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Button
-                  size="lg"
-                  onClick={handleAnalysis}
-                  disabled={isAnalyzing}
-                  className="px-8"
-                >
-                  {isAnalyzing ? '분석 중...' : 't-검정 실행'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 4단계: 결과 확인 */}
-        {results && currentStep === 4 && (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="summary">요약</TabsTrigger>
-              <TabsTrigger value="results">검정결과</TabsTrigger>
-              <TabsTrigger value="assumptions">가정검토</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="summary" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
-                {renderSummaryCards()}
-              </div>
-              <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
-                <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
-                <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
-                <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="results" className="space-y-6">
-              <div>
-                {renderDescriptiveTable()}
-              </div>
-              <div>
-                {renderTestResultsTable()}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="assumptions" className="space-y-6">
-              {renderAssumptions()}
-            </TabsContent>
-          </Tabs>
-        )}
+  // Step 1: 방법 소개
+  const renderMethodIntroduction = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <Calculator className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">일표본 t-검정 (One-Sample t-Test)</h1>
+        <p className="text-lg text-gray-600">한 집단의 평균이 특정 값과 다른지 검정합니다</p>
       </div>
-    </StatisticsPageLayout>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Target className="mr-2 h-5 w-5" />
+              분석 목적
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                표본 평균이 특정 기준값과 다른지 검정
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                모집단 평균에 대한 가설 검정
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                신뢰구간 추정
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5" />
+              적용 조건
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>데이터:</strong> 연속형 변수</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>정규성:</strong> 정규분포 또는 n≥30</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>표본크기:</strong> 최소 5개 (30개 이상 권장)</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>검정 공식:</strong> t = (x̄ - μ₀) / (s/√n)<br />
+          여기서 x̄는 표본평균, μ₀는 검정값, s는 표준편차, n은 표본크기입니다.
+        </AlertDescription>
+      </Alert>
+
+      <div className="flex justify-center">
+        <Button onClick={() => actions.setCurrentStep(2)} size="lg">
+          데이터 업로드하기
+        </Button>
+      </div>
+    </div>
+  )
+
+  // Step 3: 변수 선택 + 가설 설정
+  const renderVariableAndHypothesisSetup = () => {
+    if (!uploadedData) return null
+
+    const numericColumns = uploadedData.columns.filter(col => {
+      const firstValue = uploadedData.data[0]?.[col]
+      return typeof firstValue === 'number' || !isNaN(Number(firstValue))
+    })
+
+    const dependentVar = Array.isArray(selectedVariables?.dependent)
+      ? selectedVariables.dependent[0]
+      : selectedVariables?.dependent
+
+    const canProceed = dependentVar && testValue
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">변수 선택 및 가설 설정</h2>
+          <p className="text-gray-600">검정할 수치형 변수를 선택하고 가설을 설정하세요</p>
+        </div>
+
+        {/* 변수 선택 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>검정 변수 선택</CardTitle>
+            <CardDescription>일표본 t-검정을 수행할 수치형 변수 (1개 선택)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {numericColumns.map((col) => {
+                const isSelected = dependentVar === col
+                return (
+                  <Badge
+                    key={col}
+                    variant={isSelected ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      actions.setSelectedVariables?.({
+                        dependent: col
+                      })
+                    }}
+                  >
+                    {col}
+                    {isSelected && <CheckCircle className="ml-1 h-3 w-3" />}
+                  </Badge>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 가설 설정 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              가설 및 검정 옵션 설정
+            </CardTitle>
+            <CardDescription>
+              귀무가설의 검정값과 대립가설을 설정하세요
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="test-value">검정값 (μ₀)</Label>
+                <Input
+                  id="test-value"
+                  type="number"
+                  step="any"
+                  value={testValue}
+                  onChange={(e) => setTestValue(e.target.value)}
+                  placeholder="예: 0"
+                />
+                <p className="text-xs text-muted-foreground">
+                  귀무가설: μ = μ₀
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>대립가설</Label>
+                <Select value={alternative} onValueChange={setAlternative}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="two-sided">μ ≠ μ₀ (양측검정)</SelectItem>
+                    <SelectItem value="greater">μ &gt; μ₀ (우측검정)</SelectItem>
+                    <SelectItem value="less">μ &lt; μ₀ (좌측검정)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>신뢰수준</Label>
+                <Select value={confidenceLevel} onValueChange={setConfidenceLevel}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="90">90%</SelectItem>
+                    <SelectItem value="95">95%</SelectItem>
+                    <SelectItem value="99">99%</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <h4 className="font-semibold mb-2">가설 요약</h4>
+              <p className="text-sm">
+                <strong>H₀:</strong> μ = {testValue} (귀무가설)
+              </p>
+              <p className="text-sm">
+                <strong>H₁:</strong> μ {
+                  alternative === 'two-sided' ? '≠' :
+                  alternative === 'greater' ? '>' : '<'
+                } {testValue} (대립가설)
+              </p>
+              <p className="text-sm">
+                <strong>α:</strong> {(100 - parseFloat(confidenceLevel)) / 100} (유의수준)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {canProceed && (
+          <Alert>
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertDescription>
+              변수 선택과 가설 설정이 완료되었습니다. 아래 버튼을 클릭하여 분석을 시작하세요.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex gap-4">
+          <Button
+            variant="outline"
+            onClick={() => actions.setCurrentStep(2)}
+            className="flex-1"
+          >
+            이전 단계
+          </Button>
+          <Button
+            onClick={() => {
+              if (canProceed) {
+                actions.setCurrentStep(4)
+                handleAnalysis()
+              }
+            }}
+            disabled={!canProceed}
+            className="flex-1"
+          >
+            분석 실행
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Step 4: 결과 확인
+  const renderResults = () => {
+    if (isAnalyzing) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>일표본 t-검정을 진행하고 있습니다...</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (!results) return null
+
+    return (
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="summary">요약</TabsTrigger>
+          <TabsTrigger value="results">검정결과</TabsTrigger>
+          <TabsTrigger value="assumptions">가정검토</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="summary" className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
+            {renderSummaryCards()}
+          </div>
+          <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
+            <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
+            <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
+            <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="results" className="space-y-6">
+          <div>
+            {renderDescriptiveTable()}
+          </div>
+          <div>
+            {renderTestResultsTable()}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="assumptions" className="space-y-6">
+          {renderAssumptions()}
+        </TabsContent>
+      </Tabs>
+    )
+  }
+
+  const breadcrumbs = [
+    { label: '홈', href: '/' },
+    { label: '통계 분석', href: '/statistics' },
+    { label: '일표본 t-검정' }
+  ]
+
+  return (
+    <TwoPanelLayout
+      currentStep={currentStep}
+      steps={steps}
+      onStepChange={actions.setCurrentStep}
+      analysisTitle="일표본 t-검정"
+      analysisSubtitle="One-Sample t-Test"
+      analysisIcon={<Calculator className="h-5 w-5 text-primary" />}
+      breadcrumbs={breadcrumbs}
+    >
+      {currentStep === 1 && renderMethodIntroduction()}
+      {currentStep === 2 && (
+        <DataUploadStep
+          onUploadComplete={(_file: File, data: Record<string, unknown>[]) => handleDataUpload(data, Object.keys(data[0] || {}))}
+          onNext={() => actions.setCurrentStep(3)}
+        />
+      )}
+      {currentStep === 3 && renderVariableAndHypothesisSetup()}
+      {currentStep === 4 && renderResults()}
+    </TwoPanelLayout>
   )
 }

@@ -23,7 +23,7 @@ import {
   Document
 } from './base-provider'
 import { IndexedDBStorage, type StoredDocument, type StoredEmbedding } from '../indexeddb-storage'
-import initSqlJs from 'sql.js'
+import initSqlJs from '@jlongster/sql.js'
 import {
   initSqlWithIndexedDB,
   persistDB,

@@ -13,8 +13,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// npm 패키지에서 복사 (버전 일치 보장)
-const SOURCE_DIR = path.join(__dirname, '../../node_modules/sql.js/dist');
+// absurd-sql은 @jlongster/sql.js 빌드에서만 IndexedDB 백엔드를 지원하므로 해당 패키지를 사용한다.
+const SOURCE_DIR = path.join(__dirname, '../../node_modules/@jlongster/sql.js/dist');
 const OUTPUT_DIR = path.join(__dirname, '../../public/sql-wasm');
 
 const FILES = [
@@ -51,7 +51,7 @@ function main() {
   try {
     // npm 패키지 확인
     if (!fs.existsSync(SOURCE_DIR)) {
-      throw new Error('sql.js npm 패키지가 설치되지 않았습니다. npm install을 먼저 실행하세요.');
+      throw new Error('@jlongster/sql.js npm 패키지를 찾을 수 없습니다. npm install을 먼저 실행하세요.');
     }
 
     // 디렉토리 생성
