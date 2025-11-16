@@ -15,7 +15,8 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, ChevronLeft, ChevronRight, Edit2, MoreVertical, Pin, MapPin, FolderInput, Trash2 } from 'lucide-react'
+import { Plus, ChevronLeft, Edit2, MoreVertical, Pin, MapPin, FolderInput, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 import { SidebarSearch } from '@/components/chatbot/SidebarSearch'
@@ -408,11 +409,10 @@ export default function ChatbotPage() {
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           title={sidebarCollapsed ? '사이드바 열기' : '사이드바 닫기'}
         >
-          {sidebarCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
+          <ChevronLeft className={cn(
+            "h-4 w-4 transition-transform",
+            sidebarCollapsed && "rotate-180"
+          )} />
         </Button>
       </div>
 

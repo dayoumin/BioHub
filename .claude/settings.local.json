@@ -132,7 +132,8 @@
       "Bash(while read dir)",
       "Bash(then if grep -q TwoPanelLayout $dir/page.tsx)",
       "Bash(then echo '✅ $dir')",
-      "Bash(else echo '⏳ $dir')"
+      "Bash(else echo '⏳ $dir')",
+      "Bash(npx kill-port:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState, useEffect } from 'react'
-import { ChevronsRight, ChevronsLeft, Star, ExternalLink } from 'lucide-react'
+import { ChevronRight, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RAGAssistantCompact } from '@/components/rag/rag-assistant-compact'
 import { useUI } from '@/contexts/ui-context'
@@ -24,7 +24,6 @@ export function ChatPanel({ className }: ChatPanelProps) {
   } = useUI()
 
   const [isResizing, setIsResizing] = useState(false)
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const panelRef = useRef<HTMLElement>(null)
 
   // 전용 챗봇 페이지 열기
@@ -100,18 +99,17 @@ export function ChatPanel({ className }: ChatPanelProps) {
           onClick={toggleChatPanelCollapse}
           className={cn(
             "absolute top-1/2 -translate-y-1/2 -left-3",
-            "bg-background border border-border rounded-full p-1.5 shadow-md",
+            "bg-background border border-border rounded-full p-1 shadow-md",
             "hover:bg-muted transition-colors",
             "flex items-center justify-center"
           )}
           aria-label={isChatPanelCollapsed ? "챗봇 펼치기" : "챗봇 접기"}
           title={isChatPanelCollapsed ? "챗봇 펼치기" : "챗봇 접기"}
         >
-          {isChatPanelCollapsed ? (
-            <ChevronsLeft className="h-4 w-4" />
-          ) : (
-            <ChevronsRight className="h-4 w-4" />
-          )}
+          <ChevronRight className={cn(
+            "h-4 w-4 transition-transform",
+            isChatPanelCollapsed && "rotate-180"
+          )} />
         </button>
       </div>
 
@@ -135,20 +133,6 @@ export function ChatPanel({ className }: ChatPanelProps) {
 
             {/* 우측 버튼 그룹 */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {/* 즐겨찾기 필터 */}
-              <Button
-                variant={showFavoritesOnly ? 'default' : 'ghost'}
-                size="icon"
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                className={cn(isVeryNarrow ? "h-6 w-6" : "h-8 w-8")}
-                title="즐겨찾기 필터"
-              >
-                <Star className={cn(
-                  isVeryNarrow ? "h-3 w-3" : "h-4 w-4",
-                  showFavoritesOnly && "fill-current"
-                )} />
-              </Button>
-
               {/* 전용 페이지 열기 */}
               <Button
                 variant="ghost"
@@ -170,7 +154,7 @@ export function ChatPanel({ className }: ChatPanelProps) {
       {/* 챗봇 영역 - 접힌 상태에서도 공간 유지 */}
       <div className="flex-1 min-h-0">
         {!isChatPanelCollapsed && (
-          <RAGAssistantCompact showFavoritesOnly={showFavoritesOnly} />
+          <RAGAssistantCompact />
         )}
       </div>
     </aside>

@@ -60,6 +60,11 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
   const messagesContainerRef = useRef<HTMLDivElement>(null) // 대화 컨테이너 ref
   const userScrolledRef = useRef(false) // 사용자가 수동 스크롤했는지 추적
 
+  // 세션 변경 시 스크롤 플래그 초기화
+  useEffect(() => {
+    userScrolledRef.current = false
+  }, [currentSessionId])
+
   // 자동 스크롤 (대화 영역 내부만, 사용자가 바닥 근처일 때만)
   useEffect(() => {
     const container = messagesContainerRef.current
@@ -394,39 +399,111 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
       {messages.length === 0 ? (
         /* 대화 없을 때: 중앙 배치 */
         <div className="flex-1 flex flex-col items-center justify-center p-4 gap-6">
-          <div className="text-center text-muted-foreground text-sm max-w-md">
-            <p>질문을 입력해주세요.</p>
-            <p className="text-xs mt-2">
-              예: "t-test의 가정은 무엇인가요?"
-            </p>
-          </div>
-
-          {/* 입력 영역 - 중앙 */}
-          <div className="w-full max-w-2xl">
-            <div className="relative">
-              <Textarea
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={RAG_UI_CONFIG.placeholders.query}
-                rows={3}
-                disabled={isLoading}
-                className="resize-none w-full text-sm pr-12"
-              />
-              <Button
-                onClick={() => void handleSubmit()}
-                disabled={isLoading || !query.trim()}
-                size="icon"
-                className="absolute bottom-2 right-2 h-8 w-8"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+          {/* 로딩 중이 아닐 때만 플레이스홀더 표시 */}
+          {!isLoading && (
+            <div className="text-center text-muted-foreground text-sm max-w-md">
+              <p>질문을 입력해주세요.</p>
+              <p className="text-xs mt-2">
+                예: "t-test의 가정은 무엇인가요?"
+              </p>
             </div>
-          </div>
+          )}
+
+          {/* 로딩 중일 때 로딩 UI 표시 */}
+          {isLoading && (
+            <div className="space-y-3 w-full max-w-2xl">
+              {/* 사용자 질문 표시 */}
+              <div className="flex justify-end">
+                <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%] shadow-sm">
+                  <p className="text-sm leading-relaxed">{currentQueryRef.current}</p>
+                </div>
+              </div>
+
+              {/* 스트리밍 중인 메시지 */}
+              {streamingMessage ? (
+                <div className="flex justify-start">
+                  <div className="bg-muted/70 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[90%] shadow-sm">
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown
+                        remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
+                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                      >
+                        {streamingMessage.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<cited_docs>[\s\S]*?<\/cited_docs>/gi, '')}
+                      </ReactMarkdown>
+                      {/* 타이핑 커서 */}
+                      <span className="inline-block w-1 h-4 bg-primary animate-pulse ml-1" />
+                    </div>
+
+                    {/* 참조 문서 (검색 완료 시 표시) */}
+                    {streamingSources && streamingSources.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <ChatSourcesDisplay
+                          sources={streamingSources.filter(s => s.score > 0.5)}
+                          defaultExpanded={false}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* 로딩 중 (스트리밍 시작 전) - Phase별 애니메이션 */
+                <div className="flex justify-start">
+                  <div className="bg-muted/70 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[90%] shadow-sm">
+                    {/* Phase별 로딩 메시지 */}
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <div className="flex flex-col gap-1">
+                        {loadingPhase === 'searching' && (
+                          <span className="text-sm text-muted-foreground animate-pulse">
+                            📚 관련 문서를 검색하고 있습니다...
+                          </span>
+                        )}
+                        {loadingPhase === 'thinking' && (
+                          <span className="text-sm text-muted-foreground animate-pulse">
+                            🤔 답변을 생성하고 있습니다...
+                          </span>
+                        )}
+                        {loadingPhase === null && (
+                          <span className="text-sm text-muted-foreground animate-pulse">
+                            ⏳ 준비 중...
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 입력 영역 - 중앙 (로딩 중이 아닐 때만) */}
+          {!isLoading && (
+            <div className="w-full max-w-2xl">
+              <div className="relative">
+                <Textarea
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={RAG_UI_CONFIG.placeholders.query}
+                  rows={3}
+                  disabled={isLoading}
+                  className="resize-none w-full text-sm pr-12"
+                />
+                <Button
+                  onClick={() => void handleSubmit()}
+                  disabled={isLoading || !query.trim()}
+                  size="icon"
+                  className="absolute bottom-2 right-2 h-8 w-8"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* 대화 있을 때: 기존 레이아웃 */

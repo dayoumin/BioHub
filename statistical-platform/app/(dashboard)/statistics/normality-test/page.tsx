@@ -1,31 +1,33 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { NormalityTestVariables } from '@/types/statistics'
-import { toNormalityTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Activity,
   Microscope,
   BarChart3,
-  Play,
   CheckCircle,
-  XCircle
+  XCircle,
+  CheckCircle2,
+  Info,
+  TrendingUp
 } from 'lucide-react'
-import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import { VariableMapping } from '@/components/variable-selection/types'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
+
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
-import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { extractColumnData } from '@/lib/utils/data-extraction'
 
 interface NormalityTestResult {
@@ -57,8 +59,6 @@ interface NormalityResults {
   }
 }
 
-// 로컬 인터페이스 제거: types/statistics.ts의 NormalityTestVariables 사용
-
 export default function NormalityTestPage() {
   // 최근 사용 통계 자동 추가
   useEffect(() => {
@@ -66,76 +66,46 @@ export default function NormalityTestPage() {
   }, [])
 
   const { state, actions } = useStatisticsPage<NormalityResults, NormalityTestVariables>({
+    initialStep: 0,
     withUploadedData: true,
     withError: false
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [showAllTests, setShowAllTests] = useState(true)
-  const { pyodideService: _pyodideService } = usePyodideService()
 
-  // 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'upload-data',
-      number: 0,
-      title: '데이터 업로드',
-      description: '분석할 CSV/Excel 파일 업로드',
-      status: uploadedData ? 'completed' : 'current'
-    },
-    {
-      id: 'select-variable',
-      number: 1,
-      title: '변수 선택',
-      description: '정규성을 검정할 수치형 변수 선택',
-      status: uploadedData && selectedVariables ? 'completed' : (uploadedData ? 'current' : 'pending')
-    },
-    {
-      id: 'configure-tests',
-      number: 2,
-      title: '검정 설정',
-      description: '정규성 검정 방법 및 옵션 설정',
-      status: selectedVariables ? 'current' : 'pending'
-    },
-    {
-      id: 'run-analysis',
-      number: 3,
-      title: '검정 실행',
-      description: '정규성 검정 수행',
-      status: results ? 'completed' : 'pending'
-    },
-    {
-      id: 'view-results',
-      number: 4,
-      title: '결과 해석',
-      description: '정규성 검정 결과 및 권장사항',
-      status: results ? 'current' : 'pending'
-    }
-  ]
+  // Breadcrumbs
+  const breadcrumbs = useMemo(() => [
+    { label: '통계 분석', href: '/statistics' },
+    { label: '정규성 검정', href: '/statistics/normality-test' }
+  ], [])
+
+  // 변수 선택 핸들러
+  const handleVariableSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { dependent: '' }
+    const newDependent = current.dependent === varName ? '' : varName
+    actions.setSelectedVariables?.({ dependent: newDependent })
+    // ❌ NO setCurrentStep here - Critical Bug 예방!
+  }, [selectedVariables, actions])
 
   // 분석 실행
-  const handleAnalysis = async () => {
-    if (!uploadedData || !selectedVariables) {
-      actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
+  const runAnalysis = useCallback(async (vars: NormalityTestVariables) => {
+    if (!uploadedData || !vars.dependent) {
+      actions.setError?.('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
       return
     }
 
     try {
-      actions.startAnalysis()
+      actions.startAnalysis?.()
 
       const data = uploadedData.data
-      const varName = (selectedVariables as { dependent?: string }).dependent
-
-      if (!varName) {
-        actions.setError('분석할 변수를 선택해주세요.')
-        return
-      }
+      const varName = vars.dependent
 
       // 데이터 추출 (결측치 제거)
       const values = extractColumnData(data, varName)
 
       if (values.length < 3) {
-        actions.setError('정규성 검정을 위해서는 최소 3개 이상의 데이터가 필요합니다.')
+        actions.setError?.('정규성 검정을 위해서는 최소 3개 이상의 데이터가 필요합니다.')
         return
       }
 
@@ -149,7 +119,7 @@ export default function NormalityTestPage() {
         pValue: number
         isNormal: boolean
       }>(
-        1, // Worker 1 (Descriptive - normality_test)
+        1, // worker1-descriptive
         'normality_test',
         { data: values, alpha: 0.05 }
       )
@@ -193,29 +163,294 @@ export default function NormalityTestPage() {
         }
       }
 
-      actions.completeAnalysis(analysisResult, 4)
+      actions.completeAnalysis?.(analysisResult)
       setActiveTab('summary')
     } catch (error) {
       console.error('정규성 검정 중 오류:', error)
-      actions.setError(error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.')
+      actions.setError?.(error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.')
     }
-  }
+  }, [uploadedData, actions])
 
-  // 단계 변경 처리
-  const handleStepChange = (step: number) => {
-    if (step <= currentStep + 1) {
-      actions.setCurrentStep(step)
+  // "다음 단계" 버튼 핸들러 (Step 2 → 3: 분석 실행)
+  const handleNextStep = useCallback(async () => {
+    if (selectedVariables?.dependent) {
+      actions.setCurrentStep?.(3) // ✅ Step 변경
+      await runAnalysis(selectedVariables) // ✅ 분석 실행
     }
-  }
+  }, [selectedVariables, actions, runAnalysis])
 
-  // 초기화
-  const handleReset = () => {
-    actions.reset()
-    setActiveTab('summary')
-  }
+  // STEPS 정의
+  const STEPS: TwoPanelStep[] = useMemo(() => [
+    {
+      id: 'method',
+      title: '방법 소개',
+      content: () => renderMethodIntroduction()
+    },
+    {
+      id: 'upload',
+      title: '데이터 업로드',
+      content: () => renderDataUpload()
+    },
+    {
+      id: 'variables',
+      title: '변수 선택',
+      content: () => renderVariableSelection()
+    },
+    {
+      id: 'results',
+      title: '결과 보기',
+      content: () => renderResults()
+    }
+  ], [uploadedData, selectedVariables, results, isAnalyzing, activeTab, showAllTests])
+
+  // Step 0: 방법 소개
+  const renderMethodIntroduction = useCallback(() => (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Microscope className="w-5 h-5" />
+          정규성 검정 (Normality Test)
+        </CardTitle>
+        <CardDescription>
+          데이터가 정규분포를 따르는지 검정합니다
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div>
+          <h4 className="font-semibold mb-2">검정 개요</h4>
+          <p className="text-sm text-muted-foreground">
+            정규성 검정은 데이터가 정규분포를 따르는지 확인하는 통계적 방법입니다.
+            모수적 검정(t-test, ANOVA)을 사용하기 전에 정규성 가정을 확인하는 데 필수적입니다.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="font-semibold mb-2">검정 방법</h4>
+          <ul className="text-sm space-y-2 text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <div>
+                <strong>Shapiro-Wilk:</strong> 소표본(n≤50)에서 가장 강력한 정규성 검정
+              </div>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <div>
+                <strong>Anderson-Darling:</strong> 분포의 꼬리 부분에 더 민감한 검정
+              </div>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <div>
+                <strong>D&apos;Agostino-Pearson K²:</strong> 왜도와 첨도를 동시에 검정
+              </div>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <div>
+                <strong>Jarque-Bera:</strong> 금융 데이터에서 널리 사용
+              </div>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <div>
+                <strong>Lilliefors:</strong> Kolmogorov-Smirnov의 개선된 버전
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-semibold mb-2">가정</h4>
+          <ul className="text-sm space-y-1 text-muted-foreground">
+            <li>• 독립적인 관측값</li>
+            <li>• 수치형 데이터</li>
+            <li>• Shapiro-Wilk: 3-5000개, 기타: 8개 이상</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-semibold mb-2">활용</h4>
+          <ul className="text-sm space-y-1 text-muted-foreground">
+            <li>• 모수적 검정 사용 전 정규성 가정 확인</li>
+            <li>• 데이터 변환 필요성 판단</li>
+            <li>• 적절한 통계 방법 선택</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
+  ), [])
+
+  // Step 1: 데이터 업로드
+  const renderDataUpload = useCallback(() => (
+    <DataUploadStep
+      onUploadComplete={createDataUploadHandler(
+        actions.setUploadedData,
+        () => actions.setCurrentStep?.(1),
+        'normality-test'
+      )}
+    />
+  ), [actions])
+
+  // Step 2: 변수 선택 + 검정 설정
+  const renderVariableSelection = useCallback(() => {
+    if (!uploadedData) return null
+
+    const numericColumns = uploadedData.data.length > 0
+      ? Object.keys(uploadedData.data[0]).filter(key => {
+          const value = uploadedData.data[0][key as keyof typeof uploadedData.data[0]]
+          return typeof value === 'number'
+        })
+      : []
+
+    const isVariableSelected = selectedVariables?.dependent !== undefined && selectedVariables.dependent !== ''
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Microscope className="w-5 h-5" />
+              검정할 변수 선택
+            </CardTitle>
+            <CardDescription>
+              정규성을 검정할 수치형 변수를 선택하세요
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                수치형 변수 1개를 선택해주세요
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label>수치형 변수</Label>
+              <div className="flex flex-wrap gap-2">
+                {numericColumns.map((col) => {
+                  const isSelected = selectedVariables?.dependent === col
+                  return (
+                    <Badge
+                      key={col}
+                      variant={isSelected ? 'default' : 'outline'}
+                      className="cursor-pointer hover:bg-primary/90 transition-colors"
+                      onClick={() => handleVariableSelect(col)}
+                    >
+                      {isSelected && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                      {col}
+                    </Badge>
+                  )
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {isVariableSelected && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                검정 옵션 설정
+              </CardTitle>
+              <CardDescription>
+                수행할 정규성 검정 방법을 선택하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="all-tests"
+                  checked={showAllTests}
+                  onCheckedChange={setShowAllTests}
+                />
+                <Label htmlFor="all-tests">모든 검정 방법 실행 (5가지)</Label>
+              </div>
+
+              <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
+                <h4 className="font-semibold mb-2">실행될 검정 방법</h4>
+                <ul className="text-sm space-y-1">
+                  <li>• <strong>Shapiro-Wilk:</strong> 소표본에서 가장 강력</li>
+                  <li>• <strong>Anderson-Darling:</strong> 극값에 민감</li>
+                  <li>• <strong>D&apos;Agostino-Pearson K²:</strong> 왜도/첨도 검정</li>
+                  {showAllTests && (
+                    <>
+                      <li>• <strong>Jarque-Bera:</strong> 금융/시계열 데이터</li>
+                      <li>• <strong>Lilliefors:</strong> KS 검정 개선 버전</li>
+                    </>
+                  )}
+                </ul>
+              </div>
+
+              <div className="flex justify-end mt-6">
+                <Button
+                  onClick={handleNextStep}
+                  disabled={!selectedVariables?.dependent || isAnalyzing}
+                >
+                  {isAnalyzing ? '분석 중...' : '다음 단계'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    )
+  }, [uploadedData, selectedVariables, showAllTests, isAnalyzing, handleVariableSelect, handleNextStep])
+
+  // Step 3: 결과 보기
+  const renderResults = useCallback(() => {
+    if (!results) {
+      return (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
+              분석 결과가 없습니다. 변수를 선택하고 분석을 실행해주세요.
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
+
+    return (
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="summary">요약</TabsTrigger>
+          <TabsTrigger value="results">검정결과</TabsTrigger>
+          <TabsTrigger value="conclusion">결론</TabsTrigger>
+          <TabsTrigger value="methods">방법설명</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="summary" className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
+            {renderSummaryCards()}
+          </div>
+          <div>
+            {renderDescriptiveTable()}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="results" className="space-y-6">
+          {renderTestResultsTable()}
+        </TabsContent>
+
+        <TabsContent value="conclusion" className="space-y-6">
+          {renderOverallConclusion()}
+        </TabsContent>
+
+        <TabsContent value="methods" className="space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">검정 방법별 설명</h3>
+            {renderTestDescriptions()}
+          </div>
+        </TabsContent>
+      </Tabs>
+    )
+  }, [results, activeTab])
 
   // 검정 결과 테이블 렌더링
-  const renderTestResultsTable = () => {
+  const renderTestResultsTable = useCallback(() => {
     if (!results) return null
 
     const tests = showAllTests ? [
@@ -249,10 +484,10 @@ export default function NormalityTestPage() {
         title="정규성 검정 결과"
       />
     )
-  }
+  }, [results, showAllTests])
 
   // 기술통계 테이블 렌더링
-  const renderDescriptiveTable = () => {
+  const renderDescriptiveTable = useCallback(() => {
     if (!results) return null
 
     const data = [{
@@ -284,10 +519,10 @@ export default function NormalityTestPage() {
         title="기술통계"
       />
     )
-  }
+  }, [results])
 
   // 검정 요약 카드 렌더링
-  const renderSummaryCards = () => {
+  const renderSummaryCards = useCallback(() => {
     if (!results) return null
 
     const normalTests = [results.shapiroWilk, results.andersonDarling, results.dagostinoK2, results.jarqueBera, results.lilliefors]
@@ -344,10 +579,10 @@ export default function NormalityTestPage() {
         </Card>
       </div>
     )
-  }
+  }, [results])
 
   // 전체 결론 렌더링
-  const renderOverallConclusion = () => {
+  const renderOverallConclusion = useCallback(() => {
     if (!results) return null
 
     const isNormal = results.overallConclusion === 'normal'
@@ -393,10 +628,10 @@ export default function NormalityTestPage() {
         </CardContent>
       </Card>
     )
-  }
+  }, [results])
 
   // 검정 방법 설명 렌더링
-  const renderTestDescriptions = () => {
+  const renderTestDescriptions = useCallback(() => {
     const descriptions = [
       {
         name: 'Shapiro-Wilk',
@@ -454,180 +689,26 @@ export default function NormalityTestPage() {
         ))}
       </div>
     )
-  }
+  }, [])
 
   return (
-    <StatisticsPageLayout
+    <TwoPanelLayout
       title="정규성 검정"
-      subtitle="데이터가 정규분포를 따르는지 검정"
-      icon={<Microscope className="w-6 h-6" />}
-      steps={steps}
+      subtitle="Normality Test - 데이터가 정규분포를 따르는지 검정"
+      breadcrumbs={breadcrumbs}
       currentStep={currentStep}
-      onStepChange={handleStepChange}
-      onRun={handleAnalysis}
-      onReset={handleReset}
-      isRunning={isAnalyzing}
-      methodInfo={{
-        formula: "다양한 검정통계량 (Shapiro-Wilk: W, Anderson-Darling: A²)",
-        assumptions: ["독립적인 관측값", "수치형 데이터"],
-        sampleSize: "Shapiro-Wilk: 3-5000, 기타: 8 이상",
-        usage: "모수적 검정 사용 전 정규성 가정 확인"
-      }}
+      steps={STEPS}
+      onStepChange={(step: number) => { actions.setCurrentStep?.(step) }}
+      bottomPreview={uploadedData && currentStep >= 1 ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        maxRows: 10
+      } : undefined}
     >
-      <div className="space-y-6">
-        {/* 0단계: 데이터 업로드 */}
-        {currentStep === 0 && (
-          <DataUploadStep
-            onUploadComplete={createDataUploadHandler(
-              actions.setUploadedData,
-              () => actions.setCurrentStep(1),
-              'normality-test'
-            )}
-          />
-        )}
-
-        {/* 1단계: 변수 선택 */}
-        {currentStep === 1 && uploadedData && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Microscope className="w-5 h-5" />
-                검정할 변수 선택
-              </CardTitle>
-              <CardDescription>
-                정규성을 검정할 수치형 변수를 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VariableSelectorModern
-                methodId="normality-test"
-                data={uploadedData.data}
-                onVariablesSelected={(variables: VariableAssignment) => {
-                  const typedVars = toNormalityTestVariables(variables)
-                  actions.setSelectedVariables?.(typedVars)
-                  if (typedVars.all && typedVars.all.length > 0) {
-                    actions.setCurrentStep(2)
-                  }
-                }}
-                onBack={() => actions.setCurrentStep(0)}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 2단계: 검정 설정 */}
-        {currentStep === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                검정 옵션 설정
-              </CardTitle>
-              <CardDescription>
-                수행할 정규성 검정 방법을 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="all-tests"
-                  checked={showAllTests}
-                  onCheckedChange={setShowAllTests}
-                />
-                <Label htmlFor="all-tests">모든 검정 방법 실행 (5가지)</Label>
-              </div>
-
-              <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
-                <h4 className="font-semibold mb-2">실행될 검정 방법</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• <strong>Shapiro-Wilk:</strong> 소표본에서 가장 강력</li>
-                  <li>• <strong>Anderson-Darling:</strong> 극값에 민감</li>
-                  <li>• <strong>D&apos;Agostino-Pearson K²:</strong> 왜도/첨도 검정</li>
-                  {showAllTests && (
-                    <>
-                      <li>• <strong>Jarque-Bera:</strong> 금융/시계열 데이터</li>
-                      <li>• <strong>Lilliefors:</strong> KS 검정 개선 버전</li>
-                    </>
-                  )}
-                </ul>
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <Button
-                  onClick={() => actions.setCurrentStep(3)}
-                  disabled={!selectedVariables}
-                >
-                  다음 단계
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 3단계: 분석 실행 */}
-        {currentStep === 3 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="w-5 h-5" />
-                분석 실행
-              </CardTitle>
-              <CardDescription>
-                선택된 방법으로 정규성 검정을 실행합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Button
-                  size="lg"
-                  onClick={handleAnalysis}
-                  disabled={isAnalyzing}
-                  className="px-8"
-                >
-                  {isAnalyzing ? '분석 중...' : '정규성 검정 실행'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 4단계: 결과 확인 */}
-        {results && currentStep === 4 && (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="summary">요약</TabsTrigger>
-              <TabsTrigger value="results">검정결과</TabsTrigger>
-              <TabsTrigger value="conclusion">결론</TabsTrigger>
-              <TabsTrigger value="methods">방법설명</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="summary" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
-                {renderSummaryCards()}
-              </div>
-              <div>
-                {renderDescriptiveTable()}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="results" className="space-y-6">
-              {renderTestResultsTable()}
-            </TabsContent>
-
-            <TabsContent value="conclusion" className="space-y-6">
-              {renderOverallConclusion()}
-            </TabsContent>
-
-            <TabsContent value="methods" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">검정 방법별 설명</h3>
-                {renderTestDescriptions()}
-              </div>
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
-    </StatisticsPageLayout>
+      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 3 && renderResults()}
+    </TwoPanelLayout>
   )
 }
