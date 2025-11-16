@@ -14,14 +14,13 @@ import ReactMarkdown from 'react-markdown'
 import 'katex/dist/katex.min.css'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, XCircle, Send, Plus } from 'lucide-react'
+import { Loader2, XCircle, Send, Plus, Star } from 'lucide-react'
 import { queryRAGStream } from '@/lib/rag/rag-service'
 import { MARKDOWN_CONFIG, RAG_UI_CONFIG } from '@/lib/rag/config'
 import { handleRAGError } from '@/lib/rag/utils/error-handler'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import { ChatSourcesDisplay } from './chat-sources-display'
 import { SessionHistoryDropdown } from './session-history-dropdown'
-import { SessionFavoritesDropdown } from './session-favorites-dropdown'
 import { OllamaSetupDialog } from '@/components/chatbot/ollama-setup-dialog'
 import { checkOllamaStatus, type OllamaStatus } from '@/lib/rag/utils/ollama-check'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
@@ -54,9 +53,36 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
   // 스트리밍 상태
   const [streamingMessage, setStreamingMessage] = useState<string>('')
   const [streamingSources, setStreamingSources] = useState<Array<{ title: string; content: string; score: number }> | null>(null)
+  const [loadingPhase, setLoadingPhase] = useState<'searching' | 'thinking' | 'writing' | null>(null)
   const streamingMessageRef = useRef<string>('') // 최신 스트리밍 메시지 추적
   const streamingSourcesRef = useRef<Array<{ title: string; content: string; score: number }> | null>(null) // 최신 참조 문서 추적
   const currentQueryRef = useRef<string>('') // 현재 질문 추적
+  const messagesContainerRef = useRef<HTMLDivElement>(null) // 대화 컨테이너 ref
+  const userScrolledRef = useRef(false) // 사용자가 수동 스크롤했는지 추적
+
+  // 자동 스크롤 (대화 영역 내부만, 사용자가 바닥 근처일 때만)
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    // 사용자가 바닥에서 100px 이내인지 확인
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
+
+    // 새 메시지 추가 시 또는 바닥 근처에서 스트리밍 중일 때만 자동 스크롤
+    if (isNearBottom || !userScrolledRef.current) {
+      container.scrollTop = container.scrollHeight
+      userScrolledRef.current = false
+    }
+  }, [messages, streamingMessage])
+
+  // 사용자 수동 스크롤 감지
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10
+    userScrolledRef.current = !isAtBottom
+  }, [])
 
   // Ollama 상태 체크
   useEffect(() => {
@@ -124,6 +150,7 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
     setError(null)
     setStreamingMessage('')
     setStreamingSources(null)
+    setLoadingPhase('searching') // Phase 1: 문서 검색 중
     streamingMessageRef.current = '' // ref 초기화
     streamingSourcesRef.current = null
 
@@ -136,11 +163,16 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
         },
         // onChunk: 텍스트 조각 수신
         (chunk: string) => {
+          // 첫 번째 청크 수신 시 Phase 3로 전환
+          if (streamingMessageRef.current === '') {
+            setLoadingPhase('writing')
+          }
           streamingMessageRef.current += chunk
           setStreamingMessage(streamingMessageRef.current)
         },
         // onSources: 참조 문서 수신 (검색 완료 시 1회)
         (sources) => {
+          setLoadingPhase('thinking') // Phase 2: 답변 생성 중
           streamingSourcesRef.current = sources
           setStreamingSources(sources)
         }
@@ -191,6 +223,7 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
       // 스트리밍 상태 초기화
       setStreamingMessage('')
       setStreamingSources(null)
+      setLoadingPhase(null)
       streamingMessageRef.current = ''
       streamingSourcesRef.current = null
       currentQueryRef.current = ''
@@ -200,6 +233,7 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
       // 스트리밍 상태 초기화
       setStreamingMessage('')
       setStreamingSources(null)
+      setLoadingPhase(null)
       streamingMessageRef.current = ''
       streamingSourcesRef.current = null
       currentQueryRef.current = ''
@@ -258,6 +292,20 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
     },
     [handleSubmit]
   )
+
+  // 즐겨찾기 토글
+  const handleToggleFavorite = useCallback(async () => {
+    if (!currentSessionId) return
+
+    try {
+      await ChatStorageIndexedDB.toggleFavorite(currentSessionId)
+      // 세션 목록 업데이트
+      const updatedSessions = await ChatStorageIndexedDB.loadSessions()
+      setSessions(updatedSessions)
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err)
+    }
+  }, [currentSessionId])
 
   // Ollama 재시도 핸들러
   const handleRetryOllama = useCallback(async () => {
@@ -321,14 +369,25 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
             ))}
           </div>
 
-          {/* 우측: 즐겨찾기 버튼 */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <SessionFavoritesDropdown
-              sessions={sessions}
-              currentSessionId={currentSessionId}
-              onSelectSession={handleSelectSession}
-            />
-          </div>
+          {/* 우측: 현재 세션 즐겨찾기 토글 */}
+          {currentSession && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => void handleToggleFavorite()}
+              className="h-8 w-8 flex-shrink-0"
+              title={currentSession.isFavorite ? "즐겨찾기 해제" : "즐겨찾기"}
+            >
+              <Star
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  currentSession.isFavorite
+                    ? "fill-yellow-500 text-yellow-500"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -373,7 +432,11 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
         /* 대화 있을 때: 기존 레이아웃 */
         <>
           {/* 대화 내역 */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
             {messages.map((msg, idx) => (
               <div key={idx} className="space-y-3">
                 {/* 사용자 질문 - 우측 정렬 (ChatGPT 스타일) */}
@@ -455,11 +518,42 @@ export function RAGAssistantCompact({ method, className = '' }: RAGAssistantComp
               </div>
             )}
 
-            {/* 로딩 중 (스트리밍 시작 전) */}
+            {/* 로딩 중 (스트리밍 시작 전) - Phase별 애니메이션 */}
             {isLoading && !streamingMessage && (
-              <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>문서 검색 중...</span>
+              <div className="space-y-3">
+                {/* 사용자 질문 표시 */}
+                <div className="flex justify-end">
+                  <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%] shadow-sm">
+                    <p className="text-sm leading-relaxed">{currentQueryRef.current}</p>
+                  </div>
+                </div>
+
+                {/* AI 답변 말풍선 (로딩 애니메이션 포함) */}
+                <div className="flex justify-start">
+                  <div className="bg-muted/70 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[90%] shadow-sm">
+                    {/* Phase별 로딩 메시지 */}
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <div className="flex flex-col gap-1">
+                        {loadingPhase === 'searching' && (
+                          <span className="text-sm text-muted-foreground animate-pulse">
+                            📚 관련 문서를 검색하고 있습니다...
+                          </span>
+                        )}
+                        {loadingPhase === 'thinking' && (
+                          <span className="text-sm text-muted-foreground animate-pulse">
+                            🤔 답변을 생성하고 있습니다...
+                          </span>
+                        )}
+                        {loadingPhase === null && (
+                          <span className="text-sm text-muted-foreground animate-pulse">
+                            ⏳ 준비 중...
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
