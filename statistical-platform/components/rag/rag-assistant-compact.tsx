@@ -20,6 +20,8 @@ import { MARKDOWN_CONFIG, RAG_UI_CONFIG } from '@/lib/rag/config'
 import { handleRAGError } from '@/lib/rag/utils/error-handler'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import { ChatSourcesDisplay } from './chat-sources-display'
+import { OllamaSetupDialog } from '@/components/chatbot/ollama-setup-dialog'
+import { checkOllamaStatus, type OllamaStatus } from '@/lib/rag/utils/ollama-check'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 import type { ChatSession } from '@/lib/types/chat'
 import { cn } from '@/lib/utils'
@@ -280,14 +282,14 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
                       remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
                       rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
                     >
-                      {msg.response.answer}
+                      {msg.response.answer.replace(/<think>[\s\S]*?<\/think>/g, '')}
                     </ReactMarkdown>
                   </div>
 
-                  {/* 참조 문서 */}
-                  {msg.response.sources && msg.response.sources.length > 0 && (
+                  {/* 참조 문서 (Fallback 제외: score > 0.5) */}
+                  {msg.response.sources && msg.response.sources.filter(s => (s as any).score > 0.5).length > 0 && (
                     <ChatSourcesDisplay
-                      sources={msg.response.sources}
+                      sources={msg.response.sources.filter(s => (s as any).score > 0.5)}
                       defaultExpanded={false}
                     />
                   )}
