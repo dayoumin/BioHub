@@ -3,6 +3,8 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { CorrelationVariables } from '@/types/statistics'
+import { toCorrelationVariables, type VariableAssignment } from '@/types/statistics-converters'
+import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,20 +13,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import {
   Binary,
+  Upload,
   AlertCircle,
   CheckCircle,
   TrendingUp,
+  Users,
   Network,
+  Sparkles,
+  FileText,
+  Download,
   Activity,
   BarChart3
 } from 'lucide-react'
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // Data interfaces
+// 로컬 인터페이스 제거: types/statistics.ts의 CorrelationVariables 사용
+// interface VariableSelection {
+//   variables: string[]
+//   controlVariables?: string[]
+// }
+
 interface CorrelationResult {
   var1: string
   var2: string
@@ -83,13 +99,6 @@ interface CorrelationResults {
   partialCorrelation?: PartialCorrelationResult | null
 }
 
-const STEPS = [
-  { id: 1, label: '상관분석 유형 선택' },
-  { id: 2, label: '데이터 업로드' },
-  { id: 3, label: '변수 선택' },
-  { id: 4, label: '결과 확인' }
-]
-
 export default function CorrelationPage() {
   // 최근 사용 통계 자동 추가
   useEffect(() => {
@@ -99,13 +108,44 @@ export default function CorrelationPage() {
   // Custom hook: common state management
   const { state, actions } = useStatisticsPage<CorrelationResults, CorrelationVariables>({
     withUploadedData: true,
-    withError: true,
-    initialStep: 1
+    withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
   // Page-specific state
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
+
+  // 상관분석 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'method',
+      number: 1,
+      title: '상관분석 유형 선택',
+      description: '데이터 특성에 맞는 상관 방법 선택',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: '분석할 데이터 파일 업로드',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '상관관계를 분석할 변수 선택',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '결과 확인',
+      description: '상관관계 분석 결과 및 해석',
+      status: currentStep === 3 ? 'current' : currentStep > 3 ? 'completed' : 'pending'
+    }
+  ]
 
   // 상관분석 유형별 정보
   const correlationTypeInfo = {
@@ -153,28 +193,16 @@ export default function CorrelationPage() {
 
   const handleMethodSelect = useCallback((type: 'pearson' | 'spearman' | 'kendall' | 'partial') => {
     setCorrelationType(type)
-    actions.setCurrentStep(2)
+    actions.setCurrentStep?.(1)
   }, [actions])
 
   const handleDataUpload = useCallback((file: File, data: Record<string, unknown>[]) => {
     const columns = data.length > 0 ? Object.keys(data[0]) : []
     actions.setUploadedData?.({ fileName: file.name, data, columns })
-    actions.setCurrentStep(3)
+    actions.setCurrentStep?.(2)
   }, [actions])
 
-  const handleVariableSelect = useCallback((header: string) => {
-    const current = selectedVariables?.all || []
-    const currentArray = Array.isArray(current) ? current : [current]
-
-    const isSelected = currentArray.includes(header)
-    const updated = isSelected
-      ? currentArray.filter(h => h !== header)
-      : [...currentArray, header]
-
-    actions.setSelectedVariables?.({ all: updated })
-  }, [actions, selectedVariables])
-
-  const handleAnalysis = useCallback(async () => {
+  const handleAnalysis = useCallback(async (_variables: CorrelationVariables) => {
     if (!uploadedData || !selectedVariables) {
       actions.setError?.('데이터와 변수를 확인해주세요.')
       return
@@ -309,210 +337,176 @@ export default function CorrelationPage() {
         } : null
       }
 
-      actions.completeAnalysis?.(mockResults, 4)
+      actions.completeAnalysis?.(mockResults, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       actions.setError?.(errorMessage)
     }
-  }, [uploadedData, selectedVariables, correlationType, actions])
+  }, [actions, correlationType])
 
-  // Steps with completed state
-  const stepsWithCompleted = STEPS.map(step => ({
-    ...step,
-    completed: step.id === 1 ? !!correlationType :
-              step.id === 2 ? !!uploadedData :
-              step.id === 3 ? !!selectedVariables :
-              step.id === 4 ? !!results : false
-  }))
+  const handleVariableSelection = useCallback((variables: CorrelationVariables) => {
+    actions.setSelectedVariables?.(variables)
+    // 자동으로 분석 실행
+    void handleAnalysis(variables)
+  }, [actions, handleAnalysis])
 
-  // Breadcrumb 설정
-  const breadcrumbs = [
-    { label: '홈', href: '/' },
-    { label: '상관분석' }
-  ]
-
-  // 상관계수 해석 기준
-  const interpretCorrelation = (r: number) => {
-    const abs = Math.abs(r)
-    if (abs >= 0.9) return '매우 강한'
-    if (abs >= 0.7) return '강한'
-    if (abs >= 0.4) return '중간'
-    if (abs >= 0.2) return '약한'
-    return '매우 약한'
-  }
-
-  // 히트맵용 색상 함수
-  const getHeatmapColor = (r: number) => {
-    if (r > 0.7) return '#22c55e'
-    if (r > 0.4) return '#84cc16'
-    if (r > 0) return '#fbbf24'
-    if (r > -0.4) return '#fb923c'
-    if (r > -0.7) return '#f87171'
-    return '#dc2626'
-  }
-
-  return (
-    <TwoPanelLayout
-      currentStep={currentStep}
-      steps={stepsWithCompleted}
-      onStepChange={actions.setCurrentStep}
-      analysisTitle="상관분석"
-      analysisSubtitle="Correlation Analysis"
-      analysisIcon={<Binary className="h-5 w-5 text-primary" />}
-      breadcrumbs={breadcrumbs}
+  const renderMethodSelection = () => (
+    <StepCard
+      title="상관분석 방법 선택"
+      description="데이터 특성과 연구 목적에 맞는 상관분석 방법을 선택하세요"
+      icon={<Binary className="w-5 h-5 text-primary" />}
     >
-      {/* Step 1: 상관분석 유형 선택 */}
-      {currentStep === 1 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">상관분석 방법 선택</h2>
-            <p className="text-sm text-muted-foreground">
-              데이터 특성과 연구 목적에 맞는 상관분석 방법을 선택하세요
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {Object.entries(correlationTypeInfo).map(([key, info]) => (
-              <Card
-                key={key}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  correlationType === key ? 'border-primary bg-primary/5' : ''
-                }`}
-                onClick={() => handleMethodSelect(key as 'pearson' | 'spearman' | 'kendall' | 'partial')}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
-                      {info.icon}
-                    </div>
-                    {correlationType === key && (
-                      <CheckCircle className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                  <CardTitle className="text-lg mt-3">{info.title}</CardTitle>
-                  <Badge variant="outline" className="w-fit mt-2">
-                    {info.subtitle}
-                  </Badge>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    {info.description}
-                  </p>
-
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <p className="text-xs font-medium mb-1">예시:</p>
-                    <p className="text-xs text-muted-foreground">
-                      {info.example}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-primary/5 p-2 rounded text-center">
-                      <p className="font-medium">범위</p>
-                      <p className="text-muted-foreground">{info.range}</p>
-                    </div>
-                    <div className="bg-primary/5 p-2 rounded text-center">
-                      <p className="font-medium">해석</p>
-                      <p className="text-muted-foreground">{info.interpretation}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1">
-                    {info.assumptions.map((assumption) => (
-                      <Badge key={assumption} variant="secondary" className="text-xs">
-                        {assumption}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: 데이터 업로드 */}
-      {currentStep === 2 && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
-            <p className="text-sm text-muted-foreground">
-              상관분석할 데이터 파일을 업로드하세요
-            </p>
-          </div>
-
-          <DataUploadStep onUploadComplete={handleDataUpload} />
-        </div>
-      )}
-
-      {/* Step 3: 변수 선택 */}
-      {currentStep === 3 && uploadedData && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">변수 선택</h2>
-            <p className="text-sm text-muted-foreground">
-              상관관계를 분석할 변수들을 선택하세요 (최소 2개 이상)
-            </p>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">분석 변수 선택</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {uploadedData.columns.map((header: string) => {
-                  const currentVars = selectedVariables?.all || []
-                  const currentArray = Array.isArray(currentVars) ? currentVars : [currentVars]
-                  const isSelected = currentArray.includes(header)
-
-                  return (
-                    <Badge
-                      key={header}
-                      variant={isSelected ? 'default' : 'outline'}
-                      className="cursor-pointer max-w-[200px] truncate"
-                      title={header}
-                      onClick={() => handleVariableSelect(header)}
-                    >
-                      {header}
-                      {isSelected && <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />}
-                    </Badge>
-                  )
-                })}
-              </div>
-
-              {error && (
-                <Alert variant="destructive" className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>오류</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
+      <div className="grid md:grid-cols-2 gap-4">
+        {Object.entries(correlationTypeInfo).map(([key, info]) => (
+          <motion.div
+            key={key}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Card
+              className={cn(
+                "cursor-pointer border-2 transition-all h-full",
+                correlationType === key
+                  ? "border-primary bg-primary/5 shadow-lg"
+                  : "border-border hover:border-primary/50 hover:shadow-md"
               )}
+              onClick={() => handleMethodSelect(key as 'pearson' | 'spearman' | 'kendall' | 'partial')}
+            >
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
+                    {info.icon}
+                  </div>
+                  {correlationType === key && (
+                    <CheckCircle className="w-5 h-5 text-primary" />
+                  )}
+                </div>
+                <CardTitle className="text-lg mt-3">{info.title}</CardTitle>
+                <Badge variant="outline" className="w-fit mt-2">
+                  {info.subtitle}
+                </Badge>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {info.description}
+                </p>
 
-              <div className="mt-6 flex justify-center">
-                <Button
-                  onClick={handleAnalysis}
-                  disabled={isAnalyzing || !selectedVariables?.all || (Array.isArray(selectedVariables.all) && selectedVariables.all.length < 2)}
-                  size="lg"
-                >
-                  {isAnalyzing ? '분석 중...' : '상관분석 실행'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-xs font-medium mb-1">예시:</p>
+                  <p className="text-xs text-muted-foreground">
+                    {info.example}
+                  </p>
+                </div>
 
-      {/* Step 4: 결과 확인 */}
-      {currentStep === 4 && results && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">상관분석 결과</h2>
-            <p className="text-sm text-muted-foreground">
-              {correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo]?.title} 분석이 완료되었습니다
-            </p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-primary/5 p-2 rounded text-center">
+                    <p className="font-medium">범위</p>
+                    <p className="text-muted-foreground">{info.range}</p>
+                  </div>
+                  <div className="bg-primary/5 p-2 rounded text-center">
+                    <p className="font-medium">해석</p>
+                    <p className="text-muted-foreground">{info.interpretation}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1">
+                  {info.assumptions.map((assumption) => (
+                    <Badge key={assumption} variant="secondary" className="text-xs">
+                      {assumption}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {correlationType && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="font-medium text-sm">
+              {correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo].title} 선택됨
+            </span>
           </div>
+          <p className="text-sm text-muted-foreground">
+            다음 단계에서 데이터를 업로드해주세요.
+          </p>
+        </motion.div>
+      )}
+    </StepCard>
+  )
 
+  const renderDataUpload = () => (
+    <StepCard
+      title="데이터 업로드"
+      description="상관분석할 데이터 파일을 업로드하세요"
+      icon={<Upload className="w-5 h-5 text-primary" />}
+    >
+      <DataUploadStep
+        onUploadComplete={handleDataUpload}
+      />
+    </StepCard>
+  )
+
+  const renderVariableSelection = () => {
+    if (!uploadedData) return null
+
+    return (
+      <StepCard
+        title="변수 선택"
+        description="상관관계를 분석할 변수들을 선택하세요"
+        icon={<Users className="w-5 h-5 text-primary" />}
+      >
+        <VariableSelectorModern
+          methodId="pearson-correlation"
+          data={uploadedData.data}
+          onVariablesSelected={(variables: VariableAssignment) => {
+            const typedVars = toCorrelationVariables(variables)
+            handleVariableSelection(typedVars)
+          }}
+        />
+      </StepCard>
+    )
+  }
+
+  const renderResults = () => {
+    if (!results) return null
+
+    const { pairwiseCorrelations, scatterPlots, assumptions, partialCorrelation, sampleSize } = results
+
+    // 상관계수 해석 기준
+    const interpretCorrelation = (r: number) => {
+      const abs = Math.abs(r)
+      if (abs >= 0.9) return '매우 강한'
+      if (abs >= 0.7) return '강한'
+      if (abs >= 0.4) return '중간'
+      if (abs >= 0.2) return '약한'
+      return '매우 약한'
+    }
+
+    // 히트맵용 색상 함수
+    const getHeatmapColor = (r: number) => {
+      if (r > 0.7) return '#22c55e'
+      if (r > 0.4) return '#84cc16'
+      if (r > 0) return '#fbbf24'
+      if (r > -0.4) return '#fb923c'
+      if (r > -0.7) return '#f87171'
+      return '#dc2626'
+    }
+
+    return (
+      <StepCard
+        title="상관분석 결과"
+        description={`${correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo].title} 분석이 완료되었습니다`}
+        icon={<Binary className="w-5 h-5 text-primary" />}
+      >
+        <div className="space-y-6">
           {/* 주요 결과 요약 */}
           <Alert className="border-blue-500 bg-muted">
             <AlertCircle className="h-4 w-4" />
@@ -520,15 +514,13 @@ export default function CorrelationPage() {
             <AlertDescription>
               <div className="mt-2 space-y-2">
                 <p className="text-sm">
-                  <strong>{correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo]?.title}</strong> 방법으로
-                  <strong> {results.sampleSize}개</strong>의 관측치를 분석했습니다.
+                  <strong>{correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo].title}</strong> 방법으로
+                  <strong> {sampleSize}개</strong>의 관측치를 분석했습니다.
                 </p>
-                {results.pairwiseCorrelations.length > 0 && (
-                  <p className="text-sm">
-                    가장 강한 상관관계: <strong>{results.pairwiseCorrelations[0].pair}</strong>
-                    (r = {results.pairwiseCorrelations[0].r.toFixed(3)}, p {'<'} 0.05)
-                  </p>
-                )}
+                <p className="text-sm">
+                  가장 강한 상관관계: <strong>{pairwiseCorrelations[0].pair}</strong>
+                  (r = {pairwiseCorrelations[0].r.toFixed(3)}, p {'<'} 0.05)
+                </p>
               </div>
             </AlertDescription>
           </Alert>
@@ -539,7 +531,7 @@ export default function CorrelationPage() {
               <CardTitle className="text-base">주요 상관관계 분석 결과</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {results.pairwiseCorrelations.map((corr: PairwiseCorrelation, idx: number) => (
+              {pairwiseCorrelations.map((corr: PairwiseCorrelation, idx: number) => (
                 <div key={idx} className="p-4 bg-muted/50 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-medium">{corr.pair}</span>
@@ -569,7 +561,7 @@ export default function CorrelationPage() {
           </Card>
 
           {/* 편상관분석 결과 (있는 경우) */}
-          {results.partialCorrelation && (
+          {partialCorrelation && (
             <Card className="border-orange-500">
               <CardHeader>
                 <CardTitle className="text-base">편상관분석 결과</CardTitle>
@@ -578,19 +570,19 @@ export default function CorrelationPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm">통제변수</span>
-                    <Badge variant="outline">{results.partialCorrelation.controlVariable}</Badge>
+                    <Badge variant="outline">{partialCorrelation.controlVariable}</Badge>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm">원래 상관계수</span>
-                    <Badge>{results.partialCorrelation.originalCorrelation.toFixed(3)}</Badge>
+                    <Badge>{partialCorrelation.originalCorrelation.toFixed(3)}</Badge>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm">편상관계수</span>
-                    <Badge variant="default">{results.partialCorrelation.partialCorrelation.toFixed(3)}</Badge>
+                    <Badge variant="default">{partialCorrelation.partialCorrelation.toFixed(3)}</Badge>
                   </div>
                   <Separator className="my-2" />
                   <p className="text-xs text-muted-foreground">
-                    {results.partialCorrelation.interpretation}
+                    {partialCorrelation.interpretation}
                   </p>
                 </div>
               </CardContent>
@@ -598,7 +590,7 @@ export default function CorrelationPage() {
           )}
 
           {/* 산점도 */}
-          {results.scatterPlots && results.scatterPlots.length > 0 && (
+          {scatterPlots && scatterPlots.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">산점도 및 추세선</CardTitle>
@@ -606,13 +598,13 @@ export default function CorrelationPage() {
               <CardContent>
                 <Tabs defaultValue="0">
                   <TabsList>
-                    {results.scatterPlots.map((plot: ScatterPlotData, idx: number) => (
+                    {scatterPlots.map((plot: ScatterPlotData, idx: number) => (
                       <TabsTrigger key={idx} value={idx.toString()}>
                         {plot.name}
                       </TabsTrigger>
                     ))}
                   </TabsList>
-                  {results.scatterPlots.map((plot: ScatterPlotData, idx: number) => (
+                  {scatterPlots.map((plot: ScatterPlotData, idx: number) => (
                     <TabsContent key={idx} value={idx.toString()}>
                       <ResponsiveContainer width="100%" height={300}>
                         <ScatterChart>
@@ -703,7 +695,7 @@ export default function CorrelationPage() {
                 <div>
                   <p className="text-sm font-medium mb-2">정규성 검정 (Shapiro-Wilk)</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {results.assumptions.normality.shapiroWilk.map((test: NormalityTest) => (
+                    {assumptions.normality.shapiroWilk.map((test: NormalityTest) => (
                       <div key={test.variable} className="flex justify-between text-xs p-2 bg-muted/50 rounded">
                         <span>{test.variable}</span>
                         <Badge variant={test.normal ? "default" : "destructive"} className="text-xs">
@@ -718,17 +710,85 @@ export default function CorrelationPage() {
                 <div>
                   <p className="text-sm font-medium mb-2">선형성 검정</p>
                   <div className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                    <span className="text-sm">{results.assumptions.linearityTest.interpretation}</span>
-                    <Badge variant={results.assumptions.linearityTest.passed ? "default" : "destructive"}>
-                      {results.assumptions.linearityTest.passed ? "만족" : "위반"}
+                    <span className="text-sm">{assumptions.linearityTest.interpretation}</span>
+                    <Badge variant={assumptions.linearityTest.passed ? "default" : "destructive"}>
+                      {assumptions.linearityTest.passed ? "만족" : "위반"}
                     </Badge>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* 액션 버튼 */}
+          <div className="flex gap-3 justify-center pt-4">
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <FileText className="w-4 h-4 mr-2" />
+                  보고서 생성
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>향후 제공 예정입니다</p>
+              </TooltipContent>
+            </UITooltip>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" disabled>
+                  <Download className="w-4 h-4 mr-2" />
+                  결과 다운로드
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>향후 제공 예정입니다</p>
+              </TooltipContent>
+            </UITooltip>
+          </div>
         </div>
-      )}
-    </TwoPanelLayout>
+      </StepCard>
+    )
+  }
+
+
+  return (
+    <StatisticsPageLayout
+      title="상관분석"
+      subtitle="Correlation Analysis - 변수 간 관계의 강도와 방향 측정"
+      icon={<Binary className="w-6 h-6" />}
+      methodInfo={{
+        formula: correlationType === 'pearson' ? 'r = Σ[(xi-x̄)(yi-ȳ)] / √[Σ(xi-x̄)²Σ(yi-ȳ)²]' :
+                 correlationType === 'spearman' ? 'ρ = 1 - (6Σdi²) / [n(n²-1)]' :
+                 correlationType === 'kendall' ? 'τ = (C - D) / √[(C + D + Tx)(C + D + Ty)]' :
+                 'r(xy.z) = [r(xy) - r(xz)r(yz)] / √[(1-r²(xz))(1-r²(yz))]',
+        assumptions: correlationType === 'pearson' ? ['정규성', '선형성', '등분산성'] :
+                     correlationType === 'spearman' ? ['단조성', '순서척도 이상'] :
+                     correlationType === 'kendall' ? ['순서척도', '작은 표본 적합'] :
+                     ['선형성', '정규성', '통제변수 필요'],
+        sampleSize: correlationType === 'kendall' ? '소표본(n<30)도 가능' : '최소 30개 이상 권장',
+        usage: correlationType === 'partial' ? '제3변수 영향 제거 후 순수 관계' :
+               '두 변수 간 관계의 강도와 방향 파악'
+      }}
+      steps={steps}
+      currentStep={currentStep}
+      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
+      onRun={() => {
+        if (selectedVariables) {
+          void handleAnalysis(selectedVariables)
+        }
+      }}
+      onReset={() => {
+        actions.reset?.()
+        setCorrelationType('')
+      }}
+      isRunning={isAnalyzing}
+      showProgress={true}
+      showTips={true}
+    >
+      {currentStep === 0 && renderMethodSelection()}
+      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 3 && renderResults()}
+    </StatisticsPageLayout>
   )
 }

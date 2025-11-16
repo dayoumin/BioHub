@@ -22,17 +22,25 @@ import { cn } from '@/lib/utils'
 
 export function FloatingChatbot() {
   const pathname = usePathname()
+  const [isMounted, setIsMounted] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [isEnabled, setIsEnabled] = useState(true)
   const [hasNewMessage, setHasNewMessage] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
 
-  // 설정 로드
+  // 클라이언트 마운트 감지
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // 설정 로드 (클라이언트에서만)
+  useEffect(() => {
+    if (!isMounted) return
+
     const settings = ChatStorage.loadSettings()
     setIsEnabled(settings.floatingButtonEnabled)
-  }, [])
+  }, [isMounted])
 
   // 설정 변경 감지
   useEffect(() => {

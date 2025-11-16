@@ -12,8 +12,6 @@
 
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -53,6 +51,9 @@ const QUICK_PROMPTS = [
 ]
 
 export default function ChatbotPage() {
+  // 클라이언트 마운트 상태
+  const [isMounted, setIsMounted] = useState(false)
+
   // 세션 상태
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [forceUpdate, setForceUpdate] = useState(0)
@@ -138,8 +139,15 @@ export default function ChatbotPage() {
     triggerUpdate()
   }, [triggerUpdate])
 
-  // 세션 로드 후 초기 업데이트
+  // 클라이언트 마운트 감지
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // 세션 로드 후 초기 업데이트 (클라이언트에서만)
+  useEffect(() => {
+    if (!isMounted) return
+
     const loadedSessions = ChatStorage.loadSessions()
 
     // 첫 세션 자동 선택 또는 새 세션 생성
@@ -151,7 +159,7 @@ export default function ChatbotPage() {
       // 새로운 세션 생성 후 sidebar 업데이트 강제 (메모 재계산)
       setForceUpdate((prev) => prev + 1)
     }
-  }, [])
+  }, [isMounted])
 
   // 세션 선택
   const handleSelectSession = useCallback((sessionId: string) => {
@@ -296,6 +304,15 @@ export default function ChatbotPage() {
     // 실제 구현은 RAGChatInterface에서 처리
     console.log('Quick prompt:', prompt)
   }, [])
+
+  // 클라이언트 마운트 전에는 로딩 표시
+  if (!isMounted) {
+    return (
+      <div className="flex h-[calc(100vh-64px)] items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-[calc(100vh-64px)]">
