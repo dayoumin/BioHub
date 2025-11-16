@@ -47,9 +47,23 @@ export async function initSqlWithIndexedDB(
   console.log('[sql-indexeddb] 초기화 중...')
 
   // 1. sql.js 로드
-  const SQL = await initSqlJs({
-    locateFile: (file: string) => `/sql-wasm/${file}`
-  }) as unknown as SqlJsStatic
+  let SQL: SqlJsStatic
+
+  try {
+    SQL = (await initSqlJs({
+      locateFile: (file: string) => `/sql-wasm/${file}`
+    })) as unknown as SqlJsStatic
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+
+    if (message.includes('function import requires a callable')) {
+      console.error(
+        '[sql-indexeddb] sql.js WASM 모듈과 JS 파일이 일치하지 않습니다. npm run setup:sql-wasm 명령으로 public/sql-wasm을 다시 생성하세요.'
+      )
+    }
+
+    throw new Error(`sql.js WASM 초기화 실패: ${message}`)
+  }
 
   // 2. IndexedDB 백엔드 설정
   const sqlFS = new SQLiteFS(SQL.FS, new IndexedDBBackend())

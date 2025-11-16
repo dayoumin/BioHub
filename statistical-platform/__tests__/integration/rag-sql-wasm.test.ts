@@ -228,12 +228,12 @@ describe('RAG 시스템 sql.js WASM 통합 테스트', () => {
   })
 
   describe('버전 일치 검증', () => {
-    it('npm 패키지와 public 폴더의 sql-wasm.js 해시가 일치해야 함', () => {
+    it('@jlongster/sql.js 패키지와 public 폴더의 sql-wasm.js 해시가 일치해야 함', () => {
       const fs = require('fs')
       const path = require('path')
       const crypto = require('crypto')
 
-      const npmPath = path.join(__dirname, '../../node_modules/sql.js/dist/sql-wasm.js')
+      const npmPath = path.join(__dirname, '../../node_modules/@jlongster/sql.js/dist/sql-wasm.js')
       const publicPath = path.join(__dirname, '../../public/sql-wasm/sql-wasm.js')
 
       const npmHash = crypto.createHash('md5').update(fs.readFileSync(npmPath)).digest('hex')
@@ -242,12 +242,12 @@ describe('RAG 시스템 sql.js WASM 통합 테스트', () => {
       expect(publicHash).toBe(npmHash)
     })
 
-    it('npm 패키지와 public 폴더의 sql-wasm.wasm 해시가 일치해야 함', () => {
+    it('@jlongster/sql.js 패키지와 public 폴더의 sql-wasm.wasm 해시가 일치해야 함', () => {
       const fs = require('fs')
       const path = require('path')
       const crypto = require('crypto')
 
-      const npmPath = path.join(__dirname, '../../node_modules/sql.js/dist/sql-wasm.wasm')
+      const npmPath = path.join(__dirname, '../../node_modules/@jlongster/sql.js/dist/sql-wasm.wasm')
       const publicPath = path.join(__dirname, '../../public/sql-wasm/sql-wasm.wasm')
 
       const npmHash = crypto.createHash('md5').update(fs.readFileSync(npmPath)).digest('hex')
