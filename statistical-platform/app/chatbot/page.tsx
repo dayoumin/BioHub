@@ -74,13 +74,14 @@ export default function ChatbotPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // 모달 상태 (Phase 4에서 구현)
+  // 모달 상태
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null)
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false)
   const [moveDialogSessionId, setMoveDialogSessionId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'session' | 'project'; id: string } | null>(null)
+  const [isDocManagerOpen, setIsDocManagerOpen] = useState(false)
 
   // 데이터 로드 (useMemo로 성능 최적화)
   const { searchedProjects, searchedSessions } = useMemo(() => {
