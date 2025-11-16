@@ -8,18 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle, CheckCircle2, XCircle, Target, BarChart3, Activity, Zap, TrendingUp, Info } from 'lucide-react'
-
-// Components
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-
-// Services & Hooks
+import { CheckCircle, XCircle, Target, BarChart3, Activity, Zap, TrendingUp } from 'lucide-react'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 // 요인분석 결과 인터페이스
@@ -77,87 +72,48 @@ export default function FactorAnalysisPage() {
   const [numFactors, setNumFactors] = useState<number>(0)
   const [autoFactorSelection, setAutoFactorSelection] = useState<boolean>(true)
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '요인분석', href: '/statistics/factor-analysis' }
-  ], [])
-
-  // Steps configuration (0-based indexing)
-  const STEPS: TwoPanelStep[] = useMemo(() => [
+  // 단계 정의
+  const steps: StatisticsStep[] = [
     {
-      id: 0,
-      label: '방법 소개',
-      completed: currentStep > 0
+      id: 'upload-data',
+      number: 1,
+      title: '데이터 업로드',
+      description: 'CSV 또는 Excel 파일 업로드',
+      status: uploadedData ? 'completed' : 'current'
     },
     {
-      id: 1,
-      label: '데이터 업로드',
-      completed: currentStep > 1
+      id: 'select-variables',
+      number: 2,
+      title: '변수 선택',
+      description: '분석할 변수 선택',
+      status: selectedVariables && selectedVariables.dependent.length > 0 ? 'completed'
+              : uploadedData ? 'current' : 'pending'
     },
     {
-      id: 2,
-      label: '변수 선택',
-      completed: currentStep > 2
+      id: 'configure-options',
+      number: 3,
+      title: '옵션 설정',
+      description: '요인 추출 방법 및 회전 설정',
+      status: currentStep >= 3 ? 'completed' : currentStep === 2 ? 'current' : 'pending'
     },
     {
-      id: 3,
-      label: '옵션 설정',
-      completed: currentStep > 3
-    },
-    {
-      id: 4,
-      label: '결과 해석',
-      completed: currentStep > 4
+      id: 'view-results',
+      number: 4,
+      title: '결과 확인',
+      description: '요인분석 결과 및 시각화',
+      status: results ? 'completed' : 'pending'
     }
-  ], [currentStep])
+  ]
   const [minEigenvalue, setMinEigenvalue] = useState<number>(1.0)
 
   // 데이터 업로드 핸들러
-  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
-    if (!actions.setUploadedData || !actions.setCurrentStep || !actions.setError) {
-      console.error('Actions are not available')
-      return
-    }
-
-    if (!Array.isArray(data) || data.length === 0) {
-      actions.setError('유효한 데이터가 없습니다.')
-      return
-    }
-
-    const firstRow = data[0] as Record<string, unknown>
-    const columns = Object.keys(firstRow).filter(key => {
-      const value = firstRow[key]
-      return typeof value === 'number' || !isNaN(parseFloat(String(value)))
-    })
-
-    if (columns.length < 3) {
-      actions.setError('요인분석을 위해서는 최소 3개 이상의 숫자형 변수가 필요합니다.')
-      return
-    }
-
-    const uploadedDataObj = {
-      fileName: file.name,
-      data: data as Record<string, unknown>[],
-      columns
-    }
-
-    actions.setUploadedData?.(uploadedDataObj)
-    actions.setCurrentStep(2)
-    actions.setError?.('')
-  }, [actions])
-
-  // Badge-based 변수 선택 핸들러
-  const handleItemSelect = useCallback((varName: string) => {
-    const current = selectedVariables?.dependent ?? []
-    const newItems = current.includes(varName)
-      ? current.filter(v => v !== varName)
-      : [...current, varName]
-
-    actions.setSelectedVariables?.({ dependent: newItems })
-    // ❌ NO setCurrentStep here - Critical Bug 예방!
-  }, [selectedVariables, actions])
+  const handleDataUpload = createDataUploadHandler(
+    actions.setUploadedData,
+    () => {
+      actions.setCurrentStep(2)
+    },
+    'factor-analysis'
+  )
 
   // 요인분석 실행
   const handleRunAnalysis = useCallback(async () => {
@@ -198,7 +154,7 @@ export default function FactorAnalysisPage() {
       // Determine number of factors
       let finalNumFactors = numFactors
       if (autoFactorSelection) {
-        // Automatic factor selection based on variable count (eigenvalue-based selection handled by Python)
+        // TODO: Implement automatic factor selection based on eigenvalues
         finalNumFactors = Math.max(2, Math.min(5, Math.floor((selectedVariables?.dependent ?? []).length / 2)))
       }
 
@@ -222,81 +178,43 @@ export default function FactorAnalysisPage() {
     }
   }, [uploadedData, selectedVariables, analysisType, numFactors, autoFactorSelection, rotationMethod, extractionMethod, actions])
 
-  // 방법 소개 (Step 0)
-  const renderMethodIntroduction = useCallback(() => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            요인분석이란?
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            다수의 관찰된 변수들 간의 상관관계를 분석하여 이들을 설명하는 소수의 잠재 요인을 찾는 다변량 통계기법입니다.
-          </p>
-          <ul className="text-sm space-y-1">
-            <li>• 설문조사 데이터의 차원 축소</li>
-            <li>• 심리학 연구에서 잠재 구조 발견</li>
-            <li>• 마케팅 세분화</li>
-          </ul>
-        </CardContent>
-      </Card>
-
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>주요 가정</AlertTitle>
-        <AlertDescription className="space-y-1">
-          <div>• 변수들 간의 선형 관계</div>
-          <div>• 연속형 변수 (정규분포 권장)</div>
-          <div>• 충분한 표본 크기 (변수 수의 3-5배)</div>
-          <div>• 변수들 간의 상관관계 존재</div>
-        </AlertDescription>
-      </Alert>
-
-      <div className="flex justify-end">
-        <Button onClick={() => actions.setCurrentStep?.(1)}>
-          다음: 데이터 업로드
-        </Button>
-      </div>
-    </div>
-  ), [actions])
-
-  // 변수 선택 페이지 (Step 2)
+  // 변수 선택 페이지
   const variableSelectionStep = useMemo(() => (
     <div className="space-y-6">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertTitle>변수 선택 안내</AlertTitle>
-        <AlertDescription>
-          요인분석에 사용할 연속형 변수들을 선택해주세요 (최소 3개 이상). 표본 수는 변수 수의 3-5배 이상 권장됩니다.
-        </AlertDescription>
-      </Alert>
+      <div>
+        <h3 className="text-lg font-semibold mb-4">분석 변수 선택</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          요인분석에 사용할 연속형 변수들을 선택해주세요. (최소 3개 이상, 표본 수는 변수 수의 3배 이상 권장)
+        </p>
+      </div>
 
       {uploadedData && uploadedData.data.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>분석 변수 선택 (3개 이상)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {uploadedData.columns.map((column) => (
-                <Badge
-                  key={column}
-                  variant={(selectedVariables?.dependent ?? []).includes(column) ? "default" : "outline"}
-                  className="cursor-pointer px-3 py-2"
-                  onClick={() => handleItemSelect(column)}
-                >
-                  {(selectedVariables?.dependent ?? []).includes(column) && (
-                    <CheckCircle2 className="mr-1 h-3 w-3" />
-                  )}
-                  {column}
-                </Badge>
-              ))}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {uploadedData.columns.map((column) => (
+            <div key={column} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id={column}
+                checked={(selectedVariables?.dependent ?? []).includes(column)}
+                onChange={(e) => {
+                  if (!actions.setSelectedVariables) {
+                    console.error('[factor-analysis] setSelectedVariables not available')
+                    return
+                  }
+                  if (e.target.checked) {
+                    actions.setSelectedVariables({ dependent: [...(selectedVariables?.dependent ?? []), column] })
+                  } else {
+                    actions.setSelectedVariables({ dependent: (selectedVariables?.dependent ?? []).filter((v: string) => v !== column) })
+                  }
+                }}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor={column} className="text-sm font-medium cursor-pointer">
+                {column}
+              </Label>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
 
       <div className="space-y-4">
@@ -417,7 +335,7 @@ export default function FactorAnalysisPage() {
         </Button>
       </div>
     </div>
-  ), [uploadedData, selectedVariables, analysisType, extractionMethod, rotationMethod, autoFactorSelection, numFactors, minEigenvalue, error, isAnalyzing, handleRunAnalysis, handleItemSelect, actions])
+  ), [uploadedData, selectedVariables, analysisType, extractionMethod, rotationMethod, autoFactorSelection, numFactors, minEigenvalue, error, isAnalyzing, handleRunAnalysis])
 
   // 결과 해석 페이지
   const resultsStep = useMemo(() => {
@@ -792,29 +710,23 @@ export default function FactorAnalysisPage() {
   }, [results, uploadedData, selectedVariables, actions])
 
   return (
-    <TwoPanelLayout
-      analysisTitle="요인분석"
-      analysisSubtitle="Factor Analysis"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="요인분석"
+      description="다변량 데이터에서 잠재된 요인을 발견하는 차원축소 분석"
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
-    >
-      {currentStep === 0 && renderMethodIntroduction()}
-      {currentStep === 1 && (
-        <DataUploadStep
-          onUploadComplete={handleDataUpload}
-          currentStep={1}
-          totalSteps={5}
-        />
-      )}
-      {currentStep === 2 && variableSelectionStep}
-      {currentStep === 4 && resultsStep}
-    </TwoPanelLayout>
+      onDataUpload={handleDataUpload}
+      variableSelectionStep={variableSelectionStep}
+      resultsStep={resultsStep}
+      methodInfo={{
+        assumptions: [
+          "변수들 간의 선형 관계",
+          "연속형 변수 (정규분포 권장)",
+          "충분한 표본 크기 (변수 수의 3-5배)",
+          "변수들 간의 상관관계 존재"
+        ],
+        usage: "요인분석은 다수의 관찰된 변수들 간의 상관관계를 분석하여 이들을 설명하는 소수의 잠재 요인을 찾는 다변량 통계기법입니다. 설문조사 데이터의 차원 축소, 심리학 연구에서 잠재 구조 발견, 마케팅 세분화 등에 활용됩니다."
+      }}
+    />
   )
 }
