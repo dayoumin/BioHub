@@ -11,8 +11,10 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle, XCircle, Users, Target, Zap, BarChart3, Activity } from 'lucide-react'
-import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { CheckCircle, XCircle, Users, Target, Zap, BarChart3, Activity, CheckCircle2 } from 'lucide-react'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -55,9 +57,16 @@ export default function ClusterAnalysisPage() {
   // Use statistics page hook
   const { state, actions } = useStatisticsPage<ClusterAnalysisResult, ClusterVariables>({
     withUploadedData: true,
-    withError: true
+    withError: true,
+    initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Breadcrumbs
+  const breadcrumbs = useMemo(() => [
+    { label: '홈', href: '/' },
+    { label: '군집분석' }
+  ], [])
 
   // Page-specific state
   const [clusterMethod, setClusterMethod] = useState<'kmeans' | 'hierarchical'>('kmeans')
@@ -66,38 +75,13 @@ export default function ClusterAnalysisPage() {
   const [linkageMethod, setLinkageMethod] = useState<'ward' | 'complete' | 'average' | 'single'>('ward')
   const [distanceMetric, setDistanceMetric] = useState<'euclidean' | 'manhattan' | 'cosine'>('euclidean')
 
-  // 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'upload-data',
-      number: 1,
-      title: '데이터 업로드',
-      description: 'CSV 또는 Excel 파일 업로드',
-      status: uploadedData ? 'completed' : 'current'
-    },
-    {
-      id: 'select-variables',
-      number: 2,
-      title: '변수 선택',
-      description: '군집화할 변수 선택',
-      status: selectedVariables?.all && selectedVariables.all.length > 0 ? 'completed'
-              : uploadedData ? 'current' : 'pending'
-    },
-    {
-      id: 'configure-options',
-      number: 3,
-      title: '옵션 설정',
-      description: '군집 방법 및 파라미터 설정',
-      status: currentStep >= 3 ? 'completed' : currentStep === 2 ? 'current' : 'pending'
-    },
-    {
-      id: 'view-results',
-      number: 4,
-      title: '결과 확인',
-      description: '군집분석 결과 및 시각화',
-      status: results ? 'completed' : 'pending'
-    }
-  ]
+  // STEPS 정의 (Batch 3 표준)
+  const STEPS: TwoPanelStep[] = useMemo(() => [
+    { id: 0, label: '방법 소개' },
+    { id: 1, label: '데이터 업로드' },
+    { id: 2, label: '변수 선택' },
+    { id: 3, label: '분석 결과' }
+  ], [])
 
   // 데이터 업로드 핸들러
   const handleDataUpload = createDataUploadHandler(
@@ -108,8 +92,28 @@ export default function ClusterAnalysisPage() {
     'cluster'
   )
 
+  // 변수 선택 핸들러 (Badge 클릭)
+  const handleVariableSelect = useCallback((varName: string) => {
+    const current = selectedVariables?.all ?? []
+    const newAll = current.includes(varName)
+      ? current.filter(v => v !== varName)
+      : [...current, varName]
+    actions.setSelectedVariables?.({ all: newAll })
+    // ❌ NO setCurrentStep here - Critical Bug 예방!
+  }, [selectedVariables, actions])
+
+  // 다음 단계 핸들러 (setCurrentStep + runAnalysis)
+  const handleNextStep = useCallback(async () => {
+    if (!selectedVariables?.all || selectedVariables.all.length < 2) {
+      actions.setError?.('최소 2개 이상의 변수를 선택해주세요.')
+      return
+    }
+    actions.setCurrentStep?.(3)
+    await runAnalysis()
+  }, [selectedVariables, actions])
+
   // 군집분석 실행 (Worker 4 사용)
-  const handleRunAnalysis = useCallback(async () => {
+  const runAnalysis = useCallback(async () => {
     if (!uploadedData?.data.length || !selectedVariables?.all || selectedVariables.all.length === 0) {
       actions.setError?.('데이터와 변수를 선택해주세요.')
       return
@@ -142,7 +146,7 @@ export default function ClusterAnalysisPage() {
       // Determine final number of clusters
       let finalNumClusters = numClusters
 
-      // TODO: Implement optimal K selection in Worker 4 if needed
+      // Note: Optimal K selection can be implemented in Worker 4 if needed
       // For now, use user-specified numClusters
 
       // Call Worker 4 cluster_analysis method
@@ -162,7 +166,7 @@ export default function ClusterAnalysisPage() {
       console.error('[cluster] Analysis error:', errorMessage)
       actions.setError?.(errorMessage)
     }
-  }, [uploadedData, selectedVariables, numClusters, autoOptimalK, actions])
+  }, [uploadedData, selectedVariables, numClusters, actions])
 
   // 변수 선택 페이지
   const variableSelectionStep = useMemo(() => (
@@ -175,30 +179,19 @@ export default function ClusterAnalysisPage() {
       </div>
 
       {uploadedData?.data.length && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="flex flex-wrap gap-2">
           {uploadedData.columns.map((column) => (
-            <div key={column} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id={column}
-                checked={(selectedVariables?.all ?? []).includes(column)}
-                onChange={(e) => {
-                  if (!actions.setSelectedVariables) {
-                    console.error('[cluster] setSelectedVariables not available')
-                    return
-                  }
-                  if (e.target.checked) {
-                    actions.setSelectedVariables({ all: [...(selectedVariables?.all ?? []), column] })
-                  } else {
-                    actions.setSelectedVariables({ all: (selectedVariables?.all ?? []).filter(v => v !== column) })
-                  }
-                }}
-                className="rounded border-gray-300"
-              />
-              <Label htmlFor={column} className="text-sm font-medium cursor-pointer">
-                {column}
-              </Label>
-            </div>
+            <Badge
+              key={column}
+              variant={(selectedVariables?.all ?? []).includes(column) ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => handleVariableSelect(column)}
+            >
+              {(selectedVariables?.all ?? []).includes(column) && (
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+              )}
+              {column}
+            </Badge>
           ))}
         </div>
       )}
@@ -287,18 +280,18 @@ export default function ClusterAnalysisPage() {
       )}
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
+        <Button variant="outline" onClick={() => actions.setCurrentStep?.(2)}>
           이전
         </Button>
         <Button
-          onClick={handleRunAnalysis}
+          onClick={handleNextStep}
           disabled={(selectedVariables?.all ?? []).length < 2 || isAnalyzing}
         >
-          {isAnalyzing ? '분석 중...' : '군집분석 실행'}
+          {isAnalyzing ? '분석 중...' : '다음 단계'}
         </Button>
       </div>
     </div>
-  ), [uploadedData, selectedVariables, clusterMethod, numClusters, autoOptimalK, linkageMethod, distanceMetric, error, isAnalyzing, handleRunAnalysis])
+  ), [uploadedData, selectedVariables, clusterMethod, numClusters, autoOptimalK, linkageMethod, distanceMetric, error, isAnalyzing, handleVariableSelect, handleNextStep, actions])
 
   // 결과 해석 페이지
   const resultsStep = useMemo(() => {
@@ -603,24 +596,65 @@ export default function ClusterAnalysisPage() {
     )
   }, [results, uploadedData?.data.length, selectedVariables, actions])
 
-  return (
-    <StatisticsPageLayout
-      title="군집분석"
-      description="유사한 특성을 가진 개체들을 그룹화하는 비지도 학습 분석"
-      steps={steps}
-      currentStep={currentStep}
-      onDataUpload={handleDataUpload}
-      variableSelectionStep={variableSelectionStep}
-      resultsStep={resultsStep}
-      methodInfo={{
-        assumptions: [
-          "연속형 변수 (수치형 데이터)",
-          "변수 간 스케일 차이 고려 필요",
-          "이상치에 민감할 수 있음",
-          "군집 수 사전 지정 필요 (K-means)"
-        ],
-        usage: "K-means: 구형 군집에 적합, 빠른 속도. 계층적 군집분석: 덴드로그램 제공, 군집 수 유연. 실루엣 분석: 군집 품질 평가."
-      }}
+  // Render 함수들
+  const renderMethodIntroduction = useCallback(() => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">군집분석 개요</h3>
+        <p className="text-sm text-muted-foreground">
+          유사한 특성을 가진 개체들을 그룹화하는 비지도 학습 분석입니다.
+        </p>
+      </div>
+
+      <div>
+        <h4 className="text-base font-semibold mb-2">주요 가정</h4>
+        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+          <li>연속형 변수 (수치형 데이터)</li>
+          <li>변수 간 스케일 차이 고려 필요</li>
+          <li>이상치에 민감할 수 있음</li>
+          <li>군집 수 사전 지정 필요 (K-means)</li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 className="text-base font-semibold mb-2">활용 방법</h4>
+        <p className="text-sm text-muted-foreground">
+          K-means: 구형 군집에 적합, 빠른 속도. 계층적 군집분석: 덴드로그램 제공, 군집 수 유연. 실루엣 분석: 군집 품질 평가.
+        </p>
+      </div>
+    </div>
+  ), [])
+
+  const renderDataUpload = useCallback(() => (
+    <DataUploadStep
+      onUploadComplete={handleDataUpload}
+      onPrevious={() => actions.setCurrentStep?.(0)}
+      onNext={() => actions.setCurrentStep?.(2)}
     />
+  ), [handleDataUpload, actions])
+
+  const renderVariableSelection = useCallback(() => variableSelectionStep, [variableSelectionStep])
+
+  const renderResults = useCallback(() => resultsStep, [resultsStep])
+
+  return (
+    <TwoPanelLayout
+      analysisTitle="군집분석"
+      analysisSubtitle="유사한 특성을 가진 개체들을 그룹화하는 비지도 학습 분석"
+      breadcrumbs={breadcrumbs}
+      currentStep={currentStep}
+      steps={STEPS}
+      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
+      bottomPreview={uploadedData && currentStep >= 1 ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        maxRows: 10
+      } : undefined}
+    >
+      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 3 && renderResults()}
+    </TwoPanelLayout>
   )
 }
