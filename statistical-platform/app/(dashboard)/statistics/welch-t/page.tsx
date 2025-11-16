@@ -835,7 +835,7 @@ export default function WelchTPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={stepsWithCompleted}
       onStepChange={handleStepChange}
       analysisTitle="Welch t-검정"

@@ -703,9 +703,9 @@ export default function FriedmanPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={steps}
-      onStepChange={(step: number) => actions.setCurrentStep(step - 1)}
+      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
       analysisTitle="Friedman 검정"
       analysisSubtitle="Friedman Test for Related Samples"
       analysisIcon={<RotateCcw className="h-5 w-5 text-primary" />}
@@ -716,10 +716,10 @@ export default function FriedmanPage() {
         maxRows: 10
       } : undefined}
     >
-      {/* Step 1: 방법론 소개 */}
+      {/* Step 0: 방법론 소개 */}
       {currentStep === 0 && renderMethodIntroduction()}
 
-      {/* Step 2: 데이터 업로드 */}
+      {/* Step 1: 데이터 업로드 */}
       {currentStep === 1 && (
         <DataUploadStep
           onUploadComplete={handleDataUpload}
@@ -729,10 +729,10 @@ export default function FriedmanPage() {
         />
       )}
 
-      {/* Step 3: 변수 선택 */}
+      {/* Step 2: 변수 선택 */}
       {currentStep === 2 && renderVariableSelection()}
 
-      {/* Step 4: 결과 */}
+      {/* Step 3: 결과 */}
       {currentStep === 3 && renderResults()}
 
       {/* 로딩 상태 */}

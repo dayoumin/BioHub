@@ -857,7 +857,7 @@ export default function StepwiseRegressionPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={stepsWithCompleted}
       onStepChange={handleStepChange}
       analysisTitle="단계적 회귀분석"

@@ -732,9 +732,9 @@ export default function MannWhitneyPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={steps}
-      onStepChange={(step: number) => actions.setCurrentStep(step - 1)}
+      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
       analysisTitle="Mann-Whitney U 검정"
       analysisSubtitle="Wilcoxon Rank-Sum Test"
       analysisIcon={<Activity className="h-5 w-5 text-primary" />}

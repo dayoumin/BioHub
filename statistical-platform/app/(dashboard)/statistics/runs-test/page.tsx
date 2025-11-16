@@ -600,7 +600,7 @@ export default function RunsTestPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1} // 0-based → 1-based
+      currentStep={currentStep} // 0-based → 1-based
       steps={STEPS}
       onStepChange={handleStepChange}
       analysisTitle="런 검정"

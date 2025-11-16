@@ -646,7 +646,7 @@ export default function KolmogorovSmirnovTestPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={steps}
       onStepChange={(step) => actions.setCurrentStep(step - 1)}
       analysisTitle="K-S 검정"

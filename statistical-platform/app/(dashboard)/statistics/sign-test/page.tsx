@@ -672,7 +672,7 @@ export default function SignTestPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1} // 0-based → 1-based
+      currentStep={currentStep} // 0-based → 1-based
       steps={STEPS}
       onStepChange={handleStepChange}
       analysisTitle="부호 검정"

@@ -691,7 +691,7 @@ export default function MannKendallPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={stepsWithCompleted}
       onStepChange={handleStepChange}
       analysisTitle="Mann-Kendall 추세 검정"

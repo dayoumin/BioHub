@@ -651,7 +651,7 @@ export default function WilcoxonPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={steps}
       onStepChange={(step) => actions.setCurrentStep(step - 1)}
       analysisTitle="Wilcoxon 검정"

@@ -698,7 +698,7 @@ export default function PartialCorrelationPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={steps}
       onStepChange={(step) => actions.setCurrentStep(step - 1)}
       analysisTitle="편상관분석"

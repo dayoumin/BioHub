@@ -752,9 +752,9 @@ export default function KruskalWallisPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep + 1}
+      currentStep={currentStep}
       steps={steps}
-      onStepChange={(step: number) => actions.setCurrentStep(step - 1)}
+      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
       analysisTitle="Kruskal-Wallis 검정"
       analysisSubtitle="Kruskal-Wallis H Test"
       analysisIcon={<Users className="h-5 w-5 text-primary" />}
