@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ReliabilityVariables } from '@/types/statistics'
 import { toReliabilityVariables, type VariableAssignment } from '@/types/statistics-converters'
@@ -19,7 +19,6 @@ import {
   Activity,
   BarChart3,
   CheckCircle,
-  CheckCircle2,
   AlertTriangle,
   AlertCircle,
   Info,
@@ -29,15 +28,16 @@ import {
   Download
 } from 'lucide-react'
 
-// Components
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+// Components - 기존 시스템 사용
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 
 // Data interfaces
@@ -113,36 +113,37 @@ export default function ReliabilityAnalysisPage() {
     initPyodide()
   }, [])
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '신뢰도 분석', href: '/statistics/reliability' }
-  ], [])
-
-  // Steps configuration (0-based indexing)
-  const STEPS: TwoPanelStep[] = useMemo(() => [
+  // Steps configuration
+  const steps: StatisticsStep[] = [
     {
-      id: 0,
-      label: '방법 소개',
-      completed: currentStep > 0
+      id: 'method',
+      number: 1,
+      title: '분석 방법',
+      description: '신뢰도 분석 방법 이해',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
     },
     {
-      id: 1,
-      label: '데이터 업로드',
-      completed: currentStep > 1
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: '분석할 데이터 파일 업로드',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
     },
     {
-      id: 2,
-      label: '변수 선택',
-      completed: currentStep > 2
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '신뢰도 분석할 항목들 선택',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
     },
     {
-      id: 3,
-      label: '결과 해석',
-      completed: currentStep > 3
+      id: 'results',
+      number: 4,
+      title: '결과 해석',
+      description: 'Cronbach\'s α 결과 확인',
+      status: currentStep === 3 ? 'current' : 'pending'
     }
-  ], [currentStep])
+  ]
 
   // Event handlers
   const handleDataUpload = useCallback((file: File, data: unknown[]) => {
@@ -177,18 +178,15 @@ export default function ReliabilityAnalysisPage() {
     actions.setError?.('')
   }, [actions])
 
-  // Badge-based 변수 선택 핸들러
-  const handleItemSelect = useCallback((varName: string) => {
-    const current = selectedVariables?.items ?? []
-    const newItems = current.includes(varName)
-      ? current.filter(v => v !== varName)
-      : [...current, varName]
+  const handleVariableSelection = useCallback((variables: VariableAssignment) => {
+    const typedVars = toReliabilityVariables(variables)
+    actions.setSelectedVariables?.(typedVars)
+    if (typedVars.items && typedVars.items.length >= 2) {
+      runAnalysis(variables)
+    }
+  }, [actions])
 
-    actions.setSelectedVariables?.({ items: newItems })
-    // ❌ NO setCurrentStep here - Critical Bug 예방!
-  }, [selectedVariables, actions])
-
-  const runAnalysis = useCallback(async (variables: VariableAssignment) => {
+  const runAnalysis = async (variables: VariableAssignment) => {
     if (!uploadedData || !pyodideReady || !variables.variables || variables.variables.length < 2) {
       if (actions.setError) {
         actions.setError('분석을 실행할 수 없습니다. 데이터와 변수를 확인해주세요.')
@@ -291,18 +289,7 @@ export default function ReliabilityAnalysisPage() {
       console.error('신뢰도 분석 실패:', err)
       actions.setError(err instanceof Error ? err.message : '신뢰도 분석 중 오류가 발생했습니다.')
     }
-  }, [uploadedData, pyodideReady, actions])
-
-  // "다음 단계" 버튼 핸들러 (setCurrentStep + runAnalysis)
-  const handleNextStep = useCallback(async () => {
-    if (!selectedVariables?.items || selectedVariables.items.length < 2) {
-      actions.setError?.('최소 2개 이상의 항목을 선택해주세요.')
-      return
-    }
-
-    actions.setCurrentStep?.(3)
-    await runAnalysis({ variables: selectedVariables.items })
-  }, [selectedVariables, actions, runAnalysis])
+  }
 
   const getAlphaInterpretation = (alpha: number) => {
     if (alpha >= 0.9) return { level: 'Excellent', color: 'bg-muted0', description: '우수한 신뢰도' }
@@ -312,194 +299,187 @@ export default function ReliabilityAnalysisPage() {
     return { level: 'Poor', color: 'bg-muted0', description: '낮은 신뢰도' }
   }
 
-  // Render functions (useCallback)
-  const renderMethodIntroduction = useCallback(() => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calculator className="w-5 h-5" />
-              분석 목적
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              측정도구(설문지, 척도)의 내적 일관성을 평가하여 신뢰도를 검증합니다.
-            </p>
-            <ul className="text-sm space-y-1">
-              <li>• 항목 간 일관성 측정</li>
-              <li>• 척도의 신뢰도 평가</li>
-              <li>• 문항 개선 방향 제시</li>
-            </ul>
-          </CardContent>
-        </Card>
+  return (
+    <StatisticsPageLayout
+      title="신뢰도 분석"
+      subtitle="Cronbach&apos;s Alpha Reliability Analysis"
+      description="측정도구의 내적 일관성을 평가하는 신뢰도 분석"
+      icon={<Activity className="w-6 h-6" />}
+      steps={steps}
+      currentStep={currentStep}
+      onStepChange={actions.setCurrentStep}
+      methodInfo={{
+        formula: "α = (k/(k-1)) × (1 - (Σσᵢ²/σₜ²))",
+        assumptions: [
+          "항목들이 동일한 구성개념을 측정해야 함",
+          "항목 간 상관관계가 존재해야 함",
+          "일차원성 가정(단일 요인)"
+        ],
+        sampleSize: "최소 30개 이상의 사례 권장",
+        usage: "설문지, 척도, 검사도구의 신뢰도 검증"
+      }}
+    >
+      {/* Step 1: 방법론 소개 */}
+      {currentStep === 0 && (
+        <StepCard
+          title="신뢰도 분석 소개"
+          description="Cronbach&apos;s α를 이용한 내적 일관성 신뢰도 평가"
+          icon={<Info className="w-5 h-5 text-blue-500" />}
+        >
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calculator className="w-5 h-5" />
+                    분석 목적
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    측정도구(설문지, 척도)의 내적 일관성을 평가하여 신뢰도를 검증합니다.
+                  </p>
+                  <ul className="text-sm space-y-1">
+                    <li>• 항목 간 일관성 측정</li>
+                    <li>• 척도의 신뢰도 평가</li>
+                    <li>• 문항 개선 방향 제시</li>
+                  </ul>
+                </CardContent>
+              </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              해석 기준
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>α ≥ 0.9</span>
-                <Badge className="bg-muted0">우수</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span>α ≥ 0.8</span>
-                <Badge className="bg-muted0">양호</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span>α ≥ 0.7</span>
-                <Badge className="bg-muted0">수용가능</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span>α &lt; 0.7</span>
-                <Badge className="bg-muted0">개선필요</Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>주의사항</AlertTitle>
-        <AlertDescription>
-          신뢰도 분석을 위해서는 최소 2개 이상의 측정 항목이 필요하며,
-          모든 항목이 동일한 구성개념을 측정해야 합니다.
-        </AlertDescription>
-      </Alert>
-
-      <div className="flex justify-end">
-        <Button onClick={() => actions.setCurrentStep?.(1)}>
-          다음: 데이터 업로드
-        </Button>
-      </div>
-    </div>
-  ), [actions])
-
-  const renderDataUpload = useCallback(() => (
-    <div className="space-y-4">
-      <DataUploadStep
-        onUploadComplete={handleDataUpload}
-        currentStep={1}
-        totalSteps={4}
-      />
-
-      <div className="flex justify-between mt-6">
-        <Button variant="outline" onClick={() => actions.setCurrentStep?.(0)}>
-          이전
-        </Button>
-      </div>
-    </div>
-  ), [handleDataUpload, actions])
-
-  const renderVariableSelection = useCallback(() => {
-    if (!uploadedData) return null
-
-    return (
-      <div className="space-y-6">
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>변수 선택 안내</AlertTitle>
-          <AlertDescription>
-            신뢰도 분석할 항목들을 선택하세요 (최소 2개 이상).
-            모든 항목은 동일한 구성개념을 측정해야 합니다.
-          </AlertDescription>
-        </Alert>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>분석 항목 선택 (2개 이상)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {uploadedData.columns.map(column => (
-                <Badge
-                  key={column}
-                  variant={selectedVariables?.items?.includes(column) ? "default" : "outline"}
-                  className="cursor-pointer px-3 py-2"
-                  onClick={() => handleItemSelect(column)}
-                >
-                  {selectedVariables?.items?.includes(column) && (
-                    <CheckCircle2 className="mr-1 h-3 w-3" />
-                  )}
-                  {column}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 분석 옵션 */}
-        {selectedVariables && selectedVariables.items && selectedVariables.items.length >= 2 && (
-          <div className="p-4 border rounded-lg">
-            <h4 className="font-medium mb-3">분석 옵션</h4>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm">신뢰도 모델</Label>
-                <RadioGroup
-                  value={analysisOptions.model}
-                  onValueChange={(value: string) => {
-                    if (value === 'alpha' || value === 'split-half' || value === 'parallel') {
-                      setAnalysisOptions(prev => ({ ...prev, model: value }))
-                    }
-                  }}
-                  className="mt-2"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="alpha" id="alpha" />
-                    <Label htmlFor="alpha" className="text-sm">Cronbach&apos;s Alpha</Label>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    해석 기준
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span>α ≥ 0.9</span>
+                      <Badge className="bg-muted0">우수</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>α ≥ 0.8</span>
+                      <Badge className="bg-muted0">양호</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>α ≥ 0.7</span>
+                      <Badge className="bg-muted0">수용가능</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>α &lt; 0.7</span>
+                      <Badge className="bg-muted0">개선필요</Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="split-half" id="split-half" />
-                    <Label htmlFor="split-half" className="text-sm">반분법 (Split-half)</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+                </CardContent>
+              </Card>
+            </div>
 
-              <div>
-                <Label htmlFor="confidence" className="text-sm">신뢰구간 (%)</Label>
-                <Input
-                  id="confidence"
-                  type="number"
-                  value={analysisOptions.confidence}
-                  onChange={(e) => setAnalysisOptions(prev => ({
-                    ...prev,
-                    confidence: parseInt(e.target.value) || 95
-                  }))}
-                  min={90}
-                  max={99}
-                  className="mt-1 w-20"
-                />
-              </div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>주의사항</AlertTitle>
+              <AlertDescription>
+                신뢰도 분석을 위해서는 최소 2개 이상의 측정 항목이 필요하며,
+                모든 항목이 동일한 구성개념을 측정해야 합니다.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex justify-end">
+              <Button onClick={() => actions.setCurrentStep?.(1)}>
+                다음: 데이터 업로드
+              </Button>
             </div>
           </div>
-        )}
+        </StepCard>
+      )}
 
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={() => actions.setCurrentStep?.(1)}>
-            이전
-          </Button>
-          <Button
-            onClick={handleNextStep}
-            disabled={!selectedVariables?.items || selectedVariables.items.length < 2}
-          >
-            다음 단계: 분석 실행
-          </Button>
-        </div>
-      </div>
-    )
-  }, [uploadedData, selectedVariables, handleItemSelect, analysisOptions, handleNextStep, actions])
+      {/* Step 2: 데이터 업로드 */}
+      {currentStep === 1 && (
+        <StepCard
+          title="데이터 업로드"
+          description="신뢰도 분석할 데이터 파일을 업로드하세요"
+          icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
+        >
+          <DataUploadStep
+            onUploadComplete={handleDataUpload}
+            currentStep={1}
+            totalSteps={4}
+          />
 
-  const renderResults = useCallback(() => {
-    if (!analysisResult) return null
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={() => actions.setCurrentStep?.(0)}>
+              이전
+            </Button>
+          </div>
+        </StepCard>
+      )}
 
-    return (
+      {/* Step 3: 변수 선택 */}
+      {currentStep === 2 && uploadedData && (
+        <StepCard
+          title="변수 선택"
+          description="신뢰도 분석할 항목들을 선택하세요"
+          icon={<BarChart3 className="w-5 h-5 text-primary" />}
+        >
+          <VariableSelectorModern
+            methodId="reliability"
+            data={uploadedData.data}
+            onVariablesSelected={handleVariableSelection}
+            onBack={() => actions.setCurrentStep?.(1)}
+          />
+
+          {/* 분석 옵션 */}
+          {selectedVariables && selectedVariables.items && selectedVariables.items.length >= 2 && (
+            <div className="mt-6 p-4 border rounded-lg">
+              <h4 className="font-medium mb-3">분석 옵션</h4>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm">신뢰도 모델</Label>
+                  <RadioGroup
+                    value={analysisOptions.model}
+                    onValueChange={(value: string) => {
+                      if (value === 'alpha' || value === 'split-half' || value === 'parallel') {
+                        setAnalysisOptions(prev => ({ ...prev, model: value }))
+                      }
+                    }}
+                    className="mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="alpha" id="alpha" />
+                      <Label htmlFor="alpha" className="text-sm">Cronbach&apos;s Alpha</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="split-half" id="split-half" />
+                      <Label htmlFor="split-half" className="text-sm">반분법 (Split-half)</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div>
+                  <Label htmlFor="confidence" className="text-sm">신뢰구간 (%)</Label>
+                  <Input
+                    id="confidence"
+                    type="number"
+                    value={analysisOptions.confidence}
+                    onChange={(e) => setAnalysisOptions(prev => ({
+                      ...prev,
+                      confidence: parseInt(e.target.value) || 95
+                    }))}
+                    min={90}
+                    max={99}
+                    className="mt-1 w-20"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </StepCard>
+      )}
+
+      {/* Step 4: 결과 */}
+      {currentStep === 3 && analysisResult && (
         <div className="space-y-6">
           {/* 주요 결과 카드 */}
           <div className="grid md:grid-cols-3 gap-4">
@@ -671,34 +651,7 @@ export default function ReliabilityAnalysisPage() {
             </div>
           </div>
         </div>
-    )
-  }, [analysisResult, actions])
-
-  return (
-    <TwoPanelLayout
-      analysisTitle="신뢰도 분석"
-      analysisSubtitle="Cronbach's Alpha Reliability Analysis"
-      breadcrumbs={breadcrumbs}
-      currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
-    >
-      {/* Step 0: 방법 소개 */}
-      {currentStep === 0 && renderMethodIntroduction()}
-
-      {/* Step 1: 데이터 업로드 */}
-      {currentStep === 1 && renderDataUpload()}
-
-      {/* Step 2: 변수 선택 */}
-      {currentStep === 2 && renderVariableSelection()}
-
-      {/* Step 3: 결과 */}
-      {currentStep === 3 && renderResults()}
+      )}
 
       {/* 로딩 상태 */}
       {isAnalyzing && (
@@ -725,6 +678,6 @@ export default function ReliabilityAnalysisPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
