@@ -9,18 +9,19 @@
 
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import 'katex/dist/katex.min.css'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, XCircle, Send, Plus } from 'lucide-react'
-import { queryRAG } from '@/lib/rag/rag-service'
+import { queryRAGStream } from '@/lib/rag/rag-service'
 import { MARKDOWN_CONFIG, RAG_UI_CONFIG } from '@/lib/rag/config'
 import { handleRAGError } from '@/lib/rag/utils/error-handler'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import { ChatSourcesDisplay } from './chat-sources-display'
 import { SessionHistoryDropdown } from './session-history-dropdown'
+import { SessionFavoritesDropdown } from './session-favorites-dropdown'
 import { OllamaSetupDialog } from '@/components/chatbot/ollama-setup-dialog'
 import { checkOllamaStatus, type OllamaStatus } from '@/lib/rag/utils/ollama-check'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
@@ -32,8 +33,6 @@ interface RAGAssistantCompactProps {
   method?: string
   /** 클래스 (선택) */
   className?: string
-  /** 즐겨찾기 필터 상태 (외부에서 제어) */
-  showFavoritesOnly?: boolean
 }
 
 interface ChatMessage {
@@ -42,7 +41,7 @@ interface ChatMessage {
   timestamp: number
 }
 
-export function RAGAssistantCompact({ method, className = '', showFavoritesOnly = false }: RAGAssistantCompactProps) {
+export function RAGAssistantCompact({ method, className = '' }: RAGAssistantCompactProps) {
   const [query, setQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -51,6 +50,13 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null)
   const [showSetupDialog, setShowSetupDialog] = useState(false)
+
+  // 스트리밍 상태
+  const [streamingMessage, setStreamingMessage] = useState<string>('')
+  const [streamingSources, setStreamingSources] = useState<Array<{ title: string; content: string; score: number }> | null>(null)
+  const streamingMessageRef = useRef<string>('') // 최신 스트리밍 메시지 추적
+  const streamingSourcesRef = useRef<Array<{ title: string; content: string; score: number }> | null>(null) // 최신 참조 문서 추적
+  const currentQueryRef = useRef<string>('') // 현재 질문 추적
 
   // Ollama 상태 체크
   useEffect(() => {
@@ -107,22 +113,55 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
     void initSession()
   }, [])
 
-  // 질문 전송
+  // 질문 전송 (스트리밍 방식)
   const handleSubmit = useCallback(async () => {
     if (!query.trim() || !currentSessionId) return
 
+    const userQuery = query.trim()
+    currentQueryRef.current = userQuery // 질문 저장
+    setQuery('') // 입력 즉시 초기화
     setIsLoading(true)
     setError(null)
+    setStreamingMessage('')
+    setStreamingSources(null)
+    streamingMessageRef.current = '' // ref 초기화
+    streamingSourcesRef.current = null
 
     try {
-      const response = await queryRAG({
-        query: query.trim(),
-        method
-      })
+      // 스트리밍 응답 생성
+      const metadata = await queryRAGStream(
+        {
+          query: userQuery,
+          method
+        },
+        // onChunk: 텍스트 조각 수신
+        (chunk: string) => {
+          streamingMessageRef.current += chunk
+          setStreamingMessage(streamingMessageRef.current)
+        },
+        // onSources: 참조 문서 수신 (검색 완료 시 1회)
+        (sources) => {
+          streamingSourcesRef.current = sources
+          setStreamingSources(sources)
+        }
+      )
+
+      // 스트리밍 완료 - ref에서 최신 값 가져오기
+      const fullAnswer = streamingMessageRef.current
+      const finalSources = streamingSourcesRef.current || []
+
+      // <cited_docs> 태그 제거 (저장용)
+      const cleanAnswer = fullAnswer.replace(/<cited_docs>[\s\S]*?<\/cited_docs>/gi, '')
 
       const newMessage: ChatMessage = {
-        query: query.trim(),
-        response,
+        query: userQuery,
+        response: {
+          answer: cleanAnswer,
+          sources: finalSources,
+          citedDocIds: metadata.citedDocIds,
+          model: metadata.model,
+          metadata: metadata.metadata
+        },
         timestamp: Date.now()
       }
 
@@ -132,27 +171,38 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
       await ChatStorageIndexedDB.addMessage(currentSessionId, {
         id: `${Date.now()}-user`,
         role: 'user',
-        content: query.trim(),
+        content: userQuery,
         timestamp: Date.now()
       })
 
       await ChatStorageIndexedDB.addMessage(currentSessionId, {
         id: `${Date.now()}-assistant`,
         role: 'assistant',
-        content: response.answer,
+        content: cleanAnswer,
         timestamp: Date.now(),
-        sources: response.sources,
-        model: response.model
+        sources: finalSources.length > 0 ? finalSources : undefined,
+        model: metadata.model
       })
 
       // 세션 목록 업데이트
       const updatedSessions = await ChatStorageIndexedDB.loadSessions()
       setSessions(updatedSessions)
 
-      setQuery('') // 입력 초기화
+      // 스트리밍 상태 초기화
+      setStreamingMessage('')
+      setStreamingSources(null)
+      streamingMessageRef.current = ''
+      streamingSourcesRef.current = null
+      currentQueryRef.current = ''
     } catch (err) {
       const errorResult = handleRAGError(err, 'RAGAssistantCompact.handleSubmit')
       setError(errorResult.message)
+      // 스트리밍 상태 초기화
+      setStreamingMessage('')
+      setStreamingSources(null)
+      streamingMessageRef.current = ''
+      streamingSourcesRef.current = null
+      currentQueryRef.current = ''
     } finally {
       setIsLoading(false)
     }
@@ -209,10 +259,6 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
     [handleSubmit]
   )
 
-  const filteredSessions = showFavoritesOnly
-    ? sessions.filter((s) => s.isFavorite)
-    : sessions
-
   // Ollama 재시도 핸들러
   const handleRetryOllama = useCallback(async () => {
     const status = await checkOllamaStatus()
@@ -234,7 +280,7 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
 
       {/* 상단 세션 헤더 (최신 UI 패턴) */}
       <div className="h-12 flex-shrink-0 border-b bg-muted/30">
-        <div className="h-full flex items-center gap-2 px-3 justify-between">
+        <div className="h-full flex items-center gap-2 px-3">
           {/* 좌측 버튼 그룹 */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* 새 대화 버튼 */}
@@ -256,14 +302,33 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
             />
           </div>
 
-          {/* 현재 세션 제목 */}
-          {currentSession && (
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <span className="text-sm text-muted-foreground truncate" title={currentSession.title}>
-                {currentSession.title}
-              </span>
-            </div>
-          )}
+          {/* 중앙: 최근 3개 세션 탭 */}
+          <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-hide">
+            {sessions.slice(0, 3).map((session) => (
+              <button
+                key={session.id}
+                onClick={() => void handleSelectSession(session.id)}
+                className={cn(
+                  "px-3 py-1 text-xs rounded-md transition-colors whitespace-nowrap truncate max-w-[120px]",
+                  session.id === currentSessionId
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+                title={session.title}
+              >
+                {session.title}
+              </button>
+            ))}
+          </div>
+
+          {/* 우측: 즐겨찾기 버튼 */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <SessionFavoritesDropdown
+              sessions={sessions}
+              currentSessionId={currentSessionId}
+              onSelectSession={handleSelectSession}
+            />
+          </div>
         </div>
       </div>
 
@@ -326,7 +391,7 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
                         remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
                         rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
                       >
-                        {msg.response.answer.replace(/<think>[\s\S]*?<\/think>/g, '')}
+                        {msg.response.answer.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<cited_docs>[\s\S]*?<\/cited_docs>/gi, '')}
                       </ReactMarkdown>
                     </div>
 
@@ -352,11 +417,49 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
               </div>
             ))}
 
-            {/* 로딩 중 */}
-            {isLoading && (
+            {/* 스트리밍 중인 메시지 */}
+            {isLoading && streamingMessage && (
+              <div className="space-y-3">
+                {/* 사용자 질문 표시 (ref에서 가져옴) */}
+                <div className="flex justify-end">
+                  <div className="bg-primary text-primary-foreground rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%] shadow-sm">
+                    <p className="text-sm leading-relaxed">{currentQueryRef.current}</p>
+                  </div>
+                </div>
+
+                {/* AI 스트리밍 답변 */}
+                <div className="flex justify-start">
+                  <div className="bg-muted/70 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[90%] shadow-sm">
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown
+                        remarkPlugins={[...MARKDOWN_CONFIG.remarkPlugins]}
+                        rehypePlugins={[...MARKDOWN_CONFIG.rehypePlugins] as any}
+                      >
+                        {streamingMessage.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<cited_docs>[\s\S]*?<\/cited_docs>/gi, '')}
+                      </ReactMarkdown>
+                      {/* 타이핑 커서 */}
+                      <span className="inline-block w-1 h-4 bg-primary animate-pulse ml-1" />
+                    </div>
+
+                    {/* 참조 문서 (검색 완료 시 표시) */}
+                    {streamingSources && streamingSources.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <ChatSourcesDisplay
+                          sources={streamingSources.filter(s => s.score > 0.5)}
+                          defaultExpanded={false}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 로딩 중 (스트리밍 시작 전) */}
+            {isLoading && !streamingMessage && (
               <div className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>생각 중...</span>
+                <span>문서 검색 중...</span>
               </div>
             )}
 

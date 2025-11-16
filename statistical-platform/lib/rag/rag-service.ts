@@ -140,6 +140,26 @@ export class RAGService {
   }
 
   /**
+   * 스트리밍 쿼리 실행
+   */
+  async queryStream(
+    context: RAGContext,
+    onChunk: (chunk: string) => void,
+    onSources?: (sources: Array<{ title: string; content: string; score: number }>) => void
+  ): Promise<Omit<RAGResponse, 'answer'>> {
+    if (!this.provider) {
+      throw new Error('RAGService가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.')
+    }
+
+    const isReady = await this.provider.isReady()
+    if (!isReady) {
+      throw new Error('Provider가 준비되지 않았습니다')
+    }
+
+    return this.provider.queryStream(context, onChunk, onSources)
+  }
+
+  /**
    * 현재 Provider 타입 가져오기
    */
   getProviderType(): RAGProviderType {
@@ -266,6 +286,34 @@ export async function queryRAG(context: RAGContext): Promise<RAGResponse> {
   }
 
   return ragService.query(context)
+}
+
+/**
+ * 편의 함수: RAG 스트리밍 쿼리 실행
+ *
+ * @param context - RAG 컨텍스트
+ * @param onChunk - 텍스트 조각 콜백
+ * @param onSources - 참조 문서 콜백 (검색 완료 시 1회 호출)
+ * @returns 최종 응답 메타데이터 (citedDocIds 포함)
+ */
+export async function queryRAGStream(
+  context: RAGContext,
+  onChunk: (chunk: string) => void,
+  onSources?: (sources: Array<{ title: string; content: string; score: number }>) => void
+): Promise<Omit<RAGResponse, 'answer'>> {
+  const ragService = RAGService.getInstance()
+
+  // 이미 초기화되어 있으면 스킵
+  if (!(await ragService.isReady())) {
+    const vectorStoreId =
+      process.env.NEXT_PUBLIC_VECTOR_STORE_ID || 'qwen3-embedding-0.6b'
+
+    await ragService.initialize({
+      vectorStoreId,
+    })
+  }
+
+  return ragService.queryStream(context, onChunk, onSources)
 }
 
 /**
