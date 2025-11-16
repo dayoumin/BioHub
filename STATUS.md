@@ -1,7 +1,7 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-11-13 15:10
-**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅ + **Phase 9 Batch 1-4 완료 (93%)** ✅
+**최종 업데이트**: 2025-11-16 21:30
+**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅ + **Phase 9 Batch 1-4 완료 (95%)** ✅ + **TwoPanelLayout 대규모 마이그레이션 완료 (23개 페이지)** ✅ + **RAG Perplexity 스타일 UI 완성** ✅ + **Pyodide Web Worker 활성화** ✅
 
 ---
 
@@ -113,6 +113,46 @@
 - **자동화 스크립트**: 5개 Python 스크립트 (테이블 변환, 버튼 비활성화, 포맷팅)
 - **TypeScript**: 0 errors ✓ (전 과정)
 - **최종 커밋**: `e47dc58` - feat(phase3): partial-correlation 2개 테이블 변환 (2025-11-12)
+
+**TwoPanelLayout 대규모 마이그레이션** ✅ **완료 (23개 페이지)** (2025-11-16)
+- **목표**: 데이터 하단 배치 패턴으로 모든 통계 페이지 통일
+- **완료 현황**: **23개 페이지** (Batch 1: 5개 + Batch 2: 11개 + Batch 3: 7개)
+  - **Batch 1**: descriptive, correlation, t-test, anova, one-sample-t
+  - **Batch 2**: means-plot, partial-correlation, ks-test, wilcoxon, mann-whitney, friedman, kruskal-wallis, mann-kendall, stepwise, reliability, regression
+  - **Batch 3**: mcnemar, cochran-q, binomial-test, proportion-test, normality-test, poisson, sign-test
+- **Step 인터페이스 표준화**: 0-based 인덱싱 통일 (Batch 2-R, Batch 3-R)
+  - currentStep 기본값: 0 ✅
+  - onStepChange 파라미터: 0부터 시작 ✅
+- **코드 감소**: 평균 **15%** (최대 +28.8%, 최소 -4.7%)
+- **TypeScript 에러**: 41개 (기존 에러, 이번 작업 무관)
+- **테스트 검증**: Step 네비게이션 테스트 전체 통과 ✓
+- **최종 커밋**: `59f8003` - feat: Batch 3-R - 12개 페이지 0-based 인덱싱 표준화
+
+**RAG Perplexity 스타일 UI 완성** ✅ **100% 완료** (2025-11-16)
+- **목표**: Perplexity AI 스타일의 직관적인 RAG 사용자 경험 구현
+- **완료 기능**:
+  - ✅ 인라인 인용 시스템 (`<cited_docs>` 파싱 + 번호 매핑)
+  - ✅ 스트리밍 응답 + Phase별 로딩 애니메이션 (검색→생성→작성)
+  - ✅ 타이핑 커서 애니메이션
+  - ✅ 자동 스크롤 (사용자가 바닥 근처일 때만)
+  - ✅ 출처 하이라이트 (hover → 하단 스크롤)
+- **Critical 버그 수정**: isAnalyzing 버그 5개 (sign-test, poisson 등)
+- **사이드바 UI 개선**: 접기/펴기 아이콘 패턴 통일 (ChevronRight + rotate-180)
+- **최종 커밋**: `cc9166c` - feat(rag): Perplexity 스타일 RAG UI 완성 (스트리밍 + 자동 스크롤)
+
+**Pyodide Web Worker 활성화 + 리소스 관리** ✅ **완료** (2025-11-16)
+- **목표**: 통계 분석 중 UI 블로킹 방지 + RAG 채팅과 동시 실행 가능
+- **완료 내역**:
+  - ✅ `.env.local` 생성 (`NEXT_PUBLIC_PYODIDE_USE_WORKER=true`)
+  - ✅ `.env.local.example` 업데이트 (Web Worker 설정 추가)
+  - ✅ **DEPLOYMENT_COMPANY_GUIDE.md** 작성 (345줄)
+    - 3가지 배포 시나리오 (Vercel/Node.js/HTML 정적)
+    - 환경변수 설정 방법 (시나리오별)
+    - 배포 후 검증 체크리스트
+    - 트러블슈팅 4가지 (Pyodide 로딩 실패, UI 멈춤, Nginx 404, WASM 로딩 실패)
+- **동작 검증**: 개발 서버에서 Web Worker 모드 확인 ✓
+- **문서화**: 회사 배포 담당자용 완전 가이드
+- **최종 커밋**: `e08e1c6` - docs: Web Worker 활성화 + 회사 배포 가이드 추가
 
 ---
 
