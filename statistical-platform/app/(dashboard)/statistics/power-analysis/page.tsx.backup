@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,8 +23,7 @@ import {
   TrendingUp,
   BarChart3
 } from 'lucide-react'
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -71,23 +70,9 @@ export default function PowerAnalysisPage() {
   // Hook for state management
   const { state, actions } = useStatisticsPage<PowerAnalysisResult, never>({
     withUploadedData: false,
-    withError: true,
-    initialStep: 0
+    withError: true
   })
   const { currentStep, results, isAnalyzing, error } = state
-
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '검정력 분석' }
-  ], [])
-
-  // STEPS 정의 (Batch 3 표준)
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '방법 소개' },
-    { id: 1, label: '파라미터 설정' },
-    { id: 2, label: '분석 결과' }
-  ], [])
 
   // Page-specific state
   const [activeTab, setActiveTab] = useState<string>('summary')
@@ -108,6 +93,38 @@ export default function PowerAnalysisPage() {
   ): void => {
     setConfig((prev) => ({ ...prev, [key]: value }))
   }, [])
+
+  // 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'select-test',
+      number: 1,
+      title: '검정 선택',
+      description: '검정력 분석할 통계 검정 선택',
+      status: config.testType ? 'completed' : 'current'
+    },
+    {
+      id: 'set-parameters',
+      number: 2,
+      title: '모수 설정',
+      description: '유의수준, 검정력, 효과크기 설정',
+      status: config.testType ? 'current' : 'pending'
+    },
+    {
+      id: 'run-analysis',
+      number: 3,
+      title: '분석 실행',
+      description: '검정력 분석 수행',
+      status: results ? 'completed' : 'pending'
+    },
+    {
+      id: 'view-results',
+      number: 4,
+      title: '결과 해석',
+      description: '검정력 분석 결과 및 권장사항',
+      status: results ? 'current' : 'pending'
+    }
+  ]
 
   // 분석 실행 (PyodideCore 사용)
   const handleAnalysis = useCallback(async (): Promise<void> => {
@@ -142,8 +159,7 @@ export default function PowerAnalysisPage() {
         }
       )
 
-      actions.completeAnalysis(result, 2)
-      actions.setCurrentStep?.(2)
+      actions.completeAnalysis(result, 3)
       setActiveTab('summary')
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.'
@@ -153,6 +169,25 @@ export default function PowerAnalysisPage() {
       }
     }
   }, [config, actions, setActiveTab])
+
+  // 단계 변경 처리
+  const handleStepChange = useCallback((step: number): void => {
+    if (!actions) {
+      return
+    }
+    if (step <= currentStep + 1) {
+      actions.setCurrentStep(step)
+    }
+  }, [actions, currentStep])
+
+  // 초기화
+  const handleReset = useCallback((): void => {
+    if (!actions) {
+      return
+    }
+    actions.reset()
+    setActiveTab('summary')
+  }, [actions])
 
   // 검정력 분석 결과 테이블
   const renderResultsTable = useCallback((): React.ReactNode => {
@@ -362,13 +397,22 @@ export default function PowerAnalysisPage() {
   }, [])
 
   return (
-    <TwoPanelLayout
-      analysisTitle="검정력 분석"
-      analysisSubtitle="표본크기 결정 및 검정력 계산"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="검정력 분석"
+      subtitle="표본크기 결정 및 검정력 계산"
+      icon={<Zap className="w-6 h-6" />}
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
+      onStepChange={handleStepChange}
+      onRun={handleAnalysis}
+      onReset={handleReset}
+      isRunning={isAnalyzing}
+      methodInfo={{
+        formula: "Power = 1 - β, n = f(α, power, effect size)",
+        assumptions: ["모수적 검정 가정", "정규분포", "독립관측"],
+        sampleSize: "계산 목적에 따라 결정",
+        usage: "연구설계, 표본크기 결정, 검정력 평가"
+      }}
     >
       <div className="space-y-6">
         {/* 1단계: 검정 선택 */}
@@ -629,6 +673,6 @@ export default function PowerAnalysisPage() {
           </Tabs>
         )}
       </div>
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
