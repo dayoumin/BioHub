@@ -356,6 +356,19 @@ export default function ChatbotPage() {
             onMoveSession={handleMoveSession}
           />
         </ScrollArea>
+
+        {/* 하단 문서 관리 버튼 */}
+        <div className="p-4 flex-shrink-0 border-t">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start gap-2"
+            onClick={() => setIsDocManagerOpen(true)}
+          >
+            <FolderInput className="h-4 w-4" />
+            <span className="text-sm">문서 관리</span>
+          </Button>
+        </div>
       </aside>
 
       {/* 사이드바 토글 버튼 */}
@@ -375,14 +388,12 @@ export default function ChatbotPage() {
         </Button>
       </div>
 
-      {/* 메인 영역 - 3-탭 구조 */}
+      {/* 메인 영역 - 대화만 표시 (Grok 스타일) */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <ChatbotTabs
-          conversationsContent={
-            currentSession ? (
-              <>
-                {/* 헤더 - 현재 대화 제목 + 3점 메뉴 */}
-                <div className="px-4 py-3 border-b flex items-center justify-between gap-3 relative">
+        {currentSession ? (
+          <>
+            {/* 헤더 - 현재 대화 제목 + 3점 메뉴 */}
+            <div className="px-4 py-3 border-b flex items-center justify-between gap-3 relative">
                   {isRenamingSessionId === currentSession.id ? (
                     <input
                       type="text"
