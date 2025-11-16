@@ -9,8 +9,9 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import { remarkCitations } from '../utils/remark-citations'
 
 export const MARKDOWN_CONFIG = {
-  remarkPlugins: [remarkGfm, remarkBreaks, remarkMath],
+  remarkPlugins: [remarkGfm, remarkBreaks, remarkMath, remarkCitations], // ← Perplexity 스타일 인라인 인용
   rehypePlugins: [rehypeKatex],
 } as const

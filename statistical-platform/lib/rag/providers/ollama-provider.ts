@@ -1730,7 +1730,8 @@ ${contextText}
     answer = answer.replace(/^-?sensitive\s*/im, '')
 
     // <cited_docs> 태그 파싱 (Perplexity 스타일 - 답변에 사용된 문서 추적)
-    const citedDocsMatch = answer.match(/<cited_docs>([\d,\s]+)<\/cited_docs>/i)
+    // 정규식: 숫자, 쉼표, 공백, 마이너스 기호 허용 (LLM 오류 처리)
+    const citedDocsMatch = answer.match(/<cited_docs>([\d,\s-]+)<\/cited_docs>/i)
     let citedDocIds: number[] = []
 
     if (citedDocsMatch) {

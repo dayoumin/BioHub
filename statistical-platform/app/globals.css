@@ -564,4 +564,27 @@
   .custom-scrollbar {
     -ms-overflow-style: none;
   }
+
+  /* Perplexity 스타일: Inline Citations */
+  .citation-link {
+    @apply inline-flex items-center justify-center;
+    @apply w-5 h-5 text-[10px] font-bold;
+    @apply bg-primary text-primary-foreground;
+    @apply rounded-full;
+    @apply no-underline;
+    @apply transition-all duration-200;
+    @apply hover:scale-110 hover:shadow-md;
+    @apply cursor-pointer;
+    vertical-align: super;
+    margin: 0 2px;
+  }
+
+  .citation-link:hover {
+    @apply ring-2 ring-primary/50;
+  }
+
+  /* 스크롤 마진 (앵커 링크 클릭 시 헤더 아래로 오프셋) */
+  .scroll-mt-4 {
+    scroll-margin-top: 1rem;
+  }
 }

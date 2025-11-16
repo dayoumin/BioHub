@@ -77,12 +77,18 @@ export function ChatSourcesDisplay({
           {sources.map((source, idx) => (
             <div
               key={idx}
-              className="text-xs bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20"
+              id={`source-${idx}`} // ← Perplexity 스타일: 인라인 인용 스크롤 타깃
+              className="text-xs bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg p-3 border border-primary/20 scroll-mt-4"
             >
-              {/* 제목 */}
+              {/* 제목 (인용 번호 표시) */}
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="font-semibold text-foreground">{source.title}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-primary text-primary-foreground rounded-full">
+                      {idx + 1}
+                    </span>
+                    <span className="font-semibold text-foreground">{source.title}</span>
+                  </div>
 
                   {/* 내용 */}
                   <div className="text-muted-foreground mt-1.5 leading-relaxed">

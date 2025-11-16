@@ -20,6 +20,7 @@ import { MARKDOWN_CONFIG, RAG_UI_CONFIG } from '@/lib/rag/config'
 import { handleRAGError } from '@/lib/rag/utils/error-handler'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import { ChatSourcesDisplay } from './chat-sources-display'
+import { SessionHistoryDropdown } from './session-history-dropdown'
 import { OllamaSetupDialog } from '@/components/chatbot/ollama-setup-dialog'
 import { checkOllamaStatus, type OllamaStatus } from '@/lib/rag/utils/ollama-check'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
@@ -234,16 +235,26 @@ export function RAGAssistantCompact({ method, className = '', showFavoritesOnly 
       {/* 상단 세션 헤더 (최신 UI 패턴) */}
       <div className="h-12 flex-shrink-0 border-b bg-muted/30">
         <div className="h-full flex items-center gap-2 px-3 justify-between">
-          {/* 새 대화 버튼 */}
-          <Button
-            size="icon"
-            variant="outline"
-            onClick={() => void handleNewSession()}
-            className="flex-shrink-0 bg-background hover:bg-muted h-8 w-8"
-            title="새 대화"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
+          {/* 좌측 버튼 그룹 */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* 새 대화 버튼 */}
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => void handleNewSession()}
+              className="bg-background hover:bg-muted h-8 w-8"
+              title="새 대화"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+
+            {/* 채팅 히스토리 버튼 */}
+            <SessionHistoryDropdown
+              sessions={sessions}
+              currentSessionId={currentSessionId}
+              onSelectSession={handleSelectSession}
+            />
+          </div>
 
           {/* 현재 세션 제목 */}
           {currentSession && (

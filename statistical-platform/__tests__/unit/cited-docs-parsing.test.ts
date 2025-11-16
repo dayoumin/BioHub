@@ -7,7 +7,8 @@
 describe('cited_docs 파싱 로직', () => {
   // OllamaProvider.generateAnswer의 파싱 로직을 독립 함수로 추출
   function parseCitedDocs(answer: string): { answer: string; citedDocIds: number[] } {
-    const citedDocsMatch = answer.match(/<cited_docs>([\d,\s]+)<\/cited_docs>/i)
+    // 정규식: 숫자, 쉼표, 공백, 마이너스 기호 허용 (LLM 오류 처리)
+    const citedDocsMatch = answer.match(/<cited_docs>([\d,\s-]+)<\/cited_docs>/i)
     let citedDocIds: number[] = []
 
     if (citedDocsMatch) {
