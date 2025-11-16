@@ -328,7 +328,7 @@ export default function ChatbotPage() {
   return (
     <div className="flex h-[calc(100vh-64px)]">
       {/* Grok 스타일 사이드바 */}
-      <aside className={`${sidebarCollapsed ? 'w-0' : 'w-64'} border-r bg-muted/10 flex flex-col transition-all duration-300 overflow-hidden`}>
+      <aside className={`${sidebarCollapsed ? 'w-0' : 'w-72'} border-r bg-muted/10 flex-col transition-all duration-300 overflow-hidden hidden md:flex`}>
         {/* 헤더 - 새 대화 버튼만 */}
         <div className="h-16 px-4 flex items-center flex-shrink-0">
           <Button onClick={handleNewChat} variant="ghost" size="sm" className="w-full justify-start text-slate-600 hover:text-slate-800 hover:bg-transparent gap-2">

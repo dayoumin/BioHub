@@ -112,11 +112,11 @@ export default function DescriptiveStatsPage() {
     actions.setCurrentStep(2)
   }, [actions])
 
-  // 변수 선택 핸들러
+  // 변수 선택 핸들러 (Step 이동은 "다음 단계" 버튼에서만)
   const handleVariableSelect = useCallback((vars: Partial<DescriptiveVariables>) => {
     if (actions.setSelectedVariables && vars.variables) {
       actions.setSelectedVariables({ variables: vars.variables })
-      actions.setCurrentStep(3)
+      // ❌ actions.setCurrentStep(3) 제거: "다음 단계" 버튼 클릭 시에만 이동
     }
   }, [actions])
 
