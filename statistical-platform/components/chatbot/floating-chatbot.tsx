@@ -97,6 +97,11 @@ export function FloatingChatbot() {
     setShowSettings(true)
   }, [])
 
+  // 클라이언트 마운트 전에는 null 반환 (Hydration 방지)
+  if (!isMounted) {
+    return null
+  }
+
   // 설정에서 비활성화된 경우 또는 /chatbot 페이지에서는 렌더링하지 않음
   if (!isEnabled || isChatbotPage) {
     return null
