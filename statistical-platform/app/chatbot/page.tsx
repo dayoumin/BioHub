@@ -84,8 +84,15 @@ export default function ChatbotPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'session' | 'project'; id: string } | null>(null)
   const [isDocManagerOpen, setIsDocManagerOpen] = useState(false)
 
-  // 데이터 로드 (useMemo로 성능 최적화)
+  // 데이터 로드 (useMemo로 성능 최적화, 클라이언트에서만)
   const { searchedProjects, searchedSessions } = useMemo(() => {
+    if (!isMounted) {
+      return {
+        searchedProjects: [],
+        searchedSessions: [],
+      }
+    }
+
     if (!searchQuery.trim()) {
       return {
         searchedProjects: ChatStorage.getProjects(),
@@ -97,10 +104,12 @@ export default function ChatbotPage() {
       searchedProjects: result.projects,
       searchedSessions: result.sessions,
     }
-  }, [searchQuery, forceUpdate])
+  }, [searchQuery, forceUpdate, isMounted])
 
-  // 즐겨찾기 세션 (검색 필터 적용)
+  // 즐겨찾기 세션 (검색 필터 적용, 클라이언트에서만)
   const favoriteSessions = useMemo(() => {
+    if (!isMounted) return []
+
     const favorites = ChatStorage.getFavoriteSessions()
     if (!searchQuery.trim()) return favorites
 
@@ -108,10 +117,12 @@ export default function ChatbotPage() {
     return favorites.filter(session =>
       session.title.toLowerCase().includes(query)
     )
-  }, [searchQuery, forceUpdate])
+  }, [searchQuery, forceUpdate, isMounted])
 
-  // 히스토리 (프로젝트 미속 세션, 검색 필터 적용)
+  // 히스토리 (프로젝트 미속 세션, 검색 필터 적용, 클라이언트에서만)
   const unorganizedSessions = useMemo(() => {
+    if (!isMounted) return []
+
     const unorganized = ChatStorage.getUnorganizedSessions()
     if (!searchQuery.trim()) return unorganized
 
@@ -119,13 +130,13 @@ export default function ChatbotPage() {
     return unorganized.filter(session =>
       session.title.toLowerCase().includes(query)
     )
-  }, [searchQuery, forceUpdate])
+  }, [searchQuery, forceUpdate, isMounted])
 
-  // 현재 세션
+  // 현재 세션 (클라이언트에서만)
   const currentSession = useMemo(() => {
-    if (!currentSessionId) return null
+    if (!isMounted || !currentSessionId) return null
     return ChatStorage.loadSession(currentSessionId)
-  }, [currentSessionId, forceUpdate])
+  }, [currentSessionId, forceUpdate, isMounted])
 
   // 리렌더 트리거 (localStorage 변경 후 호출)
   const triggerUpdate = useCallback(() => {

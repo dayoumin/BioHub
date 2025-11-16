@@ -52,6 +52,7 @@ describe('RAGAssistantCompact', () => {
       title: '새 대화',
       messages: [],
       isFavorite: false,
+      isArchived: false,
       createdAt: Date.now(),
       updatedAt: Date.now()
     })
@@ -88,6 +89,7 @@ describe('RAGAssistantCompact', () => {
           { id: 'msg-2', role: 'assistant', content: 'test answer', timestamp: Date.now() }
         ],
         isFavorite: false,
+        isArchived: false,
         createdAt: Date.now(),
         updatedAt: Date.now()
       },
@@ -96,6 +98,7 @@ describe('RAGAssistantCompact', () => {
         title: '데이터 분석',
         messages: [],
         isFavorite: true,
+        isArchived: false,
         createdAt: Date.now(),
         updatedAt: Date.now()
       }
@@ -120,6 +123,7 @@ describe('RAGAssistantCompact', () => {
         title: '새 대화 2',
         messages: [],
         isFavorite: false,
+        isArchived: false,
         createdAt: Date.now(),
         updatedAt: Date.now()
       }
@@ -190,6 +194,7 @@ describe('RAGAssistantCompact', () => {
         title: `대화 ${i + 1}`,
         messages: [],
         isFavorite: false,
+        isArchived: false,
         createdAt: Date.now(),
         updatedAt: Date.now()
       }))
@@ -239,6 +244,7 @@ describe('RAGAssistantCompact', () => {
           title: '새 대화',
           messages: [],
           isFavorite: false,
+          isArchived: false,
           createdAt: Date.now(),
           updatedAt: Date.now()
         }

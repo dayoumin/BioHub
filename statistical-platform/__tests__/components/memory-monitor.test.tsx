@@ -98,7 +98,11 @@ describe('MemoryMonitor', () => {
 
       // 개발 모드 설정
       const originalEnv = process.env.NODE_ENV
-      process.env.NODE_ENV = 'development'
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+        configurable: true
+      })
 
       render(<MemoryMonitor />)
 
@@ -111,7 +115,11 @@ describe('MemoryMonitor', () => {
         expect.stringContaining('[Memory]')
       )
 
-      process.env.NODE_ENV = originalEnv
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        writable: true,
+        configurable: true
+      })
       consoleSpy.mockRestore()
     })
 
@@ -159,7 +167,11 @@ describe('MemoryMonitor', () => {
       const originalEnv = process.env.NODE_ENV
 
       // 개발 환경
-      process.env.NODE_ENV = 'development'
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+        configurable: true
+      })
       render(<MemoryMonitor />)
 
       await waitFor(() => {
@@ -171,7 +183,11 @@ describe('MemoryMonitor', () => {
       consoleSpy.mockClear()
 
       // 프로덕션 환경
-      process.env.NODE_ENV = 'production'
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        writable: true,
+        configurable: true
+      })
       const { unmount } = render(<MemoryMonitor />)
 
       // 100ms 대기 후 확인
@@ -179,14 +195,22 @@ describe('MemoryMonitor', () => {
       expect(consoleSpy).not.toHaveBeenCalled()
 
       unmount()
-      process.env.NODE_ENV = originalEnv
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        writable: true,
+        configurable: true
+      })
       consoleSpy.mockRestore()
     })
 
     it('콘솔 로그에 사용량과 제한, 비율을 포함해야 함', async () => {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation()
       const originalEnv = process.env.NODE_ENV
-      process.env.NODE_ENV = 'development'
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+        configurable: true
+      })
 
       render(<MemoryMonitor />)
 
@@ -196,7 +220,11 @@ describe('MemoryMonitor', () => {
         )
       })
 
-      process.env.NODE_ENV = originalEnv
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: originalEnv,
+        writable: true,
+        configurable: true
+      })
       consoleSpy.mockRestore()
     })
   })
