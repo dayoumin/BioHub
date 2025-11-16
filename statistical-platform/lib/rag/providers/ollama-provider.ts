@@ -944,6 +944,149 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   }
 
   /**
+   * 스트리밍 쿼리 응답 생성 (Perplexity 스타일)
+   *
+   * @param context - RAG 컨텍스트
+   * @param onChunk - 텍스트 조각 콜백
+   * @param onSources - 참조 문서 콜백 (검색 완료 시 1회 호출)
+   * @returns 최종 응답 메타데이터 (citedDocIds 포함)
+   */
+  async queryStream(
+    context: RAGContext,
+    onChunk: (chunk: string) => void,
+    onSources?: (sources: Array<{ title: string; content: string; score: number }>) => void
+  ): Promise<Omit<RAGResponse, 'answer'>> {
+    this.ensureInitialized()
+
+    const startTime = Date.now()
+    let searchMode = context.searchMode || 'hybrid'
+    let usedFallback = false
+
+    try {
+      let searchResults: SearchResult[] = []
+
+      // 검색 모드에 따라 다른 검색 수행 (query 메서드와 동일)
+      if (searchMode === 'fts5') {
+        console.log('[OllamaProvider] FTS5 키워드 검색 중...')
+        searchResults = this.searchByKeyword(context.query)
+      } else if (searchMode === 'vector') {
+        console.log('[OllamaProvider] Vector 검색 중...')
+        try {
+          searchResults = await this.searchByVector(context.query)
+
+          if (searchResults.length === 0) {
+            const hasEmbeddedDocs = this.documents.some((doc) => doc.embedding !== null)
+            if (!hasEmbeddedDocs) {
+              console.warn('[OllamaProvider] ⚠️ 임베딩된 문서가 없습니다. FTS5로 자동 전환...')
+              searchMode = 'fts5'
+              usedFallback = true
+              searchResults = this.searchByKeyword(context.query)
+            }
+          }
+        } catch (error) {
+          console.warn('[OllamaProvider] ⚠️ Vector 검색 오류, FTS5로 자동 전환:', error)
+          searchMode = 'fts5'
+          usedFallback = true
+          searchResults = this.searchByKeyword(context.query)
+        }
+      } else if (searchMode === 'hybrid') {
+        console.log('[OllamaProvider] Hybrid 검색 중 (FTS5 + Vector)...')
+        try {
+          searchResults = await this.searchHybrid(context.query)
+        } catch (error) {
+          console.warn('[OllamaProvider] ⚠️ Hybrid 검색 오류, FTS5로 자동 전환:', error)
+          searchMode = 'fts5'
+          usedFallback = true
+          searchResults = this.searchByKeyword(context.query)
+        }
+      }
+
+      // Fallback: 검색 결과 없으면 상위 K개 반환
+      if (searchResults.length === 0) {
+        console.log('[OllamaProvider] ⚠️ 검색 결과 없음 - Fallback: 상위 5개 문서 반환')
+        searchResults = this.documents.slice(0, this.topK).map((doc) => ({
+          doc_id: doc.doc_id,
+          title: doc.title,
+          content: doc.content,
+          library: doc.library,
+          category: doc.category,
+          score: 0.5
+        }))
+      }
+
+      // LLM Reranking
+      const useReranking = context.useReranking !== false
+      if (useReranking && searchResults.length > this.topK) {
+        console.log(`[OllamaProvider] Reranking 활성화: ${searchResults.length}개 → ${this.topK}개`)
+        searchResults = await this.rerank(context.query, searchResults, this.topK)
+      }
+
+      // 참조 문서 콜백 호출 (검색 완료)
+      if (onSources) {
+        onSources(
+          searchResults.map((result) => ({
+            title: result.title,
+            content: result.content.slice(0, 200) + '...',
+            score: result.score
+          }))
+        )
+      }
+
+      // 관련 문서 컨텍스트 생성
+      const contextText = this.buildContext(searchResults, context)
+
+      // 스트리밍 응답 생성
+      console.log('[OllamaProvider] 스트리밍 응답 생성 중...')
+      let fullAnswer = ''
+
+      for await (const chunk of this.streamGenerateAnswer(contextText, context.query)) {
+        fullAnswer += chunk
+        onChunk(chunk)
+      }
+
+      // <cited_docs> 태그 파싱 (스트리밍 완료 후)
+      const citedDocsMatch = fullAnswer.match(/<cited_docs>([\d,\s-]+)<\/cited_docs>/i)
+      let citedDocIds: number[] = []
+
+      if (citedDocsMatch) {
+        const parsed = citedDocsMatch[1]
+          .split(',')
+          .map((n) => parseInt(n.trim()) - 1) // 1-based → 0-based
+          .filter((n) => !isNaN(n) && n >= 0)
+
+        if (parsed.length > 0) {
+          citedDocIds = parsed
+        }
+      }
+
+      const responseTime = Date.now() - startTime
+
+      console.log(`[OllamaProvider] ✓ 스트리밍 완료 (사용 문서: ${citedDocIds.length}개 / ${searchResults.length}개)`)
+
+      return {
+        sources: searchResults.map((result) => ({
+          title: result.title,
+          content: result.content.slice(0, 200) + '...',
+          score: result.score
+        })),
+        citedDocIds,
+        model: {
+          provider: `Ollama (Local - ${searchMode.toUpperCase()}${usedFallback ? ' [Fallback]' : ''})`,
+          embedding: this.embeddingModel,
+          inference: this.inferenceModel
+        },
+        metadata: {
+          responseTime
+        }
+      }
+    } catch (error) {
+      throw new Error(
+        `Ollama Provider 스트리밍 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      )
+    }
+  }
+
+  /**
    * SQLite DB 로드 (sql.js 사용 또는 테스트 모드)
    */
   private async loadSQLiteDB(): Promise<void> {
@@ -1771,6 +1914,7 @@ ${contextText}
 ───────────────────────────────────
 • 제공된 자료를 최우선으로 활용하되, 관련 없으면 자유롭게 설명
 • 자료에 없는 내용은 "문서에 따르면..." 또는 "일반적으로..." 로 구분
+• **중요**: 답변에 실제 사용한 문서 번호를 마지막에 <cited_docs>태그로 명시하세요
 
 
 💬 답변 스타일 가이드
@@ -1795,17 +1939,13 @@ ${contextText}
 • 길고 복잡한 문장
 
 
-📖 답변 구조 예시
+📖 답변 형식 (필수!)
 ───────────────────────────────────
-1. 직관적 요약 (1-2문장)
-   → "T-검정은 두 그룹의 평균 차이를 비교하는 방법입니다"
+답변 내용...
 
-2. 상세 설명 (마크다운으로 정리)
-   → ## 언제 사용할까?
-   → ## 단계별 진행법
+<cited_docs>1,3,5</cited_docs>
 
-3. 실무 팁 또는 주의사항
-   → "💡 팁: 사전에 정규성 검정을 하면 더 정확합니다"`
+**설명**: 답변에 실제 참조한 문서 번호를 쉼표로 구분하여 cited_docs 태그에 넣으세요.`
 
     const prompt = `${systemPrompt}
 

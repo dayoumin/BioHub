@@ -1,36 +1,29 @@
 'use client'
 
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useMemo, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import type { MoodMedianVariables } from '@/types/statistics'
 import {
   Calculator,
-  Upload,
-  Users,
-  TrendingUp,
-  AlertCircle,
   CheckCircle,
+  CheckCircle2,
+  AlertCircle,
   FileText,
   Download,
   Info,
   BarChart3,
-  Target
+  Target,
+  TrendingUp
 } from 'lucide-react'
-
-import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
-import type { UploadedData } from '@/hooks/use-statistics-page'
-import type { MoodMedianVariables } from '@/types/statistics'
-import { toMoodMedianVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 // ============================================================================
 // 타입 정의
@@ -76,84 +69,108 @@ export default function MoodMedianTestPage() {
     addToRecentStatistics('mood-median')
   }, [])
 
-  // useStatisticsPage hook
+  // Use statistics page hook (0-based indexing)
   const { state, actions } = useStatisticsPage<MoodMedianTestResult, MoodMedianVariables>({
     withUploadedData: true,
     withError: true
+    // initialStep: 0 (기본값)
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
-  // 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'intro',
-      number: 1,
-      title: 'Mood Median Test 소개',
-      description: '중앙값 기반 비모수 검정 개념',
-      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
-    },
-    {
-      id: 'upload',
-      number: 2,
-      title: '데이터 업로드',
-      description: '분석할 데이터 파일 업로드',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
-    },
-    {
-      id: 'variables',
-      number: 3,
-      title: '변수 선택',
-      description: '그룹 변수와 검정 변수 선택',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
-    },
-    {
-      id: 'results',
-      number: 4,
-      title: '결과 해석',
-      description: 'Mood Median Test 결과 확인',
-      status: currentStep === 3 ? 'current' : 'pending'
+  // Breadcrumbs
+  const breadcrumbs = useMemo(() => [
+    { label: '홈', href: '/' },
+    { label: '통계 분석', href: '/statistics' },
+    { label: '비모수 검정', href: '/statistics' },
+    { label: 'Mood Median Test' }
+  ], [])
+
+  // Steps
+  const STEPS = useMemo(() => {
+    const baseSteps = [
+      { id: 1, label: '방법 소개' },
+      { id: 2, label: '데이터 업로드' },
+      { id: 3, label: '변수 선택' },
+      { id: 4, label: '분석 결과' }
+    ]
+
+    return baseSteps.map((step, index) => ({
+      ...step,
+      completed: step.id === 1 ? currentStep > 0 :
+                step.id === 2 ? !!uploadedData :
+                step.id === 3 ? !!selectedVariables?.dependent && !!selectedVariables?.factor :
+                step.id === 4 ? !!results : false
+    }))
+  }, [currentStep, uploadedData, selectedVariables, results])
+
+  // Available variables
+  const numericColumns = useMemo(() => {
+    if (!uploadedData || uploadedData.data.length === 0) return []
+
+    const firstRow = uploadedData.data[0]
+    if (!firstRow || typeof firstRow !== 'object') return []
+
+    return Object.keys(firstRow).filter(key => {
+      const value = (firstRow as Record<string, unknown>)[key]
+      return typeof value === 'number'
+    })
+  }, [uploadedData])
+
+  const categoricalColumns = useMemo(() => {
+    if (!uploadedData || uploadedData.data.length === 0) return []
+
+    const firstRow = uploadedData.data[0]
+    if (!firstRow || typeof firstRow !== 'object') return []
+
+    return Object.keys(firstRow).filter(key => {
+      const value = (firstRow as Record<string, unknown>)[key]
+      return typeof value === 'string' || typeof value === 'number'
+    })
+  }, [uploadedData])
+
+  // Data upload handler
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
     }
-  ]
 
-  // ============================================================================
-  // 핸들러 함수
-  // ============================================================================
+    actions.setUploadedData?.(uploadedData)
+    actions.setCurrentStep?.(2) // Move to step 3 (변수 선택)
+  }, [actions])
 
-  const handleDataUpload = createDataUploadHandler(
-    actions.setUploadedData,
-    () => {
-      actions.setCurrentStep?.(2)
-    },
-    'mood-median'
-  )
+  // Variable selection handlers (Critical Bug Prevention)
+  const handleDependentSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { dependent: '', factor: '' }
+    const newDependent = current.dependent === varName ? '' : varName
 
-  /**
-   * 변수 선택 핸들러
-   */
-  const handleVariableSelection = useCallback(
-    createVariableSelectionHandler<MoodMedianVariables>(
-      (vars) => {
-        // First callback: state update with converter
-        const converted = vars ? toMoodMedianVariables(vars as unknown as VariableAssignment) : null
-        actions.setSelectedVariables?.(converted)
-      },
-      (vars) => {
-        // Second callback: step change (instead of auto-run)
-        const converted = toMoodMedianVariables(vars as unknown as VariableAssignment)
-        if (converted.factor && converted.dependent) {
-          actions.setCurrentStep?.(3)
-        }
-      },
-      'mood-median'
-    ),
-    [actions]
-  )
+    actions.setSelectedVariables?.({
+      dependent: newDependent,
+      factor: current.factor || ''
+    })
+    // ❌ NO setCurrentStep here
+  }, [selectedVariables, actions])
 
-  /**
-   * 분석 실행 핸들러
-   */
+  const handleFactorSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { dependent: '', factor: '' }
+    const newFactor = current.factor === varName ? '' : varName
+
+    actions.setSelectedVariables?.({
+      dependent: current.dependent || '',
+      factor: newFactor
+    })
+    // ❌ NO setCurrentStep here
+  }, [selectedVariables, actions])
+
+  // Run analysis
   const runAnalysis = useCallback(async () => {
-    if (!uploadedData || !selectedVariables) return
+    if (!uploadedData || !selectedVariables?.dependent || !selectedVariables?.factor) {
+      actions.setError?.('종속변수와 그룹변수를 모두 선택해주세요.')
+      return
+    }
 
     actions.startAnalysis?.()
 
@@ -259,329 +276,428 @@ export default function MoodMedianTestPage() {
         groupStats
       }
 
-      if (!actions.completeAnalysis) {
-        console.error('[mood-median] completeAnalysis not available')
-        return
-      }
-
-      actions.completeAnalysis(result, 3)
+      actions.completeAnalysis?.(result, 3)
     } catch (error) {
       console.error('Mood Median Test 분석 중 오류:', error)
 
-      if (!actions.setError) {
-        console.error('[mood-median] setError not available')
-        return
-      }
-
       const errorMessage = error instanceof Error ? error.message : 'Mood Median Test 분석 중 오류가 발생했습니다.'
-      actions.setError(errorMessage)
+      actions.setError?.(errorMessage)
     }
   }, [uploadedData, selectedVariables, actions])
 
-  // ============================================================================
-  // JSX 렌더링
-  // ============================================================================
+  // "다음 단계" button handler
+  const handleNextStep = useCallback(async () => {
+    if (!selectedVariables?.dependent || !selectedVariables?.factor) {
+      actions.setError?.('종속변수와 그룹변수를 모두 선택해주세요.')
+      return
+    }
 
-  return (
-    <StatisticsPageLayout
-      title="Mood Median Test"
-      subtitle="Mood's Median Test - 중앙값 기반 비모수 검정"
-      icon={<Target className="w-6 h-6" />}
-      methodInfo={{
-        formula: 'χ² = ∑∑(Oᵢⱼ - Eᵢⱼ)² / Eᵢⱼ, df = k - 1',
-        assumptions: ['독립 표본', '순서형 이상 데이터', '정규성 가정 불필요'],
-        sampleSize: '각 그룹 최소 1개 이상',
-        usage: '이상치에 강건한 그룹 비교, Kruskal-Wallis 대안'
-      }}
-      steps={steps}
-      currentStep={currentStep}
-    >
-      {/* Step 0: 소개 */}
-      {currentStep === 0 && (
-        <StepCard
-          icon={<Info className="w-6 h-6" />}
-          title="Mood Median Test란?"
-          description="중앙값 기반 비모수 검정 방법"
-        >
-          <div className="space-y-4">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>검정 개요</AlertTitle>
-              <AlertDescription>
-                Mood's Median Test는 2개 이상 그룹의 중앙값을 비교하는 비모수 검정입니다. 정규성 가정이 필요 없으며, 이상치에 강건합니다.
-              </AlertDescription>
-            </Alert>
+    actions.setCurrentStep?.(3)
+    await runAnalysis()
+  }, [selectedVariables, actions, runAnalysis])
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">사용 예시</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-start space-x-2">
-                  <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <div>
-                    <p className="font-medium">의학 연구</p>
-                    <p className="text-sm text-muted-foreground">3가지 치료법의 회복 시간 비교 (이상치 많음)</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <div>
-                    <p className="font-medium">환경 연구</p>
-                    <p className="text-sm text-muted-foreground">여러 지역의 오염도 중앙값 비교</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <CheckCircle className="w-5 h-5 text-success mt-0.5" />
-                  <div>
-                    <p className="font-medium">경제학</p>
-                    <p className="text-sm text-muted-foreground">국가별 소득 중앙값 비교 (분포 왜곡)</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+  // Step change handler
+  const handleStepChange = useCallback((step: number) => {
+    actions.setCurrentStep?.(step - 1) // 1-based → 0-based
+  }, [actions])
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">가정 및 요구사항</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <p className="text-sm"><strong>독립 표본:</strong> 각 관측값은 독립적</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <p className="text-sm"><strong>순서형 이상:</strong> 데이터의 순서가 의미 있어야 함</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <p className="text-sm"><strong>정규성 불필요:</strong> 정규분포 가정 없음</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                  <p className="text-sm"><strong>최소 그룹:</strong> 2개 이상</p>
-                </div>
-              </CardContent>
-            </Card>
+  // Open new window handler
+  const handleOpenNewWindow = useCallback(() => {
+    if (!uploadedData) return
+    // TODO: 구현 예정
+    console.log('Open new window:', uploadedData.fileName)
+  }, [uploadedData])
 
-            <Alert className="bg-muted">
-              <Info className="h-4 w-4" />
-              <AlertTitle>Kruskal-Wallis vs Mood Median</AlertTitle>
-              <AlertDescription>
-                <strong>Kruskal-Wallis:</strong> 순위 기반, 분포 차이에 민감<br />
-                <strong>Mood Median:</strong> 중앙값 기반, 이상치에 강건, 해석 직관적
-              </AlertDescription>
-            </Alert>
+  // Render methods
+  const renderMethodIntroduction = useCallback(() => (
+    <div className="space-y-4">
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertTitle>검정 개요</AlertTitle>
+        <AlertDescription>
+          Mood's Median Test는 2개 이상 그룹의 중앙값을 비교하는 비모수 검정입니다. 정규성 가정이 필요 없으며, 이상치에 강건합니다.
+        </AlertDescription>
+      </Alert>
 
-            <div className="flex justify-center pt-4">
-              <Button onClick={() => actions.setCurrentStep?.(1)} size="lg">
-                다음 단계: 데이터 업로드
-                <TrendingUp className="ml-2 h-4 w-4" />
-              </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">사용 예시</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+            <div>
+              <p className="font-medium">의학 연구</p>
+              <p className="text-sm text-muted-foreground">3가지 치료법의 회복 시간 비교 (이상치 많음)</p>
             </div>
           </div>
-        </StepCard>
-      )}
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+            <div>
+              <p className="font-medium">환경 연구</p>
+              <p className="text-sm text-muted-foreground">여러 지역의 오염도 중앙값 비교</p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+            <div>
+              <p className="font-medium">경제학</p>
+              <p className="text-sm text-muted-foreground">국가별 소득 중앙값 비교 (분포 왜곡)</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Step 1: 데이터 업로드 */}
-      {currentStep === 1 && (
-        <StepCard
-          icon={<Upload className="w-6 h-6" />}
-          title="데이터 업로드"
-          description="분석할 CSV 파일을 업로드하세요"
-        >
-          <DataUploadStep onUploadComplete={handleDataUpload} />
-        </StepCard>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">가정 및 요구사항</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-start space-x-2">
+            <div className="w-2 h-2 rounded-full bg-primary mt-2" />
+            <p className="text-sm"><strong>독립 표본:</strong> 각 관측값은 독립적</p>
+          </div>
+          <div className="flex items-start space-x-2">
+            <div className="w-2 h-2 rounded-full bg-primary mt-2" />
+            <p className="text-sm"><strong>순서형 이상:</strong> 데이터의 순서가 의미 있어야 함</p>
+          </div>
+          <div className="flex items-start space-x-2">
+            <div className="w-2 h-2 rounded-full bg-primary mt-2" />
+            <p className="text-sm"><strong>정규성 불필요:</strong> 정규분포 가정 없음</p>
+          </div>
+          <div className="flex items-start space-x-2">
+            <div className="w-2 h-2 rounded-full bg-primary mt-2" />
+            <p className="text-sm"><strong>최소 그룹:</strong> 2개 이상</p>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Step 2: 변수 선택 */}
-      {currentStep === 2 && uploadedData && (
-        <StepCard
-          icon={<Users className="w-6 h-6" />}
-          title="변수 선택"
-          description="그룹 변수와 검정 변수를 선택하세요"
-        >
-          <Alert className="mb-4">
-            <Info className="h-4 w-4" />
-            <AlertTitle>변수 선택 안내</AlertTitle>
+      <Alert className="bg-muted">
+        <Info className="h-4 w-4" />
+        <AlertTitle>Kruskal-Wallis vs Mood Median</AlertTitle>
+        <AlertDescription>
+          <strong>Kruskal-Wallis:</strong> 순위 기반, 분포 차이에 민감<br />
+          <strong>Mood Median:</strong> 중앙값 기반, 이상치에 강건, 해석 직관적
+        </AlertDescription>
+      </Alert>
+
+      <div className="flex justify-end">
+        <Button onClick={() => actions.setCurrentStep?.(1)} className="flex items-center space-x-2">
+          <span>다음: 데이터 업로드</span>
+          <CheckCircle2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  ), [actions])
+
+  const renderVariableSelection = useCallback(() => {
+    const selectedDependent = selectedVariables?.dependent || ''
+    const selectedFactor = selectedVariables?.factor || ''
+
+    return (
+      <div className="space-y-6">
+        <Alert className="mb-4">
+          <Info className="h-4 w-4" />
+          <AlertTitle>변수 선택 안내</AlertTitle>
+          <AlertDescription>
+            <strong>Grouping Variable:</strong> 그룹을 구분하는 범주형 변수 (예: 치료법, 지역)<br />
+            <strong>Test Variable:</strong> 비교할 연속형 변수 (예: 회복 시간, 오염도)
+          </AlertDescription>
+        </Alert>
+
+        <div>
+          <h4 className="font-medium mb-3">종속변수 (Test Variable) 선택</h4>
+          <p className="text-sm text-gray-500 mb-3">비교할 연속형 변수를 선택하세요</p>
+          <div className="flex flex-wrap gap-2">
+            {numericColumns.map((header: string) => {
+              const isSelected = selectedDependent === header
+              return (
+                <Badge
+                  key={header}
+                  variant={isSelected ? 'default' : 'outline'}
+                  className="cursor-pointer max-w-[200px] truncate"
+                  title={header}
+                  onClick={() => handleDependentSelect(header)}
+                >
+                  {header}
+                  {isSelected && (
+                    <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                  )}
+                </Badge>
+              )
+            })}
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <h4 className="font-medium mb-3">그룹변수 (Grouping Variable) 선택</h4>
+          <p className="text-sm text-gray-500 mb-3">그룹을 구분하는 범주형 변수를 선택하세요</p>
+          <div className="flex flex-wrap gap-2">
+            {categoricalColumns.map((header: string) => {
+              const isSelected = selectedFactor === header
+              const isSameAsDependent = header === selectedDependent
+              return (
+                <Badge
+                  key={header}
+                  variant={isSelected ? 'default' : 'outline'}
+                  className={`cursor-pointer max-w-[200px] truncate ${isSameAsDependent ? 'opacity-50' : ''}`}
+                  title={isSameAsDependent ? `${header} (종속변수와 동일 - 선택 불가)` : header}
+                  onClick={() => !isSameAsDependent && handleFactorSelect(header)}
+                >
+                  {header}
+                  {isSelected && (
+                    <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                  )}
+                </Badge>
+              )
+            })}
+          </div>
+        </div>
+
+        {selectedDependent && selectedFactor && (
+          <Alert>
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertTitle>선택 완료</AlertTitle>
             <AlertDescription>
-              <strong>Grouping Variable:</strong> 그룹을 구분하는 범주형 변수 (예: 치료법, 지역)<br />
-              <strong>Test Variable:</strong> 비교할 연속형 변수 (예: 회복 시간, 오염도)
+              <div className="space-y-1">
+                <p>종속변수 (Test): <strong>{selectedDependent}</strong></p>
+                <p>그룹변수 (Grouping): <strong>{selectedFactor}</strong></p>
+              </div>
             </AlertDescription>
           </Alert>
+        )}
 
-          <VariableSelectorModern
-            methodId="mood-median"
-            data={uploadedData.data}
-            onVariablesSelected={handleVariableSelection}
-          />
-        </StepCard>
-      )}
+        {error && (
+          <Alert variant="destructive">
+            <Info className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {/* Step 3: 결과 */}
-      {currentStep === 3 && (
-        <StepCard
-          icon={<BarChart3 className="w-6 h-6" />}
-          title="분석 실행"
-          description="Mood Median Test를 실행하고 결과를 확인하세요"
-        >
-          {!results && (
-            <div className="text-center py-8">
-              <Button
-                onClick={runAnalysis}
-                size="lg"
-                disabled={isAnalyzing}
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Calculator className="mr-2 h-5 w-5 animate-spin" />
-                    분석 중...
-                  </>
-                ) : (
-                  <>
-                    <Calculator className="mr-2 h-5 w-5" />
-                    Mood Median Test 실행
-                  </>
-                )}
-              </Button>
+        <div className="flex justify-between">
+          <Button
+            variant="outline"
+            onClick={() => actions.setCurrentStep?.(1)}
+          >
+            이전: 데이터 업로드
+          </Button>
+
+          <Button
+            onClick={handleNextStep}
+            disabled={!selectedDependent || !selectedFactor || selectedDependent === selectedFactor || isAnalyzing}
+          >
+            {isAnalyzing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                분석 중...
+              </>
+            ) : (
+              '다음 단계: 분석 실행'
+            )}
+          </Button>
+        </div>
+      </div>
+    )
+  }, [selectedVariables, numericColumns, categoricalColumns, error, isAnalyzing, handleDependentSelect, handleFactorSelect, handleNextStep, actions])
+
+  const renderResults = useCallback(() => {
+    if (!results) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">분석 결과가 없습니다.</p>
+          <Button onClick={() => actions.setCurrentStep?.(2)} variant="outline">
+            변수 선택으로 돌아가기
+          </Button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* 검정 통계량 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              검정 통계량
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Chi-square 통계량</p>
+                <p className="text-2xl font-bold">{results.statistic.toFixed(3)}</p>
+              </div>
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">p-value</p>
+                <p className="text-2xl font-bold">{results.pValue.toFixed(4)}</p>
+              </div>
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">전체 중앙값 (Grand Median)</p>
+                <p className="text-2xl font-bold">{results.grandMedian.toFixed(2)}</p>
+              </div>
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">유의성 (α=0.05)</p>
+                <p className="text-2xl font-bold">
+                  {results.significant ? (
+                    <Badge variant="destructive">유의함</Badge>
+                  ) : (
+                    <Badge variant="secondary">유의하지 않음</Badge>
+                  )}
+                </p>
+              </div>
             </div>
-          )}
+          </CardContent>
+        </Card>
 
-          {results && (
-            <div className="space-y-6">
-              {/* 검정 통계량 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calculator className="w-5 h-5" />
-                    검정 통계량
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">Chi-square 통계량</p>
-                      <p className="text-2xl font-bold">{results.statistic.toFixed(3)}</p>
+        {/* 그룹별 통계 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              그룹별 통계
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {results.groupStats.map((item, index) => (
+                <div key={index} className="p-3 bg-muted rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-lg">{item.group}</p>
+                    <Badge variant="outline">n = {item.n}</Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">중앙값</p>
+                      <p className="font-bold">{item.median.toFixed(2)}</p>
                     </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">p-value</p>
-                      <p className="text-2xl font-bold">{results.pValue.toFixed(4)}</p>
+                    <div>
+                      <p className="text-muted-foreground">Grand Median 이상</p>
+                      <p className="font-bold">{item.aboveMedian}개</p>
                     </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">전체 중앙값 (Grand Median)</p>
-                      <p className="text-2xl font-bold">{results.grandMedian.toFixed(2)}</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">유의성 (α=0.05)</p>
-                      <p className="text-2xl font-bold">
-                        {results.significant ? (
-                          <Badge variant="destructive">유의함</Badge>
-                        ) : (
-                          <Badge variant="secondary">유의하지 않음</Badge>
-                        )}
-                      </p>
+                    <div>
+                      <p className="text-muted-foreground">Grand Median 이하</p>
+                      <p className="font-bold">{item.belowMedian}개</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* 그룹별 통계 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    그룹별 통계
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {results.groupStats.map((item, index) => (
-                      <div key={index} className="p-3 bg-muted rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-medium text-lg">{item.group}</p>
-                          <Badge variant="outline">n = {item.n}</Badge>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">중앙값</p>
-                            <p className="font-bold">{item.median.toFixed(2)}</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Grand Median 이상</p>
-                            <p className="font-bold">{item.aboveMedian}개</p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">Grand Median 이하</p>
-                            <p className="font-bold">{item.belowMedian}개</p>
-                          </div>
-                        </div>
-                      </div>
+        {/* 분할표 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">분할표 (2 × k)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="p-2 text-left">Position</th>
+                    {results.groupStats.map((item, idx) => (
+                      <th key={idx} className="p-2 text-center">{item.group}</th>
                     ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* 분할표 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">분할표 (2 × k)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="p-2 text-left">Position</th>
-                          {results.groupStats.map((item, idx) => (
-                            <th key={idx} className="p-2 text-center">{item.group}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="p-2 font-medium">Above Grand Median</td>
-                          {results.contingencyTable[0]?.map((count, idx) => (
-                            <td key={idx} className="p-2 text-center">{count}</td>
-                          ))}
-                        </tr>
-                        <tr>
-                          <td className="p-2 font-medium">Below/Equal Grand Median</td>
-                          {results.contingencyTable[1]?.map((count, idx) => (
-                            <td key={idx} className="p-2 text-center">{count}</td>
-                          ))}
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* 해석 */}
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>결과 해석</AlertTitle>
-                <AlertDescription>{results.interpretation}</AlertDescription>
-              </Alert>
-
-              {/* 표본 정보 */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">표본 정보</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm">
-                    <strong>그룹 수:</strong> {results.nGroups}개
-                  </p>
-                  <p className="text-sm">
-                    <strong>총 관측값 수:</strong> {results.nTotal}개
-                  </p>
-                </CardContent>
-              </Card>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="p-2 font-medium">Above Grand Median</td>
+                    {results.contingencyTable[0]?.map((count, idx) => (
+                      <td key={idx} className="p-2 text-center">{count}</td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-medium">Below/Equal Grand Median</td>
+                    {results.contingencyTable[1]?.map((count, idx) => (
+                      <td key={idx} className="p-2 text-center">{count}</td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
             </div>
-          )}
-        </StepCard>
+          </CardContent>
+        </Card>
+
+        {/* 해석 */}
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>결과 해석</AlertTitle>
+          <AlertDescription>{results.interpretation}</AlertDescription>
+        </Alert>
+
+        {/* 표본 정보 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">표본 정보</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm">
+              <strong>그룹 수:</strong> {results.nGroups}개
+            </p>
+            <p className="text-sm">
+              <strong>총 관측값 수:</strong> {results.nTotal}개
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* 액션 버튼 */}
+        <div className="flex gap-3 justify-center pt-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled>
+                <FileText className="w-4 h-4 mr-2" />
+                보고서 생성
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>향후 제공 예정입니다</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled>
+                <Download className="w-4 h-4 mr-2" />
+                결과 다운로드
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>향후 제공 예정입니다</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+    )
+  }, [results, actions])
+
+  return (
+    <TwoPanelLayout
+      currentStep={currentStep + 1} // 0-based → 1-based
+      steps={STEPS}
+      onStepChange={handleStepChange}
+      analysisTitle="Mood Median Test"
+      analysisSubtitle="Mood's Median Test - 중앙값 기반 비모수 검정"
+      analysisIcon={<Target className="h-5 w-5 text-primary" />}
+      breadcrumbs={breadcrumbs}
+      bottomPreview={uploadedData ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        onOpenNewWindow: handleOpenNewWindow
+      } : undefined}
+    >
+      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 1 && (
+        <DataUploadStep
+          onUploadComplete={handleDataUpload}
+          onPrevious={() => actions.setCurrentStep?.(0)}
+        />
       )}
-    </StatisticsPageLayout>
+      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 3 && renderResults()}
+    </TwoPanelLayout>
   )
 }

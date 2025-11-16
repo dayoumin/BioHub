@@ -81,17 +81,39 @@ export function ChatPanel({ className }: ChatPanelProps) {
         className
       )}
     >
-      {/* 드래그 핸들 */}
-      {!isChatPanelCollapsed && (
-        <div
-          onMouseDown={handleMouseDown}
+      {/* 좌측 경계선 - 드래그 핸들 + 접기 버튼 */}
+      <div className="absolute left-0 top-0 bottom-0 w-0 z-20">
+        {/* 드래그 핸들 */}
+        {!isChatPanelCollapsed && (
+          <div
+            onMouseDown={handleMouseDown}
+            className={cn(
+              "absolute left-0 top-0 bottom-0 w-1 cursor-col-resize",
+              "hover:bg-primary/20 transition-colors",
+              isResizing && "bg-primary/40"
+            )}
+          />
+        )}
+
+        {/* 접기/펼치기 버튼 */}
+        <button
+          onClick={toggleChatPanelCollapse}
           className={cn(
-            "absolute left-0 top-0 bottom-0 w-1 cursor-col-resize z-10",
-            "hover:bg-primary/20 transition-colors",
-            isResizing && "bg-primary/40"
+            "absolute top-1/2 -translate-y-1/2 -left-3",
+            "bg-background border border-border rounded-full p-1.5 shadow-md",
+            "hover:bg-muted transition-colors",
+            "flex items-center justify-center"
           )}
-        />
-      )}
+          aria-label={isChatPanelCollapsed ? "챗봇 펼치기" : "챗봇 접기"}
+          title={isChatPanelCollapsed ? "챗봇 펼치기" : "챗봇 접기"}
+        >
+          {isChatPanelCollapsed ? (
+            <ChevronsLeft className="h-4 w-4" />
+          ) : (
+            <ChevronsRight className="h-4 w-4" />
+          )}
+        </button>
+      </div>
 
       {/* 헤더 */}
       <div className={cn(
@@ -137,29 +159,11 @@ export function ChatPanel({ className }: ChatPanelProps) {
               >
                 <ExternalLink className={cn(isVeryNarrow ? "h-3 w-3" : "h-4 w-4")} />
               </Button>
-
-              {/* 접기 버튼 */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleChatPanelCollapse}
-                className={cn(isVeryNarrow ? "h-6 w-6" : "h-8 w-8")}
-                aria-label="챗봇 접기"
-              >
-                <ChevronsRight className={cn(isVeryNarrow ? "h-3 w-3" : "h-4 w-4")} />
-              </Button>
             </div>
           </>
         ) : (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleChatPanelCollapse}
-            className="h-8 w-8 mx-auto"
-            aria-label="챗봇 펼치기"
-          >
-            <ChevronsLeft className="h-4 w-4" />
-          </Button>
+          // 접힌 상태: 헤더 비워둠 (접기 버튼은 좌측 경계선에 있음)
+          <div className="w-full" />
         )}
       </div>
 

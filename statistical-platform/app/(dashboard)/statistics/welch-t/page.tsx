@@ -1,38 +1,44 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+/**
+ * Welch t-검정 페이지 - TwoPanelLayout (데이터 하단 배치)
+ *
+ * Migration: StatisticsPageLayout → TwoPanelLayout
+ * - Badge-based variable selection (dependent + factor)
+ * - Critical Bug prevention (Badge clicks don't trigger step change)
+ * - Separate analysis button ("다음 단계" triggers step + analysis)
+ */
+
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { WelchTVariables } from '@/types/statistics'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { escapeHtml } from '@/lib/utils/html-escape'
 import {
   Calculator,
   GitBranch,
   BarChart3,
-  Play,
   Info,
   AlertCircle,
   CheckCircle,
-  XCircle
+  CheckCircle2,
+  XCircle,
+  Target,
+  TrendingUp
 } from 'lucide-react'
-import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import type { UploadedData } from '@/hooks/use-statistics-page'
-import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
-import { VariableMapping } from '@/components/variable-selection/types'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
-import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 
 interface WelchTResults {
   group1: {
@@ -72,87 +78,94 @@ interface WelchTResults {
   }
 }
 
+const STEPS = [
+  { id: 1, label: '방법 소개' },
+  { id: 2, label: '데이터 업로드' },
+  { id: 3, label: '변수 선택' },
+  { id: 4, label: '분석 결과' }
+]
+
 export default function WelchTPage() {
   // 최근 사용 통계 자동 추가
   useEffect(() => {
     addToRecentStatistics('welch-t')
   }, [])
 
-  // Use statistics page hook
   const { state, actions } = useStatisticsPage<WelchTResults, WelchTVariables>({
     withUploadedData: true,
-    withError: true
+    withError: true,
+    initialStep: 0
   })
-  const { currentStep, uploadedData, results, isAnalyzing, error, selectedVariables } = state
-  const variableMapping = selectedVariables || {}
+  const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
   const [activeTab, setActiveTab] = useState('summary')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
   const [alternative, setAlternative] = useState('two-sided')
-  const { pyodideService: _pyodideService } = usePyodideService()
 
-  // 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'upload-data',
-      number: 0,
-      title: '데이터 업로드',
-      description: '분석할 CSV/Excel 파일 업로드',
-      status: uploadedData ? 'completed' : 'current'
-    },
-    {
-      id: 'select-variables',
-      number: 1,
-      title: '변수 선택',
-      description: '그룹 변수와 검정 변수 선택',
-      status: uploadedData && Object.keys(variableMapping).length >= 2 ? 'completed' : (uploadedData ? 'current' : 'pending')
-    },
-    {
-      id: 'set-hypothesis',
-      number: 2,
-      title: '가설 설정',
-      description: '대립가설 및 신뢰수준 설정',
-      status: Object.keys(variableMapping).length >= 2 ? 'current' : 'pending'
-    },
-    {
-      id: 'run-analysis',
-      number: 3,
-      title: '분석 실행',
-      description: 'Welch t-검정 수행',
-      status: results ? 'completed' : 'pending'
-    },
-    {
-      id: 'view-results',
-      number: 4,
-      title: '결과 해석',
-      description: '검정 결과 및 등분산 가정 확인',
-      status: results ? 'current' : 'pending'
-    }
-  ]
+  // Breadcrumbs
+  const breadcrumbs = useMemo(() => [
+    { label: '홈', href: '/' },
+    { label: 'Welch t-검정' }
+  ], [])
 
-  // 분석 실행
-  const handleAnalysis = useCallback(async () => {
-    if (!uploadedData || !selectedVariables) {
-      actions.setError('데이터와 변수를 확인해주세요.')
-      return
+  // Steps with completed state
+  const stepsWithCompleted = useMemo(() => STEPS.map(step => ({
+    ...step,
+    completed: step.id === 1 ? currentStep > 0 :
+              step.id === 2 ? !!uploadedData :
+              step.id === 3 ? !!selectedVariables :
+              step.id === 4 ? !!results : false
+  })), [currentStep, uploadedData, selectedVariables, results])
+
+  // Handlers
+  const handleDataUpload = useCallback((file: File, data: Array<Record<string, unknown>>) => {
+    const columns = data.length > 0 ? Object.keys(data[0]) : []
+    if (actions.setUploadedData) {
+      actions.setUploadedData({ data, fileName: file.name, columns })
     }
+    actions.setCurrentStep(2)
+  }, [actions])
+
+  // Variable selection handlers (Critical Bug prevention: NO setCurrentStep here)
+  const handleDependentSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { dependent: '', factor: [] }
+    const newDependent = current.dependent === varName ? '' : varName
+    actions.setSelectedVariables?.({
+      dependent: newDependent,
+      factor: current.factor || []
+    })
+  }, [selectedVariables, actions])
+
+  const handleFactorSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { dependent: '', factor: [] }
+    const currentFactors = Array.isArray(current.factor) ? current.factor : []
+    const isSelected = currentFactors.includes(varName)
+    const newFactors = isSelected
+      ? currentFactors.filter(v => v !== varName)
+      : [varName] // Only allow 1 factor
+    actions.setSelectedVariables?.({
+      dependent: current.dependent || '',
+      factor: newFactors
+    })
+  }, [selectedVariables, actions])
+
+  const runWelchTAnalysis = useCallback(async (variables: WelchTVariables) => {
+    if (!uploadedData) return
 
     actions.startAnalysis()
 
     try {
-      // PyodideCore 서비스 임포트
-      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
 
       // 그룹 변수와 값 변수 추출
-      const groupVar = Array.isArray(selectedVariables.factor)
-        ? selectedVariables.factor[0]
-        : selectedVariables.factor
+      const groupVar = Array.isArray(variables.factor)
+        ? variables.factor[0]
+        : variables.factor
 
-      const valueVar = Array.isArray(selectedVariables.dependent)
-        ? selectedVariables.dependent[0]
-        : selectedVariables.dependent
+      const valueVar = Array.isArray(variables.dependent)
+        ? variables.dependent[0]
+        : variables.dependent
 
       if (!groupVar || !valueVar) {
         actions.setError('그룹 변수와 값 변수를 모두 선택해주세요.')
@@ -213,7 +226,7 @@ export default function WelchTPage() {
       const meanDiff = mean1 - mean2
       const effectSize = result.cohensD ?? Math.abs(meanDiff) / Math.sqrt((std1 * std1 + std2 * std2) / 2)
 
-      const mockResults: WelchTResults = {
+      const results: WelchTResults = {
         group1: {
           name: groupNames[0],
           n: n1,
@@ -253,354 +266,247 @@ export default function WelchTPage() {
         }
       }
 
-      actions.completeAnalysis(mockResults, 4)
+      actions.completeAnalysis(results, 3)
       setActiveTab('summary')
     } catch (err) {
-      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
+      actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
-  }, [actions, setActiveTab, confidenceLevel, uploadedData, selectedVariables])
+  }, [actions, uploadedData, confidenceLevel])
 
-  // 단계 변경 처리
-  const handleStepChange = useCallback((step: number) => {
-    if (step <= currentStep + 1) {
-      actions.setCurrentStep(step)
+  // "다음 단계" button (triggers step change + analysis)
+  const handleNextStep = useCallback(async () => {
+    if (!selectedVariables?.dependent || !selectedVariables?.factor ||
+        (Array.isArray(selectedVariables.factor) && selectedVariables.factor.length === 0)) {
+      actions.setError('종속변수와 그룹변수를 모두 선택해주세요.')
+      return
     }
-  }, [actions, currentStep])
+    actions.setCurrentStep(3)
+    await runWelchTAnalysis(selectedVariables)
+  }, [selectedVariables, actions, runWelchTAnalysis])
 
-  // 초기화
-  const handleReset = useCallback(() => {
-    actions.reset()
-    setActiveTab('summary')
-  }, [actions, setActiveTab])
+  // "새 창으로 보기" 핸들러
+  const handleOpenNewWindow = useCallback(() => {
+    if (!uploadedData) return
 
-  // 변수 선택 핸들러 (공통 유틸 사용)
-  const handleVariablesSelected = createVariableSelectionHandler(
-    actions.setSelectedVariables,
-    (mapping) => {
-      if (Object.keys(mapping as unknown as VariableMapping).length >= 2) {
-        actions.setCurrentStep(1)
-      }
-    },
-    'welch-t'
-  )
-
-  // 검정 결과 테이블 렌더링
-  const renderTestResultsTable = () => {
-    if (!results) return null
-
-    const data = [{
-      test: 'Welch t-검정',
-      statistic: results.welchStatistic.toFixed(3),
-      df: results.adjustedDF.toFixed(1),
-      pValue: results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3),
-      effectSize: results.effectSize.toFixed(3),
-      interpretation: results.interpretation
-    }]
-
-    // 일반 t-검정과 비교
-    if (results.regularTTest) {
-      data.push({
-        test: '일반 t-검정 (참고)',
-        statistic: results.regularTTest.tStatistic.toFixed(3),
-        df: results.regularTTest.df.toString(),
-        pValue: results.regularTTest.pValue < 0.001 ? '< 0.001' : results.regularTTest.pValue.toFixed(3),
-        effectSize: results.effectSize.toFixed(3),
-        interpretation: '등분산 가정 시의 결과'
-      })
+    const dataWindow = window.open('', '_blank', 'width=1200,height=800')
+    if (dataWindow) {
+      const columns = uploadedData.columns
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>데이터 미리보기 - ${escapeHtml(uploadedData.fileName)}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; }
+            table { border-collapse: collapse; width: 100%; font-size: 12px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f0f0f0; font-weight: 600; position: sticky; top: 0; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .header { margin-bottom: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>${escapeHtml(uploadedData.fileName)}</h2>
+            <p>${uploadedData.data.length.toLocaleString()}행 × ${columns.length}열</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                ${columns.map(col => `<th>${escapeHtml(col)}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${uploadedData.data.map((row, idx) => `
+                <tr>
+                  <td>${idx + 1}</td>
+                  ${columns.map(col => `<td>${escapeHtml(String(row[col] ?? ''))}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `
+      dataWindow.document.write(html)
+      dataWindow.document.close()
     }
+  }, [uploadedData])
 
-    const columns = [
-      { key: 'test', header: '검정 방법', type: 'text' as const },
-      { key: 'statistic', header: 't 통계량', type: 'text' as const },
-      { key: 'df', header: '자유도', type: 'text' as const },
-      { key: 'pValue', header: 'p-값', type: 'text' as const },
-      { key: 'effectSize', header: 'Cohen\'s d', type: 'text' as const },
-      { key: 'interpretation', header: '해석', type: 'text' as const }
-    ]
+  // Render functions (useCallback)
+  const renderMethodIntroduction = useCallback(() => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <Calculator className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Welch t-검정 (Welch&apos;s t-Test)</h1>
+        <p className="text-lg text-gray-600">등분산 가정 없이 두 독립집단의 평균을 비교합니다</p>
+      </div>
 
-    return (
-      <StatisticsTable
-        columns={columns}
-        data={data}
-        title="Welch t-검정 결과"
-      />
-    )
-  }
-
-  // 그룹별 기술통계 테이블
-  const renderDescriptiveTable = () => {
-    if (!results) return null
-
-    const data = [
-      {
-        group: results.group1.name,
-        n: results.group1.n,
-        mean: results.group1.mean.toFixed(2),
-        std: results.group1.std.toFixed(2),
-        se: results.group1.se.toFixed(3)
-      },
-      {
-        group: results.group2.name,
-        n: results.group2.n,
-        mean: results.group2.mean.toFixed(2),
-        std: results.group2.std.toFixed(2),
-        se: results.group2.se.toFixed(3)
-      }
-    ]
-
-    const columns = [
-      { key: 'group', header: '그룹', type: 'text' as const },
-      { key: 'n', header: 'N', type: 'number' as const },
-      { key: 'mean', header: '평균', type: 'text' as const },
-      { key: 'std', header: '표준편차', type: 'text' as const },
-      { key: 'se', header: '표준오차', type: 'text' as const }
-    ]
-
-    return (
-      <StatisticsTable
-        columns={columns}
-        data={data}
-        title="그룹별 기술통계"
-      />
-    )
-  }
-
-  // 요약 카드 렌더링
-  const renderSummaryCards = () => {
-    if (!results) return null
-
-    const significanceLevel = (100 - results.confidenceLevel) / 100
-    const isSignificant = results.pValue < significanceLevel
-
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid md:grid-cols-2 gap-6">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Welch t 통계량</p>
-                <p className="text-2xl font-bold">{results.welchStatistic.toFixed(2)}</p>
-              </div>
-              <Calculator className="w-8 h-8 text-muted-foreground/20" />
-            </div>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Target className="mr-2 h-5 w-5" />
+              분석 목적
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                두 독립집단의 평균 비교
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                등분산 가정이 충족되지 않을 때 사용
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                표본크기가 다를 때 더 안정적
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                일반 t-검정보다 보수적이지만 정확함
+              </li>
+            </ul>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">조정된 자유도</p>
-                <p className="text-2xl font-bold">{results.adjustedDF.toFixed(1)}</p>
-              </div>
-              <GitBranch className="w-8 h-8 text-muted-foreground/20" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">p-값</p>
-                <p className="text-2xl font-bold">
-                  {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
-                </p>
-              </div>
-              <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-green-500/50' : 'text-red-500/50'}`} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">효과크기</p>
-                <p className="text-2xl font-bold">{results.effectSize.toFixed(2)}</p>
-              </div>
-              <BarChart3 className="w-8 h-8 text-muted-foreground/20" />
-            </div>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5" />
+              적용 조건
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>데이터:</strong> 연속형 변수</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>그룹:</strong> 정확히 2개 독립집단</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>정규성:</strong> 정규분포 또는 n≥30</span>
+              </li>
+              <li className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <span><strong>등분산:</strong> 가정 불필요 ⭐</span>
+              </li>
+            </ul>
           </CardContent>
         </Card>
       </div>
-    )
-  }
 
-  // 등분산 가정 검토
-  const renderVarianceAssumption = () => {
-    if (!results) return null
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>검정 공식:</strong> t = (x̄₁ - x̄₂) / √(s₁²/n₁ + s₂²/n₂)<br />
+          Welch-Satterthwaite 공식으로 자유도를 조정하여 더 정확한 결과를 제공합니다.
+        </AlertDescription>
+      </Alert>
 
-    const isViolated = results.equalVariances.assumption === 'violated'
+      <div className="flex justify-center">
+        <Button onClick={() => actions.setCurrentStep(1)} size="lg">
+          데이터 업로드하기
+        </Button>
+      </div>
+    </div>
+  ), [actions])
 
-    return (
-      <Card className={isViolated ? 'border bg-muted dark:bg-orange-950/20' : 'border bg-muted dark:bg-green-950/20'}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {isViolated ? (
-              <XCircle className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <CheckCircle className="w-5 h-5 text-muted-foreground" />
-            )}
-            등분산 가정 검토 (Levene 검정)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Levene 통계량</p>
-              <p className="text-lg font-semibold">{results.equalVariances.leveneStatistic.toFixed(3)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">p-값</p>
-              <p className="text-lg font-semibold">
-                {results.equalVariances.levenePValue.toFixed(3)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">가정 상태</p>
-              <Badge variant={isViolated ? 'destructive' : 'default'}>
-                {isViolated ? '위반' : '충족'}
-              </Badge>
-            </div>
-          </div>
+  const renderVariableSelection = useCallback(() => {
+    if (!uploadedData) return null
 
-          <div className={`p-3 rounded-lg ${isViolated ? 'bg-muted dark:bg-orange-950/40' : 'bg-muted dark:bg-green-950/40'}`}>
-            <p className={`text-sm ${isViolated ? ' dark:text-orange-200' : ' dark:text-green-200'}`}>
-              {isViolated ? (
-                <>
-                  <AlertCircle className="w-4 h-4 inline mr-1" />
-                  등분산 가정이 위반되었습니다. Welch t-검정이 적절한 선택입니다.
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 inline mr-1" />
-                  등분산 가정이 충족되지만, Welch t-검정도 유효한 결과를 제공합니다.
-                </>
-              )}
-            </p>
-          </div>
+    const numericColumns = uploadedData.columns.filter((col: string) => {
+      const firstValue = uploadedData.data.find(row => row[col] != null)?.[col]
+      return typeof firstValue === 'number'
+    })
 
-          <div className="mt-4">
-            <h4 className="font-semibold mb-2">Welch t-검정의 장점:</h4>
-            <ul className="text-sm space-y-1">
-              <li>• 등분산 가정을 하지 않음</li>
-              <li>• 표본크기가 다를 때 더욱 안정적</li>
-              <li>• Type I 오류율을 더 잘 통제</li>
-              <li>• 분산이 크게 다를 때 더 정확함</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
+    const categoricalColumns = uploadedData.columns.filter((col: string) => {
+      const firstValue = uploadedData.data.find(row => row[col] != null)?.[col]
+      return typeof firstValue === 'string'
+    })
 
-  // 신뢰구간 정보
-  const renderConfidenceInterval = () => {
-    if (!results) return null
+    const currentVars = selectedVariables || { dependent: '', factor: [] }
+    const selectedDependent = currentVars.dependent || ''
+    const selectedFactors = Array.isArray(currentVars.factor) ? currentVars.factor : []
+
+    const isValid = selectedDependent && selectedFactors.length === 1
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="w-5 h-5" />
-            평균 차이의 {results.confidenceLevel}% 신뢰구간
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center mb-4">
-            <p className="text-2xl font-bold">
-              [{results.ciLower.toFixed(2)}, {results.ciUpper.toFixed(2)}]
-            </p>
-            <p className="text-sm text-muted-foreground">
-              평균 차이: {results.meanDifference.toFixed(2)}
-            </p>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold mb-2">변수 선택</h2>
+          <p className="text-sm text-muted-foreground">
+            그룹 변수(범주형)와 비교할 변수(연속형)를 선택하세요
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {/* 종속변수 선택 (numeric, single select) */}
+          <div className="space-y-2">
+            <Label className="text-base font-semibold">비교 변수 (연속형, 1개 선택)</Label>
+            <p className="text-xs text-muted-foreground">평균을 비교할 수치형 변수를 선택하세요</p>
+            <div className="flex flex-wrap gap-2">
+              {numericColumns.map((header: string) => {
+                const isSelected = selectedDependent === header
+                return (
+                  <Badge
+                    key={header}
+                    variant={isSelected ? 'default' : 'outline'}
+                    className="cursor-pointer max-w-[200px] truncate"
+                    title={header}
+                    onClick={() => handleDependentSelect(header)}
+                  >
+                    {header}
+                    {isSelected && (
+                      <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                    )}
+                  </Badge>
+                )
+              })}
+            </div>
           </div>
 
-          <div className="p-3 bg-muted dark:bg-blue-950/20 rounded-lg">
-            <p className="text-sm text-muted-foreground dark:text-blue-300">
-              <strong>해석:</strong> {results.confidenceLevel}% 확률로 두 그룹의 실제 평균 차이는
-              {results.ciLower.toFixed(2)}과 {results.ciUpper.toFixed(2)} 사이에 있습니다.
-              {results.ciLower * results.ciUpper > 0
-                ? ' 신뢰구간이 0을 포함하지 않으므로 유의한 차이가 있습니다.'
-                : ' 신뢰구간이 0을 포함하므로 유의한 차이가 없습니다.'
-              }
-            </p>
+          {/* 그룹 변수 선택 (categorical, single select) */}
+          <div className="space-y-2">
+            <Label className="text-base font-semibold">그룹 변수 (범주형, 1개 선택)</Label>
+            <p className="text-xs text-muted-foreground">2개 그룹을 구분할 범주형 변수를 선택하세요</p>
+            <div className="flex flex-wrap gap-2">
+              {categoricalColumns.map((header: string) => {
+                const isSelected = selectedFactors.includes(header)
+                return (
+                  <Badge
+                    key={header}
+                    variant={isSelected ? 'default' : 'outline'}
+                    className="cursor-pointer max-w-[200px] truncate"
+                    title={header}
+                    onClick={() => handleFactorSelect(header)}
+                  >
+                    {header}
+                    {isSelected && (
+                      <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                    )}
+                  </Badge>
+                )
+              })}
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    )
-  }
 
-  return (
-    <StatisticsPageLayout
-      title="Welch t-검정"
-      subtitle="등분산 가정 없이 두 독립집단의 평균 비교"
-      icon={<Calculator className="w-6 h-6" />}
-      steps={steps}
-      currentStep={currentStep}
-      onStepChange={handleStepChange}
-      onRun={handleAnalysis}
-      onReset={handleReset}
-      isRunning={isAnalyzing}
-      methodInfo={{
-        formula: "t = (x̄₁ - x̄₂) / √(s₁²/n₁ + s₂²/n₂), df = Welch-Satterthwaite",
-        assumptions: ["정규분포 또는 n≥30", "독립적인 관측값", "등분산 가정 불필요"],
-        sampleSize: "각 그룹 최소 5개 (30개 이상 권장)",
-        usage: "분산이 다른 두 그룹의 평균 비교"
-      }}
-    >
-      <div className="space-y-6">
-        {/* 0단계: 데이터 업로드 */}
-        {currentStep === 0 && !uploadedData && (
-          <DataUploadStep
-            onUploadComplete={createDataUploadHandler(
-              actions.setUploadedData,
-              () => actions.setCurrentStep(1),
-              'welch-t'
-            )}
-          />
-        )}
-
-        {/* 1단계: 변수 선택 */}
-        {currentStep === 1 && uploadedData && (
+          {/* 가설 설정 */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GitBranch className="w-5 h-5" />
-                변수 선택
-              </CardTitle>
-              <CardDescription>
-                그룹을 구분할 범주형 변수와 비교할 수치형 변수를 선택하세요
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <VariableSelectorModern
-                methodId="welch-t"
-                data={uploadedData.data}
-                onVariablesSelected={handleVariablesSelected}
-                onBack={() => actions.reset()}
-              />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 2단계: 가설 설정 */}
-        {currentStep === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="w-5 h-5" />
-                가설 설정 및 옵션
-              </CardTitle>
-              <CardDescription>
-                대립가설과 신뢰수준을 설정하세요
-              </CardDescription>
+              <CardTitle className="text-base">가설 설정</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">대립가설</label>
+                  <Label>대립가설</Label>
                   <Select value={alternative} onValueChange={setAlternative}>
                     <SelectTrigger>
                       <SelectValue />
@@ -614,7 +520,7 @@ export default function WelchTPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">신뢰수준</label>
+                  <Label>신뢰수준</Label>
                   <Select value={confidenceLevel} onValueChange={setConfidenceLevel}>
                     <SelectTrigger>
                       <SelectValue />
@@ -627,97 +533,357 @@ export default function WelchTPage() {
                   </Select>
                 </div>
               </div>
-
-              <div className="p-4 bg-muted dark:bg-blue-950/20 rounded-lg">
-                <h4 className="font-semibold mb-2">Welch t-검정의 특징</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• 등분산 가정을 하지 않음 (Unequal variance t-test)</li>
-                  <li>• Welch-Satterthwaite 공식으로 자유도 조정</li>
-                  <li>• 일반 t-검정보다 보수적이지만 더 정확함</li>
-                  <li>• 표본크기가 다르거나 분산이 다를 때 권장</li>
-                </ul>
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <Button
-                  onClick={() => actions.setCurrentStep(3)}
-                  disabled={Object.keys(variableMapping).length < 2}
-                >
-                  다음 단계
-                </Button>
-              </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* 에러 메시지 */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
-        {/* 3단계: 분석 실행 */}
-        {currentStep === 3 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="w-5 h-5" />
-                분석 실행
-              </CardTitle>
-              <CardDescription>
-                Welch t-검정을 실행하고 등분산 가정을 함께 확인합니다
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Button
-                  size="lg"
-                  onClick={handleAnalysis}
-                  disabled={isAnalyzing}
-                  className="px-8"
-                >
-                  {isAnalyzing ? '분석 중...' : 'Welch t-검정 실행'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* 다음 단계 버튼 (Critical Bug prevention: triggers step + analysis) */}
+        <div className="flex gap-3">
+          <Button
+            onClick={handleNextStep}
+            disabled={isAnalyzing || !isValid}
+            size="lg"
+            className="flex-1 md:flex-none md:w-auto shadow-lg"
+          >
+            {isAnalyzing ? '분석 중...' : '다음 단계 (분석 실행)'}
+          </Button>
+        </div>
 
-        {/* 4단계: 결과 확인 */}
-        {results && currentStep === 4 && (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="summary">요약</TabsTrigger>
-              <TabsTrigger value="results">검정결과</TabsTrigger>
-              <TabsTrigger value="assumptions">가정검토</TabsTrigger>
-              <TabsTrigger value="confidence">신뢰구간</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="summary" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
-                {renderSummaryCards()}
-              </div>
-              <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
-                <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
-                <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
-                <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="results" className="space-y-6">
-              <div>
-                {renderDescriptiveTable()}
-              </div>
-              <div>
-                {renderTestResultsTable()}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="assumptions" className="space-y-6">
-              {renderVarianceAssumption()}
-            </TabsContent>
-
-            <TabsContent value="confidence" className="space-y-6">
-              {renderConfidenceInterval()}
-            </TabsContent>
-          </Tabs>
-        )}
+        {/* 업로드된 데이터 미리보기 */}
+        <DataPreviewPanel
+          data={uploadedData.data}
+          fileName={uploadedData.fileName}
+          defaultExpanded={true}
+          onOpenNewWindow={handleOpenNewWindow}
+        />
       </div>
-    </StatisticsPageLayout>
+    )
+  }, [uploadedData, selectedVariables, alternative, confidenceLevel, error, isAnalyzing,
+      handleDependentSelect, handleFactorSelect, handleNextStep, handleOpenNewWindow])
+
+  const renderResults = useCallback(() => {
+    if (isAnalyzing) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>Welch t-검정을 진행하고 있습니다...</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )
+    }
+
+    if (!results) return null
+
+    const significanceLevel = (100 - results.confidenceLevel) / 100
+    const isSignificant = results.pValue < significanceLevel
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welch t-검정 결과</h2>
+          <p className="text-gray-600">등분산 가정 없이 두 그룹의 평균을 비교한 결과입니다</p>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="summary">요약</TabsTrigger>
+            <TabsTrigger value="results">검정결과</TabsTrigger>
+            <TabsTrigger value="assumptions">가정검토</TabsTrigger>
+            <TabsTrigger value="confidence">신뢰구간</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="summary" className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Welch t 통계량</p>
+                      <p className="text-2xl font-bold">{results.welchStatistic.toFixed(2)}</p>
+                    </div>
+                    <Calculator className="w-8 h-8 text-muted-foreground/20" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">조정된 자유도</p>
+                      <p className="text-2xl font-bold">{results.adjustedDF.toFixed(1)}</p>
+                    </div>
+                    <GitBranch className="w-8 h-8 text-muted-foreground/20" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">p-값</p>
+                      <p className="text-2xl font-bold">
+                        {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
+                      </p>
+                    </div>
+                    <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-green-500/50' : 'text-red-500/50'}`} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">효과크기</p>
+                      <p className="text-2xl font-bold">{results.effectSize.toFixed(2)}</p>
+                    </div>
+                    <BarChart3 className="w-8 h-8 text-muted-foreground/20" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
+              <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
+              <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
+              <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="results" className="space-y-6">
+            <StatisticsTable
+              columns={[
+                { key: 'group', header: '그룹', type: 'text' as const },
+                { key: 'n', header: 'N', type: 'number' as const },
+                { key: 'mean', header: '평균', type: 'text' as const },
+                { key: 'std', header: '표준편차', type: 'text' as const },
+                { key: 'se', header: '표준오차', type: 'text' as const }
+              ]}
+              data={[
+                {
+                  group: results.group1.name,
+                  n: results.group1.n,
+                  mean: results.group1.mean.toFixed(2),
+                  std: results.group1.std.toFixed(2),
+                  se: results.group1.se.toFixed(3)
+                },
+                {
+                  group: results.group2.name,
+                  n: results.group2.n,
+                  mean: results.group2.mean.toFixed(2),
+                  std: results.group2.std.toFixed(2),
+                  se: results.group2.se.toFixed(3)
+                }
+              ]}
+              title="그룹별 기술통계"
+            />
+
+            <StatisticsTable
+              columns={[
+                { key: 'test', header: '검정 방법', type: 'text' as const },
+                { key: 'statistic', header: 't 통계량', type: 'text' as const },
+                { key: 'df', header: '자유도', type: 'text' as const },
+                { key: 'pValue', header: 'p-값', type: 'text' as const },
+                { key: 'effectSize', header: "Cohen's d", type: 'text' as const },
+                { key: 'interpretation', header: '해석', type: 'text' as const }
+              ]}
+              data={[
+                {
+                  test: 'Welch t-검정',
+                  statistic: results.welchStatistic.toFixed(3),
+                  df: results.adjustedDF.toFixed(1),
+                  pValue: results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3),
+                  effectSize: results.effectSize.toFixed(3),
+                  interpretation: results.interpretation
+                },
+                ...(results.regularTTest ? [{
+                  test: '일반 t-검정 (참고)',
+                  statistic: results.regularTTest.tStatistic.toFixed(3),
+                  df: results.regularTTest.df.toString(),
+                  pValue: results.regularTTest.pValue < 0.001 ? '< 0.001' : results.regularTTest.pValue.toFixed(3),
+                  effectSize: results.effectSize.toFixed(3),
+                  interpretation: '등분산 가정 시의 결과'
+                }] : [])
+              ]}
+              title="Welch t-검정 결과"
+            />
+          </TabsContent>
+
+          <TabsContent value="assumptions" className="space-y-6">
+            <Card className={results.equalVariances.assumption === 'violated' ? 'border bg-muted dark:bg-orange-950/20' : 'border bg-muted dark:bg-green-950/20'}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {results.equalVariances.assumption === 'violated' ? (
+                    <XCircle className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 text-muted-foreground" />
+                  )}
+                  등분산 가정 검토 (Levene 검정)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Levene 통계량</p>
+                    <p className="text-lg font-semibold">{results.equalVariances.leveneStatistic.toFixed(3)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">p-값</p>
+                    <p className="text-lg font-semibold">
+                      {results.equalVariances.levenePValue.toFixed(3)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">가정 상태</p>
+                    <Badge variant={results.equalVariances.assumption === 'violated' ? 'destructive' : 'default'}>
+                      {results.equalVariances.assumption === 'violated' ? '위반' : '충족'}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className={`p-3 rounded-lg ${results.equalVariances.assumption === 'violated' ? 'bg-muted dark:bg-orange-950/40' : 'bg-muted dark:bg-green-950/40'}`}>
+                  <p className={`text-sm ${results.equalVariances.assumption === 'violated' ? ' dark:text-orange-200' : ' dark:text-green-200'}`}>
+                    {results.equalVariances.assumption === 'violated' ? (
+                      <>
+                        <AlertCircle className="w-4 h-4 inline mr-1" />
+                        등분산 가정이 위반되었습니다. Welch t-검정이 적절한 선택입니다.
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 inline mr-1" />
+                        등분산 가정이 충족되지만, Welch t-검정도 유효한 결과를 제공합니다.
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div>
+                  <h4 className="font-semibold mb-2">Welch t-검정의 장점:</h4>
+                  <ul className="text-sm space-y-1">
+                    <li>• 등분산 가정을 하지 않음</li>
+                    <li>• 표본크기가 다를 때 더욱 안정적</li>
+                    <li>• Type I 오류율을 더 잘 통제</li>
+                    <li>• 분산이 크게 다를 때 더 정확함</li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="confidence" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Info className="w-5 h-5" />
+                  평균 차이의 {results.confidenceLevel}% 신뢰구간
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center mb-4">
+                  <p className="text-2xl font-bold">
+                    [{results.ciLower.toFixed(2)}, {results.ciUpper.toFixed(2)}]
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    평균 차이: {results.meanDifference.toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="p-3 bg-muted dark:bg-blue-950/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground dark:text-blue-300">
+                    <strong>해석:</strong> {results.confidenceLevel}% 확률로 두 그룹의 실제 평균 차이는
+                    {results.ciLower.toFixed(2)}과 {results.ciUpper.toFixed(2)} 사이에 있습니다.
+                    {results.ciLower * results.ciUpper > 0
+                      ? ' 신뢰구간이 0을 포함하지 않으므로 유의한 차이가 있습니다.'
+                      : ' 신뢰구간이 0을 포함하므로 유의한 차이가 없습니다.'
+                    }
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    )
+  }, [isAnalyzing, error, results, activeTab])
+
+  // Type-safe onStepChange handler
+  const handleStepChange = useCallback((step: number) => {
+    actions.setCurrentStep(step)
+  }, [actions])
+
+  return (
+    <TwoPanelLayout
+      currentStep={currentStep + 1}
+      steps={stepsWithCompleted}
+      onStepChange={handleStepChange}
+      analysisTitle="Welch t-검정"
+      analysisSubtitle="Welch's t-Test"
+      analysisIcon={<Calculator className="h-5 w-5 text-primary" />}
+      breadcrumbs={breadcrumbs}
+      bottomPreview={uploadedData ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        onOpenNewWindow: handleOpenNewWindow
+      } : undefined}
+    >
+      {/* Step 0: 분석 방법 소개 */}
+      {currentStep === 0 && renderMethodIntroduction()}
+
+      {/* Step 1: 데이터 업로드 */}
+      {currentStep === 1 && (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
+            <p className="text-sm text-muted-foreground">
+              Welch t-검정할 데이터 파일을 업로드하세요
+            </p>
+          </div>
+
+          <DataUploadStep
+            onUploadComplete={handleDataUpload}
+            onNext={() => actions.setCurrentStep(2)}
+            canGoNext={!!uploadedData}
+          />
+
+          {/* 업로드된 데이터 미리보기 */}
+          {uploadedData && (
+            <DataPreviewPanel
+              data={uploadedData.data}
+              fileName={uploadedData.fileName}
+              defaultExpanded={true}
+              onOpenNewWindow={handleOpenNewWindow}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Step 2: 변수 선택 */}
+      {currentStep === 2 && uploadedData && renderVariableSelection()}
+
+      {/* Step 3: 분석 결과 */}
+      {currentStep === 3 && renderResults()}
+    </TwoPanelLayout>
   )
 }

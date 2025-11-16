@@ -127,6 +127,29 @@ export abstract class BaseRAGProvider {
   abstract query(context: RAGContext): Promise<RAGResponse>
 
   /**
+   * 스트리밍 쿼리 응답 생성 (선택적 구현)
+   *
+   * @param context - RAG 컨텍스트
+   * @param onChunk - 청크 콜백 (텍스트 조각)
+   * @param onSources - 참조 문서 콜백 (검색 완료 시 1회 호출)
+   * @returns 최종 응답 (citedDocIds 포함)
+   */
+  async queryStream(
+    context: RAGContext,
+    onChunk: (chunk: string) => void,
+    onSources?: (sources: Array<{ title: string; content: string; score: number }>) => void
+  ): Promise<Omit<RAGResponse, 'answer'>> {
+    // 기본 구현: 스트리밍 미지원 - 일반 query로 폴백
+    const response = await this.query(context)
+    onChunk(response.answer)
+    if (onSources && response.sources) {
+      onSources(response.sources)
+    }
+    const { answer, ...rest } = response
+    return rest
+  }
+
+  /**
    * Provider 초기화 (선택)
    */
   async initialize(): Promise<void> {

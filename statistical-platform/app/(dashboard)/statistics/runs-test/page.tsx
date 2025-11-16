@@ -1,42 +1,27 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useCallback, useMemo, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RunsTestVariables } from '@/types/statistics'
-import { toRunsTestVariables, type VariableAssignment } from '@/types/statistics-converters'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import {
   Shuffle,
-  Upload,
-  Users,
-  TrendingUp,
-  AlertCircle,
   CheckCircle,
+  CheckCircle2,
+  AlertCircle,
   FileText,
   Download,
   Info,
   BarChart3
 } from 'lucide-react'
-
-import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
-import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
-import { getVariableRequirements } from '@/lib/statistics/variable-requirements'
-import { detectVariableType } from '@/lib/services/variable-type-detector'
-import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
-import type { UploadedData } from '@/hooks/use-statistics-page'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-// 데이터 인터페이스
-interface VariableSelection {
-  variables: string[]
-}
 
 // 런 검정 관련 타입 정의
 type RunValue = string | number | boolean
@@ -74,67 +59,92 @@ export default function RunsTestPage() {
     addToRecentStatistics('runs-test')
   }, [])
 
-  // Use statistics page hook
+  // Use statistics page hook (0-based indexing)
   const { state, actions } = useStatisticsPage<RunsTestResult, RunsTestVariables>({
     withUploadedData: true,
     withError: true
+    // initialStep: 0 (기본값)
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
-  // Page-specific state
+  // Breadcrumbs
+  const breadcrumbs = useMemo(() => [
+    { label: '홈', href: '/' },
+    { label: '통계 분석', href: '/statistics' },
+    { label: '비모수 검정', href: '/statistics' },
+    { label: '런 검정' }
+  ], [])
 
-  // 런 검정 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'method',
-      number: 1,
-      title: '런 검정 소개',
-      description: '데이터 무작위성 검정 개념',
-      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
-    },
+  // Steps
+  const STEPS = useMemo(() => {
+    const baseSteps = [
+      { id: 1, label: '방법 소개' },
+      { id: 2, label: '데이터 업로드' },
+      { id: 3, label: '변수 선택' },
+      { id: 4, label: '분석 결과' }
+    ]
 
-    {
-      id: 'upload',
-      number: 2,
-      title: '데이터 업로드',
-      description: '분석할 데이터 파일 업로드',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
-    },
-    {
-      id: 'variables',
-      number: 3,
-      title: '변수 선택',
-      description: '무작위성을 검정할 변수 선택',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
-    },
-    {
-      id: 'results',
-      number: 4,
-      title: '결과 해석',
-      description: '런 검정 결과 확인',
-      status: currentStep === 3 ? 'current' : 'pending'
+    return baseSteps.map((step, index) => ({
+      ...step,
+      completed: step.id === 1 ? currentStep > 0 :
+                step.id === 2 ? !!uploadedData :
+                step.id === 3 ? !!selectedVariables?.dependent :
+                step.id === 4 ? !!results : false
+    }))
+  }, [currentStep, uploadedData, selectedVariables, results])
+
+  // Available variables (numeric only)
+  const numericColumns = useMemo(() => {
+    if (!uploadedData || uploadedData.data.length === 0) return []
+
+    const firstRow = uploadedData.data[0]
+    if (!firstRow || typeof firstRow !== 'object') return []
+
+    return Object.keys(firstRow).filter(key => {
+      const value = (firstRow as Record<string, unknown>)[key]
+      return typeof value === 'number'
+    })
+  }, [uploadedData])
+
+  // Data upload handler
+  const handleDataUpload = useCallback((file: File, data: unknown[]) => {
+    const uploadedData = {
+      data: data as Record<string, unknown>[],
+      fileName: file.name,
+      columns: data.length > 0 && typeof data[0] === 'object' && data[0] !== null
+        ? Object.keys(data[0] as Record<string, unknown>)
+        : []
     }
-  ]
 
-  const handleDataUpload = createDataUploadHandler(
-    actions.setUploadedData,
-    () => {
-      actions.setCurrentStep(2)
-    },
-    'runs-test'
-  )
+    actions.setUploadedData?.(uploadedData)
+    actions.setCurrentStep?.(2) // Move to step 3 (변수 선택)
+  }, [actions])
 
-  const runAnalysis = useCallback(async (variables: RunsTestVariables | string[]) => {
-    const varName = typeof variables === 'string' ? variables : Array.isArray(variables) ? variables[0] : variables.dependent
-    if (!uploadedData || !varName) return
+  // Variable selection handler (Critical Bug Prevention)
+  const handleVariableSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { dependent: '' }
+    const newDependent = current.dependent === varName ? '' : varName
 
-    actions.startAnalysis()
+    actions.setSelectedVariables?.({
+      dependent: newDependent
+    })
+    // ❌ NO setCurrentStep here
+  }, [selectedVariables, actions])
+
+  // Run analysis
+  const runAnalysis = useCallback(async () => {
+    if (!selectedVariables?.dependent || !uploadedData) {
+      actions.setError?.('분석할 변수를 선택해주세요.')
+      return
+    }
+
+    actions.startAnalysis?.()
 
     try {
       // 1️⃣ 데이터 추출 (숫자형 데이터만)
       const sequence: number[] = []
       for (const row of uploadedData.data) {
-        const value = (row as Record<string, unknown>)[varName]
+        const value = (row as Record<string, unknown>)[selectedVariables.dependent]
         if (value !== null && value !== undefined && typeof value === 'number' && !isNaN(value)) {
           sequence.push(value)
         }
@@ -198,7 +208,7 @@ export default function RunsTestPage() {
       const significant = pythonResult.pValue < 0.05
 
       const result: RunsTestResult = {
-        variable: varName,
+        variable: selectedVariables.dependent,
         totalRuns: pythonResult.nRuns,
         expectedRuns: pythonResult.expectedRuns,
         variance,
@@ -217,418 +227,401 @@ export default function RunsTestPage() {
         }
       }
 
-      if (!actions.completeAnalysis) {
-        console.error('[runs-test] completeAnalysis not available')
-        return
-      }
-
-      actions.completeAnalysis(result, 3)
+      actions.completeAnalysis?.(result, 3)
     } catch (error) {
       console.error('런 검정 분석 중 오류:', error)
 
-      if (!actions.setError) {
-        console.error('[runs-test] setError not available')
-        return
-      }
-
       const errorMessage = error instanceof Error ? error.message : '런 검정 분석 중 오류가 발생했습니다.'
-      actions.setError(errorMessage)
+      actions.setError?.(errorMessage)
     }
-  }, [uploadedData, actions])
+  }, [uploadedData, selectedVariables, actions])
 
-  const handleVariableSelection = useCallback(
-    createVariableSelectionHandler<RunsTestVariables>(
-      (vars) => {
-        // First callback: state update with converter
-        const converted = vars ? toRunsTestVariables(vars as unknown as VariableAssignment) : null
-        actions.setSelectedVariables?.(converted)
-      },
-      (vars) => {
-        // Second callback: analysis execution with converter
-        const converted = toRunsTestVariables(vars as unknown as VariableAssignment)
-        if (converted.dependent) {
-          runAnalysis(converted)
-        }
-      },
-      'runs-test'
-    ),
-    [actions, runAnalysis]
-  )
+  // "다음 단계" button handler
+  const handleNextStep = useCallback(async () => {
+    if (!selectedVariables?.dependent) {
+      actions.setError?.('분석할 변수를 선택해주세요.')
+      return
+    }
 
-  const renderMethodIntroduction = () => (
-    <StepCard
-      title="런 검정 (Runs Test)"
-      description="데이터 시퀀스의 무작위성을 검정하는 비모수 통계 테스트"
-      icon={<Info className="w-5 h-5 text-blue-500" />}
-    >
-      <div className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shuffle className="w-5 h-5" />
-                런 검정이란?
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                연속된 데이터에서 <strong>런(run)</strong>의 개수를 이용하여
-                데이터가 무작위로 배열되었는지를 검정합니다.
+    actions.setCurrentStep?.(3)
+    await runAnalysis()
+  }, [selectedVariables, actions, runAnalysis])
+
+  // Step change handler
+  const handleStepChange = useCallback((step: number) => {
+    actions.setCurrentStep?.(step - 1) // 1-based → 0-based
+  }, [actions])
+
+  // Open new window handler
+  const handleOpenNewWindow = useCallback(() => {
+    if (!uploadedData) return
+    // TODO: 구현 예정
+    console.log('Open new window:', uploadedData.fileName)
+  }, [uploadedData])
+
+  // Render methods
+  const renderMethodIntroduction = useCallback(() => (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Shuffle className="w-5 w-5" />
+              런 검정이란?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              연속된 데이터에서 <strong>런(run)</strong>의 개수를 이용하여
+              데이터가 무작위로 배열되었는지를 검정합니다.
+            </p>
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-xs font-medium mb-1">런(Run)이란?</p>
+              <p className="text-xs text-muted-foreground">
+                동일한 특성을 가진 연속된 관측값들의 그룹<br/>
+                예: A-A-B-B-B-A → 3개의 런
               </p>
-              <div className="bg-muted p-3 rounded-lg">
-                <p className="text-xs font-medium mb-1">런(Run)이란?</p>
-                <p className="text-xs text-muted-foreground">
-                  동일한 특성을 가진 연속된 관측값들의 그룹<br/>
-                  예: A-A-B-B-B-A → 3개의 런
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                사용 사례
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">시계열 데이터의 패턴 검정</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">품질 관리 데이터 분석</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">게임 결과의 공정성 검정</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">생물학적 시퀀스 분석</span>
-                </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              사용 사례
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">시계열 데이터의 패턴 검정</span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">품질 관리 데이터 분석</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">게임 결과의 공정성 검정</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">생물학적 시퀀스 분석</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>가정 및 조건</AlertTitle>
+        <AlertDescription>
+          <ul className="mt-2 space-y-1 text-sm">
+            <li>• 데이터가 순서대로 배열되어 있어야 함</li>
+            <li>• 각 관측값이 독립적이어야 함</li>
+            <li>• 이분법적 분류가 가능해야 함 (중앙값 기준 등)</li>
+            <li>• 표본 크기가 충분해야 함 (n ≥ 20 권장)</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
+      <div className="flex justify-end">
+        <Button onClick={() => actions.setCurrentStep?.(1)} className="flex items-center space-x-2">
+          <span>다음: 데이터 업로드</span>
+          <CheckCircle2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  ), [actions])
+
+  const renderVariableSelection = useCallback(() => {
+    const selectedDependent = selectedVariables?.dependent || ''
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h4 className="font-medium mb-3">시퀀스 변수 선택</h4>
+          <p className="text-sm text-gray-500 mb-3">무작위성을 검정할 연속 데이터 변수를 선택하세요</p>
+          <div className="flex flex-wrap gap-2">
+            {numericColumns.map((header: string) => {
+              const isSelected = selectedDependent === header
+              return (
+                <Badge
+                  key={header}
+                  variant={isSelected ? 'default' : 'outline'}
+                  className="cursor-pointer max-w-[200px] truncate"
+                  title={header}
+                  onClick={() => handleVariableSelect(header)}
+                >
+                  {header}
+                  {isSelected && (
+                    <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                  )}
+                </Badge>
+              )
+            })}
+          </div>
         </div>
 
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>가정 및 조건</AlertTitle>
-          <AlertDescription>
-            <ul className="mt-2 space-y-1 text-sm">
-              <li>• 데이터가 순서대로 배열되어 있어야 함</li>
-              <li>• 각 관측값이 독립적이어야 함</li>
-              <li>• 이분법적 분류가 가능해야 함 (중앙값 기준 등)</li>
-              <li>• 표본 크기가 충분해야 함 (n ≥ 20 권장)</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
+        {selectedDependent && (
+          <Alert>
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertTitle>선택 완료</AlertTitle>
+            <AlertDescription>
+              시퀀스 변수: <strong>{selectedDependent}</strong>
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <div className="text-center">
+        <div className="bg-muted p-4 rounded-lg">
+          <h4 className="font-medium mb-2">분석 가이드</h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• <strong>순차성</strong>: 데이터가 시간이나 순서에 따라 배열되어야 함</li>
+            <li>• <strong>중앙값 분류</strong>: 중앙값을 기준으로 이분화 (≥ median, &lt; median)</li>
+            <li>• <strong>런 개수</strong>: 너무 적으면 군집화, 너무 많으면 교대 패턴</li>
+            <li>• <strong>최소 표본</strong>: 정규근사를 위해 n ≥ 20 권장</li>
+          </ul>
+        </div>
+
+        {error && (
+          <Alert variant="destructive">
+            <Info className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex justify-between">
           <Button
-            onClick={() => actions.setCurrentStep(1)}
-            className="w-full md:w-auto"
+            variant="outline"
+            onClick={() => actions.setCurrentStep?.(1)}
           >
-            데이터 업로드하기
+            이전: 데이터 업로드
+          </Button>
+
+          <Button
+            onClick={handleNextStep}
+            disabled={!selectedDependent || isAnalyzing}
+          >
+            {isAnalyzing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                분석 중...
+              </>
+            ) : (
+              '다음 단계: 분석 실행'
+            )}
           </Button>
         </div>
       </div>
-    </StepCard>
-  )
-
-  const renderDataUpload = () => (
-    <StepCard
-      title="데이터 업로드"
-      description="런 검정을 수행할 데이터를 업로드하세요"
-      icon={<Upload className="w-5 h-5 text-primary" />}
-    >
-      <DataUploadStep
-        onUploadComplete={handleDataUpload}
-        onPrevious={() => {
-          if (actions.setCurrentStep) {
-            actions.setCurrentStep(0)
-          }
-        }}
-      />
-    </StepCard>
-  )
-
-  const renderVariableSelection = () => {
-    if (!uploadedData) return null
-
-    const requirements = getVariableRequirements('runsTest')
-
-    // 변수 타입 자동 감지
-    const columns = Object.keys(uploadedData.data[0] || {})
-    const variables = columns.map(col => ({
-      name: col,
-      type: detectVariableType(
-        uploadedData.data.map(row => row[col]),
-        col
-      ),
-      stats: {
-        missing: uploadedData.data.filter(row => !row[col]).length,
-        unique: [...new Set(uploadedData.data.map(row => row[col]))].length,
-        min: Math.min(...uploadedData.data.map(row => Number(row[col]) || 0)),
-        max: Math.max(...uploadedData.data.map(row => Number(row[col]) || 0))
-      }
-    }))
-
-    return (
-      <StepCard
-        title="변수 선택"
-        description="무작위성을 검정할 변수를 선택하세요"
-        icon={<Users className="w-5 h-5 text-primary" />}
-      >
-        <VariableSelectorModern
-          methodId="runs-test"
-          data={uploadedData.data}
-          onVariablesSelected={handleVariableSelection}
-        />
-      </StepCard>
     )
-  }
+  }, [selectedVariables, numericColumns, error, isAnalyzing, handleVariableSelect, handleNextStep, actions])
 
-  const renderResults = () => {
-    if (!results) return null
+  const renderResults = useCallback(() => {
+    if (!results) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">분석 결과가 없습니다.</p>
+          <Button onClick={() => actions.setCurrentStep?.(2)} variant="outline">
+            변수 선택으로 돌아가기
+          </Button>
+        </div>
+      )
+    }
 
     const { totalRuns, expectedRuns, zStatistic, pValue, significant, statistics, runSequence, interpretation } = results
 
     return (
-      <StepCard
-        title="런 검정 결과"
-        description="데이터 무작위성 검정 결과"
-        icon={<TrendingUp className="w-5 h-5 text-primary" />}
-      >
-        <div className="space-y-6">
-          {/* 주요 결과 요약 */}
-          <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>검정 결과</AlertTitle>
-            <AlertDescription>
-              <div className="mt-2 space-y-2">
-                <p className="font-medium">
-                  Z = {zStatistic.toFixed(3)}, p = {pValue.toFixed(3)}
-                </p>
-                <p>
-                  {significant
-                    ? "❌ 데이터가 무작위 패턴을 따르지 않습니다 (p < 0.05)"
-                    : "✅ 데이터가 무작위 패턴을 따르는 것으로 보입니다 (p ≥ 0.05)"}
-                </p>
-                <p className="text-sm text-muted-foreground">{interpretation}</p>
-              </div>
-            </AlertDescription>
-          </Alert>
+      <div className="space-y-6">
+        {/* 주요 결과 요약 */}
+        <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>검정 결과</AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 space-y-2">
+              <p className="font-medium">
+                Z = {zStatistic.toFixed(3)}, p = {pValue.toFixed(3)}
+              </p>
+              <p>
+                {significant
+                  ? "❌ 데이터가 무작위 패턴을 따르지 않습니다 (p < 0.05)"
+                  : "✅ 데이터가 무작위 패턴을 따르는 것으로 보입니다 (p ≥ 0.05)"}
+              </p>
+              <p className="text-sm text-muted-foreground">{interpretation}</p>
+            </div>
+          </AlertDescription>
+        </Alert>
 
-          {/* 런 통계량 */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">런 통계량</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <p className="font-medium">관측된 런</p>
-                    <p className="text-xl font-bold text-muted-foreground">{totalRuns}</p>
-                  </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <p className="font-medium">기댓값</p>
-                    <p className="text-xl font-bold text-gray-600">{expectedRuns.toFixed(1)}</p>
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>첫 번째 범주 (n₁)</span>
-                    <Badge>{statistics.n1}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>두 번째 범주 (n₂)</span>
-                    <Badge>{statistics.n2}</Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>전체 샘플 수</span>
-                    <Badge>{statistics.totalN}</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">검정 통계량</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-center p-3 bg-primary/10 rounded-lg">
-                  <p className="font-medium">Z-통계량</p>
-                  <p className="text-2xl font-bold text-primary">{zStatistic.toFixed(3)}</p>
-                </div>
-                <Separator />
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>p-value</span>
-                    <Badge variant={significant ? "destructive" : "default"}>
-                      {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>유의수준 (α = 0.05)</span>
-                    <Badge variant={significant ? "destructive" : "secondary"}>
-                      {significant ? "기각" : "채택"}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* 런 시퀀스 */}
+        {/* 런 통계량 */}
+        <div className="grid md:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">런 시퀀스 분석</CardTitle>
+              <CardTitle className="text-base">런 통계량</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {runSequence.map((item, idx) => (
-                    <div key={idx} className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      item.run % 2 === 1 ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'
-                    }`}>
-                      Run {item.run}: {String(item.value)} ({item.runLength})
-                    </div>
-                  ))}
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <p className="font-medium">관측된 런</p>
+                  <p className="text-xl font-bold text-muted-foreground">{totalRuns}</p>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  * 괄호 안 숫자는 런의 길이를 나타냅니다.
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium">기댓값</p>
+                  <p className="text-xl font-bold text-gray-600">{expectedRuns.toFixed(1)}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>첫 번째 범주 (n₁)</span>
+                  <Badge>{statistics.n1}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>두 번째 범주 (n₂)</span>
+                  <Badge>{statistics.n2}</Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>전체 샘플 수</span>
+                  <Badge>{statistics.totalN}</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* 해석 가이드 */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">결과 해석 가이드</CardTitle>
+              <CardTitle className="text-base">검정 통계량</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>런 검정 해석</AlertTitle>
-                <AlertDescription>
-                  <div className="mt-2 space-y-2 text-sm">
-                    <p><strong>런이 너무 적은 경우:</strong> 데이터에 군집화 경향이 있음</p>
-                    <p><strong>런이 너무 많은 경우:</strong> 데이터가 교대로 변화하는 패턴</p>
-                    <p><strong>런이 적절한 경우:</strong> 데이터가 무작위 패턴을 따름</p>
-                  </div>
-                </AlertDescription>
-              </Alert>
-
-              <div className="bg-muted p-4 rounded-lg">
-                <h4 className="font-medium mb-2">주의사항</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• 런 검정은 데이터의 순서가 중요합니다</li>
-                  <li>• 중앙값을 기준으로 이분화할 때 동점 처리 방법을 고려하세요</li>
-                  <li>• 작은 표본에서는 정확한 확률을 계산해야 할 수 있습니다</li>
-                </ul>
+            <CardContent className="space-y-3">
+              <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <p className="font-medium">Z-통계량</p>
+                <p className="text-2xl font-bold text-primary">{zStatistic.toFixed(3)}</p>
+              </div>
+              <Separator />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>p-value</span>
+                  <Badge variant={significant ? "destructive" : "default"}>
+                    {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span>유의수준 (α = 0.05)</span>
+                  <Badge variant={significant ? "destructive" : "secondary"}>
+                    {significant ? "기각" : "채택"}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* 액션 버튼 */}
-          <div className="flex gap-3 justify-center pt-4">
-            <Tooltip>
-
-              <TooltipTrigger asChild>
-
-                <Button variant="outline" disabled>
-
-                  <FileText className="w-4 h-4 mr-2" />
-
-                  보고서 생성
-
-                </Button>
-
-              </TooltipTrigger>
-
-              <TooltipContent>
-
-                <p>향후 제공 예정입니다</p>
-
-              </TooltipContent>
-
-            </Tooltip>
-            <Tooltip>
-
-              <TooltipTrigger asChild>
-
-                <Button variant="outline" disabled>
-
-                  <Download className="w-4 h-4 mr-2" />
-
-                  결과 다운로드
-
-                </Button>
-
-              </TooltipTrigger>
-
-              <TooltipContent>
-
-                <p>향후 제공 예정입니다</p>
-
-              </TooltipContent>
-
-            </Tooltip>
-          </div>
         </div>
-      </StepCard>
+
+        {/* 런 시퀀스 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">런 시퀀스 분석</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {runSequence.map((item, idx) => (
+                  <div key={idx} className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                    item.run % 2 === 1 ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'
+                  }`}>
+                    Run {item.run}: {String(item.value)} ({item.runLength})
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                * 괄호 안 숫자는 런의 길이를 나타냅니다.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 해석 가이드 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">결과 해석 가이드</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>런 검정 해석</AlertTitle>
+              <AlertDescription>
+                <div className="mt-2 space-y-2 text-sm">
+                  <p><strong>런이 너무 적은 경우:</strong> 데이터에 군집화 경향이 있음</p>
+                  <p><strong>런이 너무 많은 경우:</strong> 데이터가 교대로 변화하는 패턴</p>
+                  <p><strong>런이 적절한 경우:</strong> 데이터가 무작위 패턴을 따름</p>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2">주의사항</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• 런 검정은 데이터의 순서가 중요합니다</li>
+                <li>• 중앙값을 기준으로 이분화할 때 동점 처리 방법을 고려하세요</li>
+                <li>• 작은 표본에서는 정확한 확률을 계산해야 할 수 있습니다</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 액션 버튼 */}
+        <div className="flex gap-3 justify-center pt-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled>
+                <FileText className="w-4 h-4 mr-2" />
+                보고서 생성
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>향후 제공 예정입니다</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled>
+                <Download className="w-4 h-4 mr-2" />
+                결과 다운로드
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>향후 제공 예정입니다</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
     )
-  }
+  }, [results, actions])
 
   return (
-    <StatisticsPageLayout
-      title="런 검정"
-      subtitle="Runs Test - 데이터 시퀀스의 무작위성 검정"
-      icon={<Shuffle className="w-6 h-6" />}
-      methodInfo={{
-        formula: 'E(R) = (2n₁n₂/N) + 1, Var(R) = 2n₁n₂(2n₁n₂-N)/[N²(N-1)]',
-        assumptions: ['순차적 데이터', '독립성', '이분법적 분류'],
-        sampleSize: '최소 20개 이상 권장 (정규근사)',
-        usage: '시계열 무작위성, 품질관리, 패턴 검정'
-      }}
-      steps={steps}
-      currentStep={currentStep}
-      onStepChange={actions.setCurrentStep}
-      onRun={() => {
-        if (selectedVariables && Array.isArray(selectedVariables)) {
-          runAnalysis(selectedVariables)
-        }
-      }}
-      onReset={() => {
-        if (actions.setCurrentStep) {
-          actions.setCurrentStep(0)
-        }
-        if (actions.setUploadedData) {
-          actions.setUploadedData(null)
-        }
-        if (actions.setSelectedVariables) {
-          actions.setSelectedVariables(null)
-        }
-        // Note: setResults accepts null in the hook implementation
-        // but TypeScript requires the exact type. We'll skip this call.
-      }}
-      isRunning={isAnalyzing}
-      showProgress={true}
-      showTips={true}
+    <TwoPanelLayout
+      currentStep={currentStep + 1} // 0-based → 1-based
+      steps={STEPS}
+      onStepChange={handleStepChange}
+      analysisTitle="런 검정"
+      analysisSubtitle="Runs Test - 데이터 시퀀스의 무작위성 검정"
+      analysisIcon={<Shuffle className="h-5 w-5 text-primary" />}
+      breadcrumbs={breadcrumbs}
+      bottomPreview={uploadedData ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        onOpenNewWindow: handleOpenNewWindow
+      } : undefined}
     >
       {currentStep === 0 && renderMethodIntroduction()}
-      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 1 && (
+        <DataUploadStep
+          onUploadComplete={handleDataUpload}
+          onPrevious={() => actions.setCurrentStep?.(0)}
+        />
+      )}
       {currentStep === 2 && renderVariableSelection()}
       {currentStep === 3 && renderResults()}
-    </StatisticsPageLayout>
+    </TwoPanelLayout>
   )
 }
