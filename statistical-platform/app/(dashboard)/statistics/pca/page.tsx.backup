@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { PCAVariables } from '@/types/statistics'
 import { toPCAVariables, type VariableAssignment } from '@/types/statistics-converters'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -28,8 +28,7 @@ import {
   Layers
 } from 'lucide-react'
 
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -85,20 +84,40 @@ export default function PCAPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '주성분 분석 (PCA)', href: '/statistics/pca' }
-  ], [])
+  // Page-specific state
 
-  // Steps configuration (0-based indexing)
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '방법 소개', completed: currentStep > 0 },
-    { id: 1, label: '데이터 업로드', completed: currentStep > 1 },
-    { id: 2, label: '변수 선택', completed: currentStep > 2 },
-    { id: 3, label: '결과 해석', completed: currentStep > 3 }
-  ], [currentStep])
+  // PCA 단계 정의
+  const steps: StatisticsStep[] = [
+    {
+      id: 'method',
+      number: 1,
+      title: 'PCA 소개',
+      description: '주성분분석 개념과 활용법',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: '분석할 다변량 데이터 업로드',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: 'PCA에 포함할 연속형 변수 선택',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '결과 해석',
+      description: '주성분 분석 결과 확인',
+      status: currentStep === 3 ? 'current' : 'pending'
+    }
+  ]
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
@@ -384,20 +403,13 @@ export default function PCAPage() {
     runAnalysis(variables)
   }, [runAnalysis, actions])
 
-  const renderMethodIntroduction = useCallback(() => (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="w-5 h-5 text-blue-500" />
-            주성분분석 (Principal Component Analysis)
-          </CardTitle>
-          <CardDescription>
-            다변량 데이터의 차원을 축소하여 주요 패턴을 추출하는 분석 기법
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
+  const renderMethodIntroduction = () => (
+    <StepCard
+      title="주성분분석 (Principal Component Analysis)"
+      description="다변량 데이터의 차원을 축소하여 주요 패턴을 추출하는 분석 기법"
+      icon={<Info className="w-5 h-5 text-blue-500" />}
+    >
+      <div className="space-y-6">
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -469,42 +481,33 @@ export default function PCAPage() {
           </AlertDescription>
         </Alert>
 
-            <div className="text-center">
-              <Button
-                onClick={() => actions.setCurrentStep(1)}
-                className="w-full md:w-auto"
-              >
-                데이터 업로드하기
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  ), [actions])
+        <div className="text-center">
+          <Button
+            onClick={() => actions.setCurrentStep(1)}
+            className="w-full md:w-auto"
+          >
+            데이터 업로드하기
+          </Button>
+        </div>
+      </div>
+    </StepCard>
+  )
 
-  const renderDataUpload = useCallback(() => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Upload className="w-5 h-5 text-primary" />
-          데이터 업로드
-        </CardTitle>
-        <CardDescription>
-          PCA를 수행할 다변량 데이터를 업로드하세요
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <DataUploadStep
-          onUploadComplete={handleDataUpload}
-          onNext={() => {}}
-          canGoNext={false}
-          currentStep={1}
-          totalSteps={4}
-        />
-      </CardContent>
-    </Card>
-  ), [handleDataUpload])
+  const renderDataUpload = () => (
+    <StepCard
+      title="데이터 업로드"
+      description="PCA를 수행할 다변량 데이터를 업로드하세요"
+      icon={<Upload className="w-5 h-5 text-primary" />}
+    >
+      <DataUploadStep
+        onUploadComplete={handleDataUpload}
+        onNext={() => {}}
+        canGoNext={false}
+        currentStep={1}
+        totalSteps={4}
+      />
+    </StepCard>
+  )
 
   const renderVariableSelection = () => {
     if (!uploadedData) return null
@@ -527,35 +530,28 @@ export default function PCAPage() {
     }))
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" />
-            변수 선택
-          </CardTitle>
-          <CardDescription>
-            주성분분석에 포함할 연속형 변수들을 선택하세요
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert className="mb-4">
-            <Info className="h-4 w-4" />
-            <AlertTitle>변수 선택 가이드</AlertTitle>
-            <AlertDescription>
-              <div className="mt-2 space-y-1 text-sm">
-                <p>• <strong>최소 2개 이상</strong>의 연속형 변수 선택 필요</p>
-                <p>• <strong>상관관계가 있는 변수들</strong>을 포함하는 것이 좋음</p>
-                <p>• 척도가 다른 변수들은 자동으로 표준화됩니다</p>
-              </div>
-            </AlertDescription>
-          </Alert>
-          <VariableSelectorModern
-            methodId="pca"
-            data={uploadedData.data}
-            onVariablesSelected={handleVariableSelection}
-          />
-        </CardContent>
-      </Card>
+      <StepCard
+        title="변수 선택"
+        description="주성분분석에 포함할 연속형 변수들을 선택하세요"
+        icon={<Users className="w-5 h-5 text-primary" />}
+      >
+        <Alert className="mb-4">
+          <Info className="h-4 w-4" />
+          <AlertTitle>변수 선택 가이드</AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 space-y-1 text-sm">
+              <p>• <strong>최소 2개 이상</strong>의 연속형 변수 선택 필요</p>
+              <p>• <strong>상관관계가 있는 변수들</strong>을 포함하는 것이 좋음</p>
+              <p>• 척도가 다른 변수들은 자동으로 표준화됩니다</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+        <VariableSelectorModern
+          methodId="pca"
+          data={uploadedData.data}
+          onVariablesSelected={handleVariableSelection}
+        />
+      </StepCard>
     )
   }
 
@@ -572,19 +568,12 @@ export default function PCAPage() {
     } = results
 
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" />
-              주성분분석 결과
-            </CardTitle>
-            <CardDescription>
-              데이터의 주요 패턴과 차원 축소 결과
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
+      <StepCard
+        title="주성분분석 결과"
+        description="데이터의 주요 패턴과 차원 축소 결과"
+        icon={<TrendingUp className="w-5 h-5 text-primary" />}
+      >
+        <div className="space-y-6">
           {/* 주요 결과 요약 */}
           <Alert className="border-blue-500 bg-muted">
             <Zap className="h-4 w-4" />
@@ -825,38 +814,46 @@ export default function PCAPage() {
               주성분 데이터 다운로드
             </Button>
           </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        </div>
+      </StepCard>
     )
   }
 
   return (
-    <TwoPanelLayout
-      analysisTitle="주성분분석 (PCA)"
-      analysisSubtitle="Principal Component Analysis"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="주성분분석"
+      subtitle="Principal Component Analysis - 차원 축소 및 패턴 추출"
+      icon={<Zap className="w-6 h-6" />}
+      methodInfo={{
+        formula: 'PC = α₁X₁ + α₂X₂ + ... + αₚXₚ (최대 분산)',
+        assumptions: ['연속형 변수', '선형관계', '충분한 표본크기'],
+        sampleSize: '변수 수의 5-10배 권장',
+        usage: '차원축소, 시각화, 노이즈제거, 특징선택'
+      }}
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
+      onStepChange={actions.setCurrentStep}
+      onRun={() => selectedVariables && runAnalysis(selectedVariables)}
+      onReset={() => {
+        if (actions.setCurrentStep) {
+          actions.setCurrentStep(0)
+        }
+        if (actions.setUploadedData) {
+          actions.setUploadedData(null)
+        }
+        if (actions.setSelectedVariables) {
+          actions.setSelectedVariables(null)
+        }
+        window.location.reload()
+      }}
+      isRunning={isAnalyzing}
+      showProgress={true}
+      showTips={true}
     >
-      {/* Step 0: 방법 소개 */}
       {currentStep === 0 && renderMethodIntroduction()}
-
-      {/* Step 1: 데이터 업로드 */}
       {currentStep === 1 && renderDataUpload()}
-
-      {/* Step 2: 변수 선택 */}
       {currentStep === 2 && renderVariableSelection()}
-
-      {/* Step 3: 결과 해석 */}
       {currentStep === 3 && renderResults()}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
