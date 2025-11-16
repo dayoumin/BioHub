@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { KSTestVariables } from '@/types/statistics'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -21,18 +21,12 @@ import {
   BarChart3
 } from 'lucide-react'
 
-import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
+import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-// 데이터 인터페이스
-// 로컬 인터페이스 제거: types/statistics.ts의 KSTestVariables 사용
-// interface VariableSelection {
-//   variables: string[]
-// }
+import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 
 // K-S 검정 타입 정의
 interface KSTestResult {
@@ -67,46 +61,30 @@ export default function KolmogorovSmirnovTestPage() {
   // Hook for state management
   const { state, actions } = useStatisticsPage<KSTestResult, KSTestVariables>({
     withUploadedData: true,
-    withError: true
+    withError: true,
+    initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
 
-  // K-S 검정 단계 정의
-  const steps: StatisticsStep[] = [
-    {
-      id: 'method',
-      number: 1,
-      title: 'K-S 검정 소개',
-      description: '분포 동일성 검정 개념',
-      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
-    },
-    {
-      id: 'upload',
-      number: 2,
-      title: '데이터 업로드',
-      description: '분석할 데이터 파일 업로드',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
-    },
-    {
-      id: 'variables',
-      number: 3,
-      title: '변수 선택',
-      description: '비교할 변수 선택',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
-    },
-    {
-      id: 'results',
-      number: 4,
-      title: '결과 해석',
-      description: 'K-S 검정 결과 확인',
-      status: currentStep === 3 ? 'current' : 'pending'
-    }
-  ]
+  const steps = useMemo(() => {
+    const baseSteps = [
+      { id: 1, label: '방법 소개' },
+      { id: 2, label: '데이터 업로드' },
+      { id: 3, label: '변수 선택' },
+      { id: 4, label: '분석 결과' }
+    ]
 
-  const handleDataUpload = useCallback((data: UploadedData) => {
-    actions.setUploadedData?.(data)
-    actions.setCurrentStep?.(2)
-  }, [actions])
+    return baseSteps.map((step, index) => ({
+      ...step,
+      completed: currentStep > index || (currentStep === 3 && results !== null)
+    }))
+  }, [currentStep, results])
+
+  const breadcrumbs = useMemo(() => [
+    { label: '홈', href: '/' },
+    { label: '통계 분석', href: '/statistics' },
+    { label: 'K-S 검정' }
+  ], [])
 
   // 일표본 K-S 검정 (정규분포 가정) - PyodideCore Worker 1
   const calculateOneSampleKS = useCallback(async (
@@ -217,125 +195,162 @@ export default function KolmogorovSmirnovTestPage() {
     }
   }, [uploadedData, calculateKSTest, actions])
 
-  const handleVariableSelection = useCallback((variables: KSTestVariables) => {
-    actions.setSelectedVariables?.(variables)
-    runAnalysis(variables)
-  }, [runAnalysis, actions])
+  const handleDataUpload = useCallback(
+    createDataUploadHandler(
+      actions?.setUploadedData,
+      () => {
+        if (!actions) return
+        actions.setCurrentStep(1)
+      },
+      'kolmogorov-smirnov'
+    ),
+    [actions]
+  )
 
-  const renderMethodIntroduction = () => (
-    <StepCard
-      title="Kolmogorov-Smirnov 검정"
-      description="분포의 동일성을 검정하는 비모수 통계 테스트"
-      icon={<Info className="w-5 h-5 text-blue-500" />}
-    >
-      <div className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                K-S 검정이란?
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                두 분포의 <strong>누적분포함수(CDF)</strong> 간의 최대 차이를 이용하여
-                분포의 동일성을 검정하는 비모수 방법입니다.
+  const handleAnalysis = useCallback(() => {
+    if (!selectedVariables || !actions) return
+    actions.setCurrentStep(3)
+    runAnalysis(selectedVariables)
+  }, [selectedVariables, actions, runAnalysis])
+
+  // Badge 기반 변수 선택 핸들러
+  const handleVariableSelect = useCallback((varName: string) => {
+    const current = selectedVariables || { variables: [] }
+    const currentVars = Array.isArray(current.variables) ? current.variables : []
+
+    const isSelected = currentVars.includes(varName)
+    let newVars: string[]
+
+    if (isSelected) {
+      // 선택 해제
+      newVars = currentVars.filter((v: string) => v !== varName)
+    } else {
+      // 최대 2개까지만 선택 가능
+      if (currentVars.length >= 2) {
+        newVars = [currentVars[1], varName] // 첫 번째 제거, 새 변수 추가
+      } else {
+        newVars = [...currentVars, varName]
+      }
+    }
+
+    actions.setSelectedVariables?.({ variables: newVars })
+    // ❌ setCurrentStep 제거: "다음 단계" 버튼이 Step 변경을 담당
+  }, [selectedVariables, actions])
+
+  const handleDataUploadBack = useCallback(() => {
+    if (!actions) return
+    actions.setCurrentStep(0)
+  }, [actions])
+
+  const handleVariablesBack = useCallback(() => {
+    if (!actions) return
+    actions.setCurrentStep(1)
+  }, [actions])
+
+  const renderMethodIntroduction = useCallback(() => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Kolmogorov-Smirnov 검정</h1>
+        <p className="text-lg text-gray-600">분포의 동일성을 검정하는 비모수 통계 테스트</p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              K-S 검정이란?
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              두 분포의 <strong>누적분포함수(CDF)</strong> 간의 최대 차이를 이용하여
+              분포의 동일성을 검정하는 비모수 방법입니다.
+            </p>
+            <div className="bg-muted p-3 rounded-lg">
+              <p className="text-xs font-medium mb-1">검정 통계량</p>
+              <p className="text-xs text-muted-foreground">
+                D = max|F₁(x) - F₂(x)|<br/>
+                F₁, F₂: 각각의 경험적 분포함수
               </p>
-              <div className="bg-muted p-3 rounded-lg">
-                <p className="text-xs font-medium mb-1">검정 통계량</p>
-                <p className="text-xs text-muted-foreground">
-                  D = max|F₁(x) - F₂(x)|<br/>
-                  F₁, F₂: 각각의 경험적 분포함수
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                사용 사례
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">정규성 검정 (일표본)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">두 집단 분포 비교 (이표본)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">모델 적합도 검정</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">분포 가정 확인</span>
-                </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              사용 사례
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">정규성 검정 (일표본)</span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">두 집단 분포 비교 (이표본)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">모델 적합도 검정</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="text-sm">분포 가정 확인</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>가정 및 조건</AlertTitle>
+        <AlertDescription>
+          <ul className="mt-2 space-y-1 text-sm">
+            <li>• 연속형 변수 (이산형도 가능하나 정확도 떨어짐)</li>
+            <li>• 관측값들이 독립적이어야 함</li>
+            <li>• 분포에 대한 가정이 필요하지 않음 (비모수)</li>
+            <li>• 표본 크기가 클수록 검정력 증가</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
+      <div className="flex justify-center">
+        <Button onClick={() => actions.setCurrentStep(1)} size="lg">
+          데이터 업로드하기
+        </Button>
+      </div>
+    </div>
+  ), [actions])
+
+  const renderVariableSelection = useCallback(() => {
+    if (!uploadedData) return null
+
+    const numericColumns = uploadedData.columns.filter((col: string) => {
+      const firstValue = uploadedData.data[0]?.[col]
+      return typeof firstValue === 'number'
+    })
+
+    const selectedVars = Array.isArray(selectedVariables?.variables)
+      ? selectedVariables.variables
+      : []
+
+    const canProceed = selectedVars.length >= 1 && selectedVars.length <= 2
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">변수 선택</h2>
+          <p className="text-gray-600">분포를 비교할 변수를 선택하세요 (1개 또는 2개)</p>
         </div>
 
         <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>가정 및 조건</AlertTitle>
-          <AlertDescription>
-            <ul className="mt-2 space-y-1 text-sm">
-              <li>• 연속형 변수 (이산형도 가능하나 정확도 떨어짐)</li>
-              <li>• 관측값들이 독립적이어야 함</li>
-              <li>• 분포에 대한 가정이 필요하지 않음 (비모수)</li>
-              <li>• 표본 크기가 클수록 검정력 증가</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-
-        <div className="text-center">
-          <Button
-            onClick={() => actions.setCurrentStep(1)}
-            className="w-full md:w-auto"
-          >
-            데이터 업로드하기
-          </Button>
-        </div>
-      </div>
-    </StepCard>
-  )
-
-  const renderDataUpload = () => (
-    <StepCard
-      title="데이터 업로드"
-      description="K-S 검정을 수행할 데이터를 업로드하세요"
-      icon={<Upload className="w-5 h-5 text-primary" />}
-    >
-      <DataUploadStep
-        onUploadComplete={(file: File, data: Record<string, unknown>[]) => {
-          const columns = Object.keys(data[0] || {})
-          handleDataUpload({
-            data,
-            fileName: file.name,
-            columns
-          })
-        }}
-      />
-    </StepCard>
-  )
-
-  const renderVariableSelection = () => {
-    if (!uploadedData) return null
-
-    return (
-      <StepCard
-        title="변수 선택"
-        description="분포를 비교할 변수를 선택하세요"
-        icon={<Users className="w-5 h-5 text-primary" />}
-      >
-        <Alert className="mb-4">
           <Info className="h-4 w-4" />
           <AlertTitle>검정 유형</AlertTitle>
           <AlertDescription>
@@ -345,20 +360,87 @@ export default function KolmogorovSmirnovTestPage() {
             </div>
           </AlertDescription>
         </Alert>
-        <VariableSelectorModern
-          methodId="kolmogorov-smirnov"
-          data={uploadedData.data}
-          onVariablesSelected={(variables) => {
-            // Convert VariableAssignment to VariableSelection
-            const variableArray = Object.values(variables).flat().filter(v => typeof v === 'string') as string[]
-            handleVariableSelection({ variables: variableArray })
-          }}
-        />
-      </StepCard>
-    )
-  }
 
-  const renderResults = () => {
+        <Card>
+          <CardHeader>
+            <CardTitle>검정 변수 선택</CardTitle>
+            <CardDescription>
+              분포를 비교할 연속형 변수를 선택하세요
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {numericColumns.map((col: string) => {
+                const isSelected = selectedVars.includes(col)
+                return (
+                  <Badge
+                    key={col}
+                    variant={isSelected ? 'default' : 'outline'}
+                    className="cursor-pointer"
+                    onClick={() => handleVariableSelect(col)}
+                  >
+                    {col}
+                    {isSelected && <CheckCircle className="ml-1 h-3 w-3" />}
+                  </Badge>
+                )
+              })}
+            </div>
+            {selectedVars.length > 0 && (
+              <div className="mt-3 p-2 bg-muted rounded text-sm">
+                <span className="font-medium">선택된 변수: </span>
+                {selectedVars.join(', ')}
+                {selectedVars.length === 1 && ' (일표본 검정)'}
+                {selectedVars.length === 2 && ' (이표본 검정)'}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {!canProceed && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              변수를 1개 이상 선택해야 합니다 (최대 2개).
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex justify-between">
+          <Button variant="outline" onClick={handleVariablesBack}>
+            이전 단계
+          </Button>
+          <Button
+            onClick={handleAnalysis}
+            disabled={!canProceed}
+          >
+            다음 단계
+          </Button>
+        </div>
+      </div>
+    )
+  }, [uploadedData, selectedVariables, handleVariableSelect, handleVariablesBack, handleAnalysis])
+
+  const renderResults = useCallback(() => {
+    if (isAnalyzing) {
+      return (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p>K-S 검정을 진행하고 있습니다...</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )
+    }
+
     if (!results) return null
 
     const {
@@ -376,237 +458,218 @@ export default function KolmogorovSmirnovTestPage() {
     } = results
 
     return (
-      <StepCard
-        title="K-S 검정 결과"
-        description={`${testType === 'one-sample' ? '일표본' : '이표본'} 분포 검정 결과`}
-        icon={<TrendingUp className="w-5 h-5 text-primary" />}
-      >
-        <div className="space-y-6">
-          {/* 주요 결과 요약 */}
-          <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>검정 결과</AlertTitle>
-            <AlertDescription>
-              <div className="mt-2 space-y-2">
-                <p className="font-medium">
-                  D = {statisticKS.toFixed(4)}, p = {pValue.toFixed(3)}
-                </p>
-                <p>
-                  {significant
-                    ? "❌ 분포가 유의하게 다릅니다 (p < 0.05)"
-                    : "✅ 분포가 유의하게 다르지 않습니다 (p ≥ 0.05)"}
-                </p>
-                <p className="text-sm text-muted-foreground">{interpretation}</p>
-              </div>
-            </AlertDescription>
-          </Alert>
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">K-S 검정 결과</h2>
+          <p className="text-gray-600">{testType === 'one-sample' ? '일표본' : '이표본'} 분포 검정 결과</p>
+        </div>
 
-          {/* 검정 통계량 */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">검정 통계량</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-center p-3 bg-primary/10 rounded-lg">
-                  <p className="font-medium">K-S 통계량 (D)</p>
-                  <p className="text-2xl font-bold text-primary">{statisticKS.toFixed(4)}</p>
-                </div>
-                <Separator />
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>p-value</span>
-                    <Badge variant={significant ? "destructive" : "default"}>
-                      {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
-                    </Badge>
-                  </div>
-                  {criticalValue && (
-                    <div className="flex justify-between">
-                      <span>임계값 (α = 0.05)</span>
-                      <Badge variant="outline">{criticalValue.toFixed(4)}</Badge>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+        {/* 주요 결과 요약 */}
+        <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>검정 결과</AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 space-y-2">
+              <p className="font-medium">
+                D = {statisticKS.toFixed(4)}, p = {pValue.toFixed(3)}
+              </p>
+              <p>
+                {significant
+                  ? "❌ 분포가 유의하게 다릅니다 (p < 0.05)"
+                  : "✅ 분포가 유의하게 다르지 않습니다 (p ≥ 0.05)"}
+              </p>
+              <p className="text-sm text-muted-foreground">{interpretation}</p>
+            </div>
+          </AlertDescription>
+        </Alert>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">표본 정보</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>{variable1} 표본수</span>
-                    <Badge>{sampleSizes.n1}</Badge>
-                  </div>
-                  {sampleSizes.n2 && variable2 && (
-                    <div className="flex justify-between">
-                      <span>{variable2} 표본수</span>
-                      <Badge>{sampleSizes.n2}</Badge>
-                    </div>
-                  )}
-                  {effectSize && (
-                    <div className="flex justify-between">
-                      <span>효과크기</span>
-                      <Badge variant={effectSize > 0.8 ? "default" : effectSize > 0.5 ? "secondary" : "outline"}>
-                        {effectSize.toFixed(3)}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* 분포 정보 (일표본인 경우) */}
-          {distributionInfo && testType === 'one-sample' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">분포 적합도 정보</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="text-center p-3 bg-muted rounded-lg">
-                    <p className="font-medium">관측 평균</p>
-                    <p className="text-lg font-bold text-muted-foreground">{distributionInfo.observedMean.toFixed(3)}</p>
-                  </div>
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <p className="font-medium">관측 표준편차</p>
-                    <p className="text-lg font-bold text-gray-600">{distributionInfo.observedStd.toFixed(3)}</p>
-                  </div>
-                </div>
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>분포 비교</AlertTitle>
-                  <AlertDescription>
-                    <p className="text-sm mt-2">
-                      관측된 데이터와 {distributionInfo.expectedDistribution} 간의 최대 차이를 측정합니다.
-                      D 값이 클수록 분포의 차이가 큼을 의미합니다.
-                    </p>
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 해석 가이드 */}
+        {/* 검정 통계량 */}
+        <div className="grid md:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">결과 해석 가이드</CardTitle>
+              <CardTitle className="text-base">검정 통계량</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>K-S 검정 해석</AlertTitle>
-                <AlertDescription>
-                  <div className="mt-2 space-y-2 text-sm">
-                    <p><strong>귀무가설(H₀):</strong> 두 분포가 동일하다</p>
-                    <p><strong>대립가설(H₁):</strong> 두 분포가 다르다</p>
-                    <p><strong>판단기준:</strong> p-value &lt; 0.05이면 귀무가설 기각</p>
-                  </div>
-                </AlertDescription>
-              </Alert>
-
-              {testType === 'two-sample' && effectSize && (
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">효과크기 해석</h4>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <p>• <strong>작은 효과</strong>: 0.2 ~ 0.5</p>
-                    <p>• <strong>중간 효과</strong>: 0.5 ~ 0.8</p>
-                    <p>• <strong>큰 효과</strong>: 0.8 이상</p>
-                    <p className="mt-2 font-medium">현재 효과크기: {effectSize.toFixed(3)}
-                      ({effectSize < 0.5 ? '작음' : effectSize < 0.8 ? '중간' : '큼'})
-                    </p>
-                  </div>
+            <CardContent className="space-y-3">
+              <div className="text-center p-3 bg-primary/10 rounded-lg">
+                <p className="font-medium">K-S 통계량 (D)</p>
+                <p className="text-2xl font-bold text-primary">{statisticKS.toFixed(4)}</p>
+              </div>
+              <Separator />
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>p-value</span>
+                  <Badge variant={significant ? "destructive" : "default"}>
+                    {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
+                  </Badge>
                 </div>
-              )}
-
-              <div className="bg-muted p-4 rounded-lg">
-                <h4 className="font-medium mb-2">주의사항</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• K-S 검정은 분포의 모든 측면(위치, 척도, 모양)을 고려합니다</li>
-                  <li>• 표본 크기가 클수록 작은 차이도 유의하게 검출될 수 있습니다</li>
-                  <li>• 이산형 데이터에서는 보수적인 결과를 보일 수 있습니다</li>
-                </ul>
+                {criticalValue && (
+                  <div className="flex justify-between">
+                    <span>임계값 (α = 0.05)</span>
+                    <Badge variant="outline">{criticalValue.toFixed(4)}</Badge>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* 액션 버튼 */}
-          <div className="flex gap-3 justify-center pt-4">
-            <Tooltip>
-
-              <TooltipTrigger asChild>
-
-                <Button variant="outline" disabled>
-
-                  <FileText className="w-4 h-4 mr-2" />
-
-                  보고서 생성
-
-                </Button>
-
-              </TooltipTrigger>
-
-              <TooltipContent>
-
-                <p>향후 제공 예정입니다</p>
-
-              </TooltipContent>
-
-            </Tooltip>
-            <Tooltip>
-
-              <TooltipTrigger asChild>
-
-                <Button variant="outline" disabled>
-
-                  <Download className="w-4 h-4 mr-2" />
-
-                  결과 다운로드
-
-                </Button>
-
-              </TooltipTrigger>
-
-              <TooltipContent>
-
-                <p>향후 제공 예정입니다</p>
-
-              </TooltipContent>
-
-            </Tooltip>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">표본 정보</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>{variable1} 표본수</span>
+                  <Badge>{sampleSizes.n1}</Badge>
+                </div>
+                {sampleSizes.n2 && variable2 && (
+                  <div className="flex justify-between">
+                    <span>{variable2} 표본수</span>
+                    <Badge>{sampleSizes.n2}</Badge>
+                  </div>
+                )}
+                {effectSize && (
+                  <div className="flex justify-between">
+                    <span>효과크기</span>
+                    <Badge variant={effectSize > 0.8 ? "default" : effectSize > 0.5 ? "secondary" : "outline"}>
+                      {effectSize.toFixed(3)}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </StepCard>
+
+        {/* 분포 정보 (일표본인 경우) */}
+        {distributionInfo && testType === 'one-sample' && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">분포 적합도 정보</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <p className="font-medium">관측 평균</p>
+                  <p className="text-lg font-bold text-muted-foreground">{distributionInfo.observedMean.toFixed(3)}</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-lg">
+                  <p className="font-medium">관측 표준편차</p>
+                  <p className="text-lg font-bold text-gray-600">{distributionInfo.observedStd.toFixed(3)}</p>
+                </div>
+              </div>
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>분포 비교</AlertTitle>
+                <AlertDescription>
+                  <p className="text-sm mt-2">
+                    관측된 데이터와 {distributionInfo.expectedDistribution} 간의 최대 차이를 측정합니다.
+                    D 값이 클수록 분포의 차이가 큼을 의미합니다.
+                  </p>
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 해석 가이드 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">결과 해석 가이드</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>K-S 검정 해석</AlertTitle>
+              <AlertDescription>
+                <div className="mt-2 space-y-2 text-sm">
+                  <p><strong>귀무가설(H₀):</strong> 두 분포가 동일하다</p>
+                  <p><strong>대립가설(H₁):</strong> 두 분포가 다르다</p>
+                  <p><strong>판단기준:</strong> p-value &lt; 0.05이면 귀무가설 기각</p>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            {testType === 'two-sample' && effectSize && (
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">효과크기 해석</h4>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>• <strong>작은 효과</strong>: 0.2 ~ 0.5</p>
+                  <p>• <strong>중간 효과</strong>: 0.5 ~ 0.8</p>
+                  <p>• <strong>큰 효과</strong>: 0.8 이상</p>
+                  <p className="mt-2 font-medium">현재 효과크기: {effectSize.toFixed(3)}
+                    ({effectSize < 0.5 ? '작음' : effectSize < 0.8 ? '중간' : '큼'})
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2">주의사항</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• K-S 검정은 분포의 모든 측면(위치, 척도, 모양)을 고려합니다</li>
+                <li>• 표본 크기가 클수록 작은 차이도 유의하게 검출될 수 있습니다</li>
+                <li>• 이산형 데이터에서는 보수적인 결과를 보일 수 있습니다</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 액션 버튼 */}
+        <div className="flex gap-3 justify-center pt-4">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled>
+                <FileText className="w-4 h-4 mr-2" />
+                보고서 생성
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>향후 제공 예정입니다</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" disabled>
+                <Download className="w-4 h-4 mr-2" />
+                결과 다운로드
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>향후 제공 예정입니다</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
     )
-  }
+  }, [isAnalyzing, error, results])
 
   return (
-    <StatisticsPageLayout
-      title="Kolmogorov-Smirnov 검정"
-      subtitle="K-S Test - 분포의 동일성 검정"
-      icon={<Activity className="w-6 h-6" />}
-      methodInfo={{
-        formula: 'D = max|F₁(x) - F₂(x)|, 임계값 = 1.36/√n (일표본)',
-        assumptions: ['연속형 변수', '독립성', '비모수적'],
-        sampleSize: '제한 없음 (클수록 검정력 증가)',
-        usage: '정규성 검정, 분포 비교, 적합도 검정'
-      }}
+    <TwoPanelLayout
+      currentStep={currentStep + 1}
       steps={steps}
-      currentStep={currentStep}
-      onStepChange={actions.setCurrentStep}
-      onRun={() => selectedVariables && runAnalysis(selectedVariables)}
-      onReset={actions.reset}
-      isRunning={isAnalyzing}
-      showProgress={true}
-      showTips={true}
+      onStepChange={(step) => actions.setCurrentStep(step - 1)}
+      analysisTitle="K-S 검정"
+      analysisSubtitle="Kolmogorov-Smirnov Test"
+      analysisIcon={<Activity className="h-5 w-5 text-primary" />}
+      breadcrumbs={breadcrumbs}
+      bottomPreview={uploadedData ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        maxRows: 10
+      } : undefined}
     >
       {currentStep === 0 && renderMethodIntroduction()}
-      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 1 && (
+        <DataUploadStep
+          onUploadComplete={handleDataUpload}
+          onPrevious={handleDataUploadBack}
+          currentStep={1}
+          totalSteps={4}
+        />
+      )}
       {currentStep === 2 && renderVariableSelection()}
       {currentStep === 3 && renderResults()}
-    </StatisticsPageLayout>
+    </TwoPanelLayout>
   )
 }
