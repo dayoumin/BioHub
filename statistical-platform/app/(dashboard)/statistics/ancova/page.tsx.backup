@@ -26,8 +26,7 @@ import {
 } from 'lucide-react'
 
 // Components
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
@@ -146,19 +145,36 @@ export default function ANCOVAPage() {
     initPyodide()
   }, [actions])
 
-  // Breadcrumbs - useMemo로 최적화
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '공분산분석', href: '/statistics/ancova' }
-  ], [])
-
-  // Steps configuration - TwoPanelLayout 0-based indexing
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '방법 소개', completed: currentStep > 0 },
-    { id: 1, label: '데이터 업로드', completed: currentStep > 1 },
-    { id: 2, label: '변수 선택', completed: currentStep > 2 },
-    { id: 3, label: '결과 해석', completed: currentStep > 3 }
+  // Steps configuration - useMemo로 성능 최적화
+  const steps: StatisticsStep[] = useMemo(() => [
+    {
+      id: 'method',
+      number: 1,
+      title: '분석 방법',
+      description: 'ANCOVA의 개념과 적용',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: 'ANCOVA 데이터 업로드',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '종속변수, 요인, 공변량 설정',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '결과 해석',
+      description: 'ANCOVA 결과 및 수정된 평균',
+      status: currentStep === 3 ? 'current' : 'pending'
+    }
   ], [currentStep])
 
   // Method info - useMemo로 최적화
@@ -178,7 +194,7 @@ export default function ANCOVAPage() {
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
     () => {
-      actions.setCurrentStep(2)  // Step 2 (변수 선택) - 0-based indexing
+      actions.setCurrentStep(2)
     },
     'ancova'
   )
@@ -244,157 +260,159 @@ export default function ANCOVAPage() {
     return '효과 없음'
   }
 
-  // Render function for method introduction (Step 0)
-  const renderMethodIntroduction = useCallback(() => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              분석 목적
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              공변량(covariate)의 영향을 통제한 후 집단 간 평균 차이를 검정합니다.
-            </p>
-            <ul className="text-sm space-y-1">
-              <li>• 사전 점수나 연령 등의 영향 제거</li>
-              <li>• 순수한 처치 효과 확인</li>
-              <li>• 검정력 향상 효과</li>
-              <li>• 수정된 평균(adjusted means) 비교</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              적용 예시
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="space-y-3 text-sm">
-              <div className="bg-muted p-3 rounded">
-                <h4 className="font-medium">교육 효과</h4>
-                <p className="text-muted-foreground">사전 점수를 통제한 학습법 비교</p>
-              </div>
-              <div className="bg-muted p-3 rounded">
-                <h4 className="font-medium">임상 시험</h4>
-                <p className="text-muted-foreground">기저선 값을 통제한 치료 효과</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Alert>
-        <Calculator className="h-4 w-4" />
-        <AlertTitle>언제 사용하나요?</AlertTitle>
-        <AlertDescription>
-          • 집단 간 비교에서 영향을 미칠 수 있는 변수가 있을 때<br/>
-          • 사전-사후 설계에서 사전 점수를 통제하고 싶을 때<br/>
-          • ANOVA의 검정력을 향상시키고 싶을 때<br/>
-          • 무작위 배정이 완전하지 않은 준실험 설계
-        </AlertDescription>
-      </Alert>
-
-      <div className="p-4 bg-muted border border rounded-lg">
-        <h4 className="font-medium mb-2">주요 가정</h4>
-        <ul className="text-sm text-muted-foreground space-y-1">
-          <li>• <strong>선형성:</strong> 공변량과 종속변수 간 선형관계</li>
-          <li>• <strong>회귀직선 동질성:</strong> 집단별 회귀계수가 동일</li>
-          <li>• <strong>정규성:</strong> 잔차가 정규분포</li>
-          <li>• <strong>등분산성:</strong> 집단 간 잔차 분산 동일</li>
-          <li>• <strong>독립성:</strong> 공변량과 처치가 독립적</li>
-        </ul>
-      </div>
-
-      <div className="flex justify-end">
-        <Button onClick={() => actions.setCurrentStep(1)}>
-          다음: 데이터 업로드
-        </Button>
-      </div>
-    </div>
-  ), [actions])
-
   return (
-    <TwoPanelLayout
-      analysisTitle="공분산분석"
-      analysisSubtitle="Analysis of Covariance (ANCOVA)"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="공분산분석"
+      subtitle="Analysis of Covariance (ANCOVA)"
+      description="공변량을 통제한 집단 간 평균 비교 분석"
+      icon={<GitBranch className="w-6 h-6" />}
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
+      onStepChange={actions.setCurrentStep}
+      methodInfo={methodInfo}
     >
-      {/* Step 0: 방법론 소개 */}
-      {currentStep === 0 && renderMethodIntroduction()}
+      {/* Step 1: 방법론 소개 */}
+      {currentStep === 0 && (
+        <StepCard
+          title="공분산분석 소개"
+          description="공변량을 통제한 집단 간 비교 분석"
+          icon={<Info className="w-5 h-5 text-blue-500" />}
+        >
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    분석 목적
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    공변량(covariate)의 영향을 통제한 후 집단 간 평균 차이를 검정합니다.
+                  </p>
+                  <ul className="text-sm space-y-1">
+                    <li>• 사전 점수나 연령 등의 영향 제거</li>
+                    <li>• 순수한 처치 효과 확인</li>
+                    <li>• 검정력 향상 효과</li>
+                    <li>• 수정된 평균(adjusted means) 비교</li>
+                  </ul>
+                </CardContent>
+              </Card>
 
-      {/* Step 1: 데이터 업로드 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Settings className="w-5 h-5" />
+                    적용 예시
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="space-y-3 text-sm">
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">교육 효과</h4>
+                      <p className="text-muted-foreground">사전 점수를 통제한 학습법 비교</p>
+                    </div>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">임상 시험</h4>
+                      <p className="text-muted-foreground">기저선 값을 통제한 치료 효과</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Alert>
+              <Calculator className="h-4 w-4" />
+              <AlertTitle>언제 사용하나요?</AlertTitle>
+              <AlertDescription>
+                • 집단 간 비교에서 영향을 미칠 수 있는 변수가 있을 때<br/>
+                • 사전-사후 설계에서 사전 점수를 통제하고 싶을 때<br/>
+                • ANOVA의 검정력을 향상시키고 싶을 때<br/>
+                • 무작위 배정이 완전하지 않은 준실험 설계
+              </AlertDescription>
+            </Alert>
+
+            <div className="p-4 bg-muted border border rounded-lg">
+              <h4 className="font-medium mb-2">주요 가정</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• <strong>선형성:</strong> 공변량과 종속변수 간 선형관계</li>
+                <li>• <strong>회귀직선 동질성:</strong> 집단별 회귀계수가 동일</li>
+                <li>• <strong>정규성:</strong> 잔차가 정규분포</li>
+                <li>• <strong>등분산성:</strong> 집단 간 잔차 분산 동일</li>
+                <li>• <strong>독립성:</strong> 공변량과 처치가 독립적</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end">
+              <Button onClick={() => actions.setCurrentStep(1)}>
+                다음: 데이터 업로드
+              </Button>
+            </div>
+          </div>
+        </StepCard>
+      )}
+
+      {/* Step 2: 데이터 업로드 */}
       {currentStep === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>데이터 업로드</CardTitle>
-            <CardDescription>ANCOVA 분석용 데이터를 업로드하세요</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataUploadStep
-              onNext={() => {}}
-              onUploadComplete={handleDataUpload}
-            />
+        <StepCard
+          title="데이터 업로드"
+          description="ANCOVA 분석용 데이터를 업로드하세요"
+          icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
+        >
+          <DataUploadStep
+            onNext={() => {}}
+            onUploadComplete={handleDataUpload}
+          />
 
-            <Alert className="mt-4">
-              <GitBranch className="h-4 w-4" />
-              <AlertTitle>ANCOVA 데이터 형식</AlertTitle>
-              <AlertDescription>
-                • 각 행은 하나의 참가자를 나타냅니다<br/>
-                • 종속변수: 연속형 변수 (예: 사후점수)<br/>
-                • 요인(독립변수): 범주형 변수 (예: 집단)<br/>
-                • 공변량: 연속형 변수 (예: 사전점수, 연령)<br/>
-                • 결측값은 최소화해야 합니다
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+          <Alert className="mt-4">
+            <GitBranch className="h-4 w-4" />
+            <AlertTitle>ANCOVA 데이터 형식</AlertTitle>
+            <AlertDescription>
+              • 각 행은 하나의 참가자를 나타냅니다<br/>
+              • 종속변수: 연속형 변수 (예: 사후점수)<br/>
+              • 요인(독립변수): 범주형 변수 (예: 집단)<br/>
+              • 공변량: 연속형 변수 (예: 사전점수, 연령)<br/>
+              • 결측값은 최소화해야 합니다
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
+              이전
+            </Button>
+          </div>
+        </StepCard>
       )}
 
-      {/* Step 2: 변수 선택 */}
+      {/* Step 3: 변수 선택 */}
       {currentStep === 2 && uploadedData && (
-        <Card>
-          <CardHeader>
-            <CardTitle>변수 선택</CardTitle>
-            <CardDescription>종속변수, 요인, 공변량을 선택하세요</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <VariableSelectorModern
-              methodId="ancova"
-              data={Array.isArray(uploadedData) ? uploadedData : []}
-              onVariablesSelected={handleVariableSelection}
-              onBack={() => actions.setCurrentStep(1)}
-            />
+        <StepCard
+          title="변수 선택"
+          description="종속변수, 요인, 공변량을 선택하세요"
+          icon={<BarChart3 className="w-5 h-5 text-primary" />}
+        >
+          <VariableSelectorModern
+            methodId="ancova"
+            data={Array.isArray(uploadedData) ? uploadedData : []}
+            onVariablesSelected={handleVariableSelection}
+            onBack={() => actions.setCurrentStep(1)}
+          />
 
-            <Alert className="mt-4">
-              <Info className="h-4 w-4" />
-              <AlertTitle>변수 선택 가이드</AlertTitle>
-              <AlertDescription>
-                • 종속변수: 비교하고자 하는 연속형 결과 변수 (1개)<br/>
-                • 독립변수: 집단을 구분하는 범주형 변수 (1개)<br/>
-                • 공변량: 통제하고자 하는 연속형 변수 (1개 이상)<br/>
-                • 예: 종속변수(사후점수), 독립변수(처치집단), 공변량(사전점수)
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+          <Alert className="mt-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>변수 선택 가이드</AlertTitle>
+            <AlertDescription>
+              • 종속변수: 비교하고자 하는 연속형 결과 변수 (1개)<br/>
+              • 독립변수: 집단을 구분하는 범주형 변수 (1개)<br/>
+              • 공변량: 통제하고자 하는 연속형 변수 (1개 이상)<br/>
+              • 예: 종속변수(사후점수), 독립변수(처치집단), 공변량(사전점수)
+            </AlertDescription>
+          </Alert>
+        </StepCard>
       )}
 
-      {/* Step 3: 결과 */}
+      {/* Step 4: 결과 */}
       {currentStep === 3 && analysisResult && (
         <div className="space-y-6">
           {/* 주요 결과 카드 */}
@@ -794,6 +812,6 @@ export default function ANCOVAPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
