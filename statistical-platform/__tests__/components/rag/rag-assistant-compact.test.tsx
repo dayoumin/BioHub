@@ -13,6 +13,7 @@ import { RAGAssistantCompact } from '@/components/rag/rag-assistant-compact'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import { queryRAG } from '@/lib/rag/rag-service'
 import type { ChatSession } from '@/lib/types/chat'
+import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 
 // Mock markdown dependencies (ESM modules)
 jest.mock('remark-gfm', () => ({}))
@@ -307,9 +308,10 @@ describe('RAGAssistantCompact', () => {
     })
 
     it('로딩 중 UI를 표시해야 함', async () => {
-      let resolveQuery: ((value: RAGResponse | PromiseLike<RAGResponse>) => void) | null = null
+      type ResolveFunction = (value: RAGResponse | PromiseLike<RAGResponse>) => void
+      let resolveQuery: ResolveFunction | undefined
 
-      mockQueryRAG.mockImplementation(() => new Promise<RAGResponse>(resolve => {
+      mockQueryRAG.mockImplementation(() => new Promise<RAGResponse>((resolve) => {
         resolveQuery = resolve
       }))
 
@@ -333,13 +335,11 @@ describe('RAGAssistantCompact', () => {
       }, { timeout: 500 })
 
       // 프로미스 완료
-      if (resolveQuery) {
-        resolveQuery({
-          answer: 'Test',
-          sources: [],
-          model: { provider: 'ollama' }
-        })
-      }
+      resolveQuery?.({
+        answer: 'Test',
+        sources: [],
+        model: { provider: 'ollama' }
+      })
     })
 
     it('메시지를 IndexedDB에 저장해야 함', async () => {
