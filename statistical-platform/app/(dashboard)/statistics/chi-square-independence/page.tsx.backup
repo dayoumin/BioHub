@@ -25,9 +25,8 @@ import {
   Link2
 } from 'lucide-react'
 
-// Components
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+// Components - 기존 시스템 사용
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
@@ -101,19 +100,36 @@ export default function ChiSquareIndependencePage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
-  // Breadcrumbs - useMemo로 최적화
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '카이제곱 독립성 검정', href: '/statistics/chi-square-independence' }
-  ], [])
-
-  // Steps configuration - TwoPanelLayout 0-based indexing
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '방법 소개', completed: currentStep > 0 },
-    { id: 1, label: '데이터 업로드', completed: currentStep > 1 },
-    { id: 2, label: '변수 선택', completed: currentStep > 2 },
-    { id: 3, label: '결과 해석', completed: currentStep > 3 }
+  // Steps configuration - useMemo로 성능 최적화
+  const steps: StatisticsStep[] = useMemo(() => [
+    {
+      id: 'method',
+      number: 1,
+      title: '분석 방법',
+      description: '카이제곱 독립성 검정의 개념과 적용',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: '두 범주형 변수 데이터 업로드',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '두 범주형 변수 선택',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '결과 해석',
+      description: '독립성 검정 결과 및 연관성 확인',
+      status: currentStep === 3 ? 'current' : 'pending'
+    }
   ], [currentStep])
 
   // Method info - useMemo로 최적화
@@ -313,145 +329,147 @@ export default function ChiSquareIndependencePage() {
     return [...new Set(analysisResult.crosstab.flat().map(cell => cell.column))]
   }, [analysisResult])
 
-  // Render function for method introduction (Step 0)
-  const renderMethodIntroduction = useCallback(() => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              분석 목적
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              두 범주형 변수가 서로 독립적인지, 아니면 연관성이 있는지 검정합니다.
-            </p>
-            <ul className="text-sm space-y-1">
-              <li>• 두 변수 간의 독립성 검정</li>
-              <li>• 연관성의 강도 측정</li>
-              <li>• 분할표(교차표) 분석</li>
-              <li>• 범주별 기여도 파악</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              적용 예시
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="space-y-3 text-sm">
-              <div className="bg-muted p-3 rounded">
-                <h4 className="font-medium">성별 × 선호도</h4>
-                <p className="text-muted-foreground">성별에 따른 제품 선호도 차이</p>
-              </div>
-              <div className="bg-muted p-3 rounded">
-                <h4 className="font-medium">교육 × 소득</h4>
-                <p className="text-muted-foreground">교육수준과 소득수준의 관계</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Alert>
-        <Calculator className="h-4 w-4" />
-        <AlertTitle>언제 사용하나요?</AlertTitle>
-        <AlertDescription>
-          • 두 범주형 변수 간의 독립성을 검정할 때<br/>
-          • 분할표(2×2, 3×3 등)에서 연관성을 확인할 때<br/>
-          • 설문조사에서 응답 간의 관련성 분석<br/>
-          • 치료법과 결과의 독립성 검정
-        </AlertDescription>
-      </Alert>
-
-      <div className="flex justify-end">
-        <Button onClick={() => actions.setCurrentStep(1)}>
-          다음: 데이터 업로드
-        </Button>
-      </div>
-    </div>
-  ), [actions])
-
   return (
-    <TwoPanelLayout
-      analysisTitle="카이제곱 독립성 검정"
-      analysisSubtitle="Chi-Square Test of Independence"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="카이제곱 독립성 검정"
+      subtitle="Chi-Square Test of Independence"
+      description="두 범주형 변수 간의 독립성 및 연관성 검정"
+      icon={<Grid3X3 className="w-6 h-6" />}
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
+      onStepChange={actions.setCurrentStep}
+      methodInfo={methodInfo}
     >
-      {/* Step 0: 방법론 소개 */}
-      {currentStep === 0 && renderMethodIntroduction()}
+      {/* Step 1: 방법론 소개 */}
+      {currentStep === 0 && (
+        <StepCard
+          title="카이제곱 독립성 검정 소개"
+          description="두 범주형 변수의 독립성 검정"
+          icon={<Info className="w-5 h-5 text-blue-500" />}
+        >
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    분석 목적
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    두 범주형 변수가 서로 독립적인지, 아니면 연관성이 있는지 검정합니다.
+                  </p>
+                  <ul className="text-sm space-y-1">
+                    <li>• 두 변수 간의 독립성 검정</li>
+                    <li>• 연관성의 강도 측정</li>
+                    <li>• 분할표(교차표) 분석</li>
+                    <li>• 범주별 기여도 파악</li>
+                  </ul>
+                </CardContent>
+              </Card>
 
-      {/* Step 1: 데이터 업로드 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    적용 예시
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="space-y-3 text-sm">
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">성별 × 선호도</h4>
+                      <p className="text-muted-foreground">성별에 따른 제품 선호도 차이</p>
+                    </div>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">교육 × 소득</h4>
+                      <p className="text-muted-foreground">교육수준과 소득수준의 관계</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Alert>
+              <Calculator className="h-4 w-4" />
+              <AlertTitle>언제 사용하나요?</AlertTitle>
+              <AlertDescription>
+                • 두 범주형 변수 간의 독립성을 검정할 때<br/>
+                • 분할표(2×2, 3×3 등)에서 연관성을 확인할 때<br/>
+                • 설문조사에서 응답 간의 관련성 분석<br/>
+                • 치료법과 결과의 독립성 검정
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex justify-end">
+              <Button onClick={() => actions.setCurrentStep(1)}>
+                다음: 데이터 업로드
+              </Button>
+            </div>
+          </div>
+        </StepCard>
+      )}
+
+      {/* Step 2: 데이터 업로드 */}
       {currentStep === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>데이터 업로드</CardTitle>
-            <CardDescription>두 범주형 변수 데이터를 업로드하세요</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataUploadStep
-              onUploadComplete={handleDataUploadComplete}
-              onNext={() => actions.setCurrentStep(2)}
-            />
+        <StepCard
+          title="데이터 업로드"
+          description="두 범주형 변수 데이터를 업로드하세요"
+          icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
+        >
+          <DataUploadStep
+            onUploadComplete={handleDataUploadComplete}
+            onNext={() => actions.setCurrentStep(2)}
+          />
 
-            <Alert className="mt-4">
-              <Grid3X3 className="h-4 w-4" />
-              <AlertTitle>분할표 데이터 형식</AlertTitle>
-              <AlertDescription>
-                • 각 행은 하나의 관측값을 나타냅니다<br/>
-                • 두 개의 범주형 변수가 필요합니다<br/>
-                • 예: 성별(남/여) × 만족도(만족/불만족/보통)<br/>
-                • 결측값이 없어야 합니다
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+          <Alert className="mt-4">
+            <Grid3X3 className="h-4 w-4" />
+            <AlertTitle>분할표 데이터 형식</AlertTitle>
+            <AlertDescription>
+              • 각 행은 하나의 관측값을 나타냅니다<br/>
+              • 두 개의 범주형 변수가 필요합니다<br/>
+              • 예: 성별(남/여) × 만족도(만족/불만족/보통)<br/>
+              • 결측값이 없어야 합니다
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={() => actions.setCurrentStep(0)}>
+              이전
+            </Button>
+          </div>
+        </StepCard>
       )}
 
-      {/* Step 2: 변수 선택 */}
+      {/* Step 3: 변수 선택 */}
       {currentStep === 2 && uploadedData && (
-        <Card>
-          <CardHeader>
-            <CardTitle>변수 선택</CardTitle>
-            <CardDescription>독립성을 검정할 두 범주형 변수를 선택하세요</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <VariableSelectorModern
-              methodId="chi-square-independence"
-              data={uploadedData.data}
-              onVariablesSelected={handleVariableSelection}
-              onBack={() => actions.setCurrentStep(1)}
-            />
+        <StepCard
+          title="변수 선택"
+          description="독립성을 검정할 두 범주형 변수를 선택하세요"
+          icon={<BarChart3 className="w-5 h-5 text-primary" />}
+        >
+          <VariableSelectorModern
+            methodId="chi-square-independence"
+            data={uploadedData.data}
+            onVariablesSelected={handleVariableSelection}
+            onBack={() => actions.setCurrentStep(1)}
+          />
 
-            <Alert className="mt-4">
-              <Info className="h-4 w-4" />
-              <AlertTitle>변수 선택 가이드</AlertTitle>
-              <AlertDescription>
-                • 종속변수: 첫 번째 범주형 변수 (행 변수)<br/>
-                • 독립변수: 두 번째 범주형 변수 (열 변수)<br/>
-                • 두 변수 모두 범주형(명목척도 또는 서열척도)이어야 함<br/>
-                • 예: 성별(종속) × 선호도(독립)
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+          <Alert className="mt-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>변수 선택 가이드</AlertTitle>
+            <AlertDescription>
+              • 종속변수: 첫 번째 범주형 변수 (행 변수)<br/>
+              • 독립변수: 두 번째 범주형 변수 (열 변수)<br/>
+              • 두 변수 모두 범주형(명목척도 또는 서열척도)이어야 함<br/>
+              • 예: 성별(종속) × 선호도(독립)
+            </AlertDescription>
+          </Alert>
+        </StepCard>
       )}
 
-      {/* Step 3: 결과 */}
+      {/* Step 4: 결과 */}
       {currentStep === 3 && analysisResult && (
         <div className="space-y-6">
           {/* 주요 결과 카드 */}
@@ -809,6 +827,6 @@ export default function ChiSquareIndependencePage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
