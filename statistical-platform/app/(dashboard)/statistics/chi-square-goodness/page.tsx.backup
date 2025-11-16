@@ -28,16 +28,18 @@ import {
 } from 'lucide-react'
 
 // Components
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StepCard, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Hooks & Utils
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+
+// Services
+import { pyodideStats } from '@/lib/services/pyodide-statistics'
 
 // Type definitions
 // interface SelectedVariables {
@@ -91,85 +93,49 @@ export default function ChiSquareGoodnessPage() {
   const [expectedProportions, setExpectedProportions] = useState<Record<string, number>>({})
   const [useUniformDistribution, setUseUniformDistribution] = useState(true)
 
-  // Breadcrumbs
-  const breadcrumbs = useMemo(() => [
-    { label: '홈', href: '/' },
-    { label: '통계 분석', href: '/statistics' },
-    { label: '카이제곱 적합도 검정', href: '/statistics/chi-square-goodness' }
-  ], [])
-
-  // Steps configuration (0-based indexing)
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '방법 소개', completed: currentStep > 0 },
-    { id: 1, label: '데이터 업로드', completed: currentStep > 1 },
-    { id: 2, label: '변수 선택', completed: currentStep > 2 },
-    { id: 3, label: '결과 해석', completed: currentStep > 3 }
+  // Steps configuration
+  const steps: StatisticsStep[] = useMemo(() => [
+    {
+      id: 'method',
+      number: 1,
+      title: '분석 방법',
+      description: '카이제곱 적합도 검정의 개념과 적용',
+      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending'
+    },
+    {
+      id: 'upload',
+      number: 2,
+      title: '데이터 업로드',
+      description: '범주형 데이터 파일 업로드',
+      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending'
+    },
+    {
+      id: 'variables',
+      number: 3,
+      title: '변수 선택',
+      description: '범주형 변수 선택 및 기댓값 설정',
+      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending'
+    },
+    {
+      id: 'results',
+      number: 4,
+      title: '결과 해석',
+      description: '카이제곱 적합도 검정 결과 확인',
+      status: currentStep === 3 ? 'current' : 'pending'
+    }
   ], [currentStep])
 
-  // Step 0: Method Introduction
-  const renderMethodIntroduction = useCallback(() => (
-    <div className="space-y-6">
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              분석 목적
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              관측된 범주형 데이터가 특정 이론적 분포를 따르는지 검정합니다.
-            </p>
-            <ul className="text-sm space-y-1">
-              <li>• 균등분포 가정 검정</li>
-              <li>• 이론적 비율과의 일치도</li>
-              <li>• 범주별 기댓값과 관측값 비교</li>
-              <li>• 단일 범주형 변수 분석</li>
-            </ul>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              적용 예시
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="space-y-3 text-sm">
-              <div className="bg-muted p-3 rounded">
-                <h4 className="font-medium">주사위 공정성</h4>
-                <p className="text-muted-foreground">각 면이 균등하게 나오는가?</p>
-              </div>
-              <div className="bg-muted p-3 rounded">
-                <h4 className="font-medium">선호도 조사</h4>
-                <p className="text-muted-foreground">특정 비율대로 응답하는가?</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Alert>
-        <Calculator className="h-4 w-4" />
-        <AlertTitle>언제 사용하나요?</AlertTitle>
-        <AlertDescription>
-          • 범주형 데이터의 분포가 특정 이론과 일치하는지 확인<br/>
-          • 각 범주의 출현 빈도가 예상과 같은지 검정<br/>
-          • 균등분포 가정 검증<br/>
-          • 품질관리에서 불량률 분포 검정
-        </AlertDescription>
-      </Alert>
-
-      <div className="flex justify-end">
-        <Button onClick={() => actions.setCurrentStep(1)}>
-          다음: 데이터 업로드
-        </Button>
-      </div>
-    </div>
-  ), [actions])
+  // Method info
+  const methodInfo = useMemo(() => ({
+    formula: "χ² = Σ[(Oᵢ - Eᵢ)² / Eᵢ]",
+    assumptions: [
+      "관측값은 서로 독립적",
+      "각 범주의 기댓값 ≥ 5",
+      "범주형(명목척도) 데이터"
+    ],
+    sampleSize: "총 표본 크기 30개 이상 권장",
+    usage: "이론적 분포와의 일치도 검정"
+  }), [])
 
   // Event handlers with useCallback
   const handleDataUploadComplete = useCallback(
@@ -354,150 +320,211 @@ export default function ChiSquareGoodnessPage() {
   }, [])
 
   return (
-    <TwoPanelLayout
-      analysisTitle="카이제곱 적합도 검정"
-      analysisSubtitle="Chi-Square Goodness-of-Fit Test"
-      breadcrumbs={breadcrumbs}
+    <StatisticsPageLayout
+      title="카이제곱 적합도 검정"
+      subtitle="Chi-Square Goodness-of-Fit Test"
+      description="관측된 빈도가 이론적 분포와 일치하는지 검정"
+      icon={<PieChart className="w-6 h-6" />}
+      steps={steps}
       currentStep={currentStep}
-      steps={STEPS}
-      onStepChange={(step: number) => actions.setCurrentStep?.(step)}
-      bottomPreview={uploadedData && currentStep >= 1 ? {
-        data: uploadedData.data,
-        fileName: uploadedData.fileName,
-        maxRows: 5
-      } : undefined}
+      onStepChange={actions?.setCurrentStep}
+      methodInfo={methodInfo}
     >
-      {/* Step 0: 방법 소개 */}
-      {currentStep === 0 && renderMethodIntroduction()}
+      {/* Step 1: 방법론 소개 */}
+      {currentStep === 0 && (
+        <StepCard
+          title="카이제곱 적합도 검정 소개"
+          description="범주형 데이터의 이론적 분포 일치도 검정"
+          icon={<Info className="w-5 h-5 text-blue-500" />}
+        >
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Target className="w-5 h-5" />
+                    분석 목적
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    관측된 범주형 데이터가 특정 이론적 분포를 따르는지 검정합니다.
+                  </p>
+                  <ul className="text-sm space-y-1">
+                    <li>• 균등분포 가정 검정</li>
+                    <li>• 이론적 비율과의 일치도</li>
+                    <li>• 범주별 기댓값과 관측값 비교</li>
+                    <li>• 단일 범주형 변수 분석</li>
+                  </ul>
+                </CardContent>
+              </Card>
 
-      {/* Step 1: 데이터 업로드 */}
-      {currentStep === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>데이터 업로드</CardTitle>
-            <CardDescription>범주형 데이터 파일을 업로드하세요</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataUploadStep
-              onUploadComplete={handleDataUploadComplete}
-              onNext={() => actions?.setCurrentStep && actions.setCurrentStep(2)}
-            />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" />
+                    적용 예시
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="space-y-3 text-sm">
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">주사위 공정성</h4>
+                      <p className="text-muted-foreground">각 면이 균등하게 나오는가?</p>
+                    </div>
+                    <div className="bg-muted p-3 rounded">
+                      <h4 className="font-medium">선호도 조사</h4>
+                      <p className="text-muted-foreground">특정 비율대로 응답하는가?</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-            <Alert className="mt-4">
-              <PieChart className="h-4 w-4" />
-              <AlertTitle>범주형 데이터 형식</AlertTitle>
+            <Alert>
+              <Calculator className="h-4 w-4" />
+              <AlertTitle>언제 사용하나요?</AlertTitle>
               <AlertDescription>
-                • 각 행은 하나의 관측값을 나타냅니다<br/>
-                • 범주형 변수: 텍스트 또는 숫자 코드<br/>
-                • 예: 색상(빨강, 파랑, 노랑), 등급(A, B, C, D)<br/>
-                • 결측값이 없어야 합니다
+                • 범주형 데이터의 분포가 특정 이론과 일치하는지 확인<br/>
+                • 각 범주의 출현 빈도가 예상과 같은지 검정<br/>
+                • 균등분포 가정 검증<br/>
+                • 품질관리에서 불량률 분포 검정
               </AlertDescription>
             </Alert>
 
-            <div className="flex justify-between mt-6">
-              <Button variant="outline" onClick={() => actions?.setCurrentStep && actions.setCurrentStep(0)}>
-                이전
+            <div className="flex justify-end">
+              <Button onClick={() => actions?.setCurrentStep && actions.setCurrentStep(1)}>
+                다음: 데이터 업로드
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </StepCard>
       )}
 
-      {/* Step 2: 변수 선택 */}
+      {/* Step 2: 데이터 업로드 */}
+      {currentStep === 1 && (
+        <StepCard
+          title="데이터 업로드"
+          description="범주형 데이터 파일을 업로드하세요"
+          icon={<FileSpreadsheet className="w-5 h-5 text-green-500" />}
+        >
+          <DataUploadStep
+            onUploadComplete={handleDataUploadComplete}
+            onNext={() => actions?.setCurrentStep && actions.setCurrentStep(2)}
+          />
+
+          <Alert className="mt-4">
+            <PieChart className="h-4 w-4" />
+            <AlertTitle>범주형 데이터 형식</AlertTitle>
+            <AlertDescription>
+              • 각 행은 하나의 관측값을 나타냅니다<br/>
+              • 범주형 변수: 텍스트 또는 숫자 코드<br/>
+              • 예: 색상(빨강, 파랑, 노랑), 등급(A, B, C, D)<br/>
+              • 결측값이 없어야 합니다
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex justify-between mt-6">
+            <Button variant="outline" onClick={() => actions?.setCurrentStep && actions.setCurrentStep(0)}>
+              이전
+            </Button>
+          </div>
+        </StepCard>
+      )}
+
+      {/* Step 3: 변수 선택 */}
       {currentStep === 2 && uploadedData && (
-        <Card>
-          <CardHeader>
-            <CardTitle>변수 선택 및 기댓값 설정</CardTitle>
-            <CardDescription>범주형 변수를 선택하고 기댓값을 설정하세요</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <VariableSelectorModern
-              methodId="chi-square-goodness"
-              data={uploadedData.data}
-              onVariablesSelected={handleVariableSelection}
-              onBack={() => actions?.setCurrentStep && actions.setCurrentStep(1)}
-            />
+        <StepCard
+          title="변수 선택 및 기댓값 설정"
+          description="범주형 변수를 선택하고 기댓값을 설정하세요"
+          icon={<BarChart3 className="w-5 h-5 text-primary" />}
+        >
+          <VariableSelectorModern
+            methodId="chi-square-goodness"
+            data={uploadedData.data}
+            onVariablesSelected={handleVariableSelection}
+            onBack={() => actions?.setCurrentStep && actions.setCurrentStep(1)}
+          />
 
-            {selectedVariables && Object.keys(expectedProportions).length > 0 && (
-              <div className="mt-6 space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="uniform"
-                      checked={useUniformDistribution}
-                      onChange={() => setUseUniformDistribution(true)}
-                    />
-                    <Label htmlFor="uniform">균등분포 (모든 범주가 동일한 확률)</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id="specified"
-                      checked={!useUniformDistribution}
-                      onChange={() => setUseUniformDistribution(false)}
-                    />
-                    <Label htmlFor="specified">사용자 정의 비율</Label>
-                  </div>
+          {selectedVariables && Object.keys(expectedProportions).length > 0 && (
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="uniform"
+                    checked={useUniformDistribution}
+                    onChange={() => setUseUniformDistribution(true)}
+                  />
+                  <Label htmlFor="uniform">균등분포 (모든 범주가 동일한 확률)</Label>
                 </div>
-
-                {!useUniformDistribution && (
-                  <Card className="p-4">
-                    <h4 className="font-medium mb-3">각 범주별 기댓값 비율 설정</h4>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {Object.entries(expectedProportions).map(([category, proportion]) => (
-                        <div key={category} className="flex items-center space-x-2">
-                          <Label className="min-w-0 flex-1">{category}</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max="1"
-                            value={proportion}
-                            onChange={(e) => handleProportionChange(category, e.target.value)}
-                            className="w-20"
-                          />
-                          <Percent className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-3 flex justify-between">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={normalizeProportions}
-                      >
-                        비율 정규화
-                      </Button>
-                      <p className="text-sm text-muted-foreground">
-                        총합: {Object.values(expectedProportions).reduce((a, b) => a + b, 0).toFixed(3)}
-                      </p>
-                    </div>
-                  </Card>
-                )}
-
-                <div className="flex justify-end">
-                  <Button onClick={runAnalysis} disabled={isAnalyzing}>
-                    {isAnalyzing ? '분석 중...' : '분석 실행'}
-                  </Button>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="specified"
+                    checked={!useUniformDistribution}
+                    onChange={() => setUseUniformDistribution(false)}
+                  />
+                  <Label htmlFor="specified">사용자 정의 비율</Label>
                 </div>
               </div>
-            )}
 
-            <Alert className="mt-4">
-              <Info className="h-4 w-4" />
-              <AlertTitle>설정 가이드</AlertTitle>
-              <AlertDescription>
-                • 균등분포: 모든 범주가 동일한 확률을 갖는다고 가정<br/>
-                • 사용자 정의: 특정 이론적 비율로 검정<br/>
-                • 비율의 합은 1.0이 되어야 합니다
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+              {!useUniformDistribution && (
+                <Card className="p-4">
+                  <h4 className="font-medium mb-3">각 범주별 기댓값 비율 설정</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {Object.entries(expectedProportions).map(([category, proportion]) => (
+                      <div key={category} className="flex items-center space-x-2">
+                        <Label className="min-w-0 flex-1">{category}</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="1"
+                          value={proportion}
+                          onChange={(e) => handleProportionChange(category, e.target.value)}
+                          className="w-20"
+                        />
+                        <Percent className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={normalizeProportions}
+                    >
+                      비율 정규화
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      총합: {Object.values(expectedProportions).reduce((a, b) => a + b, 0).toFixed(3)}
+                    </p>
+                  </div>
+                </Card>
+              )}
+
+              <div className="flex justify-end">
+                <Button onClick={runAnalysis} disabled={isAnalyzing}>
+                  {isAnalyzing ? '분석 중...' : '분석 실행'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <Alert className="mt-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>설정 가이드</AlertTitle>
+            <AlertDescription>
+              • 균등분포: 모든 범주가 동일한 확률을 갖는다고 가정<br/>
+              • 사용자 정의: 특정 이론적 비율로 검정<br/>
+              • 비율의 합은 1.0이 되어야 합니다
+            </AlertDescription>
+          </Alert>
+        </StepCard>
       )}
 
-      {/* Step 3: 결과 */}
+      {/* Step 4: 결과 */}
       {currentStep === 3 && results && (
         <div className="space-y-6">
           {/* 주요 결과 카드 */}
@@ -804,6 +831,6 @@ export default function ChiSquareGoodnessPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
