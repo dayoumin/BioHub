@@ -23,8 +23,8 @@ describe('RAG 시스템 sql.js WASM 통합 테스트', () => {
   })
 
   describe('sql.js import 테스트', () => {
-    it('sql.js npm 패키지가 import 가능해야 함', async () => {
-      const initSqlJs = require('sql.js')
+    it('@jlongster/sql.js npm 패키지가 import 가능해야 함', async () => {
+      const initSqlJs = require('@jlongster/sql.js')
       expect(initSqlJs).toBeDefined()
       expect(typeof initSqlJs).toBe('function')
     })
