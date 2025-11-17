@@ -1,6 +1,7 @@
 'use client'
 
 import { useTheme } from 'next-themes'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,10 +12,11 @@ import {
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Slider } from '@/components/ui/slider'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
-import { Moon, Sun, Monitor, ExternalLink } from 'lucide-react'
+import { Moon, Sun, Monitor, ExternalLink, Settings2 } from 'lucide-react'
+import { ChatStorage } from '@/lib/services/chat-storage'
+import Link from 'next/link'
 
 interface SettingsModalProps {
   open: boolean
@@ -23,6 +25,66 @@ interface SettingsModalProps {
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const { theme, setTheme } = useTheme()
+
+  // 플로팅 챗봇 버튼 설정
+  const [floatingButtonEnabled, setFloatingButtonEnabled] = useState<boolean>(false)
+
+  // 알림 설정
+  const [notifyAnalysisComplete, setNotifyAnalysisComplete] = useState<boolean>(true)
+  const [notifyError, setNotifyError] = useState<boolean>(true)
+
+  // 로컬 저장 허용
+  const [localStorageEnabled, setLocalStorageEnabled] = useState<boolean>(true)
+
+  // 설정 로드
+  useEffect(() => {
+    // 플로팅 버튼 설정
+    const chatSettings = ChatStorage.loadSettings()
+    setFloatingButtonEnabled(chatSettings.floatingButtonEnabled)
+
+    // 알림 설정
+    const savedNotifyComplete = localStorage.getItem('statPlatform_notifyAnalysisComplete')
+    if (savedNotifyComplete !== null) {
+      setNotifyAnalysisComplete(savedNotifyComplete === 'true')
+    }
+
+    const savedNotifyError = localStorage.getItem('statPlatform_notifyError')
+    if (savedNotifyError !== null) {
+      setNotifyError(savedNotifyError === 'true')
+    }
+
+    // 로컬 저장 설정
+    const savedLocalStorage = localStorage.getItem('statPlatform_localStorageEnabled')
+    if (savedLocalStorage !== null) {
+      setLocalStorageEnabled(savedLocalStorage === 'true')
+    }
+  }, [])
+
+  // 플로팅 버튼 토글
+  const handleFloatingButtonToggle = (enabled: boolean) => {
+    setFloatingButtonEnabled(enabled)
+    const settings = ChatStorage.loadSettings()
+    settings.floatingButtonEnabled = enabled
+    ChatStorage.saveSettings(settings)
+    window.dispatchEvent(new CustomEvent('chatbot-settings-changed'))
+  }
+
+  // 알림 설정 변경
+  const handleNotifyAnalysisComplete = (checked: boolean) => {
+    setNotifyAnalysisComplete(checked)
+    localStorage.setItem('statPlatform_notifyAnalysisComplete', String(checked))
+  }
+
+  const handleNotifyError = (checked: boolean) => {
+    setNotifyError(checked)
+    localStorage.setItem('statPlatform_notifyError', String(checked))
+  }
+
+  // 로컬 저장 설정 변경
+  const handleLocalStorageToggle = (checked: boolean) => {
+    setLocalStorageEnabled(checked)
+    localStorage.setItem('statPlatform_localStorageEnabled', String(checked))
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -86,6 +148,30 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
           <Separator />
 
+          {/* 플로팅 챗봇 버튼 */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold">플로팅 챗봇 버튼</Label>
+            <div className="flex items-center justify-between">
+              <div className="space-y-1 flex-1">
+                <Label htmlFor="floating-button" className="text-sm font-normal cursor-pointer">
+                  화면 우측 하단에 챗봇 버튼 표시
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {floatingButtonEnabled
+                    ? '플로팅 챗봇 버튼이 화면에 표시됩니다'
+                    : '플로팅 챗봇 버튼이 숨겨집니다 (전용 페이지는 사용 가능)'}
+                </p>
+              </div>
+              <Switch
+                id="floating-button"
+                checked={floatingButtonEnabled}
+                onCheckedChange={handleFloatingButtonToggle}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
           {/* 알림 설정 */}
           <div className="space-y-4">
             <Label className="text-base font-semibold">알림</Label>
@@ -94,13 +180,21 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                 <Label htmlFor="analysis-complete" className="text-sm font-normal cursor-pointer">
                   분석 완료 시 알림
                 </Label>
-                <Switch id="analysis-complete" defaultChecked />
+                <Switch
+                  id="analysis-complete"
+                  checked={notifyAnalysisComplete}
+                  onCheckedChange={handleNotifyAnalysisComplete}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="error-notification" className="text-sm font-normal cursor-pointer">
                   에러 발생 시 알림
                 </Label>
-                <Switch id="error-notification" defaultChecked />
+                <Switch
+                  id="error-notification"
+                  checked={notifyError}
+                  onCheckedChange={handleNotifyError}
+                />
               </div>
             </div>
           </div>
@@ -111,18 +205,37 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           <div className="space-y-4">
             <Label className="text-base font-semibold">데이터</Label>
             <div className="flex items-center justify-between">
-              <Label htmlFor="local-storage" className="text-sm font-normal cursor-pointer">
-                로컬 저장 허용
-              </Label>
-              <Switch id="local-storage" defaultChecked />
+              <div className="space-y-1 flex-1">
+                <Label htmlFor="local-storage" className="text-sm font-normal cursor-pointer">
+                  로컬 저장 허용
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  분석 기록 및 설정을 브라우저에 저장합니다
+                </p>
+              </div>
+              <Switch
+                id="local-storage"
+                checked={localStorageEnabled}
+                onCheckedChange={handleLocalStorageToggle}
+              />
             </div>
           </div>
 
           <Separator />
 
-          {/* 챗봇 설정 */}
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">AI 챗봇</Label>
+          {/* 상세 설정 및 챗봇 페이지 */}
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => {
+                onOpenChange(false)
+                window.location.href = '/settings'
+              }}
+            >
+              <Settings2 className="mr-2 h-4 w-4" />
+              상세 설정 보기
+            </Button>
             <Button
               variant="outline"
               className="w-full justify-start"
@@ -132,7 +245,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
               전용 챗봇 페이지 열기 (새 창)
             </Button>
             <p className="text-xs text-muted-foreground">
-              더 넓은 화면에서 채팅 기록 관리, 검색 등의 고급 기능을 사용할 수 있습니다.
+              상세 설정에서 RAG 모델, Vector DB 등 고급 기능을 설정할 수 있습니다.
             </p>
           </div>
         </div>

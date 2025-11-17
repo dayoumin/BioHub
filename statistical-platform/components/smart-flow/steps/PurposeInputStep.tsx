@@ -284,7 +284,7 @@ export function PurposeInputStep({
             />
           </div>
 
-          {/* AI 추천 방법 */}
+          {/* 스마트 추천 방법 */}
           <RecommendedMethods
             methods={mergedRecommendations}
             selectedMethod={selectedMethod}

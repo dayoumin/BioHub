@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Settings, Palette, Bot, Database, Star, Moon, Sun, Clock } from 'lucide-react'
+import { Settings, Palette, Bot, Database, Star, Moon, Sun, Clock, Bell, HardDrive } from 'lucide-react'
 import { STATISTICS_MENU } from '@/lib/statistics/menu-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Slider } from '@/components/ui/slider'
+import { Input } from '@/components/ui/input'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { clearRecentStatistics, getRecentStatistics } from '@/lib/utils/recent-statistics'
 
@@ -19,6 +21,19 @@ export default function SettingsPage() {
   const [chatbotModel, setChatbotModel] = useState<string>('llama3.2')
   const [vectorDb, setVectorDb] = useState<string>('chromadb')
   const [floatingButtonEnabled, setFloatingButtonEnabled] = useState<boolean>(true)
+
+  // RAG 설정
+  const [ollamaEndpoint, setOllamaEndpoint] = useState<string>('http://localhost:11434')
+  const [embeddingModel, setEmbeddingModel] = useState<string>('nomic-embed-text')
+  const [inferenceModel, setInferenceModel] = useState<string>('qwen3:4b-q4_K_M')
+  const [topK, setTopK] = useState<number>(5)
+
+  // 알림 설정
+  const [notifyAnalysisComplete, setNotifyAnalysisComplete] = useState<boolean>(true)
+  const [notifyError, setNotifyError] = useState<boolean>(true)
+
+  // 로컬 저장 허용
+  const [localStorageEnabled, setLocalStorageEnabled] = useState<boolean>(true)
 
   // localStorage에서 설정 로드
   useEffect(() => {
@@ -53,6 +68,44 @@ export default function SettingsPage() {
     // 플로팅 버튼 설정 로드
     const chatSettings = ChatStorage.loadSettings()
     setFloatingButtonEnabled(chatSettings.floatingButtonEnabled)
+
+    // RAG 설정 로드
+    const savedOllamaEndpoint = localStorage.getItem('statPlatform_ollamaEndpoint')
+    if (savedOllamaEndpoint) {
+      setOllamaEndpoint(savedOllamaEndpoint)
+    }
+
+    const savedEmbeddingModel = localStorage.getItem('statPlatform_embeddingModel')
+    if (savedEmbeddingModel) {
+      setEmbeddingModel(savedEmbeddingModel)
+    }
+
+    const savedInferenceModel = localStorage.getItem('statPlatform_inferenceModel')
+    if (savedInferenceModel) {
+      setInferenceModel(savedInferenceModel)
+    }
+
+    const savedTopK = localStorage.getItem('statPlatform_topK')
+    if (savedTopK) {
+      setTopK(parseInt(savedTopK, 10))
+    }
+
+    // 알림 설정 로드
+    const savedNotifyComplete = localStorage.getItem('statPlatform_notifyAnalysisComplete')
+    if (savedNotifyComplete !== null) {
+      setNotifyAnalysisComplete(savedNotifyComplete === 'true')
+    }
+
+    const savedNotifyError = localStorage.getItem('statPlatform_notifyError')
+    if (savedNotifyError !== null) {
+      setNotifyError(savedNotifyError === 'true')
+    }
+
+    // 로컬 저장 설정 로드
+    const savedLocalStorage = localStorage.getItem('statPlatform_localStorageEnabled')
+    if (savedLocalStorage !== null) {
+      setLocalStorageEnabled(savedLocalStorage === 'true')
+    }
 
     // 최근 사용 목록 개수 로드
     const recentItems = getRecentStatistics()
@@ -113,6 +166,45 @@ export default function SettingsPage() {
     setRecentCount(0)
   }
 
+  // RAG 설정 변경 핸들러
+  const handleOllamaEndpointChange = (value: string) => {
+    setOllamaEndpoint(value)
+    localStorage.setItem('statPlatform_ollamaEndpoint', value)
+  }
+
+  const handleEmbeddingModelChange = (value: string) => {
+    setEmbeddingModel(value)
+    localStorage.setItem('statPlatform_embeddingModel', value)
+  }
+
+  const handleInferenceModelChange = (value: string) => {
+    setInferenceModel(value)
+    localStorage.setItem('statPlatform_inferenceModel', value)
+  }
+
+  const handleTopKChange = (value: number[]) => {
+    const newValue = value[0]
+    setTopK(newValue)
+    localStorage.setItem('statPlatform_topK', String(newValue))
+  }
+
+  // 알림 설정 변경 핸들러
+  const handleNotifyAnalysisComplete = (checked: boolean) => {
+    setNotifyAnalysisComplete(checked)
+    localStorage.setItem('statPlatform_notifyAnalysisComplete', String(checked))
+  }
+
+  const handleNotifyError = (checked: boolean) => {
+    setNotifyError(checked)
+    localStorage.setItem('statPlatform_notifyError', String(checked))
+  }
+
+  // 로컬 저장 설정 변경 핸들러
+  const handleLocalStorageToggle = (checked: boolean) => {
+    setLocalStorageEnabled(checked)
+    localStorage.setItem('statPlatform_localStorageEnabled', String(checked))
+  }
+
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -128,15 +220,15 @@ export default function SettingsPage() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="appearance">
             <Palette className="h-4 w-4 mr-2" />
-            외관
+            외관 및 알림
           </TabsTrigger>
-          <TabsTrigger value="chatbot">
+          <TabsTrigger value="rag">
             <Bot className="h-4 w-4 mr-2" />
-            챗봇
+            AI 챗봇 (RAG)
           </TabsTrigger>
-          <TabsTrigger value="database">
-            <Database className="h-4 w-4 mr-2" />
-            데이터베이스
+          <TabsTrigger value="data">
+            <HardDrive className="h-4 w-4 mr-2" />
+            데이터
           </TabsTrigger>
           <TabsTrigger value="favorites">
             <Star className="h-4 w-4 mr-2" />
@@ -144,7 +236,7 @@ export default function SettingsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* 외관 설정 */}
+        {/* 외관 및 알림 설정 */}
         <TabsContent value="appearance" className="space-y-4">
           <Card>
             <CardHeader>
@@ -183,6 +275,82 @@ export default function SettingsPage() {
                 </Select>
                 <p className="text-sm text-muted-foreground">
                   현재 설정: <strong>{theme === 'light' ? '라이트' : theme === 'dark' ? '다크' : '시스템 자동'}</strong>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>플로팅 챗봇 버튼</CardTitle>
+              <CardDescription>
+                화면 우측 하단의 플로팅 챗봇 버튼 표시 여부를 설정하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label htmlFor="floating-button-page" className="text-base font-medium">
+                    플로팅 버튼 표시
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {floatingButtonEnabled
+                      ? '플로팅 챗봇 버튼이 화면에 표시됩니다'
+                      : '플로팅 챗봇 버튼이 숨겨집니다'}
+                  </p>
+                </div>
+                <Switch
+                  id="floating-button-page"
+                  checked={floatingButtonEnabled}
+                  onCheckedChange={handleFloatingButtonToggle}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>알림 설정</CardTitle>
+              <CardDescription>
+                분석 완료 및 에러 발생 시 알림을 받을 수 있습니다
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label htmlFor="notify-complete" className="text-base font-medium">
+                    분석 완료 시 알림
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    통계 분석이 완료되면 브라우저 알림을 표시합니다
+                  </p>
+                </div>
+                <Switch
+                  id="notify-complete"
+                  checked={notifyAnalysisComplete}
+                  onCheckedChange={handleNotifyAnalysisComplete}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label htmlFor="notify-error" className="text-base font-medium">
+                    에러 발생 시 알림
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    분석 중 에러가 발생하면 브라우저 알림을 표시합니다
+                  </p>
+                </div>
+                <Switch
+                  id="notify-error"
+                  checked={notifyError}
+                  onCheckedChange={handleNotifyError}
+                />
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm">
+                  <strong>참고:</strong> 브라우저 알림을 받으려면 브라우저 설정에서 알림 권한을 허용해야 합니다.
                 </p>
               </div>
             </CardContent>

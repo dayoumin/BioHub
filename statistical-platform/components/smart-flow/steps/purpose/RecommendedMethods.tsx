@@ -220,16 +220,16 @@ export function RecommendedMethods({
 
   return (
     <>
-      {/* AI 추천 버튼 */}
+      {/* 스마트 추천 버튼 */}
       <div className="flex gap-2">
         <Button onClick={onToggle} variant="outline" className="flex-1">
           <Sparkles className="w-4 h-4 mr-2" />
-          AI 추천 방법 {showRecommendations ? '숨기기' : '보기'}
+          스마트 추천 방법 {showRecommendations ? '숨기기' : '보기'}
           {methods.length > 0 && `(${methods.length}개)`}
         </Button>
       </div>
 
-      {/* AI 추천 방법 표시 */}
+      {/* 스마트 추천 방법 표시 */}
       {showRecommendations && methods.length > 0 && (
         <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 space-y-2">
           <h4 className="font-medium text-sm mb-2">🤖 데이터 특성 기반 추천</h4>
@@ -258,7 +258,7 @@ export function RecommendedMethods({
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{method.name}</span>
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        AI 추천
+                        스마트 추천
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{method.description}</p>
