@@ -1,12 +1,5 @@
 'use client'
 
-/**
- * Fisher 정확 검정 페이지 - TwoPanelLayout (수동 입력 전용)
- *
- * 작은 표본의 2×2 분할표를 정확하게 검정합니다.
- * 데이터 업로드 없이 수동 입력만 지원합니다.
- */
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ChiSquareVariables } from '@/types/statistics'
@@ -24,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Info, CheckCircle2, AlertCircle, Calculator } from 'lucide-react'
-import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsPageLayout, StatisticsStep } from '@/components/statistics/StatisticsPageLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -126,25 +119,12 @@ export default function FisherExactTestPage() {
         }
       )
 
-      actions.completeAnalysis(result, 2)
+      actions.completeAnalysis(result, 1)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       actions.setError(errorMessage)
     }
   }, [table, alternative, alpha, actions, pyodideCore])
-
-  // 단계 정의
-  const STEPS = [
-    { id: 1, label: '방법론' },
-    { id: 2, label: '분할표 입력' },
-    { id: 3, label: '결과 확인' }
-  ]
-
-  // 단계 완료 상태 추가
-  const stepsWithCompleted = STEPS.map(step => ({
-    ...step,
-    completed: results ? step.id <= 3 : step.id < state.currentStep
-  }))
 
   const renderMethodology = () => (
     <Card>
@@ -319,6 +299,24 @@ export default function FisherExactTestPage() {
     </Card>
   )
 
+  // 단계 정의 (state.currentStep 기반 동적 계산)
+  const steps: StatisticsStep[] = [
+    {
+      id: 'input-table',
+      number: 1,
+      title: '분할표 입력',
+      description: '2×2 분할표 데이터 입력',
+      status: state.currentStep >= 1 ? 'completed' : 'current'
+    },
+    {
+      id: 'view-results',
+      number: 2,
+      title: '결과 확인',
+      description: 'Fisher 정확 검정 결과',
+      status: results ? 'completed' : state.currentStep >= 1 ? 'current' : 'pending'
+    }
+  ]
+
   const renderResults = () => {
     if (!results) return null
 
@@ -468,26 +466,18 @@ export default function FisherExactTestPage() {
     )
   }
 
-  // Breadcrumbs
-  const breadcrumbs = [
-    { label: '홈', href: '/' },
-    { label: 'Fisher 정확 검정' }
-  ]
-
   return (
-    <TwoPanelLayout
+    <StatisticsPageLayout
+      title="Fisher 정확 검정"
+      description="작은 표본의 2×2 분할표를 정확하게 검정합니다"
+      steps={steps}
       currentStep={state.currentStep}
-      steps={stepsWithCompleted}
-      analysisTitle="Fisher 정확 검정"
-      analysisSubtitle="Fisher's Exact Test"
-      analysisIcon={<Calculator className="h-5 w-5 text-primary" />}
-      breadcrumbs={breadcrumbs}
     >
       <div className="space-y-6">
         {renderMethodology()}
         {renderInput()}
         {results && renderResults()}
       </div>
-    </TwoPanelLayout>
+    </StatisticsPageLayout>
   )
 }
