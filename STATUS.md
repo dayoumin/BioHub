@@ -1,7 +1,7 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-11-16 21:30
-**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅ + **Phase 9 Batch 1-4 완료 (95%)** ✅ + **TwoPanelLayout 대규모 마이그레이션 완료 (23개 페이지)** ✅ + **RAG Perplexity 스타일 UI 완성** ✅ + **Pyodide Web Worker 활성화** ✅
+**최종 업데이트**: 2025-11-17 23:00
+**현재 Phase**: Phase 6 완료 + Phase 1 완료 + Phase 2-1 완료 + **Phase 2-2 완료 (100%)** ✅ + **IndexedDB/RAG 리팩토링 완료** ✅ + **methodId 표준화 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅ + **Phase 9 Batch 1-4 완료 (95%)** ✅ + **TwoPanelLayout 대규모 마이그레이션 완료 (23개 페이지)** ✅ + **RAG Perplexity 스타일 UI 완성** ✅ + **Pyodide Web Worker 활성화** ✅ + **Smart Flow Phase 2 (Explainable AI) 완료** ✅
 
 ---
 
@@ -153,6 +153,24 @@
 - **동작 검증**: 개발 서버에서 Web Worker 모드 확인 ✓
 - **문서화**: 회사 배포 담당자용 완전 가이드
 - **최종 커밋**: `e08e1c6` - docs: Web Worker 활성화 + 회사 배포 가이드 추가
+
+**Smart Flow Phase 2: Explainable AI (설명 가능한 추천)** ✅ **완료 (100%)** (2025-11-17)
+- **목표**: 스마트 추천 이유 투명하게 표시 (Explainable AI)
+- **완료 기능**:
+  - ✅ **6가지 Critical 버그 수정** (가정 검정 로직):
+    1. undefined → false 변환 (UI 라벨 오류)
+    2. 신뢰도 점수 왜곡 (미실행 검정 분모 포함)
+    3. assumptionResults 미사용
+    4. checkMethodRequirements 거짓 경고
+    5. dataProfile memoization 누락 (ROOT CAUSE)
+    6. "AI 추천" 오해의 소지 → "스마트 추천" 변경
+  - ✅ **RecommendedMethods**: 체크리스트 + 일치율 + 3-state 아이콘
+  - ✅ **MethodSelector**: 요구사항 확인 Collapsible (일치율 + 체크리스트)
+  - ✅ **실시간 assumptionResults 반영**: Step 2 가정 검정 → Step 3 추천 즉시 업데이트
+- **테스트 검증**: 16/16 tests passed ✅
+- **TypeScript**: 0 errors ✓
+- **라벨 수정**: "AI 추천" → "스마트 추천" (규칙 기반 시스템 명확화)
+- **최종 커밋**: `56b7475` - refactor: "AI 추천"을 "스마트 추천"으로 변경
 
 ---
 
