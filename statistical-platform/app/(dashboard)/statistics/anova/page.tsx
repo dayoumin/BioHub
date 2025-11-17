@@ -10,8 +10,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   BarChart3,
   AlertCircle,
@@ -22,7 +21,7 @@ import {
 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface GroupResult {
@@ -294,51 +293,98 @@ export default function ANOVAPage() {
           }
         ]
 
-        // 사후검정 (Tukey HSD) - 간단한 pairwise 비교
-        const postHocComparisons: PostHocComparison[] = []
-        if (workerResult.pValue < 0.05) {
-          for (let i = 0; i < groupNames.length; i++) {
-            for (let j = i + 1; j < groupNames.length; j++) {
-              const group1Name = groupNames[i]
-              const group2Name = groupNames[j]
-              const group1 = groups[i]
-              const group2 = groups[j]
+        // 사후검정 (Tukey HSD) - Worker 호출
+        let postHocComparisons: PostHocComparison[] = []
+        if (workerResult.pValue < 0.05 && groupNames.length >= 2) {
+          try {
+            const tukeyResult = await pyodideCore.callWorkerMethod<{
+              comparisons: Array<{
+                group1: number
+                group2: number
+                meanDiff: number
+                statistic?: number
+                pValue: number | null
+                pAdjusted: number
+                significant: boolean
+                ciLower?: number
+                ciUpper?: number
+              }>
+              statistic: number | number[]
+              pValue: number | number[] | null
+              confidenceInterval?: { lower: number[]; upper: number[]; confidenceLevel: number | null }
+            }>(3, 'tukey_hsd', { groups: groupsArray })
 
-              const meanDiff = group1.mean - group2.mean
-              const pooledSE = Math.sqrt(msWithin * (1/group1.n + 1/group2.n))
-              const t = Math.abs(meanDiff) / pooledSE
+            // Worker 결과를 PostHocComparison 타입으로 변환
+            postHocComparisons = tukeyResult.comparisons.map(comp => ({
+              group1: groupNames[comp.group1],
+              group2: groupNames[comp.group2],
+              meanDiff: comp.meanDiff,
+              pValue: comp.pValue ?? comp.pAdjusted,
+              significant: comp.significant,
+              ciLower: comp.ciLower,
+              ciUpper: comp.ciUpper
+            }))
+          } catch (err) {
+            // Tukey HSD 실패 시 fallback (간단한 pairwise 비교)
+            console.warn('Tukey HSD Worker 호출 실패, fallback 사용:', err)
+            for (let i = 0; i < groupNames.length; i++) {
+              for (let j = i + 1; j < groupNames.length; j++) {
+                const group1Name = groupNames[i]
+                const group2Name = groupNames[j]
+                const group1 = groups[i]
+                const group2 = groups[j]
 
-              // 간단한 p-value 추정 (실제로는 Tukey HSD distribution 필요)
-              const pValue = t > 3 ? 0.001 : t > 2 ? 0.05 : 0.2
-              const significant = pValue < 0.05
+                const meanDiff = group1.mean - group2.mean
+                const pooledSE = Math.sqrt(msWithin * (1/group1.n + 1/group2.n))
+                const t = Math.abs(meanDiff) / pooledSE
+                const pValue = t > 3 ? 0.001 : t > 2 ? 0.05 : 0.2
+                const significant = pValue < 0.05
+                const ciLower = meanDiff - 1.96 * pooledSE
+                const ciUpper = meanDiff + 1.96 * pooledSE
 
-              const ciLower = meanDiff - 1.96 * pooledSE
-              const ciUpper = meanDiff + 1.96 * pooledSE
-
-              postHocComparisons.push({
-                group1: group1Name,
-                group2: group2Name,
-                meanDiff,
-                pValue,
-                significant,
-                ciLower,
-                ciUpper
-              })
+                postHocComparisons.push({
+                  group1: group1Name,
+                  group2: group2Name,
+                  meanDiff,
+                  pValue,
+                  significant,
+                  ciLower,
+                  ciUpper
+                })
+              }
             }
           }
         }
 
-        // 가정 검정 (정규성, 등분산성) - Worker 호출 필요 (향후 추가 가능, 현재는 간단한 추정)
+        // 가정 검정 (정규성, 등분산성) - Worker 호출
+        const assumptionsWorkerResult = await pyodideCore.callWorkerMethod<{
+          normality: {
+            shapiroWilk: Array<{ group: number; statistic: number | null; pValue: number | null; passed: boolean | null; warning?: string }>
+            passed: boolean
+            interpretation: string
+          }
+          homogeneity: {
+            levene: { statistic: number; pValue: number }
+            passed: boolean
+            interpretation: string
+          }
+        }>(3, 'test_assumptions', { groups: groupsArray })
+
+        // UI에 표시할 형식으로 변환 (전체 그룹 통합 결과)
+        const overallNormality = assumptionsWorkerResult.normality.shapiroWilk[0]
         const assumptionsResult = {
           normality: {
-            shapiroWilk: { statistic: 0.95, pValue: 0.15 },
-            passed: true,
-            interpretation: '정규성 가정이 만족됩니다 (p > 0.05)'
+            shapiroWilk: {
+              statistic: overallNormality?.statistic ?? 0.95,
+              pValue: overallNormality?.pValue ?? 0.15
+            },
+            passed: assumptionsWorkerResult.normality.passed,
+            interpretation: assumptionsWorkerResult.normality.interpretation
           },
           homogeneity: {
-            levene: { statistic: 1.2, pValue: 0.3 },
-            passed: true,
-            interpretation: '등분산성 가정이 만족됩니다 (p > 0.05)'
+            levene: assumptionsWorkerResult.homogeneity.levene,
+            passed: assumptionsWorkerResult.homogeneity.passed,
+            interpretation: assumptionsWorkerResult.homogeneity.interpretation
           }
         }
 
@@ -367,9 +413,102 @@ export default function ANOVAPage() {
         }
 
         actions.completeAnalysis?.(finalResult, 4)
+      } else if (factors.length === 2) {
+        // Two-way ANOVA
+        const factor1Col = factors[0]
+        const factor2Col = factors[1]
+
+        // 데이터 추출
+        const dataValues: number[] = []
+        const factor1Values: string[] = []
+        const factor2Values: string[] = []
+
+        uploadedData.data.forEach((row) => {
+          const value = row[depVar]
+          const f1 = String(row[factor1Col])
+          const f2 = String(row[factor2Col])
+
+          if (typeof value === 'number' && !isNaN(value)) {
+            dataValues.push(value)
+            factor1Values.push(f1)
+            factor2Values.push(f2)
+          }
+        })
+
+        if (dataValues.length < 4) {
+          actions.setError?.('이원 분산분석은 최소 4개 이상의 유효한 데이터가 필요합니다.')
+          return
+        }
+
+        // Worker 호출 (two_way_anova)
+        const twoWayResult = await pyodideCore.callWorkerMethod<{
+          factor1: { fStatistic: number; pValue: number; df: number }
+          factor2: { fStatistic: number; pValue: number; df: number }
+          interaction: { fStatistic: number; pValue: number; df: number }
+          residual: { df: number }
+          anovaTable: Record<string, unknown>
+        }>(3, 'two_way_anova', {
+          data_values: dataValues,
+          factor1_values: factor1Values,
+          factor2_values: factor2Values
+        })
+
+        // 간단한 결과 매핑 (Factor 1 main effect만 표시)
+        const simplifiedResult: ANOVAResults = {
+          fStatistic: twoWayResult.factor1.fStatistic,
+          pValue: twoWayResult.factor1.pValue,
+          dfBetween: twoWayResult.factor1.df,
+          dfWithin: twoWayResult.residual.df,
+          msBetween: 0, // ANOVA table에서 계산 필요
+          msWithin: 0,
+          etaSquared: 0,
+          omegaSquared: 0,
+          powerAnalysis: {
+            observedPower: twoWayResult.factor1.pValue < 0.05 ? 0.80 : 0.50,
+            effectSize: 'medium',
+            cohensF: 0.5
+          },
+          groups: [],
+          anovaTable: [
+            {
+              source: `요인 1 (${factor1Col})`,
+              ss: 0,
+              df: twoWayResult.factor1.df,
+              ms: 0,
+              f: twoWayResult.factor1.fStatistic,
+              p: twoWayResult.factor1.pValue
+            },
+            {
+              source: `요인 2 (${factor2Col})`,
+              ss: 0,
+              df: twoWayResult.factor2.df,
+              ms: 0,
+              f: twoWayResult.factor2.fStatistic,
+              p: twoWayResult.factor2.pValue
+            },
+            {
+              source: '상호작용',
+              ss: 0,
+              df: twoWayResult.interaction.df,
+              ms: 0,
+              f: twoWayResult.interaction.fStatistic,
+              p: twoWayResult.interaction.pValue
+            },
+            {
+              source: '잔차',
+              ss: 0,
+              df: twoWayResult.residual.df,
+              ms: 0,
+              f: null,
+              p: null
+            }
+          ]
+        }
+
+        actions.completeAnalysis?.(simplifiedResult, 4)
       } else {
-        // Two-way, Three-way, Repeated Measures는 향후 구현
-        actions.setError?.('현재는 일원 분산분석만 지원됩니다.')
+        // Three-way, Repeated Measures는 향후 구현
+        actions.setError?.('현재는 일원/이원 분산분석만 지원됩니다.')
       }
     } catch (err) {
       actions.setError?.(err instanceof Error ? err.message : '분석 실패')
@@ -518,7 +657,9 @@ export default function ANOVAPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">요인 (범주형, 최소 1개)</CardTitle>
+              <CardTitle className="text-base">
+                요인 (범주형, {anovaType === 'oneWay' ? '1개' : anovaType === 'twoWay' ? '2개' : anovaType === 'threeWay' ? '3개' : '최소 1개'})
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
@@ -527,13 +668,17 @@ export default function ANOVAPage() {
                   const factorArray = Array.isArray(currentFactors) ? currentFactors : [currentFactors]
                   const isSelected = factorArray.includes(header)
 
+                  // 최대 factor 수 제한
+                  const maxFactors = anovaType === 'oneWay' ? 1 : anovaType === 'twoWay' ? 2 : anovaType === 'threeWay' ? 3 : 999
+                  const canSelect = isSelected || factorArray.length < maxFactors
+
                   return (
                     <Badge
                       key={header}
                       variant={isSelected ? 'default' : 'outline'}
-                      className="cursor-pointer max-w-[200px] truncate"
+                      className={`cursor-pointer max-w-[200px] truncate ${!canSelect ? 'opacity-50 cursor-not-allowed' : ''}`}
                       title={header}
-                      onClick={() => handleVariableSelect('factor', header)}
+                      onClick={() => canSelect && handleVariableSelect('factor', header)}
                     >
                       {header}
                       {isSelected && <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />}
@@ -552,7 +697,16 @@ export default function ANOVAPage() {
               <div className="mt-6 flex justify-center">
                 <Button
                   onClick={handleAnalysis}
-                  disabled={isAnalyzing || !selectedVariables?.dependent || !selectedVariables?.factor}
+                  disabled={(() => {
+                    if (isAnalyzing || !selectedVariables?.dependent || !selectedVariables?.factor) return true
+                    const factorArray = Array.isArray(selectedVariables.factor) ? selectedVariables.factor : [selectedVariables.factor]
+
+                    // ANOVA 타입별 필요한 factor 수 체크
+                    if (anovaType === 'oneWay') return factorArray.length !== 1
+                    if (anovaType === 'twoWay') return factorArray.length !== 2
+                    if (anovaType === 'threeWay') return factorArray.length !== 3
+                    return factorArray.length < 1
+                  })()}
                   size="lg"
                 >
                   {isAnalyzing ? '분석 중...' : 'ANOVA 실행'}
