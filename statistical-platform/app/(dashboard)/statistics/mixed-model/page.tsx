@@ -27,7 +27,6 @@ import {
 
 // Components
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
@@ -155,12 +154,21 @@ export default function MixedModelPage() {
   ], [])
 
   // Steps configuration - 0-based indexing
-  const STEPS: TwoPanelStep[] = useMemo(() => [
-    { id: 0, label: '방법 소개', completed: currentStep > 0 },
-    { id: 1, label: '데이터 업로드', completed: currentStep > 1 },
-    { id: 2, label: '변수 선택', completed: currentStep > 2 },
-    { id: 3, label: '결과 확인', completed: currentStep > 3 }
-  ], [currentStep])
+  const STEPS = [
+    { id: 0, label: '방법 소개' },
+    { id: 1, label: '데이터 업로드' },
+    { id: 2, label: '변수 선택' },
+    { id: 3, label: '결과 확인' }
+  ]
+
+  // 단계 완료 상태 추가 (각 단계별 조건 명확화)
+  const stepsWithCompleted = STEPS.map(step => ({
+    ...step,
+    completed: step.id === 0 ? true : // 방법 소개는 항상 표시되므로 완료
+              step.id === 1 ? !!uploadedData : // 데이터 업로드됨
+              step.id === 2 ? !!selectedVariables : // 변수 선택됨
+              step.id === 3 ? !!analysisResult : false // 분석 결과 존재
+  }))
 
   const methodInfo = useMemo(() => ({
     title: "선형 혼합 모형 (Linear Mixed Model)",
@@ -1000,7 +1008,7 @@ export default function MixedModelPage() {
       analysisSubtitle="Linear Mixed Model (LMM)"
       breadcrumbs={breadcrumbs}
       currentStep={currentStep}
-      steps={STEPS}
+      steps={stepsWithCompleted}
       onStepChange={(step: number) => actions?.setCurrentStep?.(step)}
       bottomPreview={uploadedData && currentStep >= 1 ? {
         data: uploadedData.data,

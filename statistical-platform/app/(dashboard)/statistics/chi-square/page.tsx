@@ -140,10 +140,12 @@ export default function FisherExactTestPage() {
     { id: 3, label: '결과 확인' }
   ]
 
-  // 단계 완료 상태 추가
+  // 단계 완료 상태 추가 (각 단계별 조건 명확화)
   const stepsWithCompleted = STEPS.map(step => ({
     ...step,
-    completed: results ? step.id <= 3 : step.id < state.currentStep
+    completed: step.id === 1 ? true : // 방법론은 항상 표시되므로 완료
+              step.id === 2 ? table.flat().reduce((sum, val) => sum + val, 0) > 0 : // 분할표에 데이터 입력됨
+              step.id === 3 ? !!results : false // 분석 결과 존재
   }))
 
   const renderMethodology = () => (
