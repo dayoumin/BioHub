@@ -357,112 +357,200 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* 챗봇 설정 */}
-        <TabsContent value="chatbot" className="space-y-4">
+        {/* RAG 설정 */}
+        <TabsContent value="rag" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>플로팅 챗봇 버튼</CardTitle>
+              <CardTitle>Ollama 엔드포인트</CardTitle>
               <CardDescription>
-                화면 우측 하단의 플로팅 챗봇 버튼 표시 여부를 설정하세요
+                로컬 또는 원격 Ollama 서버 주소를 설정하세요
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="space-y-1">
-                  <Label htmlFor="floating-button" className="text-base font-medium">
-                    플로팅 버튼 표시
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {floatingButtonEnabled
-                      ? '플로팅 챗봇 버튼이 화면에 표시됩니다'
-                      : '플로팅 챗봇 버튼이 숨겨집니다'}
-                  </p>
-                </div>
-                <Switch
-                  id="floating-button"
-                  checked={floatingButtonEnabled}
-                  onCheckedChange={handleFloatingButtonToggle}
+              <div className="space-y-3">
+                <Label htmlFor="ollama-endpoint">Ollama 서버 주소</Label>
+                <Input
+                  id="ollama-endpoint"
+                  type="url"
+                  value={ollamaEndpoint}
+                  onChange={(e) => handleOllamaEndpointChange(e.target.value)}
+                  placeholder="http://localhost:11434"
                 />
+                <p className="text-sm text-muted-foreground">
+                  기본값: <code className="bg-muted px-1 py-0.5 rounded">http://localhost:11434</code>
+                </p>
               </div>
 
-              {!floatingButtonEnabled && (
-                <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-                  <p className="text-sm">
-                    <strong>안내:</strong> 플로팅 버튼을 다시 켜려면 이 설정을 활성화하세요. 챗봇 전용 페이지는 여전히 사용할 수 있습니다.
-                  </p>
-                </div>
-              )}
+              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-sm">
+                  <strong>참고:</strong> Ollama 서버가 실행 중이어야 RAG 챗봇을 사용할 수 있습니다.
+                  <a
+                    href="https://ollama.com/download"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline ml-1"
+                  >
+                    Ollama 다운로드
+                  </a>
+                </p>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>AI 챗봇 설정</CardTitle>
+              <CardTitle>임베딩 모델</CardTitle>
               <CardDescription>
-                챗봇에 사용할 AI 모델을 선택하세요
+                문서 검색에 사용할 임베딩 모델을 선택하세요
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="model">AI 모델</Label>
-                <Select value={chatbotModel} onValueChange={handleModelChange}>
-                  <SelectTrigger id="model">
+                <Label htmlFor="embedding-model">임베딩 모델</Label>
+                <Select value={embeddingModel} onValueChange={handleEmbeddingModelChange}>
+                  <SelectTrigger id="embedding-model">
                     <SelectValue placeholder="모델 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="llama3.2">Llama 3.2 (추천)</SelectItem>
-                    <SelectItem value="llama3.1">Llama 3.1</SelectItem>
-                    <SelectItem value="mistral">Mistral</SelectItem>
-                    <SelectItem value="gemma">Gemma</SelectItem>
-                    <SelectItem value="phi">Phi-3</SelectItem>
+                    <SelectItem value="nomic-embed-text">nomic-embed-text (274MB, 추천)</SelectItem>
+                    <SelectItem value="mxbai-embed-large">mxbai-embed-large (669MB)</SelectItem>
+                    <SelectItem value="ZimaBlueAI/Qwen3-Embedding-0.6B:f16">Qwen3-Embedding (1.2GB, 더 정확)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
-                  현재 모델: <strong>{chatbotModel}</strong>
+                  현재 모델: <strong>{embeddingModel}</strong>
                 </p>
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-sm">
-                  <strong>참고:</strong> AI 챗봇 기능은 준비 중입니다. 모델 설정은 챗봇 기능 출시 후 적용됩니다.
+                  <strong>모델 설치:</strong> <code className="bg-muted px-1 py-0.5 rounded">ollama pull {embeddingModel}</code>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>추론 모델 (채팅)</CardTitle>
+              <CardDescription>
+                챗봇 응답 생성에 사용할 LLM 모델을 선택하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="inference-model">추론 모델</Label>
+                <Select value={inferenceModel} onValueChange={handleInferenceModelChange}>
+                  <SelectTrigger id="inference-model">
+                    <SelectValue placeholder="모델 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="qwen3:4b-q4_K_M">Qwen3 4B (2.6GB, 한국어 우수, 추천)</SelectItem>
+                    <SelectItem value="deepseek-r1:7b">DeepSeek R1 7B (4.7GB, 추론 능력 우수)</SelectItem>
+                    <SelectItem value="exaone-deep">EXAONE Deep (4.8GB, 한국어 특화)</SelectItem>
+                    <SelectItem value="llama3.2">Llama 3.2 (2GB)</SelectItem>
+                    <SelectItem value="gemma">Gemma (1.7GB)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  현재 모델: <strong>{inferenceModel}</strong>
+                </p>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm">
+                  <strong>모델 설치:</strong> <code className="bg-muted px-1 py-0.5 rounded">ollama pull {inferenceModel}</code>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>검색 설정</CardTitle>
+              <CardDescription>
+                RAG 시스템의 검색 결과 개수를 조절하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="top-k">Top-K 검색 결과 수</Label>
+                  <span className="text-sm font-medium">{topK}개</span>
+                </div>
+                <Slider
+                  id="top-k"
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={[topK]}
+                  onValueChange={handleTopKChange}
+                  className="w-full"
+                />
+                <p className="text-sm text-muted-foreground">
+                  검색 결과가 많을수록 더 많은 문맥을 참고하지만, 응답 시간이 길어질 수 있습니다.
                 </p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* 데이터베이스 설정 */}
-        <TabsContent value="database" className="space-y-4">
+        {/* 데이터 설정 */}
+        <TabsContent value="data" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Vector 데이터베이스 설정</CardTitle>
+              <CardTitle>로컬 저장 설정</CardTitle>
               <CardDescription>
-                RAG 시스템에 사용할 Vector DB를 선택하세요
+                브라우저에 데이터를 저장할지 선택하세요
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="vectordb">Vector DB 종류</Label>
-                <Select value={vectorDb} onValueChange={handleDbChange}>
-                  <SelectTrigger id="vectordb">
-                    <SelectValue placeholder="DB 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="chromadb">ChromaDB (추천)</SelectItem>
-                    <SelectItem value="faiss">FAISS</SelectItem>
-                    <SelectItem value="pinecone">Pinecone</SelectItem>
-                    <SelectItem value="qdrant">Qdrant</SelectItem>
-                    <SelectItem value="weaviate">Weaviate</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  현재 DB: <strong>{vectorDb}</strong>
-                </p>
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label htmlFor="local-storage-page" className="text-base font-medium">
+                    로컬 저장 허용
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    분석 기록, 설정, 즐겨찾기 등을 브라우저에 저장합니다
+                  </p>
+                </div>
+                <Switch
+                  id="local-storage-page"
+                  checked={localStorageEnabled}
+                  onCheckedChange={handleLocalStorageToggle}
+                />
               </div>
 
               <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-sm">
-                  <strong>참고:</strong> Vector DB 설정은 RAG 시스템에서 사용됩니다. 변경 시 챗봇 응답 품질에 영향을 줄 수 있습니다.
+                  <strong>참고:</strong> 로컬 저장을 비활성화하면 브라우저를 닫을 때 모든 설정과 기록이 삭제됩니다.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Vector 데이터베이스</CardTitle>
+              <CardDescription>
+                RAG 시스템에서 사용하는 Vector DB 정보
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <Label>현재 사용 중인 Vector DB</Label>
+                <div className="p-4 border rounded-lg bg-muted">
+                  <p className="text-sm font-medium">로컬 파일 시스템 (IndexedDB)</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    브라우저 내장 IndexedDB를 사용하여 벡터 임베딩을 저장합니다
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-sm">
+                  <strong>참고:</strong> 웹 플랫폼이므로 Vector DB는 브라우저 IndexedDB를 사용합니다.
+                  외부 Vector DB(ChromaDB, FAISS 등)는 데스크탑 앱 버전에서 지원됩니다.
                 </p>
               </div>
             </CardContent>

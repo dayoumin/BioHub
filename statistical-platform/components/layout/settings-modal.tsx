@@ -16,7 +16,6 @@ import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Moon, Sun, Monitor, ExternalLink, Settings2 } from 'lucide-react'
 import { ChatStorage } from '@/lib/services/chat-storage'
-import Link from 'next/link'
 
 interface SettingsModalProps {
   open: boolean
