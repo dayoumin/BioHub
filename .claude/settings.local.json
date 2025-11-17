@@ -137,7 +137,8 @@
       "Bash(file=\"app/(dashboard)/statistics/$page/page.tsx\")",
       "Bash(if grep -q \"currentStep={currentStep + 1}\" \"$file\")",
       "Bash(if grep -q \"currentStep={currentStep + 1}\" \"app/(dashboard)/statistics/$page/page.tsx\")",
-      "Bash(dailywork.md.bak)"
+      "Bash(dailywork.md.bak)",
+      "Bash(do echo \"=== $page ===\" echo \"Step 정의:\" grep -A 5 \"const STEPS = \\[\" \"$page/page.tsx\")"
     ],
     "deny": [],
     "ask": []

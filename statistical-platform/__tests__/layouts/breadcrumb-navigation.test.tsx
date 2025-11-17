@@ -1,7 +1,7 @@
 /**
  * Breadcrumb & Navigation 통합 테스트
  *
- * TwoPanelLayout + Breadcrumb + regression-demo 통합 검증
+ * TwoPanelLayout + Breadcrumb + 회귀분석 페이지 통합 검증
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -301,7 +301,7 @@ describe('Breadcrumb & Navigation Integration', () => {
  * 실제 사용 시나리오 테스트
  */
 describe('실제 사용 시나리오', () => {
-  it('regression-demo 페이지와 동일한 설정으로 렌더링', () => {
+  it('회귀분석 페이지와 동일한 설정으로 렌더링', () => {
     const steps = [
       { id: 1, label: '회귀 유형 선택', completed: true },
       { id: 2, label: '데이터 업로드', completed: false },

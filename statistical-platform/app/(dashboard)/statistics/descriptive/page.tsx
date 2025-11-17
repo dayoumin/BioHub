@@ -3,7 +3,7 @@
 /**
  * 기술통계 페이지 - TwoPanelLayout
  *
- * regression-demo 패턴 적용:
+ * 회귀분석 페이지 패턴 적용:
  * - TwoPanelLayout 사용
  * - 단계별 UI
  * - 우측 챗봇 패널 지원

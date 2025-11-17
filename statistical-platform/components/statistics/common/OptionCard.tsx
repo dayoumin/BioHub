@@ -2,7 +2,7 @@
  * OptionCard 컴포넌트
  *
  * 통계 메서드나 옵션 선택을 위한 카드 UI
- * regression-demo의 회귀 유형 선택 패턴을 재사용 가능하게 추출
+ * 회귀분석 페이지의 유형 선택 패턴을 재사용 가능하게 추출
  */
 
 import { cn } from '@/lib/utils'

@@ -2,7 +2,7 @@
  * StepProgress 컴포넌트
  *
  * 통계 페이지의 단계별 진행 상황을 시각화하는 공통 컴포넌트
- * regression-demo 페이지 패턴을 재사용 가능하게 추출
+ * 회귀분석 페이지 패턴을 재사용 가능하게 추출
  */
 
 import { cn } from '@/lib/utils'

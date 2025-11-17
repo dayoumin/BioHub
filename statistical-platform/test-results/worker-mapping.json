@@ -1,0 +1,270 @@
+{
+  "timestamp": "2025-11-17T00:56:02.707Z",
+  "summary": {
+    "totalPages": 42,
+    "pagesWithWorker": 0,
+    "pagesWithoutWorker": 42,
+    "totalWorkerMethods": 0,
+    "validMappings": 0,
+    "invalidMappings": 0,
+    "unusedMethods": 0
+  },
+  "workerMethods": {},
+  "pageResults": [
+    {
+      "success": true,
+      "pageName": "ancova",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "anova",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "binomial-test",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "chi-square",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "chi-square-goodness",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "chi-square-independence",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "cluster",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "cochran-q",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "correlation",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "descriptive",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "discriminant",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "dose-response",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "explore-data",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "factor-analysis",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "friedman",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "kruskal-wallis",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "ks-test",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "mann-kendall",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "mann-whitney",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "manova",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "mcnemar",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "means-plot",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "mixed-model",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "mood-median",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "non-parametric",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "normality-test",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "one-sample-t",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "ordinal-regression",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "partial-correlation",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "pca",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "poisson",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "power-analysis",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "proportion-test",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "regression",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "reliability",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "response-surface",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "runs-test",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "sign-test",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "stepwise",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "t-test",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "welch-t",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "wilcoxon",
+      "methods": [],
+      "usesWorker": false
+    }
+  ],
+  "invalidMappings": [],
+  "unusedMethods": [],
+  "methodUsage": {}
+}
