@@ -206,26 +206,26 @@ export default function PoissonRegressionPage() {
   // STEPS 정의
   const STEPS: TwoPanelStep[] = useMemo(() => [
     {
-      id: 'method',
-      title: '방법 소개',
-      content: () => renderMethodIntroduction()
+      id: 1,
+      label: '포아송 회귀 소개',
+      completed: currentStep > 0
     },
     {
-      id: 'upload',
-      title: '데이터 업로드',
-      content: () => renderDataUpload()
+      id: 2,
+      label: '데이터 업로드',
+      completed: !!uploadedData
     },
     {
-      id: 'variables',
-      title: '변수 선택',
-      content: () => renderVariableSelection()
+      id: 3,
+      label: '변수 선택',
+      completed: !!(selectedVariables?.dependent && selectedVariables?.independent && selectedVariables.independent.length > 0)
     },
     {
-      id: 'results',
-      title: '결과 보기',
-      content: () => renderResults()
+      id: 4,
+      label: '결과 해석',
+      completed: !!results
     }
-  ], [uploadedData, selectedVariables, results, isAnalyzing])
+  ], [currentStep, uploadedData, selectedVariables, results])
 
   // Step 0: 방법 소개
   const renderMethodIntroduction = useCallback(() => (
@@ -308,9 +308,16 @@ export default function PoissonRegressionPage() {
     <DataUploadStep
       onUploadComplete={createDataUploadHandler(
         actions.setUploadedData,
-        () => actions.setCurrentStep?.(1),
+        () => {
+          actions.setCurrentStep?.(1)
+        },
         'poisson-regression'
       )}
+      onPrevious={() => {
+        if (actions.setCurrentStep) {
+          actions.setCurrentStep(0)
+        }
+      }}
     />
   ), [actions])
 
@@ -826,8 +833,8 @@ export default function PoissonRegressionPage() {
 
   return (
     <TwoPanelLayout
-      title="포아송 회귀분석"
-      subtitle="Poisson Regression - 카운트 데이터 회귀분석"
+      analysisTitle="포아송 회귀분석"
+      analysisSubtitle="Poisson Regression - 카운트 데이터 회귀분석"
       breadcrumbs={breadcrumbs}
       currentStep={currentStep}
       steps={STEPS}

@@ -72,38 +72,26 @@ export default function McNemarTestPage() {
   // McNemar 검정 단계 정의 (useMemo)
   const STEPS: TwoPanelStep[] = useMemo(() => [
     {
-      id: 'method',
-      number: 1,
-      title: 'McNemar 검정 소개',
-      description: '대응 이진 자료 분석 개념',
-      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending',
-      isDataStep: false
+      id: 1,
+      label: 'McNemar 검정 소개',
+      completed: currentStep > 0
     },
     {
-      id: 'upload',
-      number: 2,
-      title: '데이터 업로드',
-      description: '분석할 데이터 파일 업로드',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending',
-      isDataStep: true
+      id: 2,
+      label: '데이터 업로드',
+      completed: !!uploadedData
     },
     {
-      id: 'variables',
-      number: 3,
-      title: '변수 선택',
-      description: '대응하는 이진 변수 선택',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending',
-      isDataStep: false
+      id: 3,
+      label: '변수 선택',
+      completed: !!(selectedVariables?.dependent && selectedVariables.dependent.length === 2)
     },
     {
-      id: 'results',
-      number: 4,
-      title: '결과 해석',
-      description: 'McNemar 검정 결과 확인',
-      status: currentStep === 3 ? 'current' : 'pending',
-      isDataStep: false
+      id: 4,
+      label: '결과 해석',
+      completed: !!results
     }
-  ], [currentStep])
+  ], [currentStep, uploadedData, selectedVariables, results])
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
@@ -791,8 +779,8 @@ export default function McNemarTestPage() {
 
   return (
     <TwoPanelLayout
-      title="McNemar 검정"
-      subtitle="McNemar Test - 대응 이진 자료의 변화 검정"
+      analysisTitle="McNemar 검정"
+      analysisSubtitle="McNemar Test - 대응 이진 자료의 변화 검정"
       breadcrumbs={breadcrumbs}
       currentStep={currentStep}
       steps={STEPS}
