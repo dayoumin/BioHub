@@ -100,11 +100,17 @@ describe('SettingsPage - Simple Tests', () => {
     expect(ChatStorage.loadSettings).toHaveBeenCalled()
   })
 
-  it('즐겨찾기 탭이 DOM에 존재해야 함', () => {
+  it('4개 탭이 모두 존재해야 함', () => {
     render(<SettingsPage />)
 
-    // 즐겨찾기 탭이 렌더링되었는지 확인
-    const favoritesTab = screen.getByRole('tab', { name: /즐겨찾기/ })
-    expect(favoritesTab).toBeInTheDocument()
+    // 모든 탭 확인
+    const tabs = screen.getAllByRole('tab')
+    expect(tabs).toHaveLength(4)
+
+    // 탭 텍스트 확인
+    expect(screen.getByText('외관 및 알림')).toBeInTheDocument()
+    expect(screen.getByText('AI 챗봇 (RAG)')).toBeInTheDocument()
+    expect(screen.getByText('데이터')).toBeInTheDocument()
+    expect(screen.getByText('즐겨찾기')).toBeInTheDocument()
   })
 })
