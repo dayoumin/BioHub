@@ -17,7 +17,6 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { pyodideCore } from '@/lib/services/pyodide-core'
 
 interface RepeatedMeasuresVariables {
   subjectId?: string
@@ -59,7 +58,8 @@ interface RepeatedMeasuresResults {
 const STEPS = [
   { id: 1, label: '데이터 업로드' },
   { id: 2, label: '변수 선택' },
-  { id: 3, label: '결과 확인' }
+  { id: 3, label: '분석 실행' },
+  { id: 4, label: '결과 확인' }
 ]
 
 export default function RepeatedMeasuresANOVAPage() {
@@ -70,8 +70,7 @@ export default function RepeatedMeasuresANOVAPage() {
   const { state, actions } = useStatisticsPage<RepeatedMeasuresResults, RepeatedMeasuresVariables>({
     withUploadedData: true,
     withError: true,
-    initialStep: 1,
-    initialVariables: { timeVariables: [] }
+    initialStep: 1
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
@@ -80,6 +79,10 @@ export default function RepeatedMeasuresANOVAPage() {
     actions.setUploadedData?.({ fileName: file.name, data, columns })
     actions.setCurrentStep(2)
   }, [actions])
+
+  const handleNext = useCallback(() => {
+    actions.setCurrentStep(currentStep + 1)
+  }, [actions, currentStep])
 
   const handleSubjectIdSelect = useCallback((header: string) => {
     const current = selectedVariables || { timeVariables: [] }
@@ -111,10 +114,12 @@ export default function RepeatedMeasuresANOVAPage() {
       return
     }
 
-    actions.setIsAnalyzing?.(true)
-    actions.setError?.(null)
-
     try {
+      // PyodideCore 서비스 임포트
+      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+      const pyodideCore = PyodideCoreService.getInstance()
+      await pyodideCore.initialize()
+
       const subjectIdCol = selectedVariables.subjectId
       const timeVars = selectedVariables.timeVariables
 
@@ -249,22 +254,18 @@ export default function RepeatedMeasuresANOVAPage() {
         timePointMeans
       }
 
-      actions.setResults?.(finalResult)
-      actions.setCurrentStep(3)
+      actions.completeAnalysis?.(finalResult, 4)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       actions.setError?.(errorMessage)
-    } finally {
-      actions.setIsAnalyzing?.(false)
     }
   }, [uploadedData, selectedVariables, actions])
 
   const handleReset = useCallback(() => {
     actions.setCurrentStep(1)
     actions.setUploadedData?.(null)
-    actions.setSelectedVariables?.({ timeVariables: [] })
-    actions.setResults?.(null)
-    actions.setError?.(null)
+    actions.setSelectedVariables?.({ timeVariables: [] } as RepeatedMeasuresVariables)
+    actions.setError?.('')
   }, [actions])
 
   // Step 1: Data Upload
@@ -277,7 +278,13 @@ export default function RepeatedMeasuresANOVAPage() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <DataUploadStep onDataUpload={handleDataUpload} />
+        <DataUploadStep
+          onUploadComplete={handleDataUpload}
+          onNext={handleNext}
+          canGoNext={!!uploadedData}
+          currentStep={currentStep}
+          totalSteps={STEPS.length}
+        />
 
         <Alert className="mt-4">
           <AlertCircle className="h-4 w-4" />
@@ -360,13 +367,48 @@ export default function RepeatedMeasuresANOVAPage() {
 
         <div className="flex gap-2">
           <Button
-            onClick={handleAnalyze}
-            disabled={!subjectId || timeVars.length < 2 || isAnalyzing}
+            onClick={handleNext}
+            disabled={!subjectId || timeVars.length < 2}
           >
-            {isAnalyzing ? '분석 중...' : '분석 실행'}
+            다음 단계
           </Button>
           <Button variant="outline" onClick={handleReset}>
             초기화
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Step 3: Analysis Execution
+  const renderStep3 = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>분석 실행</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>선택된 설정:</strong>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>피험자 ID: {selectedVariables?.subjectId}</li>
+              <li>시간 변수: {selectedVariables?.timeVariables.join(', ')}</li>
+              <li>총 {selectedVariables?.timeVariables.length}개 시점</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+
+        <div className="flex gap-2">
+          <Button
+            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            size="lg"
+          >
+            {isAnalyzing ? '분석 중...' : '분석 실행'}
+          </Button>
+          <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
+            이전 단계
           </Button>
         </div>
 
@@ -376,12 +418,12 @@ export default function RepeatedMeasuresANOVAPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-      </div>
-    )
-  }
+      </CardContent>
+    </Card>
+  )
 
-  // Step 3: Results
-  const renderStep3 = () => {
+  // Step 4: Results
+  const renderStep4 = () => {
     if (!results) return null
 
     const interpretation = results.pValue < 0.05
@@ -464,12 +506,12 @@ export default function RepeatedMeasuresANOVAPage() {
           <CardContent>
             <StatisticsTable
               columns={[
-                { header: '변동 요인', accessor: 'source' },
-                { header: '제곱합 (SS)', accessor: 'ss', format: (v) => v.toFixed(3) },
-                { header: '자유도 (df)', accessor: 'df', format: (v) => v.toFixed(0) },
-                { header: '평균제곱 (MS)', accessor: 'ms', format: (v) => v.toFixed(3) },
-                { header: 'F', accessor: 'f', format: (v) => v === 0 ? '-' : v.toFixed(3) },
-                { header: 'p-value', accessor: 'p', format: (v) => v === 0 ? '-' : v.toFixed(4) }
+                { key: 'source', header: '변동 요인' },
+                { key: 'ss', header: '제곱합 (SS)', type: 'number' },
+                { key: 'df', header: '자유도 (df)', type: 'number' },
+                { key: 'ms', header: '평균제곱 (MS)', type: 'number' },
+                { key: 'f', header: 'F', type: 'number' },
+                { key: 'p', header: 'p-value', type: 'pvalue' }
               ]}
               data={results.anovaTable}
             />
@@ -484,11 +526,11 @@ export default function RepeatedMeasuresANOVAPage() {
           <CardContent>
             <StatisticsTable
               columns={[
-                { header: '시간대', accessor: 'timePoint' },
-                { header: '평균', accessor: 'mean', format: (v) => v.toFixed(3) },
-                { header: '표준편차', accessor: 'std', format: (v) => v.toFixed(3) },
-                { header: '표본 크기', accessor: 'n', format: (v) => v.toFixed(0) },
-                { header: '95% CI', accessor: 'ci', format: (v) => `[${v[0].toFixed(2)}, ${v[1].toFixed(2)}]` }
+                { key: 'timePoint', header: '시간대' },
+                { key: 'mean', header: '평균', type: 'number' },
+                { key: 'std', header: '표준편차', type: 'number' },
+                { key: 'n', header: '표본 크기', type: 'number' },
+                { key: 'ci', header: '95% CI', type: 'ci' }
               ]}
               data={results.timePointMeans}
             />
@@ -530,44 +572,21 @@ export default function RepeatedMeasuresANOVAPage() {
 
   const steps = STEPS.map((step) => ({
     ...step,
-    status: currentStep > step.id ? 'completed' : currentStep === step.id ? 'current' : 'upcoming'
+    completed: currentStep > step.id
   }))
 
   return (
     <TwoPanelLayout
-      title="반복측정 분산분석"
-      subtitle="Repeated Measures ANOVA"
-      description="동일한 피험자에서 여러 시점에 걸쳐 반복 측정한 데이터의 평균 차이를 검정합니다."
+      analysisTitle="반복측정 분산분석"
+      analysisSubtitle="Repeated Measures ANOVA"
+      analysisIcon={<Layers className="w-5 h-5" />}
       steps={steps}
       currentStep={currentStep}
-      exampleSection={{
-        title: '분석 예시',
-        items: [
-          '어류 성장 실험: 동일한 개체의 주간별 체중 변화 (Week1, Week2, Week3)',
-          '약물 효과 평가: 투약 전/후/추적 시점의 혈압 변화',
-          '학습 효과 검증: 동일 학생의 월별 시험 점수 변화'
-        ]
-      }}
-      assumptionsSection={{
-        title: '분석 가정',
-        items: [
-          '정규성: 각 시간대의 측정값이 정규분포를 따름',
-          '구형성: 차이 점수들의 분산이 동일함 (Mauchly\'s test)',
-          '독립성: 피험자 간 측정값이 독립적임'
-        ]
-      }}
-      interpretationSection={{
-        title: '결과 해석',
-        items: [
-          'p < 0.05: 시간에 따른 유의한 변화가 있음',
-          '구형성 위배 시: Greenhouse-Geisser 또는 Huynh-Feldt 보정 사용',
-          '유의한 결과 시: 사후검정으로 어느 시점 간 차이가 있는지 확인'
-        ]
-      }}
     >
       {currentStep === 1 && renderStep1()}
       {currentStep === 2 && renderStep2()}
       {currentStep === 3 && renderStep3()}
+      {currentStep === 4 && renderStep4()}
     </TwoPanelLayout>
   )
 }
