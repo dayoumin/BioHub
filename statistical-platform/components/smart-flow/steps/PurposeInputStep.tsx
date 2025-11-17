@@ -82,8 +82,8 @@ export function PurposeInputStep({
       hasTimeVar,
       hasGroupVar,
       groupLevels,
-      normalityPassed: validationResults.normalityTest?.isNormal || false,
-      homogeneityPassed: validationResults.homogeneityTest?.equalVariance || false
+      normalityPassed: validationResults.normalityTest?.isNormal ?? undefined,
+      homogeneityPassed: validationResults.homogeneityTest?.equalVariance ?? undefined
     }
   }, [validationResults, data])
 
@@ -279,6 +279,8 @@ export function PurposeInputStep({
             onToggle={() => setShowRecommendations(!showRecommendations)}
             onMethodSelect={handleMethodSelect}
             onQuestionTypeChange={setSelectedQuestionType}
+            dataProfile={dataProfile}
+            assumptionResults={assumptionResults}
           />
 
           {/* 2단계 선택 UI */}

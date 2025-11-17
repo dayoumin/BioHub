@@ -679,14 +679,20 @@ export function checkMethodRequirements(
     }
   }
 
-  // 가정 확인
+  // 가정 확인 (undefined는 "미실행"으로 경고 제외)
   if (method.requirements.assumptions) {
     method.requirements.assumptions.forEach(assumption => {
-      if (assumption === '정규성' && !dataProfile.normalityPassed) {
-        warnings.push('정규성 가정 위반 (비모수 검정 고려)')
+      if (assumption === '정규성') {
+        // false일 때만 경고 (undefined는 미실행 상태)
+        if (dataProfile.normalityPassed === false) {
+          warnings.push('정규성 가정 위반 (비모수 검정 고려)')
+        }
       }
-      if (assumption === '등분산성' && !dataProfile.homogeneityPassed) {
-        warnings.push('등분산성 가정 위반 (Welch 검정 고려)')
+      if (assumption === '등분산성') {
+        // false일 때만 경고 (undefined는 미실행 상태)
+        if (dataProfile.homogeneityPassed === false) {
+          warnings.push('등분산성 가정 위반 (Welch 검정 고려)')
+        }
       }
     })
   }
