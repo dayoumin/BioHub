@@ -11,7 +11,8 @@ import {
   Microscope,
   CheckCircle2,
   Grid3X3,
-  Target
+  Target,
+  Layers
 } from 'lucide-react'
 
 export interface StatisticsMenuItem {
@@ -111,9 +112,18 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         id: 'anova',
         href: '/statistics/anova',
         title: 'ANOVA',
-        subtitle: '일원, 이원, 삼원, 반복측정',
+        subtitle: '일원, 이원, 삼원',
         category: 'glm',
         icon: GitBranch,
+        implemented: true
+      },
+      {
+        id: 'repeated-measures-anova',
+        href: '/statistics/repeated-measures-anova',
+        title: '반복측정 분산분석',
+        subtitle: '동일 대상 반복 측정',
+        category: 'glm',
+        icon: Layers,
         implemented: true
       },
       {
