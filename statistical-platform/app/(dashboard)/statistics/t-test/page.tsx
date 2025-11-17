@@ -137,32 +137,121 @@ export default function TTestPage() {
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
 
-      // 데모 데이터 (임시)
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      let workerResult: unknown
+      let resultType: 'one-sample' | 'two-sample' | 'paired' = testType as 'one-sample' | 'two-sample' | 'paired'
 
-      const demoResults: TTestResult = {
-        type: testType as 'one-sample' | 'two-sample' | 'paired',
-        statistic: 3.45,
-        pvalue: 0.002,
-        df: 28,
-        ci_lower: 2.1,
-        ci_upper: 8.5,
-        mean_diff: 5.3,
-        effect_size: {
-          cohens_d: 0.85,
-          interpretation: '큰 효과'
-        },
-        assumptions: {
-          normality: { passed: true, pvalue: 0.234 },
-          equal_variance: { passed: true, pvalue: 0.456 }
-        },
-        sample_stats: {
-          group1: { mean: 45.3, std: 4.2, n: 15 },
-          group2: { mean: 40.0, std: 3.8, n: 15 }
+      if (testType === 'one-sample') {
+        // 일표본 t-검정
+        const valueCol = selectedVariables.value as string
+        const values = uploadedData.data.map((row: Record<string, unknown>) => row[valueCol] as number)
+
+        workerResult = await pyodideCore.callWorkerMethod<{
+          statistic: number
+          pValue: number
+          sampleMean: number
+        }>(2, 't_test_one_sample', { data: values, popmean: testValue })
+
+      } else if (testType === 'two-sample') {
+        // 독립표본 t-검정
+        const groupCol = selectedVariables.group as string
+        const valueCol = selectedVariables.value as string
+
+        const uniqueGroups = Array.from(new Set(uploadedData.data.map((row: Record<string, unknown>) => row[groupCol])))
+        if (uniqueGroups.length !== 2) {
+          throw new Error(`집단 변수는 정확히 2개의 값을 가져야 합니다 (현재: ${uniqueGroups.length}개)`)
         }
+
+        const group1Data = uploadedData.data
+          .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[0])
+          .map((row: Record<string, unknown>) => row[valueCol] as number)
+        const group2Data = uploadedData.data
+          .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[1])
+          .map((row: Record<string, unknown>) => row[valueCol] as number)
+
+        workerResult = await pyodideCore.callWorkerMethod<{
+          statistic: number
+          pValue: number
+          cohensD: number
+          mean1: number
+          mean2: number
+          std1: number
+          std2: number
+          n1: number
+          n2: number
+        }>(2, 't_test_two_sample', { group1: group1Data, group2: group2Data, equal_var: true })
+
+      } else if (testType === 'paired') {
+        // 대응표본 t-검정
+        const beforeCol = selectedVariables.before as string
+        const afterCol = selectedVariables.after as string
+
+        const values1 = uploadedData.data.map((row: Record<string, unknown>) => row[beforeCol] as number)
+        const values2 = uploadedData.data.map((row: Record<string, unknown>) => row[afterCol] as number)
+
+        workerResult = await pyodideCore.callWorkerMethod<{
+          statistic: number
+          pValue: number
+          meanDiff: number
+          nPairs: number
+        }>(2, 't_test_paired', { values1, values2 })
+
+      } else {
+        throw new Error('Invalid test type')
       }
 
-      actions.completeAnalysis?.(demoResults, 4)
+      // Worker 결과를 TTestResult 타입으로 변환
+      const finalResult: TTestResult = (() => {
+        if (testType === 'one-sample') {
+          const res = workerResult as { statistic: number; pValue: number; sampleMean: number }
+          return {
+            type: 'one-sample',
+            statistic: res.statistic,
+            pvalue: res.pValue,
+            df: uploadedData.data.length - 1,
+            ci_lower: undefined,
+            ci_upper: undefined
+          }
+        } else if (testType === 'two-sample') {
+          const res = workerResult as {
+            statistic: number
+            pValue: number
+            cohensD: number
+            mean1: number
+            mean2: number
+            std1: number
+            std2: number
+            n1: number
+            n2: number
+          }
+          return {
+            type: 'two-sample',
+            statistic: res.statistic,
+            pvalue: res.pValue,
+            df: res.n1 + res.n2 - 2,
+            mean_diff: res.mean1 - res.mean2,
+            effect_size: {
+              cohens_d: res.cohensD,
+              interpretation: interpretEffectSize(res.cohensD)
+            },
+            sample_stats: {
+              group1: { mean: res.mean1, std: res.std1, n: res.n1 },
+              group2: { mean: res.mean2, std: res.std2, n: res.n2 }
+            }
+          }
+        } else {
+          // paired
+          const res = workerResult as { statistic: number; pValue: number; meanDiff: number; nPairs: number }
+          return {
+            type: 'paired',
+            statistic: res.statistic,
+            pvalue: res.pValue,
+            df: res.nPairs - 1,
+            mean_diff: res.meanDiff
+          }
+        }
+      })()
+
+      actions.completeAnalysis?.(finalResult, 4)
     } catch (err) {
       actions.setError?.(err instanceof Error ? err.message : '분석 실패')
     }
@@ -293,6 +382,34 @@ export default function TTestPage() {
             </p>
           </div>
 
+          {testType === 'one-sample' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">측정 변수 (연속형)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {uploadedData.columns.map((header: string) => {
+                    const isSelected = selectedVariables?.value === header
+
+                    return (
+                      <Badge
+                        key={header}
+                        variant={isSelected ? 'default' : 'outline'}
+                        className="cursor-pointer max-w-[200px] truncate"
+                        title={header}
+                        onClick={() => handleVariableSelect('value', header)}
+                      >
+                        {header}
+                        {isSelected && <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />}
+                      </Badge>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {testType === 'two-sample' && (
             <>
               <Card>
@@ -349,6 +466,62 @@ export default function TTestPage() {
             </>
           )}
 
+          {testType === 'paired' && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">전 측정값 (Before)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedData.columns.map((header: string) => {
+                      const isSelected = selectedVariables?.before === header
+
+                      return (
+                        <Badge
+                          key={header}
+                          variant={isSelected ? 'default' : 'outline'}
+                          className="cursor-pointer max-w-[200px] truncate"
+                          title={header}
+                          onClick={() => handleVariableSelect('before', header)}
+                        >
+                          {header}
+                          {isSelected && <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />}
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">후 측정값 (After)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedData.columns.map((header: string) => {
+                      const isSelected = selectedVariables?.after === header
+
+                      return (
+                        <Badge
+                          key={header}
+                          variant={isSelected ? 'default' : 'outline'}
+                          className="cursor-pointer max-w-[200px] truncate"
+                          title={header}
+                          onClick={() => handleVariableSelect('after', header)}
+                        >
+                          {header}
+                          {isSelected && <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />}
+                        </Badge>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -359,7 +532,12 @@ export default function TTestPage() {
           <div className="flex justify-center">
             <Button
               onClick={handleAnalysis}
-              disabled={isAnalyzing || !selectedVariables?.group || !selectedVariables?.value}
+              disabled={
+                isAnalyzing ||
+                (testType === 'one-sample' && !selectedVariables?.value) ||
+                (testType === 'two-sample' && (!selectedVariables?.group || !selectedVariables?.value)) ||
+                (testType === 'paired' && (!selectedVariables?.before || !selectedVariables?.after))
+              }
               size="lg"
             >
               {isAnalyzing ? '분석 중...' : 't-검정 실행'}
