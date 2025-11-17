@@ -1,5 +1,5 @@
 /**
- * 29개 통계 방법 매핑 및 카테고리 정의
+ * 50개 통계 방법 매핑 및 카테고리 정의
  */
 
 export interface StatisticalMethod {
@@ -41,8 +41,8 @@ export const QUESTION_TYPES = [
     id: 'advanced',
     name: '고급/특수 분석',
     icon: '🔬',
-    description: '차원축소, 군집, 시계열 등',
-    methods: ['pca', 'clustering', 'timeseries', 'survival']
+    description: '차원축소, 군집, 시계열, 설계 등',
+    methods: ['pca', 'clustering', 'timeseries', 'survival', 'advanced', 'psychometrics', 'design']
   }
 ]
 
@@ -337,6 +337,244 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     category: 'survival',
     requirements: {
       minSampleSize: 20,
+      variableTypes: ['numeric', 'categorical']
+    }
+  },
+
+  // 기타 검정 (5개)
+  {
+    id: 'proportion-test',
+    name: '비율 검정',
+    description: '두 비율 간 차이 검정',
+    category: 'chi-square',
+    requirements: {
+      minSampleSize: 20,
+      variableTypes: ['categorical']
+    }
+  },
+  {
+    id: 'binomial-test',
+    name: '이항 검정',
+    description: '관찰된 비율이 기댓값과 일치하는지 검정',
+    category: 'chi-square',
+    requirements: {
+      minSampleSize: 5,
+      variableTypes: ['categorical']
+    }
+  },
+  {
+    id: 'sign-test',
+    name: '부호 검정',
+    description: '중앙값 기반 비모수 검정',
+    category: 'nonparametric',
+    requirements: {
+      minSampleSize: 5,
+      variableTypes: ['numeric']
+    }
+  },
+  {
+    id: 'runs-test',
+    name: 'Runs 검정',
+    description: '데이터 무작위성 검정',
+    category: 'nonparametric',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['categorical', 'numeric']
+    }
+  },
+  {
+    id: 'ks-test',
+    name: 'Kolmogorov-Smirnov 검정',
+    description: '두 분포의 동일성 검정',
+    category: 'nonparametric',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['numeric']
+    }
+  },
+
+  // 필수 추가 (10개)
+  {
+    id: 'ancova',
+    name: '공분산분석 (ANCOVA)',
+    description: '공변량을 통제한 그룹 비교',
+    category: 'anova',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['numeric', 'categorical'],
+      assumptions: ['정규성', '등분산성', '공변량-종속변수 선형성']
+    }
+  },
+  {
+    id: 'friedman',
+    name: 'Friedman 검정',
+    description: '반복측정 비모수 검정 (3개 이상 조건)',
+    category: 'nonparametric',
+    requirements: {
+      minSampleSize: 5,
+      variableTypes: ['numeric'],
+      assumptions: []
+    }
+  },
+  {
+    id: 'chi-square-goodness',
+    name: '카이제곱 적합도 검정',
+    description: '관찰 빈도가 기댓값과 일치하는지 검정',
+    category: 'chi-square',
+    requirements: {
+      minSampleSize: 20,
+      variableTypes: ['categorical']
+    }
+  },
+  {
+    id: 'mcnemar',
+    name: 'McNemar 검정',
+    description: '대응표본 범주형 자료 검정',
+    category: 'chi-square',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['categorical']
+    }
+  },
+  {
+    id: 'cochran-q',
+    name: 'Cochran Q 검정',
+    description: '3개 이상 반복측정 이분형 자료',
+    category: 'chi-square',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['categorical']
+    }
+  },
+  {
+    id: 'mann-kendall',
+    name: 'Mann-Kendall 추세검정',
+    description: '시계열 데이터 추세 유무 검정',
+    category: 'timeseries',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['numeric', 'date']
+    }
+  },
+  {
+    id: 'manova',
+    name: '다변량 분산분석 (MANOVA)',
+    description: '2개 이상 종속변수의 그룹 차이',
+    category: 'anova',
+    requirements: {
+      minSampleSize: 20,
+      variableTypes: ['numeric', 'categorical']
+    }
+  },
+  {
+    id: 'mixed-model',
+    name: '혼합효과모형',
+    description: '고정효과 + 랜덤효과 분석',
+    category: 'advanced',
+    requirements: {
+      minSampleSize: 30,
+      variableTypes: ['numeric', 'categorical']
+    }
+  },
+  {
+    id: 'discriminant',
+    name: '판별분석 (LDA/QDA)',
+    description: '그룹 분류 및 판별함수 도출',
+    category: 'advanced',
+    requirements: {
+      minSampleSize: 50,
+      variableTypes: ['numeric', 'categorical']
+    }
+  },
+  {
+    id: 'dose-response',
+    name: '용량-반응 분석',
+    description: 'EC50, IC50 등 용량 반응 곡선',
+    category: 'regression',
+    requirements: {
+      minSampleSize: 20,
+      variableTypes: ['numeric']
+    }
+  },
+
+  // 선택 추가 (8개)
+  {
+    id: 'mood-median',
+    name: "Mood's Median 검정",
+    description: '중앙값 기반 비모수 검정',
+    category: 'nonparametric',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['numeric', 'categorical']
+    }
+  },
+  {
+    id: 'partial-correlation',
+    name: '편상관분석',
+    description: '제3변수 통제 상관계수',
+    category: 'correlation',
+    requirements: {
+      minSampleSize: 30,
+      variableTypes: ['numeric']
+    }
+  },
+  {
+    id: 'stepwise-regression',
+    name: '단계적 회귀분석',
+    description: '변수 선택 자동화 (Forward/Backward)',
+    category: 'regression',
+    requirements: {
+      minSampleSize: 50,
+      variableTypes: ['numeric']
+    }
+  },
+  {
+    id: 'response-surface',
+    name: '반응표면분석 (RSM)',
+    description: '최적 조건 탐색',
+    category: 'advanced',
+    requirements: {
+      minSampleSize: 30,
+      variableTypes: ['numeric']
+    }
+  },
+  {
+    id: 'reliability-analysis',
+    name: '신뢰도 분석 (Cronbach α)',
+    description: '측정 도구 내적일관성',
+    category: 'psychometrics',
+    requirements: {
+      minSampleSize: 30,
+      variableTypes: ['numeric']
+    }
+  },
+  {
+    id: 'power-analysis',
+    name: '검정력 분석',
+    description: '필요 표본 크기 계산',
+    category: 'design',
+    requirements: {
+      minSampleSize: 1,
+      variableTypes: []
+    }
+  },
+  {
+    id: 'explore-data',
+    name: '탐색적 데이터 분석 (EDA)',
+    description: '종합 데이터 요약 및 시각화',
+    category: 'descriptive',
+    requirements: {
+      minSampleSize: 1,
+      variableTypes: []
+    }
+  },
+  {
+    id: 'means-plot',
+    name: '평균 그림',
+    description: '그룹별 평균 비교 시각화',
+    category: 'descriptive',
+    requirements: {
+      minSampleSize: 3,
       variableTypes: ['numeric', 'categorical']
     }
   }
