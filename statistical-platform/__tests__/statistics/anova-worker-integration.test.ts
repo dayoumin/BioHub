@@ -176,7 +176,7 @@ describe('ANOVA Worker Integration', () => {
 
       // Cohen's f = √(η² / (1-η²))
       const cohensF = Math.sqrt(etaSquared / (1 - etaSquared))
-      expect(cohensF).toBeCloseTo(8.08, 1)
+      expect(cohensF).toBeCloseTo(8.165, 2) // √(0.985 / 0.015) = 8.165
     })
 
     it('효과 크기 해석', () => {
