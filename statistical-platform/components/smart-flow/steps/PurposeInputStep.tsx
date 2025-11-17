@@ -315,6 +315,7 @@ export function PurposeInputStep({
                   methods={filteredMethods}
                   selectedMethod={selectedMethod}
                   dataProfile={dataProfile}
+                  assumptionResults={assumptionResults}
                   onMethodSelect={handleMethodSelect}
                   checkMethodRequirements={checkMethodRequirements}
                 />

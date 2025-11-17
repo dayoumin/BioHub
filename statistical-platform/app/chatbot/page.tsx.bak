@@ -98,103 +98,82 @@ export default function ChatbotPage() {
 
     if (!searchQuery.trim()) {
       return {
-        searchedProjects: projects,
-        searchedSessions: sessions,
+        searchedProjects: ChatStorage.getProjects(),
+        searchedSessions: ChatStorage.loadSessions(),
       }
     }
-
-    // 검색 필터링 (클라이언트 사이드)
-    const query = searchQuery.toLowerCase()
+    const result = ChatStorage.globalSearch(searchQuery)
     return {
-      searchedProjects: projects.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        (p.description && p.description.toLowerCase().includes(query))
-      ),
-      searchedSessions: sessions.filter(s =>
-        s.title.toLowerCase().includes(query)
-      ),
+      searchedProjects: result.projects,
+      searchedSessions: result.sessions,
     }
-  }, [searchQuery, sessions, projects, isMounted])
+  }, [searchQuery, forceUpdate, isMounted])
 
   // 즐겨찾기 세션 (검색 필터 적용, 클라이언트에서만)
   const favoriteSessions = useMemo(() => {
     if (!isMounted) return []
 
-    const favorites = sessions.filter(s => s.isFavorite && !s.isArchived)
+    const favorites = ChatStorage.getFavoriteSessions()
     if (!searchQuery.trim()) return favorites
 
     const query = searchQuery.toLowerCase()
     return favorites.filter(session =>
       session.title.toLowerCase().includes(query)
     )
-  }, [searchQuery, sessions, isMounted])
+  }, [searchQuery, forceUpdate, isMounted])
 
   // 히스토리 (프로젝트 미속 세션, 검색 필터 적용, 클라이언트에서만)
   const unorganizedSessions = useMemo(() => {
     if (!isMounted) return []
 
-    const unorganized = sessions.filter(s => !s.projectId && !s.isArchived)
+    const unorganized = ChatStorage.getUnorganizedSessions()
     if (!searchQuery.trim()) return unorganized
 
     const query = searchQuery.toLowerCase()
     return unorganized.filter(session =>
       session.title.toLowerCase().includes(query)
     )
-  }, [searchQuery, sessions, isMounted])
+  }, [searchQuery, forceUpdate, isMounted])
 
   // 현재 세션 (클라이언트에서만)
   const currentSession = useMemo(() => {
     if (!isMounted || !currentSessionId) return null
-    return sessions.find(s => s.id === currentSessionId) ?? null
-  }, [currentSessionId, sessions, isMounted])
+    return ChatStorage.loadSession(currentSessionId)
+  }, [currentSessionId, forceUpdate, isMounted])
 
-  // IndexedDB에서 데이터 다시 로드
-  const reloadData = useCallback(async () => {
-    const [loadedSessions, loadedProjects] = await Promise.all([
-      ChatStorageIndexedDB.loadSessions(),
-      ChatStorageIndexedDB.loadProjects(),
-    ])
-    setSessions(loadedSessions)
-    setProjects(loadedProjects)
+  // 리렌더 트리거 (localStorage 변경 후 호출)
+  const triggerUpdate = useCallback(() => {
+    setForceUpdate((prev) => (prev + 1) % 1000)
   }, [])
 
   // 새 대화
-  const handleNewChat = useCallback(async () => {
-    const newSession = await ChatStorageIndexedDB.createNewSession()
+  const handleNewChat = useCallback(() => {
+    const newSession = ChatStorage.createNewSession()
     setCurrentSessionId(newSession.id)
-    await reloadData()
-  }, [reloadData])
+    triggerUpdate()
+  }, [triggerUpdate])
 
-  // IndexedDB 초기화 및 데이터 로드
+  // 클라이언트 마운트 감지
   useEffect(() => {
-    const initializeData = async () => {
-      try {
-        await ChatStorageIndexedDB.initialize()
-        const [loadedSessions, loadedProjects] = await Promise.all([
-          ChatStorageIndexedDB.loadSessions(),
-          ChatStorageIndexedDB.loadProjects(),
-        ])
-        setSessions(loadedSessions)
-        setProjects(loadedProjects)
-
-        // 첫 세션 자동 선택 또는 새 세션 생성
-        if (loadedSessions.length > 0) {
-          setCurrentSessionId(loadedSessions[0].id)
-        } else {
-          const newSession = await ChatStorageIndexedDB.createNewSession()
-          setCurrentSessionId(newSession.id)
-          setSessions([newSession])
-        }
-
-        setIsMounted(true)
-      } catch (error) {
-        console.error('Failed to initialize chatbot page:', error)
-        setIsMounted(true)
-      }
-    }
-
-    void initializeData()
+    setIsMounted(true)
   }, [])
+
+  // 세션 로드 후 초기 업데이트 (클라이언트에서만)
+  useEffect(() => {
+    if (!isMounted) return
+
+    const loadedSessions = ChatStorage.loadSessions()
+
+    // 첫 세션 자동 선택 또는 새 세션 생성
+    if (loadedSessions.length > 0) {
+      setCurrentSessionId(loadedSessions[0].id)
+    } else {
+      const newSession = ChatStorage.createNewSession()
+      setCurrentSessionId(newSession.id)
+      // 새로운 세션 생성 후 sidebar 업데이트 강제 (메모 재계산)
+      setForceUpdate((prev) => prev + 1)
+    }
+  }, [isMounted])
 
   // 세션 선택
   const handleSelectSession = useCallback((sessionId: string) => {
@@ -209,11 +188,11 @@ export default function ChatbotPage() {
 
   // 즐겨찾기 토글
   const handleToggleFavorite = useCallback(
-    async (sessionId: string) => {
-      await ChatStorageIndexedDB.toggleFavorite(sessionId)
-      await reloadData()
+    (sessionId: string) => {
+      ChatStorage.toggleFavorite(sessionId)
+      triggerUpdate()
     },
-    [reloadData]
+    [triggerUpdate]
   )
 
   // 세션 이동 (모달로 위임 - Phase 4)
@@ -223,8 +202,8 @@ export default function ChatbotPage() {
   }, [])
 
   // 세션 제목 변경 시작
-  const handleRenameSession = useCallback(async (sessionId: string) => {
-    const session = await ChatStorageIndexedDB.loadSession(sessionId)
+  const handleRenameSession = useCallback((sessionId: string) => {
+    const session = ChatStorage.loadSession(sessionId)
     if (session) {
       setIsRenamingSessionId(sessionId)
       setRenamingText(session.title)
@@ -232,14 +211,19 @@ export default function ChatbotPage() {
   }, [])
 
   // 세션 제목 저장
-  const handleSaveRename = useCallback(async (sessionId: string) => {
+  const handleSaveRename = useCallback((sessionId: string) => {
     if (renamingText.trim()) {
-      await ChatStorageIndexedDB.renameSession(sessionId, renamingText.trim())
-      await reloadData()
+      const session = ChatStorage.loadSession(sessionId)
+      if (session) {
+        session.title = renamingText.trim()
+        session.updatedAt = Date.now()
+        ChatStorage.saveSession(session)
+        triggerUpdate()
+      }
     }
     setIsRenamingSessionId(null)
     setRenamingText('')
-  }, [renamingText, reloadData])
+  }, [renamingText, triggerUpdate])
 
   // 프로젝트 토글
   const handleToggleProject = useCallback((projectId: string) => {
@@ -273,43 +257,32 @@ export default function ChatbotPage() {
   }, [])
 
   // 삭제 확인
-  const handleConfirmDelete = useCallback(async () => {
+  const handleConfirmDelete = useCallback(() => {
     if (!deleteTarget) return
 
     if (deleteTarget.type === 'session') {
-      await ChatStorageIndexedDB.deleteSession(deleteTarget.id)
+      ChatStorage.deleteSession(deleteTarget.id)
       // 삭제한 세션이 현재 세션이면 새 세션 생성
       if (currentSessionId === deleteTarget.id) {
-        await handleNewChat()
-      } else {
-        await reloadData()
+        handleNewChat()
       }
     } else {
-      // 프로젝트 삭제: IndexedDB에는 getSessionsByProject가 없으므로
-      // sessions state에서 필터링
-      const deletedProjectSessions = sessions.filter(s => s.projectId === deleteTarget.id)
+      // 프로젝트 삭제 시: 현재 세션이 해당 프로젝트에 속했는지 확인
+      const deletedProjectSessions = ChatStorage.getSessionsByProject(deleteTarget.id)
+      ChatStorage.deleteProject(deleteTarget.id)
 
-      // 프로젝트 삭제 (하위 세션들은 projectId 제거됨)
-      const allSessions = await ChatStorageIndexedDB.loadSessions()
-      const updatedSessions = allSessions.map(s =>
-        s.projectId === deleteTarget.id ? { ...s, projectId: undefined } : s
-      )
-
-      // 각 세션 업데이트
-      for (const session of updatedSessions.filter(s => deletedProjectSessions.some(d => d.id === s.id))) {
-        await ChatStorageIndexedDB.saveSession(session)
+      // 현재 세션이 삭제된 프로젝트에 속했으면 루트로 이동되었으므로 UI 갱신만 필요
+      // (세션 자체는 삭제되지 않고 projectId만 제거됨)
+      const wasCurrentSessionInProject = deletedProjectSessions.some(s => s.id === currentSessionId)
+      if (wasCurrentSessionInProject) {
+        // triggerUpdate()로 UI가 갱신되면 자동으로 루트(히스토리)로 이동
       }
-
-      // 프로젝트 삭제 (IndexedDB에는 deleteProject가 없으므로 projects에서 필터링)
-      const allProjects = await ChatStorageIndexedDB.loadProjects()
-      // Note: ChatStorageIndexedDB에 deleteProject 메서드가 필요함
-
-      await reloadData()
     }
 
     setIsDeleteDialogOpen(false)
     setDeleteTarget(null)
-  }, [deleteTarget, currentSessionId, handleNewChat, reloadData, sessions])
+    triggerUpdate()
+  }, [deleteTarget, currentSessionId, handleNewChat, triggerUpdate])
 
   // 드롭다운 메뉴 외부 클릭 처리
   useEffect(() => {
@@ -559,7 +532,7 @@ export default function ChatbotPage() {
             <RAGChatInterface
               sessionId={currentSession.id}
               onSessionUpdate={() => {
-                void reloadData()
+                triggerUpdate()
               }}
               quickPrompts={currentSession.messages.length === 0 ? QUICK_PROMPTS : undefined}
               onQuickPrompt={handleQuickPrompt}
@@ -577,14 +550,14 @@ export default function ChatbotPage() {
         open={isProjectDialogOpen}
         onOpenChange={setIsProjectDialogOpen}
         projectId={editingProjectId}
-        onComplete={() => void reloadData()}
+        onComplete={triggerUpdate}
       />
 
       <MoveSessionDialog
         open={isMoveDialogOpen}
         onOpenChange={setIsMoveDialogOpen}
         sessionId={moveDialogSessionId}
-        onComplete={() => void reloadData()}
+        onComplete={triggerUpdate}
       />
 
       <DeleteConfirmDialog
