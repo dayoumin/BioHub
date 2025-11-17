@@ -33,7 +33,46 @@ interface GroupResult {
   ci: [number, number]
 }
 
+/**
+ * 개별 요인 또는 상호작용 효과 결과
+ */
+interface FactorResult {
+  /** 요인명 (예: "급여 유형", "온도") */
+  name: string
+  /** F-통계량 */
+  fStatistic: number
+  /** p-값 */
+  pValue: number
+  /** 자유도 */
+  df: number
+  /** 효과 크기 (η²) */
+  etaSquared: number
+  /** 효과 크기 (ω²) */
+  omegaSquared: number
+}
+
+/**
+ * 다요인 ANOVA 결과 (이원/삼원)
+ */
+interface MultiFactorANOVAResults {
+  /** 요인 1 주효과 */
+  factor1: FactorResult
+  /** 요인 2 주효과 */
+  factor2?: FactorResult
+  /** 요인 3 주효과 */
+  factor3?: FactorResult
+  /** 요인 1 × 요인 2 상호작용 */
+  interaction12?: FactorResult
+  /** 요인 1 × 요인 3 상호작용 */
+  interaction13?: FactorResult
+  /** 요인 2 × 요인 3 상호작용 */
+  interaction23?: FactorResult
+  /** 요인 1 × 요인 2 × 요인 3 상호작용 */
+  interaction123?: FactorResult
+}
+
 interface ANOVAResults {
+  // 일원 ANOVA용 기존 필드
   fStatistic: number
   pValue: number
   dfBetween: number
@@ -73,6 +112,9 @@ interface ANOVAResults {
     f: number | null
     p: number | null
   }[]
+
+  // 다요인 ANOVA용 추가 필드
+  multiFactorResults?: MultiFactorANOVAResults
 }
 
 const STEPS = [
@@ -502,26 +544,72 @@ export default function ANOVAPage() {
           }
         ]
 
-        // 간단한 결과 매핑 (Factor 1 main effect만 표시)
-        const simplifiedResult: ANOVAResults = {
+        // 총 SS 계산
+        const ssTotal = getSS2('C(factor1)') + getSS2('C(factor2)') + getSS2('C(factor1):C(factor2)') + getSS2('Residual')
+
+        // 각 요인별 효과 크기 계산
+        const calculateEffectSizes = (ss: number, dfEffect: number) => {
+          const eta2 = ssTotal > 0 ? ss / ssTotal : 0
+          const msResidual = getMS2('Residual')
+          const omega2 = ssTotal > 0
+            ? Math.max(0, (ss - dfEffect * msResidual) / (ssTotal + msResidual))
+            : 0
+          return { eta2, omega2 }
+        }
+
+        const factor1EffectSizes = calculateEffectSizes(getSS2('C(factor1)'), twoWayResult.factor1.df)
+        const factor2EffectSizes = calculateEffectSizes(getSS2('C(factor2)'), twoWayResult.factor2.df)
+        const interactionEffectSizes = calculateEffectSizes(getSS2('C(factor1):C(factor2)'), twoWayResult.interaction.df)
+
+        // 다요인 결과 구조 생성
+        const multiFactorResults: MultiFactorANOVAResults = {
+          factor1: {
+            name: factor1Col,
+            fStatistic: twoWayResult.factor1.fStatistic,
+            pValue: twoWayResult.factor1.pValue,
+            df: twoWayResult.factor1.df,
+            etaSquared: factor1EffectSizes.eta2,
+            omegaSquared: factor1EffectSizes.omega2
+          },
+          factor2: {
+            name: factor2Col,
+            fStatistic: twoWayResult.factor2.fStatistic,
+            pValue: twoWayResult.factor2.pValue,
+            df: twoWayResult.factor2.df,
+            etaSquared: factor2EffectSizes.eta2,
+            omegaSquared: factor2EffectSizes.omega2
+          },
+          interaction12: {
+            name: `${factor1Col} × ${factor2Col}`,
+            fStatistic: twoWayResult.interaction.fStatistic,
+            pValue: twoWayResult.interaction.pValue,
+            df: twoWayResult.interaction.df,
+            etaSquared: interactionEffectSizes.eta2,
+            omegaSquared: interactionEffectSizes.omega2
+          }
+        }
+
+        // 이원 ANOVA 결과 (일원 ANOVA 필드 + multiFactorResults)
+        const twoWayFinalResult: ANOVAResults = {
           fStatistic: twoWayResult.factor1.fStatistic,
           pValue: twoWayResult.factor1.pValue,
           dfBetween: twoWayResult.factor1.df,
           dfWithin: twoWayResult.residual.df,
           msBetween: getMS2('C(factor1)'),
           msWithin: getMS2('Residual'),
-          etaSquared: 0,
-          omegaSquared: 0,
+          etaSquared: factor1EffectSizes.eta2,
+          omegaSquared: factor1EffectSizes.omega2,
           powerAnalysis: {
             observedPower: twoWayResult.factor1.pValue < 0.05 ? 0.80 : 0.50,
-            effectSize: 'medium',
-            cohensF: 0.5
+            effectSize: factor1EffectSizes.eta2 >= 0.14 ? 'large' : factor1EffectSizes.eta2 >= 0.06 ? 'medium' : 'small',
+            cohensF: Math.sqrt(factor1EffectSizes.eta2 / (1 - factor1EffectSizes.eta2))
           },
           groups: [],
-          anovaTable: twoWayAnovaTable
+          anovaTable: twoWayAnovaTable,
+          multiFactorResults
         }
 
-        actions.completeAnalysis?.(simplifiedResult, 4)
+        actions.completeAnalysis?.(twoWayFinalResult, 4)
       } else if (factors.length === 3) {
         // Three-way ANOVA
         const factor1Col = factors[0]
@@ -652,25 +740,111 @@ export default function ANOVAPage() {
           }
         ]
 
-        const simplifiedResult: ANOVAResults = {
+        // 총 SS 계산
+        const ssTotal3 = getSS('C(factor1)') + getSS('C(factor2)') + getSS('C(factor3)') +
+                         getSS('C(factor1):C(factor2)') + getSS('C(factor1):C(factor3)') +
+                         getSS('C(factor2):C(factor3)') + getSS('C(factor1):C(factor2):C(factor3)') +
+                         getSS('Residual')
+
+        // 각 요인별 효과 크기 계산
+        const calculateEffectSizes3 = (ss: number, dfEffect: number) => {
+          const eta2 = ssTotal3 > 0 ? ss / ssTotal3 : 0
+          const msResidual = getMS('Residual')
+          const omega2 = ssTotal3 > 0
+            ? Math.max(0, (ss - dfEffect * msResidual) / (ssTotal3 + msResidual))
+            : 0
+          return { eta2, omega2 }
+        }
+
+        const factor1EffectSizes3 = calculateEffectSizes3(getSS('C(factor1)'), threeWayResult.factor1.df)
+        const factor2EffectSizes3 = calculateEffectSizes3(getSS('C(factor2)'), threeWayResult.factor2.df)
+        const factor3EffectSizes3 = calculateEffectSizes3(getSS('C(factor3)'), threeWayResult.factor3.df)
+        const interaction12EffectSizes = calculateEffectSizes3(getSS('C(factor1):C(factor2)'), threeWayResult.interaction12.df)
+        const interaction13EffectSizes = calculateEffectSizes3(getSS('C(factor1):C(factor3)'), threeWayResult.interaction13.df)
+        const interaction23EffectSizes = calculateEffectSizes3(getSS('C(factor2):C(factor3)'), threeWayResult.interaction23.df)
+        const interaction123EffectSizes = calculateEffectSizes3(getSS('C(factor1):C(factor2):C(factor3)'), threeWayResult.interaction123.df)
+
+        // 다요인 결과 구조 생성
+        const multiFactorResults3: MultiFactorANOVAResults = {
+          factor1: {
+            name: factor1Col,
+            fStatistic: threeWayResult.factor1.fStatistic,
+            pValue: threeWayResult.factor1.pValue,
+            df: threeWayResult.factor1.df,
+            etaSquared: factor1EffectSizes3.eta2,
+            omegaSquared: factor1EffectSizes3.omega2
+          },
+          factor2: {
+            name: factor2Col,
+            fStatistic: threeWayResult.factor2.fStatistic,
+            pValue: threeWayResult.factor2.pValue,
+            df: threeWayResult.factor2.df,
+            etaSquared: factor2EffectSizes3.eta2,
+            omegaSquared: factor2EffectSizes3.omega2
+          },
+          factor3: {
+            name: factor3Col,
+            fStatistic: threeWayResult.factor3.fStatistic,
+            pValue: threeWayResult.factor3.pValue,
+            df: threeWayResult.factor3.df,
+            etaSquared: factor3EffectSizes3.eta2,
+            omegaSquared: factor3EffectSizes3.omega2
+          },
+          interaction12: {
+            name: `${factor1Col} × ${factor2Col}`,
+            fStatistic: threeWayResult.interaction12.fStatistic,
+            pValue: threeWayResult.interaction12.pValue,
+            df: threeWayResult.interaction12.df,
+            etaSquared: interaction12EffectSizes.eta2,
+            omegaSquared: interaction12EffectSizes.omega2
+          },
+          interaction13: {
+            name: `${factor1Col} × ${factor3Col}`,
+            fStatistic: threeWayResult.interaction13.fStatistic,
+            pValue: threeWayResult.interaction13.pValue,
+            df: threeWayResult.interaction13.df,
+            etaSquared: interaction13EffectSizes.eta2,
+            omegaSquared: interaction13EffectSizes.omega2
+          },
+          interaction23: {
+            name: `${factor2Col} × ${factor3Col}`,
+            fStatistic: threeWayResult.interaction23.fStatistic,
+            pValue: threeWayResult.interaction23.pValue,
+            df: threeWayResult.interaction23.df,
+            etaSquared: interaction23EffectSizes.eta2,
+            omegaSquared: interaction23EffectSizes.omega2
+          },
+          interaction123: {
+            name: `${factor1Col} × ${factor2Col} × ${factor3Col}`,
+            fStatistic: threeWayResult.interaction123.fStatistic,
+            pValue: threeWayResult.interaction123.pValue,
+            df: threeWayResult.interaction123.df,
+            etaSquared: interaction123EffectSizes.eta2,
+            omegaSquared: interaction123EffectSizes.omega2
+          }
+        }
+
+        // 삼원 ANOVA 결과 (일원 ANOVA 필드 + multiFactorResults)
+        const threeWayFinalResult: ANOVAResults = {
           fStatistic: threeWayResult.factor1.fStatistic,
           pValue: threeWayResult.factor1.pValue,
           dfBetween: threeWayResult.factor1.df,
           dfWithin: threeWayResult.residual.df,
-          msBetween: 0, // ANOVA table에서 계산 필요
-          msWithin: 0,
-          etaSquared: 0,
-          omegaSquared: 0,
+          msBetween: getMS('C(factor1)'),
+          msWithin: getMS('Residual'),
+          etaSquared: factor1EffectSizes3.eta2,
+          omegaSquared: factor1EffectSizes3.omega2,
           powerAnalysis: {
             observedPower: threeWayResult.factor1.pValue < 0.05 ? 0.80 : 0.50,
-            effectSize: 'medium',
-            cohensF: 0.5
+            effectSize: factor1EffectSizes3.eta2 >= 0.14 ? 'large' : factor1EffectSizes3.eta2 >= 0.06 ? 'medium' : 'small',
+            cohensF: Math.sqrt(factor1EffectSizes3.eta2 / (1 - factor1EffectSizes3.eta2))
           },
           groups: [],
-          anovaTable: anovaTable
+          anovaTable: anovaTable,
+          multiFactorResults: multiFactorResults3
         }
 
-        actions.completeAnalysis?.(simplifiedResult, 4)
+        actions.completeAnalysis?.(threeWayFinalResult, 4)
       } else {
         // Repeated Measures는 향후 구현
         actions.setError?.('현재는 일원/이원/삼원 분산분석만 지원됩니다.')
@@ -893,24 +1067,159 @@ export default function ANOVAPage() {
           </div>
 
           {/* 주요 결과 요약 */}
-          <Alert className="border-blue-500 bg-muted">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="mt-2 space-y-2">
-                <p className="text-sm">
-                  F({results.dfBetween}, {results.dfWithin}) = <strong>{results.fStatistic.toFixed(2)}</strong>,
-                  p = <strong>{results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}</strong>
-                </p>
-                <p className="text-sm">
-                  효과 크기 (η²) = <strong>{results.etaSquared.toFixed(3)}</strong>
-                  ({interpretEffectSize(results.etaSquared)})
-                </p>
-                <p className="text-sm">
-                  {results.pValue < 0.05 ? '✅ 그룹 간 평균 차이가 통계적으로 유의합니다.' : '❌ 그룹 간 평균 차이가 유의하지 않습니다.'}
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
+          {results.multiFactorResults ? (
+            // 다요인 ANOVA 요약 (모든 요인 및 상호작용 표시)
+            <div className="space-y-4">
+              <Alert className="border-blue-500 bg-muted">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="mt-2 space-y-3">
+                    <p className="font-semibold text-sm mb-2">주효과 (Main Effects)</p>
+
+                    {/* Factor 1 */}
+                    <div className="pl-3 border-l-2 border-blue-500">
+                      <p className="text-sm font-medium">{results.multiFactorResults.factor1.name}</p>
+                      <p className="text-xs">
+                        F({results.multiFactorResults.factor1.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor1.fStatistic.toFixed(2)}</strong>,
+                        p = <strong>{results.multiFactorResults.factor1.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor1.pValue.toFixed(3)}</strong>,
+                        η² = <strong>{results.multiFactorResults.factor1.etaSquared.toFixed(3)}</strong>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {results.multiFactorResults.factor1.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
+                        ({interpretEffectSize(results.multiFactorResults.factor1.etaSquared)})
+                      </p>
+                    </div>
+
+                    {/* Factor 2 */}
+                    {results.multiFactorResults.factor2 && (
+                      <div className="pl-3 border-l-2 border-green-500">
+                        <p className="text-sm font-medium">{results.multiFactorResults.factor2.name}</p>
+                        <p className="text-xs">
+                          F({results.multiFactorResults.factor2.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor2.fStatistic.toFixed(2)}</strong>,
+                          p = <strong>{results.multiFactorResults.factor2.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor2.pValue.toFixed(3)}</strong>,
+                          η² = <strong>{results.multiFactorResults.factor2.etaSquared.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {results.multiFactorResults.factor2.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
+                          ({interpretEffectSize(results.multiFactorResults.factor2.etaSquared)})
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Factor 3 */}
+                    {results.multiFactorResults.factor3 && (
+                      <div className="pl-3 border-l-2 border-purple-500">
+                        <p className="text-sm font-medium">{results.multiFactorResults.factor3.name}</p>
+                        <p className="text-xs">
+                          F({results.multiFactorResults.factor3.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor3.fStatistic.toFixed(2)}</strong>,
+                          p = <strong>{results.multiFactorResults.factor3.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor3.pValue.toFixed(3)}</strong>,
+                          η² = <strong>{results.multiFactorResults.factor3.etaSquared.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {results.multiFactorResults.factor3.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
+                          ({interpretEffectSize(results.multiFactorResults.factor3.etaSquared)})
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+
+              {/* 상호작용 효과 */}
+              <Alert className="border-orange-500 bg-muted">
+                <Network className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="mt-2 space-y-3">
+                    <p className="font-semibold text-sm mb-2">상호작용 효과 (Interaction Effects)</p>
+
+                    {/* Interaction 12 */}
+                    {results.multiFactorResults.interaction12 && (
+                      <div className="pl-3 border-l-2 border-orange-500">
+                        <p className="text-sm font-medium">{results.multiFactorResults.interaction12.name}</p>
+                        <p className="text-xs">
+                          F({results.multiFactorResults.interaction12.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction12.fStatistic.toFixed(2)}</strong>,
+                          p = <strong>{results.multiFactorResults.interaction12.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction12.pValue.toFixed(3)}</strong>,
+                          η² = <strong>{results.multiFactorResults.interaction12.etaSquared.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {results.multiFactorResults.interaction12.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
+                          ({interpretEffectSize(results.multiFactorResults.interaction12.etaSquared)})
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Interaction 13 */}
+                    {results.multiFactorResults.interaction13 && (
+                      <div className="pl-3 border-l-2 border-orange-500">
+                        <p className="text-sm font-medium">{results.multiFactorResults.interaction13.name}</p>
+                        <p className="text-xs">
+                          F({results.multiFactorResults.interaction13.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction13.fStatistic.toFixed(2)}</strong>,
+                          p = <strong>{results.multiFactorResults.interaction13.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction13.pValue.toFixed(3)}</strong>,
+                          η² = <strong>{results.multiFactorResults.interaction13.etaSquared.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {results.multiFactorResults.interaction13.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
+                          ({interpretEffectSize(results.multiFactorResults.interaction13.etaSquared)})
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Interaction 23 */}
+                    {results.multiFactorResults.interaction23 && (
+                      <div className="pl-3 border-l-2 border-orange-500">
+                        <p className="text-sm font-medium">{results.multiFactorResults.interaction23.name}</p>
+                        <p className="text-xs">
+                          F({results.multiFactorResults.interaction23.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction23.fStatistic.toFixed(2)}</strong>,
+                          p = <strong>{results.multiFactorResults.interaction23.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction23.pValue.toFixed(3)}</strong>,
+                          η² = <strong>{results.multiFactorResults.interaction23.etaSquared.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {results.multiFactorResults.interaction23.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
+                          ({interpretEffectSize(results.multiFactorResults.interaction23.etaSquared)})
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Interaction 123 */}
+                    {results.multiFactorResults.interaction123 && (
+                      <div className="pl-3 border-l-2 border-orange-500">
+                        <p className="text-sm font-medium">{results.multiFactorResults.interaction123.name}</p>
+                        <p className="text-xs">
+                          F({results.multiFactorResults.interaction123.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction123.fStatistic.toFixed(2)}</strong>,
+                          p = <strong>{results.multiFactorResults.interaction123.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction123.pValue.toFixed(3)}</strong>,
+                          η² = <strong>{results.multiFactorResults.interaction123.etaSquared.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {results.multiFactorResults.interaction123.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
+                          ({interpretEffectSize(results.multiFactorResults.interaction123.etaSquared)})
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : (
+            // 일원 ANOVA 요약 (기존 방식)
+            <Alert className="border-blue-500 bg-muted">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="mt-2 space-y-2">
+                  <p className="text-sm">
+                    F({results.dfBetween}, {results.dfWithin}) = <strong>{results.fStatistic.toFixed(2)}</strong>,
+                    p = <strong>{results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}</strong>
+                  </p>
+                  <p className="text-sm">
+                    효과 크기 (η²) = <strong>{results.etaSquared.toFixed(3)}</strong>
+                    ({interpretEffectSize(results.etaSquared)})
+                  </p>
+                  <p className="text-sm">
+                    {results.pValue < 0.05 ? '✅ 그룹 간 평균 차이가 통계적으로 유의합니다.' : '❌ 그룹 간 평균 차이가 유의하지 않습니다.'}
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* ANOVA 테이블 */}
           <Card>
@@ -1089,4 +1398,194 @@ export default function ANOVAPage() {
       )}
     </TwoPanelLayout>
   )
+}
+
+// ============================================================================
+// Exported Helper Functions for Testing
+// ============================================================================
+
+/**
+ * 이원 ANOVA Worker 결과를 ANOVA 테이블로 변환
+ * @param workerResult - Worker의 two_way_anova 반환값
+ * @param factor1Name - Factor 1 컬럼명
+ * @param factor2Name - Factor 2 컬럼명
+ * @returns ANOVA 테이블 배열
+ */
+export function convertTwoWayWorkerResultToTable(
+  workerResult: {
+    factor1: { fStatistic: number; pValue: number; df: number }
+    factor2: { fStatistic: number; pValue: number; df: number }
+    interaction: { fStatistic: number; pValue: number; df: number }
+    residual: { df: number }
+    anovaTable: {
+      sum_sq: Record<string, number>
+      df: Record<string, number>
+      F: Record<string, number>
+      'PR(>F)': Record<string, number>
+    }
+  },
+  factor1Name: string,
+  factor2Name: string
+): Array<{
+  source: string
+  ss: number
+  df: number
+  ms: number
+  f: number | null
+  p: number | null
+}> {
+  const getSS = (key: string) => workerResult.anovaTable.sum_sq[key] ?? 0
+  const getDF = (key: string) => workerResult.anovaTable.df[key] ?? 1
+  const getMS = (key: string) => {
+    const ss = getSS(key)
+    const df = getDF(key)
+    return df > 0 ? ss / df : 0
+  }
+
+  return [
+    {
+      source: `요인 1 (${factor1Name})`,
+      ss: getSS('C(factor1)'),
+      df: workerResult.factor1.df,
+      ms: getMS('C(factor1)'),
+      f: workerResult.factor1.fStatistic,
+      p: workerResult.factor1.pValue
+    },
+    {
+      source: `요인 2 (${factor2Name})`,
+      ss: getSS('C(factor2)'),
+      df: workerResult.factor2.df,
+      ms: getMS('C(factor2)'),
+      f: workerResult.factor2.fStatistic,
+      p: workerResult.factor2.pValue
+    },
+    {
+      source: '상호작용',
+      ss: getSS('C(factor1):C(factor2)'),
+      df: workerResult.interaction.df,
+      ms: getMS('C(factor1):C(factor2)'),
+      f: workerResult.interaction.fStatistic,
+      p: workerResult.interaction.pValue
+    },
+    {
+      source: '잔차',
+      ss: getSS('Residual'),
+      df: workerResult.residual.df,
+      ms: getMS('Residual'),
+      f: null,
+      p: null
+    }
+  ]
+}
+
+/**
+ * 삼원 ANOVA Worker 결과를 ANOVA 테이블로 변환
+ * @param workerResult - Worker의 three_way_anova 반환값
+ * @param factor1Name - Factor 1 컬럼명
+ * @param factor2Name - Factor 2 컬럼명
+ * @param factor3Name - Factor 3 컬럼명
+ * @returns ANOVA 테이블 배열
+ */
+export function convertThreeWayWorkerResultToTable(
+  workerResult: {
+    factor1: { fStatistic: number; pValue: number; df: number }
+    factor2: { fStatistic: number; pValue: number; df: number }
+    factor3: { fStatistic: number; pValue: number; df: number }
+    interaction12: { fStatistic: number; pValue: number; df: number }
+    interaction13: { fStatistic: number; pValue: number; df: number }
+    interaction23: { fStatistic: number; pValue: number; df: number }
+    interaction123: { fStatistic: number; pValue: number; df: number }
+    residual: { df: number }
+    anovaTable: {
+      sum_sq: Record<string, number>
+      df: Record<string, number>
+      F: Record<string, number>
+      'PR(>F)': Record<string, number>
+    }
+  },
+  factor1Name: string,
+  factor2Name: string,
+  factor3Name: string
+): Array<{
+  source: string
+  ss: number
+  df: number
+  ms: number
+  f: number | null
+  p: number | null
+}> {
+  const getSS = (key: string) => workerResult.anovaTable.sum_sq[key] ?? 0
+  const getDF = (key: string) => workerResult.anovaTable.df[key] ?? 1
+  const getMS = (key: string) => {
+    const ss = getSS(key)
+    const df = getDF(key)
+    return df > 0 ? ss / df : 0
+  }
+
+  return [
+    {
+      source: `요인 1 (${factor1Name})`,
+      ss: getSS('C(factor1)'),
+      df: workerResult.factor1.df,
+      ms: getMS('C(factor1)'),
+      f: workerResult.factor1.fStatistic,
+      p: workerResult.factor1.pValue
+    },
+    {
+      source: `요인 2 (${factor2Name})`,
+      ss: getSS('C(factor2)'),
+      df: workerResult.factor2.df,
+      ms: getMS('C(factor2)'),
+      f: workerResult.factor2.fStatistic,
+      p: workerResult.factor2.pValue
+    },
+    {
+      source: `요인 3 (${factor3Name})`,
+      ss: getSS('C(factor3)'),
+      df: workerResult.factor3.df,
+      ms: getMS('C(factor3)'),
+      f: workerResult.factor3.fStatistic,
+      p: workerResult.factor3.pValue
+    },
+    {
+      source: `${factor1Name} × ${factor2Name}`,
+      ss: getSS('C(factor1):C(factor2)'),
+      df: workerResult.interaction12.df,
+      ms: getMS('C(factor1):C(factor2)'),
+      f: workerResult.interaction12.fStatistic,
+      p: workerResult.interaction12.pValue
+    },
+    {
+      source: `${factor1Name} × ${factor3Name}`,
+      ss: getSS('C(factor1):C(factor3)'),
+      df: workerResult.interaction13.df,
+      ms: getMS('C(factor1):C(factor3)'),
+      f: workerResult.interaction13.fStatistic,
+      p: workerResult.interaction13.pValue
+    },
+    {
+      source: `${factor2Name} × ${factor3Name}`,
+      ss: getSS('C(factor2):C(factor3)'),
+      df: workerResult.interaction23.df,
+      ms: getMS('C(factor2):C(factor3)'),
+      f: workerResult.interaction23.fStatistic,
+      p: workerResult.interaction23.pValue
+    },
+    {
+      source: `${factor1Name} × ${factor2Name} × ${factor3Name}`,
+      ss: getSS('C(factor1):C(factor2):C(factor3)'),
+      df: workerResult.interaction123.df,
+      ms: getMS('C(factor1):C(factor2):C(factor3)'),
+      f: workerResult.interaction123.fStatistic,
+      p: workerResult.interaction123.pValue
+    },
+    {
+      source: '잔차',
+      ss: getSS('Residual'),
+      df: workerResult.residual.df,
+      ms: getMS('Residual'),
+      f: null,
+      p: null
+    }
+  ]
 }
