@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useTheme } from 'next-themes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Settings, Palette, Bot, Database, Star, Moon, Sun, Clock, Bell, HardDrive } from 'lucide-react'
@@ -15,9 +16,9 @@ import { ChatStorage } from '@/lib/services/chat-storage'
 import { clearRecentStatistics, getRecentStatistics } from '@/lib/utils/recent-statistics'
 
 export default function SettingsPage() {
+  const { theme, setTheme } = useTheme()
   const [favorites, setFavorites] = useState<string[]>([])
   const [recentCount, setRecentCount] = useState<number>(0)
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
   const [chatbotModel, setChatbotModel] = useState<string>('llama3.2')
   const [vectorDb, setVectorDb] = useState<string>('chromadb')
   const [floatingButtonEnabled, setFloatingButtonEnabled] = useState<boolean>(true)
@@ -45,12 +46,6 @@ export default function SettingsPage() {
       } catch (error) {
         console.error('Failed to load favorites:', error)
       }
-    }
-
-    // 테마 로드
-    const savedTheme = localStorage.getItem('statPlatform_theme') as 'light' | 'dark' | 'system' | null
-    if (savedTheme) {
-      setTheme(savedTheme)
     }
 
     // 챗봇 모델 로드
@@ -116,26 +111,6 @@ export default function SettingsPage() {
   const allItemIds = STATISTICS_MENU.flatMap((category) =>
     category.items.map((item) => item.id)
   )
-
-  // 테마 변경 핸들러
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    setTheme(newTheme)
-    localStorage.setItem('statPlatform_theme', newTheme)
-
-    // 실제 테마 적용 로직 (준비 중)
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else if (newTheme === 'light') {
-      document.documentElement.classList.remove('dark')
-    } else {
-      // system: 브라우저 설정 따라가기
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-    }
-  }
 
   // 챗봇 모델 변경 핸들러
   const handleModelChange = (model: string) => {
@@ -248,7 +223,7 @@ export default function SettingsPage() {
             <CardContent className="space-y-6">
               <div className="space-y-3">
                 <Label htmlFor="theme">테마 모드</Label>
-                <Select value={theme} onValueChange={handleThemeChange}>
+                <Select value={theme} onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'system')}>
                   <SelectTrigger id="theme">
                     <SelectValue placeholder="테마 선택" />
                   </SelectTrigger>
