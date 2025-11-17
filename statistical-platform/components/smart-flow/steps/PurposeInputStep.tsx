@@ -47,7 +47,7 @@ export function PurposeInputStep({
   // 스토어에서 가정 결과와 데이터 특성, 선택 메서드 setter 사용
   const { assumptionResults, dataCharacteristics, setSelectedMethod: setSelectedMethodInStore, setVariableMapping: setVariableMappingInStore } = useSmartFlowStore()
 
-  // 데이터 프로파일 생성
+  // 데이터 프로파일 생성 (assumptionResults 병합)
   const dataProfile = useMemo(() => {
     if (!validationResults || !data) return null
 
@@ -75,6 +75,19 @@ export function PurposeInputStep({
       (col: ColumnData) => col.type === 'categorical'
     )?.uniqueValues || 0
 
+    // assumptionResults 우선, validationResults fallback
+    const normalityPassed =
+      assumptionResults?.normality?.shapiroWilk?.isNormal ??
+      assumptionResults?.normality?.kolmogorovSmirnov?.isNormal ??
+      validationResults.normalityTest?.isNormal ??
+      undefined
+
+    const homogeneityPassed =
+      assumptionResults?.homogeneity?.levene?.equalVariance ??
+      assumptionResults?.homogeneity?.bartlett?.equalVariance ??
+      validationResults.homogeneityTest?.equalVariance ??
+      undefined
+
     return {
       numericVars,
       categoricalVars,
@@ -82,10 +95,10 @@ export function PurposeInputStep({
       hasTimeVar,
       hasGroupVar,
       groupLevels,
-      normalityPassed: validationResults.normalityTest?.isNormal ?? undefined,
-      homogeneityPassed: validationResults.homogeneityTest?.equalVariance ?? undefined
+      normalityPassed,
+      homogeneityPassed
     }
-  }, [validationResults, data])
+  }, [validationResults, data, assumptionResults])
 
   // 규칙 기반 추천
   const recommendedMethods = useMemo(() => {
