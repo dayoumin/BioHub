@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { Moon, Sun, Monitor, ExternalLink, Settings2 } from 'lucide-react'
 import { ChatStorage } from '@/lib/services/chat-storage'
+import { StorageService } from '@/lib/services/storage-service'
 
 interface SettingsModalProps {
   open: boolean
@@ -42,18 +43,18 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     setFloatingButtonEnabled(chatSettings.floatingButtonEnabled)
 
     // 알림 설정
-    const savedNotifyComplete = localStorage.getItem('statPlatform_notifyAnalysisComplete')
+    const savedNotifyComplete = StorageService.getItem('statPlatform_notifyAnalysisComplete')
     if (savedNotifyComplete !== null) {
       setNotifyAnalysisComplete(savedNotifyComplete === 'true')
     }
 
-    const savedNotifyError = localStorage.getItem('statPlatform_notifyError')
+    const savedNotifyError = StorageService.getItem('statPlatform_notifyError')
     if (savedNotifyError !== null) {
       setNotifyError(savedNotifyError === 'true')
     }
 
     // 로컬 저장 설정
-    const savedLocalStorage = localStorage.getItem('statPlatform_localStorageEnabled')
+    const savedLocalStorage = StorageService.getItem('statPlatform_localStorageEnabled')
     if (savedLocalStorage !== null) {
       setLocalStorageEnabled(savedLocalStorage === 'true')
     }
@@ -71,18 +72,18 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   // 알림 설정 변경
   const handleNotifyAnalysisComplete = (checked: boolean) => {
     setNotifyAnalysisComplete(checked)
-    localStorage.setItem('statPlatform_notifyAnalysisComplete', String(checked))
+    StorageService.setItem('statPlatform_notifyAnalysisComplete', String(checked))
   }
 
   const handleNotifyError = (checked: boolean) => {
     setNotifyError(checked)
-    localStorage.setItem('statPlatform_notifyError', String(checked))
+    StorageService.setItem('statPlatform_notifyError', String(checked))
   }
 
   // 로컬 저장 설정 변경
   const handleLocalStorageToggle = (checked: boolean) => {
     setLocalStorageEnabled(checked)
-    localStorage.setItem('statPlatform_localStorageEnabled', String(checked))
+    StorageService.setItem('statPlatform_localStorageEnabled', String(checked))
   }
 
   return (

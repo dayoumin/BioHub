@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Settings, Palette, Bot, Database, Star, Moon, Sun, Clock, Bell, HardDrive } from 'lucide-react'
+import { Settings, Palette, Bot, Star, Moon, Sun, Clock, HardDrive } from 'lucide-react'
 import { STATISTICS_MENU } from '@/lib/statistics/menu-config'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
@@ -14,6 +14,7 @@ import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { clearRecentStatistics, getRecentStatistics } from '@/lib/utils/recent-statistics'
+import { StorageService } from '@/lib/services/storage-service'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -39,7 +40,7 @@ export default function SettingsPage() {
   // localStorage에서 설정 로드
   useEffect(() => {
     // 즐겨찾기 로드
-    const savedFavorites = localStorage.getItem('statPlatform_favorites')
+    const savedFavorites = StorageService.getItem('statPlatform_favorites')
     if (savedFavorites) {
       try {
         setFavorites(JSON.parse(savedFavorites))
@@ -49,13 +50,13 @@ export default function SettingsPage() {
     }
 
     // 챗봇 모델 로드
-    const savedModel = localStorage.getItem('statPlatform_chatbotModel')
+    const savedModel = StorageService.getItem('statPlatform_chatbotModel')
     if (savedModel) {
       setChatbotModel(savedModel)
     }
 
     // Vector DB 로드
-    const savedDb = localStorage.getItem('statPlatform_vectorDb')
+    const savedDb = StorageService.getItem('statPlatform_vectorDb')
     if (savedDb) {
       setVectorDb(savedDb)
     }
@@ -65,39 +66,39 @@ export default function SettingsPage() {
     setFloatingButtonEnabled(chatSettings.floatingButtonEnabled)
 
     // RAG 설정 로드
-    const savedOllamaEndpoint = localStorage.getItem('statPlatform_ollamaEndpoint')
+    const savedOllamaEndpoint = StorageService.getItem('statPlatform_ollamaEndpoint')
     if (savedOllamaEndpoint) {
       setOllamaEndpoint(savedOllamaEndpoint)
     }
 
-    const savedEmbeddingModel = localStorage.getItem('statPlatform_embeddingModel')
+    const savedEmbeddingModel = StorageService.getItem('statPlatform_embeddingModel')
     if (savedEmbeddingModel) {
       setEmbeddingModel(savedEmbeddingModel)
     }
 
-    const savedInferenceModel = localStorage.getItem('statPlatform_inferenceModel')
+    const savedInferenceModel = StorageService.getItem('statPlatform_inferenceModel')
     if (savedInferenceModel) {
       setInferenceModel(savedInferenceModel)
     }
 
-    const savedTopK = localStorage.getItem('statPlatform_topK')
+    const savedTopK = StorageService.getItem('statPlatform_topK')
     if (savedTopK) {
       setTopK(parseInt(savedTopK, 10))
     }
 
     // 알림 설정 로드
-    const savedNotifyComplete = localStorage.getItem('statPlatform_notifyAnalysisComplete')
+    const savedNotifyComplete = StorageService.getItem('statPlatform_notifyAnalysisComplete')
     if (savedNotifyComplete !== null) {
       setNotifyAnalysisComplete(savedNotifyComplete === 'true')
     }
 
-    const savedNotifyError = localStorage.getItem('statPlatform_notifyError')
+    const savedNotifyError = StorageService.getItem('statPlatform_notifyError')
     if (savedNotifyError !== null) {
       setNotifyError(savedNotifyError === 'true')
     }
 
     // 로컬 저장 설정 로드
-    const savedLocalStorage = localStorage.getItem('statPlatform_localStorageEnabled')
+    const savedLocalStorage = StorageService.getItem('statPlatform_localStorageEnabled')
     if (savedLocalStorage !== null) {
       setLocalStorageEnabled(savedLocalStorage === 'true')
     }
@@ -115,13 +116,13 @@ export default function SettingsPage() {
   // 챗봇 모델 변경 핸들러
   const handleModelChange = (model: string) => {
     setChatbotModel(model)
-    localStorage.setItem('statPlatform_chatbotModel', model)
+    StorageService.setItem('statPlatform_chatbotModel', model)
   }
 
   // Vector DB 변경 핸들러
   const handleDbChange = (db: string) => {
     setVectorDb(db)
-    localStorage.setItem('statPlatform_vectorDb', db)
+    StorageService.setItem('statPlatform_vectorDb', db)
   }
 
   // 플로팅 버튼 토글 핸들러
@@ -144,40 +145,40 @@ export default function SettingsPage() {
   // RAG 설정 변경 핸들러
   const handleOllamaEndpointChange = (value: string) => {
     setOllamaEndpoint(value)
-    localStorage.setItem('statPlatform_ollamaEndpoint', value)
+    StorageService.setItem('statPlatform_ollamaEndpoint', value)
   }
 
   const handleEmbeddingModelChange = (value: string) => {
     setEmbeddingModel(value)
-    localStorage.setItem('statPlatform_embeddingModel', value)
+    StorageService.setItem('statPlatform_embeddingModel', value)
   }
 
   const handleInferenceModelChange = (value: string) => {
     setInferenceModel(value)
-    localStorage.setItem('statPlatform_inferenceModel', value)
+    StorageService.setItem('statPlatform_inferenceModel', value)
   }
 
   const handleTopKChange = (value: number[]) => {
     const newValue = value[0]
     setTopK(newValue)
-    localStorage.setItem('statPlatform_topK', String(newValue))
+    StorageService.setItem('statPlatform_topK', String(newValue))
   }
 
   // 알림 설정 변경 핸들러
   const handleNotifyAnalysisComplete = (checked: boolean) => {
     setNotifyAnalysisComplete(checked)
-    localStorage.setItem('statPlatform_notifyAnalysisComplete', String(checked))
+    StorageService.setItem('statPlatform_notifyAnalysisComplete', String(checked))
   }
 
   const handleNotifyError = (checked: boolean) => {
     setNotifyError(checked)
-    localStorage.setItem('statPlatform_notifyError', String(checked))
+    StorageService.setItem('statPlatform_notifyError', String(checked))
   }
 
   // 로컬 저장 설정 변경 핸들러
   const handleLocalStorageToggle = (checked: boolean) => {
     setLocalStorageEnabled(checked)
-    localStorage.setItem('statPlatform_localStorageEnabled', String(checked))
+    StorageService.setItem('statPlatform_localStorageEnabled', String(checked))
   }
 
   return (
@@ -561,7 +562,7 @@ export default function SettingsPage() {
                   className="w-full justify-start"
                   onClick={() => {
                     setFavorites(allItemIds)
-                    localStorage.setItem('statPlatform_favorites', JSON.stringify(allItemIds))
+                    StorageService.setItem('statPlatform_favorites', JSON.stringify(allItemIds))
                   }}
                 >
                   <Star className="h-4 w-4 mr-2" />
@@ -572,7 +573,7 @@ export default function SettingsPage() {
                   className="w-full justify-start"
                   onClick={() => {
                     setFavorites([])
-                    localStorage.setItem('statPlatform_favorites', JSON.stringify([]))
+                    StorageService.setItem('statPlatform_favorites', JSON.stringify([]))
                   }}
                   disabled={favorites.length === 0}
                 >

@@ -267,6 +267,10 @@ export class RAGService {
  * - 이미 초기화되어 있으면 스킵 (기존 설정 보존)
  * - 첫 호출 시만 초기화 (성능 최적화)
  *
+ * ✅ 설정 우선순위:
+ * 1. localStorage (사용자가 설정 페이지에서 변경한 값)
+ * 2. 환경변수 (기본값)
+ *
  * ✅ 벡터 스토어 선택 우선순위:
  * 1. NEXT_PUBLIC_VECTOR_STORE_ID 환경변수 (배포 시 유연함)
  * 2. 기본값: 'qwen3-embedding-0.6b' (111개 문서, 최신 DB)
@@ -276,12 +280,17 @@ export async function queryRAG(context: RAGContext): Promise<RAGResponse> {
 
   // 이미 초기화되어 있으면 스킵 (기존 설정 보존)
   if (!(await ragService.isReady())) {
+    // localStorage에서 사용자 설정 로드 (런타임 설정 우선)
+    const { loadRAGConfig } = await import('./rag-config')
+    const userConfig = loadRAGConfig()
+
     // 환경변수로 벡터 스토어 선택 (프로덕션 배포 시 유연함)
     const vectorStoreId =
       process.env.NEXT_PUBLIC_VECTOR_STORE_ID || 'qwen3-embedding-0.6b'
 
     await ragService.initialize({
       vectorStoreId,
+      ...userConfig, // 사용자 설정 병합 (ollamaEndpoint, embeddingModel, inferenceModel, topK)
     })
   }
 
@@ -305,11 +314,16 @@ export async function queryRAGStream(
 
   // 이미 초기화되어 있으면 스킵
   if (!(await ragService.isReady())) {
+    // localStorage에서 사용자 설정 로드 (런타임 설정 우선)
+    const { loadRAGConfig } = await import('./rag-config')
+    const userConfig = loadRAGConfig()
+
     const vectorStoreId =
       process.env.NEXT_PUBLIC_VECTOR_STORE_ID || 'qwen3-embedding-0.6b'
 
     await ragService.initialize({
       vectorStoreId,
+      ...userConfig, // 사용자 설정 병합
     })
   }
 
