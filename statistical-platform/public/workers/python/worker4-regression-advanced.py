@@ -11,6 +11,16 @@ from scipy import stats
 from helpers import clean_array, clean_xy_regression, clean_multiple_regression
 
 
+def _safe_bool(value: Union[bool, np.bool_]) -> bool:
+    """
+    Ensure NumPy boolean types are converted to native bool for JSON serialization.
+    """
+    try:
+        return bool(value.item())  # type: ignore[attr-defined]
+    except AttributeError:
+        return bool(value)
+
+
 def linear_regression(x, y):
     x, y = clean_xy_regression(x, y)
 
@@ -908,7 +918,7 @@ def time_series_analysis(data_values, seasonal_periods=12):
         'residual': [float(v) if not np.isnan(v) else None for v in residual],
         'adfStatistic': adf_statistic,
         'adfPValue': adf_pvalue,
-        'isStationary': bool(is_stationary),
+        'isStationary': _safe_bool(is_stationary),
         'acf': [float(v) for v in acf_values],
         'pacf': [float(v) for v in pacf_values],
         'seasonalPeriods': int(seasonal_periods)
@@ -1282,7 +1292,7 @@ def discriminant_analysis(data, groups):
             'originalGroup': str(y[i]),
             'predictedGroup': str(y_pred[i]),
             'probability': float(np.max(y_proba[i])),
-            'correct': bool(y[i] == y_pred[i])
+            'correct': _safe_bool(y[i] == y_pred[i])
         })
 
     # Confusion matrix

@@ -14,6 +14,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { AnalyzingOverlay } from '@/components/statistics/common/AnalyzingOverlay'
 
 export interface Step {
   id: number
@@ -52,6 +53,10 @@ export interface TwoPanelLayoutProps {
     onOpenNewWindow?: () => void
   }
 
+  // 분석 중 오버레이
+  isAnalyzing?: boolean
+  analyzingMessage?: string
+
   // 옵셔널
   className?: string
 }
@@ -78,6 +83,8 @@ export function TwoPanelLayout({
   breadcrumbs,
   children,
   bottomPreview,
+  isAnalyzing = false,
+  analyzingMessage,
   className
 }: TwoPanelLayoutProps) {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(true)
@@ -85,7 +92,7 @@ export function TwoPanelLayout({
 
   return (
     <div className={cn(
-      "flex h-screen overflow-hidden bg-background",
+      "flex h-screen overflow-hidden bg-background relative",
       className
     )}>
       {/* 좌측 사이드바 - Steps (고정, 스크롤 안됨) */}
@@ -317,6 +324,9 @@ export function TwoPanelLayout({
           </div>
         )}
       </main>
+
+      {/* 분석 중 오버레이 */}
+      <AnalyzingOverlay isAnalyzing={isAnalyzing} message={analyzingMessage} />
     </div>
   )
 }

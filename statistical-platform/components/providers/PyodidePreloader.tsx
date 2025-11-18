@@ -60,12 +60,44 @@ export function PyodidePreloader() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 bg-background/80 backdrop-blur-sm border rounded-lg p-3 shadow-sm z-40">
-      <div className="flex items-center gap-2 text-xs">
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
-        <span className="text-muted-foreground">
-          통계 엔진 준비 중... {progress}%
-        </span>
+    <div className="fixed bottom-4 right-4 z-50">
+      <div className="bg-gradient-to-br from-primary/10 to-primary/5 backdrop-blur-md border border-primary/30 rounded-xl p-4 shadow-2xl min-w-[280px] animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-3">
+          {/* 헤더 */}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+              <div className="relative animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+            </div>
+            <div>
+              <div className="font-semibold text-sm text-foreground">통계 엔진 준비 중</div>
+              <div className="text-xs text-muted-foreground">잠시만 기다려주세요...</div>
+            </div>
+          </div>
+
+          {/* 진행률 바 */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">진행률</span>
+              <span className="font-mono font-semibold text-primary">{progress}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 스테이지 설명 */}
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            {progress < 25 && '📦 Pyodide 런타임 로딩 중... (6MB)'}
+            {progress >= 25 && progress < 50 && '🔢 NumPy 패키지 로딩 중... (12MB)'}
+            {progress >= 50 && progress < 85 && '📊 SciPy 패키지 로딩 중... (25MB)'}
+            {progress >= 85 && progress < 100 && '⚙️ 헬퍼 모듈 로딩 중...'}
+            {progress >= 100 && '✅ 준비 완료!'}
+          </div>
+        </div>
       </div>
     </div>
   )

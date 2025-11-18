@@ -20,6 +20,16 @@ def _safe_float(value: Optional[float]) -> Optional[float]:
     return float(value)
 
 
+def _safe_bool(value: Union[bool, np.bool_]) -> bool:
+    """
+    Ensure NumPy boolean types are converted to native bool for JSON serialization.
+    """
+    try:
+        return bool(value.item())  # type: ignore[attr-defined]
+    except AttributeError:
+        return bool(value)
+
+
 def t_test_two_sample(
     group1: List[Union[float, int, None]],
     group2: List[Union[float, int, None]],
@@ -274,7 +284,7 @@ def levene_test(
     return {
         'statistic': float(statistic),
         'pValue': _safe_float(p_value),
-        'equalVariance': p_value > 0.05
+        'equalVariance': _safe_bool(p_value > 0.05)
     }
 
 
@@ -291,7 +301,7 @@ def bartlett_test(
     return {
         'statistic': float(statistic),
         'pValue': _safe_float(p_value),
-        'equalVariance': p_value > 0.05
+        'equalVariance': _safe_bool(p_value > 0.05)
     }
 
 
@@ -326,7 +336,7 @@ def chi_square_goodness_test(
         'pValue': _safe_float(p_value),
         'degreesOfFreedom': int(df),
         'criticalValue': float(critical_value),
-        'reject': bool(p_value < alpha),
+        'reject': _safe_bool(p_value < alpha),
         'observed': observed.tolist(),
         'expected': expected.tolist()
     }
@@ -361,7 +371,7 @@ def chi_square_independence_test(
         'pValue': _safe_float(p_value),
         'degreesOfFreedom': int(dof),
         'criticalValue': float(critical_value),
-        'reject': bool(p_value < alpha),
+        'reject': _safe_bool(p_value < alpha),
         'cramersV': float(cramers_v),
         'observedMatrix': observed.tolist(),
         'expectedMatrix': expected.tolist()
@@ -423,7 +433,7 @@ def fisher_exact_test(
     return {
         'oddsRatio': _safe_float(odds_ratio),
         'pValue': _safe_float(p_value),
-        'reject': bool(p_value < alpha),
+        'reject': _safe_bool(p_value < alpha),
         'alternative': alternative,
         'oddsRatioInterpretation': or_interpretation,
         'observedMatrix': observed.tolist(),
@@ -1230,21 +1240,21 @@ def ancova_analysis(
         'homogeneityOfSlopes': {
             'statistic': float(f_stat_slope),
             'pValue': float(p_value_slope),
-            'assumptionMet': p_value_slope > 0.05
+            'assumptionMet': _safe_bool(p_value_slope > 0.05)
         },
         'homogeneityOfVariance': {
             'leveneStatistic': float(levene_stat),
             'pValue': float(levene_p),
-            'assumptionMet': levene_p > 0.05
+            'assumptionMet': _safe_bool(levene_p > 0.05)
         },
         'normalityOfResiduals': {
             'shapiroW': float(shapiro_w),
             'pValue': float(shapiro_p),
-            'assumptionMet': shapiro_p > 0.05
+            'assumptionMet': _safe_bool(shapiro_p > 0.05)
         },
         'linearityOfCovariate': {
             'correlations': linearity_corrs,
-            'assumptionMet': all(abs(c['correlation']) > 0.3 for c in linearity_corrs)
+            'assumptionMet': _safe_bool(all(abs(c['correlation']) > 0.3 for c in linearity_corrs))
         }
     }
 
@@ -1524,7 +1534,7 @@ def ordinal_regression(
         'link_function': 'logit',
         'n_observations': int(len(df_clean)),
         'n_predictors': int(X.shape[1]),
-        'convergence': bool(result.mle_retvals['converged']),
+        'convergence': _safe_bool(result.mle_retvals['converged']),
         'iterations': int(result.mle_retvals.get('iterations', 0))
     }
 
@@ -1617,7 +1627,7 @@ def ordinal_regression(
         chi2_stat = float(2 * (log_likelihood - ll_null))
         df = int(X.shape[1])
         po_p_value = float(1 - chi2.cdf(chi2_stat, df)) if df > 0 else 1.0
-        po_assumption_met = po_p_value > 0.05
+        po_assumption_met = _safe_bool(po_p_value > 0.05)
     except:
         chi2_stat = 0.0
         po_p_value = 1.0
@@ -1649,7 +1659,7 @@ def ordinal_regression(
             'test_name': 'Proportional Odds Test',
             'test_statistic': float(chi2_stat),
             'p_value': float(po_p_value),
-            'assumption_met': bool(po_assumption_met)
+            'assumption_met': _safe_bool(po_assumption_met)
         },
         'multicollinearity': multicollinearity
     }
@@ -1839,7 +1849,7 @@ def mixed_model(
         'normality': {
             'shapiroW': float(shapiro_w),
             'pValue': float(shapiro_p),
-            'assumptionMet': bool(shapiro_p > 0.05)
+            'assumptionMet': _safe_bool(shapiro_p > 0.05)
         },
         'homoscedasticity': {
             'leveneStatistic': 0.0,  # Not easily available for mixed models

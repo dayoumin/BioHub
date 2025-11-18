@@ -18,6 +18,7 @@ import {
   ChevronLeft
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AnalyzingOverlay } from '@/components/statistics/common/AnalyzingOverlay'
 
 // 단계 인터페이스
 export interface StatisticsStep {
@@ -69,6 +70,10 @@ interface StatisticsPageLayoutProps {
   onHelp?: () => void
   isRunning?: boolean
 
+  // 분석 중 오버레이
+  isAnalyzing?: boolean
+  analyzingMessage?: string
+
   // 추가 옵션
   showProgress?: boolean
   showTips?: boolean
@@ -97,6 +102,8 @@ export function StatisticsPageLayout({
   resultsStep,
   onReset,
   isRunning = false,
+  isAnalyzing = false,
+  analyzingMessage,
   showProgress = true,
   className
 }: StatisticsPageLayoutProps) {
@@ -109,7 +116,7 @@ export function StatisticsPageLayout({
 
 
   return (
-    <div className={cn("min-h-screen bg-background", className)}>
+    <div className={cn("min-h-screen bg-background relative", className)}>
       {/* 미니멀 헤더 */}
       <div className="border-b bg-card">
         <div className="container mx-auto py-3 px-4">
@@ -269,6 +276,9 @@ export function StatisticsPageLayout({
           </AnimatePresence>
         </main>
       </div>
+
+      {/* 분석 중 오버레이 */}
+      <AnalyzingOverlay isAnalyzing={isAnalyzing} message={analyzingMessage} />
     </div>
   )
 }

@@ -11,6 +11,16 @@ from scipy.stats import binomtest
 from helpers import clean_array
 
 
+def _safe_bool(value: Union[bool, np.bool_]) -> bool:
+    """
+    Ensure NumPy boolean types are converted to native bool for JSON serialization.
+    """
+    try:
+        return bool(value.item())  # type: ignore[attr-defined]
+    except AttributeError:
+        return bool(value)
+
+
 def descriptive_stats(data: List[Union[float, int, None]]) -> Dict[str, Union[float, int]]:
     clean_data = clean_array(data)
 
@@ -51,7 +61,7 @@ def normality_test(data: List[Union[float, int, None]], alpha: float = 0.05) -> 
     return {
         'statistic': float(statistic),
         'pValue': float(p_value),
-        'isNormal': bool(p_value > alpha),
+        'isNormal': _safe_bool(p_value > alpha),
         'alpha': float(alpha)
     }
 
@@ -177,7 +187,7 @@ def one_sample_proportion_test(
         'zStatistic': float(z_statistic),
         'pValueExact': float(p_value_exact),
         'pValueApprox': float(p_value_approx),
-        'significant': bool(p_value_exact < alpha),
+        'significant': _safe_bool(p_value_exact < alpha),
         'alpha': float(alpha)
     }
 
@@ -229,7 +239,7 @@ def kolmogorov_smirnov_test(data: List[Union[float, int, None]]) -> Dict[str, Un
     return {
         'statistic': float(statistic),
         'pValue': float(p_value),
-        'isNormal': bool(p_value > 0.05)
+        'isNormal': _safe_bool(p_value > 0.05)
     }
 
 
@@ -257,7 +267,7 @@ def ks_test_one_sample(values: List[Union[float, int]]) -> Dict[str, Union[float
         'statisticKS': float(statistic),
         'pValue': float(pvalue),
         'criticalValue': float(critical_value),
-        'significant': bool(statistic > critical_value),
+        'significant': _safe_bool(statistic > critical_value),
         'sampleSizes': {
             'n1': int(n)
         },
@@ -300,7 +310,7 @@ def ks_test_two_sample(values1: List[Union[float, int]], values2: List[Union[flo
         'statisticKS': float(statistic),
         'pValue': float(pvalue),
         'criticalValue': float(critical_value),
-        'significant': bool(statistic > critical_value),
+        'significant': _safe_bool(statistic > critical_value),
         'effectSize': float(effect_size),
         'sampleSizes': {
             'n1': int(n1),

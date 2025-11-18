@@ -16,6 +16,17 @@ from sklearn.decomposition import PCA, FactorAnalysis
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 
+
+def _safe_bool(value: Union[bool, np.bool_]) -> bool:
+    """
+    Ensure NumPy boolean types are converted to native bool for JSON serialization.
+    """
+    try:
+        return bool(value.item())  # type: ignore[attr-defined]
+    except AttributeError:
+        return bool(value)
+
+
 def _to_float_list(data):
     if data is None:
         return []
@@ -234,7 +245,7 @@ def test_assumptions(groups):
                 'group': i,
                 'statistic': float(stat),
                 'pValue': float(p),
-                'passed': bool(passed)
+                'passed': _safe_bool(passed)
             })
             if not passed:
                 all_passed_normality = False
@@ -254,7 +265,7 @@ def test_assumptions(groups):
     return {
         'normality': {
             'shapiroWilk': normality_results,
-            'passed': bool(all_passed_normality),
+            'passed': _safe_bool(all_passed_normality),
             'interpretation': '정규성 가정 만족' if all_passed_normality else '정규성 가정 위반 (비모수 검정 고려)'
         },
         'homogeneity': {
@@ -262,7 +273,7 @@ def test_assumptions(groups):
                 'statistic': float(levene_stat),
                 'pValue': float(levene_p)
             },
-            'passed': bool(levene_passed),
+            'passed': _safe_bool(levene_passed),
             'interpretation': '등분산성 가정 만족' if levene_passed else '등분산성 가정 위반 (Welch ANOVA 고려)'
         }
     }
@@ -527,7 +538,7 @@ def mcnemar_test(contingency_table):
     return {
         'statistic': float(result.statistic),
         'pValue': float(result.pvalue),
-        'continuityCorrection': bool(use_correction),
+        'continuityCorrection': _safe_bool(use_correction),
         'discordantPairs': {'b': int(b), 'c': int(c)}
     }
 
