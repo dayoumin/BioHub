@@ -75,6 +75,7 @@
     "node-hwp": "^0.1.0-alpha",
     "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",
+    "plotly.js": "^3.3.0",
     "plotly.js-basic-dist": "^3.1.0",
     "plotly.js-dist-min": "^3.1.0",
     "react": "19.1.0",

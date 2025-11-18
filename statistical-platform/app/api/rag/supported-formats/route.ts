@@ -10,6 +10,9 @@
 import { NextResponse } from 'next/server'
 import { defaultParserRegistry } from '@/lib/rag/parsers/parser-registry'
 
+// Static export compatibility (API route not used in static build)
+export const dynamic = 'error'
+
 export async function GET() {
   try {
     const supportedFormats = defaultParserRegistry.getSupportedFormats()

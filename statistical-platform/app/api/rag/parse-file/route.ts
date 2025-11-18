@@ -14,6 +14,9 @@ import { writeFile, unlink } from 'fs/promises'
 import path from 'path'
 import { defaultParserRegistry } from '@/lib/rag/parsers/parser-registry'
 
+// Static export compatibility (API route not used in static build)
+export const dynamic = 'error'
+
 export async function POST(request: NextRequest) {
   try {
     // FormData에서 파일 추출
