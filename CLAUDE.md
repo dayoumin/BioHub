@@ -53,7 +53,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **대상**: 수산과학 연구자, 통계 전문가, 데이터 분석가
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
 - **현재**: Phase 9 완료 (95%) - 계산 방법 표준화 + 데이터 도구 분리
-- **전체 페이지**: 44개 (통계 42개 + 데이터 도구 2개)
+- **전체 페이지**: 45개 (통계 43개 + 데이터 도구 2개)
 
 ## ⚠️ AI 코딩 엄격 규칙 (CRITICAL)
 
@@ -77,10 +77,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 3. 통계 페이지 코딩 표준 (CRITICAL)
 
-**42개 통계 페이지 일관성 유지 필수!**
-- **전체 프로젝트**: 44개 (통계 42개 + 데이터 도구 2개)
-- **통계 페이지**: PyodideCore 표준 (40/42 = 95%)
-- **데이터 도구**: JavaScript 단순 카운팅 (2개)
+**43개 통계 페이지 일관성 유지 필수!**
+- **전체 프로젝트**: 45개 (통계 43개 + 데이터 도구 2개)
+- **통계 페이지**: PyodideCore 표준 (41/43 = 95%)
+- **데이터 도구**: JavaScript 단순 카운팅 (2개: frequency-table, cross-tabulation)
 
 ⚠️ **상세 규칙**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md)
 
@@ -313,8 +313,8 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ **DEPLOYMENT_COMPANY_GUIDE.md**: 회사 배포 가이드 (345줄)
   - ✅ **총 커밋**: 41개 (2025-11-16)
 - ✅ **Phase 9 완료 (95%)**: 계산 방법 표준화 + 데이터 도구 분리
-  - ✅ **전체 프로젝트**: 44개 (통계 42개 + 데이터 도구 2개)
-  - ✅ **PyodideCore**: 40/42 통계 페이지 (95%) 목표 달성!
+  - ✅ **전체 프로젝트**: 45개 (통계 43개 + 데이터 도구 2개)
+  - ✅ **PyodideCore**: 41/43 통계 페이지 (95%) 목표 달성!
   - ✅ **Batch 1-4**: 23개 페이지 변환 완료 (pyodideStats, Legacy, JavaScript, None)
   - ✅ **데이터 도구 분리**: frequency-table, cross-tabulation → /data-tools/
   - ✅ **코드 감소**: -2,005줄 / **Worker 메서드 추가**: 17개
@@ -327,7 +327,7 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ 27/27 페이지 (100%) 표준 패턴으로 전환
   - ✅ isAnalyzing Critical 버그 10개 수정
 - ✅ Phase 2-2 완료: 코드 품질 개선
-  - ✅ **42/42 통계 페이지 (100%)** 완료
+  - ✅ **43/43 통계 페이지 (100%)** 완료
   - ✅ TypeScript 에러: 717 → 0 (-100%, 완전 제거)
   - ✅ 코드 품질: 3.5/5 → 4.97/5 (+42% 향상)
 - ✅ **Phase 3 (StatisticsTable 확대) 완료 (95%)**:
@@ -335,7 +335,7 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ 내보내기 버튼 비활성화: 22개 페이지
 
 **다음 작업**:
-- 🔜 Phase 9 완료 (100%): 남은 2개 통계 페이지 (non-parametric, regression) PyodideCore 변환
+- 🔜 Phase 9 완료 (100%): 남은 2개 통계 페이지 (non-parametric, regression) PyodideCore 변환 (41/43 → 43/43)
 - 🔜 Phase 11: Tauri 데스크탑 앱
 - 🔜 Phase 12: RAG 시스템 고도화
 

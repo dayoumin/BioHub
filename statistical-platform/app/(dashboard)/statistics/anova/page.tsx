@@ -1431,7 +1431,7 @@ export default function ANOVAPage() {
  * @param factor2Name - Factor 2 컬럼명
  * @returns ANOVA 테이블 배열
  */
-export function convertTwoWayWorkerResultToTable(
+function convertTwoWayWorkerResultToTable(
   workerResult: {
     factor1: { fStatistic: number; pValue: number; df: number }
     factor2: { fStatistic: number; pValue: number; df: number }
@@ -1506,7 +1506,7 @@ export function convertTwoWayWorkerResultToTable(
  * @param factor3Name - Factor 3 컬럼명
  * @returns ANOVA 테이블 배열
  */
-export function convertThreeWayWorkerResultToTable(
+function convertThreeWayWorkerResultToTable(
   workerResult: {
     factor1: { fStatistic: number; pValue: number; df: number }
     factor2: { fStatistic: number; pValue: number; df: number }
