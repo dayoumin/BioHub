@@ -67,7 +67,7 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
   const [ollamaInstalled, setOllamaInstalled] = useState(false)
 
   // Ollama 설치 여부 체크
-  const checkOllamaInstalled = async () => {
+  const checkOllamaInstalled = useCallback(async () => {
     try {
       const response = await fetch('http://localhost:11434/api/tags', {
         method: 'GET',
@@ -75,20 +75,23 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
       })
       if (response.ok) {
         setOllamaInstalled(true)
-        setCurrentStep(2) // 모델 다운로드 단계로 자동 이동
+        setCurrentStep(2) // Step 2로 자동 이동
+      } else {
+        setOllamaInstalled(false)
+        setCurrentStep(1) // Step 1 유지
       }
     } catch {
       setOllamaInstalled(false)
+      setCurrentStep(1) // Step 1 유지
     }
-  }
+  }, [])
 
   useEffect(() => {
     if (open) {
       setOs(detectOS())
-      setCurrentStep(1)
       checkOllamaInstalled()
     }
-  }, [open])
+  }, [open, checkOllamaInstalled])
 
   const osConfig = OS_CONFIG[os]
 
