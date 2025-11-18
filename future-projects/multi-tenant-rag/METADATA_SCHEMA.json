@@ -1,0 +1,286 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RAG Database Metadata",
+  "description": "부서별 RAG DB의 메타데이터 스키마 (v1.0)",
+  "type": "object",
+  "required": ["id", "department", "version", "createdAt", "createdBy", "embeddingModel"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "DB 고유 ID (예: facility-v1.2-20250118)",
+      "pattern": "^[a-z0-9-]+$",
+      "examples": ["facility-v1.2-20250118", "budget-v2.0-20250115"]
+    },
+    "department": {
+      "type": "string",
+      "description": "부서명",
+      "examples": ["시설팀", "예산팀", "계약팀", "인사팀"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic Versioning (major.minor.patch)",
+      "pattern": "^\\d+\\.\\d+(\\.\\d+)?$",
+      "examples": ["1.0", "1.2.3", "2.0.0"]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "DB 생성 일시 (ISO 8601)",
+      "examples": ["2025-01-18T09:00:00Z"]
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "마지막 업데이트 일시",
+      "examples": ["2025-01-20T14:30:00Z"]
+    },
+    "createdBy": {
+      "type": "object",
+      "description": "DB 생성자 정보",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "생성자 이름",
+          "examples": ["홍길동"]
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "생성자 이메일",
+          "examples": ["hong@company.com"]
+        },
+        "department": {
+          "type": "string",
+          "description": "생성자 소속 부서",
+          "examples": ["시설팀"]
+        }
+      }
+    },
+    "docCount": {
+      "type": "integer",
+      "description": "총 문서 수",
+      "minimum": 0,
+      "examples": [301]
+    },
+    "pageCount": {
+      "type": "integer",
+      "description": "총 페이지 수",
+      "minimum": 0,
+      "examples": [3350]
+    },
+    "chunkCount": {
+      "type": "integer",
+      "description": "총 청크 수",
+      "minimum": 0,
+      "examples": [4840]
+    },
+    "fileSize": {
+      "type": "string",
+      "description": "DB 파일 크기 (사람이 읽기 쉬운 형식)",
+      "pattern": "^\\d+(\\.\\d+)?\\s*(KB|MB|GB)$",
+      "examples": ["29.2 MB", "5.4 MB"]
+    },
+    "embeddingModel": {
+      "type": "string",
+      "description": "임베딩 모델 (Ollama 형식)",
+      "examples": ["qwen3-embedding:0.6b", "mxbai-embed-large"]
+    },
+    "embeddingDimensions": {
+      "type": "integer",
+      "description": "임베딩 차원 수",
+      "examples": [768, 1024]
+    },
+    "description": {
+      "type": "string",
+      "description": "DB 설명 (용도, 범위 등)",
+      "maxLength": 500,
+      "examples": ["2025년 상반기 시설 관리 규정 및 참고자료"]
+    },
+    "tags": {
+      "type": "array",
+      "description": "검색용 태그",
+      "items": {
+        "type": "string"
+      },
+      "examples": [["시설", "건축", "안전", "유지보수"]]
+    },
+    "categories": {
+      "type": "array",
+      "description": "문서 카테고리별 통계",
+      "items": {
+        "type": "object",
+        "required": ["name", "count"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "카테고리명",
+            "examples": ["규정", "참고문헌", "부록"]
+          },
+          "count": {
+            "type": "integer",
+            "description": "문서 수",
+            "minimum": 0
+          }
+        }
+      },
+      "examples": [
+        [
+          { "name": "규정", "count": 1 },
+          { "name": "참고문헌", "count": 100 },
+          { "name": "부록", "count": 100 }
+        ]
+      ]
+    },
+    "changelog": {
+      "type": "array",
+      "description": "변경 이력",
+      "items": {
+        "type": "object",
+        "required": ["version", "date", "changes"],
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "버전 번호",
+            "examples": ["1.2.0"]
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "변경 일자",
+            "examples": ["2025-01-18"]
+          },
+          "changes": {
+            "type": "array",
+            "description": "변경 내역",
+            "items": {
+              "type": "string"
+            },
+            "examples": [["건축법 개정안 반영 (50개 문서 추가)"]]
+          },
+          "author": {
+            "type": "string",
+            "description": "변경자 이름",
+            "examples": ["홍길동"]
+          }
+        }
+      },
+      "examples": [
+        [
+          {
+            "version": "1.2.0",
+            "date": "2025-01-18",
+            "changes": ["건축법 개정안 반영 (50개 문서 추가)"],
+            "author": "홍길동"
+          }
+        ]
+      ]
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "호환성 정보",
+      "properties": {
+        "minAppVersion": {
+          "type": "string",
+          "description": "최소 앱 버전 (Semantic Versioning)",
+          "examples": ["1.0.0"]
+        },
+        "ollamaVersion": {
+          "type": "string",
+          "description": "Ollama 버전",
+          "examples": ["0.1.20"]
+        }
+      }
+    },
+    "checksum": {
+      "type": "object",
+      "description": "파일 무결성 검증 (선택)",
+      "properties": {
+        "ragDb": {
+          "type": "string",
+          "description": "rag.db 파일의 MD5 체크섬",
+          "examples": ["5d41402abc4b2a76b9719d911017c592"]
+        },
+        "vectorDb": {
+          "type": "string",
+          "description": "vector DB 파일의 MD5 체크섬",
+          "examples": ["7d793037a0760186574b0282f2f435e7"]
+        }
+      }
+    },
+    "access": {
+      "type": "object",
+      "description": "접근 권한 정보 (선택)",
+      "properties": {
+        "public": {
+          "type": "boolean",
+          "description": "전 직원 공개 여부",
+          "default": true
+        },
+        "allowedDepartments": {
+          "type": "array",
+          "description": "허용된 부서 목록 (public=false 시)",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["시설팀", "안전팀"]]
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "id": "facility-v1.2-20250118",
+      "department": "시설팀",
+      "version": "1.2",
+      "createdAt": "2025-01-18T09:00:00Z",
+      "updatedAt": "2025-01-20T14:30:00Z",
+      "createdBy": {
+        "name": "홍길동",
+        "email": "hong@company.com",
+        "department": "시설팀"
+      },
+      "docCount": 301,
+      "pageCount": 3350,
+      "chunkCount": 4840,
+      "fileSize": "29.2 MB",
+      "embeddingModel": "qwen3-embedding:0.6b",
+      "embeddingDimensions": 768,
+      "description": "2025년 상반기 시설 관리 규정 및 참고자료. 건축법 개정안 반영.",
+      "tags": ["시설", "건축", "안전", "유지보수", "2025"],
+      "categories": [
+        { "name": "규정", "count": 1 },
+        { "name": "참고문헌", "count": 100 },
+        { "name": "부록", "count": 100 }
+      ],
+      "changelog": [
+        {
+          "version": "1.2.0",
+          "date": "2025-01-18",
+          "changes": [
+            "건축법 개정안 반영 (50개 문서 추가)",
+            "구 규정 아카이브 (20개 문서 삭제)"
+          ],
+          "author": "홍길동"
+        },
+        {
+          "version": "1.1.0",
+          "date": "2025-01-10",
+          "changes": ["안전 매뉴얼 업데이트"],
+          "author": "김철수"
+        }
+      ],
+      "compatibility": {
+        "minAppVersion": "1.0.0",
+        "ollamaVersion": "0.1.20"
+      },
+      "checksum": {
+        "ragDb": "a1b2c3d4e5f6...",
+        "vectorDb": "1a2b3c4d5e6f..."
+      },
+      "access": {
+        "public": true
+      }
+    }
+  ]
+}

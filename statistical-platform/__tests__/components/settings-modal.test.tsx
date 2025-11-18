@@ -62,7 +62,7 @@ describe('SettingsModal', () => {
 
     // window.location.href 모킹 (assign 사용)
     delete (window as { location?: unknown }).location
-    window.location = { href: '', assign: jest.fn() } as unknown as Location
+    ;(window as { location: Partial<Location> }).location = { href: '', assign: jest.fn() } as Partial<Location>
 
     // window.open 모킹
     window.open = jest.fn()
