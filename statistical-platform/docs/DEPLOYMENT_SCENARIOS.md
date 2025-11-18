@@ -245,16 +245,18 @@ const PYODIDE_LOCAL = '/pyodide/pyodide.js'
 
 ## 🔄 배포 시나리오 비교표
 
-| 항목 | Vercel 클라우드 | 로컬 오프라인 |
-|------|----------------|--------------|
-| **빌드 크기** | ~50MB | ~250MB |
-| **Pyodide 소스** | CDN (자동) | 로컬 번들 |
-| **첫 로딩 시간** | ~10초 (Pyodide 다운로드) | ~1초 (즉시) |
-| **인터넷 필요** | ✅ 필요 | ❌ 불필요 |
-| **Ollama 설정** | 선택 (RAG 사용 시) | 로컬 설치 |
-| **배포 방법** | Vercel push | USB/외장 하드 |
-| **업데이트** | 자동 (Vercel) | 수동 (재배포) |
-| **대상 사용자** | 일반 사용자 | 폐쇄망 환경 |
+| 항목 | Vercel 클라우드 | 로컬 오프라인 | 임베디드 데스크탑 앱 |
+|------|----------------|--------------|-------------------|
+| **빌드 크기** | ~50MB | ~250MB | ~300MB (앱 + Pyodide) |
+| **Pyodide 소스** | CDN (자동) | 로컬 번들 | 로컬 번들 |
+| **Worker 코드** | public/workers/python | public/workers/python | worker-codes.js (내장) |
+| **첫 로딩 시간** | ~10초 (다운로드) | ~1초 (즉시) | ~1초 (즉시) |
+| **인터넷 필요** | ✅ 필요 | ❌ 불필요 | ❌ 불필요 |
+| **Ollama 설정** | 선택 (RAG) | 로컬 설치 | 로컬 설치 |
+| **배포 방법** | Vercel push | USB/하드 | 실행 파일 (.exe/.dmg) |
+| **업데이트** | 자동 (Vercel) | 수동 (재배포) | 수동 (재빌드) |
+| **대상 사용자** | 일반 사용자 | 폐쇄망 환경 | 데스크탑 앱 필요 사용자 |
+| **Worker 동기화** | 불필요 | 불필요 | **필수** (embed-python-workers.js) |
 
 ---
 
@@ -364,6 +366,175 @@ A:
 
 ---
 
+## 🚀 시나리오 3: 임베디드 데스크탑 앱 (Tauri)
+
+### 특징
+
+- ✅ **Python Worker 코드 내장**: deployment-package의 Worker 파일을 JavaScript로 변환
+- ✅ **file:// 프로토콜 지원**: 로컬 파일 시스템에서 동작
+- ✅ **데스크탑 앱 배포**: Windows/macOS/Linux 실행 파일
+- ✅ **Pyodide 통합**: 로컬 Pyodide와 내장 Worker 코드 사용
+- 🔧 **Worker 동기화 필요**: Python 파일 수정 시 재빌드 필요
+
+### 사전 준비 (Worker 동기화)
+
+**중요**: deployment-package의 Worker 파일이 최신 버전인지 확인!
+
+```bash
+# 1. deployment-package Worker 파일 동기화 확인
+cd statistical-platform
+
+# MD5 해시 비교 (Windows)
+for %f in (worker1-descriptive.py worker2-hypothesis.py worker3-nonparametric-anova.py worker4-regression-advanced.py) do (
+  certutil -hashfile "public/workers/python/%f" MD5
+  certutil -hashfile "../deployment-package/statistical-app/workers/python/%f" MD5
+)
+
+# MD5 해시 비교 (Linux/macOS)
+for file in worker1-descriptive.py worker2-hypothesis.py worker3-nonparametric-anova.py worker4-regression-advanced.py; do
+  md5sum "public/workers/python/$file"
+  md5sum "../deployment-package/statistical-app/workers/python/$file"
+done
+
+# 2. 해시가 일치하지 않으면 동기화
+cp public/workers/python/*.py ../deployment-package/statistical-app/workers/python/
+```
+
+### Worker 코드 내장화 (필수)
+
+**언제 실행**: Worker Python 파일 수정 시마다 필수!
+
+```bash
+# embedded-statistical-app 폴더로 이동
+cd embedded-statistical-app/build
+
+# Python Worker 코드를 JavaScript로 변환
+node embed-python-workers.js
+```
+
+**실행 결과**:
+```
+🚀 Python Worker 코드 내장화 시작...
+✅ Worker 1 코드 로드 완료
+✅ Worker 2 코드 로드 완료
+✅ Worker 3 코드 로드 완료
+✅ Worker 4 코드 로드 완료
+✅ Python Worker 내장화 완료!
+📁 출력 파일: embedded-statistical-app/src/workers/worker-codes.js
+📊 내장된 Worker 수: 4
+```
+
+**생성 파일**:
+- `embedded-statistical-app/src/workers/worker-codes.js` (~90KB)
+  - deployment-package의 Worker 1-4 Python 코드가 JavaScript 문자열로 변환됨
+  - Pyodide가 이 문자열을 직접 실행
+
+### 동작 원리
+
+```javascript
+// embed-python-workers.js 동작 순서
+1. deployment-package/workers/python/*.py 읽기
+2. Python 코드를 JSON 문자열로 변환
+3. embedded-statistical-app/src/workers/worker-codes.js 생성
+   └─ export const WORKER_CODES = { "1": "...", "2": "...", ... }
+
+// 런타임 동작
+Pyodide → worker-codes.js에서 Python 코드 가져오기 → exec() 실행
+```
+
+### 빌드 및 실행
+
+```bash
+# 1. Worker 코드 내장화 (위 참조)
+cd embedded-statistical-app/build
+node embed-python-workers.js
+
+# 2. Tauri 앱 빌드
+cd ..
+npm run tauri build
+
+# 3. 실행 파일 위치
+# Windows: src-tauri/target/release/statistical-platform.exe
+# macOS: src-tauri/target/release/bundle/dmg/
+# Linux: src-tauri/target/release/bundle/appimage/
+```
+
+### 주의 사항
+
+#### 1. Worker 파일 수정 시 반드시 재실행
+
+```bash
+# ❌ 잘못된 워크플로우
+1. public/workers/python/worker1-descriptive.py 수정
+2. Tauri 앱 빌드
+→ 구버전 Worker 코드가 포함됨 (worker-codes.js가 업데이트 안됨)
+
+# ✅ 올바른 워크플로우
+1. public/workers/python/worker1-descriptive.py 수정
+2. deployment-package로 동기화
+3. node embed-python-workers.js 실행 ← 필수!
+4. Tauri 앱 빌드
+```
+
+#### 2. deployment-package 동기화 확인
+
+**언제 확인**: Worker Python 파일 수정 후
+
+```bash
+# 자동 테스트로 확인
+cd statistical-platform
+npm test __tests__/workers/python-json-serialization.test.ts
+
+# 테스트 통과 = deployment-package 동기화 완료
+```
+
+#### 3. 내장 코드 검증
+
+```bash
+# worker-codes.js에 _safe_bool() 포함 확인
+grep "_safe_bool" embedded-statistical-app/src/workers/worker-codes.js
+
+# 출력 없음 = 구버전, embed-python-workers.js 재실행 필요
+```
+
+### 배포 체크리스트
+
+```bash
+# ☑️ 1. deployment-package Worker 동기화 확인
+md5sum public/workers/python/*.py
+md5sum ../deployment-package/statistical-app/workers/python/*.py
+
+# ☑️ 2. Worker 코드 내장화
+cd embedded-statistical-app/build
+node embed-python-workers.js
+
+# ☑️ 3. _safe_bool() 포함 확인
+grep -c "_safe_bool" ../src/workers/worker-codes.js
+# → 4 (Worker 1-4 각각 1개씩 정의)
+
+# ☑️ 4. Tauri 앱 빌드
+cd ..
+npm run tauri build
+
+# ☑️ 5. 실행 파일 테스트
+# Windows: src-tauri/target/release/statistical-platform.exe 실행
+# macOS: src-tauri/target/release/bundle/dmg/ 실행
+# Linux: src-tauri/target/release/bundle/appimage/ 실행
+```
+
+### 장점
+- ✅ 네이티브 데스크탑 앱
+- ✅ file:// 프로토콜 지원
+- ✅ Pyodide + Worker 코드 통합
+- ✅ 설치 파일 배포 가능
+
+### 단점
+- ❌ Worker 수정 시마다 재빌드 필요
+- ❌ 동기화 수동 관리 필요
+- ❌ 빌드 시간 증가 (Tauri 컴파일)
+
+---
+
 ## 📚 관련 문서
 
 - **[OFFLINE_DEPLOYMENT_CHECKLIST.md](OFFLINE_DEPLOYMENT_CHECKLIST.md)**: 오프라인 배포 수동 검증 가이드
@@ -373,5 +544,6 @@ A:
 ---
 
 **작성일**: 2025-01-10
-**버전**: 1.0
-**관련 작업**: RAG 시스템 배포 개선
+**업데이트**: 2025-11-18 (임베디드 앱 섹션 추가)
+**버전**: 1.1
+**관련 작업**: RAG 시스템 배포 개선 + Worker JSON 직렬화 수정
