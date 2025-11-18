@@ -21,12 +21,18 @@ export async function checkOllamaStatus(endpoint: string = 'http://localhost:114
     endpoint,
   }
 
+  // 브라우저 호환성을 위한 타임아웃 구현
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 3000)
+
   try {
     // 1. Ollama 서버 연결 확인
     const response = await fetch(`${endpoint}/api/tags`, {
       method: 'GET',
-      signal: AbortSignal.timeout(3000), // 3초 타임아웃
+      signal: controller.signal,
     })
+
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       status.error = `Ollama 서버 응답 에러: ${response.status}`
@@ -61,6 +67,7 @@ export async function checkOllamaStatus(endpoint: string = 'http://localhost:114
 
     return status
   } catch (err) {
+    clearTimeout(timeoutId)
     status.error = err instanceof Error ? err.message : 'Ollama 연결 실패'
     return status
   }
