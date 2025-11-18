@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { CheckCircle2, Circle, Copy, ExternalLink, Download, Terminal, Info } from 'lucide-react'
+import { CheckCircle2, Copy, Download, Terminal, Info } from 'lucide-react'
 
 interface OllamaSetupDialogProps {
   open: boolean
@@ -51,29 +51,6 @@ const OS_CONFIG = {
     terminalHow: 'Ctrl+Alt+T 또는 애플리케이션 메뉴에서 찾기',
   },
 }
-
-const SETUP_STEPS = [
-  {
-    id: 1,
-    title: 'Ollama 설치하기',
-    icon: Download,
-  },
-  {
-    id: 2,
-    title: 'CORS 설정 (중요)',
-    icon: Terminal,
-  },
-  {
-    id: 3,
-    title: 'AI 모델 다운로드',
-    icon: Terminal,
-  },
-  {
-    id: 4,
-    title: '연결 확인',
-    icon: CheckCircle2,
-  },
-]
 
 /**
  * 현재 도메인 감지 (Vercel 배포 시 CORS 설정에 사용)
@@ -133,6 +110,9 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-lg">AI 챗봇 설정 ({osConfig.name})</DialogTitle>
+          <DialogDescription>
+            RAG 기능 사용을 위한 로컬 Ollama 설정 가이드
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 mt-3">
@@ -260,23 +240,50 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
               <p className="text-sm font-medium">① 새 터미널 창 열기 → ② 아래 명령어 실행</p>
               <p className="text-xs text-muted-foreground">(약 5-10분 소요, ~4GB)</p>
 
-              <div className="flex items-center gap-2 bg-muted p-2 rounded-md">
-                <code className="flex-1 text-xs font-mono">
-                  ollama pull mxbai-embed-large && ollama pull qwen2.5:3b
-                </code>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    copyCommand('ollama pull mxbai-embed-large && ollama pull qwen2.5:3b')
-                    setCurrentStep(4)
-                  }}
-                  className="h-8 w-8 flex-shrink-0"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-xs">
+                        다른 모델도 사용 가능합니다
+                        <br />
+                        (예: llama3, gemma, mistral 등)
+                        <br />
+                        <a
+                          href="https://ollama.com/library"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-primary-foreground/80"
+                        >
+                          ollama.com/library
+                        </a>
+                        에서 확인하세요
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+
+                <div className="flex items-center gap-2 bg-muted p-2 rounded-md">
+                  <code className="flex-1 text-xs font-mono">
+                    ollama pull mxbai-embed-large && ollama pull qwen2.5:3b
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      copyCommand('ollama pull mxbai-embed-large && ollama pull qwen2.5:3b')
+                      setCurrentStep(4)
+                    }}
+                    className="h-8 w-8 flex-shrink-0"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                {copied && <p className="text-xs text-green-600">✓ 복사되었습니다!</p>}
               </div>
-              {copied && <p className="text-xs text-green-600">✓ 복사되었습니다!</p>}
             </CardContent>
           </Card>
 
@@ -298,13 +305,13 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
           </Card>
         </div>
 
-        <div className="flex items-center justify-between mt-6 pt-4 border-t">
+        <div className="flex items-center justify-between mt-4 pt-3 border-t">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             나중에 하기
           </Button>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>단계:</span>
-            <span className="font-medium">{currentStep}/3</span>
+            <span className="font-medium">{currentStep}/4</span>
           </div>
         </div>
       </DialogContent>
