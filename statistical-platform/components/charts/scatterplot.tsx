@@ -86,15 +86,15 @@ export function Scatterplot({
     return { chartData, trendLine, xRange, yRange }
   }, [data, showTrendLine])
   
-  const trendLinePoints = useMemo(() => {
-    if (!trendLine || data.length === 0) return []
-    
+  const trendLinePoints = useMemo((): [{ x: number; y: number }, { x: number; y: number }] | null => {
+    if (!trendLine || data.length === 0) return null
+
     const { slope, intercept } = trendLine
     return [
       { x: xRange[0], y: slope * xRange[0] + intercept },
       { x: xRange[1], y: slope * xRange[1] + intercept }
     ]
-  }, [trendLine, xRange])
+  }, [trendLine, xRange, data.length])
   
   if (data.length === 0) {
     return (
@@ -173,10 +173,10 @@ export function Scatterplot({
                 strokeWidth={2}
                 stroke={color}
               />
-              
+
               {/* Trend line */}
-              {showTrendLine && trendLine && trendLinePoints.length === 2 && (
-                <ReferenceLine 
+              {showTrendLine && trendLine && trendLinePoints && (
+                <ReferenceLine
                   segment={trendLinePoints}
                   stroke="#ff7300"
                   strokeWidth={2}

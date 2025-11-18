@@ -344,6 +344,12 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ 8개 페이지, 19개 테이블 변환 (코드 평균 -30%)
   - ✅ 내보내기 버튼 비활성화: 22개 페이지
 
+- ✅ **UI 통합 (2025-11-18 완료)**: `/smart-analysis` → `/smart-flow` 통합
+  - ✅ `/smart-analysis` 폴더 삭제 (구형 962줄 제거)
+  - ✅ 모든 링크 `/smart-flow`로 변경 ([app/page.tsx](statistical-platform/app/page.tsx), [app/(dashboard)/dashboard/page.tsx](statistical-platform/app/(dashboard)/dashboard/page.tsx))
+  - ✅ 코드 감소: -868줄 (-90%)
+  - ✅ 사용자 혼란 제거: 단일 스마트 분석 경로 유지
+
 **다음 작업**:
 - 🔜 Phase 11: Tauri 데스크탑 앱 (향후 검토)
 - 🔜 추가 개선 사항 (성능 최적화, 시각화 고도화 등)

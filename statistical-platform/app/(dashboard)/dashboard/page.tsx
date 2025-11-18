@@ -65,13 +65,13 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-8">
       {/* 1. 스마트 분석 버튼 */}
-      <Link href="/smart-analysis">
+      <Link href="/smart-flow">
         <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20 max-w-md mx-auto hover:shadow-lg transition-all cursor-pointer group">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
               <Sparkles className="h-8 w-8 text-primary" />
             </div>
-            <h2 className="text-xl font-semibold text-primary">분석하기</h2>
+            <h2 className="text-xl font-semibold text-primary">스마트 분석</h2>
           </CardContent>
         </Card>
       </Link>

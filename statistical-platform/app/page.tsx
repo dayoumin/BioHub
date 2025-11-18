@@ -49,7 +49,7 @@ export default function HomePage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto pt-12 pb-8">
       {/* 1. 스마트 분석 버튼 */}
-      <Link href="/smart-analysis" className="block max-w-xl mx-auto">
+      <Link href="/smart-flow" className="block max-w-xl mx-auto">
         <Button
           size="lg"
           className="w-full h-24 text-2xl font-bold gap-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-xl hover:shadow-2xl transition-all"
