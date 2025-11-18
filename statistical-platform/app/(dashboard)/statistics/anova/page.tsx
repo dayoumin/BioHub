@@ -544,8 +544,9 @@ export default function ANOVAPage() {
           }
         ]
 
-        // 총 SS 계산
-        const ssTotal = getSS2('C(factor1)') + getSS2('C(factor2)') + getSS2('C(factor1):C(factor2)') + getSS2('Residual')
+        // 총 SS 계산 (원시 데이터에서 직접 계산 - 불균형 설계 대응)
+        const grandMean = dataValues.reduce((sum, v) => sum + v, 0) / dataValues.length
+        const ssTotal = dataValues.reduce((sum, v) => sum + Math.pow(v - grandMean, 2), 0)
 
         // 각 요인별 효과 크기 계산
         const calculateEffectSizes = (ss: number, dfEffect: number) => {
@@ -740,11 +741,9 @@ export default function ANOVAPage() {
           }
         ]
 
-        // 총 SS 계산
-        const ssTotal3 = getSS('C(factor1)') + getSS('C(factor2)') + getSS('C(factor3)') +
-                         getSS('C(factor1):C(factor2)') + getSS('C(factor1):C(factor3)') +
-                         getSS('C(factor2):C(factor3)') + getSS('C(factor1):C(factor2):C(factor3)') +
-                         getSS('Residual')
+        // 총 SS 계산 (원시 데이터에서 직접 계산 - 불균형 설계 대응)
+        const grandMean3 = dataValues.reduce((sum, v) => sum + v, 0) / dataValues.length
+        const ssTotal3 = dataValues.reduce((sum, v) => sum + Math.pow(v - grandMean3, 2), 0)
 
         // 각 요인별 효과 크기 계산
         const calculateEffectSizes3 = (ss: number, dfEffect: number) => {
@@ -1081,8 +1080,11 @@ export default function ANOVAPage() {
                       <p className="text-sm font-medium">{results.multiFactorResults.factor1.name}</p>
                       <p className="text-xs">
                         F({results.multiFactorResults.factor1.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor1.fStatistic.toFixed(2)}</strong>,
-                        p = <strong>{results.multiFactorResults.factor1.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor1.pValue.toFixed(3)}</strong>,
-                        η² = <strong>{results.multiFactorResults.factor1.etaSquared.toFixed(3)}</strong>
+                        p = <strong>{results.multiFactorResults.factor1.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor1.pValue.toFixed(3)}</strong>
+                      </p>
+                      <p className="text-xs">
+                        η² = <strong>{results.multiFactorResults.factor1.etaSquared.toFixed(3)}</strong>,
+                        ω² = <strong>{results.multiFactorResults.factor1.omegaSquared.toFixed(3)}</strong>
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {results.multiFactorResults.factor1.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
@@ -1096,8 +1098,11 @@ export default function ANOVAPage() {
                         <p className="text-sm font-medium">{results.multiFactorResults.factor2.name}</p>
                         <p className="text-xs">
                           F({results.multiFactorResults.factor2.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor2.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.factor2.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor2.pValue.toFixed(3)}</strong>,
-                          η² = <strong>{results.multiFactorResults.factor2.etaSquared.toFixed(3)}</strong>
+                          p = <strong>{results.multiFactorResults.factor2.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor2.pValue.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs">
+                          η² = <strong>{results.multiFactorResults.factor2.etaSquared.toFixed(3)}</strong>,
+                          ω² = <strong>{results.multiFactorResults.factor2.omegaSquared.toFixed(3)}</strong>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {results.multiFactorResults.factor2.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
@@ -1112,8 +1117,11 @@ export default function ANOVAPage() {
                         <p className="text-sm font-medium">{results.multiFactorResults.factor3.name}</p>
                         <p className="text-xs">
                           F({results.multiFactorResults.factor3.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor3.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.factor3.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor3.pValue.toFixed(3)}</strong>,
-                          η² = <strong>{results.multiFactorResults.factor3.etaSquared.toFixed(3)}</strong>
+                          p = <strong>{results.multiFactorResults.factor3.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor3.pValue.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs">
+                          η² = <strong>{results.multiFactorResults.factor3.etaSquared.toFixed(3)}</strong>,
+                          ω² = <strong>{results.multiFactorResults.factor3.omegaSquared.toFixed(3)}</strong>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {results.multiFactorResults.factor3.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
@@ -1138,8 +1146,11 @@ export default function ANOVAPage() {
                         <p className="text-sm font-medium">{results.multiFactorResults.interaction12.name}</p>
                         <p className="text-xs">
                           F({results.multiFactorResults.interaction12.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction12.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.interaction12.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction12.pValue.toFixed(3)}</strong>,
-                          η² = <strong>{results.multiFactorResults.interaction12.etaSquared.toFixed(3)}</strong>
+                          p = <strong>{results.multiFactorResults.interaction12.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction12.pValue.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs">
+                          η² = <strong>{results.multiFactorResults.interaction12.etaSquared.toFixed(3)}</strong>,
+                          ω² = <strong>{results.multiFactorResults.interaction12.omegaSquared.toFixed(3)}</strong>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {results.multiFactorResults.interaction12.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
@@ -1154,8 +1165,11 @@ export default function ANOVAPage() {
                         <p className="text-sm font-medium">{results.multiFactorResults.interaction13.name}</p>
                         <p className="text-xs">
                           F({results.multiFactorResults.interaction13.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction13.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.interaction13.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction13.pValue.toFixed(3)}</strong>,
-                          η² = <strong>{results.multiFactorResults.interaction13.etaSquared.toFixed(3)}</strong>
+                          p = <strong>{results.multiFactorResults.interaction13.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction13.pValue.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs">
+                          η² = <strong>{results.multiFactorResults.interaction13.etaSquared.toFixed(3)}</strong>,
+                          ω² = <strong>{results.multiFactorResults.interaction13.omegaSquared.toFixed(3)}</strong>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {results.multiFactorResults.interaction13.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
@@ -1170,8 +1184,11 @@ export default function ANOVAPage() {
                         <p className="text-sm font-medium">{results.multiFactorResults.interaction23.name}</p>
                         <p className="text-xs">
                           F({results.multiFactorResults.interaction23.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction23.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.interaction23.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction23.pValue.toFixed(3)}</strong>,
-                          η² = <strong>{results.multiFactorResults.interaction23.etaSquared.toFixed(3)}</strong>
+                          p = <strong>{results.multiFactorResults.interaction23.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction23.pValue.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs">
+                          η² = <strong>{results.multiFactorResults.interaction23.etaSquared.toFixed(3)}</strong>,
+                          ω² = <strong>{results.multiFactorResults.interaction23.omegaSquared.toFixed(3)}</strong>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {results.multiFactorResults.interaction23.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
@@ -1186,8 +1203,11 @@ export default function ANOVAPage() {
                         <p className="text-sm font-medium">{results.multiFactorResults.interaction123.name}</p>
                         <p className="text-xs">
                           F({results.multiFactorResults.interaction123.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction123.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.interaction123.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction123.pValue.toFixed(3)}</strong>,
-                          η² = <strong>{results.multiFactorResults.interaction123.etaSquared.toFixed(3)}</strong>
+                          p = <strong>{results.multiFactorResults.interaction123.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction123.pValue.toFixed(3)}</strong>
+                        </p>
+                        <p className="text-xs">
+                          η² = <strong>{results.multiFactorResults.interaction123.etaSquared.toFixed(3)}</strong>,
+                          ω² = <strong>{results.multiFactorResults.interaction123.omegaSquared.toFixed(3)}</strong>
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {results.multiFactorResults.interaction123.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
