@@ -177,6 +177,38 @@
 - **라벨 수정**: "AI 추천" → "스마트 추천" (규칙 기반 시스템 명확화)
 - **최종 커밋**: `56b7475` - refactor: "AI 추천"을 "스마트 추천"으로 변경
 
+**Smart Flow History: IndexedDB 마이그레이션** ✅ **완료 (100%)** (2025-11-18)
+- **목표**: 스마트 분석 히스토리를 sessionStorage → IndexedDB로 이전 (영구 저장)
+- **완료 내역**:
+  - ✅ **IndexedDB 유틸리티 레이어** (`lib/utils/indexeddb.ts`, +165줄)
+    - DB: 'smart-flow-history', Store: 'analyses', 최대 100개 히스토리
+    - 함수: saveHistory, getAllHistory, getHistory, deleteHistory, clearAllHistory
+    - Safari Private Mode 대응: isIndexedDBAvailable() 체크
+  - ✅ **Zustand Store 마이그레이션** (`lib/stores/smart-flow-store.ts`, +72줄)
+    - 히스토리 저장: sessionStorage → IndexedDB
+    - 자동 마이그레이션: 기존 sessionStorage 데이터 복사 (1회만)
+    - 결과만 저장: 원본 데이터 제외로 95% 공간 절약
+  - ✅ **UI 컴포넌트 비동기 대응** (AnalysisHistoryPanel, ResultsActionStep)
+    - 모든 history 함수 async/await 변환
+    - Null-safe 필터링: `item.method?.name ?? ''`
+- **3가지 Critical 버그 수정**:
+  1. **TransactionInactiveError**: Transaction 생성 전 async 호출로 트랜잭션 비활성화 → getAllHistory()를 transaction 생성 전으로 이동
+  2. **Null Reference Crash**: `item.method?.name.toLowerCase()` → `const methodName = item.method?.name ?? ''` (null-safe 변수 추출)
+  3. **Data Loss**: sessionStorage → IndexedDB 마이그레이션 없음 → loadHistoryFromDB()에 1회 자동 마이그레이션 추가
+- **용량 분석**:
+  - 100개 히스토리 = 150-500 KB (0.05% of 1GB 최소 할당량)
+  - 결과만 저장: 5KB/건 (원본 데이터 100KB 제외)
+- **테스트 검증**: 10/10 통과 ✅ (integration/smart-flow-history.test.ts, +258줄)
+  - IndexedDB 사용 가능 체크 (2개)
+  - TransactionInactiveError 방지 (2개)
+  - Null-safe 히스토리 로딩 (2개)
+  - Migration 로직 검증 (1개)
+  - 히스토리 삭제 (2개)
+  - UI 필터링 null 안전성 (1개)
+- **TypeScript**: 0 errors ✓
+- **빌드**: 성공 (45s, 68 routes) ✓
+- **최종 커밋**: `a677101` - fix: 스마트 분석 히스토리 Critical 버그 3개 수정
+
 ---
 
 ## ✅ 최근 완료 작업
