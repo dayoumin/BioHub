@@ -20,6 +20,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
   BarChart,
   Bar,
@@ -149,7 +150,7 @@ export default function TTestPage() {
           statistic: number
           pValue: number
           sampleMean: number
-        }>(2, 't_test_one_sample', { data: values, popmean: testValue })
+        }>(PyodideWorker.Hypothesis, 't_test_one_sample', { data: values, popmean: testValue })
 
       } else if (testType === 'two-sample') {
         // 독립표본 t-검정
@@ -178,7 +179,7 @@ export default function TTestPage() {
           std2: number
           n1: number
           n2: number
-        }>(2, 't_test_two_sample', { group1: group1Data, group2: group2Data, equal_var: true })
+        }>(PyodideWorker.Hypothesis, 't_test_two_sample', { group1: group1Data, group2: group2Data, equal_var: true })
 
       } else if (testType === 'paired') {
         // 대응표본 t-검정
@@ -193,7 +194,7 @@ export default function TTestPage() {
           pValue: number
           meanDiff: number
           nPairs: number
-        }>(2, 't_test_paired', { values1, values2 })
+        }>(PyodideWorker.Hypothesis, 't_test_paired', { values1, values2 })
 
       } else {
         throw new Error('Invalid test type')

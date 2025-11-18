@@ -35,6 +35,7 @@ import {
   Scatter
 } from 'recharts'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
   Calculator,
   AlertTriangle,
@@ -179,7 +180,7 @@ export default function PoissonRegressionPage() {
 
       // Call Worker 2 poisson_regression method
       const workerResult = await pyodideCore.callWorkerMethod<PoissonRegressionResult>(
-        2, // worker2-hypothesis
+        PyodideWorker.Hypothesis, // worker2-hypothesis
         'poisson_regression',
         {
           dependent_var: vars.dependent,

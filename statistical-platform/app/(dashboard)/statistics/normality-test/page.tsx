@@ -29,6 +29,7 @@ import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { extractColumnData } from '@/lib/utils/data-extraction'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface NormalityTestResult {
   test: string
@@ -119,7 +120,7 @@ export default function NormalityTestPage() {
         pValue: number
         isNormal: boolean
       }>(
-        1, // worker1-descriptive
+        PyodideWorker.Descriptive,
         'normality_test',
         { data: values, alpha: 0.05 }
       )

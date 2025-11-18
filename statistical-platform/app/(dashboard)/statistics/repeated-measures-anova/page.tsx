@@ -17,6 +17,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface RepeatedMeasuresVariables {
   subjectId?: string
@@ -175,7 +176,7 @@ export default function RepeatedMeasuresANOVAPage() {
           F: Record<string, number>
           'PR(>F)': Record<string, number>
         }
-      }>(3, 'repeated_measures_anova', {
+      }>(PyodideWorker.NonparametricAnova, 'repeated_measures_anova', {
         data_matrix: dataMatrix,
         subject_ids: subjectIds,
         time_labels: timeVars

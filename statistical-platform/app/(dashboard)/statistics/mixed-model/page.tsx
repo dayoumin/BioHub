@@ -37,6 +37,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
 interface DataRow {
@@ -228,7 +229,7 @@ export default function MixedModelPage() {
 
       // Call Worker 2 mixed_model method
       const workerResult = await pyodideCore.callWorkerMethod<MixedModelResult>(
-        2,
+        PyodideWorker.Hypothesis,
         'mixed_model',
         {
           dependent_var: selectedVariables.dependent,

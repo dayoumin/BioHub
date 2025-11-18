@@ -38,6 +38,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Type definitions
 // interface SelectedVariables {
@@ -272,7 +273,7 @@ export default function ChiSquareGoodnessPage() {
       }
 
       const result = await pyodideCore.callWorkerMethod<ChiSquareResult>(
-        2,
+        PyodideWorker.Hypothesis,
         'chi_square_goodness',
         {
           observed,

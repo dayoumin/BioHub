@@ -20,6 +20,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface DoseResponseResult {
   model: string
@@ -157,7 +158,7 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
 
       // Call Worker 4 dose_response_analysis method
       const analysisResult = await pyodideCore.callWorkerMethod<DoseResponseResult>(
-        4,
+        PyodideWorker.RegressionAdvanced,
         'dose_response_analysis',
         params
       )

@@ -39,6 +39,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
 interface DataRow {
@@ -232,7 +233,7 @@ export default function ReliabilityAnalysisPage() {
       const pyodideResult = await pyodideCore.callWorkerMethod<{
         alpha: number
         itemTotalCorrelations?: number[]
-      }>(1, 'cronbach_alpha', { items_matrix: itemsMatrix })
+      }>(PyodideWorker.Descriptive, 'cronbach_alpha', { items_matrix: itemsMatrix })
 
       // Transform to ReliabilityResult format
       const result: ReliabilityResult = {

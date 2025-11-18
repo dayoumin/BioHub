@@ -34,6 +34,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { extractRowValue } from '@/lib/utils/data-extraction'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface MannKendallResult {
   trend: 'increasing' | 'decreasing' | 'no trend'
@@ -152,7 +153,7 @@ export default function MannKendallPage() {
         senSlope: number
         intercept: number
         n: number
-      }>(1, 'mann_kendall_test', { data })
+      }>(PyodideWorker.Descriptive, 'mann_kendall_test', { data })
 
       const typedResult: MannKendallResult = {
         trend: result.trend as 'increasing' | 'decreasing' | 'no trend',

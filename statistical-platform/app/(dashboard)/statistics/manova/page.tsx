@@ -37,6 +37,7 @@ import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-pag
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
 interface DataRow {
@@ -208,7 +209,7 @@ export default function ManovaPage() {
 
       // Call Worker 2 manova method
       const workerResult = await pyodideCore.callWorkerMethod<ManovaResult>(
-        2,
+        PyodideWorker.Hypothesis,
         'manova',
         {
           dependent_vars: variables.dependent,

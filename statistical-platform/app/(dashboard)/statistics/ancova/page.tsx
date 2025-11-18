@@ -37,6 +37,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
 interface DataRow {
@@ -196,7 +197,7 @@ export default function ANCOVAPage() {
 
       // Call Worker 2 ancova_analysis method
       const workerResult = await pyodideCore.callWorkerMethod<ANCOVAResult>(
-        2,
+        PyodideWorker.Hypothesis,
         'ancova_analysis',
         {
           dependent_var: variables.dependent,

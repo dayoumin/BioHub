@@ -27,6 +27,7 @@ import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-pag
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // K-S 검정 타입 정의
 interface KSTestResult {
@@ -106,7 +107,7 @@ export default function KolmogorovSmirnovTestPage() {
         expectedMean: number
         expectedStd: number
       }
-    }>(1, 'ks_test_one_sample', { values })
+    }>(PyodideWorker.Descriptive, 'ks_test_one_sample', { values })
 
     return {
       testType: 'one-sample',
@@ -139,7 +140,7 @@ export default function KolmogorovSmirnovTestPage() {
       significant: boolean
       effectSize: number
       sampleSizes: { n1: number; n2: number }
-    }>(1, 'ks_test_two_sample', { values1, values2 })
+    }>(PyodideWorker.Descriptive, 'ks_test_two_sample', { values1, values2 })
 
     return {
       testType: 'two-sample',

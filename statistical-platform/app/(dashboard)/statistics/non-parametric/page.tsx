@@ -39,6 +39,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 type NonParametricTest =
   | 'mann-whitney'
@@ -447,7 +448,7 @@ export default function NonParametricTestPage() {
         }
 
         workerResult = await pyodideCore.callWorkerMethod<MannWhitneyResult>(
-          3,
+          PyodideWorker.NonparametricAnova,
           'mann_whitney_test',
           {
             group1: groups[groupKeys[0]],
@@ -483,7 +484,7 @@ export default function NonParametricTestPage() {
         sampleSize = values1.length
 
         workerResult = await pyodideCore.callWorkerMethod<WilcoxonResult>(
-          3,
+          PyodideWorker.NonparametricAnova,
           'wilcoxon_test',
           {
             values1,
@@ -525,7 +526,7 @@ export default function NonParametricTestPage() {
         }
 
         workerResult = await pyodideCore.callWorkerMethod<KruskalWallisResult>(
-          3,
+          PyodideWorker.NonparametricAnova,
           'kruskal_wallis_test',
           {
             groups: groupArrays
@@ -555,7 +556,7 @@ export default function NonParametricTestPage() {
         })
 
         workerResult = await pyodideCore.callWorkerMethod<FriedmanResult>(
-          3,
+          PyodideWorker.NonparametricAnova,
           'friedman_test',
           {
             groups

@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, BarChart3, Target, CheckCircle } from 'lucide-react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ErrorBar } from 'recharts'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // interface SelectedVariables {
 //   dependent: string[]
@@ -129,7 +130,7 @@ export default function MeansPlotPage() {
           summary: string
           recommendations: string[]
         }
-      }>(1, 'means_plot_data', {
+      }>(PyodideWorker.Descriptive, 'means_plot_data', {
         data: uploadedData.data as never,
         dependent_var: dependentVars[0],
         factor_var: factorVars[0]

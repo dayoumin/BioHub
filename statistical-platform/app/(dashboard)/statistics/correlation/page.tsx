@@ -23,6 +23,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
 interface CorrelationResult {
@@ -234,7 +235,7 @@ export default function CorrelationPage() {
             }
 
             const result = await pyodideCore.callWorkerMethod<CorrelationResult>(
-              2,
+              PyodideWorker.Hypothesis,
               'correlation',
               {
                 variable1: values1,

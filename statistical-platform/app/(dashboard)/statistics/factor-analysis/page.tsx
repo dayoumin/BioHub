@@ -21,6 +21,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 // Services & Hooks
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // 요인분석 결과 인터페이스
 interface FactorAnalysisResult {
@@ -204,7 +205,7 @@ export default function FactorAnalysisPage() {
 
       // Call Worker 4 factor_analysis_method
       const result = await pyodideCore.callWorkerMethod<FactorAnalysisResult>(
-        4,
+        PyodideWorker.RegressionAdvanced,
         'factor_analysis_method',
         {
           data: numericData,

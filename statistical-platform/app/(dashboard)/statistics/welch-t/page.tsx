@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { escapeHtml } from '@/lib/utils/html-escape'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
   Calculator,
   GitBranch,
@@ -205,7 +206,7 @@ export default function WelchTPage() {
       }
 
       const result = await pyodideCore.callWorkerMethod<WelchTResult>(
-        2,
+        PyodideWorker.Hypothesis,
         'welch_t_test',
         {
           group1: group1Data,

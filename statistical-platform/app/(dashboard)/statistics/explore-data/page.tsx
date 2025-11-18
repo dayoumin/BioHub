@@ -38,6 +38,7 @@ import { VariableMapping } from '@/components/variable-selection/types'
 import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface ExploreResults {
   variable: string
@@ -226,7 +227,7 @@ export default function ExploreDataPage() {
           }
 
           const result = await pyodideCore.callWorkerMethod<DescriptiveResult>(
-            1,
+            PyodideWorker.Descriptive,
             'descriptive_stats',
             { data: numericValues }
           )

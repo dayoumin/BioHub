@@ -46,6 +46,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 type LinearRegressionResults = {
   coefficients: Array<{ name: string; estimate: number; stdError: number; tValue: number; pValue: number; ci: number[] }>
@@ -187,7 +188,7 @@ export default function RegressionPage() {
       interceptCi: number[]
       slopeTValue: number
       interceptTValue: number
-    }>(4, 'linear_regression', { x: xData, y: yData })
+    }>(PyodideWorker.RegressionAdvanced, 'linear_regression', { x: xData, y: yData })
 
     // 3️⃣ 결과 매핑
     const df = pythonResult.nPairs - 2
@@ -300,7 +301,7 @@ export default function RegressionPage() {
       vif: number[]
       nObservations: number
       nPredictors: number
-    }>(4, 'multiple_regression', { X: XData, y: yData })
+    }>(PyodideWorker.RegressionAdvanced, 'multiple_regression', { X: XData, y: yData })
 
     const coefficientNames = ['(Intercept)', ...xVariables]
 
@@ -416,7 +417,7 @@ export default function RegressionPage() {
       pseudoRSquared: number
       nObservations: number
       nPredictors: number
-    }>(4, 'logistic_regression', { X: XData, y: yData })
+    }>(PyodideWorker.RegressionAdvanced, 'logistic_regression', { X: XData, y: yData })
 
     const coefficientNames = ['(Intercept)', ...xVariables]
 

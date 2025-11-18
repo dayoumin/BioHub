@@ -33,6 +33,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // 데이터 인터페이스
 // 로컬 인터페이스 제거: types/statistics.ts의 PCAVariables 사용
@@ -355,7 +356,7 @@ export default function PCAPage() {
 
       // Call Worker 4 pca_analysis method
       const result = await pyodideCore.callWorkerMethod<PCAResult>(
-        4,
+        PyodideWorker.RegressionAdvanced,
         'pca_analysis',
         {
           data: numericData,

@@ -31,6 +31,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // 데이터 인터페이스
 // 로컬 인터페이스 제거: types/statistics.ts의 DiscriminantVariables 사용
@@ -158,7 +159,7 @@ export default function DiscriminantPage() {
 
       // Call Worker 4 discriminant_analysis method
       const result = await pyodideCore.callWorkerMethod<DiscriminantResult>(
-        4,
+        PyodideWorker.RegressionAdvanced,
         'discriminant_analysis',
         {
           data: dataMatrix,

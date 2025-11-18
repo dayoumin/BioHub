@@ -50,6 +50,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // ============================================================================
 // 타입 정의
@@ -186,7 +187,7 @@ export default function ProportionTestPage(): React.ReactElement {
       }
 
       const result = await pyodideCore.callWorkerMethod<ProportionTestResult>(
-        1, // worker1-descriptive
+        PyodideWorker.Descriptive, // worker1-descriptive
         'proportion_test',
         {
           successCount,

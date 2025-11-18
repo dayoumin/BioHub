@@ -22,6 +22,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import type { VariableAssignment } from '@/types/statistics-converters'
 import { useStatisticsPage , type UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface ResponseSurfaceResult {
   model_type: string
@@ -184,7 +185,7 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
           lackOfFitP: number
           pureErrorAvailable: boolean
         }
-      }>(2, 'response_surface_analysis', {
+      }>(PyodideWorker.Hypothesis, 'response_surface_analysis', {
         data: uploadedData.data as never,
         dependent_var: typedVariables.dependent,
         predictor_vars: predictorVars as never,

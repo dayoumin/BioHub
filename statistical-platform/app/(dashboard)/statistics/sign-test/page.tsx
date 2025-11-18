@@ -19,6 +19,7 @@ import {
   Cell
 } from 'recharts'
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
   Calculator,
   CheckCircle2,
@@ -190,7 +191,7 @@ export default function SignTestPage() {
         nTies: number
         pValue: number
       }>(
-        3, // worker3-nonparametric-anova.py
+        PyodideWorker.NonparametricAnova, // worker3-nonparametric-anova.py
         'sign_test',
         {
           before: beforeData,

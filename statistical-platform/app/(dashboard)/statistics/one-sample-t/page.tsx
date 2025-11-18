@@ -31,6 +31,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface OneSampleTResults {
   variable: string
@@ -144,7 +145,7 @@ export default function OneSampleTPage() {
       }
 
       const result = await pyodideCore.callWorkerMethod<OneSampleTResult>(
-        2,
+        PyodideWorker.Hypothesis,
         'one_sample_t_test',
         {
           data: values,

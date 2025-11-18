@@ -18,6 +18,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // 군집분석 결과 인터페이스
 interface ClusterAnalysisResult {
@@ -151,7 +152,7 @@ export default function ClusterAnalysisPage() {
 
       // Call Worker 4 cluster_analysis method
       const result = await pyodideCore.callWorkerMethod<ClusterAnalysisResult>(
-        4,
+        PyodideWorker.RegressionAdvanced,
         'cluster_analysis',
         {
           data: numericData,

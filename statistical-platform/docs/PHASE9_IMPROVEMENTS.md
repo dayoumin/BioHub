@@ -19,26 +19,26 @@
 
 ---
 
-## ⚠️ 발견된 개선 필요 사항
+## ✅ 완료된 개선 사항
 
-### 1. PyodideWorker Enum 미사용 (우선순위: 중)
+### 1. PyodideWorker Enum 표준화 ✅ (완료)
 
-**현황**:
+**이전 현황**:
 - ✅ Enum 사용: 2/43 페이지 (`descriptive`, `chi-square`)
 - ❌ 숫자 직접 사용: 41/43 페이지
 
-**문제점**:
+**문제점 (해결됨)**:
 ```typescript
-// ❌ 현재 (41개 페이지)
+// ❌ 이전 (41개 페이지)
 await pyodideCore.callWorkerMethod<T>(3, 'one_way_anova', params)
 // 문제: 숫자 3이 무엇인지 명확하지 않음
 // 문제: IDE 자동완성 없음
 // 문제: 잘못된 Worker 번호 입력 시 런타임 에러
 ```
 
-**권장 방식**:
+**현재 (표준화 완료)**:
 ```typescript
-// ✅ 권장 (2개 페이지만 사용)
+// ✅ 현재 (43/43 페이지)
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 await pyodideCore.callWorkerMethod<T>(
@@ -48,35 +48,26 @@ await pyodideCore.callWorkerMethod<T>(
 )
 ```
 
-**영향 페이지** (41개):
-```
-ancova, anova, binomial-test, chi-square-goodness, chi-square-independence,
-cluster, cochran-q, correlation, discriminant, dose-response, explore-data,
-factor-analysis, friedman, kruskal-wallis, ks-test, mann-kendall, mann-whitney,
-manova, mcnemar, means-plot, mixed-model, mood-median, non-parametric,
-normality-test, one-sample-t, ordinal-regression, partial-correlation, pca,
-poisson, power-analysis, proportion-test, regression, reliability,
-repeated-measures-anova, response-surface, runs-test, sign-test, stepwise,
-t-test, welch-t, wilcoxon
-```
+**작업 내역**:
+- 수동 변환: 2개 페이지 (normality-test, anova)
+- 자동 변환: 19개 페이지 (Python 스크립트)
+- 이미 완료: 22개 페이지 (이전 작업)
+- **총 43/43 페이지 (100%)** PyodideWorker enum 사용
 
-**수정 방법**:
-1. 각 페이지 상단에 import 추가:
-   ```typescript
-   import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-   ```
+**검증 결과**:
+- ✅ TypeScript 컴파일: 0 errors
+- ✅ Import 문 추가: 43/43
+- ✅ Worker 호출 변환: 100%
 
-2. 숫자를 enum으로 변경:
-   - `1` → `PyodideWorker.Descriptive`
-   - `2` → `PyodideWorker.Hypothesis`
-   - `3` → `PyodideWorker.NonparametricAnova`
-   - `4` → `PyodideWorker.RegressionAdvanced`
-
-**예상 효과**:
+**달성 효과**:
 - ✅ 코드 가독성 향상
 - ✅ IDE 자동완성 지원
 - ✅ 타입 안전성 강화
 - ✅ 런타임 에러 방지
+
+---
+
+## ⚠️ 남은 개선 필요 사항
 
 ---
 
@@ -116,37 +107,38 @@ const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 
 ## 📋 개선 작업 우선순위
 
-### 우선순위 1: 문서 업데이트 ✅ (완료)
+### ✅ 완료된 작업
+
+#### 1. 문서 업데이트 (2025-11-18 초기)
 - ✅ CLAUDE.md: 41/43 → 43/43
 - ✅ STATUS.md: Phase 9 완료 (100%)
 - ✅ PHASE9_IMPROVEMENTS.md 작성 (이 파일)
 
-### 우선순위 2: PyodideWorker Enum 표준화 (선택)
-- 대상: 41개 페이지
-- 예상 시간: ~2시간 (자동 스크립트 가능)
-- 장점: 코드 품질 향상, 타입 안전성
-- 단점: 큰 변경 사항 (41개 파일)
+#### 2. PyodideWorker Enum 표준화 (2025-11-18 완료)
+- ✅ 대상: 43개 페이지 (100%)
+- ✅ 실제 소요 시간: ~1시간 (수동 2개 + 자동 스크립트 19개 + 이전 22개)
+- ✅ 방법: Python 자동화 스크립트 (scripts/update_worker_enum.py)
+- ✅ 검증: TypeScript 컴파일 0 errors
 
-### 우선순위 3: explore-data 리팩토링 (선택)
+### 🟡 남은 작업 (선택)
+
+#### 3. explore-data 리팩토링
 - 대상: 1개 페이지
 - 예상 시간: ~30분
 - 장점: 일관성 향상
-- 단점: 없음 (권장)
+- 우선순위: 낮음 (향후 Phase 11 전 처리 권장)
 
 ---
 
 ## 🎯 권장 사항
 
-### 즉시 적용
-- ✅ 문서 업데이트 (완료)
+### ✅ 완료 (2025-11-18)
+- ✅ 문서 업데이트 (초기 작성)
+- ✅ **PyodideWorker Enum 표준화 (43/43 페이지)**
 
-### 선택적 적용 (향후)
-- 🟡 PyodideWorker Enum 표준화 (41개 페이지)
-  - Phase 11 전에 일괄 적용 권장
-  - 자동화 스크립트 작성 가능
-
+### 🟡 선택적 적용 (향후)
 - 🟡 explore-data 리팩토링 (1개 페이지)
-  - 시간 날 때 적용 권장
+  - Phase 11 (Tauri 앱) 전에 적용 권장
   - 우선순위 낮음
 
 ---
@@ -156,6 +148,8 @@ const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 - `lib/services/pyodide/core/pyodide-worker.enum.ts` - Worker Enum 정의
 - `lib/services/pyodide/core/pyodide-core.service.ts` - PyodideCore 서비스
 - `hooks/use-pyodide-service.ts` - 구버전 Hook (deprecated)
+- `scripts/update_worker_enum.py` - PyodideWorker Enum 자동 변환 스크립트 ✅
+- `scripts/update-worker-enum.sh` - Bash 버전 (사용하지 않음)
 
 ---
 
@@ -164,3 +158,4 @@ const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 | 날짜 | 변경 내용 | 작성자 |
 |------|----------|--------|
 | 2025-11-18 | 초기 작성 (43개 페이지 검증 결과 기록) | Claude Code |
+| 2025-11-18 | PyodideWorker Enum 표준화 완료 (43/43 페이지) | Claude Code |

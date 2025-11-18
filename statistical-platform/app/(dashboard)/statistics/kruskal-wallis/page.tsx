@@ -35,6 +35,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
 interface DataRow {
@@ -222,7 +223,7 @@ export default function KruskalWallisPage() {
         statistic: number
         pValue: number
         df: number
-      }>(3, 'kruskal_wallis_test', { groups: groupArrays })
+      }>(PyodideWorker.NonparametricAnova, 'kruskal_wallis_test', { groups: groupArrays })
 
       // 기술통계량 계산 - Worker 1 호출
       const descriptives: Record<string, GroupDescriptives> = {}

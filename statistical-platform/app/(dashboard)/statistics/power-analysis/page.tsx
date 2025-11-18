@@ -28,6 +28,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface PowerAnalysisResult {
   testType: string
@@ -129,7 +130,7 @@ export default function PowerAnalysisPage() {
 
       // Worker 2 power_analysis 메서드 호출
       const result = await pyodideCore.callWorkerMethod<PowerAnalysisResult>(
-        2,
+        PyodideWorker.Hypothesis,
         'power_analysis',
         {
           test_type: config.testType,

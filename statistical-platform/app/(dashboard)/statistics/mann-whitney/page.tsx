@@ -35,6 +35,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { extractRowValue } from '@/lib/utils/data-extraction'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
 interface DataRow {
@@ -244,7 +245,7 @@ export default function MannWhitneyPage() {
         statistic: number
         pvalue: number
       }>(
-        3, // Worker 3 (Nonparametric)
+        PyodideWorker.NonparametricAnova, // Worker 3 (Nonparametric)
         'mann_whitney_test',
         {
           group1,

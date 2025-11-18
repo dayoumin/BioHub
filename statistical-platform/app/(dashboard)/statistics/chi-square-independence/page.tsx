@@ -35,6 +35,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Helper functions
 function interpretCramersV(value: number): string {
@@ -186,7 +187,7 @@ export default function ChiSquareIndependencePage() {
         observedMatrix: number[][]
         expectedMatrix: number[][]
       }>(
-        2, // Worker 2 - hypothesis tests
+        PyodideWorker.Hypothesis, // Worker 2 - hypothesis tests
         'chi_square_independence_test',
         { observed_matrix: matrix }
       )

@@ -34,6 +34,7 @@ import {
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
   TrendingUp,
   AlertTriangle,
@@ -208,7 +209,7 @@ export default function OrdinalRegressionPage() {
 
       // Call Worker 2 ordinal_regression method
       const workerResult = await pyodideCore.callWorkerMethod<OrdinalRegressionResult>(
-        2,
+        PyodideWorker.Hypothesis,
         'ordinal_regression',
         {
           dependent_var: selectedDependent,

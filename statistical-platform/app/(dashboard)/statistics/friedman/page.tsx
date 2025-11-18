@@ -36,6 +36,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
 interface DataRow {
@@ -218,7 +219,7 @@ export default function FriedmanPage() {
       const basicResult = await pyodideCore.callWorkerMethod<{
         statistic: number
         pValue: number
-      }>(3, 'friedman_test', { groups: conditionData })
+      }>(PyodideWorker.NonparametricAnova, 'friedman_test', { groups: conditionData })
 
       // Calculate additional statistics for FriedmanResult
       const nBlocks = conditionData[0].length

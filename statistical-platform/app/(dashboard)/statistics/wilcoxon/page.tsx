@@ -34,6 +34,7 @@ import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { extractRowValue } from '@/lib/utils/data-extraction'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface WilcoxonResult {
   statistic: number
@@ -150,7 +151,7 @@ export default function WilcoxonPage() {
       }
 
       const result = await pyodideCore.callWorkerMethod<WilcoxonResult>(
-        3,
+        PyodideWorker.NonparametricAnova,
         'wilcoxon_test',
         { values1, values2 }
       )

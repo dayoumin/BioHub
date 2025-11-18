@@ -48,6 +48,7 @@ import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 
 import type { BinomialTestVariables } from '@/types/statistics'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // ============================================================================
 // 타입 정의
@@ -219,7 +220,7 @@ export default function BinomialTestPage(): React.ReactElement {
         successCount: number
         totalCount: number
       }>(
-        2, // worker2-hypothesis
+        PyodideWorker.Hypothesis, // worker2-hypothesis
         'binomial_test',
         {
           success_count: successCount,

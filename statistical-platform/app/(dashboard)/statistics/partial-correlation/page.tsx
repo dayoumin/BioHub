@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp, CheckCircle } from 'lucide-react'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface PartialCorrelationResults {
   correlations: Array<{
@@ -113,7 +114,7 @@ export default function PartialCorrelationPage() {
           summary: string
           recommendations: string[]
         }
-      }>(2, 'partial_correlation_analysis', {
+      }>(PyodideWorker.Hypothesis, 'partial_correlation_analysis', {
         data: uploadedData.data as never,
         analysis_vars: variables.dependent as never,
         control_vars: (variables.covariate || []) as never

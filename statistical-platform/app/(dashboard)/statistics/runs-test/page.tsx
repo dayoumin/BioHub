@@ -22,6 +22,7 @@ import {
   BarChart3
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // 런 검정 관련 타입 정의
 type RunValue = string | number | boolean
@@ -167,7 +168,7 @@ export default function RunsTestPage() {
         zStatistic: number
         pValue: number
       }>(
-        3, // worker3-nonparametric-anova.py
+        PyodideWorker.NonparametricAnova, // worker3-nonparametric-anova.py
         'runs_test',
         {
           sequence: sequence

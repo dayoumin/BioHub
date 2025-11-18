@@ -29,6 +29,7 @@ import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import type { CochranQVariables } from '@/types/statistics'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Cochran Q Test 결과
 interface CochranQTestResult {
@@ -184,7 +185,7 @@ export default function CochranQTestPage() {
         pValue: number
         df: number
       }>(
-        3, // worker3-nonparametric-anova.py
+        PyodideWorker.NonparametricAnova, // worker3-nonparametric-anova.py
         'cochran_q_test',
         {
           data_matrix: dataMatrix

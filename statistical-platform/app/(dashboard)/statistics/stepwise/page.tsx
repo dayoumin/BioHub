@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label'
 import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus, Home, ChartBar, CheckCircle } from 'lucide-react'
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
 import { escapeHtml } from '@/lib/utils/html-escape'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface StepwiseResults {
   final_model: {
@@ -242,7 +243,7 @@ export default function StepwiseRegressionPage() {
           summary: string
           recommendations: string[]
         }
-      }>(2, 'stepwise_regression_forward', {
+      }>(PyodideWorker.Hypothesis, 'stepwise_regression_forward', {
         data: uploadedData.data as never,
         dependent_var: dependentVars[0],
         predictor_vars: predictorVars as never,

@@ -24,6 +24,7 @@ import {
   TrendingUp
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // ============================================================================
 // 타입 정의
@@ -220,7 +221,7 @@ export default function MoodMedianTestPage() {
         grandMedian: number
         contingencyTable: number[][]
       }>(
-        3, // worker3-nonparametric-anova.py
+        PyodideWorker.NonparametricAnova, // worker3-nonparametric-anova.py
         'mood_median_test',
         {
           groups: groups

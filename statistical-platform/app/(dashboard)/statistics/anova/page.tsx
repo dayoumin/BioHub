@@ -23,6 +23,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 interface GroupResult {
   name: string
@@ -256,7 +257,7 @@ export default function ANOVAPage() {
           pValue: number
           df1: number
           df2: number
-        }>(3, 'one_way_anova', { groups: groupsArray })
+        }>(PyodideWorker.NonparametricAnova, 'one_way_anova', { groups: groupsArray })
 
         // 그룹별 기술통계 계산
         const groups: GroupResult[] = groupNames.map((name) => {
@@ -354,7 +355,7 @@ export default function ANOVAPage() {
               statistic: number | number[]
               pValue: number | number[] | null
               confidenceInterval?: { lower: number[]; upper: number[]; confidenceLevel: number | null }
-            }>(3, 'tukey_hsd', { groups: groupsArray })
+            }>(PyodideWorker.NonparametricAnova, 'tukey_hsd', { groups: groupsArray })
 
             // Worker 결과를 PostHocComparison 타입으로 변환
             postHocComparisons = tukeyResult.comparisons.map(comp => ({
@@ -410,7 +411,7 @@ export default function ANOVAPage() {
             passed: boolean
             interpretation: string
           }
-        }>(3, 'test_assumptions', { groups: groupsArray })
+        }>(PyodideWorker.NonparametricAnova, 'test_assumptions', { groups: groupsArray })
 
         // UI에 표시할 형식으로 변환 (전체 그룹 통합 결과)
         const overallNormality = assumptionsWorkerResult.normality.shapiroWilk[0]
@@ -494,7 +495,7 @@ export default function ANOVAPage() {
             F: Record<string, number>
             'PR(>F)': Record<string, number>
           }
-        }>(3, 'two_way_anova', {
+        }>(PyodideWorker.NonparametricAnova, 'two_way_anova', {
           data_values: dataValues,
           factor1_values: factor1Values,
           factor2_values: factor2Values
@@ -658,7 +659,7 @@ export default function ANOVAPage() {
             F: Record<string, number>
             'PR(>F)': Record<string, number>
           }
-        }>(3, 'three_way_anova', {
+        }>(PyodideWorker.NonparametricAnova, 'three_way_anova', {
           data_values: dataValues,
           factor1_values: factor1Values,
           factor2_values: factor2Values,
