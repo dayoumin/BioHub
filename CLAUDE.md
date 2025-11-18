@@ -356,6 +356,7 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 - [AI-CODING-RULES.md](statistical-platform/docs/AI-CODING-RULES.md) - any → unknown 예제
 - [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - 통계 모듈 코딩 표준 ⭐
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방 🚨
+- [RAG_ARCHITECTURE.md](statistical-platform/docs/RAG_ARCHITECTURE.md) - RAG 시스템 아키텍처 (SQLite 의존성 구조) 🔍
 
 ### 문서 관리 규칙
 - **dailywork.md**: 최근 7일만 유지 (주말마다 `archive/dailywork/`로 이동)
