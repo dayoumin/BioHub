@@ -146,7 +146,8 @@
       "Bash(bash:*)",
       "Bash(npm ls:*)",
       "Bash(git rev-parse:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(git -C statistical-platform show HEAD:public/workers/python/worker1-descriptive.py)"
     ],
     "deny": [],
     "ask": []

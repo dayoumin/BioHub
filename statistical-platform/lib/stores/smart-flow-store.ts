@@ -9,6 +9,14 @@ import {
 } from '@/types/smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
+import {
+  saveHistory,
+  getAllHistory,
+  getHistory,
+  deleteHistory,
+  clearAllHistory,
+  type HistoryRecord
+} from '@/lib/utils/indexeddb'
 
 /**
  * 스토어(Store)란?
@@ -16,26 +24,24 @@ import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
  * - 목적: 단계(currentStep), 업로드 데이터(uploadedData), 검증 결과(validationResults), 선택한 방법(selectedMethod) 등
  *   여러 컴포넌트가 함께 쓰는 값을 "단일 출처(Single Source of Truth)"로 유지하여 일관성 있게 흐름을 제어합니다.
  * - 장점: 어떤 컴포넌트에서 값을 바꿔도 다른 컴포넌트가 즉시 반영하고, 다음 단계 활성화 같은 조건도 한 곳(canProceedToNext)에서 관리할 수 있습니다.
- * - 지속성: sessionStorage에 일부 상태를 저장하여 새로고침 후에도 분석 진행 맥락을 복원합니다(파일 객체는 제외).
+ * - 지속성: IndexedDB에 분석 결과를 영구 저장합니다 (원본 데이터는 제외).
  */
 
-// 분석 히스토리 타입
+// 분석 히스토리 타입 (UI용 - IndexedDB와 호환)
 export interface AnalysisHistory {
   id: string
   timestamp: Date
   name: string
   purpose: string
-  method: StatisticalMethod | null
+  method: {
+    id: string
+    name: string
+    category: string
+    description?: string
+  } | null
   dataFileName: string
   dataRowCount: number
-  results: AnalysisResult | null
-  stepData: {
-    uploadedData: DataRow[] | null
-    validationResults: ValidationResults | null
-    analysisPurpose: string
-    selectedMethod: StatisticalMethod | null
-    results: AnalysisResult | null
-  }
+  results: Record<string, unknown> | null
 }
 
 interface SmartFlowState {
@@ -89,11 +95,12 @@ interface SmartFlowState {
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   
-  // 히스토리 액션
-  saveToHistory: (name?: string) => void
-  loadFromHistory: (historyId: string) => void
-  deleteFromHistory: (historyId: string) => void
-  clearHistory: () => void
+  // 히스토리 액션 (비동기)
+  saveToHistory: (name?: string) => Promise<void>
+  loadFromHistory: (historyId: string) => Promise<void>
+  deleteFromHistory: (historyId: string) => Promise<void>
+  clearHistory: () => Promise<void>
+  loadHistoryFromDB: () => Promise<void>
   
   // 네비게이션
   canNavigateToStep: (step: number) => boolean
@@ -151,67 +158,95 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error: error }),
       
-      // 히스토리 관리
-      saveToHistory: (name) => {
+      // 히스토리 관리 (IndexedDB)
+      saveToHistory: async (name) => {
         const state = get()
         if (!state.results) return
-        
-        const historyEntry: AnalysisHistory = {
+
+        const record: HistoryRecord = {
           id: `analysis-${Date.now()}`,
-          timestamp: new Date(),
+          timestamp: Date.now(),
           name: name || `분석 ${new Date().toLocaleString('ko-KR')}`,
           purpose: state.analysisPurpose,
-          method: state.selectedMethod,
+          method: state.selectedMethod ? {
+            id: state.selectedMethod.id,
+            name: state.selectedMethod.name,
+            category: state.selectedMethod.category,
+            description: state.selectedMethod.description
+          } : null,
           dataFileName: state.uploadedFile?.name || 'unknown',
           dataRowCount: state.uploadedData?.length || 0,
-          results: state.results,
-          stepData: {
-            uploadedData: state.uploadedData,
-            validationResults: state.validationResults,
-            analysisPurpose: state.analysisPurpose,
-            selectedMethod: state.selectedMethod,
-            results: state.results,
-          }
+          results: state.results as unknown as Record<string, unknown> | null
         }
-        
-        set((state) => ({
-          analysisHistory: [historyEntry, ...state.analysisHistory].slice(0, 20), // 최대 20개 저장
-          currentHistoryId: historyEntry.id
-        }))
-      },
-      
-      loadFromHistory: (historyId) => {
-        const state = get()
-        const history = state.analysisHistory.find(h => h.id === historyId)
 
-        if (history) {
+        // IndexedDB에 저장 (원본 데이터 제외)
+        await saveHistory(record)
+
+        // UI 상태 갱신
+        const allHistory = await getAllHistory()
+        set({
+          analysisHistory: allHistory.map(h => ({
+            ...h,
+            timestamp: new Date(h.timestamp)
+          })),
+          currentHistoryId: record.id
+        })
+      },
+
+      loadFromHistory: async (historyId) => {
+        const record = await getHistory(historyId)
+
+        if (record) {
+          // 결과만 복원 (원본 데이터는 없음)
           set({
-            uploadedData: history.stepData.uploadedData,
-            validationResults: history.stepData.validationResults,
-            analysisPurpose: history.stepData.analysisPurpose,
-            selectedMethod: history.stepData.selectedMethod,
-            results: history.stepData.results,
+            analysisPurpose: record.purpose,
+            selectedMethod: record.method as StatisticalMethod | null,
+            results: record.results as AnalysisResult | null,
+            uploadedFileName: record.dataFileName,
             currentHistoryId: historyId,
             currentStep: 6, // 결과 단계로 이동
-            completedSteps: [1, 2, 3, 4, 5, 6]
+            completedSteps: [1, 2, 3, 4, 5, 6],
+            // ⚠️ 원본 데이터는 복원 안 됨 (재분석 불가)
+            uploadedData: null,
+            validationResults: null,
+            uploadedFile: null
           })
         }
       },
-      
-      deleteFromHistory: (historyId) => {
+
+      deleteFromHistory: async (historyId) => {
+        await deleteHistory(historyId)
+
+        // UI 상태 갱신
+        const allHistory = await getAllHistory()
         set((state) => ({
-          analysisHistory: state.analysisHistory.filter(h => h.id !== historyId),
+          analysisHistory: allHistory.map(h => ({
+            ...h,
+            timestamp: new Date(h.timestamp)
+          })),
           currentHistoryId: state.currentHistoryId === historyId ? null : state.currentHistoryId
         }))
       },
-      
-      clearHistory: () => {
+
+      clearHistory: async () => {
+        await clearAllHistory()
         set({
           analysisHistory: [],
           currentHistoryId: null
         })
       },
-      
+
+      // IndexedDB에서 히스토리 불러오기 (초기화 시)
+      loadHistoryFromDB: async () => {
+        const allHistory = await getAllHistory()
+        set({
+          analysisHistory: allHistory.map(h => ({
+            ...h,
+            timestamp: new Date(h.timestamp)
+          }))
+        })
+      },
+
       // 네비게이션 with 데이터 저장
       canNavigateToStep: (step) => {
         const state = get()
@@ -279,16 +314,16 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         currentStep: state.currentStep,
         completedSteps: state.completedSteps,
         analysisPurpose: state.analysisPurpose,
-        analysisHistory: state.analysisHistory,
         currentHistoryId: state.currentHistoryId,
-        // 현재 분석 데이터도 저장 (페이지 새로고침 시 복원)
+        // 현재 분석 데이터만 저장 (페이지 새로고침 시 복원)
         uploadedData: state.uploadedData,
         validationResults: state.validationResults,
         selectedMethod: state.selectedMethod,
         variableMapping: state.variableMapping,
         results: state.results,
         uploadedFileName: state.uploadedFileName,
-        // File 객체는 직렬화할 수 없으므로 제외
+        // ❌ analysisHistory 제외 (IndexedDB에서 관리)
+        // ❌ File 객체는 직렬화 불가
       }),
     }
   )

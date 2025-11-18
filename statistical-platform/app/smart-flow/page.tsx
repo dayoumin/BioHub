@@ -53,7 +53,7 @@ export default function SmartFlowPage() {
     }
   }, [])
 
-  // Zustand store 사용 (세션 스토리지 자동 저장/복원)
+  // Zustand store 사용 (IndexedDB 히스토리 + sessionStorage 현재 상태)
   const {
     currentStep,
     completedSteps,
@@ -76,8 +76,14 @@ export default function SmartFlowPage() {
     goToPreviousStep,
     reset,
     navigateToStep,
-    canNavigateToStep
+    canNavigateToStep,
+    loadHistoryFromDB
   } = useSmartFlowStore()
+
+  // IndexedDB에서 히스토리 불러오기 (초기화)
+  useEffect(() => {
+    loadHistoryFromDB().catch(console.error)
+  }, [])
 
   const handleStepClick = useCallback((stepId: number) => {
     if (canNavigateToStep(stepId)) {
@@ -119,12 +125,6 @@ export default function SmartFlowPage() {
   // 데이터 검증 수행 (상세 검증 포함)
   const performDataValidation = (data: DataRow[]): ValidationResults => {
     return DataValidationService.performDetailedValidation(data)
-  }
-
-  // 데이터 정보 추출 (PurposeInputStep에 전달용)
-  const _getDataInfo = () => {
-    if (!uploadedData) return null
-    return DataValidationService.getDataInfo(uploadedData)
   }
 
   return (
@@ -228,7 +228,7 @@ export default function SmartFlowPage() {
 
         {/* 분석 히스토리 패널 */}
         {showHistory && (
-          <Card>
+          <Card id="history-panel">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">📊 분석 히스토리</CardTitle>

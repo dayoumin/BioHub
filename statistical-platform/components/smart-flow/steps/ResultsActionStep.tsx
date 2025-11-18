@@ -30,7 +30,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }, [])
 
-  const handleSaveToHistory = () => {
+  const handleSaveToHistory = async () => {
     const defaultName = `분석 ${new Date().toLocaleString('ko-KR')}`
     const name = prompt('분석 이름을 입력하세요:', defaultName)
 
@@ -39,9 +39,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       const sanitizedName = name.trim().slice(0, 100) // 최대 100자 제한
 
       try {
-        saveToHistory(sanitizedName)
+        await saveToHistory(sanitizedName)
         setIsSaved(true)
-        toast.success('히스토리에 저장되었습니다', {
+        toast.success('히스토리에 저장되었습니다 (IndexedDB)', {
           description: sanitizedName
         })
 
@@ -233,7 +233,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         <ResultsVisualization results={results} />
       </div>
       
-      <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-6">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">📊 분석 결과</h3>
         
         <div className="space-y-4">
@@ -250,7 +250,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             <div>
               <p className="text-sm text-muted-foreground">p-value</p>
               <p className={`text-lg ${
-                results.pValue < 0.05 ? 'text-green-600' : 'text-gray-600'
+                results.pValue < 0.05 ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600'
               }`}>
                 {results.pValue.toFixed(3)}
               </p>

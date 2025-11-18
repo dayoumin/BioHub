@@ -69,19 +69,21 @@ export function AnalysisHistoryPanel() {
     new Set(analysisHistory.map(h => h.method?.id).filter(Boolean))
   )
 
-  const handleLoad = (historyId: string) => {
-    loadFromHistory(historyId)
+  const handleLoad = async (historyId: string) => {
+    await loadFromHistory(historyId)
+    // 안내 메시지 (선택)
+    // alert('✅ 결과를 불러왔습니다.\n⚠️ 원본 데이터는 없어 재분석할 수 없습니다.')
   }
 
-  const handleDelete = (historyId: string) => {
-    deleteFromHistory(historyId)
+  const handleDelete = async (historyId: string) => {
+    await deleteFromHistory(historyId)
     setDeleteConfirmId(null)
   }
 
-  const handleSaveCurrent = () => {
+  const handleSaveCurrent = async () => {
     const name = prompt('분석 이름을 입력하세요:')
     if (name) {
-      saveToHistory(name)
+      await saveToHistory(name)
     }
   }
 
@@ -202,16 +204,16 @@ export function AnalysisHistoryPanel() {
                 </p>
                 
                 {/* 주요 결과 표시 */}
-                {item.results && (
+                {item.results && typeof item.results === 'object' && 'pValue' in item.results && (
                   <div className="flex items-center gap-3 text-xs">
                     <span>
                       p-value: <strong className={
-                        item.results.pValue < 0.05 ? 'text-green-600' : 'text-gray-600'
+                        (typeof item.results.pValue === 'number' && item.results.pValue < 0.05) ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600'
                       }>
-                        {item.results.pValue.toFixed(4)}
+                        {typeof item.results.pValue === 'number' ? item.results.pValue.toFixed(4) : 'N/A'}
                       </strong>
                     </span>
-                    {item.results.effectSize && (
+                    {'effectSize' in item.results && typeof item.results.effectSize === 'number' && (
                       <span>
                         효과크기: <strong>{item.results.effectSize.toFixed(2)}</strong>
                       </span>
