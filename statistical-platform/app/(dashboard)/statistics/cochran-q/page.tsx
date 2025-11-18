@@ -70,38 +70,26 @@ export default function CochranQTestPage() {
   // 단계 정의 (useMemo)
   const STEPS: TwoPanelStep[] = useMemo(() => [
     {
-      id: 'intro',
-      number: 1,
-      title: 'Cochran Q 검정 소개',
-      description: '반복측정 이진 데이터 분석 개념',
-      status: currentStep === 0 ? 'current' : currentStep > 0 ? 'completed' : 'pending',
-      isDataStep: false
+      id: 0,
+      label: 'Cochran Q 검정 소개',
+      completed: currentStep > 0
     },
     {
-      id: 'upload',
-      number: 2,
-      title: '데이터 업로드',
-      description: '분석할 데이터 파일 업로드',
-      status: currentStep === 1 ? 'current' : currentStep > 1 ? 'completed' : 'pending',
-      isDataStep: true
+      id: 1,
+      label: '데이터 업로드',
+      completed: !!uploadedData
     },
     {
-      id: 'variables',
-      number: 3,
-      title: '변수 선택',
-      description: '피험자 및 조건 변수 선택 (3개 이상)',
-      status: currentStep === 2 ? 'current' : currentStep > 2 ? 'completed' : 'pending',
-      isDataStep: false
+      id: 2,
+      label: '변수 선택',
+      completed: !!selectedVariables?.independent && !!selectedVariables?.dependent && (selectedVariables?.dependent as string[])?.length >= 3
     },
     {
-      id: 'results',
-      number: 4,
-      title: '결과 해석',
-      description: 'Cochran Q 검정 결과 확인',
-      status: currentStep === 3 ? 'current' : 'pending',
-      isDataStep: false
+      id: 3,
+      label: '결과 해석',
+      completed: !!results
     }
-  ], [currentStep])
+  ], [currentStep, uploadedData, selectedVariables, results])
 
   const handleDataUpload = createDataUploadHandler(
     actions.setUploadedData,
@@ -240,7 +228,7 @@ export default function CochranQTestPage() {
         contingencyTable: dataMatrix
       }
 
-      actions.completeAnalysis?.(result, 2)
+      actions.completeAnalysis?.(result, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Cochran Q 검정 분석 중 오류가 발생했습니다.'
       actions.setError?.(errorMessage)
@@ -716,8 +704,8 @@ export default function CochranQTestPage() {
 
   return (
     <TwoPanelLayout
-      title="Cochran Q 검정"
-      subtitle="Cochran Q Test - 반복측정 이진 데이터 분석"
+      analysisTitle="Cochran Q 검정"
+      analysisSubtitle="Cochran Q Test - 반복측정 이진 데이터 분석"
       breadcrumbs={breadcrumbs}
       currentStep={currentStep}
       steps={STEPS}

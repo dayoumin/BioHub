@@ -159,7 +159,7 @@ export function toNonParametricVariables(vars: VariableAssignment): NonParametri
 
 export function toNormalityTestVariables(vars: VariableAssignment): NormalityTestVariables {
   return {
-    all: toStringArray(vars.all || vars.variables)
+    dependent: toSingleString(vars.dependent || vars.variable || (vars.all && vars.all[0]) || (vars.variables && vars.variables[0]))
   }
 }
 

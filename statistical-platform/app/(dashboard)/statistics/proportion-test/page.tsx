@@ -49,7 +49,6 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
-import { DataPreview } from '@/components/data-upload/DataPreview'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 // ============================================================================
@@ -243,34 +242,26 @@ export default function ProportionTestPage(): React.ReactElement {
 
   const STEPS: TwoPanelStep[] = useMemo(() => [
     {
-      id: 'intro',
+      id: 0,
       label: '검정 소개',
-      description: '일표본 비율 검정 개요',
-      icon: Info,
-      content: renderMethodIntroduction
+      completed: currentStep > 0
     },
     {
-      id: 'upload',
+      id: 1,
       label: '데이터 업로드',
-      description: 'CSV 파일 업로드',
-      icon: Upload,
-      content: renderDataUpload
+      completed: !!uploadedData
     },
     {
-      id: 'variables',
+      id: 2,
       label: '변수 및 옵션 설정',
-      description: '변수 선택 및 가설 설정',
-      icon: Settings,
-      content: renderVariableSelection
+      completed: !!selectedVariables?.dependent && analysisOptions.testProportion !== ''
     },
     {
-      id: 'results',
+      id: 3,
       label: '결과',
-      description: '검정 결과 확인',
-      icon: BarChart3,
-      content: renderResults
+      completed: !!results
     }
-  ], [])
+  ], [currentStep, uploadedData, selectedVariables, analysisOptions, results])
 
   // ============================================================================
   // Render 함수들
@@ -760,9 +751,16 @@ export default function ProportionTestPage(): React.ReactElement {
       currentStep={currentStep}
       steps={STEPS}
       onStepChange={(step: number) => { actions.setCurrentStep?.(step) }}
-      bottomPreview={uploadedData && currentStep >= 1 ? (
-        <DataPreview data={uploadedData} />
-      ) : null}
-    />
+      bottomPreview={uploadedData && currentStep >= 1 ? {
+        data: uploadedData.data,
+        fileName: uploadedData.fileName,
+        maxRows: 100
+      } : undefined}
+    >
+      {currentStep === 0 && renderMethodIntroduction()}
+      {currentStep === 1 && renderDataUpload()}
+      {currentStep === 2 && renderVariableSelection()}
+      {currentStep === 3 && renderResults()}
+    </TwoPanelLayout>
   )
 }

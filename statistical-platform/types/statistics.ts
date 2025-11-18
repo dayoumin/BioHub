@@ -224,7 +224,8 @@ export interface FriedmanVariables {
 }
 
 export interface SignTestVariables {
-  dependent: string // 1개
+  before: string // 전 변수 (variable-requirements.ts: role: 'dependent', label: '전 변수')
+  after: string // 후 변수 (variable-requirements.ts: role: 'dependent', label: '후 변수')
 }
 
 export interface RunsTestVariables {
@@ -247,7 +248,7 @@ export interface BinomialTestVariables {
 
 // 정규성 및 검정력
 export interface NormalityTestVariables {
-  all: string[] // 1개 이상
+  dependent: string // 1개 (variable-requirements.ts: role: 'dependent')
 }
 
 export interface KSTestVariables {
