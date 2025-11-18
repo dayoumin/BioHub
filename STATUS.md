@@ -90,7 +90,11 @@
 - **TypeScript 에러**: **0개** ✓
 - **코드 품질**: **4.5/5** ⭐⭐⭐⭐✩ (Batch 4)
 - **검증 완료**: 2025-11-18 (코드 전수 조사로 43/43 확인)
-- **개선 필요**: PyodideWorker enum 사용 (현재 2/43), explore-data 구버전 hook 제거
+- **개선 사항 (2025-11-18 완료)**:
+  - ✅ **PyodideWorker Enum 표준화**: 43/43 페이지 (100%) - Python 자동화 스크립트 사용
+  - ✅ **explore-data 레거시 Hook 제거**: usePyodideService 통계 페이지에서 완전 제거
+  - ✅ **5개 page.old.tsx 백업 파일 삭제**: -4,124줄
+  - ✅ **코드 일관성**: 모든 페이지 동일 패턴 사용 (PyodideCore + PyodideWorker Enum)
 
 **Phase 3: StatisticsTable 공통 컴포넌트 확대 적용** ✅ **95% 완료** (2025-11-11 ~ 2025-11-12)
 - **목표**: 개별 통계 페이지의 테이블 UI 일관성 향상 및 코드 중복 제거
