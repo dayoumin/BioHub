@@ -305,14 +305,17 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ## 📋 현재 작업 상태
 
-**최신 상태** (2025-11-16):
-- ✅ **Phase 10 완료**: 배포 준비 완료 (Web Worker 활성화 + 배포 가이드)
-  - ✅ **TwoPanelLayout 대규모 마이그레이션**: 23개 통계 페이지 완료
-  - ✅ **RAG Perplexity 스타일 UI**: 인라인 인용 + 스트리밍 + 타이핑 커서
-  - ✅ **Pyodide Web Worker 활성화**: UI 블로킹 방지 + 동시 실행
-  - ✅ **DEPLOYMENT_COMPANY_GUIDE.md**: 회사 배포 가이드 (345줄)
-  - ✅ **총 커밋**: 41개 (2025-11-16)
-- ✅ **Phase 9 완료 (100%)**: 계산 방법 표준화 + 데이터 도구 분리 + PyodideWorker Enum 표준화 + 레거시 코드 제거 (2025-11-18 완료)
+**최신 상태** (2025-11-18):
+- ✅ **Phase 8 완료 (100%)**: RAG 시스템 (Ollama + Vector DB) (2025-11-16 완료)
+  - ✅ **Vector DB**: ChromaDB + Ollama embeddings (mxbai-embed-large)
+  - ✅ **문서 수집**: SciPy, statsmodels, pingouin 등 통계 라이브러리
+  - ✅ **/chatbot 페이지**: Grok 스타일 전체 화면 채팅
+  - ✅ **FloatingChatbot**: 전역 플로팅 버튼 (Intercom 스타일)
+  - ✅ **ChatPanel (우측 패널)**: Layout 레벨 전역 구현
+    - Header MessageCircle (💬) 버튼으로 열기
+    - 320px~800px 리사이징, 접기/펼치기
+    - RAGAssistantCompact 포함
+- ✅ **Phase 9 완료 (100%)**: 계산 방법 표준화 + 데이터 도구 분리 (2025-11-18 완료)
   - ✅ **전체 프로젝트**: 45개 (통계 43개 + 데이터 도구 2개)
   - ✅ **PyodideCore**: 43/43 통계 페이지 (100%) 목표 달성! 🎉
   - ✅ **Batch 1-4**: 23개 페이지 변환 완료 (pyodideStats, Legacy, JavaScript, None)
@@ -321,6 +324,11 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ **통계 신뢰성**: statsmodels, SciPy, sklearn 100% 사용
   - ✅ **PyodideWorker Enum 표준화**: 43/43 페이지 (100%) - 타입 안전성 강화 완료
   - ✅ **레거시 코드 제거**: usePyodideService 통계 페이지에서 완전 제거
+- ✅ **Phase 10 완료**: 배포 준비 완료 (Web Worker 활성화 + 배포 가이드) (2025-11-16)
+  - ✅ **TwoPanelLayout 대규모 마이그레이션**: 23개 통계 페이지 완료
+  - ✅ **RAG Perplexity 스타일 UI**: 인라인 인용 + 스트리밍 + 타이핑 커서
+  - ✅ **Pyodide Web Worker 활성화**: UI 블로킹 방지 + 동시 실행
+  - ✅ **DEPLOYMENT_COMPANY_GUIDE.md**: 회사 배포 가이드 (345줄)
 - ✅ Phase 6 완료: PyodideCore 직접 연결
   - ✅ 10개 handler 완전 변환 (39개 메서드, 100%)
   - ✅ TypeScript 컴파일 에러: **0개** (core groups/handlers)
@@ -337,8 +345,8 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ 내보내기 버튼 비활성화: 22개 페이지
 
 **다음 작업**:
-- 🔜 Phase 8: RAG 시스템 고도화 (Ollama + Vector DB)
 - 🔜 Phase 11: Tauri 데스크탑 앱 (향후 검토)
+- 🔜 추가 개선 사항 (성능 최적화, 시각화 고도화 등)
 
 **📝 상세 작업 기록**: [dailywork.md](dailywork.md) | [STATUS.md](STATUS.md)
 
