@@ -67,38 +67,43 @@ await pyodideCore.callWorkerMethod<T>(
 
 ---
 
-## ⚠️ 남은 개선 필요 사항
-
 ---
 
-### 2. explore-data 구버전 Hook 사용 (우선순위: 중)
+### 2. explore-data 레거시 Hook 제거 ✅ (완료)
 
-**현황**:
-- ❌ `explore-data`: `usePyodideService` 사용 (구버전)
-- ✅ 나머지 42개: `PyodideCoreService` 직접 사용 (신버전)
+**이전 현황**:
+- ❌ `explore-data`: `usePyodideService` import 남아있음 (사용 안 함)
+- ✅ 실제로는 이미 `PyodideCoreService` 직접 사용 중
 
-**문제점**:
+**문제점 (해결됨)**:
 ```typescript
-// ❌ explore-data/page.tsx (구버전)
+// ❌ 이전 (불필요한 import + hook 호출)
 import { usePyodideService } from '@/hooks/use-pyodide-service'
+const { pyodideService: _pyodideService } = usePyodideService()  // 사용 안 함
 
-const { pyodideService } = usePyodideService()
+// 실제로는 이미 PyodideCore 사용 중
+const { PyodideCoreService } = await import('...')
+const pyodideCore = PyodideCoreService.getInstance()
 ```
 
-**권장 방식**:
+**현재 (정리 완료)**:
 ```typescript
-// ✅ 나머지 42개 페이지 (신버전)
-import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+// ✅ 불필요한 import와 hook 호출 제거
+// PyodideCoreService만 사용 (43개 페이지와 동일 패턴)
 
-const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
+const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
+const pyodideCore = PyodideCoreService.getInstance()
 ```
 
-**수정 방법**:
-1. `explore-data/page.tsx` 리팩토링
-2. `usePyodideService` → `PyodideCoreService` 전환
-3. 42개 페이지와 동일한 패턴 적용
+**작업 내역**:
+- 제거한 코드: 2줄 (import + hook 호출)
+- 변경된 파일: 1개 (explore-data/page.tsx)
 
-**예상 효과**:
+**검증 결과**:
+- ✅ TypeScript 컴파일: 0 errors
+- ✅ 43/43 통계 페이지 모두 PyodideCoreService 사용
+
+**달성 효과**:
 - ✅ 일관성 향상 (43/43 동일 패턴)
 - ✅ 레거시 코드 제거
 - ✅ 유지보수성 향상
@@ -114,19 +119,17 @@ const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 - ✅ STATUS.md: Phase 9 완료 (100%)
 - ✅ PHASE9_IMPROVEMENTS.md 작성 (이 파일)
 
-#### 2. PyodideWorker Enum 표준화 (2025-11-18 완료)
+#### 2. PyodideWorker Enum 표준화 (2025-11-18 오전 완료)
 - ✅ 대상: 43개 페이지 (100%)
 - ✅ 실제 소요 시간: ~1시간 (수동 2개 + 자동 스크립트 19개 + 이전 22개)
 - ✅ 방법: Python 자동화 스크립트 (scripts/update_worker_enum.py)
 - ✅ 검증: TypeScript 컴파일 0 errors
 
-### 🟡 남은 작업 (선택)
-
-#### 3. explore-data 리팩토링
-- 대상: 1개 페이지
-- 예상 시간: ~30분
-- 장점: 일관성 향상
-- 우선순위: 낮음 (향후 Phase 11 전 처리 권장)
+#### 3. explore-data 레거시 Hook 제거 (2025-11-18 오후 완료)
+- ✅ 대상: 1개 페이지
+- ✅ 실제 소요 시간: ~5분
+- ✅ 제거 내용: usePyodideService import + hook 호출 (2줄)
+- ✅ 검증: TypeScript 컴파일 0 errors
 
 ---
 
@@ -135,11 +138,12 @@ const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 ### ✅ 완료 (2025-11-18)
 - ✅ 문서 업데이트 (초기 작성)
 - ✅ **PyodideWorker Enum 표준화 (43/43 페이지)**
+- ✅ **explore-data 레거시 Hook 제거 (1개 페이지)**
 
-### 🟡 선택적 적용 (향후)
-- 🟡 explore-data 리팩토링 (1개 페이지)
-  - Phase 11 (Tauri 앱) 전에 적용 권장
-  - 우선순위 낮음
+### 🎉 Phase 9 개선 사항 100% 완료!
+- **43/43 통계 페이지**: 모두 PyodideCore + PyodideWorker Enum 사용
+- **일관성**: 모든 페이지 동일한 패턴 사용
+- **레거시 코드**: 완전 제거 (usePyodideService 통계 페이지에서 제거)
 
 ---
 
@@ -157,5 +161,7 @@ const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 
 | 날짜 | 변경 내용 | 작성자 |
 |------|----------|--------|
-| 2025-11-18 | 초기 작성 (43개 페이지 검증 결과 기록) | Claude Code |
-| 2025-11-18 | PyodideWorker Enum 표준화 완료 (43/43 페이지) | Claude Code |
+| 2025-11-18 오전 | 초기 작성 (43개 페이지 검증 결과 기록) | Claude Code |
+| 2025-11-18 오전 | PyodideWorker Enum 표준화 완료 (43/43 페이지) | Claude Code |
+| 2025-11-18 오후 | explore-data 레거시 Hook 제거 완료 | Claude Code |
+| 2025-11-18 오후 | **Phase 9 개선 사항 100% 완료** 🎉 | Claude Code |

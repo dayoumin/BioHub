@@ -35,7 +35,6 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 // Services & Hooks
 import { VariableMapping } from '@/components/variable-selection/types'
-import { usePyodideService } from '@/hooks/use-pyodide-service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -122,7 +121,6 @@ export default function ExploreDataPage() {
   const [selectedVariable, setSelectedVariable] = useState<string>('')
   const [showOutliers, setShowOutliers] = useState(true)
   const [includeNormality, setIncludeNormality] = useState(true)
-  const { pyodideService: _pyodideService } = usePyodideService()
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
