@@ -75,7 +75,71 @@ const PYODIDE_CDN = 'https://cdn.jsdelivr.net/pyodide/v0.28.3/full/pyodide.js'
 ### 단점
 - ❌ 첫 방문 시 Pyodide 로딩 시간 필요 (~200MB)
 - ❌ 인터넷 필요
-- ❌ RAG 기능 사용 시 별도 Ollama 서버 필요
+- ❌ RAG 기능 사용 시 로컬 Ollama 서버 + CORS 설정 필요
+
+### RAG 기능 사용 시 (로컬 Ollama 연결)
+
+**⚠️ 중요**: Vercel 배포 환경에서 RAG를 사용하려면 **사용자 PC에서 Ollama를 CORS 허용 모드로 실행**해야 합니다.
+
+#### Windows 사용자
+
+**PowerShell (관리자 권한)**:
+```powershell
+# 환경변수 설정 (세션 유지)
+$env:OLLAMA_ORIGINS="https://stats-nifs.vercel.app,https://*.vercel.app"
+ollama serve
+```
+
+**또는 시스템 환경변수 등록 (영구 설정)**:
+1. `Win + X` → 시스템 → 고급 시스템 설정 → 환경 변수
+2. 시스템 변수에서 `새로 만들기`:
+   - 변수 이름: `OLLAMA_ORIGINS`
+   - 변수 값: `https://stats-nifs.vercel.app,https://*.vercel.app`
+3. Ollama 재시작
+
+#### macOS/Linux 사용자
+
+**터미널**:
+```bash
+# 환경변수 설정 후 Ollama 시작
+OLLAMA_ORIGINS="https://stats-nifs.vercel.app,https://*.vercel.app" ollama serve
+```
+
+**또는 영구 설정 (~/.bashrc 또는 ~/.zshrc)**:
+```bash
+export OLLAMA_ORIGINS="https://stats-nifs.vercel.app,https://*.vercel.app"
+```
+
+#### CORS 설정 확인
+
+```bash
+# Ollama가 CORS를 허용하는지 테스트
+curl -H "Origin: https://stats-nifs.vercel.app" \
+     -H "Access-Control-Request-Method: GET" \
+     -H "Access-Control-Request-Headers: Content-Type" \
+     -X OPTIONS http://localhost:11434/api/tags
+```
+
+**정상 응답 예시**:
+```
+HTTP/1.1 204 No Content
+Access-Control-Allow-Origin: https://stats-nifs.vercel.app
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+```
+
+#### 사용자 가이드 메시지
+
+앱 접속 시 Ollama가 감지되지 않으면 자동으로 표시되는 안내:
+
+```
+🔍 RAG 기능을 사용하려면 로컬 Ollama가 필요합니다
+
+1. Ollama 설치: https://ollama.com
+2. 환경변수 설정:
+   Windows: $env:OLLAMA_ORIGINS="https://stats-nifs.vercel.app"
+   macOS/Linux: OLLAMA_ORIGINS="https://stats-nifs.vercel.app" ollama serve
+3. 필수 모델 다운로드: ollama pull mxbai-embed-large
+```
 
 ---
 
