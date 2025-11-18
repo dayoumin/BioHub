@@ -63,23 +63,24 @@ describe('OllamaSetupDialog - 새로운 4단계 설치 안내', () => {
     })
 
     it('fetch 타임아웃 시 Ollama 미설치로 처리', async () => {
-      // 타임아웃 (2초 초과)
-      ;(global.fetch as jest.Mock).mockImplementation(
-        () =>
-          new Promise((resolve) => {
-            setTimeout(() => resolve({ ok: false }), 3000)
-          }),
+      // AbortSignal 타임아웃 시뮬레이션 (DOMException: TimeoutError)
+      ;(global.fetch as jest.Mock).mockRejectedValueOnce(
+        Object.assign(new Error('The operation was aborted due to timeout'), {
+          name: 'AbortError',
+        }),
       )
 
       render(<OllamaSetupDialog open={true} onOpenChange={mockOnOpenChange} />)
 
-      // 2초 타임아웃 후 다운로드 버튼 표시
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Ollama 다운로드 \(Windows\)/)).toBeInTheDocument()
-        },
-        { timeout: 3000 },
-      )
+      // 타임아웃 후 다운로드 버튼 표시 확인
+      await waitFor(() => {
+        expect(screen.getByText(/Ollama 다운로드 \(Windows\)/)).toBeInTheDocument()
+      })
+
+      // Step 1에 머물러 있는지 확인
+      await waitFor(() => {
+        expect(screen.getByText('1/4')).toBeInTheDocument()
+      })
     })
   })
 

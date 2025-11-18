@@ -88,7 +88,10 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
 
   useEffect(() => {
     if (open) {
+      // Dialog 열 때마다 상태 초기화 (이전 상태 제거)
       setOs(detectOS())
+      setOllamaInstalled(false)
+      setCurrentStep(1)
       checkOllamaInstalled()
     }
   }, [open, checkOllamaInstalled])
@@ -247,7 +250,13 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
                 <div className="flex items-center gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        aria-label="다른 모델 안내"
+                      >
+                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </button>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
                       <p className="text-xs">
