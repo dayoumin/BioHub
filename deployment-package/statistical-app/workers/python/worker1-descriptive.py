@@ -11,6 +11,16 @@ from scipy.stats import binomtest
 from helpers import clean_array
 
 
+def _safe_bool(value: Union[bool, np.bool_]) -> bool:
+    """
+    Ensure NumPy boolean types are converted to native bool for JSON serialization.
+    """
+    try:
+        return bool(value.item())  # type: ignore[attr-defined]
+    except AttributeError:
+        return bool(value)
+
+
 def descriptive_stats(data: List[Union[float, int, None]]) -> Dict[str, Union[float, int]]:
     clean_data = clean_array(data)
 
@@ -51,7 +61,7 @@ def normality_test(data: List[Union[float, int, None]], alpha: float = 0.05) -> 
     return {
         'statistic': float(statistic),
         'pValue': float(p_value),
-        'isNormal': bool(p_value > alpha),
+        'isNormal': _safe_bool(p_value > alpha),
         'alpha': float(alpha)
     }
 
@@ -177,7 +187,7 @@ def one_sample_proportion_test(
         'zStatistic': float(z_statistic),
         'pValueExact': float(p_value_exact),
         'pValueApprox': float(p_value_approx),
-        'significant': bool(p_value_exact < alpha),
+        'significant': _safe_bool(p_value_exact < alpha),
         'alpha': float(alpha)
     }
 
@@ -229,6 +239,227 @@ def kolmogorov_smirnov_test(data: List[Union[float, int, None]]) -> Dict[str, Un
     return {
         'statistic': float(statistic),
         'pValue': float(p_value),
-        'isNormal': bool(p_value > 0.05)
+        'isNormal': _safe_bool(p_value > 0.05)
+    }
+
+
+def ks_test_one_sample(values: List[Union[float, int]]) -> Dict[str, Union[float, int, bool, str, Dict]]:
+    """
+    Kolmogorov-Smirnov one-sample test (normality test)
+    """
+    clean_values = clean_array(values)
+    n = len(clean_values)
+
+    if n < 3:
+        raise ValueError("K-S test requires at least 3 observations")
+
+    mean = float(np.mean(clean_values))
+    std = float(np.std(clean_values, ddof=1))
+
+    # K-S test against normal distribution
+    statistic, pvalue = stats.kstest(clean_values, 'norm', args=(mean, std))
+
+    # Critical value at α = 0.05
+    critical_value = 1.36 / np.sqrt(n)
+
+    return {
+        'testType': 'one-sample',
+        'statisticKS': float(statistic),
+        'pValue': float(pvalue),
+        'criticalValue': float(critical_value),
+        'significant': _safe_bool(statistic > critical_value),
+        'sampleSizes': {
+            'n1': int(n)
+        },
+        'distributionInfo': {
+            'expectedDistribution': 'normal',
+            'observedMean': float(mean),
+            'observedStd': float(std),
+            'expectedMean': float(mean),
+            'expectedStd': float(std)
+        }
+    }
+
+
+def ks_test_two_sample(values1: List[Union[float, int]], values2: List[Union[float, int]]) -> Dict[str, Union[float, int, bool, Dict]]:
+    """
+    Kolmogorov-Smirnov two-sample test
+    """
+    clean_values1 = clean_array(values1)
+    clean_values2 = clean_array(values2)
+    n1 = len(clean_values1)
+    n2 = len(clean_values2)
+
+    if n1 < 3 or n2 < 3:
+        raise ValueError("K-S test requires at least 3 observations in each sample")
+
+    # Two-sample K-S test
+    statistic, pvalue = stats.ks_2samp(clean_values1, clean_values2)
+
+    # Critical value at α = 0.05
+    critical_value = 1.36 * np.sqrt((n1 + n2) / (n1 * n2))
+
+    # Effect size (Cohen's d)
+    mean1 = float(np.mean(clean_values1))
+    mean2 = float(np.mean(clean_values2))
+    pooled_std = float(np.sqrt(((n1 - 1) * np.var(clean_values1, ddof=1) + (n2 - 1) * np.var(clean_values2, ddof=1)) / (n1 + n2 - 2)))
+    effect_size = abs(mean1 - mean2) / pooled_std if pooled_std > 0 else 0.0
+
+    return {
+        'testType': 'two-sample',
+        'statisticKS': float(statistic),
+        'pValue': float(pvalue),
+        'criticalValue': float(critical_value),
+        'significant': _safe_bool(statistic > critical_value),
+        'effectSize': float(effect_size),
+        'sampleSizes': {
+            'n1': int(n1),
+            'n2': int(n2)
+        }
+    }
+
+
+def mann_kendall_test(data: List[Union[float, int]]) -> Dict[str, Union[str, float, int]]:
+    """
+    Mann-Kendall trend test for time series data
+    """
+    clean_data = clean_array(data)
+    n = len(clean_data)
+
+    if n < 3:
+        raise ValueError("Mann-Kendall test requires at least 3 observations")
+
+    # Calculate S statistic
+    s = 0
+    for i in range(n-1):
+        for j in range(i+1, n):
+            s += np.sign(clean_data[j] - clean_data[i])
+
+    # Calculate variance of S
+    var_s = n * (n - 1) * (2 * n + 5) / 18
+
+    # Calculate standardized test statistic Z
+    if s > 0:
+        z = (s - 1) / np.sqrt(var_s)
+    elif s < 0:
+        z = (s + 1) / np.sqrt(var_s)
+    else:
+        z = 0
+
+    # Calculate p-value (two-tailed test)
+    p = 2 * (1 - stats.norm.cdf(abs(z)))
+
+    # Calculate Kendall's tau
+    tau, _ = stats.kendalltau(range(n), clean_data)
+
+    # Calculate slope (Sen's slope estimator)
+    slopes = []
+    for i in range(n-1):
+        for j in range(i+1, n):
+            if j != i:
+                slope = (clean_data[j] - clean_data[i]) / (j - i)
+                slopes.append(slope)
+    sen_slope = np.median(slopes) if slopes else 0
+
+    # Calculate intercept
+    intercept = np.median(clean_data) - sen_slope * np.median(range(n))
+
+    # Determine trend
+    alpha = 0.05
+    if p < alpha:
+        if z > 0:
+            trend = 'increasing'
+        else:
+            trend = 'decreasing'
+    else:
+        trend = 'no trend'
+
+    return {
+        'trend': trend,
+        'tau': float(tau),
+        'zScore': float(z),
+        'pValue': float(p),
+        'senSlope': float(sen_slope),
+        'intercept': float(intercept),
+        'n': int(n)
+    }
+
+def means_plot_data(data, dependent_var, factor_var):
+    """
+    집단별 평균 플롯 데이터 생성
+
+    Parameters:
+    - data: List[Dict] - 전체 데이터
+    - dependent_var: str - 종속변수 이름
+    - factor_var: str - 요인변수 이름
+
+    Returns:
+    - Dict with descriptives, plotData, and interpretation
+    """
+    import pandas as pd
+    import numpy as np
+    from scipy import stats
+
+    df = pd.DataFrame(data)
+
+    # 결측값 제거
+    df_clean = df[[dependent_var, factor_var]].dropna()
+
+    # 집단별 기술통계량 계산
+    groups = df_clean.groupby(factor_var)[dependent_var]
+
+    descriptives = {}
+    plot_data = []
+
+    for name, group in groups:
+        mean_val = group.mean()
+        std_val = group.std()
+        count_val = len(group)
+        sem_val = std_val / np.sqrt(count_val)
+
+        # 95% 신뢰구간 계산
+        t_critical = stats.t.ppf(0.975, count_val - 1)
+        margin_error = t_critical * sem_val
+        ci_lower = mean_val - margin_error
+        ci_upper = mean_val + margin_error
+
+        descriptives[str(name)] = {
+            'group': str(name),
+            'mean': float(mean_val),
+            'std': float(std_val),
+            'sem': float(sem_val),
+            'count': int(count_val),
+            'ciLower': float(ci_lower),
+            'ciUpper': float(ci_upper)
+        }
+
+        plot_data.append({
+            'group': str(name),
+            'mean': float(mean_val),
+            'error': float(sem_val),
+            'count': int(count_val)
+        })
+
+    # 해석 생성
+    total_groups = len(descriptives)
+    means = [desc['mean'] for desc in descriptives.values()]
+    max_mean = max(means)
+    min_mean = min(means)
+    mean_diff = max_mean - min_mean
+
+    interpretation = {
+        'summary': f'{total_groups}개 집단의 평균값을 비교했습니다. 가장 높은 평균은 {max_mean:.3f}, 가장 낮은 평균은 {min_mean:.3f}로 차이는 {mean_diff:.3f}입니다.',
+        'recommendations': [
+            '오차막대는 표준오차(SEM)를 나타냅니다.',
+            '집단 간 평균 차이가 통계적으로 유의한지 확인하려면 ANOVA를 실시하세요.',
+            '95% 신뢰구간이 겹치지 않으면 집단 간 차이가 있을 가능성이 높습니다.',
+            '표본 크기가 작은 집단은 해석 시 주의가 필요합니다.'
+        ]
+    }
+
+    return {
+        'descriptives': descriptives,
+        'plotData': plot_data,
+        'interpretation': interpretation
     }
 

@@ -1,14 +1,31 @@
-# Worker 3: Nonparametric ANOVA Python Module
+# Worker 3: Nonparametric ANOVA + Machine Learning Python Module
 # Notes:
-# - Dependencies: NumPy, SciPy, statsmodels, pandas
-# - Estimated memory: ~140MB
-# - Cold start time: ~2.3s
+# - Dependencies: NumPy, SciPy, statsmodels, pandas, scikit-learn
+# - Estimated memory: ~180MB
+# - Cold start time: ~2.8s
 
+import sys
 from typing import List, Dict, Union, Literal, Optional, Any
 import numpy as np
 from scipy import stats
 from itertools import combinations
 from helpers import clean_array, clean_paired_arrays, clean_groups as clean_groups_helper
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.decomposition import PCA, FactorAnalysis
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+
+
+def _safe_bool(value: Union[bool, np.bool_]) -> bool:
+    """
+    Ensure NumPy boolean types are converted to native bool for JSON serialization.
+    """
+    try:
+        return bool(value.item())  # type: ignore[attr-defined]
+    except AttributeError:
+        return bool(value)
+
 
 def _to_float_list(data):
     if data is None:
@@ -152,6 +169,116 @@ def friedman_test(groups):
 
 
 
+def get_t_critical(df, alpha=0.05):
+    """
+    Calculate t-critical value for confidence intervals
+
+    Args:
+        df: degrees of freedom
+        alpha: significance level (default 0.05 for 95% CI)
+
+    Returns:
+        t-critical value (two-tailed)
+    """
+    from scipy.stats import t as t_dist
+
+    if df < 1:
+        raise ValueError(f"Degrees of freedom must be >= 1, got {df}")
+
+    # Two-tailed test
+    t_critical = t_dist.ppf(1 - alpha/2, df)
+
+    return float(t_critical)
+
+
+def calculate_statistical_power(f_statistic, df1, df2, alpha=0.05):
+    """
+    Calculate observed statistical power for ANOVA
+
+    Args:
+        f_statistic: F-statistic from ANOVA
+        df1: between-groups degrees of freedom
+        df2: within-groups degrees of freedom
+        alpha: significance level (default 0.05)
+
+    Returns:
+        observed power (0-1)
+    """
+    from scipy.stats import f as f_dist, ncf
+
+    if f_statistic < 0:
+        raise ValueError(f"F-statistic must be >= 0, got {f_statistic}")
+
+    # Critical F value
+    f_critical = f_dist.ppf(1 - alpha, df1, df2)
+
+    # Non-centrality parameter
+    ncp = f_statistic * df1
+
+    # Calculate power using non-central F distribution
+    power = 1 - ncf.cdf(f_critical, df1, df2, ncp)
+
+    return float(max(0.0, min(1.0, power)))  # Clamp to [0, 1]
+
+
+def test_assumptions(groups):
+    """
+    Test ANOVA assumptions: normality (Shapiro-Wilk) and homogeneity (Levene)
+
+    Args:
+        groups: list of arrays for each group
+
+    Returns:
+        dict with normality and homogeneity test results
+    """
+    clean_groups = clean_groups_helper(groups)
+
+    # Shapiro-Wilk test for normality (test each group)
+    normality_results = []
+    all_passed_normality = True
+
+    for i, group in enumerate(clean_groups):
+        if len(group) >= 3:  # Shapiro-Wilk requires at least 3 samples
+            stat, p = stats.shapiro(group)
+            passed = p > 0.05
+            normality_results.append({
+                'group': i,
+                'statistic': float(stat),
+                'pValue': float(p),
+                'passed': _safe_bool(passed)
+            })
+            if not passed:
+                all_passed_normality = False
+        else:
+            normality_results.append({
+                'group': i,
+                'statistic': None,
+                'pValue': None,
+                'passed': None,
+                'warning': f'Sample size too small ({len(group)})'
+            })
+
+    # Levene's test for homogeneity of variances
+    levene_stat, levene_p = stats.levene(*clean_groups, center='median')
+    levene_passed = levene_p > 0.05
+
+    return {
+        'normality': {
+            'shapiroWilk': normality_results,
+            'passed': _safe_bool(all_passed_normality),
+            'interpretation': '정규성 가정 만족' if all_passed_normality else '정규성 가정 위반 (비모수 검정 고려)'
+        },
+        'homogeneity': {
+            'levene': {
+                'statistic': float(levene_stat),
+                'pValue': float(levene_p)
+            },
+            'passed': _safe_bool(levene_passed),
+            'interpretation': '등분산성 가정 만족' if levene_passed else '등분산성 가정 위반 (Welch ANOVA 고려)'
+        }
+    }
+
+
 def one_way_anova(groups):
     clean_groups = clean_groups_helper(groups)
 
@@ -160,7 +287,7 @@ def one_way_anova(groups):
             raise ValueError(f"Group {i} must have at least 2 observations")
 
     f_statistic, p_value = stats.f_oneway(*clean_groups)
-    
+
     return {
         'fStatistic': float(f_statistic),
         'pValue': float(p_value),
@@ -411,7 +538,7 @@ def mcnemar_test(contingency_table):
     return {
         'statistic': float(result.statistic),
         'pValue': float(result.pvalue),
-        'continuityCorrection': bool(use_correction),
+        'continuityCorrection': _safe_bool(use_correction),
         'discordantPairs': {'b': int(b), 'c': int(c)}
     }
 
@@ -764,4 +891,97 @@ def games_howell_test(groups):
         'comparisons': comparisons,
         'nComparisons': len(comparisons)
     }
+
+
+def three_way_anova(data_values, factor1_values, factor2_values, factor3_values):
+    """
+    Three-Way ANOVA using statsmodels
+
+    Parameters:
+    - data_values: dependent variable values
+    - factor1_values: first factor levels
+    - factor2_values: second factor levels
+    - factor3_values: third factor levels
+
+    Returns:
+    - Dictionary with main effects and interaction effects
+    """
+    import statsmodels.api as sm
+    from statsmodels.formula.api import ols
+    import pandas as pd
+
+    # Input validation
+    if len(data_values) != len(factor1_values) or \
+       len(data_values) != len(factor2_values) or \
+       len(data_values) != len(factor3_values):
+        raise ValueError(
+            f"All inputs must have same length: data({len(data_values)}), "
+            f"factor1({len(factor1_values)}), factor2({len(factor2_values)}), "
+            f"factor3({len(factor3_values)})"
+        )
+
+    n_samples = len(data_values)
+    if n_samples < 8:
+        raise ValueError(f"Three-way ANOVA requires at least 8 observations, got {n_samples}")
+
+    # Create DataFrame
+    df = pd.DataFrame({
+        'value': data_values,
+        'factor1': factor1_values,
+        'factor2': factor2_values,
+        'factor3': factor3_values
+    })
+
+    # Build formula with all main effects and interactions
+    formula = 'value ~ C(factor1) + C(factor2) + C(factor3) + ' + \
+              'C(factor1):C(factor2) + C(factor1):C(factor3) + C(factor2):C(factor3) + ' + \
+              'C(factor1):C(factor2):C(factor3)'
+
+    model = ols(formula, data=df).fit()
+    anova_table = sm.stats.anova_lm(model, typ=2)
+
+    # Extract results
+    result = {
+        'factor1': {
+            'fStatistic': float(anova_table.loc['C(factor1)', 'F']),
+            'pValue': float(anova_table.loc['C(factor1)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor1)', 'df'])
+        },
+        'factor2': {
+            'fStatistic': float(anova_table.loc['C(factor2)', 'F']),
+            'pValue': float(anova_table.loc['C(factor2)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor2)', 'df'])
+        },
+        'factor3': {
+            'fStatistic': float(anova_table.loc['C(factor3)', 'F']),
+            'pValue': float(anova_table.loc['C(factor3)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor3)', 'df'])
+        },
+        'interaction12': {
+            'fStatistic': float(anova_table.loc['C(factor1):C(factor2)', 'F']),
+            'pValue': float(anova_table.loc['C(factor1):C(factor2)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor1):C(factor2)', 'df'])
+        },
+        'interaction13': {
+            'fStatistic': float(anova_table.loc['C(factor1):C(factor3)', 'F']),
+            'pValue': float(anova_table.loc['C(factor1):C(factor3)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor1):C(factor3)', 'df'])
+        },
+        'interaction23': {
+            'fStatistic': float(anova_table.loc['C(factor2):C(factor3)', 'F']),
+            'pValue': float(anova_table.loc['C(factor2):C(factor3)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor2):C(factor3)', 'df'])
+        },
+        'interaction123': {
+            'fStatistic': float(anova_table.loc['C(factor1):C(factor2):C(factor3)', 'F']),
+            'pValue': float(anova_table.loc['C(factor1):C(factor2):C(factor3)', 'PR(>F)']),
+            'df': float(anova_table.loc['C(factor1):C(factor2):C(factor3)', 'df'])
+        },
+        'residual': {
+            'df': float(anova_table.loc['Residual', 'df'])
+        },
+        'anovaTable': anova_table.to_dict()
+    }
+
+    return result
 
