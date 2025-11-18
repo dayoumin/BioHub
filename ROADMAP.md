@@ -366,7 +366,7 @@ USB/
 
 ---
 
-### Phase 8: AI 모델 통합 + RAG 시스템 (진행 중)
+### Phase 8: AI 모델 통합 + RAG 시스템 ✅ **완료 (100%)** (2025-11-16)
 
 **목표**: Ollama 기반 로컬 AI 모델 + 통계 문서 RAG 통합
 
@@ -377,34 +377,41 @@ USB/
 - 지능적 결과 해석
 - 동적 워크플로 생성
 
-#### 8-2. RAG (Retrieval-Augmented Generation) 시스템 (✅ 백엔드 완료, 🔜 UI 통합 대기)
+#### 8-2. RAG (Retrieval-Augmented Generation) 시스템 ✅ **완료 (100%)**
 **목표**: 통계 라이브러리 문서 기반 컨텍스트 설명 제공
 
-**완료 현황** (2025-11-18 확인):
+**완료 현황** (2025-11-18 최종 확인):
 - ✅ **Vector DB 구축 완료**: Ollama embeddings (mxbai-embed-large) + ChromaDB
 - ✅ **문서 수집 완료**: SciPy, statsmodels, pingouin 등 통계 라이브러리 문서
 - ✅ **RAG 백엔드 완료**: `/chatbot` 페이지에서 Grok 스타일 UI로 사용 가능
 - ✅ **FloatingChatbot 컴포넌트**: 전역 플로팅 버튼 (Intercom 스타일)
-- ✅ **RAGAssistantCompact 컴포넌트**: 우측 패널용 컴팩트 버전 (생성됨)
-- 🔜 **UI 통합 대기**: TwoPanelLayout에 우측 패널 통합 필요
+- ✅ **RAGAssistantCompact 컴포넌트**: 우측 패널용 컴팩트 버전
+- ✅ **우측 ChatPanel 완료**: Layout 레벨에서 전역 우측 패널 구현 (2025-11-16)
 
-**현재 구조**:
-- `/chatbot`: 독립 페이지로 Grok 스타일 전체 화면 채팅 제공
-- `FloatingChatbot`: 전역 플로팅 버튼 (모든 페이지에서 접근 가능)
-- `TwoPanelLayout`: 좌측 사이드바(Steps) + 메인 콘텐츠 + 하단 데이터 미리보기만 존재 (**우측 패널 없음**)
+**구현된 구조** (2025-11-16 완료):
+```
+app/layout.tsx (Root Layout)
+├── Main Area (flex-1)
+│   ├── Header
+│   │   └── MessageCircle 버튼 (우측 패널 열기)
+│   └── {children} (통계 페이지들)
+└── LayoutContent (우측 패널)
+    └── ChatPanel (조건부 렌더링)
+        └── RAGAssistantCompact
+```
 
-**다음 작업** (Phase 8 완료를 위해):
-1. **TwoPanelLayout 우측 패널 추가**:
-   - 현재: 좌측 사이드바 + 메인 콘텐츠 (2-panel)
-   - 목표: 좌측 사이드바 + 메인 콘텐츠 + 우측 RAG 패널 (3-panel)
-   - 예상 시간: 2-3시간
-2. **RAGAssistantCompact 통합**:
-   - 통계 결과 페이지(Step 4)에서 우측 패널에 RAG 챗봇 표시
-   - 현재 분석 메서드 자동 인식 (예: 't-test', 'anova')
-   - 관련 문서 자동 검색 및 제공
-   - 예상 시간: 1-2시간
+**주요 기능**:
+1. **Header 버튼**: `MessageCircle` 아이콘 클릭 → 우측 패널 열기
+2. **ChatPanel**: 320px~800px 리사이징 가능, 접기/펼치기 (48px collapsed)
+3. **상태 관리**: UIContext (`isChatPanelOpen`, `openChatPanel()`, `toggleChatPanel()`)
+4. **전역 사용**: 모든 페이지에서 Header 버튼으로 접근 가능
 
-**우선순위**: Medium (Phase 8 완료를 위해 필요하지만, 핵심 통계 기능에는 영향 없음)
+**사용 방법**:
+- 우측 패널 열기: Header의 `MessageCircle` (💬) 아이콘 클릭
+- 패널 닫기: 패널 좌측 `ChevronRight` 버튼 클릭
+- 너비 조절: 패널 좌측 경계선 드래그
+
+**우선순위**: ✅ 완료 (2025-11-16)
 
 **문서 소스**:
 1. **공식 라이브러리 문서**:
