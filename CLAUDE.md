@@ -337,8 +337,8 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ 내보내기 버튼 비활성화: 22개 페이지
 
 **다음 작업**:
-- 🔜 Phase 11: Tauri 데스크탑 앱
-- 🔜 Phase 12: RAG 시스템 고도화
+- 🔜 Phase 8: RAG 시스템 고도화 (Ollama + Vector DB)
+- 🔜 Phase 11: Tauri 데스크탑 앱 (향후 검토)
 
 **📝 상세 작업 기록**: [dailywork.md](dailywork.md) | [STATUS.md](STATUS.md)
 
@@ -367,4 +367,4 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ---
 
-**Updated**: 2025-11-18 | **Version**: Phase 9 Complete (100%) - PyodideWorker Enum 표준화 (43/43 페이지) | **Next**: Phase 11 (Tauri 앱) or Phase 12 (RAG 고도화)
+**Updated**: 2025-11-18 | **Version**: Phase 9 Complete (100%) - PyodideWorker Enum 표준화 (43/43 페이지) | **Next**: Phase 8 (RAG 고도화) or Phase 11 (Tauri 앱)
