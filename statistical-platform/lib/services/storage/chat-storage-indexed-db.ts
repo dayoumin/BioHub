@@ -476,6 +476,22 @@ export class ChatStorageIndexedDB {
   }
 
   /**
+   * 프로젝트 삭제
+   */
+  static async deleteProject(id: string): Promise<void> {
+    try {
+      // 초기화 및 준비 상태 확인
+      await this.ensureReady()
+
+      await this.manager!.delete('projects', id)
+      this.broadcastChange('project', 'delete', id)
+    } catch (error) {
+      console.error('[ChatStorageIndexedDB] Failed to delete project:', error)
+      throw new Error('프로젝트 삭제에 실패했습니다.')
+    }
+  }
+
+  /**
    * 설정 항목 로드
    */
   private static async getSetting(key: string): Promise<unknown> {

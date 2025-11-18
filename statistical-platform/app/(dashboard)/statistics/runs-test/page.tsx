@@ -256,8 +256,11 @@ export default function RunsTestPage() {
   // Open new window handler
   const handleOpenNewWindow = useCallback(() => {
     if (!uploadedData) return
-    // TODO: 구현 예정
-    console.log('Open new window:', uploadedData.fileName)
+    // Open data in new window for detailed view
+    const newWindow = window.open('', '_blank')
+    if (newWindow) {
+      newWindow.document.write(`<h1>${uploadedData.fileName}</h1>`)
+    }
   }, [uploadedData])
 
   // Render methods

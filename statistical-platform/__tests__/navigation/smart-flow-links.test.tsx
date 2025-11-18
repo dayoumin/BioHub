@@ -114,7 +114,6 @@ describe('Smart Flow Links Integration', () => {
     it('should not import smart-analysis page (file deleted)', () => {
       // 파일이 삭제되었으므로 import 시도 시 에러 발생 확인
       expect(() => {
-        // @ts-expect-error - 파일이 존재하지 않아야 함
         require('@/app/(dashboard)/smart-analysis/page')
       }).toThrow()
     })

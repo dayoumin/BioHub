@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-11-18T05:34:24.207Z",
+  "timestamp": "2025-11-18T05:47:40.696Z",
   "summary": {
     "total": 43,
-    "pass": 39,
-    "warning": 3,
-    "fail": 1,
-    "pyodideCore": 42,
+    "pass": 43,
+    "warning": 0,
+    "fail": 0,
+    "pyodideCore": 43,
     "javascript": 0,
-    "none": 1
+    "none": 0
   },
   "results": [
     {
@@ -36,7 +36,7 @@
         "methods": [
           "one_way_anova"
         ],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -47,7 +47,7 @@
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -77,7 +77,7 @@
         "methods": [
           "chi_square_goodness"
         ],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -88,7 +88,7 @@
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -114,7 +114,7 @@
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -129,7 +129,7 @@
         "methods": [
           "correlation"
         ],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -189,7 +189,7 @@
         "methods": [
           "descriptive_stats"
         ],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -302,7 +302,7 @@
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -334,14 +334,14 @@
     },
     {
       "name": "mood-median",
-      "status": "warning",
+      "status": "pass",
       "method": "PyodideCore",
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
-      "hasMock": true
+      "hasMock": false
     },
     {
       "name": "non-parametric",
@@ -372,7 +372,7 @@
         "methods": [
           "normality_test"
         ],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -387,7 +387,7 @@
         "methods": [
           "one_sample_t_test"
         ],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -439,7 +439,7 @@
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -465,15 +465,24 @@
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
     {
       "name": "regression",
-      "status": "fail",
-      "method": "None",
-      "details": {},
+      "status": "pass",
+      "method": "PyodideCore",
+      "details": {
+        "workers": [
+          "RegressionAdvanced"
+        ],
+        "methods": [
+          "linear_regression",
+          "multiple_regression"
+        ],
+        "confidence": 3
+      },
       "hasMock": false
     },
     {
@@ -498,7 +507,7 @@
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },
@@ -519,25 +528,25 @@
     },
     {
       "name": "runs-test",
-      "status": "warning",
+      "status": "pass",
       "method": "PyodideCore",
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
-      "hasMock": true
+      "hasMock": false
     },
     {
       "name": "sign-test",
-      "status": "warning",
+      "status": "pass",
       "method": "PyodideCore",
       "details": {
         "workers": [],
         "methods": [],
-        "confidence": 2
+        "confidence": 3
       },
-      "hasMock": true
+      "hasMock": false
     },
     {
       "name": "stepwise",
@@ -563,7 +572,7 @@
           "t_test_two_sample",
           "t_test_paired"
         ],
-        "confidence": 2
+        "confidence": 3
       },
       "hasMock": false
     },

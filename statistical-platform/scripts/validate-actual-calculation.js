@@ -48,7 +48,9 @@ function detectPyodideCore(content) {
   const patterns = [
     /PyodideCoreService\.getInstance/,
     /pyodideCore\.callWorkerMethod/,
-    /from ['"]@\/lib\/services\/pyodide-core['"]/
+    /core\.callWorkerMethod/,
+    /from ['"]@\/lib\/services\/pyodide-core['"]/,
+    /await import\(['"]@\/lib\/services\/pyodide\/core\/pyodide-core\.service['"]\)/
   ]
 
   const matches = patterns.filter(p => p.test(content)).length

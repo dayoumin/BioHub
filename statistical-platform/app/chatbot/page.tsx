@@ -58,6 +58,7 @@ export default function ChatbotPage() {
 
   // 세션 상태
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [projects, setProjects] = useState<ChatProject[]>([])
 
@@ -285,31 +286,32 @@ export default function ChatbotPage() {
         await reloadData()
       }
     } else {
-      // 프로젝트 삭제: IndexedDB에는 getSessionsByProject가 없으므로
-      // sessions state에서 필터링
-      const deletedProjectSessions = sessions.filter(s => s.projectId === deleteTarget.id)
+      // 프로젝트 삭제: 하위 세션들의 projectId 제거 후 프로젝트 삭제
+      const allSessions = await ChatStorageIndexedDB.loadAllSessions()
+      const projectSessions = allSessions.filter(s => s.projectId === deleteTarget.id)
 
-      // 프로젝트 삭제 (하위 세션들은 projectId 제거됨)
-      const allSessions = await ChatStorageIndexedDB.loadSessions()
-      const updatedSessions = allSessions.map(s =>
-        s.projectId === deleteTarget.id ? { ...s, projectId: undefined } : s
-      )
-
-      // 각 세션 업데이트
-      for (const session of updatedSessions.filter(s => deletedProjectSessions.some(d => d.id === s.id))) {
-        await ChatStorageIndexedDB.saveSession(session)
+      // 각 세션의 projectId 제거
+      for (const session of projectSessions) {
+        await ChatStorageIndexedDB.saveSession({
+          ...session,
+          projectId: undefined,
+        })
       }
 
-      // 프로젝트 삭제 (IndexedDB에는 deleteProject가 없으므로 projects에서 필터링)
-      const allProjects = await ChatStorageIndexedDB.loadProjects()
-      // Note: ChatStorageIndexedDB에 deleteProject 메서드가 필요함
+      // IndexedDB에서 프로젝트 삭제
+      await ChatStorageIndexedDB.deleteProject(deleteTarget.id)
+
+      // 삭제한 프로젝트가 현재 프로젝트면 해제
+      if (currentProjectId === deleteTarget.id) {
+        setCurrentProjectId(null)
+      }
 
       await reloadData()
     }
 
     setIsDeleteDialogOpen(false)
     setDeleteTarget(null)
-  }, [deleteTarget, currentSessionId, handleNewChat, reloadData, sessions])
+  }, [deleteTarget, currentSessionId, currentProjectId, handleNewChat, reloadData])
 
   // 드롭다운 메뉴 외부 클릭 처리
   useEffect(() => {
