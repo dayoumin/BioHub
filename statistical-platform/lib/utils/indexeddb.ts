@@ -30,9 +30,24 @@ export interface HistoryRecord {
 }
 
 /**
+ * IndexedDB 사용 가능 여부 체크
+ */
+export function isIndexedDBAvailable(): boolean {
+  try {
+    return typeof indexedDB !== 'undefined' && indexedDB !== null
+  } catch {
+    return false
+  }
+}
+
+/**
  * IndexedDB 연결 초기화
  */
 function openDB(): Promise<IDBDatabase> {
+  if (!isIndexedDBAvailable()) {
+    return Promise.reject(new Error('IndexedDB is not available'))
+  }
+
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
 
@@ -55,16 +70,17 @@ function openDB(): Promise<IDBDatabase> {
  * 히스토리 저장
  */
 export async function saveHistory(record: HistoryRecord): Promise<void> {
-  const db = await openDB()
-  const tx = db.transaction(STORE_NAME, 'readwrite')
-  const store = tx.objectStore(STORE_NAME)
-
-  // 최대 개수 초과 시 가장 오래된 항목 삭제
+  // ⚠️ 트랜잭션 생성 전에 최대 개수 체크 (TransactionInactiveError 방지)
   const allRecords = await getAllHistory()
   if (allRecords.length >= MAX_HISTORY) {
     const oldestId = allRecords[allRecords.length - 1].id
     await deleteHistory(oldestId)
   }
+
+  // 이제 새 트랜잭션으로 저장 (트랜잭션이 활성 상태로 유지됨)
+  const db = await openDB()
+  const tx = db.transaction(STORE_NAME, 'readwrite')
+  const store = tx.objectStore(STORE_NAME)
 
   return new Promise((resolve, reject) => {
     const request = store.put(record)

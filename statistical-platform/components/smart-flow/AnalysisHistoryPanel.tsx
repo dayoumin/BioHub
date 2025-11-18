@@ -53,14 +53,17 @@ export function AnalysisHistoryPanel() {
 
   // 필터링된 히스토리
   const filteredHistory = analysisHistory.filter(item => {
-    const matchesSearch = searchQuery === '' || 
+    const methodName = item.method?.name ?? ''
+    const methodId = item.method?.id ?? ''
+
+    const matchesSearch = searchQuery === '' ||
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.purpose.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.method?.name.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesFilter = filterMethod === null || 
-      item.method?.id === filterMethod
-    
+      methodName.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesFilter = filterMethod === null ||
+      methodId === filterMethod
+
     return matchesSearch && matchesFilter
   })
 

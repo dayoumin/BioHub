@@ -15,6 +15,7 @@ import {
   getHistory,
   deleteHistory,
   clearAllHistory,
+  isIndexedDBAvailable,
   type HistoryRecord
 } from '@/lib/utils/indexeddb'
 
@@ -163,6 +164,11 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         const state = get()
         if (!state.results) return
 
+        if (!isIndexedDBAvailable()) {
+          console.warn('[History] IndexedDB is not available')
+          return
+        }
+
         const record: HistoryRecord = {
           id: `analysis-${Date.now()}`,
           timestamp: Date.now(),
@@ -179,18 +185,22 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           results: state.results as unknown as Record<string, unknown> | null
         }
 
-        // IndexedDB에 저장 (원본 데이터 제외)
-        await saveHistory(record)
+        try {
+          // IndexedDB에 저장 (원본 데이터 제외)
+          await saveHistory(record)
 
-        // UI 상태 갱신
-        const allHistory = await getAllHistory()
-        set({
-          analysisHistory: allHistory.map(h => ({
-            ...h,
-            timestamp: new Date(h.timestamp)
-          })),
-          currentHistoryId: record.id
-        })
+          // UI 상태 갱신
+          const allHistory = await getAllHistory()
+          set({
+            analysisHistory: allHistory.map(h => ({
+              ...h,
+              timestamp: new Date(h.timestamp)
+            })),
+            currentHistoryId: record.id
+          })
+        } catch (error) {
+          console.error('[History] Failed to save:', error)
+        }
       },
 
       loadFromHistory: async (historyId) => {
@@ -238,6 +248,52 @@ export const useSmartFlowStore = create<SmartFlowState>()(
 
       // IndexedDB에서 히스토리 불러오기 (초기화 시)
       loadHistoryFromDB: async () => {
+        // ⚠️ 마이그레이션: 기존 sessionStorage 히스토리를 IndexedDB로 복사
+        try {
+          const sessionData = sessionStorage.getItem('smart-flow-storage')
+          if (sessionData) {
+            const parsed = JSON.parse(sessionData)
+            const oldHistory = parsed?.state?.analysisHistory
+
+            if (oldHistory && Array.isArray(oldHistory) && oldHistory.length > 0) {
+              // IndexedDB에 기존 히스토리가 없는 경우에만 마이그레이션
+              const existingHistory = await getAllHistory()
+              if (existingHistory.length === 0) {
+                console.log('[Migration] Copying', oldHistory.length, 'histories from sessionStorage to IndexedDB')
+
+                for (const item of oldHistory) {
+                  const record: HistoryRecord = {
+                    id: item.id || `migrated-${Date.now()}-${Math.random()}`,
+                    timestamp: item.timestamp ? new Date(item.timestamp).getTime() : Date.now(),
+                    name: item.name || 'Migrated Analysis',
+                    purpose: item.purpose || '',
+                    method: item.method ? {
+                      id: item.method.id || 'unknown',
+                      name: item.method.name || 'Unknown Method',
+                      category: item.method.category || 'unknown',
+                      description: item.method.description
+                    } : null,
+                    dataFileName: item.dataFileName || 'unknown',
+                    dataRowCount: item.dataRowCount || 0,
+                    results: item.results as Record<string, unknown> | null
+                  }
+
+                  await saveHistory(record)
+                }
+
+                console.log('[Migration] Successfully migrated', oldHistory.length, 'histories')
+
+                // 마이그레이션 완료 후 sessionStorage에서 히스토리 제거
+                delete parsed.state.analysisHistory
+                sessionStorage.setItem('smart-flow-storage', JSON.stringify(parsed))
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('[Migration] Failed to migrate sessionStorage history:', error)
+        }
+
+        // IndexedDB에서 히스토리 불러오기
         const allHistory = await getAllHistory()
         set({
           analysisHistory: allHistory.map(h => ({
