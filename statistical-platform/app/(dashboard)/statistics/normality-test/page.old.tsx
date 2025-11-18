@@ -505,7 +505,7 @@ export default function NormalityTestPage() {
                 onVariablesSelected={(variables: VariableAssignment) => {
                   const typedVars = toNormalityTestVariables(variables)
                   actions.setSelectedVariables?.(typedVars)
-                  if (typedVars.all && typedVars.all.length > 0) {
+                  if (typedVars.dependent) {
                     actions.setCurrentStep(2)
                   }
                 }}

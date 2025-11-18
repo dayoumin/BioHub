@@ -163,7 +163,7 @@ export default function NormalityTestPage() {
         }
       }
 
-      actions.completeAnalysis?.(analysisResult)
+      actions.completeAnalysis?.(analysisResult, 3)
       setActiveTab('summary')
     } catch (error) {
       console.error('정규성 검정 중 오류:', error)
@@ -182,26 +182,26 @@ export default function NormalityTestPage() {
   // STEPS 정의
   const STEPS: TwoPanelStep[] = useMemo(() => [
     {
-      id: 'method',
-      title: '방법 소개',
-      content: () => renderMethodIntroduction()
+      id: 0,
+      label: '방법 소개',
+      completed: currentStep > 0
     },
     {
-      id: 'upload',
-      title: '데이터 업로드',
-      content: () => renderDataUpload()
+      id: 1,
+      label: '데이터 업로드',
+      completed: !!uploadedData
     },
     {
-      id: 'variables',
-      title: '변수 선택',
-      content: () => renderVariableSelection()
+      id: 2,
+      label: '변수 선택',
+      completed: !!selectedVariables?.dependent
     },
     {
-      id: 'results',
-      title: '결과 보기',
-      content: () => renderResults()
+      id: 3,
+      label: '결과 보기',
+      completed: !!results
     }
-  ], [uploadedData, selectedVariables, results, isAnalyzing, activeTab, showAllTests])
+  ], [currentStep, uploadedData, selectedVariables, results])
 
   // Step 0: 방법 소개
   const renderMethodIntroduction = useCallback(() => (
@@ -693,8 +693,8 @@ export default function NormalityTestPage() {
 
   return (
     <TwoPanelLayout
-      title="정규성 검정"
-      subtitle="Normality Test - 데이터가 정규분포를 따르는지 검정"
+      analysisTitle="정규성 검정"
+      analysisSubtitle="Normality Test - 데이터가 정규분포를 따르는지 검정"
       breadcrumbs={breadcrumbs}
       currentStep={currentStep}
       steps={STEPS}
