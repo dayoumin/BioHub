@@ -47,6 +47,7 @@ module.exports = {
     // RAG 테스트 전체 제외 (ESM import 이슈로 인해 - RAG 프로덕션 준비 시 재활성화)
     '<rootDir>/__tests__/rag/',
     '<rootDir>/components/rag/__tests__/',
-    '<rootDir>/lib/rag/__tests__/'
+    '<rootDir>/lib/rag/__tests__/',
+    '<rootDir>/__tests__/components/rag/',
   ],
 }
