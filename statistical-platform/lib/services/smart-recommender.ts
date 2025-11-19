@@ -203,37 +203,37 @@ export class SmartRecommender {
 
     // 기술통계 키워드
     if (text.includes('기술') || text.includes('요약') || text.includes('분포')) {
-      methods.push({ id: 'descriptive', name: '기술통계', description: '데이터 요약 통계', category: 'descriptive' })
+      methods.push({ id: 'descriptive-stats', name: '기술통계', description: '데이터 요약 통계', category: 'descriptive' })
       matchScore += 0.3
     }
 
     // 상관분석 키워드
     if (text.includes('상관') || text.includes('관계') || text.includes('연관')) {
-      methods.push({ id: 'correlation', name: '상관분석', description: '변수 간 상관관계', category: 'regression' })
+      methods.push({ id: 'pearson-correlation', name: '상관분석', description: '변수 간 상관관계', category: 'regression' })
       matchScore += 0.3
     }
 
     // 회귀분석 키워드
     if (text.includes('회귀') || text.includes('예측') || text.includes('영향')) {
-      methods.push({ id: 'regression', name: '회귀분석', description: '변수 간 인과관계', category: 'regression' })
+      methods.push({ id: 'simple-regression', name: '회귀분석', description: '변수 간 인과관계', category: 'regression' })
       matchScore += 0.3
     }
 
     // t-검정 키워드
     if (text.includes('t검정') || text.includes('두 그룹') || text.includes('평균 비교')) {
-      methods.push({ id: 't-test', name: 't-검정', description: '두 그룹 평균 비교', category: 't-test' })
+      methods.push({ id: 'two-sample-t', name: 't-검정', description: '두 그룹 평균 비교', category: 't-test' })
       matchScore += 0.3
     }
 
     // ANOVA 키워드
     if (text.includes('분산분석') || text.includes('anova') || text.includes('세 그룹') || text.includes('여러 그룹')) {
-      methods.push({ id: 'anova', name: 'ANOVA', description: '다중 그룹 비교', category: 'anova' })
+      methods.push({ id: 'one-way-anova', name: 'ANOVA', description: '다중 그룹 비교', category: 'anova' })
       matchScore += 0.3
     }
 
     // 카이제곱 키워드
     if (text.includes('카이') || text.includes('빈도') || text.includes('독립성')) {
-      methods.push({ id: 'chi-square', name: '카이제곱 검정', description: '범주형 변수 독립성', category: 'nonparametric' })
+      methods.push({ id: 'chi-square-independence', name: '카이제곱 검정', description: '범주형 변수 독립성', category: 'nonparametric' })
       matchScore += 0.3
     }
 

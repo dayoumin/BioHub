@@ -81,6 +81,14 @@ export class StatisticalExecutor {
       independent?: string[]
       group?: string
       time?: string
+      // 고급 변수 역할
+      covariate?: string | string[]
+      within?: string[]
+      between?: string[]
+      blocking?: string | string[]
+      event?: string
+      censoring?: string
+      weight?: string
     }
   ): Promise<AnalysisResult> {
     this.startTime = Date.now()
@@ -189,6 +197,64 @@ export class StatisticalExecutor {
       })
     }
 
+    // 고급 변수 역할 처리
+    // 공변량 (ANCOVA 등)
+    if (variables.covariate) {
+      const covariates = Array.isArray(variables.covariate)
+        ? variables.covariate
+        : [variables.covariate]
+      prepared.arrays.covariate = covariates.map((col: string) =>
+        data.map(row => Number(row[col])).filter(v => !isNaN(v))
+      )
+    }
+
+    // Within-subject 요인 (반복측정)
+    if (variables.within && variables.within.length > 0) {
+      prepared.arrays.within = variables.within.map((col: string) =>
+        data.map(row => Number(row[col])).filter(v => !isNaN(v))
+      )
+      prepared.withinFactors = variables.within
+    }
+
+    // Between-subject 요인 (혼합모형)
+    if (variables.between && variables.between.length > 0) {
+      prepared.arrays.between = variables.between.map((col: string) =>
+        data.map(row => row[col])
+      )
+      prepared.betweenFactors = variables.between
+    }
+
+    // 블록 변수 (블록설계)
+    if (variables.blocking) {
+      const blocking = Array.isArray(variables.blocking)
+        ? variables.blocking
+        : [variables.blocking]
+      prepared.arrays.blocking = blocking.map((col: string) =>
+        data.map(row => row[col])
+      )
+    }
+
+    // 사건 변수 (생존분석)
+    if (variables.event) {
+      prepared.arrays.event = data.map(row =>
+        Number(row[variables.event])
+      ).filter(v => !isNaN(v))
+    }
+
+    // 중도절단 변수 (생존분석)
+    if (variables.censoring) {
+      prepared.arrays.censoring = data.map(row =>
+        Number(row[variables.censoring])
+      ).filter(v => !isNaN(v))
+    }
+
+    // 가중치 변수
+    if (variables.weight) {
+      prepared.arrays.weight = data.map(row =>
+        Number(row[variables.weight])
+      ).filter(v => !isNaN(v))
+    }
+
     prepared.totalN = data.length
     prepared.missingRemoved = 0 // TODO: 실제 결측값 계산
 
@@ -259,9 +325,11 @@ export class StatisticalExecutor {
     }
 
     // Pyodide로 t-검정 실행
+    // Welch t-검정: equalVar = false, 일반 t-검정: equalVar = true
+    const isWelch = method.id === 'welch-t'
     const result = await pyodideStats.tTest(group1, group2, {
       paired: method.id === 'paired-t',
-      equalVar: true // 등분산 가정 (나중에 Levene 검정 결과 반영)
+      equalVar: !isWelch // Welch t-검정은 등분산 가정하지 않음
     })
 
     // 효과크기 계산 (Cohen's d)
@@ -328,8 +396,12 @@ export class StatisticalExecutor {
     })
 
     // 유의한 경우 사후검정
+    // Games-Howell: 이분산 가정 (등분산 가정 불필요)
+    // Tukey HSD: 등분산 가정
     let postHoc = null
     if (result.pValue < 0.05 && groups.length > 2) {
+      // Games-Howell 사후검정은 별도 구현 필요 (현재 Tukey HSD 사용)
+      // TODO: pyodideStats.gamesHowell 구현 후 활성화
       postHoc = await pyodideStats.tukeyHSD(groups)
     }
 
