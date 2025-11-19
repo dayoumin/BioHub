@@ -18,6 +18,8 @@ import {
   isIndexedDBAvailable,
   type HistoryRecord
 } from '@/lib/utils/indexeddb'
+import { transformExecutorResult } from '@/lib/utils/result-transformer'
+import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
 
 /**
  * 스토어(Store)란?
@@ -207,11 +209,32 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         const record = await getHistory(historyId)
 
         if (record) {
+          // 결과 마이그레이션: 기존 Executor 형식을 새로운 UI 형식으로 변환
+          let migratedResults: AnalysisResult | null = null
+
+          if (record.results) {
+            const results = record.results as Record<string, unknown>
+
+            // Executor 형식 감지: metadata와 mainResults가 있으면 기존 형식
+            if (results.metadata && results.mainResults) {
+              try {
+                migratedResults = transformExecutorResult(results as unknown as ExecutorResult)
+                console.log('[History Migration] Transformed executor result to UI format')
+              } catch (error) {
+                console.error('[History Migration] Failed to transform:', error)
+                migratedResults = results as unknown as AnalysisResult
+              }
+            } else {
+              // 이미 새로운 형식이거나 알 수 없는 형식
+              migratedResults = results as unknown as AnalysisResult
+            }
+          }
+
           // 결과만 복원 (원본 데이터는 없음)
           set({
             analysisPurpose: record.purpose,
             selectedMethod: record.method as StatisticalMethod | null,
-            results: record.results as AnalysisResult | null,
+            results: migratedResults,
             uploadedFileName: record.dataFileName,
             currentHistoryId: historyId,
             currentStep: 6, // 결과 단계로 이동
@@ -262,6 +285,24 @@ export const useSmartFlowStore = create<SmartFlowState>()(
                 console.log('[Migration] Copying', oldHistory.length, 'histories from sessionStorage to IndexedDB')
 
                 for (const item of oldHistory) {
+                  // 결과 변환: Executor 형식 -> UI 형식
+                  let migratedResults: Record<string, unknown> | null = null
+                  if (item.results) {
+                    const results = item.results as Record<string, unknown>
+                    // Executor 형식 감지: metadata + mainResults 존재
+                    if (results.metadata && results.mainResults) {
+                      try {
+                        migratedResults = transformExecutorResult(results as unknown as ExecutorResult) as unknown as Record<string, unknown>
+                        console.log('[Migration] Transformed executor result for:', item.id || item.name)
+                      } catch (error) {
+                        console.error('[Migration] Failed to transform result:', error)
+                        migratedResults = results
+                      }
+                    } else {
+                      migratedResults = results
+                    }
+                  }
+
                   const record: HistoryRecord = {
                     id: item.id || `migrated-${Date.now()}-${Math.random()}`,
                     timestamp: item.timestamp ? new Date(item.timestamp).getTime() : Date.now(),
@@ -275,7 +316,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
                     } : null,
                     dataFileName: item.dataFileName || 'unknown',
                     dataRowCount: item.dataRowCount || 0,
-                    results: item.results as Record<string, unknown> | null
+                    results: migratedResults
                   }
 
                   await saveHistory(record)
@@ -293,13 +334,47 @@ export const useSmartFlowStore = create<SmartFlowState>()(
           console.warn('[Migration] Failed to migrate sessionStorage history:', error)
         }
 
-        // IndexedDB에서 히스토리 불러오기
+        // IndexedDB에서 히스토리 불러오기 + Executor 형식 변환
         const allHistory = await getAllHistory()
-        set({
-          analysisHistory: allHistory.map(h => ({
+        const transformedHistory = []
+        let needsPersist = false
+
+        for (const h of allHistory) {
+          let transformedResults = h.results
+
+          // Executor 형식 감지 및 변환
+          if (h.results) {
+            const results = h.results as Record<string, unknown>
+            if (results.metadata && results.mainResults) {
+              try {
+                transformedResults = transformExecutorResult(results as unknown as ExecutorResult) as unknown as Record<string, unknown>
+                console.log('[History Load] Transformed executor result for:', h.id || h.name)
+                needsPersist = true
+
+                // IndexedDB에 변환된 결과 영구 저장 (isUpdate=true로 삭제 방지)
+                await saveHistory({
+                  ...h,
+                  results: transformedResults
+                }, true)
+              } catch (error) {
+                console.error('[History Load] Failed to transform result:', error)
+              }
+            }
+          }
+
+          transformedHistory.push({
             ...h,
+            results: transformedResults,
             timestamp: new Date(h.timestamp)
-          }))
+          })
+        }
+
+        if (needsPersist) {
+          console.log('[History Load] Persisted transformed results to IndexedDB')
+        }
+
+        set({
+          analysisHistory: transformedHistory
         })
       },
 
@@ -366,6 +441,20 @@ export const useSmartFlowStore = create<SmartFlowState>()(
     {
       name: 'smart-flow-storage',
       storage: createJSONStorage(() => sessionStorage),
+      onRehydrateStorage: () => (state) => {
+        // Rehydrate 시 results가 old executor 형식인 경우 변환
+        if (state?.results) {
+          const results = state.results as unknown as Record<string, unknown>
+          if (results.metadata && results.mainResults) {
+            try {
+              state.results = transformExecutorResult(results as unknown as ExecutorResult)
+              console.log('[Rehydrate] Transformed executor result from sessionStorage')
+            } catch (error) {
+              console.error('[Rehydrate] Failed to transform result:', error)
+            }
+          }
+        }
+      },
       partialize: (state) => ({
         currentStep: state.currentStep,
         completedSteps: state.completedSteps,

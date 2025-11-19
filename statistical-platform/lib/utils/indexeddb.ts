@@ -68,13 +68,20 @@ function openDB(): Promise<IDBDatabase> {
 
 /**
  * 히스토리 저장
+ * @param record - 저장할 히스토리 레코드
+ * @param isUpdate - true인 경우 기존 레코드 업데이트 (MAX_HISTORY 체크 건너뜀)
  */
-export async function saveHistory(record: HistoryRecord): Promise<void> {
+export async function saveHistory(record: HistoryRecord, isUpdate = false): Promise<void> {
   // ⚠️ 트랜잭션 생성 전에 최대 개수 체크 (TransactionInactiveError 방지)
-  const allRecords = await getAllHistory()
-  if (allRecords.length >= MAX_HISTORY) {
-    const oldestId = allRecords[allRecords.length - 1].id
-    await deleteHistory(oldestId)
+  // 업데이트 모드에서는 체크 건너뜀 (기존 ID를 덮어쓰므로 개수 증가 없음)
+  if (!isUpdate) {
+    const allRecords = await getAllHistory()
+    // 기존 ID가 이미 존재하는지 확인
+    const existingRecord = allRecords.find(r => r.id === record.id)
+    if (!existingRecord && allRecords.length >= MAX_HISTORY) {
+      const oldestId = allRecords[allRecords.length - 1].id
+      await deleteHistory(oldestId)
+    }
   }
 
   // 이제 새 트랜잭션으로 저장 (트랜잭션이 활성 상태로 유지됨)
