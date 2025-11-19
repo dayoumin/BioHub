@@ -43,10 +43,10 @@ export function PValueBadge({
 
   // 접근성을 위한 색상과 아이콘 조합
   const getColorClass = () => {
-    if (value < 0.001) return 'bg-green-500 text-white border-green-600'
-    if (value < 0.01) return 'bg-green-100 text-green-700 border-green-300'
-    if (value < 0.05) return 'bg-yellow-100 text-yellow-700 border-yellow-300'
-    return 'bg-gray-100 text-gray-600 border-gray-300'
+    if (value < 0.001) return 'bg-stat-highly-significant text-white border-stat-highly-significant'
+    if (value < 0.01) return 'bg-stat-significant/20 text-stat-significant border-stat-significant'
+    if (value < 0.05) return 'bg-warning-bg text-warning border-warning-border'
+    return 'bg-stat-non-significant/20 text-stat-non-significant border-stat-non-significant'
   }
 
   // 크기에 따른 클래스
@@ -135,7 +135,7 @@ export function PValueWithSignificance({
       {showSignificance && (
         <span className={cn(
           'text-sm font-medium transition-colors duration-200',
-          isSignificant ? 'text-green-600' : 'text-gray-400'
+          isSignificant ? 'text-stat-significant' : 'text-stat-non-significant'
         )}>
           {significanceSymbol ? (
             <span className="text-lg" aria-label={isSignificant ? '유의함' : '유의하지 않음'}>
@@ -144,7 +144,7 @@ export function PValueWithSignificance({
           ) : (
             <span className={cn(
               'px-2 py-0.5 rounded-md',
-              isSignificant ? 'bg-green-50' : 'bg-gray-50'
+              isSignificant ? 'bg-stat-significant/10' : 'bg-stat-non-significant/10'
             )}>
               {isSignificant ? '유의함' : '유의하지 않음'}
             </span>

@@ -82,9 +82,9 @@ export function ConfidenceIntervalDisplay({
         }
       case 'success':
         return {
-          bar: 'bg-green-500',
-          point: 'bg-green-600',
-          text: 'text-green-600'
+          bar: 'bg-success',
+          point: 'bg-success',
+          text: 'text-success'
         }
       case 'warning':
         return {
@@ -352,10 +352,10 @@ export function MultipleConfidenceIntervals({
   const getColorClass = (color?: ConfidenceIntervalProps['color']) => {
     switch (color) {
       case 'primary': return 'bg-primary'
-      case 'success': return 'bg-green-500'
-      case 'warning': return 'bg-yellow-500'
-      case 'danger': return 'bg-red-500'
-      default: return 'bg-blue-500'
+      case 'success': return 'bg-success'
+      case 'warning': return 'bg-warning'
+      case 'danger': return 'bg-error'
+      default: return 'bg-info'
     }
   }
 

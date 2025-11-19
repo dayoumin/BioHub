@@ -70,13 +70,13 @@ export function AssumptionTestCard({
 
   // 심각도에 따른 색상 결정
   const getStatusColor = () => {
-    if (allPassed) return 'text-green-600 bg-green-50 border-green-200'
+    if (allPassed) return 'text-success bg-success-bg border-success-border'
     if (hasViolations) {
       const highSeverity = tests.some(t => t.severity === 'high' && !t.passed)
-      if (highSeverity) return 'text-red-600 bg-red-50 border-red-200'
-      return 'text-orange-600 bg-orange-50 border-orange-200'
+      if (highSeverity) return 'text-error bg-error-bg border-error-border'
+      return 'text-warning bg-warning-bg border-warning-border'
     }
-    if (hasWarnings) return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+    if (hasWarnings) return 'text-warning bg-warning-bg border-warning-border'
     return 'text-gray-600 bg-gray-50 border-gray-200'
   }
 
@@ -86,10 +86,10 @@ export function AssumptionTestCard({
   // 개별 테스트 아이콘
   const getTestIcon = (test: AssumptionTest) => {
     if (test.passed === null) return <Info className="w-4 h-4 text-gray-400" />
-    if (test.passed) return <CheckCircle2 className="w-4 h-4 text-green-500" />
-    if (test.severity === 'high') return <XCircle className="w-4 h-4 text-red-500" />
-    if (test.severity === 'medium') return <AlertCircle className="w-4 h-4 text-orange-500" />
-    return <XCircle className="w-4 h-4 text-orange-500" />
+    if (test.passed) return <CheckCircle2 className="w-4 h-4 text-success" />
+    if (test.severity === 'high') return <XCircle className="w-4 h-4 text-error" />
+    if (test.severity === 'medium') return <AlertCircle className="w-4 h-4 text-warning" />
+    return <XCircle className="w-4 h-4 text-warning" />
   }
 
   // 테스트 통계량 포맷
@@ -153,8 +153,8 @@ export function AssumptionTestCard({
                   key={index}
                   className={cn(
                     "p-3 rounded-lg border transition-all duration-200",
-                    test.passed === true && "bg-green-50/50 border-green-200 hover:bg-green-50",
-                    test.passed === false && "bg-orange-50/50 border-orange-200 hover:bg-orange-50",
+                    test.passed === true && "bg-success-bg/50 border-success-border hover:bg-success-bg",
+                    test.passed === false && "bg-warning-bg/50 border-warning-border hover:bg-warning-bg",
                     test.passed === null && "bg-gray-50/50 border-gray-200 hover:bg-gray-50"
                   )}
                 >
@@ -280,9 +280,9 @@ export function AssumptionSummary({ tests, className }: AssumptionSummaryProps) 
     <div className={cn('inline-flex items-center gap-2', className)}>
       <div className="flex items-center gap-1">
         {allPassed ? (
-          <CheckCircle2 className="w-4 h-4 text-green-500" />
+          <CheckCircle2 className="w-4 h-4 text-success" />
         ) : (
-          <AlertCircle className="w-4 h-4 text-orange-500" />
+          <AlertCircle className="w-4 h-4 text-warning" />
         )}
         <span className="text-sm font-medium">
           가정 검정: {passedCount}/{totalCount} 충족

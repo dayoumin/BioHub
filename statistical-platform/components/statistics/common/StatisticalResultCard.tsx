@@ -132,8 +132,8 @@ export function StatisticalResultCard({
 
   // 상태 색상
   const getStatusColor = () => {
-    if (!assumptionsPassed) return 'border-orange-200 bg-orange-50/50'
-    if (isSignificant) return 'border-green-200 bg-green-50/50'
+    if (!assumptionsPassed) return 'border-warning-border bg-warning-bg/50'
+    if (isSignificant) return 'border-stat-significant/30 bg-stat-significant/5'
     return 'border-gray-200'
   }
 
@@ -149,8 +149,8 @@ export function StatisticalResultCard({
             <div className="flex items-center gap-2">
               <StatusIcon className={cn(
                 'w-5 h-5',
-                !assumptionsPassed ? 'text-orange-500' :
-                isSignificant ? 'text-green-500' : 'text-gray-400'
+                !assumptionsPassed ? 'text-warning' :
+                isSignificant ? 'text-stat-significant' : 'text-stat-non-significant'
               )} />
               <CardTitle className="text-xl">{result.testName}</CardTitle>
               {result.testType && (

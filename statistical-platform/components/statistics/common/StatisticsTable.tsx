@@ -202,9 +202,9 @@ export function StatisticsTable({
     const highlightType = column.highlight(value, row)
     switch (highlightType) {
       case 'positive':
-        return 'bg-green-50 text-green-700 font-medium'
+        return 'bg-success-bg text-success font-medium'
       case 'negative':
-        return 'bg-red-50 text-red-700 font-medium'
+        return 'bg-error-bg text-error font-medium'
       case 'neutral':
         return 'bg-gray-50 text-gray-700'
       default:
