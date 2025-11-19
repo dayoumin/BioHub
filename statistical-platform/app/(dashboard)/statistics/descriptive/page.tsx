@@ -18,10 +18,12 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calculator, TrendingUp, BarChart3, Info, CheckCircle } from 'lucide-react'
+import { Calculator, TrendingUp, BarChart3, Info, CheckCircle, Table as TableIcon } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { DataTableViewer } from '@/components/statistics/common/DataTableViewer'
+import { VariableSelectorPanel, COMMON_ROLES } from '@/components/variable-selection/VariableSelectorPanel'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -316,11 +318,26 @@ export default function DescriptiveStatsPage() {
       {/* Step 1: 데이터 업로드 */}
       {currentStep === 1 && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
-            <p className="text-sm text-muted-foreground">
-              분석할 데이터 파일을 업로드하세요 (CSV 또는 Excel)
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
+              <p className="text-sm text-muted-foreground">
+                분석할 데이터 파일을 업로드하세요 (CSV 또는 Excel)
+              </p>
+            </div>
+            {uploadedData && (
+              <DataTableViewer
+                data={uploadedData.data}
+                columns={uploadedData.columns}
+                fileName={uploadedData.fileName}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <TableIcon className="w-4 h-4 mr-2" />
+                    데이터 전체보기
+                  </Button>
+                }
+              />
+            )}
           </div>
 
           <DataUploadStep
@@ -328,55 +345,72 @@ export default function DescriptiveStatsPage() {
             onNext={() => actions.setCurrentStep(2)}
             canGoNext={!!uploadedData}
           />
+
+          {/* 업로드 후 데이터 요약 */}
+          {uploadedData && (
+            <Card className="bg-muted/50">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-4">
+                    <Badge variant="secondary">
+                      {uploadedData.fileName}
+                    </Badge>
+                    <span className="text-muted-foreground">
+                      {uploadedData.data.length.toLocaleString()}행 × {uploadedData.columns.length}열
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => actions.setCurrentStep(2)}
+                    size="sm"
+                  >
+                    다음 단계
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
       {/* Step 2: 변수 선택 */}
       {currentStep === 2 && uploadedData && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">변수 선택</h2>
-            <p className="text-sm text-muted-foreground">
-              기술통계를 계산할 수치형 변수를 선택하세요 (여러 개 선택 가능)
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">분석 변수</Label>
-            <div className="flex flex-wrap gap-2">
-              {uploadedData.columns.map((header: string) => {
-                const isSelected = selectedVariables?.variables?.includes(header) || false
-                return (
-                  <Badge
-                    key={header}
-                    variant={isSelected ? 'default' : 'outline'}
-                    className="cursor-pointer max-w-[200px] truncate"
-                    title={header}
-                    onClick={() => {
-                      const current = selectedVariables?.variables || []
-                      const updated = current.includes(header)
-                        ? current.filter(h => h !== header)
-                        : [...current, header]
-                      handleVariableSelect({ variables: updated })
-                    }}
-                  >
-                    {header}
-                    {isSelected && (
-                      <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
-                    )}
-                  </Badge>
-                )
-              })}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold mb-2">변수 선택</h2>
+              <p className="text-sm text-muted-foreground">
+                기술통계를 계산할 수치형 변수를 선택하세요 (여러 개 선택 가능)
+              </p>
             </div>
-
-            <Button
-              onClick={() => actions.setCurrentStep(3)}
-              disabled={!selectedVariables?.variables || selectedVariables.variables.length === 0}
-              className="w-full mt-6"
-            >
-              다음 단계
-            </Button>
+            <DataTableViewer
+              data={uploadedData.data}
+              columns={uploadedData.columns}
+              fileName={uploadedData.fileName}
+              trigger={
+                <Button variant="outline" size="sm">
+                  <TableIcon className="w-4 h-4 mr-2" />
+                  데이터 확인
+                </Button>
+              }
+            />
           </div>
+
+          <VariableSelectorPanel
+            data={uploadedData.data}
+            columns={uploadedData.columns}
+            roles={COMMON_ROLES.descriptive}
+            assignment={selectedVariables ? { variables: selectedVariables.variables } : {}}
+            onAssignmentChange={(assignment) => {
+              const vars = assignment.variables
+              if (vars) {
+                const variableArray = Array.isArray(vars) ? vars : [vars]
+                handleVariableSelect({ variables: variableArray })
+              } else {
+                handleVariableSelect({ variables: [] })
+              }
+            }}
+            onComplete={() => actions.setCurrentStep(3)}
+          />
         </div>
       )}
 
