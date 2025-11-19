@@ -577,6 +577,69 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
       minSampleSize: 3,
       variableTypes: ['numeric', 'categorical']
     }
+  },
+
+  // 추가 메서드 - 스마트 분석 커버리지 100% (6개)
+  {
+    id: 'chi-square-independence',
+    name: '카이제곱 독립성 검정',
+    description: '두 범주형 변수 간 독립성 검정',
+    category: 'chi-square',
+    requirements: {
+      minSampleSize: 20,
+      variableTypes: ['categorical']
+    }
+  },
+  {
+    id: 'factor-analysis',
+    name: '요인분석',
+    description: '잠재요인 추출 및 변수 구조 파악',
+    category: 'pca',
+    requirements: {
+      minSampleSize: 50,
+      variableTypes: ['numeric']
+    }
+  },
+  {
+    id: 'ordinal-regression',
+    name: '서열 로지스틱 회귀',
+    description: '순서형 종속변수 예측',
+    category: 'regression',
+    requirements: {
+      minSampleSize: 50,
+      variableTypes: ['numeric', 'categorical']
+    }
+  },
+  {
+    id: 'poisson-regression',
+    name: '포아송 회귀',
+    description: '카운트 데이터 예측',
+    category: 'regression',
+    requirements: {
+      minSampleSize: 30,
+      variableTypes: ['numeric', 'categorical']
+    }
+  },
+  {
+    id: 'repeated-measures-anova',
+    name: '반복측정 분산분석',
+    description: '동일 대상 반복 측정 비교',
+    category: 'anova',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['numeric'],
+      assumptions: ['정규성', '구형성']
+    }
+  },
+  {
+    id: 'non-parametric',
+    name: '비모수 검정 종합',
+    description: '정규성 가정 없는 검정 모음',
+    category: 'nonparametric',
+    requirements: {
+      minSampleSize: 5,
+      variableTypes: ['numeric', 'categorical']
+    }
   }
 ]
 
