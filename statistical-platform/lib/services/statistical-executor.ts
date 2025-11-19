@@ -439,12 +439,20 @@ export class StatisticalExecutor {
     // ANCOVA: 공변량이 있는 경우
     if (method.id === 'ancova' && data.arrays.covariate && data.arrays.covariate.length > 0) {
       const yValues = data.arrays.dependent || groups.flat()
-      const groupValues = data.raw.map((row: Record<string, unknown>) =>
-        row[data.variables.groupVar as string]
+      // data.data와 data.variables.group 사용 (prepareData 반환 구조에 맞춤)
+      const groupValues = data.data.map((row: Record<string, unknown>) =>
+        row[data.variables.group as string]
       ).filter((v: unknown) => v != null) as (string | number)[]
       const covariates = data.arrays.covariate as number[][]
 
-      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates)
+      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates) as {
+        fStatisticGroup: number
+        pValueGroup: number
+        fStatisticCovariate: number[]
+        pValueCovariate: number[]
+        adjustedMeans: Array<{ group: string | number; mean: number }>
+        anovaTable: Record<string, unknown>
+      }
 
       return {
         metadata: {
@@ -459,12 +467,12 @@ export class StatisticalExecutor {
           }
         },
         mainResults: {
-          statistic: ancovaResult.fStatistic,
-          pvalue: ancovaResult.pValue,
+          statistic: ancovaResult.fStatisticGroup,
+          pvalue: ancovaResult.pValueGroup,
           df: 0,
-          significant: ancovaResult.pValue < 0.05,
-          interpretation: ancovaResult.pValue < 0.05 ?
-            `공변량 통제 후 그룹 간 유의한 차이가 있습니다 (F=${ancovaResult.fStatistic.toFixed(2)})` :
+          significant: ancovaResult.pValueGroup < 0.05,
+          interpretation: ancovaResult.pValueGroup < 0.05 ?
+            `공변량 통제 후 그룹 간 유의한 차이가 있습니다 (F=${ancovaResult.fStatisticGroup.toFixed(2)})` :
             '공변량 통제 후 그룹 간 유의한 차이가 없습니다'
         },
         additionalInfo: {},
@@ -484,21 +492,39 @@ export class StatisticalExecutor {
 
     // 반복측정 ANOVA: within 요인이 있는 경우
     if (method.id === 'repeated-measures-anova' && data.arrays.within && data.arrays.within.length > 0) {
-      const dataMatrix = data.arrays.within as number[][]
-      const nSubjects = dataMatrix[0]?.length || 0
+      // prepareData: arrays.within = [timepoint][subject] 형태
+      // Worker 기대: [subject][timepoint] 형태 → 전치 필요
+      const rawMatrix = data.arrays.within as number[][]
+      const nTimePoints = rawMatrix.length
+      const nSubjects = rawMatrix[0]?.length || 0
+
+      // 전치: [timepoint][subject] → [subject][timepoint]
+      const dataMatrix: number[][] = []
+      for (let s = 0; s < nSubjects; s++) {
+        const subjectData: number[] = []
+        for (let t = 0; t < nTimePoints; t++) {
+          subjectData.push(rawMatrix[t][s])
+        }
+        dataMatrix.push(subjectData)
+      }
+
       const subjectIds = Array.from({ length: nSubjects }, (_, i) => `S${i + 1}`)
-      const timeLabels = data.withinFactors || dataMatrix.map((_, i) => `T${i + 1}`)
+      const timeLabels = data.withinFactors || Array.from({ length: nTimePoints }, (_, i) => `T${i + 1}`)
 
       const rmResult = await pyodideStats.repeatedMeasuresAnovaWorker(
         dataMatrix,
         subjectIds,
         timeLabels
-      )
+      ) as {
+        fStatistic: number
+        pValue: number
+        df: { numerator: number; denominator: number }
+        sphericityEpsilon: number
+        anovaTable: Record<string, unknown>
+      }
 
-      // df 처리: { between, within } 객체에서 값 추출
-      const dfValue = typeof rmResult.df === 'object' && rmResult.df !== null
-        ? rmResult.df.within || rmResult.df.between || 0
-        : rmResult.df
+      // df 처리: { numerator, denominator } 객체에서 값 추출
+      const dfValue = rmResult.df.numerator || 0
 
       return {
         metadata: {
@@ -507,9 +533,9 @@ export class StatisticalExecutor {
           timestamp: '',
           duration: 0,
           dataInfo: {
-            totalN: nSubjects * dataMatrix.length,
+            totalN: nSubjects * nTimePoints,
             missingRemoved: 0,
-            groups: dataMatrix.length
+            groups: nTimePoints
           }
         },
         mainResults: {
@@ -526,7 +552,8 @@ export class StatisticalExecutor {
           type: 'line',
           data: {
             labels: timeLabels,
-            means: dataMatrix.map(col =>
+            // rawMatrix는 [timepoint][subject] 형태이므로 각 timepoint의 평균 계산
+            means: rawMatrix.map(col =>
               col.reduce((a, b) => a + b, 0) / col.length
             )
           }
@@ -534,7 +561,7 @@ export class StatisticalExecutor {
         rawResults: {
           ...rmResult,
           subjects: nSubjects,
-          timePoints: dataMatrix.length
+          timePoints: nTimePoints
         }
       }
     }
