@@ -259,6 +259,52 @@ export default function KruskalWallisPage() {
       const totalN = groupArrays.reduce((sum, g) => sum + g.length, 0)
       const etaSquared = basicResult.statistic / (totalN - 1)
 
+      // 사후검정 (Dunn test) - 유의한 경우에만 실행
+      let postHocResult: {
+        method: string
+        comparisons: Array<{
+          group1: string
+          group2: string
+          pValue: number
+          significant: boolean
+          meanRankDiff: number
+        }>
+      } | undefined
+
+      if (basicResult.pValue < 0.05 && groupArrays.length >= 3) {
+        try {
+          const dunnResult = await pyodideCore.callWorkerMethod<{
+            comparisons: Array<{
+              group1: number
+              group2: number
+              pValue: number
+              significant: boolean
+            }>
+          }>(PyodideWorker.NonparametricAnova, 'dunn_test', { groups: groupArrays })
+
+          // 그룹 이름 매핑 및 meanRankDiff 계산
+          postHocResult = {
+            method: "Dunn's Test (Holm 보정)",
+            comparisons: dunnResult.comparisons.map(comp => {
+              const g1Name = groupNames[comp.group1] || `Group ${comp.group1 + 1}`
+              const g2Name = groupNames[comp.group2] || `Group ${comp.group2 + 1}`
+              const g1Stats = descriptives[g1Name]
+              const g2Stats = descriptives[g2Name]
+              return {
+                group1: g1Name,
+                group2: g2Name,
+                pValue: comp.pValue,
+                significant: comp.significant,
+                meanRankDiff: Math.abs((g1Stats?.meanRank || 0) - (g2Stats?.meanRank || 0))
+              }
+            })
+          }
+        } catch (postHocErr) {
+          console.warn('Dunn test failed:', postHocErr)
+          // 사후검정 실패해도 기본 결과는 표시
+        }
+      }
+
       const fullResult: KruskalWallisResult = {
         statistic: basicResult.statistic,
         pValue: basicResult.pValue,
@@ -270,13 +316,16 @@ export default function KruskalWallisPage() {
           interpretation: etaSquared >= 0.14 ? '큰 효과' : etaSquared >= 0.06 ? '중간 효과' : '작은 효과'
         },
         descriptives,
+        postHoc: postHocResult,
         interpretation: {
           summary: basicResult.pValue < 0.05
             ? `Kruskal-Wallis 검정 결과 집단 간 유의한 차이가 있습니다 (H=${basicResult.statistic.toFixed(2)}, p=${basicResult.pValue.toFixed(4)}).`
             : `Kruskal-Wallis 검정 결과 집단 간 유의한 차이가 없습니다 (H=${basicResult.statistic.toFixed(2)}, p=${basicResult.pValue.toFixed(4)}).`,
           groupComparisons: `${groupArrays.length}개 그룹의 중위수를 비교한 결과입니다.`,
           recommendations: [
-            basicResult.pValue < 0.05 ? '유의한 차이가 발견되었으므로 사후검정을 수행하세요.' : '유의한 차이가 없으므로 추가 분석이 필요하지 않습니다.',
+            basicResult.pValue < 0.05
+              ? (postHocResult ? '사후검정(Dunn test)으로 구체적인 집단 간 차이를 확인하세요.' : '유의한 차이가 발견되었으나 사후검정이 실패했습니다.')
+              : '유의한 차이가 없으므로 추가 분석이 필요하지 않습니다.',
             '효과크기를 확인하여 실질적 유의성을 평가하세요.',
             '집단별 기술통계량을 비교하여 차이의 방향을 확인하세요.'
           ]

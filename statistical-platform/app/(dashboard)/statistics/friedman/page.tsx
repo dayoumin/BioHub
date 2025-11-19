@@ -255,6 +255,55 @@ export default function FriedmanPage() {
         kendallW >= 0.5 ? '중간 일치도' :
         kendallW >= 0.3 ? '약한 일치도' : '일치도 없음'
 
+      // 사후검정 (Nemenyi test) - 유의한 경우에만 실행
+      let postHocResult: {
+        method: string
+        comparisons: Array<{
+          condition1: string
+          condition2: string
+          pValue: number
+          significant: boolean
+          rankDiff: number
+        }>
+      } | undefined
+
+      if (basicResult.pValue < 0.05 && nConditions >= 3) {
+        try {
+          const nemenyiResult = await pyodideCore.callWorkerMethod<{
+            method: string
+            comparisons: Array<{
+              group1: string
+              group2: string
+              pValue: number
+              significant: boolean
+            }>
+          }>(PyodideWorker.NonparametricAnova, 'friedman_posthoc', { groups: conditionData })
+
+          // 조건 이름 매핑 및 rankDiff 계산
+          postHocResult = {
+            method: nemenyiResult.method,
+            comparisons: nemenyiResult.comparisons.map(comp => {
+              const idx1 = parseInt(comp.group1.replace('Condition ', '')) - 1
+              const idx2 = parseInt(comp.group2.replace('Condition ', '')) - 1
+              const c1Name = dependentVars[idx1] || comp.group1
+              const c2Name = dependentVars[idx2] || comp.group2
+              const c1Stats = descriptives[c1Name]
+              const c2Stats = descriptives[c2Name]
+              return {
+                condition1: c1Name,
+                condition2: c2Name,
+                pValue: comp.pValue,
+                significant: comp.significant,
+                rankDiff: Math.abs((c1Stats?.meanRank || 0) - (c2Stats?.meanRank || 0))
+              }
+            })
+          }
+        } catch (postHocErr) {
+          console.warn('Friedman post-hoc test failed:', postHocErr)
+          // 사후검정 실패해도 기본 결과는 표시
+        }
+      }
+
       // Build complete FriedmanResult
       const fullResult: FriedmanResult = {
         statistic: basicResult.statistic,
@@ -268,6 +317,7 @@ export default function FriedmanPage() {
         },
         descriptives,
         rankSums,
+        postHoc: postHocResult,
         interpretation: {
           summary: basicResult.pValue < 0.05
             ? `Friedman 검정 결과 조건 간 유의한 차이가 있습니다 (χ²=${basicResult.statistic.toFixed(3)}, p=${basicResult.pValue.toFixed(4)}).`
@@ -275,7 +325,7 @@ export default function FriedmanPage() {
           conditions: `${nConditions}개 조건에서 ${nBlocks}개 블록의 반복측정 데이터를 분석했습니다.`,
           recommendations: [
             basicResult.pValue < 0.05
-              ? '사후검정을 통해 어느 조건 간에 차이가 있는지 확인하세요.'
+              ? (postHocResult ? '사후검정(Nemenyi test)으로 구체적인 조건 간 차이를 확인하세요.' : '유의한 차이가 발견되었으나 사후검정이 실패했습니다.')
               : '조건 간 차이가 없으므로 추가 분석이 불필요합니다.',
             `Kendall's W = ${kendallW.toFixed(3)} (${kendallInterpretation})`
           ]

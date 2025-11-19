@@ -985,3 +985,69 @@ def three_way_anova(data_values, factor1_values, factor2_values, factor3_values)
 
     return result
 
+
+def friedman_posthoc(groups, p_adjust='holm'):
+    """
+    Friedman 검정의 사후검정 (Nemenyi test)
+
+    Args:
+        groups: List of arrays, each representing a condition (columns from repeated measures)
+        p_adjust: p-value adjustment method ('holm', 'bonferroni', 'fdr_bh')
+
+    Returns:
+        Dictionary with pairwise comparisons
+    """
+    try:
+        import scikit_posthocs as sp
+    except ImportError:
+        raise ImportError("scikit-posthocs library is required for Friedman post-hoc test")
+
+    if len(groups) < 2:
+        raise ValueError(f"Friedman post-hoc requires at least 2 conditions, got {len(groups)}")
+
+    # Clean data - remove rows with any NaN
+    clean_groups = []
+    n_obs = len(groups[0])
+    valid_rows = []
+
+    for i in range(n_obs):
+        row_valid = True
+        for group in groups:
+            val = group[i]
+            if val is None or (isinstance(val, float) and np.isnan(val)):
+                row_valid = False
+                break
+        if row_valid:
+            valid_rows.append(i)
+
+    for group in groups:
+        clean_groups.append([group[i] for i in valid_rows])
+
+    if len(valid_rows) < 2:
+        raise ValueError("Need at least 2 valid observations for Friedman post-hoc test")
+
+    # Create data matrix for Nemenyi test
+    data_matrix = np.array(clean_groups).T  # Transpose: rows=subjects, cols=conditions
+
+    # Use posthoc_nemenyi_friedman for Friedman post-hoc
+    nemenyi_result = sp.posthoc_nemenyi_friedman(data_matrix)
+
+    comparisons = []
+    n_groups = len(clean_groups)
+    for i in range(n_groups):
+        for j in range(i + 1, n_groups):
+            p_value = nemenyi_result.iloc[i, j]
+            comparisons.append({
+                'group1': f'Condition {i + 1}',
+                'group2': f'Condition {j + 1}',
+                'pValue': float(p_value),
+                'significant': float(p_value) < 0.05
+            })
+
+    return {
+        'method': 'Nemenyi test',
+        'comparisons': comparisons,
+        'pAdjustMethod': p_adjust,
+        'nComparisons': len(comparisons)
+    }
+

@@ -253,38 +253,81 @@ export default function MannWhitneyPage() {
         }
       )
 
+      // 효과크기 계산: r = Z / sqrt(N)
+      // Z는 정규 근사에서 계산, U 통계량을 이용
+      const n1 = group1.length
+      const n2 = group2.length
+      const N = n1 + n2
+      const U = result.statistic
+
+      // U의 기대값과 표준편차
+      const meanU = (n1 * n2) / 2
+      const stdU = Math.sqrt((n1 * n2 * (N + 1)) / 12)
+
+      // Z 점수 계산
+      const Z = (U - meanU) / stdU
+
+      // 효과크기 r = |Z| / sqrt(N)
+      const effectSizeR = Math.abs(Z) / Math.sqrt(N)
+
+      // 효과크기 해석
+      const getEffectSizeInterpretation = (r: number): string => {
+        if (r >= 0.5) return '큰 효과 (Large)'
+        if (r >= 0.3) return '중간 효과 (Medium)'
+        if (r >= 0.1) return '작은 효과 (Small)'
+        return '무시할 수 있는 효과 (Negligible)'
+      }
+
+      // 사분위수 계산 함수
+      const calculateQuartiles = (arr: number[]) => {
+        const sorted = [...arr].sort((a, b) => a - b)
+        const n = sorted.length
+        const q1Index = Math.floor(n * 0.25)
+        const q3Index = Math.floor(n * 0.75)
+        const medianIndex = Math.floor(n * 0.5)
+        return {
+          q1: sorted[q1Index],
+          median: sorted[medianIndex],
+          q3: sorted[q3Index],
+          iqr: sorted[q3Index] - sorted[q1Index]
+        }
+      }
+
+      const q1 = calculateQuartiles(group1)
+      const q2 = calculateQuartiles(group2)
+
       // 결과를 MannWhitneyResult 형식으로 변환
       const formattedResult: MannWhitneyResult = {
         statistic: result.statistic,
         pValue: result.pvalue,
         uValue: result.statistic,
-        nobs1: group1.length,
-        nobs2: group2.length,
-        medianDiff: 0, // 계산 필요
-        rankSum1: 0, // 계산 필요
-        rankSum2: 0, // 계산 필요
+        nobs1: n1,
+        nobs2: n2,
+        medianDiff: q1.median - q2.median,
+        rankSum1: U + (n1 * (n1 + 1)) / 2, // R1 = U1 + n1(n1+1)/2
+        rankSum2: (n1 * n2) - U + (n2 * (n2 + 1)) / 2, // R2 = U2 + n2(n2+1)/2
         effectSize: {
-          value: 0, // 계산 필요
-          interpretation: 'Unknown'
+          value: Number(effectSizeR.toFixed(3)),
+          interpretation: getEffectSizeInterpretation(effectSizeR)
         },
         descriptives: {
           group1: {
-            median: group1.sort((a, b) => a - b)[Math.floor(group1.length / 2)],
-            mean: group1.reduce((a, b) => a + b, 0) / group1.length,
-            iqr: 0, // 계산 필요
+            median: q1.median,
+            mean: group1.reduce((a, b) => a + b, 0) / n1,
+            iqr: q1.iqr,
             min: Math.min(...group1),
             max: Math.max(...group1),
-            q1: 0, // 계산 필요
-            q3: 0 // 계산 필요
+            q1: q1.q1,
+            q3: q1.q3
           },
           group2: {
-            median: group2.sort((a, b) => a - b)[Math.floor(group2.length / 2)],
-            mean: group2.reduce((a, b) => a + b, 0) / group2.length,
-            iqr: 0, // 계산 필요
+            median: q2.median,
+            mean: group2.reduce((a, b) => a + b, 0) / n2,
+            iqr: q2.iqr,
             min: Math.min(...group2),
             max: Math.max(...group2),
-            q1: 0, // 계산 필요
-            q3: 0 // 계산 필요
+            q1: q2.q1,
+            q3: q2.q3
           }
         },
         interpretation: {
