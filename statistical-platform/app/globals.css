@@ -41,6 +41,36 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Semantic Colors - Muted Palette */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
+  --color-success-muted: var(--success-muted);
+
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-error-bg: var(--error-bg);
+  --color-error-border: var(--error-border);
+  --color-error-muted: var(--error-muted);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
+  --color-warning-muted: var(--warning-muted);
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-bg: var(--info-bg);
+  --color-info-border: var(--info-border);
+  --color-info-muted: var(--info-muted);
+
+  /* Statistical Significance */
+  --color-stat-significant: var(--stat-significant);
+  --color-stat-non-significant: var(--stat-non-significant);
+  --color-stat-highly-significant: var(--stat-highly-significant);
 }
 
 :root {
@@ -83,20 +113,35 @@
   --active-bg: oklch(0.9 0 0);           /* Slightly darker when active */
   --focus-ring: oklch(0.5 0 0);          /* Medium gray focus */
 
-  /* Monochrome Status States */
-  --success: oklch(0.2 0 0);             /* Dark gray for success */
-  --success-foreground: oklch(1 0 0);
-  --warning: oklch(0.4 0 0);             /* Medium gray for warning */
-  --warning-foreground: oklch(1 0 0);
-  --info: oklch(0.3 0 0);                /* Dark gray for info */
-  --info-foreground: oklch(1 0 0);
-  --error: oklch(0.25 0 0);              /* Dark gray for error */
-  --error-foreground: oklch(1 0 0);
+  /* Semantic Status Colors - Muted Palette */
+  --success: oklch(0.55 0.08 155);           /* Muted Sage Green */
+  --success-foreground: oklch(0.98 0 0);
+  --success-bg: oklch(0.96 0.02 155);
+  --success-border: oklch(0.85 0.04 155);
+  --success-muted: oklch(0.45 0.06 155);
 
-  /* Statistical Analysis - Monochrome */
-  --stat-significant: oklch(0.2 0 0);    /* Dark gray */
-  --stat-non-significant: oklch(0.6 0 0); /* Medium gray */
-  --stat-highly-significant: oklch(0.1 0 0); /* Near black */
+  --error: oklch(0.55 0.10 15);              /* Muted Rose */
+  --error-foreground: oklch(0.98 0 0);
+  --error-bg: oklch(0.96 0.02 15);
+  --error-border: oklch(0.85 0.05 15);
+  --error-muted: oklch(0.45 0.08 15);
+
+  --warning: oklch(0.55 0.08 75);            /* Muted Amber */
+  --warning-foreground: oklch(0.98 0 0);
+  --warning-bg: oklch(0.96 0.02 75);
+  --warning-border: oklch(0.85 0.04 75);
+  --warning-muted: oklch(0.45 0.06 75);
+
+  --info: oklch(0.50 0.06 250);              /* Muted Slate Blue */
+  --info-foreground: oklch(0.98 0 0);
+  --info-bg: oklch(0.96 0.015 250);
+  --info-border: oklch(0.85 0.03 250);
+  --info-muted: oklch(0.40 0.05 250);
+
+  /* Statistical Significance - Muted Palette */
+  --stat-significant: oklch(0.55 0.08 15);       /* Muted Rose (p < 0.05) */
+  --stat-non-significant: oklch(0.55 0.08 155);  /* Muted Sage (p >= 0.05) */
+  --stat-highly-significant: oklch(0.50 0.10 15); /* Deeper Rose (p < 0.01) */
 
   /* Category Colors - Grayscale */
   --category-1: oklch(0.1 0 0);          /* Near black */
@@ -175,20 +220,35 @@
   --active-bg: oklch(0.2 0 0);           /* Slightly lighter when active */
   --focus-ring: oklch(0.5 0 0);          /* Medium gray focus */
 
-  /* Dark Mode Status States - Monochrome */
-  --success: oklch(0.8 0 0);             /* Light gray for success */
-  --success-foreground: oklch(0.05 0 0);
-  --warning: oklch(0.6 0 0);             /* Medium gray for warning */
-  --warning-foreground: oklch(0.05 0 0);
-  --info: oklch(0.7 0 0);                /* Light gray for info */
-  --info-foreground: oklch(0.05 0 0);
-  --error: oklch(0.75 0 0);              /* Light gray for error */
-  --error-foreground: oklch(0.05 0 0);
+  /* Dark Mode Semantic Status Colors - Muted Palette */
+  --success: oklch(0.70 0.08 155);           /* Muted Sage Green */
+  --success-foreground: oklch(0.15 0 0);
+  --success-bg: oklch(0.22 0.03 155);
+  --success-border: oklch(0.35 0.04 155);
+  --success-muted: oklch(0.60 0.06 155);
 
-  /* Dark Mode Statistical Analysis - Monochrome */
-  --stat-significant: oklch(0.8 0 0);    /* Light gray */
-  --stat-non-significant: oklch(0.4 0 0); /* Medium gray */
-  --stat-highly-significant: oklch(0.9 0 0); /* Near white */
+  --error: oklch(0.70 0.10 15);              /* Muted Rose */
+  --error-foreground: oklch(0.15 0 0);
+  --error-bg: oklch(0.22 0.03 15);
+  --error-border: oklch(0.35 0.05 15);
+  --error-muted: oklch(0.60 0.08 15);
+
+  --warning: oklch(0.70 0.08 75);            /* Muted Amber */
+  --warning-foreground: oklch(0.15 0 0);
+  --warning-bg: oklch(0.22 0.03 75);
+  --warning-border: oklch(0.35 0.04 75);
+  --warning-muted: oklch(0.60 0.06 75);
+
+  --info: oklch(0.68 0.06 250);              /* Muted Slate Blue */
+  --info-foreground: oklch(0.15 0 0);
+  --info-bg: oklch(0.22 0.02 250);
+  --info-border: oklch(0.35 0.03 250);
+  --info-muted: oklch(0.58 0.05 250);
+
+  /* Dark Mode Statistical Significance - Muted Palette */
+  --stat-significant: oklch(0.70 0.08 15);       /* Muted Rose (p < 0.05) */
+  --stat-non-significant: oklch(0.70 0.08 155);  /* Muted Sage (p >= 0.05) */
+  --stat-highly-significant: oklch(0.72 0.10 15); /* Brighter Rose (p < 0.01) */
 
   /* Dark Mode Category Colors - Grayscale */
   --category-1: oklch(0.9 0 0);          /* Near white */
