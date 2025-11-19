@@ -14,14 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { StatisticsTable, TableColumn } from '@/components/statistics/common/StatisticsTable'
 import {
   BarChart,
   Bar,
@@ -534,40 +527,20 @@ export default function PoissonRegressionPage() {
               <TabsContent value="coefficients" className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">회귀 계수</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>변수</TableHead>
-                        <TableHead>계수</TableHead>
-                        <TableHead>표준오차</TableHead>
-                        <TableHead>z</TableHead>
-                        <TableHead>p-value</TableHead>
-                        <TableHead>95% CI</TableHead>
-                        <TableHead>exp(β)</TableHead>
-                        <TableHead>IRR CI</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.coefficients.map((coef, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{coef.variable}</TableCell>
-                          <TableCell>{coef.coefficient.toFixed(4)}</TableCell>
-                          <TableCell>{coef.std_error.toFixed(4)}</TableCell>
-                          <TableCell>{coef.z_value.toFixed(3)}</TableCell>
-                          <TableCell>
-                            <PValueBadge value={coef.p_value} />
-                          </TableCell>
-                          <TableCell>
-                            [{coef.ci_lower.toFixed(3)}, {coef.ci_upper.toFixed(3)}]
-                          </TableCell>
-                          <TableCell>{coef.exp_coefficient.toFixed(3)}</TableCell>
-                          <TableCell>
-                            [{coef.irr_ci_lower.toFixed(3)}, {coef.irr_ci_upper.toFixed(3)}]
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <StatisticsTable
+                    columns={[
+                      { key: 'variable', header: '변수', type: 'text' },
+                      { key: 'coefficient', header: '계수', type: 'number', formatter: (v) => v.toFixed(4) },
+                      { key: 'std_error', header: '표준오차', type: 'number', formatter: (v) => v.toFixed(4) },
+                      { key: 'z_value', header: 'z', type: 'number', formatter: (v) => v.toFixed(3) },
+                      { key: 'p_value', header: 'p-value', type: 'pvalue' },
+                      { key: 'ci', header: '95% CI', type: 'custom', formatter: (_, row) => `[${row.ci_lower.toFixed(3)}, ${row.ci_upper.toFixed(3)}]` },
+                      { key: 'exp_coefficient', header: 'exp(β)', type: 'number', formatter: (v) => v.toFixed(3) },
+                      { key: 'irr_ci', header: 'IRR CI', type: 'custom', formatter: (_, row) => `[${row.irr_ci_lower.toFixed(3)}, ${row.irr_ci_upper.toFixed(3)}]` }
+                    ] as TableColumn[]}
+                    data={results.coefficients}
+                    compactMode
+                  />
                 </div>
 
                 <div>
@@ -683,30 +656,18 @@ export default function PoissonRegressionPage() {
               <TabsContent value="predictions" className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">예측값 및 잔차 (상위 10개)</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>관측치</TableHead>
-                        <TableHead>실제값</TableHead>
-                        <TableHead>예측값</TableHead>
-                        <TableHead>잔차</TableHead>
-                        <TableHead>Pearson 잔차</TableHead>
-                        <TableHead>편차 잔차</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.predicted_values.slice(0, 10).map((pred, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{pred.observation}</TableCell>
-                          <TableCell>{pred.actual_count}</TableCell>
-                          <TableCell>{pred.predicted_count.toFixed(2)}</TableCell>
-                          <TableCell>{pred.residual.toFixed(3)}</TableCell>
-                          <TableCell>{pred.pearson_residual.toFixed(3)}</TableCell>
-                          <TableCell>{pred.deviance_residual.toFixed(3)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <StatisticsTable
+                    columns={[
+                      { key: 'observation', header: '관측치', type: 'number' },
+                      { key: 'actual_count', header: '실제값', type: 'number' },
+                      { key: 'predicted_count', header: '예측값', type: 'number', formatter: (v) => v.toFixed(2) },
+                      { key: 'residual', header: '잔차', type: 'number', formatter: (v) => v.toFixed(3) },
+                      { key: 'pearson_residual', header: 'Pearson 잔차', type: 'number', formatter: (v) => v.toFixed(3) },
+                      { key: 'deviance_residual', header: '편차 잔차', type: 'number', formatter: (v) => v.toFixed(3) }
+                    ] as TableColumn[]}
+                    data={results.predicted_values.slice(0, 10)}
+                    compactMode
+                  />
                 </div>
 
                 <div>
@@ -731,28 +692,16 @@ export default function PoissonRegressionPage() {
               <TabsContent value="ratios" className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">발생률비 (Incidence Rate Ratio)</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>변수</TableHead>
-                        <TableHead>발생률비</TableHead>
-                        <TableHead>95% CI</TableHead>
-                        <TableHead>해석</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.rate_ratios.map((ratio, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{ratio.variable}</TableCell>
-                          <TableCell>{ratio.rate_ratio.toFixed(3)}</TableCell>
-                          <TableCell>
-                            [{ratio.ci_lower.toFixed(3)}, {ratio.ci_upper.toFixed(3)}]
-                          </TableCell>
-                          <TableCell className="text-sm">{ratio.interpretation}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <StatisticsTable
+                    columns={[
+                      { key: 'variable', header: '변수', type: 'text' },
+                      { key: 'rate_ratio', header: '발생률비', type: 'number', formatter: (v) => v.toFixed(3) },
+                      { key: 'ci', header: '95% CI', type: 'custom', formatter: (_, row) => `[${row.ci_lower.toFixed(3)}, ${row.ci_upper.toFixed(3)}]` },
+                      { key: 'interpretation', header: '해석', type: 'text' }
+                    ] as TableColumn[]}
+                    data={results.rate_ratios}
+                    compactMode
+                  />
                 </div>
 
                 <div>

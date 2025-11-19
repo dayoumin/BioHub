@@ -23,6 +23,7 @@ import {
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'

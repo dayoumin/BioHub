@@ -3,6 +3,7 @@
 import React, { useCallback, useMemo, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { SignTestVariables } from '@/types/statistics'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'

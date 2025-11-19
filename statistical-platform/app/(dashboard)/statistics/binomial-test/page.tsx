@@ -46,6 +46,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 import type { BinomialTestVariables } from '@/types/statistics'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'

@@ -14,14 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { StatisticsTable, TableColumn, TableRow as StatTableRow } from '@/components/statistics/common/StatisticsTable'
 import {
   BarChart,
   Bar,
@@ -577,40 +570,55 @@ export default function OrdinalRegressionPage() {
               <TabsContent value="coefficients" className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">회귀 계수</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>변수</TableHead>
-                        <TableHead>계수</TableHead>
-                        <TableHead>표준오차</TableHead>
-                        <TableHead>z</TableHead>
-                        <TableHead>p-value</TableHead>
-                        <TableHead>95% CI</TableHead>
-                        <TableHead>오즈비</TableHead>
-                        <TableHead>오즈비 CI</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.coefficients.map((coef, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{coef.variable}</TableCell>
-                          <TableCell>{coef.coefficient.toFixed(4)}</TableCell>
-                          <TableCell>{coef.std_error.toFixed(4)}</TableCell>
-                          <TableCell>{coef.z_value.toFixed(3)}</TableCell>
-                          <TableCell>
-                            <PValueBadge value={coef.p_value} />
-                          </TableCell>
-                          <TableCell>
-                            [{coef.ci_lower.toFixed(3)}, {coef.ci_upper.toFixed(3)}]
-                          </TableCell>
-                          <TableCell>{coef.odds_ratio.toFixed(3)}</TableCell>
-                          <TableCell>
-                            [{coef.or_ci_lower.toFixed(3)}, {coef.or_ci_upper.toFixed(3)}]
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <StatisticsTable
+                    columns={[
+                      { key: 'variable', header: '변수', type: 'text' },
+                      { key: 'coefficient', header: '계수', type: 'number' },
+                      { key: 'std_error', header: '표준오차', type: 'number' },
+                      { key: 'z_value', header: 'z', type: 'number' },
+                      { key: 'p_value', header: 'p-value', type: 'pvalue' },
+                      {
+                        key: 'ci',
+                        header: '95% CI',
+                        type: 'custom',
+                        formatter: (_value: unknown, row: StatTableRow) => {
+                          const ci_lower = row?.ci_lower as number | undefined
+                          const ci_upper = row?.ci_upper as number | undefined
+                          if (ci_lower !== undefined && ci_upper !== undefined) {
+                            return `[${ci_lower.toFixed(3)}, ${ci_upper.toFixed(3)}]`
+                          }
+                          return '-'
+                        }
+                      },
+                      { key: 'odds_ratio', header: '오즈비', type: 'number' },
+                      {
+                        key: 'or_ci',
+                        header: '오즈비 CI',
+                        type: 'custom',
+                        formatter: (_value: unknown, row: StatTableRow) => {
+                          const or_ci_lower = row?.or_ci_lower as number | undefined
+                          const or_ci_upper = row?.or_ci_upper as number | undefined
+                          if (or_ci_lower !== undefined && or_ci_upper !== undefined) {
+                            return `[${or_ci_lower.toFixed(3)}, ${or_ci_upper.toFixed(3)}]`
+                          }
+                          return '-'
+                        }
+                      }
+                    ] as TableColumn[]}
+                    data={results.coefficients.map(coef => ({
+                      variable: coef.variable,
+                      coefficient: coef.coefficient,
+                      std_error: coef.std_error,
+                      z_value: coef.z_value,
+                      p_value: coef.p_value,
+                      ci_lower: coef.ci_lower,
+                      ci_upper: coef.ci_upper,
+                      odds_ratio: coef.odds_ratio,
+                      or_ci_lower: coef.or_ci_lower,
+                      or_ci_upper: coef.or_ci_upper
+                    }))}
+                    compactMode
+                  />
                 </div>
 
                 <div>
@@ -635,34 +643,38 @@ export default function OrdinalRegressionPage() {
               <TabsContent value="thresholds" className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">임계값 (Cut-off Points)</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>임계값</TableHead>
-                        <TableHead>계수</TableHead>
-                        <TableHead>표준오차</TableHead>
-                        <TableHead>z</TableHead>
-                        <TableHead>p-value</TableHead>
-                        <TableHead>95% CI</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.thresholds.map((threshold, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{threshold.threshold}</TableCell>
-                          <TableCell>{threshold.coefficient.toFixed(4)}</TableCell>
-                          <TableCell>{threshold.std_error.toFixed(4)}</TableCell>
-                          <TableCell>{threshold.z_value.toFixed(3)}</TableCell>
-                          <TableCell>
-                            <PValueBadge value={threshold.p_value} />
-                          </TableCell>
-                          <TableCell>
-                            [{threshold.ci_lower.toFixed(3)}, {threshold.ci_upper.toFixed(3)}]
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <StatisticsTable
+                    columns={[
+                      { key: 'threshold', header: '임계값', type: 'text' },
+                      { key: 'coefficient', header: '계수', type: 'number' },
+                      { key: 'std_error', header: '표준오차', type: 'number' },
+                      { key: 'z_value', header: 'z', type: 'number' },
+                      { key: 'p_value', header: 'p-value', type: 'pvalue' },
+                      {
+                        key: 'ci',
+                        header: '95% CI',
+                        type: 'custom',
+                        formatter: (_value: unknown, row: StatTableRow) => {
+                          const ci_lower = row?.ci_lower as number | undefined
+                          const ci_upper = row?.ci_upper as number | undefined
+                          if (ci_lower !== undefined && ci_upper !== undefined) {
+                            return `[${ci_lower.toFixed(3)}, ${ci_upper.toFixed(3)}]`
+                          }
+                          return '-'
+                        }
+                      }
+                    ] as TableColumn[]}
+                    data={results.thresholds.map(threshold => ({
+                      threshold: threshold.threshold,
+                      coefficient: threshold.coefficient,
+                      std_error: threshold.std_error,
+                      z_value: threshold.z_value,
+                      p_value: threshold.p_value,
+                      ci_lower: threshold.ci_lower,
+                      ci_upper: threshold.ci_upper
+                    }))}
+                    compactMode
+                  />
 
                   <Alert className="mt-4">
                     <Info className="h-4 w-4" />
@@ -720,98 +732,111 @@ export default function OrdinalRegressionPage() {
 
                 <div>
                   <h4 className="font-medium mb-3">다중공선성 진단</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>변수</TableHead>
-                        <TableHead>VIF</TableHead>
-                        <TableHead>Tolerance</TableHead>
-                        <TableHead>판정</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.assumptions.multicollinearity.map((vif, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{vif.variable}</TableCell>
-                          <TableCell>{vif.vif.toFixed(3)}</TableCell>
-                          <TableCell>{vif.tolerance.toFixed(3)}</TableCell>
-                          <TableCell>
-                            <Badge variant={vif.vif < 5 ? "default" : vif.vif < 10 ? "secondary" : "destructive"}>
-                              {vif.vif < 5 ? '양호' : vif.vif < 10 ? '주의' : '위험'}
+                  <StatisticsTable
+                    columns={[
+                      { key: 'variable', header: '변수', type: 'text' },
+                      { key: 'vif', header: 'VIF', type: 'number' },
+                      { key: 'tolerance', header: 'Tolerance', type: 'number' },
+                      {
+                        key: 'judgment',
+                        header: '판정',
+                        type: 'custom',
+                        formatter: (_value: unknown, row: StatTableRow) => {
+                          const vifValue = row?.vif as number | undefined
+                          if (vifValue === undefined) return '-'
+                          return (
+                            <Badge variant={vifValue < 5 ? "default" : vifValue < 10 ? "secondary" : "destructive"}>
+                              {vifValue < 5 ? '양호' : vifValue < 10 ? '주의' : '위험'}
                             </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          )
+                        }
+                      }
+                    ] as TableColumn[]}
+                    data={results.assumptions.multicollinearity.map(vif => ({
+                      variable: vif.variable,
+                      vif: vif.vif,
+                      tolerance: vif.tolerance
+                    }))}
+                    compactMode
+                  />
                 </div>
               </TabsContent>
 
               <TabsContent value="predictions" className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">예측 확률</h4>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>관측치</TableHead>
-                        <TableHead>불만족 확률</TableHead>
-                        <TableHead>보통 확률</TableHead>
-                        <TableHead>만족 확률</TableHead>
-                        <TableHead>예측 범주</TableHead>
-                        <TableHead>실제 범주</TableHead>
-                        <TableHead>정확성</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.predicted_probabilities.slice(0, 10).map((pred, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{pred.observation}</TableCell>
-                          <TableCell>{(pred.category_1_prob * 100).toFixed(1)}%</TableCell>
-                          <TableCell>{(pred.category_2_prob * 100).toFixed(1)}%</TableCell>
-                          <TableCell>{(pred.category_3_prob * 100).toFixed(1)}%</TableCell>
-                          <TableCell>{pred.predicted_category}</TableCell>
-                          <TableCell>{pred.actual_category}</TableCell>
-                          <TableCell>
-                            {pred.predicted_category === pred.actual_category ? (
-                              <Badge variant="default">정확</Badge>
-                            ) : (
-                              <Badge variant="secondary">틀림</Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <StatisticsTable
+                    columns={[
+                      { key: 'observation', header: '관측치', type: 'number' },
+                      {
+                        key: 'category_1_prob',
+                        header: '불만족 확률',
+                        type: 'custom',
+                        formatter: (value: unknown) => `${((value as number) * 100).toFixed(1)}%`
+                      },
+                      {
+                        key: 'category_2_prob',
+                        header: '보통 확률',
+                        type: 'custom',
+                        formatter: (value: unknown) => `${((value as number) * 100).toFixed(1)}%`
+                      },
+                      {
+                        key: 'category_3_prob',
+                        header: '만족 확률',
+                        type: 'custom',
+                        formatter: (value: unknown) => `${((value as number) * 100).toFixed(1)}%`
+                      },
+                      { key: 'predicted_category', header: '예측 범주', type: 'number' },
+                      { key: 'actual_category', header: '실제 범주', type: 'number' },
+                      {
+                        key: 'accuracy',
+                        header: '정확성',
+                        type: 'custom',
+                        formatter: (_value: unknown, row: StatTableRow) => {
+                          const predicted = row?.predicted_category as number | undefined
+                          const actual = row?.actual_category as number | undefined
+                          if (predicted === undefined || actual === undefined) return '-'
+                          return predicted === actual ? (
+                            <Badge variant="default">정확</Badge>
+                          ) : (
+                            <Badge variant="secondary">틀림</Badge>
+                          )
+                        }
+                      }
+                    ] as TableColumn[]}
+                    data={results.predicted_probabilities.slice(0, 10).map(pred => ({
+                      observation: pred.observation,
+                      category_1_prob: pred.category_1_prob,
+                      category_2_prob: pred.category_2_prob,
+                      category_3_prob: pred.category_3_prob,
+                      predicted_category: pred.predicted_category,
+                      actual_category: pred.actual_category
+                    }))}
+                    compactMode
+                  />
                 </div>
 
                 <div>
                   <h4 className="font-medium mb-3">혼동 행렬</h4>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>실제\예측</TableHead>
-                            <TableHead>불만족</TableHead>
-                            <TableHead>보통</TableHead>
-                            <TableHead>만족</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {results.classification_metrics.confusion_matrix.map((row, i) => (
-                            <TableRow key={i}>
-                              <TableCell className="font-medium">
-                                {results.classification_metrics.category_labels[i]}
-                              </TableCell>
-                              {row.map((cell, j) => (
-                                <TableCell key={j} className={i === j ? "bg-muted font-medium" : ""}>
-                                  {cell}
-                                </TableCell>
-                              ))}
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <StatisticsTable
+                        columns={[
+                          { key: 'actual', header: '실제\\예측', type: 'text' },
+                          { key: 'pred_1', header: '불만족', type: 'number' },
+                          { key: 'pred_2', header: '보통', type: 'number' },
+                          { key: 'pred_3', header: '만족', type: 'number' }
+                        ] as TableColumn[]}
+                        data={results.classification_metrics.confusion_matrix.map((row, i) => ({
+                          actual: results.classification_metrics.category_labels[i],
+                          pred_1: row[0],
+                          pred_2: row[1],
+                          pred_3: row[2],
+                          _className: ''
+                        }))}
+                        compactMode
+                        bordered
+                      />
                     </div>
 
                     <div>
