@@ -526,7 +526,7 @@ export function VariableSelectorModern({
           {/* 필수 변수 체크 */}
           <div className="flex items-start gap-2">
             {validation.isValid ? (
-              <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+              <CheckCircle2 className="h-5 w-5 text-success mt-0.5" />
             ) : (
               <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
             )}
@@ -542,7 +542,7 @@ export function VariableSelectorModern({
 
           {/* 샘플 크기 */}
           <div className="flex items-start gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+            <CheckCircle2 className="h-5 w-5 text-success mt-0.5" />
             <p className="text-sm">
               샘플 크기: {analysis.summary.totalRows}개
               {requirements.minSampleSize && (

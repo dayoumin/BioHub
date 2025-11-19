@@ -138,7 +138,7 @@ const ROLE_EXPLANATIONS = {
   },
   independent: {
     icon: <GitBranch className="w-4 h-4" />,
-    color: 'text-green-600',
+    color: 'text-success',
     title: '독립변수 (X, Predictor)',
     description: '종속변수에 영향을 주는 예측 변수',
     examples: ['교육 방법', '광고비', '나이', '성별'],
@@ -464,8 +464,8 @@ export function VariableSelector({
                             <div className="flex items-center gap-2">
                               <span className={cn(
                                 "text-lg",
-                                column.type === 'continuous' && "text-blue-500",
-                                column.type === 'categorical' && "text-green-500",
+                                column.type === 'continuous' && "text-info",
+                                column.type === 'categorical' && "text-success",
                                 column.type === 'binary' && "text-purple-500"
                               )}>
                                 {column.type === 'continuous' && <TrendingUp className="w-4 h-4" />}
@@ -497,7 +497,7 @@ export function VariableSelector({
                           </div>
 
                           {isAssigned && (
-                            <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            <CheckCircle2 className="w-4 h-4 text-success" />
                           )}
                         </div>
                       </Card>
@@ -631,7 +631,7 @@ export function VariableSelector({
                             "text-xs mt-2",
                             assignedArray.length < varReq.minCount
                               ? "text-amber-600"
-                              : "text-green-600"
+                              : "text-success"
                           )}>
                             {assignedArray.length} / {varReq.minCount}개 선택됨
                           </p>
