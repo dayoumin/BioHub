@@ -368,7 +368,7 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
                   <Loader2 className="h-5 w-5 animate-spin text-primary flex-shrink-0" />
                 )}
                 {uploadState.status === 'success' && (
-                  <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                  <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
                 )}
                 {uploadState.status === 'error' && (
                   <XCircle className="h-5 w-5 text-destructive flex-shrink-0" />
@@ -384,7 +384,7 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
               )}
 
               {uploadState.status === 'success' && (
-                <div className="mt-2 text-sm text-green-600">
+                <div className="mt-2 text-sm text-success">
                   파싱 완료 ({uploadState.parsedText?.length.toLocaleString()} 문자)
                 </div>
               )}

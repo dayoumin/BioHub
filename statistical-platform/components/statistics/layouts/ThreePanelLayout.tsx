@@ -91,7 +91,7 @@ export function ThreePanelLayout({
                 <div className={cn(
                   "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold",
                   isActive && "bg-primary text-primary-foreground",
-                  isCompleted && !isActive && "bg-green-500 text-white",
+                  isCompleted && !isActive && "bg-success text-white",
                   !isActive && !isCompleted && "bg-muted text-muted-foreground"
                 )}>
                   {isCompleted && !isActive ? (

@@ -124,7 +124,7 @@ export function PyodideLoadingModal({ progress, isVisible }: PyodideLoadingModal
                     <div className="font-medium text-sm">{stage.label}</div>
                     <div className="text-xs text-muted-foreground">{stage.size}</div>
                   </div>
-                  {isCompleted && <span className="text-green-500 text-sm">완료</span>}
+                  {isCompleted && <span className="text-success text-sm">완료</span>}
                   {isCurrent && <span className="text-primary text-sm">로딩 중...</span>}
                 </div>
               )

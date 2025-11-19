@@ -271,14 +271,14 @@ export function FileUpload({ onUploadComplete, className, enableSmartAnalysis = 
               <div className="space-y-6">
                 <div className="flex items-center justify-center">
                   <div className="relative">
-                    <CheckCircle2 className="h-20 w-20 text-green-500 animate-pulse" />
+                    <CheckCircle2 className="h-20 w-20 text-success animate-pulse" />
                     <div className="absolute -top-2 -right-2">
                       <div className="text-2xl animate-bounce">✨</div>
                     </div>
                   </div>
                 </div>
                 <div className="text-center space-y-2">
-                  <p className="text-2xl font-bold text-green-600">🎉 Magic Complete!</p>
+                  <p className="text-2xl font-bold text-success">🎉 Magic Complete!</p>
                   <p className="text-lg font-medium">
                     Dataset "{uploadState.uploadedDataset.name}" analyzed successfully
                   </p>

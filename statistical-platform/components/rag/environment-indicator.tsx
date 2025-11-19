@@ -70,7 +70,7 @@ export function EnvironmentIndicator() {
           <div className="flex items-center gap-2">
             {isLocal ? (
               <>
-                <Monitor className="h-4 w-4 text-green-600" />
+                <Monitor className="h-4 w-4 text-success" />
                 <span className="font-medium">로컬 환경</span>
               </>
             ) : (
@@ -97,7 +97,7 @@ export function EnvironmentIndicator() {
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">PDF 파싱 (Docling)</span>
             {envInfo.doclingAvailable ? (
-              <Badge variant="default" className="gap-1 bg-green-600">
+              <Badge variant="default" className="gap-1 bg-success">
                 <CheckCircle className="h-3 w-3" />
                 사용 가능
               </Badge>
@@ -113,7 +113,7 @@ export function EnvironmentIndicator() {
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">AI 모델 (Ollama)</span>
             {envInfo.ollamaAvailable ? (
-              <Badge variant="default" className="gap-1 bg-green-600">
+              <Badge variant="default" className="gap-1 bg-success">
                 <CheckCircle className="h-3 w-3" />
                 연결됨
               </Badge>

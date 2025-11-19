@@ -153,15 +153,15 @@ export function DataAnalysisFlow({ datasetId, onAnalysisComplete }: DataAnalysis
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                   <span>파일명: {dataset.name}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                   <span>행 개수: {dataset.rowCount?.toLocaleString()}개</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <CheckCircle2 className="h-4 w-4 text-success" />
                   <span>열 개수: {dataset.columns?.length || 0}개</span>
                 </div>
               </div>
@@ -181,7 +181,7 @@ export function DataAnalysisFlow({ datasetId, onAnalysisComplete }: DataAnalysis
                 ))}
                 {!dataset.validation?.warnings?.length && !dataset.validation?.errors?.length && (
                   <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <CheckCircle2 className="h-4 w-4 text-success" />
                     <span>데이터 품질 양호</span>
                   </div>
                 )}

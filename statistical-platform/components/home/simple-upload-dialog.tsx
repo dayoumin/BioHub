@@ -115,7 +115,7 @@ export function SimpleUploadDialog({ open, onOpenChange }: SimpleUploadDialogPro
 
           {uploadState.success ? (
             <div className="text-center py-12 space-y-4">
-              <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+              <CheckCircle2 className="h-16 w-16 text-success mx-auto" />
               <div>
                 <p className="text-xl font-semibold">업로드 완료!</p>
                 <p className="text-muted-foreground">{uploadState.fileName}</p>

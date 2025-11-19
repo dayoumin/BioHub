@@ -130,13 +130,13 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
                   <Download className="h-4 w-4 text-primary" />
                 </div>
                 <CardTitle className="text-base">
-                  1. Ollama 다운로드 및 설치 {ollamaInstalled && <span className="text-xs text-green-600">✓ 설치됨</span>}
+                  1. Ollama 다운로드 및 설치 {ollamaInstalled && <span className="text-xs text-success">✓ 설치됨</span>}
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
               {ollamaInstalled ? (
-                <p className="text-sm text-green-600">✓ Ollama가 이미 설치되어 있습니다</p>
+                <p className="text-sm text-success">✓ Ollama가 이미 설치되어 있습니다</p>
               ) : (
                 <>
                   <Button
@@ -195,7 +195,7 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              {copied && <p className="text-xs text-green-600">✓ 복사되었습니다!</p>}
+              {copied && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
 
               <details className="text-xs">
                 <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
@@ -294,7 +294,7 @@ export function OllamaSetupDialog({ open, onOpenChange, onRetry }: OllamaSetupDi
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-                {copied && <p className="text-xs text-green-600">✓ 복사되었습니다!</p>}
+                {copied && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
               </div>
             </CardContent>
           </Card>

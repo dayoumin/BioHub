@@ -141,8 +141,8 @@ export function PyodideProvider({ children }: { children: ReactNode }) {
 
       {/* 성공 메시지 (우측 하단) */}
       {showSuccess && !isLoading && (
-        <div className="fixed bottom-4 right-4 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 shadow-sm z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+        <div className="fixed bottom-4 right-4 bg-success-bg dark:bg-success-bg border border-success-border dark:border-success-border rounded-lg p-3 shadow-sm z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center gap-2 text-sm text-success dark:text-success">
             <span>✅ 통계 엔진 준비 완료</span>
           </div>
         </div>
