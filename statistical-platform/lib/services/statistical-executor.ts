@@ -388,10 +388,155 @@ export class StatisticalExecutor {
     method: StatisticalMethod,
     data: any
   ): Promise<AnalysisResult> {
-    const groups = Object.values(data.arrays.byGroup || {}) as number[][]
+    const byGroup = data.arrays.byGroup || {}
+    const groupNames = Object.keys(byGroup)
+    const groups = Object.values(byGroup) as number[][]
 
     if (groups.length < 2) {
       throw new Error('ANOVA를 위해 최소 2개 그룹이 필요합니다')
+    }
+
+    // Games-Howell 직접 호출 (사후검정만)
+    if (method.id === 'games-howell') {
+      const ghResult = await pyodideStats.gamesHowellTest(groups, groupNames)
+      const significantCount = ghResult.significant_count || 0
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: groups.reduce((sum, g) => sum + g.length, 0),
+            missingRemoved: 0,
+            groups: groups.length
+          }
+        },
+        mainResults: {
+          statistic: significantCount,
+          pvalue: ghResult.comparisons?.[0]?.pValue || 1,
+          df: 0,
+          significant: significantCount > 0,
+          interpretation: significantCount > 0 ?
+            `${significantCount}개의 유의한 차이가 발견되었습니다` :
+            '유의한 차이가 없습니다'
+        },
+        additionalInfo: {
+          postHoc: ghResult
+        },
+        visualizationData: {
+          type: 'boxplot-multiple',
+          data: groups.map((g, i) => ({
+            values: g,
+            label: groupNames[i] || `Group ${i + 1}`
+          }))
+        },
+        rawResults: ghResult
+      }
+    }
+
+    // ANCOVA: 공변량이 있는 경우
+    if (method.id === 'ancova' && data.arrays.covariate && data.arrays.covariate.length > 0) {
+      const yValues = data.arrays.dependent || groups.flat()
+      const groupValues = data.raw.map((row: Record<string, unknown>) =>
+        row[data.variables.groupVar as string]
+      ).filter((v: unknown) => v != null) as (string | number)[]
+      const covariates = data.arrays.covariate as number[][]
+
+      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates)
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: yValues.length,
+            missingRemoved: 0,
+            groups: groups.length
+          }
+        },
+        mainResults: {
+          statistic: ancovaResult.fStatistic,
+          pvalue: ancovaResult.pValue,
+          df: 0,
+          significant: ancovaResult.pValue < 0.05,
+          interpretation: ancovaResult.pValue < 0.05 ?
+            `공변량 통제 후 그룹 간 유의한 차이가 있습니다 (F=${ancovaResult.fStatistic.toFixed(2)})` :
+            '공변량 통제 후 그룹 간 유의한 차이가 없습니다'
+        },
+        additionalInfo: {},
+        visualizationData: {
+          type: 'boxplot-multiple',
+          data: groups.map((g, i) => ({
+            values: g,
+            label: groupNames[i] || `Group ${i + 1}`
+          }))
+        },
+        rawResults: {
+          ...ancovaResult,
+          covariatesCount: covariates.length
+        }
+      }
+    }
+
+    // 반복측정 ANOVA: within 요인이 있는 경우
+    if (method.id === 'repeated-measures-anova' && data.arrays.within && data.arrays.within.length > 0) {
+      const dataMatrix = data.arrays.within as number[][]
+      const nSubjects = dataMatrix[0]?.length || 0
+      const subjectIds = Array.from({ length: nSubjects }, (_, i) => `S${i + 1}`)
+      const timeLabels = data.withinFactors || dataMatrix.map((_, i) => `T${i + 1}`)
+
+      const rmResult = await pyodideStats.repeatedMeasuresAnovaWorker(
+        dataMatrix,
+        subjectIds,
+        timeLabels
+      )
+
+      // df 처리: { between, within } 객체에서 값 추출
+      const dfValue = typeof rmResult.df === 'object' && rmResult.df !== null
+        ? rmResult.df.within || rmResult.df.between || 0
+        : rmResult.df
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: nSubjects * dataMatrix.length,
+            missingRemoved: 0,
+            groups: dataMatrix.length
+          }
+        },
+        mainResults: {
+          statistic: rmResult.fStatistic,
+          pvalue: rmResult.pValue,
+          df: dfValue,
+          significant: rmResult.pValue < 0.05,
+          interpretation: rmResult.pValue < 0.05 ?
+            `시간에 따른 유의한 변화가 있습니다 (F=${rmResult.fStatistic.toFixed(2)})` :
+            '시간에 따른 유의한 변화가 없습니다'
+        },
+        additionalInfo: {},
+        visualizationData: {
+          type: 'line',
+          data: {
+            labels: timeLabels,
+            means: dataMatrix.map(col =>
+              col.reduce((a, b) => a + b, 0) / col.length
+            )
+          }
+        },
+        rawResults: {
+          ...rmResult,
+          subjects: nSubjects,
+          timePoints: dataMatrix.length
+        }
+      }
     }
 
     const result = await pyodideStats.anova(groups, {
@@ -399,13 +544,12 @@ export class StatisticalExecutor {
     })
 
     // 유의한 경우 사후검정
-    // Games-Howell: 이분산 가정 (등분산 가정 불필요)
+    // Games-Howell: 이분산 가정 (등분산 가정 불필요) - 더 robust
     // Tukey HSD: 등분산 가정
     let postHoc = null
     if (result.pValue < 0.05 && groups.length > 2) {
-      // Games-Howell 사후검정은 별도 구현 필요 (현재 Tukey HSD 사용)
-      // TODO: pyodideStats.gamesHowell 구현 후 활성화
-      postHoc = await pyodideStats.tukeyHSD(groups)
+      // Games-Howell 사용 (이분산에 robust)
+      postHoc = await pyodideStats.gamesHowellTest(groups, groupNames)
     }
 
     return {
@@ -441,7 +585,7 @@ export class StatisticalExecutor {
         type: 'boxplot-multiple',
         data: groups.map((g, i) => ({
           values: g,
-          label: `Group ${i + 1}`
+          label: groupNames[i] || `Group ${i + 1}`
         }))
       },
       rawResults: result

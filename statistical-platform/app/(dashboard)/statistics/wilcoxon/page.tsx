@@ -598,7 +598,7 @@ export default function WilcoxonPage() {
                       <ul className="space-y-2">
                         {analysisResult.interpretation.recommendations.map((rec, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
                             <span className="text-sm text-muted-foreground">{rec}</span>
                           </li>
                         ))}

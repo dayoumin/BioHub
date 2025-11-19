@@ -329,21 +329,21 @@ export default function MoodMedianTestPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-start space-x-2">
-            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+            <CheckCircle className="w-5 h-5 text-success mt-0.5" />
             <div>
               <p className="font-medium">의학 연구</p>
               <p className="text-sm text-muted-foreground">3가지 치료법의 회복 시간 비교 (이상치 많음)</p>
             </div>
           </div>
           <div className="flex items-start space-x-2">
-            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+            <CheckCircle className="w-5 h-5 text-success mt-0.5" />
             <div>
               <p className="font-medium">환경 연구</p>
               <p className="text-sm text-muted-foreground">여러 지역의 오염도 중앙값 비교</p>
             </div>
           </div>
           <div className="flex items-start space-x-2">
-            <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+            <CheckCircle className="w-5 h-5 text-success mt-0.5" />
             <div>
               <p className="font-medium">경제학</p>
               <p className="text-sm text-muted-foreground">국가별 소득 중앙값 비교 (분포 왜곡)</p>

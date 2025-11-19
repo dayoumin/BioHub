@@ -289,19 +289,19 @@ export default function KolmogorovSmirnovTestPage() {
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">정규성 검정 (일표본)</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">두 집단 분포 비교 (이표본)</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">모델 적합도 검정</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">분포 가정 확인</span>
               </div>
             </div>
@@ -466,7 +466,7 @@ export default function KolmogorovSmirnovTestPage() {
         </div>
 
         {/* 주요 결과 요약 */}
-        <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
+        <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>검정 결과</AlertTitle>
           <AlertDescription>

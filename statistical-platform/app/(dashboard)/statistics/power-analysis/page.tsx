@@ -599,12 +599,12 @@ export default function PowerAnalysisPage() {
                 <h3 className="text-lg font-semibold mb-4">분석 요약</h3>
                 {renderSummaryCards()}
               </div>
-              <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
-                <h4 className="font-semibold dark:text-green-200 mb-2">결과 해석</h4>
-                <p className="text-muted-foreground dark:text-green-300">{results.interpretation}</p>
+              <div className="p-4 bg-muted dark:bg-success-bg rounded-lg">
+                <h4 className="font-semibold dark:text-success mb-2">결과 해석</h4>
+                <p className="text-muted-foreground dark:text-success-muted">{results.interpretation}</p>
                 <div className="mt-3">
-                  <h5 className="font-semibold dark:text-green-200">권장사항</h5>
-                  <ul className="text-sm text-muted-foreground dark:text-green-400 space-y-1">
+                  <h5 className="font-semibold dark:text-success">권장사항</h5>
+                  <ul className="text-sm text-muted-foreground dark:text-success-muted space-y-1">
                     {results.recommendations.map((rec, idx) => (
                       <li key={idx}>• {rec}</li>
                     ))}

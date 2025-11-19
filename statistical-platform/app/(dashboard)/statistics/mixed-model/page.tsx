@@ -789,7 +789,7 @@ export default function MixedModelPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {analysisResult.residualAnalysis.normality.assumptionMet ? (
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <CheckCircle className="w-4 h-4 text-success" />
                         ) : (
                           <AlertTriangle className="w-4 h-4 text-red-500" />
                         )}
@@ -813,7 +813,7 @@ export default function MixedModelPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {analysisResult.residualAnalysis.homoscedasticity.assumptionMet ? (
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <CheckCircle className="w-4 h-4 text-success" />
                         ) : (
                           <AlertTriangle className="w-4 h-4 text-red-500" />
                         )}
@@ -837,7 +837,7 @@ export default function MixedModelPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         {analysisResult.residualAnalysis.independence.assumptionMet ? (
-                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <CheckCircle className="w-4 h-4 text-success" />
                         ) : (
                           <AlertTriangle className="w-4 h-4 text-red-500" />
                         )}
@@ -937,7 +937,7 @@ export default function MixedModelPage() {
                   <h4 className="font-medium mb-3">고정효과 해석</h4>
                   <div className="space-y-2">
                     {analysisResult.interpretation.fixedEffectsInterpretation.map((interpretation, index) => (
-                      <div key={index} className="p-3 bg-muted rounded border-l-4 border-green-400">
+                      <div key={index} className="p-3 bg-muted rounded border-l-4 border-success">
                         <p className="text-muted-foreground text-sm">{interpretation}</p>
                       </div>
                     ))}
@@ -968,7 +968,7 @@ export default function MixedModelPage() {
                   <ul className="space-y-2">
                     {analysisResult.interpretation.recommendations.map((recommendation, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
                         <span className="text-sm">{recommendation}</span>
                       </li>
                     ))}

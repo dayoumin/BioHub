@@ -482,7 +482,7 @@ export default function ExploreDataPage() {
                 <p className="text-sm text-muted-foreground">총 결측값</p>
                 <p className="text-2xl font-bold">{totalMissing}</p>
               </div>
-              <AlertCircle className={`w-8 h-8 ${totalMissing === 0 ? 'text-green-500/50' : 'text-orange-500/50'}`} />
+              <AlertCircle className={`w-8 h-8 ${totalMissing === 0 ? 'text-success/50' : 'text-warning/50'}`} />
             </div>
           </CardContent>
         </Card>

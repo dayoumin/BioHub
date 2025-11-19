@@ -648,7 +648,7 @@ export default function RegressionPage() {
 
     return (
       <div className="space-y-6">
-        <Alert className="border-green-500 bg-muted">
+        <Alert className="border-success-border bg-muted">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>모델 요약</AlertTitle>
           <AlertDescription>
@@ -790,7 +790,7 @@ export default function RegressionPage() {
 
     return (
       <div className="space-y-6">
-        <Alert className="border-green-500 bg-muted">
+        <Alert className="border-success-border bg-muted">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>모델 성능</AlertTitle>
           <AlertDescription>

@@ -432,23 +432,23 @@ export default function PCAPage() {
             <CardContent className="space-y-3">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4 text-success" />
                   <span className="text-sm">데이터 차원 축소</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4 text-success" />
                   <span className="text-sm">시각화 및 패턴 발견</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4 text-success" />
                   <span className="text-sm">노이즈 제거</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4 text-success" />
                   <span className="text-sm">특징 선택</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <CheckCircle className="w-4 h-4 text-success" />
                   <span className="text-sm">압축 및 저장공간 절약</span>
                 </div>
               </div>

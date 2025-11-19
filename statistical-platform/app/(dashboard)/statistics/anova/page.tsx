@@ -1095,7 +1095,7 @@ export default function ANOVAPage() {
 
                     {/* Factor 2 */}
                     {results.multiFactorResults.factor2 && (
-                      <div className="pl-3 border-l-2 border-green-500">
+                      <div className="pl-3 border-l-2 border-success">
                         <p className="text-sm font-medium">{results.multiFactorResults.factor2.name}</p>
                         <p className="text-xs">
                           F({results.multiFactorResults.factor2.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor2.fStatistic.toFixed(2)}</strong>,

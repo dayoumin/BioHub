@@ -345,19 +345,19 @@ export default function BinomialTestPage(): React.ReactElement {
         <h3 className="font-semibold text-lg mb-3">주요 특징</h3>
         <ul className="space-y-2">
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
             <span className="text-sm">이진 데이터 (0/1, 성공/실패, 예/아니오)</span>
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
             <span className="text-sm">귀무가설 확률(p₀) 설정 가능</span>
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
             <span className="text-sm">양측/단측 검정 지원</span>
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
             <span className="text-sm">정확한 p-value 계산 (이산분포)</span>
           </li>
         </ul>
@@ -589,7 +589,7 @@ export default function BinomialTestPage(): React.ReactElement {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">결과</span>
-              <span className={results.significant ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+              <span className={results.significant ? 'text-error font-semibold' : 'text-success font-semibold'}>
                 {results.significant ? '유의함' : '유의하지 않음'}
               </span>
             </div>

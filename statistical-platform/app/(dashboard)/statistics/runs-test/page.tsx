@@ -299,19 +299,19 @@ export default function RunsTestPage() {
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">시계열 데이터의 패턴 검정</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">품질 관리 데이터 분석</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">게임 결과의 공정성 검정</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">생물학적 시퀀스 분석</span>
               </div>
             </div>
@@ -440,7 +440,7 @@ export default function RunsTestPage() {
     return (
       <div className="space-y-6">
         {/* 주요 결과 요약 */}
-        <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
+        <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>검정 결과</AlertTitle>
           <AlertDescription>

@@ -365,7 +365,7 @@ export default function SignTestPage() {
               <p className="text-xs text-gray-600">치료 전후 증상 점수, 혈압 변화, 체중 감소</p>
             </div>
             <div>
-              <Scale className="w-8 h-8 mx-auto text-green-500 mb-2" />
+              <Scale className="w-8 h-8 mx-auto text-success mb-2" />
               <h4 className="font-medium">교육</h4>
               <p className="text-xs text-gray-600">교육 전후 성적, 만족도, 이해도 변화</p>
             </div>
@@ -529,7 +529,7 @@ export default function SignTestPage() {
     return (
       <div className="space-y-6">
         {/* 주요 결과 요약 */}
-        <Alert className={results.significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
+        <Alert className={results.significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
           {results.significant ? (
             <CheckCircle2 className="h-4 w-4" />
           ) : (

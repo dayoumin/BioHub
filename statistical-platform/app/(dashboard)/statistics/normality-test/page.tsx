@@ -550,7 +550,7 @@ export default function NormalityTestPage() {
                 <p className="text-sm text-muted-foreground">정규성 지지</p>
                 <p className="text-2xl font-bold">{normalTests}/5</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-500/50" />
+              <CheckCircle className="w-8 h-8 text-success/50" />
             </div>
           </CardContent>
         </Card>
@@ -588,8 +588,8 @@ export default function NormalityTestPage() {
 
     const isNormal = results.overallConclusion === 'normal'
     const IconComponent = isNormal ? CheckCircle : XCircle
-    const colorClass = isNormal ? 'text-muted-foreground dark:text-green-400' : 'text-muted-foreground dark:text-red-400'
-    const bgClass = isNormal ? 'bg-muted dark:bg-green-950/20' : 'bg-muted dark:bg-red-950/20'
+    const colorClass = isNormal ? 'text-muted-foreground dark:text-success' : 'text-muted-foreground dark:text-error'
+    const bgClass = isNormal ? 'bg-muted dark:bg-success-bg' : 'bg-muted dark:bg-error-bg'
 
     return (
       <Card className={bgClass}>
