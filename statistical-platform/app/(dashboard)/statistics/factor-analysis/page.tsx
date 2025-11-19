@@ -17,6 +17,8 @@ import { CheckCircle, CheckCircle2, XCircle, Target, BarChart3, Activity, Zap, T
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Hooks
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'

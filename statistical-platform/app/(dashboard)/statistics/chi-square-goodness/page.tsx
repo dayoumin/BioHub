@@ -586,14 +586,25 @@ export default function ChiSquareGoodnessPage() {
 
                   <StatisticsTable
                     columns={frequencyColumns}
-                    data={results.categories.map(category => ({
-                      category: category.category,
-                      observed: category.observed,
-                      expected: category.expected,
-                      residual: category.residual,
-                      contribution: category.contribution,
-                      percentage: (category.observed / results.totalN) * 100
-                    }))}
+                    data={[
+                      ...results.categories.map(category => ({
+                        category: category.category,
+                        observed: category.observed,
+                        expected: category.expected,
+                        residual: category.residual,
+                        contribution: category.contribution,
+                        percentage: category.observed / results.totalN
+                      })),
+                      // 총계 행
+                      {
+                        category: '총계',
+                        observed: results.totalN,
+                        expected: results.totalN,
+                        residual: 0,
+                        contribution: results.statistic,
+                        percentage: 1
+                      }
+                    ]}
                   />
                 </CardContent>
               </Card>

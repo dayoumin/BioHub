@@ -29,6 +29,7 @@ import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 // McNemar 검정 결과 타입
 interface McNemarTestResult {

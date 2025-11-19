@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'

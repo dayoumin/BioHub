@@ -31,6 +31,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { StatisticsTable, type TableColumn, type TableRow as StatTableRow } from '@/components/statistics/common/StatisticsTable'
 
 // Services & Types
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
