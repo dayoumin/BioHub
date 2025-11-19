@@ -356,19 +356,19 @@ export default function WelchTPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 두 독립집단의 평균 비교
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 등분산 가정이 충족되지 않을 때 사용
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 표본크기가 다를 때 더 안정적
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 일반 t-검정보다 보수적이지만 정확함
               </li>
             </ul>
@@ -385,19 +385,19 @@ export default function WelchTPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>데이터:</strong> 연속형 변수</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>그룹:</strong> 정확히 2개 독립집단</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>정규성:</strong> 정규분포 또는 n≥30</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>등분산:</strong> 가정 불필요 ⭐</span>
               </li>
             </ul>
@@ -647,7 +647,7 @@ export default function WelchTPage() {
                         {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
                       </p>
                     </div>
-                    <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-green-500/50' : 'text-red-500/50'}`} />
+                    <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-stat-significant' : 'text-stat-non-significant'}`} />
                   </div>
                 </CardContent>
               </Card>
@@ -665,10 +665,10 @@ export default function WelchTPage() {
               </Card>
             </div>
 
-            <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
-              <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
-              <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
-              <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
+            <div className="p-4 bg-muted rounded-lg">
+              <h4 className="font-semibold mb-2">결론</h4>
+              <p className="text-muted-foreground">{results.conclusion}</p>
+              <p className="text-sm text-muted-foreground mt-1">{results.interpretation}</p>
             </div>
           </TabsContent>
 
@@ -732,13 +732,13 @@ export default function WelchTPage() {
           </TabsContent>
 
           <TabsContent value="assumptions" className="space-y-6">
-            <Card className={results.equalVariances.assumption === 'violated' ? 'border bg-muted dark:bg-orange-950/20' : 'border bg-muted dark:bg-green-950/20'}>
+            <Card className={results.equalVariances.assumption === 'violated' ? 'border bg-warning-bg' : 'border bg-success-bg'}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   {results.equalVariances.assumption === 'violated' ? (
-                    <XCircle className="w-5 h-5 text-muted-foreground" />
+                    <XCircle className="w-5 h-5 text-warning" />
                   ) : (
-                    <CheckCircle className="w-5 h-5 text-muted-foreground" />
+                    <CheckCircle className="w-5 h-5 text-success" />
                   )}
                   등분산 가정 검토 (Levene 검정)
                 </CardTitle>
@@ -763,8 +763,8 @@ export default function WelchTPage() {
                   </div>
                 </div>
 
-                <div className={`p-3 rounded-lg ${results.equalVariances.assumption === 'violated' ? 'bg-muted dark:bg-orange-950/40' : 'bg-muted dark:bg-green-950/40'}`}>
-                  <p className={`text-sm ${results.equalVariances.assumption === 'violated' ? ' dark:text-orange-200' : ' dark:text-green-200'}`}>
+                <div className={`p-3 rounded-lg ${results.equalVariances.assumption === 'violated' ? 'bg-warning-bg' : 'bg-success-bg'}`}>
+                  <p className={`text-sm ${results.equalVariances.assumption === 'violated' ? 'text-warning' : 'text-success'}`}>
                     {results.equalVariances.assumption === 'violated' ? (
                       <>
                         <AlertCircle className="w-4 h-4 inline mr-1" />

@@ -314,7 +314,7 @@ export default function OneSampleTPage() {
                   {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
                 </p>
               </div>
-              <TrendingUp className={`w-8 h-8 ${isSignificant ? 'text-green-500/50' : 'text-red-500/50'}`} />
+              <TrendingUp className={`w-8 h-8 ${isSignificant ? 'text-stat-significant' : 'text-stat-non-significant'}`} />
             </div>
           </CardContent>
         </Card>
@@ -399,15 +399,15 @@ export default function OneSampleTPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 표본 평균이 특정 기준값과 다른지 검정
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 모집단 평균에 대한 가설 검정
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 신뢰구간 추정
               </li>
             </ul>
@@ -424,15 +424,15 @@ export default function OneSampleTPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>데이터:</strong> 연속형 변수</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>정규성:</strong> 정규분포 또는 n≥30</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>표본크기:</strong> 최소 5개 (30개 이상 권장)</span>
               </li>
             </ul>
@@ -645,10 +645,10 @@ export default function OneSampleTPage() {
             <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
             {renderSummaryCards()}
           </div>
-          <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
-            <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
-            <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
-            <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
+          <div className="p-4 bg-muted rounded-lg">
+            <h4 className="font-semibold mb-2">결론</h4>
+            <p className="text-muted-foreground">{results.conclusion}</p>
+            <p className="text-sm text-muted-foreground mt-1">{results.interpretation}</p>
           </div>
         </TabsContent>
 
