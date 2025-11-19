@@ -209,7 +209,7 @@ export class SmartRecommender {
 
     // 상관분석 키워드
     if (text.includes('상관') || text.includes('관계') || text.includes('연관')) {
-      methods.push({ id: 'pearson-correlation', name: '상관분석', description: '변수 간 상관관계', category: 'regression' })
+      methods.push({ id: 'pearson-correlation', name: '상관분석', description: '변수 간 상관관계', category: 'correlation' })
       matchScore += 0.3
     }
 
@@ -233,7 +233,7 @@ export class SmartRecommender {
 
     // 카이제곱 키워드
     if (text.includes('카이') || text.includes('빈도') || text.includes('독립성')) {
-      methods.push({ id: 'chi-square-independence', name: '카이제곱 검정', description: '범주형 변수 독립성', category: 'nonparametric' })
+      methods.push({ id: 'chi-square-independence', name: '카이제곱 검정', description: '범주형 변수 독립성', category: 'chi-square' })
       matchScore += 0.3
     }
 

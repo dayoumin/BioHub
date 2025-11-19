@@ -58,7 +58,7 @@ export interface StatisticalMethod {
   id: string
   name: string
   description: string
-  category: 'descriptive' | 't-test' | 'anova' | 'regression' | 'nonparametric' | 'advanced'
+  category: 'descriptive' | 't-test' | 'anova' | 'regression' | 'correlation' | 'chi-square' | 'nonparametric' | 'advanced'
   subcategory?: string
   requirements?: {
     minSampleSize?: number

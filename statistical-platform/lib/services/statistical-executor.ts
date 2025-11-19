@@ -120,6 +120,9 @@ export class StatisticalExecutor {
         case 'nonparametric':
           result = await this.executeNonparametric(method, preparedData)
           break
+        case 'chi-square':
+          result = await this.executeChiSquare(method, preparedData)
+          break
         case 'multivariate':
           result = await this.executeMultivariate(method, preparedData)
           break
@@ -754,6 +757,56 @@ export class StatisticalExecutor {
   }
 
   /**
+   * 카이제곱 검정 실행
+   */
+  private async executeChiSquare(
+    method: StatisticalMethod,
+    data: any
+  ): Promise<AnalysisResult> {
+    const result = await pyodideStats.chiSquare(data.data) as {
+      statistic: number
+      pvalue: number
+      df: number
+      cramersV?: number
+      contingencyTable?: number[][]
+    }
+
+    return {
+      metadata: {
+        method: method.id,
+        methodName: method.name,
+        timestamp: '',
+        duration: 0,
+        dataInfo: {
+          totalN: data.totalN,
+          missingRemoved: 0
+        }
+      },
+      mainResults: {
+        statistic: result.statistic,
+        pvalue: result.pvalue,
+        df: result.df,
+        significant: result.pvalue < 0.05,
+        interpretation: result.pvalue < 0.05 ?
+          '변수 간 유의한 연관성이 있습니다' :
+          '변수 간 유의한 연관성이 없습니다'
+      },
+      additionalInfo: {
+        effectSize: result.cramersV ? {
+          type: "Cramer's V",
+          value: result.cramersV,
+          interpretation: this.interpretCramersV(result.cramersV)
+        } : undefined
+      },
+      visualizationData: {
+        type: 'contingency-table',
+        data: result.contingencyTable
+      },
+      rawResults: result
+    }
+  }
+
+  /**
    * Cohen's d 계산
    */
   private async calculateCohensD(group1: number[], group2: number[]): Promise<number> {
@@ -812,5 +865,12 @@ export class StatisticalExecutor {
     if (alpha < 0.8) return '수용 가능'
     if (alpha < 0.9) return '양호'
     return '우수'
+  }
+
+  private interpretCramersV(v: number): string {
+    if (v < 0.1) return '매우 약함'
+    if (v < 0.3) return '약함'
+    if (v < 0.5) return '중간'
+    return '강함'
   }
 }
