@@ -76,27 +76,21 @@ async function fetchWithRetry(
  * Docling 서버 가용성 체크 (기본: localhost:8000)
  *
  * 로직:
- * 1. NEXT_PUBLIC_DOCLING_ENDPOINT 설정됨 → 어디서든 체크 시도 (로컬/클라우드 무관)
- * 2. 설정 없음 + 로컬 환경 → 기본 localhost:8000 체크
- * 3. 설정 없음 + 웹 환경 → 불가 (localhost 접근 불가)
+ * 1. NEXT_PUBLIC_DOCLING_ENDPOINT 설정됨 → 해당 endpoint 체크
+ * 2. 설정 없음 → 기본 localhost:8000 체크 (브라우저에서 로컬 서버 직접 연결)
+ *
+ * 참고: 브라우저는 localhost에 직접 연결 가능 (same-origin이 아니어도 fetch 시도 가능)
  */
 export async function checkDoclingAvailable(): Promise<boolean> {
   const doclingEndpoint = process.env.NEXT_PUBLIC_DOCLING_ENDPOINT
 
-  // 명시적 endpoint 설정이 있으면 어디서든 체크 시도
+  // 명시적 endpoint 설정이 있으면 해당 endpoint 체크
   if (doclingEndpoint) {
     return fetchWithRetry(`${doclingEndpoint}/health`)
   }
 
-  // 설정 없음 → 환경에 따라 판단
-  const env = detectEnvironment()
-
-  // 웹 환경에서는 기본 localhost 접근 불가 (CORS 차단)
-  if (env === 'web') {
-    return false
-  }
-
-  // 로컬 환경에서는 기본 localhost:8000 체크
+  // 설정 없음 → 기본 localhost:8000 체크
+  // 웹 환경에서도 사용자 로컬 PC의 Docling 서버에 연결 시도
   return fetchWithRetry('http://localhost:8000/health')
 }
 
