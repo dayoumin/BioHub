@@ -349,17 +349,17 @@ export const DataValidationStep = memo(function DataValidationStep({
 
       {/* 검증 요약 */}
       <div className={`rounded-lg p-6 ${
-        hasErrors ? 'bg-red-50 dark:bg-red-950/20' :
-        hasWarnings ? 'bg-yellow-50 dark:bg-yellow-950/20' :
-        'bg-green-50 dark:bg-green-950/20'
+        hasErrors ? 'bg-error-bg' :
+        hasWarnings ? 'bg-warning-bg' :
+        'bg-success-bg'
       }`}>
         <div className="flex items-center space-x-3 mb-4">
           {hasErrors ? (
-            <XCircle className="w-6 h-6 text-red-600" />
+            <XCircle className="w-6 h-6 text-error" />
           ) : hasWarnings ? (
-            <AlertTriangle className="w-6 h-6 text-yellow-600" />
+            <AlertTriangle className="w-6 h-6 text-warning" />
           ) : (
-            <CheckCircle className="w-6 h-6 text-green-600" />
+            <CheckCircle className="w-6 h-6 text-success" />
           )}
           <h3 className="text-lg font-semibold">
             {hasErrors ? '데이터 검증 실패' :
@@ -457,7 +457,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                   </p>
                 </div>
                 {/* 완전성 */}
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="p-3 bg-success-bg rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">데이터 완전성</p>
                   <p className="text-xl font-bold">
                     {((1 - validationResults.missingValues / (validationResults.totalRows * validationResults.columnCount)) * 100).toFixed(1)}%
@@ -745,18 +745,18 @@ export const DataValidationStep = memo(function DataValidationStep({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 전체 상태 요약 */}
             <Card className={`border-2 ${assumptionResults?.summary?.canUseParametric
-              ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20'
-              : 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20'}`}>
+              ? 'border-success-border bg-success-bg'
+              : 'border-warning-border bg-warning-bg'}`}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   {assumptionResults?.summary?.canUseParametric ? (
                     <>
-                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <CheckCircle className="h-5 w-5 text-success" />
                       모수 검정 가능
                     </>
                   ) : (
                     <>
-                      <AlertTriangle className="h-5 w-5 text-amber-600" />
+                      <AlertTriangle className="h-5 w-5 text-warning" />
                       비모수 검정 권장
                     </>
                   )}
@@ -862,15 +862,15 @@ export const DataValidationStep = memo(function DataValidationStep({
                     데이터가 종 모양의 정규분포를 따르는지 확인
                   </p>
                   <div className="space-y-1">
-                    <p className="text-xs"><span className="text-green-600">✓</span> 충족 시: t-test, ANOVA, 회귀분석</p>
-                    <p className="text-xs"><span className="text-amber-600">✗</span> 위반 시: Mann-Whitney, Kruskal-Wallis</p>
+                    <p className="text-xs"><span className="text-success">✓</span> 충족 시: t-test, ANOVA, 회귀분석</p>
+                    <p className="text-xs"><span className="text-warning">✗</span> 위반 시: Mann-Whitney, Kruskal-Wallis</p>
                   </div>
                 </div>
 
                 <div className="p-3 bg-white dark:bg-gray-900 rounded-lg border">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1.5 bg-green-100 dark:bg-green-900 rounded">
-                      <Activity className="h-4 w-4 text-green-600" />
+                    <div className="p-1.5 bg-success-bg rounded">
+                      <Activity className="h-4 w-4 text-success" />
                     </div>
                     <h4 className="font-semibold text-sm">등분산성 (Homogeneity)</h4>
                   </div>
@@ -878,8 +878,8 @@ export const DataValidationStep = memo(function DataValidationStep({
                     그룹 간 분산(퍼짐 정도)이 비슷한지 확인
                   </p>
                   <div className="space-y-1">
-                    <p className="text-xs"><span className="text-green-600">✓</span> 충족 시: 일반 t-test, ANOVA</p>
-                    <p className="text-xs"><span className="text-amber-600">✗</span> 위반 시: Welch's t-test, Games-Howell</p>
+                    <p className="text-xs"><span className="text-success">✓</span> 충족 시: 일반 t-test, ANOVA</p>
+                    <p className="text-xs"><span className="text-warning">✗</span> 위반 시: Welch's t-test, Games-Howell</p>
                   </div>
                 </div>
 
@@ -894,8 +894,8 @@ export const DataValidationStep = memo(function DataValidationStep({
                     각 관측치가 서로 독립적인지 확인
                   </p>
                   <div className="space-y-1">
-                    <p className="text-xs"><span className="text-green-600">✓</span> 충족 시: 대부분의 통계 검정</p>
-                    <p className="text-xs"><span className="text-amber-600">✗</span> 위반 시: 시계열 분석, 혼합 모델</p>
+                    <p className="text-xs"><span className="text-success">✓</span> 충족 시: 대부분의 통계 검정</p>
+                    <p className="text-xs"><span className="text-warning">✗</span> 위반 시: 시계열 분석, 혼합 모델</p>
                   </div>
                 </div>
               </div>
@@ -1134,7 +1134,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                       <Badge variant="warning" className="mt-1 text-xs">소표본</Badge>
                     )}
                   </div>
-                  <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                  <div className="p-3 bg-success-bg rounded-lg">
                     <p className="text-xs text-muted-foreground mb-1">연구 설계</p>
                     <p className="text-lg font-semibold">{dataCharacteristics.studyDesign}</p>
                   </div>
@@ -1221,7 +1221,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                               <span className="text-muted-foreground">Shapiro-Wilk</span>
                               <div className="flex items-center gap-3">
                                 <span>W = {test.shapiroWilk.statistic.toFixed(4)}</span>
-                                <span className={test.shapiroWilk.pValue > alpha ? 'text-green-600' : 'text-amber-600'}>
+                                <span className={test.shapiroWilk.pValue > alpha ? 'text-stat-non-significant' : 'text-stat-significant'}>
                                   p = {test.shapiroWilk.pValue.toFixed(4)}
                                 </span>
                               </div>
@@ -1234,7 +1234,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                               <span className="text-muted-foreground">Anderson-Darling</span>
                               <div className="flex items-center gap-3">
                                 <span>A² = {test.andersonDarling.statistic.toFixed(4)}</span>
-                                <span className={test.andersonDarling.pValue > alpha ? 'text-green-600' : 'text-amber-600'}>
+                                <span className={test.andersonDarling.pValue > alpha ? 'text-stat-non-significant' : 'text-stat-significant'}>
                                   p = {test.andersonDarling.pValue.toFixed(4)}
                                 </span>
                               </div>
@@ -1247,7 +1247,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                               <span className="text-muted-foreground">D'Agostino-Pearson</span>
                               <div className="flex items-center gap-3">
                                 <span>K² = {test.dagostinoPearson.statistic.toFixed(4)}</span>
-                                <span className={test.dagostinoPearson.pValue > alpha ? 'text-green-600' : 'text-amber-600'}>
+                                <span className={test.dagostinoPearson.pValue > alpha ? 'text-stat-non-significant' : 'text-stat-significant'}>
                                   p = {test.dagostinoPearson.pValue.toFixed(4)}
                                 </span>
                               </div>
@@ -1258,11 +1258,11 @@ export const DataValidationStep = memo(function DataValidationStep({
                         {/* 해석 */}
                         <div className="mt-3 p-2 bg-muted/30 rounded text-xs">
                           {test.summary?.isNormal ? (
-                            <p className="text-green-700 dark:text-green-400">
+                            <p className="text-success">
                               ✓ 정규분포를 따릅니다. 모수 검정 사용 가능
                             </p>
                           ) : (
-                            <p className="text-amber-700 dark:text-amber-400">
+                            <p className="text-warning">
                               ✗ 정규분포를 따르지 않습니다. 비모수 검정 권장
                             </p>
                           )}
@@ -1297,7 +1297,7 @@ export const DataValidationStep = memo(function DataValidationStep({
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">p-value</span>
-                            <span className={(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0) > alpha ? 'text-green-600' : 'text-amber-600'}>
+                            <span className={(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0) > alpha ? 'text-stat-non-significant' : 'text-stat-significant'}>
                               {(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0).toFixed(4)}
                             </span>
                           </div>
@@ -1306,11 +1306,11 @@ export const DataValidationStep = memo(function DataValidationStep({
                         {/* 해석 */}
                         <div className="mt-3 p-2 bg-muted/30 rounded text-xs">
                           {(assumptionResults.homogeneity.levene?.pValue ?? assumptionResults.homogeneity.bartlett?.pValue ?? 0) > alpha ? (
-                            <p className="text-green-700 dark:text-green-400">
+                            <p className="text-success">
                               ✓ 그룹 간 분산이 동일합니다. 일반 ANOVA 사용 가능
                             </p>
                           ) : (
-                            <p className="text-amber-700 dark:text-amber-400">
+                            <p className="text-warning">
                               ✗ 그룹 간 분산이 다릅니다. Welch's ANOVA 또는 Games-Howell 권장
                             </p>
                           )}
@@ -1367,8 +1367,8 @@ export const DataValidationStep = memo(function DataValidationStep({
                           </ul>
                         </div>
 
-                        <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 rounded text-xs">
-                          <p className="text-green-700 dark:text-green-400">
+                        <div className="mt-3 p-2 bg-success-bg rounded text-xs">
+                          <p className="text-success">
                             ✓ 대부분의 통계 검정에서 샘플 독립성을 가정합니다
                           </p>
                         </div>

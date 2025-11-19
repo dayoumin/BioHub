@@ -49,13 +49,13 @@ export const AssumptionResultsPanel = memo(function AssumptionResultsPanel({
         {/* Icon */}
         <div className={`mt-1 p-2 rounded-full ${
           summary.canUseParametric
-            ? 'bg-green-100 dark:bg-green-900/30'
-            : 'bg-amber-100 dark:bg-amber-900/30'
+            ? 'bg-success-bg'
+            : 'bg-warning-bg'
         }`}>
           {summary.canUseParametric ? (
-            <CheckCircle className="w-5 h-5 text-green-600" />
+            <CheckCircle className="w-5 h-5 text-success" />
           ) : (
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
+            <AlertTriangle className="w-5 h-5 text-warning" />
           )}
         </div>
 
@@ -177,15 +177,15 @@ function ParametricMethods() {
   return (
     <>
       <div className="flex items-start gap-2">
-        <span className="text-green-600">✓</span>
+        <span className="text-success">✓</span>
         <span><strong>t-검정</strong>: 두 그룹 평균 비교</span>
       </div>
       <div className="flex items-start gap-2">
-        <span className="text-green-600">✓</span>
+        <span className="text-success">✓</span>
         <span><strong>ANOVA</strong>: 세 그룹 이상 평균 비교</span>
       </div>
       <div className="flex items-start gap-2">
-        <span className="text-green-600">✓</span>
+        <span className="text-success">✓</span>
         <span><strong>선형 회귀</strong>: 예측 및 관계 분석</span>
       </div>
     </>
