@@ -22,6 +22,7 @@ import {
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -1390,31 +1391,52 @@ export default function ANOVAPage() {
           )}
 
           {/* 효과 크기 및 검정력 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">효과 크기 및 검정력</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">η² (Eta Squared)</p>
-                  <p className="text-lg font-semibold">{results.etaSquared.toFixed(3)}</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">ω² (Omega Squared)</p>
-                  <p className="text-lg font-semibold">{results.omegaSquared.toFixed(3)}</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Cohen's f</p>
-                  <p className="text-lg font-semibold">{results.powerAnalysis.cohensF.toFixed(3)}</p>
-                </div>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">검정력</p>
-                  <p className="text-lg font-semibold">{(results.powerAnalysis.observedPower * 100).toFixed(1)}%</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <h3 className="text-base font-semibold">효과 크기 및 검정력</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <EffectSizeCard
+                title="Eta Squared"
+                value={results.etaSquared}
+                type="eta_squared"
+                description="집단 간 분산이 전체 분산에서 차지하는 비율"
+                showVisualScale={true}
+              />
+              <EffectSizeCard
+                title="Omega Squared"
+                value={results.omegaSquared}
+                type="omega_squared"
+                description="모집단 효과크기의 편향 보정 추정치"
+                showVisualScale={true}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Cohen&apos;s f</p>
+                    <p className="text-2xl font-bold">{results.powerAnalysis.cohensF.toFixed(3)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {results.powerAnalysis.cohensF >= 0.4 ? '큰 효과' :
+                       results.powerAnalysis.cohensF >= 0.25 ? '중간 효과' :
+                       results.powerAnalysis.cohensF >= 0.1 ? '작은 효과' : '무시할 만한 효과'}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">통계적 검정력</p>
+                    <p className="text-2xl font-bold">{(results.powerAnalysis.observedPower * 100).toFixed(1)}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {results.powerAnalysis.observedPower >= 0.8 ? '충분함' :
+                       results.powerAnalysis.observedPower >= 0.5 ? '보통' : '부족함'}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       )}
     </TwoPanelLayout>
