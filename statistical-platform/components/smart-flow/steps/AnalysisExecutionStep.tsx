@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { StatisticalExecutor } from '@/lib/services/executors'
-import type { AnalysisResult } from '@/lib/services/executors'
+import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
+import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisExecutionStepProps } from '@/types/smart-flow-navigation'
@@ -42,7 +43,7 @@ export function AnalysisExecutionStep({
   const [executionLog, setExecutionLog] = useState<string[]>([])
   const [showDetailedLog, setShowDetailedLog] = useState(false)
   const [estimatedTime, setEstimatedTime] = useState(5) // 초 단위
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
+  const [analysisResult, setAnalysisResult] = useState<ExecutorResult | null>(null)
 
   // Store에서 데이터 가져오기
   const { uploadedData, validationResults } = useSmartFlowStore()
@@ -166,9 +167,10 @@ export function AnalysisExecutionStep({
       setProgress(100)
       setAnalysisResult(result)
 
-      // 결과 전달
+      // 결과 전달 - Executor 결과를 Smart Flow UI 타입으로 변환
       if (onAnalysisComplete) {
-        onAnalysisComplete(result)
+        const transformedResult = transformExecutorResult(result)
+        onAnalysisComplete(transformedResult)
       }
 
       // 다음 단계로 자동 이동 (2초 후)

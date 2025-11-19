@@ -8,7 +8,7 @@ import {
   getEffectSizeInfo
 } from '@/lib/utils/result-transformer'
 import { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
-import { AnalysisResult as SmartFlowResult, EffectSizeInfo } from '@/types/smart-flow'
+import { EffectSizeInfo } from '@/types/smart-flow'
 
 describe('result-transformer', () => {
   describe('transformExecutorResult', () => {
@@ -16,14 +16,16 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 'Independent t-test',
-          sampleSize: 30,
-          executionTime: 150
+          timestamp: new Date().toISOString(),
+          duration: 150,
+          dataSize: 30
         },
         mainResults: {
           statistic: 2.45,
           pvalue: 0.021,
           interpretation: '두 그룹 간 유의한 차이가 있습니다.'
-        }
+        },
+        additionalInfo: {}
       }
 
       const result = transformExecutorResult(executorResult)
@@ -38,8 +40,9 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 't-test',
-          sampleSize: 50,
-          executionTime: 100
+          timestamp: new Date().toISOString(),
+          duration: 100,
+          dataSize: 50
         },
         mainResults: {
           statistic: 3.2,
@@ -70,8 +73,9 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 't-test',
-          sampleSize: 40,
-          executionTime: 120
+          timestamp: new Date().toISOString(),
+          duration: 120,
+          dataSize: 40
         },
         mainResults: {
           statistic: 2.1,
@@ -82,7 +86,8 @@ describe('result-transformer', () => {
             level: 0.95
           },
           interpretation: 'Test'
-        }
+        },
+        additionalInfo: {}
       }
 
       const result = transformExecutorResult(executorResult)
@@ -97,8 +102,9 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 'ANOVA',
-          sampleSize: 90,
-          executionTime: 200
+          timestamp: new Date().toISOString(),
+          duration: 200,
+          dataSize: 90
         },
         mainResults: {
           statistic: 5.67,
@@ -113,7 +119,6 @@ describe('result-transformer', () => {
               group2: 'B',
               meanDiff: 2.5,
               pvalue: 0.012,
-              pvalueAdjusted: 0.036,
               significant: true
             },
             {
@@ -121,7 +126,6 @@ describe('result-transformer', () => {
               group2: 'C',
               meanDiff: 1.2,
               pvalue: 0.234,
-              pvalueAdjusted: 0.702,
               significant: false
             }
           ]
@@ -142,8 +146,9 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 'Linear Regression',
-          sampleSize: 100,
-          executionTime: 250
+          timestamp: new Date().toISOString(),
+          duration: 250,
+          dataSize: 100
         },
         mainResults: {
           statistic: 45.3,
@@ -177,8 +182,9 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 't-test',
-          sampleSize: 60,
-          executionTime: 100
+          timestamp: new Date().toISOString(),
+          duration: 100,
+          dataSize: 60
         },
         mainResults: {
           statistic: 2.8,
@@ -206,8 +212,9 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 't-test',
-          sampleSize: 40,
-          executionTime: 80
+          timestamp: new Date().toISOString(),
+          duration: 80,
+          dataSize: 40
         },
         mainResults: {
           statistic: 2.0,
@@ -234,14 +241,16 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 'ANOVA',
-          sampleSize: 60,
-          executionTime: 150
+          timestamp: new Date().toISOString(),
+          duration: 150,
+          dataSize: 60
         },
         mainResults: {
           statistic: 4.5,
           pvalue: 0.015,
           interpretation: 'Test'
         },
+        additionalInfo: {},
         visualizationData: {
           type: 'boxplot',
           data: {
@@ -263,8 +272,9 @@ describe('result-transformer', () => {
       const executorResult: ExecutorResult = {
         metadata: {
           method: 'Logistic Regression',
-          sampleSize: 200,
-          executionTime: 300
+          timestamp: new Date().toISOString(),
+          duration: 300,
+          dataSize: 200
         },
         mainResults: {
           statistic: 25.4,

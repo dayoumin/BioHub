@@ -216,9 +216,15 @@ export function AnalysisHistoryPanel() {
                         {typeof item.results.pValue === 'number' ? item.results.pValue.toFixed(4) : 'N/A'}
                       </strong>
                     </span>
-                    {'effectSize' in item.results && typeof item.results.effectSize === 'number' && (
+                    {'effectSize' in item.results && item.results.effectSize != null && (
                       <span>
-                        효과크기: <strong>{item.results.effectSize.toFixed(2)}</strong>
+                        효과크기: <strong>
+                          {typeof item.results.effectSize === 'number'
+                            ? item.results.effectSize.toFixed(2)
+                            : typeof item.results.effectSize === 'object' && 'value' in item.results.effectSize
+                              ? (item.results.effectSize as { value: number }).value.toFixed(2)
+                              : 'N/A'}
+                        </strong>
                       </span>
                     )}
                   </div>
