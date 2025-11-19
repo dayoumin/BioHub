@@ -33,28 +33,25 @@ const OS_CONFIG = {
     pythonCheck: 'python --version',
     pipInstall: 'pip install docling',
     serverStart: 'uvicorn scripts.docling-server:app --port 8000',
-    terminalName: '명령 프롬프트 (cmd) 또는 PowerShell',
   },
   mac: {
     name: 'macOS',
     pythonCheck: 'python3 --version',
     pipInstall: 'pip3 install docling',
     serverStart: 'uvicorn scripts.docling-server:app --port 8000',
-    terminalName: '터미널 (Terminal)',
   },
   linux: {
     name: 'Linux',
     pythonCheck: 'python3 --version',
     pipInstall: 'pip3 install docling',
     serverStart: 'uvicorn scripts.docling-server:app --port 8000',
-    terminalName: '터미널',
   },
 }
 
 export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetupDialogProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [os, setOs] = useState<'windows' | 'mac' | 'linux'>('windows')
-  const [copied, setCopied] = useState(false)
+  const [copiedStep, setCopiedStep] = useState<number | null>(null)
   const [doclingInstalled, setDoclingInstalled] = useState(false)
 
   // Docling 서버 상태 체크 (localhost:8000)
@@ -89,10 +86,10 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
 
   const osConfig = OS_CONFIG[os]
 
-  const copyCommand = async (command: string) => {
+  const copyCommand = async (command: string, step: number) => {
     await navigator.clipboard.writeText(command)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setCopiedStep(step)
+    setTimeout(() => setCopiedStep(null), 2000)
   }
 
   const handleRetry = () => {
@@ -134,8 +131,9 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Python 확인 명령어 복사"
                   onClick={() => {
-                    copyCommand(osConfig.pythonCheck)
+                    copyCommand(osConfig.pythonCheck, 1)
                     setCurrentStep(2)
                   }}
                   className="h-8 w-8 flex-shrink-0"
@@ -143,7 +141,7 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              {copied && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
+              {copiedStep === 1 && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
               <p className="text-xs text-muted-foreground">
                 Python이 없으면{' '}
                 <a
@@ -181,8 +179,9 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
                     <Button
                       variant="ghost"
                       size="icon"
+                      aria-label="Docling 설치 명령어 복사"
                       onClick={() => {
-                        copyCommand(osConfig.pipInstall)
+                        copyCommand(osConfig.pipInstall, 2)
                         setCurrentStep(3)
                       }}
                       className="h-8 w-8 flex-shrink-0"
@@ -190,7 +189,7 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
-                  {copied && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
+                  {copiedStep === 2 && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
                   <p className="text-xs text-muted-foreground">
                     설치에 약 2-5분 소요됩니다 (IBM Research 라이브러리)
                   </p>
@@ -218,8 +217,9 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="서버 실행 명령어 복사"
                   onClick={() => {
-                    copyCommand(osConfig.serverStart)
+                    copyCommand(osConfig.serverStart, 3)
                     setCurrentStep(4)
                   }}
                   className="h-8 w-8 flex-shrink-0"
@@ -227,7 +227,7 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              {copied && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
+              {copiedStep === 3 && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
               <p className="text-xs text-muted-foreground">
                 서버가 http://localhost:8000에서 실행됩니다
               </p>
