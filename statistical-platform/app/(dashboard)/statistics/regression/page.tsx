@@ -41,12 +41,27 @@ import { detectVariableType } from '@/lib/services/variable-type-detector'
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, BarChart, Bar, ComposedChart } from 'recharts'
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
+import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+
+type AssumptionTestResult = {
+  testName: string
+  statistic: number | null
+  pValue?: number | null
+  passed: boolean | null
+  interpretation: string
+}
+
+type RegressionAssumptions = {
+  independence: AssumptionTestResult
+  normality: AssumptionTestResult
+  homoscedasticity: AssumptionTestResult
+}
 
 type LinearRegressionResults = {
   coefficients: Array<{ name: string; estimate: number; stdError: number; tValue: number; pValue: number; ci: number[] }>
@@ -58,6 +73,7 @@ type LinearRegressionResults = {
   scatterData: Array<{ x: number; y: number; predicted: number }>
   residualPlot: Array<{ fitted: number; residual: number; standardized: number }>
   vif?: Array<{ variable: string; vif: number }> | null
+  assumptions?: RegressionAssumptions
 }
 
 type LogisticRegressionResults = {
@@ -188,6 +204,7 @@ export default function RegressionPage() {
       interceptCi: number[]
       slopeTValue: number
       interceptTValue: number
+      assumptions?: RegressionAssumptions
     }>(PyodideWorker.RegressionAdvanced, 'linear_regression', { x: xData, y: yData })
 
     // 3️⃣ 결과 매핑
@@ -237,7 +254,8 @@ export default function RegressionPage() {
       residualStdError: pythonResult.stdErr,
       scatterData,
       residualPlot,
-      vif: null
+      vif: null,
+      assumptions: pythonResult.assumptions
     }
   }, [extractRowValue])
 
@@ -301,6 +319,7 @@ export default function RegressionPage() {
       vif: number[]
       nObservations: number
       nPredictors: number
+      assumptions?: RegressionAssumptions
     }>(PyodideWorker.RegressionAdvanced, 'multiple_regression', { X: XData, y: yData })
 
     const coefficientNames = ['(Intercept)', ...xVariables]
@@ -341,7 +360,8 @@ export default function RegressionPage() {
       residualStdError: pythonResult.residualStdError,
       scatterData: [],
       residualPlot,
-      vif: vifResults
+      vif: vifResults,
+      assumptions: pythonResult.assumptions
     }
   }, [extractRowValue])
 
@@ -644,7 +664,44 @@ export default function RegressionPage() {
     if (!results) return null
 
     const linearResults = results as LinearRegressionResults
-    const { coefficients, rSquared, adjustedRSquared, fStatistic, fPValue, residualStdError, scatterData, residualPlot, vif } = linearResults
+    const { coefficients, rSquared, adjustedRSquared, fStatistic, fPValue, residualStdError, scatterData, residualPlot, vif, assumptions } = linearResults
+
+    // Convert assumptions to AssumptionTest format for AssumptionTestCard
+    const assumptionTests: AssumptionTest[] = assumptions ? [
+      {
+        name: '독립성 (자기상관 없음)',
+        description: '잔차 간 자기상관이 없는지 검정합니다',
+        testName: assumptions.independence.testName,
+        testStatistic: assumptions.independence.statistic ?? undefined,
+        pValue: null, // Durbin-Watson은 p-value 없음
+        passed: assumptions.independence.passed,
+        details: assumptions.independence.interpretation,
+        recommendation: assumptions.independence.passed === false ? 'GLS(일반화최소제곱) 또는 시계열 모델을 고려하세요' : undefined,
+        severity: assumptions.independence.passed === false ? 'high' : undefined
+      },
+      {
+        name: '잔차의 정규성',
+        description: '잔차가 정규분포를 따르는지 검정합니다',
+        testName: assumptions.normality.testName,
+        testStatistic: assumptions.normality.statistic ?? undefined,
+        pValue: assumptions.normality.pValue ?? null,
+        passed: assumptions.normality.passed,
+        details: assumptions.normality.interpretation,
+        recommendation: assumptions.normality.passed === false ? '비모수 회귀 또는 변수 변환을 고려하세요' : undefined,
+        severity: assumptions.normality.passed === false ? 'medium' : undefined
+      },
+      {
+        name: '등분산성',
+        description: '잔차의 분산이 일정한지 검정합니다',
+        testName: assumptions.homoscedasticity.testName,
+        testStatistic: assumptions.homoscedasticity.statistic ?? undefined,
+        pValue: assumptions.homoscedasticity.pValue ?? null,
+        passed: assumptions.homoscedasticity.passed,
+        details: assumptions.homoscedasticity.interpretation,
+        recommendation: assumptions.homoscedasticity.passed === false ? 'WLS(가중최소제곱) 또는 로버스트 표준오차를 사용하세요' : undefined,
+        severity: assumptions.homoscedasticity.passed === false ? 'high' : undefined
+      }
+    ] : []
 
     return (
       <div className="space-y-6">
@@ -748,6 +805,15 @@ export default function RegressionPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {assumptionTests.length > 0 && (
+          <AssumptionTestCard
+            title="회귀분석 가정 검정"
+            tests={assumptionTests}
+            showRecommendations={true}
+            showDetails={true}
+          />
         )}
 
         <Card>

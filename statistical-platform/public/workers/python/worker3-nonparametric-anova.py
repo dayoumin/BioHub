@@ -629,6 +629,88 @@ def repeated_measures_anova(data_matrix, subject_ids, time_labels):
     aovrm = AnovaRM(df, 'value', 'subject', within=['time'])
     res = aovrm.fit()
 
+    # Calculate Mauchly's test for sphericity
+    sphericity_result = {
+        'mauchlysW': None,
+        'chiSquare': None,
+        'pValue': None,
+        'epsilonGG': None,
+        'epsilonHF': None,
+        'epsilonLB': None,
+        'assumptionMet': True
+    }
+
+    if n_timepoints >= 3:
+        try:
+            # Standard Mauchly's test using orthonormal contrast matrix
+            k = n_timepoints
+            p = k - 1  # degrees of freedom for within-subject factor
+
+            # Calculate sample covariance matrix of the repeated measures
+            S = np.cov(data_array.T)  # k x k covariance matrix
+
+            # Create orthonormal contrast matrix (Helmert-like)
+            # This transforms the covariance matrix to test sphericity
+            C = np.zeros((p, k))
+            for i in range(p):
+                # Contrast coefficients
+                C[i, :i+1] = 1.0 / (i + 1)
+                C[i, i+1] = -1.0
+                # Normalize
+                C[i, :] = C[i, :] / np.linalg.norm(C[i, :])
+
+            # Transformed covariance matrix
+            S_transformed = C @ S @ C.T
+
+            # Mauchly's W = |S_transformed| / (trace(S_transformed)/p)^p
+            det_S = np.linalg.det(S_transformed)
+            trace_S = np.trace(S_transformed)
+
+            if trace_S > 0 and det_S > 0:
+                mauchly_w = det_S / ((trace_S / p) ** p)
+            else:
+                mauchly_w = 0
+
+            # Chi-square approximation for Mauchly's W
+            df_chi = int(p * (p + 1) / 2 - 1)
+
+            # Box's correction factor
+            f = (2 * p * p + p + 2) / (6 * p * (n_subjects - 1))
+            chi_square = -(n_subjects - 1) * (1 - f) * np.log(max(mauchly_w, 1e-10))
+
+            # p-value from chi-square distribution
+            p_value_sphericity = 1 - stats.chi2.cdf(chi_square, df_chi)
+
+            # Greenhouse-Geisser epsilon
+            trace_sq = trace_S ** 2
+            trace_of_sq = np.trace(S_transformed @ S_transformed)
+            epsilon_gg = trace_sq / (p * trace_of_sq) if trace_of_sq > 0 else 1.0
+            epsilon_gg = max(1.0 / p, min(epsilon_gg, 1.0))  # Bound between 1/p and 1
+
+            # Huynh-Feldt epsilon
+            numerator = n_subjects * (p) * epsilon_gg - 2
+            denominator = p * (n_subjects - 1 - p * epsilon_gg)
+            if denominator > 0:
+                epsilon_hf = numerator / denominator
+            else:
+                epsilon_hf = 1.0
+            epsilon_hf = max(epsilon_gg, min(epsilon_hf, 1.0))  # HF >= GG, <= 1
+
+            # Lower-bound epsilon
+            epsilon_lb = 1.0 / p
+
+            sphericity_result = {
+                'mauchlysW': float(mauchly_w),
+                'chiSquare': float(chi_square),
+                'pValue': float(p_value_sphericity),
+                'epsilonGG': float(epsilon_gg),
+                'epsilonHF': float(epsilon_hf),
+                'epsilonLB': float(epsilon_lb),
+                'assumptionMet': bool(p_value_sphericity > 0.05)
+            }
+        except Exception:
+            pass
+
     return {
         'fStatistic': float(res.anova_table['F Value'][0]),
         'pValue': float(res.anova_table['Pr > F'][0]),
@@ -636,7 +718,8 @@ def repeated_measures_anova(data_matrix, subject_ids, time_labels):
             'numerator': float(res.anova_table['Num DF'][0]),
             'denominator': float(res.anova_table['Den DF'][0])
         },
-        'sphericityEpsilon': 1.0,
+        'sphericityEpsilon': sphericity_result.get('epsilonGG', 1.0),
+        'sphericity': sphericity_result,
         'anovaTable': res.anova_table.to_dict()
     }
 

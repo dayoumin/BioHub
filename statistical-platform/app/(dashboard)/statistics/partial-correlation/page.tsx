@@ -8,6 +8,7 @@ import type { VariableAssignment } from '@/types/statistics-converters'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -20,6 +21,48 @@ import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp, CheckCircle } from 'lucide-react'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+
+interface NormalityTest {
+  variable: string
+  statistic: number | null
+  pValue: number | null
+  passed: boolean | null
+}
+
+interface LinearityTest {
+  variable1: string
+  variable2: string
+  rSquared: number
+  passed: boolean
+}
+
+interface MulticollinearityTest {
+  variable1: string
+  variable2: string
+  correlation: number
+  passed: boolean
+}
+
+interface PartialCorrelationAssumptions {
+  normality: {
+    testName: string
+    tests: NormalityTest[]
+    allPassed: boolean
+    interpretation: string
+  }
+  linearity: {
+    testName: string
+    tests: LinearityTest[]
+    allPassed: boolean
+    interpretation: string
+  }
+  multicollinearity: {
+    testName: string
+    tests: MulticollinearityTest[]
+    allPassed: boolean
+    interpretation: string
+  }
+}
 
 interface PartialCorrelationResults {
   correlations: Array<{
@@ -48,6 +91,7 @@ interface PartialCorrelationResults {
     summary: string
     recommendations: string[]
   }
+  assumptions?: PartialCorrelationAssumptions
 }
 
 export default function PartialCorrelationPage() {
@@ -114,6 +158,7 @@ export default function PartialCorrelationPage() {
           summary: string
           recommendations: string[]
         }
+        assumptions?: PartialCorrelationAssumptions
       }>(PyodideWorker.Hypothesis, 'partial_correlation_analysis', {
         data: uploadedData.data as never,
         analysis_vars: variables.dependent as never,
@@ -144,7 +189,8 @@ export default function PartialCorrelationPage() {
           max_partial_corr: result.summary.maxPartialCorr,
           min_partial_corr: result.summary.minPartialCorr
         },
-        interpretation: result.interpretation
+        interpretation: result.interpretation,
+        assumptions: result.assumptions
       }
 
       actions.completeAnalysis(parsedResults, 3)
@@ -455,8 +501,9 @@ export default function PartialCorrelationPage() {
         </div>
 
         <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="summary">분석 요약</TabsTrigger>
+            <TabsTrigger value="assumptions">가정 검정</TabsTrigger>
             <TabsTrigger value="partial">편상관계수</TabsTrigger>
             <TabsTrigger value="comparison">상관 비교</TabsTrigger>
             <TabsTrigger value="interpretation">해석</TabsTrigger>
@@ -518,6 +565,84 @@ export default function PartialCorrelationPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="assumptions" className="space-y-4">
+            {results.assumptions && (
+              <AssumptionTestCard
+                title="편상관분석 가정 검정"
+                tests={[
+                  {
+                    name: '정규성',
+                    description: '각 분석 변수가 정규분포를 따르는지 검정합니다',
+                    testName: results.assumptions.normality.testName,
+                    passed: results.assumptions.normality.allPassed,
+                    details: results.assumptions.normality.interpretation,
+                    pValue: (() => {
+                      const validPValues = results.assumptions.normality.tests
+                        .filter(t => t.pValue !== null)
+                        .map(t => t.pValue as number)
+                      return validPValues.length > 0 ? Math.min(...validPValues) : null
+                    })(),
+                    recommendation: results.assumptions.normality.allPassed === false ? 'Spearman 편상관을 고려하세요' : undefined,
+                    severity: results.assumptions.normality.allPassed === false ? 'medium' : undefined
+                  },
+                  {
+                    name: '선형성',
+                    description: '변수 쌍 간 선형 관계가 있는지 검정합니다',
+                    testName: results.assumptions.linearity.testName,
+                    passed: results.assumptions.linearity.allPassed,
+                    pValue: null,
+                    details: results.assumptions.linearity.interpretation,
+                    recommendation: !results.assumptions.linearity.allPassed ? '비선형 관계가 있을 수 있습니다. 산점도를 확인하세요' : undefined,
+                    severity: !results.assumptions.linearity.allPassed ? 'low' : undefined
+                  },
+                  {
+                    name: '다중공선성',
+                    description: '통제변수 간 높은 상관관계가 있는지 검정합니다',
+                    testName: results.assumptions.multicollinearity.testName,
+                    passed: results.assumptions.multicollinearity.allPassed,
+                    pValue: null,
+                    details: results.assumptions.multicollinearity.interpretation,
+                    recommendation: !results.assumptions.multicollinearity.allPassed ? '통제변수 중 일부를 제거하거나 VIF 분석을 수행하세요' : undefined,
+                    severity: !results.assumptions.multicollinearity.allPassed ? 'high' : undefined
+                  }
+                ]}
+                showRecommendations={true}
+                showDetails={true}
+              />
+            )}
+
+            {results.assumptions && results.assumptions.normality.tests.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">변수별 정규성 검정 상세</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <StatisticsTable
+                    title="정규성 검정 (Shapiro-Wilk)"
+                    columns={[
+                      { key: 'variable', header: '변수', type: 'text', align: 'left' },
+                      { key: 'statistic', header: 'W 통계량', type: 'number', align: 'right', formatter: (v: number | null) => v !== null ? v.toFixed(4) : '-' },
+                      { key: 'pValue', header: 'p값', type: 'number', align: 'right', formatter: (v: number | null) => v !== null ? v.toFixed(4) : '-' },
+                      { key: 'result', header: '결과', type: 'custom', align: 'center', formatter: (v) => v }
+                    ] as const}
+                    data={results.assumptions.normality.tests.map(t => ({
+                      variable: t.variable,
+                      statistic: t.statistic,
+                      pValue: t.pValue,
+                      result: (
+                        <Badge variant={t.passed === true ? 'default' : t.passed === false ? 'destructive' : 'secondary'}>
+                          {t.passed === true ? '정규' : t.passed === false ? '비정규' : '검정 불가'}
+                        </Badge>
+                      )
+                    }))}
+                    bordered
+                    compactMode
+                  />
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="partial" className="space-y-4">

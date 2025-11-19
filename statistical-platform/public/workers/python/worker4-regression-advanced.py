@@ -22,6 +22,10 @@ def _safe_bool(value: Union[bool, np.bool_]) -> bool:
 
 
 def linear_regression(x, y):
+    from statsmodels.stats.stattools import durbin_watson
+    from statsmodels.stats.diagnostic import het_breuschpagan
+    import statsmodels.api as sm
+
     x, y = clean_xy_regression(x, y)
 
     if len(x) < 3:
@@ -46,6 +50,66 @@ def linear_regression(x, y):
     slope_t = float(slope / std_err) if std_err != 0 else 0
     intercept_t = float(intercept / std_err) if std_err != 0 else 0
 
+    # Calculate residuals for assumption tests
+    x_arr = np.array(x)
+    y_arr = np.array(y)
+    predicted = intercept + slope * x_arr
+    residuals = y_arr - predicted
+
+    # Assumption tests
+    assumptions = {}
+
+    # 1. Durbin-Watson test for independence (autocorrelation)
+    dw_stat = durbin_watson(residuals)
+    dw_passed = bool(1.5 <= dw_stat <= 2.5)
+    assumptions['independence'] = {
+        'testName': 'Durbin-Watson',
+        'statistic': float(dw_stat),
+        'passed': dw_passed,
+        'interpretation': 'No autocorrelation' if dw_passed else ('Positive autocorrelation' if dw_stat < 1.5 else 'Negative autocorrelation')
+    }
+
+    # 2. Shapiro-Wilk test for normality of residuals
+    if len(residuals) >= 3 and len(residuals) <= 5000:
+        shapiro_stat, shapiro_p = stats.shapiro(residuals)
+        normality_passed = bool(shapiro_p > 0.05)
+        assumptions['normality'] = {
+            'testName': 'Shapiro-Wilk',
+            'statistic': float(shapiro_stat),
+            'pValue': float(shapiro_p),
+            'passed': normality_passed,
+            'interpretation': 'Residuals are normally distributed' if normality_passed else 'Residuals are not normally distributed'
+        }
+    else:
+        assumptions['normality'] = {
+            'testName': 'Shapiro-Wilk',
+            'statistic': None,
+            'pValue': None,
+            'passed': None,
+            'interpretation': 'Sample size not suitable for Shapiro-Wilk test'
+        }
+
+    # 3. Breusch-Pagan test for homoscedasticity
+    try:
+        X_with_const = sm.add_constant(x_arr)
+        bp_stat, bp_p, _, _ = het_breuschpagan(residuals, X_with_const)
+        homoscedasticity_passed = bool(bp_p > 0.05)
+        assumptions['homoscedasticity'] = {
+            'testName': 'Breusch-Pagan',
+            'statistic': float(bp_stat),
+            'pValue': float(bp_p),
+            'passed': homoscedasticity_passed,
+            'interpretation': 'Constant variance (homoscedasticity)' if homoscedasticity_passed else 'Non-constant variance (heteroscedasticity)'
+        }
+    except:
+        assumptions['homoscedasticity'] = {
+            'testName': 'Breusch-Pagan',
+            'statistic': None,
+            'pValue': None,
+            'passed': None,
+            'interpretation': 'Could not perform test'
+        }
+
     return {
         'slope': float(slope),
         'intercept': float(intercept),
@@ -56,13 +120,16 @@ def linear_regression(x, y):
         'slopeCi': slope_ci,
         'interceptCi': intercept_ci,
         'slopeTValue': slope_t,
-        'interceptTValue': intercept_t
+        'interceptTValue': intercept_t,
+        'assumptions': assumptions
     }
 
 
 def multiple_regression(X, y):
     import statsmodels.api as sm
     from statsmodels.stats.outliers_influence import variance_inflation_factor
+    from statsmodels.stats.stattools import durbin_watson
+    from statsmodels.stats.diagnostic import het_breuschpagan
 
     X_clean, y_clean = clean_multiple_regression(X, y)
 
@@ -89,6 +156,63 @@ def multiple_regression(X, y):
     except:
         vif_values = [1.0] * X_with_const.shape[1]  # Fallback
 
+    # Get residuals for assumption tests
+    residuals = model.resid
+
+    # Assumption tests
+    assumptions = {}
+
+    # 1. Durbin-Watson test for independence (autocorrelation)
+    dw_stat = durbin_watson(residuals)
+    dw_passed = bool(1.5 <= dw_stat <= 2.5)
+    assumptions['independence'] = {
+        'testName': 'Durbin-Watson',
+        'statistic': float(dw_stat),
+        'passed': dw_passed,
+        'interpretation': 'No autocorrelation' if dw_passed else ('Positive autocorrelation' if dw_stat < 1.5 else 'Negative autocorrelation')
+    }
+
+    # 2. Shapiro-Wilk test for normality of residuals
+    residuals_arr = np.array(residuals)
+    if len(residuals_arr) >= 3 and len(residuals_arr) <= 5000:
+        shapiro_stat, shapiro_p = stats.shapiro(residuals_arr)
+        normality_passed = bool(shapiro_p > 0.05)
+        assumptions['normality'] = {
+            'testName': 'Shapiro-Wilk',
+            'statistic': float(shapiro_stat),
+            'pValue': float(shapiro_p),
+            'passed': normality_passed,
+            'interpretation': 'Residuals are normally distributed' if normality_passed else 'Residuals are not normally distributed'
+        }
+    else:
+        assumptions['normality'] = {
+            'testName': 'Shapiro-Wilk',
+            'statistic': None,
+            'pValue': None,
+            'passed': None,
+            'interpretation': 'Sample size not suitable for Shapiro-Wilk test'
+        }
+
+    # 3. Breusch-Pagan test for homoscedasticity
+    try:
+        bp_stat, bp_p, _, _ = het_breuschpagan(residuals, X_with_const)
+        homoscedasticity_passed = bool(bp_p > 0.05)
+        assumptions['homoscedasticity'] = {
+            'testName': 'Breusch-Pagan',
+            'statistic': float(bp_stat),
+            'pValue': float(bp_p),
+            'passed': homoscedasticity_passed,
+            'interpretation': 'Constant variance (homoscedasticity)' if homoscedasticity_passed else 'Non-constant variance (heteroscedasticity)'
+        }
+    except:
+        assumptions['homoscedasticity'] = {
+            'testName': 'Breusch-Pagan',
+            'statistic': None,
+            'pValue': None,
+            'passed': None,
+            'interpretation': 'Could not perform test'
+        }
+
     return {
         'coefficients': [float(c) for c in model.params],
         'stdErrors': [float(e) for e in model.bse],
@@ -103,7 +227,8 @@ def multiple_regression(X, y):
         'residualStdError': float(np.sqrt(model.scale)),
         'vif': vif_values,
         'nObservations': int(len(y_clean)),
-        'nPredictors': int(X_clean.shape[1])
+        'nPredictors': int(X_clean.shape[1]),
+        'assumptions': assumptions
     }
 
 
@@ -209,6 +334,51 @@ def pca_analysis(data, n_components=None):
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
+    # Calculate KMO and Bartlett's test
+    # Default: None indicates test was not performed
+    kmo_value = None
+    bartlett_result = {'statistic': None, 'pValue': None, 'significant': None, 'error': 'Test not performed'}
+
+    if n_variables >= 2:
+        try:
+            # KMO calculation
+            corr_matrix = np.corrcoef(X_scaled.T)
+            inv_corr = np.linalg.inv(corr_matrix)
+
+            partial_corr = np.zeros((n_variables, n_variables))
+            for i in range(n_variables):
+                for j in range(n_variables):
+                    if i != j:
+                        partial_corr[i, j] = -inv_corr[i, j] / np.sqrt(inv_corr[i, i] * inv_corr[j, j])
+
+            sum_sq_corr = 0
+            sum_sq_partial = 0
+            for i in range(n_variables):
+                for j in range(n_variables):
+                    if i != j:
+                        sum_sq_corr += corr_matrix[i, j] ** 2
+                        sum_sq_partial += partial_corr[i, j] ** 2
+
+            kmo_value = sum_sq_corr / (sum_sq_corr + sum_sq_partial) if (sum_sq_corr + sum_sq_partial) > 0 else 0
+
+            # Bartlett's test
+            det = np.linalg.det(corr_matrix)
+            if det <= 0:
+                det = 1e-10
+
+            chi_square = -((n_samples - 1) - (2 * n_variables + 5) / 6) * np.log(det)
+            df = n_variables * (n_variables - 1) / 2
+            p_value = 1 - stats.chi2.cdf(chi_square, df)
+
+            bartlett_result = {
+                'statistic': float(chi_square),
+                'pValue': float(p_value),
+                'significant': bool(p_value < 0.05)
+            }
+        except Exception as e:
+            # Keep default None values but add error info
+            bartlett_result['error'] = f'Calculation failed: {str(e)}'
+
     pca = PCA(n_components=n_components)
     pca.fit(X_scaled)
 
@@ -257,12 +427,8 @@ def pca_analysis(data, n_components=None):
         'transformedData': transformed_data,
         'variableContributions': variable_contributions,
         'qualityMetrics': {
-            'kmo': 0.7,
-            'bartlett': {
-                'statistic': 100.0,
-                'pValue': 0.001,
-                'significant': True
-            }
+            'kmo': float(kmo_value) if kmo_value is not None else None,
+            'bartlett': bartlett_result
         },
         'screeData': scree_data,
         'interpretation': interpretation
@@ -632,6 +798,69 @@ def factor_analysis_method(data, n_factors=2, rotation='varimax', extraction='pr
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
+    # Calculate KMO (Kaiser-Meyer-Olkin) measure
+    def calculate_kmo(data):
+        """Calculate KMO measure of sampling adequacy"""
+        corr_matrix = np.corrcoef(data.T)
+        inv_corr = np.linalg.inv(corr_matrix)
+
+        n_vars = corr_matrix.shape[0]
+
+        # Calculate partial correlations
+        partial_corr = np.zeros((n_vars, n_vars))
+        for i in range(n_vars):
+            for j in range(n_vars):
+                if i != j:
+                    partial_corr[i, j] = -inv_corr[i, j] / np.sqrt(inv_corr[i, i] * inv_corr[j, j])
+
+        # KMO for each variable and overall
+        sum_sq_corr = 0
+        sum_sq_partial = 0
+
+        for i in range(n_vars):
+            for j in range(n_vars):
+                if i != j:
+                    sum_sq_corr += corr_matrix[i, j] ** 2
+                    sum_sq_partial += partial_corr[i, j] ** 2
+
+        kmo_overall = sum_sq_corr / (sum_sq_corr + sum_sq_partial) if (sum_sq_corr + sum_sq_partial) > 0 else 0
+        return float(kmo_overall)
+
+    # Calculate Bartlett's test of sphericity
+    def calculate_bartlett(data):
+        """Bartlett's test of sphericity"""
+        n, p = data.shape
+        corr_matrix = np.corrcoef(data.T)
+
+        # Chi-square statistic
+        det = np.linalg.det(corr_matrix)
+        if det <= 0:
+            det = 1e-10
+
+        chi_square = -((n - 1) - (2 * p + 5) / 6) * np.log(det)
+        df = p * (p - 1) / 2
+        p_value = 1 - stats.chi2.cdf(chi_square, df)
+
+        return {
+            'statistic': float(chi_square),
+            'pValue': float(p_value),
+            'df': int(df),
+            'significant': p_value < 0.05
+        }
+
+    # Calculate KMO and Bartlett's test
+    try:
+        kmo_value = calculate_kmo(X_scaled)
+        bartlett_result = calculate_bartlett(X_scaled)
+    except Exception:
+        kmo_value = 0.5
+        bartlett_result = {
+            'statistic': 0.0,
+            'pValue': 1.0,
+            'df': 0,
+            'significant': False
+        }
+
     fa = FactorAnalysis(n_components=n_factors, random_state=42)
     fa.fit(X_scaled)
 
@@ -664,13 +893,9 @@ def factor_analysis_method(data, n_factors=2, rotation='varimax', extraction='pr
         },
         'factorScores': factor_scores[:100],
         'rotatedLoadings': loadings.tolist(),
-        'kmo': 0.7,
-        'bartlettTest': {
-            'statistic': 100.0,
-            'pValue': 0.001,
-            'significant': True
-        },
-        'adequacySampling': True,
+        'kmo': kmo_value,
+        'bartlettTest': bartlett_result,
+        'adequacySampling': kmo_value >= 0.6,
         'factorNames': factor_names,
         'variableNames': variable_names,
         'goodnessOfFit': None

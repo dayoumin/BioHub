@@ -535,6 +535,110 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
         'minPartialCorr': float(np.min(partial_values)) if partial_values else 0.0
     }
 
+    # 가정 검정 (Assumption Tests)
+    assumptions = {}
+
+    # 1. 정규성 검정 (Shapiro-Wilk) - 각 분석 변수에 대해
+    normality_tests = []
+    all_normal = True
+    any_tested = False
+    any_untested = False
+    for var in analysis_vars:
+        if len(df_clean[var]) >= 3 and len(df_clean[var]) <= 5000:
+            stat, p_val = stats.shapiro(df_clean[var])
+            passed = bool(p_val > 0.05)
+            if not passed:
+                all_normal = False
+            any_tested = True
+            normality_tests.append({
+                'variable': var,
+                'statistic': float(stat),
+                'pValue': float(p_val),
+                'passed': passed
+            })
+        else:
+            any_untested = True
+            normality_tests.append({
+                'variable': var,
+                'statistic': None,
+                'pValue': None,
+                'passed': None
+            })
+
+    # Determine interpretation based on test results
+    if not any_tested:
+        normality_interpretation = '모든 변수가 검정 범위를 벗어나 정규성 검정을 수행할 수 없습니다 (n < 3 또는 n > 5000)'
+        all_normal_result = None  # Undetermined
+    elif all_normal and not any_untested:
+        normality_interpretation = '모든 변수가 정규성 가정을 만족합니다'
+        all_normal_result = True
+    elif all_normal and any_untested:
+        normality_interpretation = '검정된 변수들은 정규성 가정을 만족하지만, 일부 변수는 검정할 수 없었습니다'
+        all_normal_result = True  # Partial success
+    else:
+        normality_interpretation = '일부 변수가 정규성 가정을 위반했습니다. Spearman 편상관을 고려하세요.'
+        all_normal_result = False
+
+    assumptions['normality'] = {
+        'testName': 'Shapiro-Wilk',
+        'tests': normality_tests,
+        'allPassed': all_normal_result,
+        'interpretation': normality_interpretation
+    }
+
+    # 2. 선형성 검정 - 각 변수 쌍의 상관계수로 대리 평가
+    # (실제 선형성은 산점도로 확인해야 하지만, 상관계수 R^2로 선형 적합도 추정)
+    linearity_tests = []
+    for corr_result in zero_order_correlations:
+        r = corr_result['correlation']
+        r_squared = r ** 2
+        # R^2 > 0.1 이면 선형성 있다고 판단 (약한 기준)
+        linearity_tests.append({
+            'variable1': corr_result['variable1'],
+            'variable2': corr_result['variable2'],
+            'rSquared': float(r_squared),
+            'passed': r_squared > 0.05  # 매우 약한 상관도 포함
+        })
+
+    all_linear = all(t['passed'] for t in linearity_tests) if linearity_tests else True
+    assumptions['linearity'] = {
+        'testName': 'R-squared (선형 적합도)',
+        'tests': linearity_tests,
+        'allPassed': all_linear,
+        'interpretation': '변수 쌍들이 선형 관계를 보입니다' if all_linear else '일부 변수 쌍이 매우 약한 선형 관계를 보입니다. 비선형 관계 확인이 필요합니다.'
+    }
+
+    # 3. 다중공선성 진단 (통제변수에 대해)
+    if len(control_vars) >= 2:
+        # 통제변수 간 상관행렬로 다중공선성 추정
+        control_corrs = []
+        high_multicollinearity = False
+        for i, var1 in enumerate(control_vars):
+            for var2 in control_vars[i+1:]:
+                corr, _ = stats.pearsonr(df_clean[var1], df_clean[var2])
+                if abs(corr) > 0.8:
+                    high_multicollinearity = True
+                control_corrs.append({
+                    'variable1': var1,
+                    'variable2': var2,
+                    'correlation': float(corr),
+                    'passed': abs(corr) <= 0.8
+                })
+
+        assumptions['multicollinearity'] = {
+            'testName': 'Pearson Correlation (통제변수 간)',
+            'tests': control_corrs,
+            'allPassed': not high_multicollinearity,
+            'interpretation': '통제변수 간 다중공선성이 낮습니다' if not high_multicollinearity else '통제변수 간 높은 상관관계가 있습니다 (|r| > 0.8). VIF 확인을 권장합니다.'
+        }
+    else:
+        assumptions['multicollinearity'] = {
+            'testName': 'Pearson Correlation',
+            'tests': [],
+            'allPassed': True,
+            'interpretation': '통제변수가 1개 이하로 다중공선성 검정이 필요하지 않습니다'
+        }
+
     # 해석 생성
     control_text = f" (통제변수: {', '.join(control_vars)})" if control_vars else ""
     interpretation = {
@@ -552,7 +656,8 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
         'correlations': correlations,
         'zeroOrderCorrelations': zero_order_correlations,
         'summary': summary,
-        'interpretation': interpretation
+        'interpretation': interpretation,
+        'assumptions': assumptions
     }
 
 def stepwise_regression_forward(data, dependent_var, predictor_vars, significance_level=0.05):
