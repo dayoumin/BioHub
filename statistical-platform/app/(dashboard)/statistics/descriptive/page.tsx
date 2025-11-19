@@ -116,7 +116,7 @@ export default function DescriptiveStatsPage() {
 
   // 변수 선택 핸들러 (Step 이동은 "다음 단계" 버튼에서만)
   const handleVariableSelect = useCallback((vars: Partial<DescriptiveVariables>) => {
-    if (actions.setSelectedVariables && vars.variables) {
+    if (actions.setSelectedVariables && vars.variables !== undefined) {
       actions.setSelectedVariables({ variables: vars.variables })
       // ❌ actions.setCurrentStep(3) 제거: "다음 단계" 버튼 클릭 시에만 이동
     }
@@ -138,8 +138,28 @@ export default function DescriptiveStatsPage() {
       }
 
       const variableResults: DescriptiveStats[] = []
-      let totalCases = data.length
-      let totalMissing = 0
+      const totalCases = data.length
+
+      // 행 단위로 결측치 계산: 선택된 변수 중 하나라도 결측이면 해당 행은 결측 행
+      let rowsWithMissing = 0
+      for (const row of data) {
+        let hasMissing = false
+        for (const variable of variableNames) {
+          if (typeof row === 'object' && row !== null && variable in row) {
+            const value = (row as Record<string, unknown>)[variable]
+            const isValidNumber = typeof value === 'number' ||
+              (typeof value === 'string' && !isNaN(parseFloat(value)))
+            if (!isValidNumber) {
+              hasMissing = true
+              break
+            }
+          } else {
+            hasMissing = true
+            break
+          }
+        }
+        if (hasMissing) rowsWithMissing++
+      }
 
       // 각 변수별로 분석
       for (const variable of variableNames) {
@@ -204,15 +224,13 @@ export default function DescriptiveStatsPage() {
           ...result,
           missing
         })
-
-        totalMissing += missing
       }
 
       const analysisResult: DescriptiveResults = {
         variables: variableResults,
         totalCases,
-        validCases: totalCases - totalMissing,
-        missingCases: totalMissing,
+        validCases: totalCases - rowsWithMissing,
+        missingCases: rowsWithMissing,
         analysisDate: new Date().toLocaleString('ko-KR')
       }
 

@@ -98,17 +98,55 @@ export function DataTableViewer({
     columns.forEach(col => {
       // 첫 10개 행 샘플링
       const samples = data.slice(0, 10).map(row => row[col])
+      const validSamples = samples.filter(v => v !== null && v !== undefined && v !== '')
 
-      const hasNumber = samples.some(v => typeof v === 'number')
-      const hasDate = samples.some(v => v instanceof Date || (typeof v === 'string' && !isNaN(Date.parse(v)) && v.includes('-')))
-      const hasBoolean = samples.some(v => typeof v === 'boolean')
+      if (validSamples.length === 0) {
+        types[col] = 'string'
+        return
+      }
 
-      if (hasBoolean) {
+      // 타입별 카운트
+      let numberCount = 0
+      let dateCount = 0
+      let booleanCount = 0
+
+      for (const v of validSamples) {
+        // Boolean 체크
+        if (typeof v === 'boolean') {
+          booleanCount++
+          continue
+        }
+
+        // 날짜 체크 (문자열이면서 날짜 패턴)
+        if (typeof v === 'string') {
+          // ISO 날짜 형식 또는 yyyy-mm-dd 패턴
+          const datePattern = /^\d{4}-\d{2}-\d{2}|^\d{2}\/\d{2}\/\d{4}/
+          if (datePattern.test(v) && !isNaN(Date.parse(v))) {
+            dateCount++
+            continue
+          }
+        }
+
+        // 숫자 체크 (number 타입 또는 숫자로 변환 가능한 문자열)
+        if (typeof v === 'number') {
+          numberCount++
+        } else if (typeof v === 'string') {
+          const trimmed = v.trim()
+          // 빈 문자열이 아니고, 숫자로 변환 가능하면
+          if (trimmed !== '' && !isNaN(Number(trimmed))) {
+            numberCount++
+          }
+        }
+      }
+
+      // 과반수 이상이면 해당 타입으로 결정
+      const threshold = validSamples.length / 2
+      if (booleanCount > threshold) {
         types[col] = 'boolean'
-      } else if (hasNumber && !hasDate) {
-        types[col] = 'number'
-      } else if (hasDate) {
+      } else if (dateCount > threshold) {
         types[col] = 'date'
+      } else if (numberCount > threshold) {
+        types[col] = 'number'
       } else {
         types[col] = 'string'
       }
