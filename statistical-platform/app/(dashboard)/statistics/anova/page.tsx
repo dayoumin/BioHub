@@ -876,6 +876,33 @@ export default function ANOVAPage() {
     return '효과 없음'
   }
 
+  // 요인별 효과크기 표시 헬퍼 컴포넌트
+  const FactorEffectDisplay = ({
+    factor,
+    dfWithin,
+    borderColor
+  }: {
+    factor: FactorResult
+    dfWithin: number
+    borderColor: string
+  }) => (
+    <div className={`pl-3 border-l-2 ${borderColor}`}>
+      <p className="text-sm font-medium">{factor.name}</p>
+      <p className="text-xs">
+        F({factor.df}, {dfWithin}) = <strong>{factor.fStatistic.toFixed(2)}</strong>,
+        p = <strong>{factor.pValue < 0.001 ? '< 0.001' : factor.pValue.toFixed(3)}</strong>
+      </p>
+      <p className="text-xs">
+        η² = <strong>{factor.etaSquared.toFixed(3)}</strong>,
+        ω² = <strong>{factor.omegaSquared.toFixed(3)}</strong>
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {factor.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
+        ({interpretEffectSize(factor.etaSquared)})
+      </p>
+    </div>
+  )
+
   return (
     <TwoPanelLayout
       currentStep={currentStep}
@@ -1078,58 +1105,28 @@ export default function ANOVAPage() {
                     <p className="font-semibold text-sm mb-2">주효과 (Main Effects)</p>
 
                     {/* Factor 1 */}
-                    <div className="pl-3 border-l-2 border-blue-500">
-                      <p className="text-sm font-medium">{results.multiFactorResults.factor1.name}</p>
-                      <p className="text-xs">
-                        F({results.multiFactorResults.factor1.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor1.fStatistic.toFixed(2)}</strong>,
-                        p = <strong>{results.multiFactorResults.factor1.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor1.pValue.toFixed(3)}</strong>
-                      </p>
-                      <p className="text-xs">
-                        η² = <strong>{results.multiFactorResults.factor1.etaSquared.toFixed(3)}</strong>,
-                        ω² = <strong>{results.multiFactorResults.factor1.omegaSquared.toFixed(3)}</strong>
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {results.multiFactorResults.factor1.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
-                        ({interpretEffectSize(results.multiFactorResults.factor1.etaSquared)})
-                      </p>
-                    </div>
+                    <FactorEffectDisplay
+                      factor={results.multiFactorResults.factor1}
+                      dfWithin={results.dfWithin}
+                      borderColor="border-blue-500"
+                    />
 
                     {/* Factor 2 */}
                     {results.multiFactorResults.factor2 && (
-                      <div className="pl-3 border-l-2 border-success">
-                        <p className="text-sm font-medium">{results.multiFactorResults.factor2.name}</p>
-                        <p className="text-xs">
-                          F({results.multiFactorResults.factor2.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor2.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.factor2.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor2.pValue.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs">
-                          η² = <strong>{results.multiFactorResults.factor2.etaSquared.toFixed(3)}</strong>,
-                          ω² = <strong>{results.multiFactorResults.factor2.omegaSquared.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {results.multiFactorResults.factor2.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
-                          ({interpretEffectSize(results.multiFactorResults.factor2.etaSquared)})
-                        </p>
-                      </div>
+                      <FactorEffectDisplay
+                        factor={results.multiFactorResults.factor2}
+                        dfWithin={results.dfWithin}
+                        borderColor="border-green-500"
+                      />
                     )}
 
                     {/* Factor 3 */}
                     {results.multiFactorResults.factor3 && (
-                      <div className="pl-3 border-l-2 border-purple-500">
-                        <p className="text-sm font-medium">{results.multiFactorResults.factor3.name}</p>
-                        <p className="text-xs">
-                          F({results.multiFactorResults.factor3.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.factor3.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.factor3.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.factor3.pValue.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs">
-                          η² = <strong>{results.multiFactorResults.factor3.etaSquared.toFixed(3)}</strong>,
-                          ω² = <strong>{results.multiFactorResults.factor3.omegaSquared.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {results.multiFactorResults.factor3.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
-                          ({interpretEffectSize(results.multiFactorResults.factor3.etaSquared)})
-                        </p>
-                      </div>
+                      <FactorEffectDisplay
+                        factor={results.multiFactorResults.factor3}
+                        dfWithin={results.dfWithin}
+                        borderColor="border-purple-500"
+                      />
                     )}
                   </div>
                 </AlertDescription>
@@ -1144,78 +1141,38 @@ export default function ANOVAPage() {
 
                     {/* Interaction 12 */}
                     {results.multiFactorResults.interaction12 && (
-                      <div className="pl-3 border-l-2 border-orange-500">
-                        <p className="text-sm font-medium">{results.multiFactorResults.interaction12.name}</p>
-                        <p className="text-xs">
-                          F({results.multiFactorResults.interaction12.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction12.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.interaction12.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction12.pValue.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs">
-                          η² = <strong>{results.multiFactorResults.interaction12.etaSquared.toFixed(3)}</strong>,
-                          ω² = <strong>{results.multiFactorResults.interaction12.omegaSquared.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {results.multiFactorResults.interaction12.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
-                          ({interpretEffectSize(results.multiFactorResults.interaction12.etaSquared)})
-                        </p>
-                      </div>
+                      <FactorEffectDisplay
+                        factor={results.multiFactorResults.interaction12}
+                        dfWithin={results.dfWithin}
+                        borderColor="border-orange-500"
+                      />
                     )}
 
                     {/* Interaction 13 */}
                     {results.multiFactorResults.interaction13 && (
-                      <div className="pl-3 border-l-2 border-orange-500">
-                        <p className="text-sm font-medium">{results.multiFactorResults.interaction13.name}</p>
-                        <p className="text-xs">
-                          F({results.multiFactorResults.interaction13.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction13.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.interaction13.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction13.pValue.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs">
-                          η² = <strong>{results.multiFactorResults.interaction13.etaSquared.toFixed(3)}</strong>,
-                          ω² = <strong>{results.multiFactorResults.interaction13.omegaSquared.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {results.multiFactorResults.interaction13.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
-                          ({interpretEffectSize(results.multiFactorResults.interaction13.etaSquared)})
-                        </p>
-                      </div>
+                      <FactorEffectDisplay
+                        factor={results.multiFactorResults.interaction13}
+                        dfWithin={results.dfWithin}
+                        borderColor="border-orange-500"
+                      />
                     )}
 
                     {/* Interaction 23 */}
                     {results.multiFactorResults.interaction23 && (
-                      <div className="pl-3 border-l-2 border-orange-500">
-                        <p className="text-sm font-medium">{results.multiFactorResults.interaction23.name}</p>
-                        <p className="text-xs">
-                          F({results.multiFactorResults.interaction23.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction23.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.interaction23.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction23.pValue.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs">
-                          η² = <strong>{results.multiFactorResults.interaction23.etaSquared.toFixed(3)}</strong>,
-                          ω² = <strong>{results.multiFactorResults.interaction23.omegaSquared.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {results.multiFactorResults.interaction23.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
-                          ({interpretEffectSize(results.multiFactorResults.interaction23.etaSquared)})
-                        </p>
-                      </div>
+                      <FactorEffectDisplay
+                        factor={results.multiFactorResults.interaction23}
+                        dfWithin={results.dfWithin}
+                        borderColor="border-orange-500"
+                      />
                     )}
 
                     {/* Interaction 123 */}
                     {results.multiFactorResults.interaction123 && (
-                      <div className="pl-3 border-l-2 border-orange-500">
-                        <p className="text-sm font-medium">{results.multiFactorResults.interaction123.name}</p>
-                        <p className="text-xs">
-                          F({results.multiFactorResults.interaction123.df}, {results.dfWithin}) = <strong>{results.multiFactorResults.interaction123.fStatistic.toFixed(2)}</strong>,
-                          p = <strong>{results.multiFactorResults.interaction123.pValue < 0.001 ? '< 0.001' : results.multiFactorResults.interaction123.pValue.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs">
-                          η² = <strong>{results.multiFactorResults.interaction123.etaSquared.toFixed(3)}</strong>,
-                          ω² = <strong>{results.multiFactorResults.interaction123.omegaSquared.toFixed(3)}</strong>
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {results.multiFactorResults.interaction123.pValue < 0.05 ? '✅ 유의함' : '❌ 비유의'}
-                          ({interpretEffectSize(results.multiFactorResults.interaction123.etaSquared)})
-                        </p>
-                      </div>
+                      <FactorEffectDisplay
+                        factor={results.multiFactorResults.interaction123}
+                        dfWithin={results.dfWithin}
+                        borderColor="border-red-500"
+                      />
                     )}
                   </div>
                 </AlertDescription>
