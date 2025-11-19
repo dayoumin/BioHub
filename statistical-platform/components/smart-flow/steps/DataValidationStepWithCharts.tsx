@@ -277,13 +277,13 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-success-bg dark:bg-success-bg rounded-lg">
                   <div>
                     <p className="text-sm font-medium">일관성</p>
                     <p className="text-xs text-muted-foreground">타입 일치도</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                    <p className="text-lg font-bold text-success dark:text-success">
                       {(((columnStats.length - columnStats.filter(s => s.type === 'mixed').length) / columnStats.length) * 100).toFixed(1)}%
                     </p>
                   </div>
@@ -654,7 +654,7 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
           )}
 
           {!hasErrors && !hasWarnings && (
-            <Card className="border-green-200">
+            <Card className="border-success-border">
               <CardHeader>
                 <CardTitle className="text-gray-700 dark:text-gray-300">
                   <CheckCircle className="inline w-5 h-5 mr-2" />

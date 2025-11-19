@@ -104,15 +104,15 @@ export const NumericStatsTable = memo(function NumericStatsTable({
           <p><strong>CV (변동계수)</strong>: 표준편차를 평균으로 나눈 값의 백분율. 15% 이하면 안정적</p>
           <p>
             <strong>왜도</strong>:
-            <span className="text-green-600 ml-2">|값| &lt; 0.5 정규분포</span>
-            <span className="text-yellow-600 ml-2">|값| &lt; 1 약간 치우침</span>
-            <span className="text-red-600 ml-2">|값| ≥ 1 심하게 치우침</span>
+            <span className="text-success ml-2">|값| &lt; 0.5 정규분포</span>
+            <span className="text-warning ml-2">|값| &lt; 1 약간 치우침</span>
+            <span className="text-error ml-2">|값| ≥ 1 심하게 치우침</span>
           </p>
           <p>
             <strong>첨도</strong>:
-            <span className="text-green-600 ml-2">|값| &lt; 1 정규분포</span>
-            <span className="text-yellow-600 ml-2">|값| &lt; 3 약간 뾰족/평평</span>
-            <span className="text-red-600 ml-2">|값| ≥ 3 매우 뾰족/평평</span>
+            <span className="text-success ml-2">|값| &lt; 1 정규분포</span>
+            <span className="text-warning ml-2">|값| &lt; 3 약간 뾰족/평평</span>
+            <span className="text-error ml-2">|값| ≥ 3 매우 뾰족/평평</span>
           </p>
         </div>
 
@@ -192,9 +192,9 @@ export const NumericStatsTable = memo(function NumericStatsTable({
  */
 function getSkewnessColor(skewness: number): string {
   const abs = Math.abs(skewness)
-  if (abs < 0.5) return 'text-green-600'
-  if (abs < 1) return 'text-yellow-600'
-  return 'text-red-600'
+  if (abs < 0.5) return 'text-success'
+  if (abs < 1) return 'text-warning'
+  return 'text-error'
 }
 
 /**
@@ -202,7 +202,7 @@ function getSkewnessColor(skewness: number): string {
  */
 function getKurtosisColor(kurtosis: number): string {
   const abs = Math.abs(kurtosis)
-  if (abs < 1) return 'text-green-600'
-  if (abs < 3) return 'text-yellow-600'
-  return 'text-red-600'
+  if (abs < 1) return 'text-success'
+  if (abs < 3) return 'text-warning'
+  return 'text-error'
 }

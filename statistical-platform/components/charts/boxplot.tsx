@@ -644,7 +644,7 @@ export const BoxPlot = memo(function BoxPlot({
                           </>
                         ) : (
                           <>
-                            <Activity className="h-4 w-4 text-green-600" />
+                            <Activity className="h-4 w-4 text-success" />
                             <span>대칭 분포 - 평균과 중앙값이 유사</span>
                           </>
                         )}

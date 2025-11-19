@@ -115,7 +115,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           </p>
         </div>
         {isValid && (
-          <Badge className="bg-green-500 text-white">
+          <Badge className="bg-success text-white">
             <CheckCircle2 className="w-4 h-4 mr-1" />
             변수 선택 완료
           </Badge>

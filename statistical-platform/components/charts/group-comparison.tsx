@@ -187,7 +187,7 @@ export function GroupComparison({
             <h4 className="font-medium mb-3">유의한 그룹 간 차이</h4>
             <div className="grid gap-2 max-h-32 overflow-y-auto">
               {significantPairs.map((pair, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded">
+                <div key={index} className="flex items-center justify-between p-2 bg-success-bg border border-success-border rounded">
                   <span className="text-sm font-medium">
                     {pair.group1} vs {pair.group2}
                   </span>

@@ -325,7 +325,7 @@ export function PurposeInputStep({
 
           {/* 선택된 방법 정보 */}
           {selectedMethod && (
-            <Alert className="bg-green-50 dark:bg-green-950/20 border-green-200">
+            <Alert className="bg-success-bg dark:bg-success-bg border-success-border">
               <Check className="h-4 w-4" />
               <AlertDescription>
                 <strong>선택된 방법:</strong> {selectedMethod.name}

@@ -136,7 +136,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
   // t-검정이나 ANOVA의 경우 막대 그래프
   if (results.method?.includes('검정') || results.method?.includes('ANOVA')) {
     return (
-      <Card className="p-6 bg-gradient-to-br from-blue-50/30 to-green-50/30 dark:from-blue-950/20 dark:to-green-950/20">
+      <Card className="p-6 bg-gradient-to-br from-blue-50/30 to-success-bg/30 dark:from-blue-950/20 dark:to-success-bg/20">
         <h4 className="text-lg font-semibold mb-4">📊 그룹 간 평균 비교</h4>
         
         <ResponsiveContainer width="100%" height={300}>
@@ -175,7 +175,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
         </div>
 
         {results.pValue < 0.05 && (
-          <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 rounded">
+          <div className="mt-4 p-3 bg-success-bg dark:bg-success-bg rounded">
             <p className="text-sm">
               ✅ 통계적으로 유의한 차이가 있습니다 (p = {results.pValue.toFixed(4)})
             </p>
@@ -220,7 +220,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
           <div className="bg-muted/50 rounded p-3">
             <p className="text-sm text-muted-foreground">p-value</p>
             <p className={`text-lg font-bold ${
-              results.pValue < 0.05 ? 'text-green-600' : 'text-gray-600'
+              results.pValue < 0.05 ? 'text-success' : 'text-muted-foreground'
             }`}>
               {results.pValue.toFixed(4)}
             </p>

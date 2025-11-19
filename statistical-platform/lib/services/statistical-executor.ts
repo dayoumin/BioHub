@@ -445,7 +445,8 @@ export class StatisticalExecutor {
       ).filter((v: unknown) => v != null) as (string | number)[]
       const covariates = data.arrays.covariate as number[][]
 
-      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates) as {
+      // Worker 실제 반환 타입으로 캐스팅 (pyodide-statistics.ts 선언과 다름)
+      const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates) as unknown as {
         fStatisticGroup: number
         pValueGroup: number
         fStatisticCovariate: number[]
@@ -511,11 +512,12 @@ export class StatisticalExecutor {
       const subjectIds = Array.from({ length: nSubjects }, (_, i) => `S${i + 1}`)
       const timeLabels = data.withinFactors || Array.from({ length: nTimePoints }, (_, i) => `T${i + 1}`)
 
+      // Worker 실제 반환 타입으로 캐스팅 (pyodide-statistics.ts 선언과 다름)
       const rmResult = await pyodideStats.repeatedMeasuresAnovaWorker(
         dataMatrix,
         subjectIds,
         timeLabels
-      ) as {
+      ) as unknown as {
         fStatistic: number
         pValue: number
         df: { numerator: number; denominator: number }

@@ -82,7 +82,7 @@ export const DataSummaryCard = memo(function DataSummaryCard({
         )}
 
         {!hasErrors && !hasWarnings && (
-          <div className="flex items-center gap-2 text-green-600">
+          <div className="flex items-center gap-2 text-success">
             <CheckCircle className="h-4 w-4" />
             <span className="text-sm">모든 데이터 검증을 통과했습니다.</span>
           </div>

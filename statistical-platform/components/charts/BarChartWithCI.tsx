@@ -497,13 +497,13 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                     <td className="text-right py-2 px-3">
                       <div className="flex items-center justify-end gap-1">
                         {diff > 0 ? (
-                          <TrendingUp className="h-3 w-3 text-green-600" />
+                          <TrendingUp className="h-3 w-3 text-success" />
                         ) : diff < 0 ? (
-                          <TrendingDown className="h-3 w-3 text-red-600" />
+                          <TrendingDown className="h-3 w-3 text-error" />
                         ) : null}
                         <span className={cn(
-                          diff > 0 && "text-green-600",
-                          diff < 0 && "text-red-600"
+                          diff > 0 && "text-success",
+                          diff < 0 && "text-error"
                         )}>
                           {diff > 0 ? '+' : ''}{diff.toFixed(3)}{unit}
                         </span>
@@ -666,13 +666,13 @@ export const BarChartWithCI = memo(function BarChartWithCI({
                           <div className="text-xs text-muted-foreground">기준선 대비</div>
                           <div className="font-medium flex items-center gap-1">
                             {data[selectedBar].value > baseline ? (
-                              <TrendingUp className="h-4 w-4 text-green-600" />
+                              <TrendingUp className="h-4 w-4 text-success" />
                             ) : data[selectedBar].value < baseline ? (
-                              <TrendingDown className="h-4 w-4 text-red-600" />
+                              <TrendingDown className="h-4 w-4 text-error" />
                             ) : null}
                             <span className={cn(
-                              data[selectedBar].value > baseline && "text-green-600",
-                              data[selectedBar].value < baseline && "text-red-600"
+                              data[selectedBar].value > baseline && "text-success",
+                              data[selectedBar].value < baseline && "text-error"
                             )}>
                               {data[selectedBar].value > baseline ? '+' : ''}
                               {(data[selectedBar].value - baseline).toFixed(3)}{unit}

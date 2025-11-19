@@ -38,10 +38,10 @@ function ChecklistItem({
   const color = passed === undefined
     ? 'text-muted-foreground'
     : passed
-      ? 'text-green-500'
+      ? 'text-success'
       : type === 'warning'
         ? 'text-amber-500'
-        : 'text-red-500'
+        : 'text-error'
 
   return (
     <div className="flex items-center gap-2">
