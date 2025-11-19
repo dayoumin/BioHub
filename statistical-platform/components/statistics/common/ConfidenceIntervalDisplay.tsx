@@ -88,21 +88,21 @@ export function ConfidenceIntervalDisplay({
         }
       case 'warning':
         return {
-          bar: 'bg-yellow-500',
-          point: 'bg-yellow-600',
-          text: 'text-yellow-600'
+          bar: 'bg-warning',
+          point: 'bg-warning',
+          text: 'text-warning'
         }
       case 'danger':
         return {
-          bar: 'bg-red-500',
-          point: 'bg-red-600',
-          text: 'text-red-600'
+          bar: 'bg-error',
+          point: 'bg-error',
+          text: 'text-error'
         }
       default:
         return {
-          bar: 'bg-blue-500',
-          point: 'bg-blue-600',
-          text: 'text-blue-600'
+          bar: 'bg-info',
+          point: 'bg-info',
+          text: 'text-info'
         }
     }
   }

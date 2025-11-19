@@ -438,12 +438,35 @@ export class StatisticalExecutor {
 
     // ANCOVA: 공변량이 있는 경우
     if (method.id === 'ancova' && data.arrays.covariate && data.arrays.covariate.length > 0) {
-      const yValues = data.arrays.dependent || groups.flat()
-      // data.data와 data.variables.group 사용 (prepareData 반환 구조에 맞춤)
-      const groupValues = data.data.map((row: Record<string, unknown>) =>
-        row[data.variables.group as string]
-      ).filter((v: unknown) => v != null) as (string | number)[]
-      const covariates = data.arrays.covariate as number[][]
+      // 행 단위로 종속변수·그룹·모든 공변량이 동시에 유효한 경우만 포함
+      const dependentVar = data.variables.dependent?.[0] || ''
+      const groupVar = data.variables.group as string
+      const covariateVars = Array.isArray(data.variables.covariate)
+        ? data.variables.covariate
+        : [data.variables.covariate]
+
+      const yValues: number[] = []
+      const groupValues: (string | number)[] = []
+      const covariateArrays: number[][] = covariateVars.map(() => [] as number[])
+
+      for (const row of data.data as Record<string, unknown>[]) {
+        const yVal = Number(row[dependentVar])
+        const gVal = row[groupVar]
+        const covVals = covariateVars.map((col: string) => Number(row[col]))
+
+        // 모든 값이 유효한 경우만 포함
+        if (!isNaN(yVal) && gVal != null && covVals.every((v: number) => !isNaN(v))) {
+          yValues.push(yVal)
+          groupValues.push(gVal as string | number)
+          covVals.forEach((v: number, i: number) => covariateArrays[i].push(v))
+        }
+      }
+
+      if (yValues.length === 0) {
+        throw new Error('ANCOVA: 모든 변수에 유효한 값이 있는 행이 없습니다')
+      }
+
+      const covariates = covariateArrays
 
       // Worker 실제 반환 타입으로 캐스팅 (pyodide-statistics.ts 선언과 다름)
       const ancovaResult = await pyodideStats.ancovaWorker(yValues, groupValues, covariates) as unknown as {
@@ -493,21 +516,27 @@ export class StatisticalExecutor {
 
     // 반복측정 ANOVA: within 요인이 있는 경우
     if (method.id === 'repeated-measures-anova' && data.arrays.within && data.arrays.within.length > 0) {
-      // prepareData: arrays.within = [timepoint][subject] 형태
-      // Worker 기대: [subject][timepoint] 형태 → 전치 필요
-      const rawMatrix = data.arrays.within as number[][]
-      const nTimePoints = rawMatrix.length
-      const nSubjects = rawMatrix[0]?.length || 0
+      // 행 단위로 모든 시점에 유효한 값이 있는 피험자만 포함
+      const withinVars = data.variables.within as string[]
+      const nTimePoints = withinVars.length
+      const rawData = data.data as Record<string, unknown>[]
 
-      // 전치: [timepoint][subject] → [subject][timepoint]
-      const dataMatrix: number[][] = []
-      for (let s = 0; s < nSubjects; s++) {
-        const subjectData: number[] = []
-        for (let t = 0; t < nTimePoints; t++) {
-          subjectData.push(rawMatrix[t][s])
+      // 모든 시점에 유효한 값이 있는 행만 수집
+      const validMatrix: number[][] = []
+      for (const row of rawData) {
+        const values = withinVars.map(col => Number(row[col]))
+        if (values.every(v => !isNaN(v))) {
+          validMatrix.push(values)
         }
-        dataMatrix.push(subjectData)
       }
+
+      if (validMatrix.length === 0) {
+        throw new Error('반복측정 ANOVA: 모든 시점에 유효한 값이 있는 피험자가 없습니다')
+      }
+
+      // validMatrix는 이미 [subject][timepoint] 형태
+      const dataMatrix = validMatrix
+      const nSubjects = dataMatrix.length
 
       const subjectIds = Array.from({ length: nSubjects }, (_, i) => `S${i + 1}`)
       const timeLabels = data.withinFactors || Array.from({ length: nTimePoints }, (_, i) => `T${i + 1}`)
@@ -554,10 +583,11 @@ export class StatisticalExecutor {
           type: 'line',
           data: {
             labels: timeLabels,
-            // rawMatrix는 [timepoint][subject] 형태이므로 각 timepoint의 평균 계산
-            means: rawMatrix.map(col =>
-              col.reduce((a, b) => a + b, 0) / col.length
-            )
+            // dataMatrix는 [subject][timepoint] 형태이므로 각 시점별 평균 계산
+            means: Array.from({ length: nTimePoints }, (_, t) => {
+              const values = dataMatrix.map(subject => subject[t])
+              return values.reduce((a, b) => a + b, 0) / values.length
+            })
           }
         },
         rawResults: {

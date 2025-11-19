@@ -131,7 +131,7 @@ describe('ConfidenceIntervalDisplay', () => {
       )
 
       expect(screen.getByText('신뢰구간 시각화')).toBeInTheDocument()
-      const visualBar = container.querySelector('.bg-blue-500')
+      const visualBar = container.querySelector('.bg-info')
       expect(visualBar).toBeInTheDocument()
     })
 
@@ -193,9 +193,9 @@ describe('ConfidenceIntervalDisplay', () => {
 
         const coloredElement = container.querySelector(
           color === 'primary' ? '.bg-primary' :
-          color === 'success' ? '.bg-green-500' :
-          color === 'warning' ? '.bg-yellow-500' :
-          '.bg-red-500'
+          color === 'success' ? '.bg-success' :
+          color === 'warning' ? '.bg-warning' :
+          '.bg-error'
         )
         expect(coloredElement).toBeInTheDocument()
       })
@@ -320,8 +320,8 @@ describe('MultipleConfidenceIntervals', () => {
     )
 
     const primaryBar = container.querySelector('.bg-primary')
-    const successBar = container.querySelector('.bg-green-500')
-    const warningBar = container.querySelector('.bg-yellow-500')
+    const successBar = container.querySelector('.bg-success')
+    const warningBar = container.querySelector('.bg-warning')
 
     expect(primaryBar).toBeInTheDocument()
     expect(successBar).toBeInTheDocument()

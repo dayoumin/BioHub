@@ -6,7 +6,31 @@ export default {
     "./lib/**/*.{ts,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        success: {
+          DEFAULT: 'var(--success)',
+          foreground: 'var(--success-foreground)',
+          bg: 'var(--success-bg)',
+          border: 'var(--success-border)',
+          muted: 'var(--success-muted)',
+        },
+        error: {
+          DEFAULT: 'var(--error)',
+          foreground: 'var(--error-foreground)',
+          bg: 'var(--error-bg)',
+          border: 'var(--error-border)',
+          muted: 'var(--error-muted)',
+        },
+        warning: {
+          DEFAULT: 'var(--warning)',
+          foreground: 'var(--warning-foreground)',
+          bg: 'var(--warning-bg)',
+          border: 'var(--warning-border)',
+          muted: 'var(--warning-muted)',
+        },
+      },
+    },
   },
   safelist: [
     // text-*-600

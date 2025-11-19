@@ -432,8 +432,8 @@ describe('StatisticsTable', () => {
         />
       )
 
-      const positiveCells = container.querySelectorAll('.bg-green-50')
-      const negativeCells = container.querySelectorAll('.bg-red-50')
+      const positiveCells = container.querySelectorAll('.bg-success-bg')
+      const negativeCells = container.querySelectorAll('.bg-error-bg')
 
       expect(positiveCells.length).toBeGreaterThan(0)
       expect(negativeCells.length).toBeGreaterThan(0)

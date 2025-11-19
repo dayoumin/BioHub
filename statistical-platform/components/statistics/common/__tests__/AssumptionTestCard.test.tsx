@@ -90,7 +90,7 @@ describe('AssumptionTestCard', () => {
     it('모든 가정이 충족되면 성공 상태를 표시해야 함', () => {
       const passedTests = [{ ...mockTests[0] }]
       const { container } = render(<AssumptionTestCard tests={passedTests} />)
-      const header = container.querySelector('.bg-green-50')
+      const header = container.querySelector('.bg-success-bg')
       expect(header).toBeInTheDocument()
     })
 

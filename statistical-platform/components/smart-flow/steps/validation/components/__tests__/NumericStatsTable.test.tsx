@@ -110,7 +110,7 @@ describe('NumericStatsTable', () => {
       render(<NumericStatsTable columnStats={mockNumericColumns} />)
 
       const skewnessCell = screen.getByText('0.30')
-      expect(skewnessCell).toHaveClass('text-green-600')
+      expect(skewnessCell).toHaveClass('text-success')
     })
 
     it('0.5 ≤ |왜도| < 1이면 황색 표시', () => {
@@ -123,14 +123,14 @@ describe('NumericStatsTable', () => {
       render(<NumericStatsTable columnStats={columns} />)
 
       const skewnessCell = screen.getByText('0.70')
-      expect(skewnessCell).toHaveClass('text-yellow-600')
+      expect(skewnessCell).toHaveClass('text-warning')
     })
 
     it('|왜도| ≥ 1이면 빨간색 표시', () => {
       render(<NumericStatsTable columnStats={mockNumericColumns} />)
 
       const skewnessCell = screen.getByText('1.20')
-      expect(skewnessCell).toHaveClass('text-red-600')
+      expect(skewnessCell).toHaveClass('text-error')
     })
 
     it('음수 왜도도 절댓값으로 색상 판정', () => {
@@ -143,7 +143,7 @@ describe('NumericStatsTable', () => {
       render(<NumericStatsTable columnStats={columns} />)
 
       const skewnessCell = screen.getByText('-0.30')
-      expect(skewnessCell).toHaveClass('text-green-600')
+      expect(skewnessCell).toHaveClass('text-success')
     })
   })
 
@@ -152,7 +152,7 @@ describe('NumericStatsTable', () => {
       render(<NumericStatsTable columnStats={mockNumericColumns} />)
 
       const kurtosisCell = screen.getByText('0.50')
-      expect(kurtosisCell).toHaveClass('text-green-600')
+      expect(kurtosisCell).toHaveClass('text-success')
     })
 
     it('1 ≤ |첨도| < 3이면 황색 표시', () => {
@@ -165,14 +165,14 @@ describe('NumericStatsTable', () => {
       render(<NumericStatsTable columnStats={columns} />)
 
       const kurtosisCell = screen.getByText('2.00')
-      expect(kurtosisCell).toHaveClass('text-yellow-600')
+      expect(kurtosisCell).toHaveClass('text-warning')
     })
 
     it('|첨도| ≥ 3이면 빨간색 표시', () => {
       render(<NumericStatsTable columnStats={mockNumericColumns} />)
 
       const kurtosisCell = screen.getByText('3.50')
-      expect(kurtosisCell).toHaveClass('text-red-600')
+      expect(kurtosisCell).toHaveClass('text-error')
     })
   })
 
