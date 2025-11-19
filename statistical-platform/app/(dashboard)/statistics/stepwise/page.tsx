@@ -390,19 +390,19 @@ export default function StepwiseRegressionPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 최적의 예측변수 조합 자동 선택
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 모델의 예측력과 간결성 균형 유지
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 다중공선성 문제 최소화
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 과적합 방지 및 일반화 성능 향상
               </li>
             </ul>
@@ -419,19 +419,19 @@ export default function StepwiseRegressionPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>종속변수:</strong> 연속형 변수</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>예측변수:</strong> 연속형/범주형 변수 (2개 이상)</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>표본크기:</strong> 변수 수의 10-20배 이상</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>선형관계:</strong> 변수 간 선형 관계 가정</span>
               </li>
             </ul>
@@ -825,7 +825,7 @@ export default function StepwiseRegressionPage() {
                   <ul className="space-y-2">
                     {results.interpretation.recommendations.map((rec, index) => (
                       <li key={index} className="flex items-start">
-                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                         <span className="text-gray-700">{rec}</span>
                       </li>
                     ))}

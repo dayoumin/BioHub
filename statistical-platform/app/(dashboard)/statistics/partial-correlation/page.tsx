@@ -230,19 +230,19 @@ export default function PartialCorrelationPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 통제변수의 영향 제거 후 순수한 관계 파악
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 제3변수의 매개/억제 효과 탐지
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 단순상관과의 비교 분석
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 독립적 관계의 통계적 유의성 검정
               </li>
             </ul>
@@ -259,19 +259,19 @@ export default function PartialCorrelationPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>분석변수:</strong> 연속형 변수 (2개 이상)</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>통제변수:</strong> 연속형 변수 (1개 이상)</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>선형관계:</strong> 변수 간 선형 관계 가정</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>표본크기:</strong> 변수 수보다 충분히 큰 표본</span>
               </li>
             </ul>
@@ -677,7 +677,7 @@ export default function PartialCorrelationPage() {
                   <ul className="space-y-2">
                     {results.interpretation.recommendations.map((rec, index) => (
                       <li key={index} className="flex items-start">
-                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                         <span className="text-gray-700">{rec}</span>
                       </li>
                     ))}

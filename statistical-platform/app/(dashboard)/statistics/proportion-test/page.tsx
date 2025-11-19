@@ -288,19 +288,19 @@ export default function ProportionTestPage(): React.ReactElement {
         <h3 className="font-semibold text-lg mb-3">주요 특징</h3>
         <ul className="space-y-2">
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
             <span className="text-sm">이분 변수 (성공/실패) 분석</span>
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
             <span className="text-sm">검정 비율(p₀) 설정 가능</span>
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
             <span className="text-sm">양측/단측 검정 지원</span>
           </li>
           <li className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
             <span className="text-sm">Wilson Score 신뢰구간 (정확함)</span>
           </li>
         </ul>
@@ -621,7 +621,7 @@ export default function ProportionTestPage(): React.ReactElement {
                     {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
                   </p>
                 </div>
-                <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-green-500/50' : 'text-red-500/50'}`} />
+                <BarChart3 className={`w-8 h-8 ${isSignificant ? 'text-success/50' : 'text-error/50'}`} />
               </div>
             </CardContent>
           </Card>
@@ -715,10 +715,10 @@ export default function ProportionTestPage(): React.ReactElement {
             <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
             {renderSummaryCards()}
           </div>
-          <div className="p-4 bg-muted dark:bg-green-950/20 rounded-lg">
-            <h4 className="font-semibold dark:text-green-200 mb-2">결론</h4>
-            <p className="text-muted-foreground dark:text-green-300">{results.conclusion}</p>
-            <p className="text-sm text-muted-foreground dark:text-green-400 mt-1">{results.interpretation}</p>
+          <div className="p-4 bg-muted dark:bg-success-bg rounded-lg">
+            <h4 className="font-semibold dark:text-success mb-2">결론</h4>
+            <p className="text-muted-foreground dark:text-success-muted">{results.conclusion}</p>
+            <p className="text-sm text-muted-foreground dark:text-success-muted mt-1">{results.interpretation}</p>
           </div>
         </TabsContent>
 

@@ -197,19 +197,19 @@ export default function MeansPlotPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 집단별 평균값 비교 및 시각화
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 집단 간 차이의 크기 파악
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 데이터의 변산성 확인
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 ANOVA 분석 전 예비 탐색
               </li>
             </ul>
@@ -226,19 +226,19 @@ export default function MeansPlotPage() {
           <CardContent>
             <ul className="space-y-2">
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>종속변수:</strong> 연속형 변수</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>요인변수:</strong> 범주형 변수</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>집단 수:</strong> 2개 이상</span>
               </li>
               <li className="flex items-start">
-                <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                 <span><strong>표본 크기:</strong> 각 집단 최소 3개 이상</span>
               </li>
             </ul>
@@ -393,7 +393,7 @@ export default function MeansPlotPage() {
                   <ul className="space-y-2">
                     {results.interpretation.recommendations.map((rec, index) => (
                       <li key={index} className="flex items-start">
-                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                        <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                         <span className="text-gray-700">{rec}</span>
                       </li>
                     ))}

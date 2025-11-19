@@ -309,19 +309,19 @@ export default function CochranQTestPage() {
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">3번 이상 반복측정 효과 비교</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">다중 치료법 성공률 비교</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">시간대별 반응률 차이 검정</span>
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
                 <span className="text-sm">평가자 간 일치도 분석</span>
               </div>
             </div>
@@ -490,10 +490,10 @@ export default function CochranQTestPage() {
         )}
 
         {isValid && (
-          <Alert className="border-green-500 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertTitle className="text-green-600">변수 선택 완료</AlertTitle>
-            <AlertDescription className="text-green-600">
+          <Alert className="border-success-border bg-success-bg">
+            <CheckCircle className="h-4 w-4 text-success" />
+            <AlertTitle className="text-success">변수 선택 완료</AlertTitle>
+            <AlertDescription className="text-success">
               피험자 변수 1개와 조건 변수 {currentDependent.length}개가 선택되었습니다.
             </AlertDescription>
           </Alert>
@@ -535,7 +535,7 @@ export default function CochranQTestPage() {
     return (
       <div className="space-y-6">
         {/* 주요 결과 요약 */}
-        <Alert className={significant ? "border-red-500 bg-muted" : "border-green-500 bg-muted"}>
+        <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>검정 결과</AlertTitle>
           <AlertDescription>
