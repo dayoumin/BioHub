@@ -248,10 +248,10 @@ export default function PCAPage() {
 
     // 주성분 생성
     const components: PCAComponent[] = eigenvalues.map((eigenvalue, index) => {
-      const varianceExplained = (eigenvalue / totalVariance) * 100
+      const varianceExplained = eigenvalue / totalVariance
       const cumulativeVariance = eigenvalues
         .slice(0, index + 1)
-        .reduce((sum, val) => sum + (val / totalVariance) * 100, 0)
+        .reduce((sum, val) => sum + (val / totalVariance), 0)
 
       const loadings: Record<string, number> = {}
       variables.forEach((variable, varIndex) => {
