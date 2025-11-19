@@ -133,7 +133,7 @@ export default function OneSampleTPage() {
         return
       }
 
-      // Worker 2 (hypothesis), method: 'one_sample_t_test' 호출
+      // Worker 2 (hypothesis), method: 't_test_one_sample' 호출
       interface OneSampleTResult {
         statistic: number
         pValue: number
@@ -146,7 +146,7 @@ export default function OneSampleTPage() {
 
       const result = await pyodideCore.callWorkerMethod<OneSampleTResult>(
         PyodideWorker.Hypothesis,
-        'one_sample_t_test',
+        't_test_one_sample',
         {
           data: values,
           popmean: parseFloat(testValue),

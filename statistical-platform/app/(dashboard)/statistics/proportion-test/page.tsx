@@ -177,7 +177,7 @@ export default function ProportionTestPage(): React.ReactElement {
       const successCount = values.filter((v: unknown) => v === successValue || v === true || v === 'yes' || v === '1').length
       const totalCount = values.length
 
-      // Worker 1 (descriptive), method: 'proportion_test' 호출
+      // Worker 1 (descriptive), method: 'one_sample_proportion_test' 호출
       interface ProportionTestResult {
         sampleProportion: number
         pValueExact: number
@@ -188,7 +188,7 @@ export default function ProportionTestPage(): React.ReactElement {
 
       const result = await pyodideCore.callWorkerMethod<ProportionTestResult>(
         PyodideWorker.Descriptive, // worker1-descriptive
-        'proportion_test',
+        'one_sample_proportion_test',
         {
           successCount,
           totalCount,

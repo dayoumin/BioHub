@@ -228,7 +228,7 @@ export default function CorrelationPage() {
               }
             })
 
-            // Worker 2 (hypothesis), method: 'correlation' 호출
+            // Worker 2 (hypothesis), method: 'correlation_test' 호출
             interface CorrelationResult {
               correlation: number
               pValue: number
@@ -236,7 +236,7 @@ export default function CorrelationPage() {
 
             const result = await pyodideCore.callWorkerMethod<CorrelationResult>(
               PyodideWorker.Hypothesis,
-              'correlation',
+              'correlation_test',
               {
                 variable1: values1,
                 variable2: values2,

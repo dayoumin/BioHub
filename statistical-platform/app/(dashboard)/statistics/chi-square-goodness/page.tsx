@@ -264,7 +264,7 @@ export default function ChiSquareGoodnessPage() {
         ? Array(categories.length).fill(totalN / categories.length)
         : categories.map(cat => (expectedProportions[cat] || 1 / categories.length) * totalN)
 
-      // Worker 2 (hypothesis), method: 'chi_square_goodness' 호출
+      // Worker 2 (hypothesis), method: 'chi_square_goodness_test' 호출
       interface ChiSquareResult {
         statistic: number
         pValue: number
@@ -274,7 +274,7 @@ export default function ChiSquareGoodnessPage() {
 
       const result = await pyodideCore.callWorkerMethod<ChiSquareResult>(
         PyodideWorker.Hypothesis,
-        'chi_square_goodness',
+        'chi_square_goodness_test',
         {
           observed,
           expected

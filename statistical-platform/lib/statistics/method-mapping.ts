@@ -310,37 +310,6 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
       variableTypes: ['numeric']
     }
   },
-  {
-    id: 'time-decomposition',
-    name: '시계열 분해',
-    description: '추세, 계절성, 잔차 분석',
-    category: 'timeseries',
-    requirements: {
-      minSampleSize: 50,
-      variableTypes: ['numeric', 'date']
-    }
-  },
-  {
-    id: 'arima',
-    name: 'ARIMA 예측',
-    description: '시계열 예측 모델',
-    category: 'timeseries',
-    requirements: {
-      minSampleSize: 100,
-      variableTypes: ['numeric', 'date']
-    }
-  },
-  {
-    id: 'kaplan-meier',
-    name: 'Kaplan-Meier 생존분석',
-    description: '생존 확률 추정',
-    category: 'survival',
-    requirements: {
-      minSampleSize: 20,
-      variableTypes: ['numeric', 'categorical']
-    }
-  },
-
   // 기타 검정 (5개)
   {
     id: 'proportion-test',
@@ -694,9 +663,9 @@ export function recommendMethods(dataProfile: {
     if (twoWay) recommendations.push(twoWay)
   }
 
-  // 시간 변수가 있으면 시계열 분석
+  // 시간 변수가 있으면 시계열 추세 분석
   if (dataProfile.hasTimeVar && dataProfile.totalRows >= 50) {
-    recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'time-decomposition')!)
+    recommendations.push(STATISTICAL_METHODS.find(m => m.id === 'mann-kendall')!)
   }
 
   // 충분한 데이터가 있으면 고급 분석

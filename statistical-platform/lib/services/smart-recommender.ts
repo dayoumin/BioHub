@@ -123,7 +123,7 @@ export class SmartRecommender {
     const text = context.purposeText.toLowerCase()
 
     // 예시: 두 그룹 비교인데 데이터가 하나뿐
-    if (text.includes('두') || text.includes('비교')) {
+    if (text.includes('두') || text.includes('비교') || text.includes('그룹') || text.includes('집단')) {
       const categoricalCols = context.dataShape.columnTypes.filter(t => t === 'categorical')
       if (categoricalCols.length === 0) {
         contradictions.push('그룹 비교를 원하시나 범주형 변수가 없습니다.')
@@ -198,7 +198,44 @@ export class SmartRecommender {
     const methods: StatisticalMethod[] = []
     let matchScore = 0
 
-    // ... 키워드 매칭 로직 ...
+    // 키워드 매칭 로직
+    const text = context.purposeText.toLowerCase()
+
+    // 기술통계 키워드
+    if (text.includes('기술') || text.includes('요약') || text.includes('분포')) {
+      methods.push({ id: 'descriptive', name: '기술통계', description: '데이터 요약 통계', category: 'descriptive' })
+      matchScore += 0.3
+    }
+
+    // 상관분석 키워드
+    if (text.includes('상관') || text.includes('관계') || text.includes('연관')) {
+      methods.push({ id: 'correlation', name: '상관분석', description: '변수 간 상관관계', category: 'regression' })
+      matchScore += 0.3
+    }
+
+    // 회귀분석 키워드
+    if (text.includes('회귀') || text.includes('예측') || text.includes('영향')) {
+      methods.push({ id: 'regression', name: '회귀분석', description: '변수 간 인과관계', category: 'regression' })
+      matchScore += 0.3
+    }
+
+    // t-검정 키워드
+    if (text.includes('t검정') || text.includes('두 그룹') || text.includes('평균 비교')) {
+      methods.push({ id: 't-test', name: 't-검정', description: '두 그룹 평균 비교', category: 't-test' })
+      matchScore += 0.3
+    }
+
+    // ANOVA 키워드
+    if (text.includes('분산분석') || text.includes('anova') || text.includes('세 그룹') || text.includes('여러 그룹')) {
+      methods.push({ id: 'anova', name: 'ANOVA', description: '다중 그룹 비교', category: 'anova' })
+      matchScore += 0.3
+    }
+
+    // 카이제곱 키워드
+    if (text.includes('카이') || text.includes('빈도') || text.includes('독립성')) {
+      methods.push({ id: 'chi-square', name: '카이제곱 검정', description: '범주형 변수 독립성', category: 'nonparametric' })
+      matchScore += 0.3
+    }
 
     // 데이터 기반 보정 및 가정 위반 대체 추천
     const smallSample = context.dataShape.rows < 30
@@ -206,16 +243,16 @@ export class SmartRecommender {
     const heteroscedastic = context.dataQuality.isHomoscedastic === false
 
     if (smallSample || nonNormal) {
-      methods.unshift({ id: 'mannwhitney', name: 'Mann-Whitney U', description: '정규성 가정 불필요', category: 'nonparametric' })
+      methods.unshift({ id: 'mann-whitney', name: 'Mann-Whitney U', description: '정규성 가정 불필요', category: 'nonparametric' })
       matchScore += 0.2
     }
     if (heteroscedastic) {
-      methods.unshift({ id: 'welchAnova', name: 'Welch ANOVA', description: '등분산 가정 완화', category: 'anova' })
-      methods.unshift({ id: 'gamesHowell', name: 'Games-Howell', description: '사후검정(이분산)', category: 'anova' })
+      methods.unshift({ id: 'welch-t', name: "Welch's t-검정", description: '등분산 가정 완화', category: 't-test' })
+      methods.unshift({ id: 'games-howell', name: 'Games-Howell', description: '사후검정(이분산)', category: 'anova' })
       matchScore += 0.2
     }
     if (smallSample) {
-      methods.unshift({ id: 'permutation', name: 'Permutation Test', description: '표본이 작을 때 견고', category: 'advanced' })
+      methods.unshift({ id: 'wilcoxon', name: 'Wilcoxon 부호순위', description: '소표본 비모수 검정', category: 'nonparametric' })
       matchScore += 0.1
     }
 

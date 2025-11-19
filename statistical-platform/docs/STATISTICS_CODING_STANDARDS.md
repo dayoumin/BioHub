@@ -173,6 +173,69 @@ const runHeavyAnalysis = useCallback(async (variables: RegressionVariables) => {
 
 ---
 
+## 2-1. PyodideWorker 메서드 호출 규칙 (CRITICAL)
+
+### 호출 흐름
+
+```
+TypeScript 페이지 → PyodideCore → Python Worker → 통계 라이브러리 (SciPy/statsmodels)
+```
+
+### Worker 파일 구성
+
+| Worker Enum | 파일 | 역할 | 메서드 수 |
+|-------------|------|------|----------|
+| `PyodideWorker.Descriptive` | worker1-descriptive.py | 기술통계, 정규성검정 | 12개 |
+| `PyodideWorker.Hypothesis` | worker2-hypothesis.py | 가설검정, t-test, 회귀 | 22개 |
+| `PyodideWorker.NonparametricAnova` | worker3-nonparametric-anova.py | 비모수검정, ANOVA | 22개 |
+| `PyodideWorker.RegressionAdvanced` | worker4-regression-advanced.py | 고급 회귀, PCA, 군집 | 29개 |
+
+### 메서드명 일치 규칙 (필수)
+
+페이지에서 `callWorkerMethod`로 호출하는 메서드명은 **반드시 Worker 파일에 정의된 실제 Python 함수명과 일치**해야 합니다.
+
+```typescript
+// ✅ 올바른 호출 - Worker 함수명과 일치
+const result = await pyodideCore.callWorkerMethod<CorrelationResult>(
+  PyodideWorker.Hypothesis,
+  'correlation_test',  // worker2-hypothesis.py의 def correlation_test()
+  { variable1, variable2, method: 'pearson' }
+)
+
+// ❌ 잘못된 호출 - 함수 없음으로 런타임 에러
+const result = await pyodideCore.callWorkerMethod<CorrelationResult>(
+  PyodideWorker.Hypothesis,
+  'correlation',  // 존재하지 않는 함수명
+  { ... }
+)
+```
+
+### 주요 메서드명 매핑 예시
+
+| 분석 유형 | Worker | 메서드명 |
+|-----------|--------|----------|
+| 상관분석 | Hypothesis | `correlation_test` |
+| t-검정 (단일표본) | Hypothesis | `t_test_one_sample` |
+| t-검정 (독립표본) | Hypothesis | `t_test_two_sample` |
+| Welch t-검정 | Hypothesis | `t_test_two_sample` + `equal_var: false` |
+| 카이제곱 적합도 | Hypothesis | `chi_square_goodness_test` |
+| 비율 검정 | Descriptive | `one_sample_proportion_test` |
+| Mann-Whitney | NonparametricAnova | `mann_whitney_test` |
+| Kruskal-Wallis | NonparametricAnova | `kruskal_wallis_test` |
+| 선형 회귀 | RegressionAdvanced | `linear_regression` |
+| PCA | RegressionAdvanced | `pca_analysis` |
+
+### 검증 방법
+
+```bash
+# Worker 메서드 존재 여부 자동 검증
+node scripts/validate-worker-methods.js
+```
+
+검증 스크립트가 각 페이지의 `callWorkerMethod` 호출을 추출하여 Worker 파일의 실제 함수와 매칭합니다.
+
+---
+
 
 
 ## 3. DataUploadStep 연동 (필수)

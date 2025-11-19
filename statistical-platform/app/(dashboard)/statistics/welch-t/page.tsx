@@ -193,7 +193,7 @@ export default function WelchTPage() {
       const group1Data = groups[groupNames[0]]
       const group2Data = groups[groupNames[1]]
 
-      // Worker 2 (hypothesis), method: 'welch_t_test' 호출
+      // Worker 2 (hypothesis), method: 't_test_two_sample' (equal_var=false) 호출
       interface WelchTResult {
         statistic: number
         pValue: number
@@ -207,10 +207,11 @@ export default function WelchTPage() {
 
       const result = await pyodideCore.callWorkerMethod<WelchTResult>(
         PyodideWorker.Hypothesis,
-        'welch_t_test',
+        't_test_two_sample',
         {
           group1: group1Data,
           group2: group2Data,
+          equal_var: false, // Welch t-test는 등분산 가정 안함
           alpha: 1 - parseFloat(confidenceLevel) / 100
         }
       )
