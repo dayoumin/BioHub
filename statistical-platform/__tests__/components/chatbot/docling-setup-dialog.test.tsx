@@ -13,6 +13,11 @@ jest.mock('@/components/ui/tooltip', () => ({
   TooltipContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
+// environment-detector mock
+jest.mock('@/lib/utils/environment-detector', () => ({
+  getDoclingEndpoint: () => 'http://localhost:8000',
+}))
+
 // fetch mock
 global.fetch = jest.fn()
 
@@ -97,18 +102,29 @@ describe('DoclingSetupDialog', () => {
     expect(mockOnOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('연결 재시도 버튼이 Step 4 이전에는 비활성화', async () => {
+  it('연결 재시도 버튼이 항상 활성화되어 있음', async () => {
     render(<DoclingSetupDialog open={true} onOpenChange={mockOnOpenChange} />)
 
     await waitFor(() => {
       const retryButton = screen.getByText('연결 재시도')
-      expect(retryButton).toBeDisabled()
+      expect(retryButton).not.toBeDisabled()
+    })
+
+    // Step 4 이전에는 안내 메시지 표시
+    await waitFor(() => {
+      expect(screen.getByText('위 단계를 완료한 후 재시도하세요')).toBeInTheDocument()
     })
   })
 
-  it('Step 4에서 연결 재시도 버튼 활성화 및 클릭 시 onRetry 호출', async () => {
+  it('Step 4에서 연결 재시도 버튼 클릭 시 onRetry 호출', async () => {
     // 이전 mock 초기화 후 새로 설정
     ;(global.fetch as jest.Mock).mockReset()
+    // 첫 번째 호출: 초기 서버 체크 (성공)
+    ;(global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ status: 'healthy' }),
+    })
+    // 두 번째 호출: 재시도 시 서버 체크 (성공)
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: 'healthy' }),
@@ -130,8 +146,11 @@ describe('DoclingSetupDialog', () => {
     expect(retryButton).not.toBeDisabled()
 
     fireEvent.click(retryButton)
-    expect(mockOnRetry).toHaveBeenCalled()
-    expect(mockOnOpenChange).toHaveBeenCalledWith(false)
+
+    await waitFor(() => {
+      expect(mockOnRetry).toHaveBeenCalled()
+      expect(mockOnOpenChange).toHaveBeenCalledWith(false)
+    })
   })
 
   it('Windows에서 올바른 명령어 표시', async () => {

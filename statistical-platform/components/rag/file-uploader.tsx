@@ -401,11 +401,12 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
                 <div className="space-y-2">
                   <p className="font-medium">
                     {doclingAvailable === null
-                      ? 'Docling 상태를 확인할 수 없습니다'
-                      : 'PDF 고품질 파싱을 위해 Docling 설정이 필요합니다'}
+                      ? 'Docling 서버에 연결할 수 없습니다'
+                      : 'PDF 파싱을 위해 Docling 서버가 필요합니다'}
                   </p>
                   <p className="text-sm">
-                    Docling 없이도 기본 파서로 처리할 수 있지만, 표/이미지 등이 제대로 추출되지 않을 수 있습니다.
+                    Docling 없이 진행하면 파싱이 실패할 수 있습니다.
+                    먼저 Docling을 설정하는 것을 권장합니다.
                   </p>
                 </div>
               </AlertDescription>
@@ -421,7 +422,7 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
                   }
                 }}
               >
-                기본 파서로 진행
+                그래도 진행
               </Button>
               <Button
                 className="flex-1 gap-2"

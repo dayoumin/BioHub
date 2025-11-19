@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2, Copy, Download, Terminal, FileText } from 'lucide-react'
+import { getDoclingEndpoint } from '@/lib/utils/environment-detector'
 
 interface DoclingSetupDialogProps {
   open: boolean
@@ -54,10 +55,13 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
   const [copiedStep, setCopiedStep] = useState<number | null>(null)
   const [doclingInstalled, setDoclingInstalled] = useState(false)
 
-  // Docling 서버 상태 체크 (localhost:8000)
+  // Docling 엔드포인트
+  const doclingEndpoint = getDoclingEndpoint()
+
+  // Docling 서버 상태 체크
   const checkDoclingServer = useCallback(async () => {
     try {
-      const response = await fetch('http://localhost:8000/health', {
+      const response = await fetch(`${doclingEndpoint}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(2000), // 2초 타임아웃
       })
@@ -72,7 +76,7 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
       setDoclingInstalled(false)
       setCurrentStep(1) // Step 1 유지
     }
-  }, [])
+  }, [doclingEndpoint])
 
   useEffect(() => {
     if (open) {
@@ -92,7 +96,11 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
     setTimeout(() => setCopiedStep(null), 2000)
   }
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
+    // 먼저 서버 상태 체크
+    await checkDoclingServer()
+
+    // onRetry 콜백 호출 (부모 컴포넌트에서 처리)
     if (onRetry) {
       onRetry()
     }
@@ -229,7 +237,7 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
               </div>
               {copiedStep === 3 && <p className="text-xs text-success">✓ 복사되었습니다!</p>}
               <p className="text-xs text-muted-foreground">
-                서버가 http://localhost:8000에서 실행됩니다
+                서버가 {doclingEndpoint}에서 실행됩니다
               </p>
             </CardContent>
           </Card>
@@ -244,10 +252,15 @@ export function DoclingSetupDialog({ open, onOpenChange, onRetry }: DoclingSetup
                 <CardTitle className="text-base">4. 연결 확인</CardTitle>
               </div>
             </CardHeader>
-            <CardContent>
-              <Button onClick={handleRetry} className="w-full" disabled={currentStep < 4}>
+            <CardContent className="space-y-2">
+              <Button onClick={handleRetry} className="w-full">
                 연결 재시도
               </Button>
+              {currentStep < 4 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  위 단계를 완료한 후 재시도하세요
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
