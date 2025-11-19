@@ -85,6 +85,11 @@ export default function SmartFlowPage() {
     loadHistoryFromDB().catch(console.error)
   }, [])
 
+  // 데이터 검증 수행 (상세 검증 포함)
+  const performDataValidation = useCallback((data: DataRow[]): ValidationResults => {
+    return DataValidationService.performDetailedValidation(data)
+  }, [])
+
   const handleStepClick = useCallback((stepId: number) => {
     if (canNavigateToStep(stepId)) {
       startTransition(() => {
@@ -109,7 +114,7 @@ export default function SmartFlowPage() {
     } catch (err) {
       setError('데이터 업로드 중 오류가 발생했습니다: ' + (err as Error).message)
     }
-  }, [setUploadedFile, setUploadedData, setValidationResults, goToNextStep, setError])
+  }, [setUploadedFile, setUploadedData, setValidationResults, goToNextStep, setError, performDataValidation])
 
   const handlePurposeSubmit = useCallback((purpose: string, method: StatisticalMethod) => {
     setAnalysisPurpose(purpose)
@@ -122,14 +127,9 @@ export default function SmartFlowPage() {
     goToNextStep()
   }, [setresults, goToNextStep])
 
-  // 데이터 검증 수행 (상세 검증 포함)
-  const performDataValidation = (data: DataRow[]): ValidationResults => {
-    return DataValidationService.performDetailedValidation(data)
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      <div className="container max-w-6xl mx-auto p-6 space-y-8">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 overflow-y-auto">
+      <div className="container max-w-6xl mx-auto p-6 pb-12 space-y-8">
         {/* 헤더 */}
         <div className="text-center space-y-2 relative">
           <div className="flex items-center justify-center gap-4 mb-4">
