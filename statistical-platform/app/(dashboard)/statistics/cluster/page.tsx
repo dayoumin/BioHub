@@ -387,7 +387,7 @@ export default function ClusterAnalysisPage() {
               data={results.clusterStatistics.map((stat) => ({
                 cluster: `군집 ${stat.cluster}`,
                 size: stat.size,
-                percentage: (stat.size / (uploadedData?.data.length ?? 1)) * 100,
+                percentage: stat.size / (uploadedData?.data.length ?? 1),
                 withinSS: stat.withinSS
               }))}
               bordered

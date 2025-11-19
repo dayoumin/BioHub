@@ -27,6 +27,8 @@ import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus, 
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
 import { escapeHtml } from '@/lib/utils/html-escape'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
+import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 interface StepwiseResults {
   final_model: {

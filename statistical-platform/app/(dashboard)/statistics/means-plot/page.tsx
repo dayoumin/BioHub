@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator'
 import { CheckCircle2, AlertCircle, BarChart3, Target, CheckCircle } from 'lucide-react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ErrorBar } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 // interface SelectedVariables {
 //   dependent: string[]
@@ -340,34 +341,26 @@ export default function MeansPlotPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-300">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-300 px-4 py-2 text-left">집단</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">N</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">평균</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">표준편차</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">표준오차</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">95% CI 하한</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">95% CI 상한</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.values(results.descriptives).map((desc, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-4 py-2 font-medium">{desc.group}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{desc.count}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{desc.mean.toFixed(3)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{desc.std.toFixed(3)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{desc.sem.toFixed(3)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{desc.ci_lower.toFixed(3)}</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{desc.ci_upper.toFixed(3)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <StatisticsTable
+                  columns={[
+                    { key: 'group', header: '집단', type: 'text' },
+                    { key: 'count', header: 'N', type: 'number', align: 'right' },
+                    { key: 'mean', header: '평균', type: 'number', align: 'right' },
+                    { key: 'std', header: '표준편차', type: 'number', align: 'right' },
+                    { key: 'sem', header: '표준오차', type: 'number', align: 'right' },
+                    { key: 'ciLower', header: '95% CI 하한', type: 'number', align: 'right' },
+                    { key: 'ciUpper', header: '95% CI 상한', type: 'number', align: 'right' }
+                  ]}
+                  data={Object.values(results.descriptives).map((desc) => ({
+                    group: desc.group,
+                    count: desc.count,
+                    mean: desc.mean.toFixed(3),
+                    std: desc.std.toFixed(3),
+                    sem: desc.sem.toFixed(3),
+                    ciLower: desc.ci_lower.toFixed(3),
+                    ciUpper: desc.ci_upper.toFixed(3)
+                  }))}
+                />
               </CardContent>
             </Card>
           </TabsContent>

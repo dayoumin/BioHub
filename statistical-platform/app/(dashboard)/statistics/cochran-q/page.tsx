@@ -615,7 +615,7 @@ export default function CochranQTestPage() {
           data={conditionSuccessRates.map((cond) => ({
             condition: cond.condition,
             successCount: cond.successCount,
-            successRate: cond.successRate * 100,
+            successRate: cond.successRate,
             failureCount: nSubjects - cond.successCount
           }))}
           bordered

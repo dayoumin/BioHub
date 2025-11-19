@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Activity, CheckCircle, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
 
 // Components
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -344,38 +346,27 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
                   <CardTitle>분산분석표</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left p-2">Source</th>
-                          <th className="text-right p-2">DF</th>
-                          <th className="text-right p-2">Sum of Squares</th>
-                          <th className="text-right p-2">Mean Square</th>
-                          <th className="text-right p-2">F Value</th>
-                          <th className="text-right p-2">p-value</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {result.anova_table.source.map((source, index) => (
-                          <tr key={index} className="border-b">
-                            <td className="p-2 font-medium">{source}</td>
-                            <td className="text-right p-2">{result.anova_table.df[index]}</td>
-                            <td className="text-right p-2">{result.anova_table.ss[index].toFixed(4)}</td>
-                            <td className="text-right p-2">{result.anova_table.ms[index].toFixed(4)}</td>
-                            <td className="text-right p-2">
-                              {result.anova_table.f_value[index] > 0 ? result.anova_table.f_value[index].toFixed(4) : '-'}
-                            </td>
-                            <td className="text-right p-2">
-                              {result.anova_table.p_value[index] > 0 ?
-                                (result.anova_table.p_value[index] < 0.001 ? '< 0.001' : result.anova_table.p_value[index].toFixed(4)) :
-                                '-'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    columns={[
+                      { key: 'source', header: 'Source', type: 'text' },
+                      { key: 'df', header: 'DF', type: 'number', align: 'right' },
+                      { key: 'ss', header: 'Sum of Squares', type: 'number', align: 'right' },
+                      { key: 'ms', header: 'Mean Square', type: 'number', align: 'right' },
+                      { key: 'fValue', header: 'F Value', type: 'number', align: 'right' },
+                      { key: 'pValue', header: 'p-value', type: 'custom', align: 'right' }
+                    ]}
+                    data={result.anova_table.source.map((source, index) => ({
+                      source,
+                      df: result.anova_table.df[index],
+                      ss: result.anova_table.ss[index].toFixed(4),
+                      ms: result.anova_table.ms[index].toFixed(4),
+                      fValue: result.anova_table.f_value[index] > 0 ? result.anova_table.f_value[index].toFixed(4) : '-',
+                      pValue: result.anova_table.p_value[index] > 0 ? (
+                        <PValueBadge value={result.anova_table.p_value[index]} />
+                      ) : '-',
+                      _highlighted: result.anova_table.p_value[index] > 0 && result.anova_table.p_value[index] < 0.05
+                    }))}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

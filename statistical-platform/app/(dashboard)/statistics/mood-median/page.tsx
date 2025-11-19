@@ -24,7 +24,8 @@ import {
   TrendingUp
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { PyodideWorker } from "@/lib/services/pyodide/core/pyodide-worker.enum"
+import { StatisticsTable, TableColumn } from "@/components/statistics/common/StatisticsTable"
 
 // ============================================================================
 // 타입 정의
@@ -518,6 +519,34 @@ export default function MoodMedianTestPage() {
       )
     }
 
+    // 분할표 컬럼 정의 (동적으로 그룹명 기반)
+    const contingencyTableColumns: TableColumn[] = [
+      { key: 'position', header: 'Position', type: 'text', align: 'left' },
+      ...results.groupStats.map((item) => ({
+        key: item.group,
+        header: item.group,
+        type: 'number' as const,
+        align: 'center' as const
+      }))
+    ]
+
+    // 분할표 데이터 변환
+    const contingencyTableData = [
+      {
+        position: 'Above Grand Median',
+        ...results.groupStats.reduce((acc, item, idx) => {
+          acc[item.group] = results.contingencyTable[0]?.[idx] ?? 0
+          return acc
+        }, {} as Record<string, number>)
+      },
+      {
+        position: 'Below/Equal Grand Median',
+        ...results.groupStats.reduce((acc, item, idx) => {
+          acc[item.group] = results.contingencyTable[1]?.[idx] ?? 0
+          return acc
+        }, {} as Record<string, number>)
+      }
+    ]
     return (
       <div className="space-y-6">
         {/* 검정 통계량 */}
@@ -590,42 +619,15 @@ export default function MoodMedianTestPage() {
               ))}
             </div>
           </CardContent>
-        </Card>
-
-        {/* 분할표 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">분할표 (2 × k)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b">
-                    <th className="p-2 text-left">Position</th>
-                    {results.groupStats.map((item, idx) => (
-                      <th key={idx} className="p-2 text-center">{item.group}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="p-2 font-medium">Above Grand Median</td>
-                    {results.contingencyTable[0]?.map((count, idx) => (
-                      <td key={idx} className="p-2 text-center">{count}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td className="p-2 font-medium">Below/Equal Grand Median</td>
-                    {results.contingencyTable[1]?.map((count, idx) => (
-                      <td key={idx} className="p-2 text-center">{count}</td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        </Card>        {/* 분할표 */}
+        <StatisticsTable
+          title="분할표 (2 x k)"
+          columns={contingencyTableColumns}
+          data={contingencyTableData}
+          sortable={false}
+          compactMode={true}
+          bordered={true}
+        />
 
         {/* 해석 */}
         <Alert>

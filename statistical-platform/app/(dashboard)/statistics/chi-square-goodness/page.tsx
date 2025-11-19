@@ -33,6 +33,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 
 // Hooks & Utils
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -354,6 +355,24 @@ export default function ChiSquareGoodnessPage() {
     return { level: '연관성 없음', color: 'text-gray-600', bg: 'bg-gray-50' }
   }, [])
 
+  // Column definitions for frequency table
+  const frequencyColumns: TableColumn[] = useMemo(() => [
+    { key: 'category', header: '범주', type: 'text' },
+    { key: 'observed', header: '관측빈도 (O)', type: 'number', align: 'right' },
+    { key: 'expected', header: '기댓빈도 (E)', type: 'number', align: 'right' },
+    { key: 'residual', header: '잔차 (O-E)', type: 'number', align: 'right' },
+    { key: 'contribution', header: '기여도', type: 'number', align: 'right' },
+    { key: 'percentage', header: '비율', type: 'percentage', align: 'right' }
+  ], [])
+
+  // Column definitions for residuals table
+  const residualColumns: TableColumn[] = useMemo(() => [
+    { key: 'category', header: '범주', type: 'text' },
+    { key: 'standardizedResidual', header: '표준화 잔차', type: 'number', align: 'right' },
+    { key: 'contribution', header: 'χ² 기여도', type: 'number', align: 'right' },
+    { key: 'interpretation', header: '해석', type: 'text', align: 'center' }
+  ], [])
+
   return (
     <TwoPanelLayout
       analysisTitle="카이제곱 적합도 검정"
@@ -565,58 +584,17 @@ export default function ChiSquareGoodnessPage() {
                     </Badge>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="border p-2 text-left">범주</th>
-                          <th className="border p-2 text-right">관측빈도 (O)</th>
-                          <th className="border p-2 text-right">기댓빈도 (E)</th>
-                          <th className="border p-2 text-right">잔차 (O-E)</th>
-                          <th className="border p-2 text-right">기여도</th>
-                          <th className="border p-2 text-center">비율</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {results.categories.map((category, index) => (
-                          <tr key={index} className="hover:bg-muted/50">
-                            <td className="border p-2 font-medium">{category.category}</td>
-                            <td className="border p-2 text-right font-mono">{category.observed}</td>
-                            <td className="border p-2 text-right font-mono">{category.expected.toFixed(2)}</td>
-                            <td className="border p-2 text-right font-mono">
-                              <span className={category.residual > 0 ? 'text-muted-foreground' : 'text-muted-foreground'}>
-                                {category.residual > 0 ? '+' : ''}{category.residual.toFixed(2)}
-                              </span>
-                            </td>
-                            <td className="border p-2 text-right font-mono">{category.contribution.toFixed(3)}</td>
-                            <td className="border p-2 text-center">
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className="bg-primary h-2 rounded-full"
-                                  style={{width: `${(category.observed / results.totalN) * 100}%`}}
-                                />
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {((category.observed / results.totalN) * 100).toFixed(1)}%
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="font-medium bg-muted/30">
-                          <td className="border p-2">총계</td>
-                          <td className="border p-2 text-right font-mono">{results.totalN}</td>
-                          <td className="border p-2 text-right font-mono">{results.totalN}</td>
-                          <td className="border p-2 text-right font-mono">0.00</td>
-                          <td className="border p-2 text-right font-mono">
-                            {results.categories.reduce((sum, cat) => sum + cat.contribution, 0).toFixed(3)}
-                          </td>
-                          <td className="border p-2 text-center">100%</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    columns={frequencyColumns}
+                    data={results.categories.map(category => ({
+                      category: category.category,
+                      observed: category.observed,
+                      expected: category.expected,
+                      residual: category.residual,
+                      contribution: category.contribution,
+                      percentage: (category.observed / results.totalN) * 100
+                    }))}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -628,45 +606,18 @@ export default function ChiSquareGoodnessPage() {
                   <CardDescription>표준화 잔차와 각 범주의 기여도</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="border p-2 text-left">범주</th>
-                          <th className="border p-2 text-right">표준화 잔차</th>
-                          <th className="border p-2 text-right">χ² 기여도</th>
-                          <th className="border p-2 text-center">해석</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {results.categories.map((category, index) => {
-                          const absStdResidual = Math.abs(category.standardizedResidual)
-                          const significance = absStdResidual > 2 ? 'significant' : 'normal'
-
-                          return (
-                            <tr key={index} className="hover:bg-muted/50">
-                              <td className="border p-2 font-medium">{category.category}</td>
-                              <td className="border p-2 text-right font-mono">
-                                <span className={
-                                  absStdResidual > 2 ? 'text-muted-foreground font-bold' :
-                                  absStdResidual > 1.5 ? 'text-muted-foreground' : 'text-gray-700'
-                                }>
-                                  {category.standardizedResidual > 0 ? '+' : ''}
-                                  {category.standardizedResidual.toFixed(3)}
-                                </span>
-                              </td>
-                              <td className="border p-2 text-right font-mono">{category.contribution.toFixed(3)}</td>
-                              <td className="border p-2 text-center">
-                                <Badge variant={significance === 'significant' ? 'destructive' : 'outline'}>
-                                  {significance === 'significant' ? '이상치' : '정상'}
-                                </Badge>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <StatisticsTable
+                    columns={residualColumns}
+                    data={results.categories.map(category => {
+                      const absStdResidual = Math.abs(category.standardizedResidual)
+                      return {
+                        category: category.category,
+                        standardizedResidual: category.standardizedResidual,
+                        contribution: category.contribution,
+                        interpretation: absStdResidual > 2 ? '이상치' : '정상'
+                      }
+                    })}
+                  />
 
                   <div className="mt-4 p-4 bg-muted rounded-lg">
                     <h4 className="font-medium mb-2">잔차 해석 가이드</h4>
