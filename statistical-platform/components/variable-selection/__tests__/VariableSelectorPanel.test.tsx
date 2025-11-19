@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { VariableSelectorPanel, COMMON_ROLES, VariableRole } from '../VariableSelectorPanel'
+import { VariableSelectorPanel, VariableRole } from '../VariableSelectorPanel'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 // Mock data
@@ -11,6 +11,41 @@ const mockData = [
 ]
 
 const mockColumns = ['id', 'name', 'age', 'score', 'group']
+
+// 테스트용 역할 정의 (레거시 방식)
+const testRoles: {
+  descriptive: VariableRole[]
+  regression: VariableRole[]
+} = {
+  descriptive: [
+    {
+      id: 'dependent',
+      label: '분석 변수',
+      description: '기술통계를 계산할 수치형 변수',
+      required: true,
+      multiple: true,
+      acceptTypes: ['number'],
+    },
+  ],
+  regression: [
+    {
+      id: 'dependent',
+      label: '종속변수 (Y)',
+      description: '예측하려는 결과 변수',
+      required: true,
+      multiple: false,
+      acceptTypes: ['number'],
+    },
+    {
+      id: 'independent',
+      label: '독립변수 (X)',
+      description: '예측에 사용할 변수',
+      required: true,
+      multiple: true,
+      acceptTypes: ['number'],
+    },
+  ],
+}
 
 // Test wrapper with TooltipProvider
 const TestWrapper = ({ children }: { children: React.ReactNode }) => (
@@ -27,7 +62,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -43,7 +78,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -60,7 +95,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -76,7 +111,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -93,7 +128,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -111,7 +146,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -134,7 +169,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={onAssignmentChange}
           />
         </TestWrapper>
@@ -153,8 +188,8 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
-            assignment={{ variables: ['age', 'score'] }}
+            roles={testRoles.descriptive}
+            assignment={{ dependent: ['age', 'score'] }}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -178,7 +213,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
             onComplete={() => {}}
           />
@@ -194,8 +229,8 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
-            assignment={{ variables: ['age'] }}
+            roles={testRoles.descriptive}
+            assignment={{ dependent: ['age'] }}
             onAssignmentChange={() => {}}
             onComplete={() => {}}
           />
@@ -213,8 +248,8 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
-            assignment={{ variables: ['age'] }}
+            roles={testRoles.descriptive}
+            assignment={{ dependent: ['age'] }}
             onAssignmentChange={() => {}}
             onComplete={onComplete}
           />
@@ -235,7 +270,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -252,7 +287,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             columnTypes={{ id: 'number', name: 'string', age: 'number', score: 'number', group: 'string' }}
             onAssignmentChange={() => {}}
           />
@@ -263,31 +298,43 @@ describe('VariableSelectorPanel', () => {
     })
   })
 
-  describe('COMMON_ROLES 프리셋', () => {
-    it('descriptive 역할이 정의되어 있어야 함', () => {
-      expect(COMMON_ROLES.descriptive).toBeDefined()
-      expect(COMMON_ROLES.descriptive).toHaveLength(1)
-      expect(COMMON_ROLES.descriptive[0].id).toBe('variables')
+  describe('methodId 기반 역할 로딩', () => {
+    it('methodId로 역할이 자동 로딩되어야 함', () => {
+      render(
+        <TestWrapper>
+          <VariableSelectorPanel
+            methodId="descriptive-stats"
+            data={mockData}
+            columns={mockColumns}
+            onAssignmentChange={() => {}}
+          />
+        </TestWrapper>
+      )
+
+      // variable-requirements.ts에서 로딩된 역할
+      expect(screen.getByText('분석 변수')).toBeInTheDocument()
     })
 
-    it('regression 역할이 정의되어 있어야 함', () => {
-      expect(COMMON_ROLES.regression).toBeDefined()
-      expect(COMMON_ROLES.regression).toHaveLength(2)
-      expect(COMMON_ROLES.regression[0].id).toBe('dependent')
-      expect(COMMON_ROLES.regression[1].id).toBe('independent')
-    })
+    it('존재하지 않는 methodId는 빈 역할을 반환해야 함', () => {
+      // console.warn이 호출됨을 확인
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation()
 
-    it('anova 역할이 정의되어 있어야 함', () => {
-      expect(COMMON_ROLES.anova).toBeDefined()
-      expect(COMMON_ROLES.anova).toHaveLength(2)
-      expect(COMMON_ROLES.anova[0].id).toBe('dependent')
-      expect(COMMON_ROLES.anova[1].id).toBe('factor')
-    })
+      render(
+        <TestWrapper>
+          <VariableSelectorPanel
+            methodId="nonexistent-method"
+            data={mockData}
+            columns={mockColumns}
+            onAssignmentChange={() => {}}
+          />
+        </TestWrapper>
+      )
 
-    it('correlation 역할이 정의되어 있어야 함', () => {
-      expect(COMMON_ROLES.correlation).toBeDefined()
-      expect(COMMON_ROLES.correlation).toHaveLength(1)
-      expect(COMMON_ROLES.correlation[0].id).toBe('variables')
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('not found in variable-requirements.ts')
+      )
+
+      warnSpy.mockRestore()
     })
   })
 
@@ -298,7 +345,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.regression}
+            roles={testRoles.regression}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -314,7 +361,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.regression}
+            roles={testRoles.regression}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -331,7 +378,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={[]}
             columns={[]}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>
@@ -346,7 +393,7 @@ describe('VariableSelectorPanel', () => {
           <VariableSelectorPanel
             data={mockData}
             columns={mockColumns}
-            roles={COMMON_ROLES.descriptive}
+            roles={testRoles.descriptive}
             onAssignmentChange={() => {}}
           />
         </TestWrapper>

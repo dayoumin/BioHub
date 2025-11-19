@@ -30,8 +30,17 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  getMethodRequirements,
+  VariableRequirement,
+  VariableType,
+} from '@/lib/statistics/variable-requirements'
+import {
+  isTypeCompatibleWithValues,
+  getCompatibleUITypes,
+} from '@/lib/utils/variable-type-mapper'
 
-// 변수 역할 정의
+// 변수 역할 정의 (레거시 호환용 - 향후 제거 예정)
 export interface VariableRole {
   id: string
   label: string
@@ -39,6 +48,8 @@ export interface VariableRole {
   required: boolean
   multiple: boolean
   acceptTypes: ('number' | 'string' | 'date' | 'boolean')[]
+  /** variable-requirements.ts의 원본 타입 (binary 검증용) */
+  allowedVariableTypes?: VariableType[]
 }
 
 // 변수 할당 결과
@@ -47,12 +58,12 @@ export interface VariableAssignment {
 }
 
 interface VariableSelectorPanelProps {
+  /** 통계 메서드 ID (variable-requirements.ts 기준) - roles 미제공 시 필수 */
+  methodId?: string
   /** 데이터 배열 */
   data: Record<string, unknown>[]
   /** 열 이름 배열 */
   columns: string[]
-  /** 역할 정의 */
-  roles: VariableRole[]
   /** 현재 할당 상태 */
   assignment?: VariableAssignment
   /** 할당 변경 콜백 */
@@ -61,6 +72,8 @@ interface VariableSelectorPanelProps {
   onComplete?: () => void
   /** 열 타입 정보 (제공되지 않으면 자동 감지) */
   columnTypes?: Record<string, 'number' | 'string' | 'date' | 'boolean'>
+  /** @deprecated 레거시 호환용 - methodId 사용 권장 */
+  roles?: VariableRole[]
 }
 
 /**
@@ -73,16 +86,49 @@ interface VariableSelectorPanelProps {
  * - 타입 검증 및 시각적 피드백
  */
 export function VariableSelectorPanel({
+  methodId,
   data,
   columns,
-  roles,
   assignment = {},
   onAssignmentChange,
   onComplete,
   columnTypes: providedColumnTypes,
+  roles: legacyRoles,
 }: VariableSelectorPanelProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedVariable, setSelectedVariable] = useState<string | null>(null)
+
+  // methodId에서 역할 정의 가져오기
+  const roles = useMemo(() => {
+    // 레거시 roles prop이 제공되면 사용 (하위 호환)
+    if (legacyRoles && legacyRoles.length > 0) {
+      return legacyRoles
+    }
+
+    // methodId가 없으면 빈 배열
+    if (!methodId) {
+      console.warn('VariableSelectorPanel: methodId or roles prop is required')
+      return []
+    }
+
+    // methodId로 variable-requirements.ts에서 가져오기
+    const methodReqs = getMethodRequirements(methodId)
+    if (!methodReqs) {
+      console.warn(`Method "${methodId}" not found in variable-requirements.ts`)
+      return []
+    }
+
+    // VariableRequirement → VariableRole 변환
+    return methodReqs.variables.map((req: VariableRequirement): VariableRole => ({
+      id: req.role,
+      label: req.label,
+      description: req.description,
+      required: req.required,
+      multiple: req.multiple,
+      acceptTypes: getCompatibleUITypes(req.types),
+      allowedVariableTypes: req.types, // binary 검증용 원본 타입 보존
+    }))
+  }, [methodId, legacyRoles])
 
   // 열 타입 자동 감지
   const columnTypes = useMemo(() => {
@@ -209,11 +255,32 @@ export function VariableSelectorPanel({
     }
   }
 
-  // 타입 호환성 체크
-  const isTypeCompatible = (variable: string, role: VariableRole) => {
+  // 컬럼별 샘플 값 캐시 (성능 최적화)
+  const columnSamples = useMemo(() => {
+    const samples: Record<string, unknown[]> = {}
+    const sampleSize = Math.min(100, data.length) // 최대 100개 샘플
+
+    columns.forEach(col => {
+      samples[col] = data.slice(0, sampleSize).map(row => row[col])
+    })
+
+    return samples
+  }, [columns, data])
+
+  // 타입 호환성 체크 (variable-type-mapper 유틸리티 사용)
+  const checkTypeCompatibility = useCallback((variable: string, role: VariableRole) => {
     const type = columnTypes[variable]
+
+    // allowedVariableTypes가 있으면 실제 값 검증 포함
+    if (role.allowedVariableTypes) {
+      // 캐시된 샘플 사용 (성능 최적화)
+      const columnValues = columnSamples[variable] || []
+      return isTypeCompatibleWithValues(type, role.allowedVariableTypes, columnValues)
+    }
+
+    // 레거시 방식: acceptTypes만 사용
     return role.acceptTypes.includes(type)
-  }
+  }, [columnTypes, columnSamples])
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -282,7 +349,7 @@ export function VariableSelectorPanel({
                       <div className="space-y-1">
                         <p className="text-sm font-medium px-2 py-1">역할 선택</p>
                         {roles.map(role => {
-                          const compatible = isTypeCompatible(col, role)
+                          const compatible = checkTypeCompatibility(col, role)
                           return (
                             <Button
                               key={role.id}
@@ -441,7 +508,17 @@ export function VariableSelectorPanel({
   )
 }
 
-// 기본 역할 프리셋
+/**
+ * @deprecated COMMON_ROLES는 더 이상 사용되지 않습니다.
+ * variable-requirements.ts의 getMethodRequirements를 사용하세요.
+ *
+ * @example
+ * // 이전 방식 (deprecated)
+ * <VariableSelectorPanel roles={COMMON_ROLES.descriptive} ... />
+ *
+ * // 새로운 방식 (권장)
+ * <VariableSelectorPanel methodId="descriptive-stats" ... />
+ */
 export const COMMON_ROLES: Record<string, VariableRole[]> = {
   // 회귀분석
   regression: [
