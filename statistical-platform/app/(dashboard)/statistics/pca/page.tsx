@@ -321,7 +321,7 @@ export default function PCAPage() {
       },
       screeData,
       interpretation: selectedComponents > 0
-        ? `${selectedComponents}개의 주성분이 전체 분산의 ${components.slice(0, selectedComponents).reduce((sum, comp) => sum + comp.varianceExplained, 0).toFixed(1)}%를 설명합니다.`
+        ? `${selectedComponents}개의 주성분이 전체 분산의 ${(components.slice(0, selectedComponents).reduce((sum, comp) => sum + comp.varianceExplained, 0) * 100).toFixed(1)}%를 설명합니다.`
         : '주성분 추출에 적합하지 않은 데이터입니다.'
     }
   }, [calculateCovarianceMatrix, calculateEigenDecomposition, calculateKMO])
@@ -652,10 +652,10 @@ export default function PCAPage() {
                   <div key={comp.componentNumber} className="space-y-1">
                     <div className="flex justify-between text-sm">
                       <span>PC{comp.componentNumber}</span>
-                      <span>{comp.cumulativeVariance.toFixed(1)}%</span>
+                      <span>{(comp.cumulativeVariance * 100).toFixed(1)}%</span>
                     </div>
                     <Progress
-                      value={comp.cumulativeVariance}
+                      value={comp.cumulativeVariance * 100}
                       className="h-2"
                     />
                   </div>
@@ -718,12 +718,12 @@ export default function PCAPage() {
                     <div className="flex-1">
                       <div className="flex justify-between mb-1">
                         <span className="text-xs">고유값: {point.eigenvalue.toFixed(3)}</span>
-                        <span className="text-xs">{point.varianceExplained.toFixed(1)}%</span>
+                        <span className="text-xs">{(point.varianceExplained * 100).toFixed(1)}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-blue-600 h-2 rounded-full"
-                          style={{ width: `${Math.min(point.varianceExplained * 2, 100)}%` }}
+                          style={{ width: `${Math.min(point.varianceExplained * 100 * 2, 100)}%` }}
                         />
                       </div>
                     </div>
