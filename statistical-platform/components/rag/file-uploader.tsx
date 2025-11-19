@@ -236,9 +236,14 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
       }
 
       // PDF 파일이고 Docling이 없으면 경고 표시
-      if (ext === '.pdf' && doclingAvailable === false) {
+      // doclingAvailable이 null(체크 중) 또는 false(미설치)일 때 경고
+      if (ext === '.pdf' && doclingAvailable !== true) {
         setPendingPdfFile(file)
         setShowDoclingWarning(true)
+        // 파일 input 초기화 (같은 파일 재선택 가능하도록)
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
         return
       }
 
@@ -394,7 +399,11 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800 dark:text-amber-200">
                 <div className="space-y-2">
-                  <p className="font-medium">PDF 고품질 파싱을 위해 Docling 설정이 필요합니다</p>
+                  <p className="font-medium">
+                    {doclingAvailable === null
+                      ? 'Docling 상태를 확인할 수 없습니다'
+                      : 'PDF 고품질 파싱을 위해 Docling 설정이 필요합니다'}
+                  </p>
                   <p className="text-sm">
                     Docling 없이도 기본 파서로 처리할 수 있지만, 표/이미지 등이 제대로 추출되지 않을 수 있습니다.
                   </p>

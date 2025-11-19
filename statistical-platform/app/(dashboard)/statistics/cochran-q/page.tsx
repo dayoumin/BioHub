@@ -23,6 +23,8 @@ import {
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
@@ -568,9 +570,7 @@ export default function CochranQTestPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>p-value</span>
-                  <Badge variant={significant ? "destructive" : "default"}>
-                    {pValue < 0.001 ? '< 0.001' : pValue.toFixed(3)}
-                  </Badge>
+                  <PValueBadge value={pValue} />
                 </div>
                 <div className="flex justify-between">
                   <span>자유도</span>
@@ -604,37 +604,22 @@ export default function CochranQTestPage() {
         </div>
 
         {/* 조건별 성공률 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">조건별 성공률</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300 text-sm">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border border-gray-300 p-3 text-left">조건</th>
-                    <th className="border border-gray-300 p-3 text-center">성공 수</th>
-                    <th className="border border-gray-300 p-3 text-center">성공률</th>
-                    <th className="border border-gray-300 p-3 text-center">실패 수</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {conditionSuccessRates.map((cond, idx) => (
-                    <tr key={idx}>
-                      <td className="border border-gray-300 p-3 font-medium">{cond.condition}</td>
-                      <td className="border border-gray-300 p-3 text-center">{cond.successCount}</td>
-                      <td className="border border-gray-300 p-3 text-center">
-                        <Badge variant="outline">{(cond.successRate * 100).toFixed(1)}%</Badge>
-                      </td>
-                      <td className="border border-gray-300 p-3 text-center">{nSubjects - cond.successCount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <StatisticsTable
+          title="조건별 성공률"
+          columns={[
+            { key: 'condition', header: '조건', type: 'text' },
+            { key: 'successCount', header: '성공 수', type: 'number', align: 'center' },
+            { key: 'successRate', header: '성공률', type: 'percentage', align: 'center' },
+            { key: 'failureCount', header: '실패 수', type: 'number', align: 'center' }
+          ]}
+          data={conditionSuccessRates.map((cond) => ({
+            condition: cond.condition,
+            successCount: cond.successCount,
+            successRate: cond.successRate * 100,
+            failureCount: nSubjects - cond.successCount
+          }))}
+          bordered
+        />
 
         {/* 해석 가이드 */}
         <Card>

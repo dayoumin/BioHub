@@ -1,0 +1,1219 @@
+{
+  "summary": {
+    "total": 43,
+    "withStatisticsTable": 23,
+    "withEffectSize": 19,
+    "withAssumptionTest": 24,
+    "withPostHoc": 6,
+    "withConfidenceInterval": 43,
+    "withAnyType": 0,
+    "withDirectTable": 10,
+    "avgScore": "5.91"
+  },
+  "results": [
+    {
+      "page": "chi-square",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 495,
+      "chartCount": 0,
+      "score": 2
+    },
+    {
+      "page": "mann-kendall",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 715,
+      "chartCount": 0,
+      "score": 2
+    },
+    {
+      "page": "factor-analysis",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 821,
+      "chartCount": 1,
+      "score": 2.5
+    },
+    {
+      "page": "means-plot",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 561,
+      "chartCount": 1,
+      "score": 2.5
+    },
+    {
+      "page": "binomial-test",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 693,
+      "chartCount": 1,
+      "score": 3
+    },
+    {
+      "page": "runs-test",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 632,
+      "chartCount": 1,
+      "score": 3
+    },
+    {
+      "page": "response-surface",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 710,
+      "chartCount": 0,
+      "score": 3.5
+    },
+    {
+      "page": "dose-response",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 869,
+      "chartCount": 0,
+      "score": 4
+    },
+    {
+      "page": "partial-correlation",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 729,
+      "chartCount": 0,
+      "score": 4
+    },
+    {
+      "page": "pca",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 828,
+      "chartCount": 0,
+      "score": 4
+    },
+    {
+      "page": "sign-test",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 704,
+      "chartCount": 0,
+      "score": 4
+    },
+    {
+      "page": "correlation",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": true,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": true
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 736,
+      "chartCount": 3,
+      "score": 4.5
+    },
+    {
+      "page": "mcnemar",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 810,
+      "chartCount": 1,
+      "score": 4.5
+    },
+    {
+      "page": "mixed-model",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 1045,
+      "chartCount": 1,
+      "score": 4.5
+    },
+    {
+      "page": "mood-median",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 708,
+      "chartCount": 1,
+      "score": 4.5
+    },
+    {
+      "page": "cluster",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 645,
+      "chartCount": 1,
+      "score": 5
+    },
+    {
+      "page": "cochran-q",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 720,
+      "chartCount": 1,
+      "score": 5
+    },
+    {
+      "page": "descriptive",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 481,
+      "chartCount": 1,
+      "score": 5
+    },
+    {
+      "page": "ordinal-regression",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 924,
+      "chartCount": 1,
+      "score": 5
+    },
+    {
+      "page": "poisson",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": true,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 856,
+      "chartCount": 2,
+      "score": 5
+    },
+    {
+      "page": "reliability",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 731,
+      "chartCount": 1,
+      "score": 5
+    },
+    {
+      "page": "repeated-measures-anova",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": true,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 594,
+      "chartCount": 1,
+      "score": 5
+    },
+    {
+      "page": "discriminant",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": true,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": false,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 625,
+      "chartCount": 0,
+      "score": 6
+    },
+    {
+      "page": "chi-square-goodness",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 811,
+      "chartCount": 1,
+      "score": 6.5
+    },
+    {
+      "page": "chi-square-independence",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 815,
+      "chartCount": 1,
+      "score": 6.5
+    },
+    {
+      "page": "stepwise",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": true
+      },
+      "lineCount": 1030,
+      "chartCount": 1,
+      "score": 6.5
+    },
+    {
+      "page": "explore-data",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": true,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 788,
+      "chartCount": 2,
+      "score": 7
+    },
+    {
+      "page": "ks-test",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 677,
+      "chartCount": 1,
+      "score": 7
+    },
+    {
+      "page": "normality-test",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 716,
+      "chartCount": 1,
+      "score": 7
+    },
+    {
+      "page": "power-analysis",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 635,
+      "chartCount": 1,
+      "score": 7
+    },
+    {
+      "page": "proportion-test",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 768,
+      "chartCount": 1,
+      "score": 7
+    },
+    {
+      "page": "regression",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": false
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": true,
+        "scatterChart": true,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": true,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 994,
+      "chartCount": 4,
+      "score": 7
+    },
+    {
+      "page": "wilcoxon",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 682,
+      "chartCount": 1,
+      "score": 7
+    },
+    {
+      "page": "friedman",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": false,
+        "postHoc": true,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 767,
+      "chartCount": 1,
+      "score": 8
+    },
+    {
+      "page": "non-parametric",
+      "components": {
+        "statisticsTable": false,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": true,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 901,
+      "chartCount": 1,
+      "score": 8
+    },
+    {
+      "page": "mann-whitney",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": true,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 796,
+      "chartCount": 2,
+      "score": 9
+    },
+    {
+      "page": "one-sample-t",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 699,
+      "chartCount": 1,
+      "score": 9
+    },
+    {
+      "page": "t-test",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 702,
+      "chartCount": 1,
+      "score": 9
+    },
+    {
+      "page": "welch-t",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": false,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 892,
+      "chartCount": 1,
+      "score": 9
+    },
+    {
+      "page": "ancova",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": true,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 800,
+      "chartCount": 1,
+      "score": 10
+    },
+    {
+      "page": "anova",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": false,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": true,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 1613,
+      "chartCount": 1,
+      "score": 10
+    },
+    {
+      "page": "kruskal-wallis",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": true,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 816,
+      "chartCount": 1,
+      "score": 10
+    },
+    {
+      "page": "manova",
+      "components": {
+        "statisticsTable": true,
+        "pValueBadge": true,
+        "effectSizeCard": false,
+        "confidenceInterval": true,
+        "assumptionTest": true,
+        "postHoc": true,
+        "effectSize": true
+      },
+      "charts": {
+        "barChart": true,
+        "lineChart": false,
+        "scatterChart": false,
+        "boxPlot": false,
+        "histogram": false,
+        "qqPlot": false,
+        "heatmap": false
+      },
+      "issues": {
+        "anyType": false,
+        "directTable": false
+      },
+      "lineCount": 866,
+      "chartCount": 1,
+      "score": 10
+    }
+  ]
+}

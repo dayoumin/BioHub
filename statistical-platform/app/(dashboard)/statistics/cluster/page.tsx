@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle, XCircle, Users, Target, Zap, BarChart3, Activity, CheckCircle2 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
@@ -374,40 +375,23 @@ export default function ClusterAnalysisPage() {
           </TabsList>
 
           <TabsContent value="statistics" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>군집별 상세 통계</CardTitle>
-                <CardDescription>각 군집의 크기와 특성</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border border-gray-200">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="border border-gray-200 px-4 py-2 text-left">군집</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left">크기</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left">비율(%)</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left">군집 내 제곱합</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {results.clusterStatistics.map((stat) => (
-                        <tr key={stat.cluster}>
-                          <td className="border border-gray-200 px-4 py-2">군집 {stat.cluster}</td>
-                          <td className="border border-gray-200 px-4 py-2">{stat.size}</td>
-                          <td className="border border-gray-200 px-4 py-2">
-                            {((stat.size / (uploadedData?.data.length ?? 1)) * 100).toFixed(1)}%
-                          </td>
-                          <td className="border border-gray-200 px-4 py-2">
-                            {stat.withinSS.toFixed(2)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
+            <StatisticsTable
+              title="군집별 상세 통계"
+              description="각 군집의 크기와 특성"
+              columns={[
+                { key: 'cluster', header: '군집', type: 'text' },
+                { key: 'size', header: '크기', type: 'number', align: 'right' },
+                { key: 'percentage', header: '비율(%)', type: 'percentage', align: 'right' },
+                { key: 'withinSS', header: '군집 내 제곱합', type: 'number', align: 'right' }
+              ]}
+              data={results.clusterStatistics.map((stat) => ({
+                cluster: `군집 ${stat.cluster}`,
+                size: stat.size,
+                percentage: (stat.size / (uploadedData?.data.length ?? 1)) * 100,
+                withinSS: stat.withinSS
+              }))}
+              bordered
+            />
           </TabsContent>
 
           <TabsContent value="performance" className="mt-4">

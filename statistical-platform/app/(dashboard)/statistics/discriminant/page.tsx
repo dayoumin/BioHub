@@ -24,6 +24,9 @@ import {
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -406,23 +409,29 @@ export default function DiscriminantPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Box&apos;s M 검정</span>
-                    <Badge variant={equalityTests.boxM.significant ? "destructive" : "default"}>
-                      {equalityTests.boxM.significant ? '분산 이질' : '분산 동질'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <PValueBadge value={equalityTests.boxM.pValue} size="sm" />
+                      <Badge variant={equalityTests.boxM.significant ? "destructive" : "default"}>
+                        {equalityTests.boxM.significant ? '분산 이질' : '분산 동질'}
+                      </Badge>
+                    </div>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Wilks&apos; Lambda</span>
-                    <Badge variant={equalityTests.wilksLambda.significant ? "default" : "secondary"}>
-                      {equalityTests.wilksLambda.statistic.toFixed(3)}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{equalityTests.wilksLambda.statistic.toFixed(3)}</Badge>
+                      <PValueBadge value={equalityTests.wilksLambda.pValue} size="sm" />
+                    </div>
                   </div>
                 </div>
 
                 <Alert className="mt-3">
                   <Info className="h-4 w-4" />
                   <AlertDescription className="text-xs">
-                    Wilks&apos; Lambda 작을수록 판별력 높음
+                    Wilks&apos; Lambda가 0에 가까울수록 판별력이 높습니다.
+                    {equalityTests.wilksLambda.statistic < 0.5 ? ' (우수한 판별력)' :
+                     equalityTests.wilksLambda.statistic < 0.8 ? ' (보통 판별력)' : ' (약한 판별력)'}
                   </AlertDescription>
                 </Alert>
               </CardContent>
@@ -430,40 +439,22 @@ export default function DiscriminantPage() {
           </div>
 
           {/* 판별함수 정보 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Layers className="w-4 h-4" />
-                판별함수 정보
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">함수</th>
-                      <th className="text-right py-2">고유값</th>
-                      <th className="text-right py-2">분산설명률</th>
-                      <th className="text-right py-2">정준상관</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {functions.map((func) => (
-                      <tr key={func.functionNumber} className="border-b">
-                        <td className="py-2">Function {func.functionNumber}</td>
-                        <td className="text-right">{func.eigenvalue.toFixed(3)}</td>
-                        <td className="text-right">{func.varianceExplained.toFixed(1)}%</td>
-                        <td className="text-right font-medium">
-                          {func.canonicalCorrelation.toFixed(3)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <StatisticsTable
+            title="판별함수 정보"
+            columns={[
+              { key: 'function', header: '함수', type: 'text' },
+              { key: 'eigenvalue', header: '고유값', type: 'number', align: 'right' },
+              { key: 'varianceExplained', header: '분산설명률', type: 'percentage', align: 'right' },
+              { key: 'canonicalCorrelation', header: '정준상관', type: 'number', align: 'right',
+                highlight: (value) => value > 0.5 ? 'positive' : value > 0.3 ? 'neutral' : null }
+            ]}
+            data={functions.map((func) => ({
+              function: `Function ${func.functionNumber}`,
+              eigenvalue: func.eigenvalue,
+              varianceExplained: func.varianceExplained,
+              canonicalCorrelation: func.canonicalCorrelation
+            }))}
+          />
 
           {/* 혼동행렬 */}
           <Card>
@@ -521,85 +512,49 @@ export default function DiscriminantPage() {
           </Card>
 
           {/* 그룹 중심점 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">그룹 중심점 (Group Centroids)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">그룹</th>
-                      {functions.map(func => (
-                        <th key={func.functionNumber} className="text-right py-2">
-                          Function {func.functionNumber}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupCentroids.map((centroid) => (
-                      <tr key={centroid.group} className="border-b">
-                        <td className="py-2 font-medium">{centroid.group}</td>
-                        {functions.map(func => (
-                          <td key={func.functionNumber} className="text-right">
-                            {centroid.centroids[`Function${func.functionNumber}`]?.toFixed(3) || '0.000'}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <StatisticsTable
+            title="그룹 중심점 (Group Centroids)"
+            columns={[
+              { key: 'group', header: '그룹', type: 'text' },
+              ...functions.map(func => ({
+                key: `func${func.functionNumber}`,
+                header: `Function ${func.functionNumber}`,
+                type: 'number' as const,
+                align: 'right' as const
+              }))
+            ]}
+            data={groupCentroids.map((centroid) => ({
+              group: centroid.group,
+              ...functions.reduce((acc, func) => ({
+                ...acc,
+                [`func${func.functionNumber}`]: centroid.centroids[`Function${func.functionNumber}`] || 0
+              }), {})
+            }))}
+          />
 
           {/* 판별계수 */}
           {functions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">판별계수 (Discriminant Coefficients)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2">변수</th>
-                        {functions.map(func => (
-                          <th key={func.functionNumber} className="text-right py-2">
-                            Function {func.functionNumber}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.keys(functions[0]?.coefficients || {}).map((variable) => (
-                        <tr key={variable} className="border-b">
-                          <td className="py-2 font-medium">{variable}</td>
-                          {functions.map(func => (
-                            <td
-                              key={func.functionNumber}
-                              className="text-right"
-                              style={{
-                                color: Math.abs(func.coefficients[variable]) > 0.5 ? '#dc2626' : 'inherit',
-                                fontWeight: Math.abs(func.coefficients[variable]) > 0.5 ? 'bold' : 'normal'
-                              }}
-                            >
-                              {func.coefficients[variable]?.toFixed(3) || '0.000'}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  * 절댓값이 큰 계수는 해당 변수의 판별 기여도가 높음을 의미합니다.
-                </p>
-              </CardContent>
-            </Card>
+            <StatisticsTable
+              title="판별계수 (Discriminant Coefficients)"
+              description="절댓값이 큰 계수는 해당 변수의 판별 기여도가 높음을 의미합니다."
+              columns={[
+                { key: 'variable', header: '변수', type: 'text' },
+                ...functions.map(func => ({
+                  key: `func${func.functionNumber}`,
+                  header: `Function ${func.functionNumber}`,
+                  type: 'number' as const,
+                  align: 'right' as const,
+                  highlight: (value: number) => Math.abs(value) > 0.5 ? 'negative' : null
+                }))
+              ]}
+              data={Object.keys(functions[0]?.coefficients || {}).map((variable) => ({
+                variable,
+                ...functions.reduce((acc, func) => ({
+                  ...acc,
+                  [`func${func.functionNumber}`]: func.coefficients[variable] || 0
+                }), {})
+              }))}
+            />
           )}
 
           {/* 해석 가이드 */}

@@ -146,22 +146,110 @@ export interface StatisticalAssumptions {
   summary?: StatisticalAssumptionsSummary
 }
 
+/**
+ * 효과크기 정보
+ */
+export interface EffectSizeInfo {
+  value: number
+  type: string  // "Cohen's d", "eta-squared", "r", etc.
+  interpretation: string  // "작은 효과", "중간 효과", "큰 효과"
+}
+
+/**
+ * 사후검정 결과
+ */
+export interface PostHocResult {
+  group1: string | number
+  group2: string | number
+  meanDiff?: number
+  zStatistic?: number
+  pvalue: number
+  pvalueAdjusted?: number
+  significant: boolean
+}
+
+/**
+ * 회귀 계수 정보
+ */
+export interface CoefficientResult {
+  name: string
+  value: number
+  stdError: number
+  tValue: number
+  pvalue: number
+}
+
+/**
+ * 그룹별 통계
+ */
+export interface GroupStats {
+  name?: string
+  mean: number
+  std: number
+  n: number
+  median?: number
+}
+
+/**
+ * 시각화 데이터 설정
+ */
+export interface VisualizationData {
+  type: string  // 'histogram', 'boxplot', 'scatter', 'bar', 'line', 'heatmap', 'pca-biplot', 'roc-curve', etc.
+  data: Record<string, unknown>
+  options?: Record<string, unknown>
+}
+
 export interface AnalysisResult {
   method: string
   statistic: number
   pValue: number
-  effectSize?: number
+  df?: number  // 자유도
+  effectSize?: number | EffectSizeInfo  // 단순 숫자 또는 상세 정보
   confidence?: {
     lower: number
     upper: number
+    level?: number  // 신뢰수준 (기본 0.95)
   }
   interpretation: string
   nextActions?: NextAction[]
   assumptions?: StatisticalAssumptions
+
+  // 추가 상세 정보
+  postHoc?: PostHocResult[]  // 사후검정 결과
+  coefficients?: CoefficientResult[]  // 회귀계수
+  groupStats?: GroupStats[]  // 그룹별 통계
+
+  // 고급 정보
   additional?: {
     intercept?: number
     rmse?: number
+    rSquared?: number
+    adjustedRSquared?: number
+    vif?: number[]  // 분산팽창지수
+    residuals?: number[]
+    predictions?: number[]
+    confusionMatrix?: number[][]
+    accuracy?: number
+    precision?: number
+    recall?: number
+    f1Score?: number
+    rocAuc?: number
+    silhouetteScore?: number
+    clusters?: number[]
+    centers?: number[][]
+    explainedVarianceRatio?: number[]
+    loadings?: number[][]
+    communalities?: number[]
+    eigenvalues?: number[]
+    rankings?: number[]
+    itemTotalCorrelations?: number[]
+    alpha?: number  // Cronbach's alpha
+    power?: number
+    requiredSampleSize?: number
   }
+
+  // 시각화 데이터
+  visualizationData?: VisualizationData
 }
 
 export interface NextAction {

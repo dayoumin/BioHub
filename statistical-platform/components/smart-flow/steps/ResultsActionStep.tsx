@@ -3,11 +3,12 @@
 import { ChevronRight, Download, BarChart3, FileText, Save, History, FileDown, Copy, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { AnalysisResult } from '@/types/smart-flow'
+import { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
 import { ResultsVisualization } from '../ResultsVisualization'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { useState, useRef, useEffect } from 'react'
+import { getEffectSizeInfo } from '@/lib/utils/result-transformer'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -235,54 +236,350 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       
       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">📊 분석 결과</h3>
-        
+
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">검정 방법</p>
             <p className="font-medium">{results.method}</p>
           </div>
-          
-          <div className="grid grid-cols-3 gap-4">
+
+          {/* 기본 통계량 - 확장된 그리드 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">통계량</p>
-              <p className="text-lg">{results.statistic.toFixed(3)}</p>
+              <p className="text-lg font-medium">{results.statistic.toFixed(3)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">p-value</p>
-              <p className={`text-lg ${
-                results.pValue < 0.05 ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600'
+              <p className={`text-lg font-medium ${
+                results.pValue < 0.05 ? 'text-green-600 dark:text-green-400' : 'text-gray-600'
               }`}>
-                {results.pValue.toFixed(3)}
+                {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
               </p>
             </div>
+            {/* 자유도 표시 */}
+            {results.df !== undefined && (
+              <div>
+                <p className="text-sm text-muted-foreground">자유도 (df)</p>
+                <p className="text-lg font-medium">{results.df}</p>
+              </div>
+            )}
+            {/* 효과크기 - 상세 정보 포함 */}
             {results.effectSize && (
               <div>
                 <p className="text-sm text-muted-foreground">효과크기</p>
-                <p className="text-lg">{results.effectSize.toFixed(2)}</p>
+                {typeof results.effectSize === 'number' ? (
+                  <p className="text-lg font-medium">{results.effectSize.toFixed(3)}</p>
+                ) : (
+                  <div>
+                    <p className="text-lg font-medium">{results.effectSize.value.toFixed(3)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {results.effectSize.type} ({results.effectSize.interpretation})
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
+          {/* 신뢰구간 */}
           {results.confidence && (
             <div>
-              <p className="text-sm text-muted-foreground mb-1">95% 신뢰구간</p>
+              <p className="text-sm text-muted-foreground mb-1">
+                {results.confidence.level ? `${(results.confidence.level * 100).toFixed(0)}%` : '95%'} 신뢰구간
+              </p>
               <p className="font-medium">
                 [{results.confidence.lower.toFixed(3)}, {results.confidence.upper.toFixed(3)}]
               </p>
             </div>
           )}
 
+          {/* 그룹별 통계 */}
+          {results.groupStats && results.groupStats.length > 0 && (
+            <div className="pt-4 border-t">
+              <p className="font-medium mb-2">📈 그룹별 통계</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2">그룹</th>
+                      <th className="text-right py-2 px-2">n</th>
+                      <th className="text-right py-2 px-2">평균</th>
+                      <th className="text-right py-2 px-2">표준편차</th>
+                      {results.groupStats.some(g => g.median !== undefined) && (
+                        <th className="text-right py-2 px-2">중위수</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.groupStats.map((group, idx) => (
+                      <tr key={idx} className="border-b border-gray-200 dark:border-gray-700">
+                        <td className="py-2 px-2">{group.name || `그룹 ${idx + 1}`}</td>
+                        <td className="text-right py-2 px-2">{group.n}</td>
+                        <td className="text-right py-2 px-2">{group.mean.toFixed(3)}</td>
+                        <td className="text-right py-2 px-2">{group.std.toFixed(3)}</td>
+                        {group.median !== undefined && (
+                          <td className="text-right py-2 px-2">{group.median.toFixed(3)}</td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 회귀 계수표 */}
+          {results.coefficients && results.coefficients.length > 0 && (
+            <div className="pt-4 border-t">
+              <p className="font-medium mb-2">📐 회귀 계수</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2">변수</th>
+                      <th className="text-right py-2 px-2">계수</th>
+                      <th className="text-right py-2 px-2">표준오차</th>
+                      <th className="text-right py-2 px-2">t-값</th>
+                      <th className="text-right py-2 px-2">p-값</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.coefficients.map((coef, idx) => (
+                      <tr key={idx} className="border-b border-gray-200 dark:border-gray-700">
+                        <td className="py-2 px-2">{coef.name}</td>
+                        <td className="text-right py-2 px-2">{coef.value.toFixed(4)}</td>
+                        <td className="text-right py-2 px-2">{coef.stdError.toFixed(4)}</td>
+                        <td className="text-right py-2 px-2">{coef.tValue.toFixed(3)}</td>
+                        <td className={`text-right py-2 px-2 ${coef.pvalue < 0.05 ? 'font-medium text-green-600 dark:text-green-400' : ''}`}>
+                          {coef.pvalue < 0.001 ? '< 0.001' : coef.pvalue.toFixed(3)}
+                          {coef.pvalue < 0.05 && ' *'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* R², Adjusted R², VIF */}
+              {results.additional && (
+                <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  {results.additional.rSquared !== undefined && (
+                    <div className="bg-muted/50 rounded p-2">
+                      <p className="text-xs text-muted-foreground">R²</p>
+                      <p className="font-medium">{results.additional.rSquared.toFixed(4)}</p>
+                    </div>
+                  )}
+                  {results.additional.adjustedRSquared !== undefined && (
+                    <div className="bg-muted/50 rounded p-2">
+                      <p className="text-xs text-muted-foreground">Adj. R²</p>
+                      <p className="font-medium">{results.additional.adjustedRSquared.toFixed(4)}</p>
+                    </div>
+                  )}
+                  {results.additional.rmse !== undefined && (
+                    <div className="bg-muted/50 rounded p-2">
+                      <p className="text-xs text-muted-foreground">RMSE</p>
+                      <p className="font-medium">{results.additional.rmse.toFixed(4)}</p>
+                    </div>
+                  )}
+                  {results.additional.vif && results.additional.vif.length > 0 && (
+                    <div className="bg-muted/50 rounded p-2">
+                      <p className="text-xs text-muted-foreground">VIF (max)</p>
+                      <p className={`font-medium ${Math.max(...results.additional.vif) > 10 ? 'text-red-600' : ''}`}>
+                        {Math.max(...results.additional.vif).toFixed(2)}
+                        {Math.max(...results.additional.vif) > 10 && ' ⚠'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 사후검정 결과 */}
+          {results.postHoc && results.postHoc.length > 0 && (
+            <div className="pt-4 border-t">
+              <p className="font-medium mb-2">🔬 사후검정 결과</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2">비교</th>
+                      {results.postHoc[0].meanDiff !== undefined && (
+                        <th className="text-right py-2 px-2">평균차</th>
+                      )}
+                      {results.postHoc[0].zStatistic !== undefined && (
+                        <th className="text-right py-2 px-2">Z</th>
+                      )}
+                      <th className="text-right py-2 px-2">p-값</th>
+                      {results.postHoc[0].pvalueAdjusted !== undefined && (
+                        <th className="text-right py-2 px-2">보정 p</th>
+                      )}
+                      <th className="text-center py-2 px-2">유의</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.postHoc.map((item, idx) => (
+                      <tr key={idx} className={`border-b border-gray-200 dark:border-gray-700 ${item.significant ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                        <td className="py-2 px-2">{item.group1} vs {item.group2}</td>
+                        {item.meanDiff !== undefined && (
+                          <td className="text-right py-2 px-2">{item.meanDiff.toFixed(3)}</td>
+                        )}
+                        {item.zStatistic !== undefined && (
+                          <td className="text-right py-2 px-2">{item.zStatistic.toFixed(3)}</td>
+                        )}
+                        <td className="text-right py-2 px-2">
+                          {item.pvalue < 0.001 ? '< 0.001' : item.pvalue.toFixed(3)}
+                        </td>
+                        {item.pvalueAdjusted !== undefined && (
+                          <td className="text-right py-2 px-2">
+                            {item.pvalueAdjusted < 0.001 ? '< 0.001' : item.pvalueAdjusted.toFixed(3)}
+                          </td>
+                        )}
+                        <td className="text-center py-2 px-2">
+                          {item.significant ? '✓' : '−'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* 고급 분석 결과 */}
+          {results.additional && (
+            <>
+              {/* 분류 모델 성능 (로지스틱 회귀 등) */}
+              {results.additional.accuracy !== undefined && (
+                <div className="pt-4 border-t">
+                  <p className="font-medium mb-2">🎯 분류 성능</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div className="bg-muted/50 rounded p-2">
+                      <p className="text-xs text-muted-foreground">정확도</p>
+                      <p className="font-medium">{(results.additional.accuracy * 100).toFixed(1)}%</p>
+                    </div>
+                    {results.additional.precision !== undefined && (
+                      <div className="bg-muted/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">정밀도</p>
+                        <p className="font-medium">{(results.additional.precision * 100).toFixed(1)}%</p>
+                      </div>
+                    )}
+                    {results.additional.recall !== undefined && (
+                      <div className="bg-muted/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">재현율</p>
+                        <p className="font-medium">{(results.additional.recall * 100).toFixed(1)}%</p>
+                      </div>
+                    )}
+                    {results.additional.f1Score !== undefined && (
+                      <div className="bg-muted/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">F1 Score</p>
+                        <p className="font-medium">{results.additional.f1Score.toFixed(3)}</p>
+                      </div>
+                    )}
+                    {results.additional.rocAuc !== undefined && (
+                      <div className="bg-muted/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">ROC AUC</p>
+                        <p className="font-medium">{results.additional.rocAuc.toFixed(3)}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 군집 분석 결과 */}
+              {results.additional.silhouetteScore !== undefined && (
+                <div className="pt-4 border-t">
+                  <p className="font-medium mb-2">🎯 군집 분석</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-muted/50 rounded p-2">
+                      <p className="text-xs text-muted-foreground">Silhouette Score</p>
+                      <p className="font-medium">{results.additional.silhouetteScore.toFixed(3)}</p>
+                    </div>
+                    {results.additional.clusters && (
+                      <div className="bg-muted/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">군집 수</p>
+                        <p className="font-medium">{new Set(results.additional.clusters).size}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* PCA/요인분석 결과 */}
+              {results.additional.explainedVarianceRatio && results.additional.explainedVarianceRatio.length > 0 && (
+                <div className="pt-4 border-t">
+                  <p className="font-medium mb-2">📊 분산 설명률</p>
+                  <div className="space-y-2 text-sm">
+                    {results.additional.explainedVarianceRatio.slice(0, 5).map((ratio, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="w-20">PC{idx + 1}</span>
+                        <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full"
+                            style={{ width: `${ratio * 100}%` }}
+                          />
+                        </div>
+                        <span className="w-16 text-right">{(ratio * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground">
+                      누적: {(results.additional.explainedVarianceRatio.reduce((a, b) => a + b, 0) * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 신뢰도 분석 결과 */}
+              {results.additional.alpha !== undefined && (
+                <div className="pt-4 border-t">
+                  <p className="font-medium mb-2">📏 신뢰도</p>
+                  <div className="bg-muted/50 rounded p-3">
+                    <p className="text-sm">Cronbach's Alpha = <span className="font-medium">{results.additional.alpha.toFixed(3)}</span></p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {results.additional.alpha >= 0.9 ? '우수한 신뢰도' :
+                       results.additional.alpha >= 0.8 ? '좋은 신뢰도' :
+                       results.additional.alpha >= 0.7 ? '수용 가능한 신뢰도' :
+                       results.additional.alpha >= 0.6 ? '의문스러운 신뢰도' : '낮은 신뢰도'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 검정력 분석 결과 */}
+              {results.additional.power !== undefined && (
+                <div className="pt-4 border-t">
+                  <p className="font-medium mb-2">⚡ 검정력 분석</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-muted/50 rounded p-2">
+                      <p className="text-xs text-muted-foreground">검정력</p>
+                      <p className={`font-medium ${results.additional.power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {(results.additional.power * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                    {results.additional.requiredSampleSize !== undefined && (
+                      <div className="bg-muted/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">필요 표본 크기</p>
+                        <p className="font-medium">{results.additional.requiredSampleSize}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* 해석 */}
           <div className="pt-4 border-t">
             <p className="font-medium mb-2">💡 해석</p>
             <p className="text-sm">{results.interpretation}</p>
             {results.pValue < 0.05 && (
-              <p className="text-sm mt-2">
-                p-값이 0.05보다 작으므로 (p = {results.pValue.toFixed(3)} {'<'} 0.05),
-                통계적으로 유의한 차이가 있습니다.
+              <p className="text-sm mt-2 text-green-600 dark:text-green-400">
+                p-값이 0.05보다 작으므로 (p = {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}),
+                통계적으로 유의한 결과입니다.
               </p>
             )}
           </div>
-          
+
           {/* 가정 검정 결과 */}
           {results.assumptions && (
             <div className="pt-4 border-t">
@@ -290,26 +587,30 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <div className="space-y-1 text-xs">
                 {results.assumptions.normality && (
                   <>
-                    <div className="flex justify-between">
-                      <span>정규성 (그룹 1):</span>
-                      <span className={results.assumptions.normality.group1?.isNormal ? 'text-success' : 'text-warning'}>
-                        {results.assumptions.normality.group1?.isNormal ? '✓ 만족' : '⚠ 위반'}
-                        (p={results.assumptions.normality.group1?.pValue.toFixed(3)})
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>정규성 (그룹 2):</span>
-                      <span className={results.assumptions.normality.group2?.isNormal ? 'text-success' : 'text-warning'}>
-                        {results.assumptions.normality.group2?.isNormal ? '✓ 만족' : '⚠ 위반'}
-                        (p={results.assumptions.normality.group2?.pValue.toFixed(3)})
-                      </span>
-                    </div>
+                    {results.assumptions.normality.group1 && (
+                      <div className="flex justify-between">
+                        <span>정규성 (그룹 1):</span>
+                        <span className={results.assumptions.normality.group1.isNormal ? 'text-green-600' : 'text-yellow-600'}>
+                          {results.assumptions.normality.group1.isNormal ? '✓ 만족' : '⚠ 위반'}
+                          (p={results.assumptions.normality.group1.pValue.toFixed(3)})
+                        </span>
+                      </div>
+                    )}
+                    {results.assumptions.normality.group2 && (
+                      <div className="flex justify-between">
+                        <span>정규성 (그룹 2):</span>
+                        <span className={results.assumptions.normality.group2.isNormal ? 'text-green-600' : 'text-yellow-600'}>
+                          {results.assumptions.normality.group2.isNormal ? '✓ 만족' : '⚠ 위반'}
+                          (p={results.assumptions.normality.group2.pValue.toFixed(3)})
+                        </span>
+                      </div>
+                    )}
                   </>
                 )}
                 {results.assumptions.homogeneity && (
                   <div className="flex justify-between">
                     <span>등분산성:</span>
-                    <span className={(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? 'text-success' : 'text-warning'}>
+                    <span className={(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? 'text-green-600' : 'text-yellow-600'}>
                       {(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? '✓ 만족' : '⚠ 위반'}
                       (p={(results.assumptions.homogeneity.levene?.pValue ?? results.assumptions.homogeneity.bartlett?.pValue ?? 0).toFixed(3)})
                     </span>

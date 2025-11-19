@@ -149,7 +149,10 @@ export class PDFReportService {
 
     // 효과 크기
     if (data.analysisResult.effectSize !== undefined) {
-      pdf.text(`- Effect Size: ${data.analysisResult.effectSize.toFixed(4)}`, margin + 5, yPosition)
+      const effectSizeValue = typeof data.analysisResult.effectSize === 'number'
+        ? data.analysisResult.effectSize
+        : data.analysisResult.effectSize.value
+      pdf.text(`- Effect Size: ${effectSizeValue.toFixed(4)}`, margin + 5, yPosition)
       yPosition += lineHeight * 0.8
     }
 
@@ -270,9 +273,12 @@ export class PDFReportService {
     if (result.pValue < 0.05) {
       recommendations.push('The result is statistically significant. Consider practical significance.')
       if (result.effectSize !== undefined) {
-        if (Math.abs(result.effectSize) < 0.2) {
+        const esValue = typeof result.effectSize === 'number'
+          ? result.effectSize
+          : result.effectSize.value
+        if (Math.abs(esValue) < 0.2) {
           recommendations.push('Effect size is small. Results may have limited practical impact.')
-        } else if (Math.abs(result.effectSize) < 0.5) {
+        } else if (Math.abs(esValue) < 0.5) {
           recommendations.push('Effect size is moderate. Results show meaningful practical difference.')
         } else {
           recommendations.push('Effect size is large. Results show substantial practical difference.')
@@ -321,7 +327,10 @@ export class PDFReportService {
     summary += `p-value: ${pValueText}\n`
 
     if (result.effectSize !== undefined) {
-      summary += `Effect Size: ${result.effectSize.toFixed(4)}\n`
+      const esValue = typeof result.effectSize === 'number'
+        ? result.effectSize
+        : result.effectSize.value
+      summary += `Effect Size: ${esValue.toFixed(4)}\n`
     }
 
     if (result.confidence) {

@@ -30,6 +30,8 @@ import {
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
+import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -623,9 +625,12 @@ export default function PCAPage() {
 
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Bartlett 검정</span>
-                    <Badge variant={qualityMetrics.bartlett.significant ? "default" : "destructive"}>
-                      {qualityMetrics.bartlett.significant ? '유의함' : '비유의'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <PValueBadge value={qualityMetrics.bartlett.pValue} size="sm" />
+                      <Badge variant={qualityMetrics.bartlett.significant ? "default" : "destructive"}>
+                        {qualityMetrics.bartlett.significant ? '유의함' : '비유의'}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
 
@@ -660,85 +665,45 @@ export default function PCAPage() {
           </div>
 
           {/* 주성분 상세 정보 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Layers className="w-4 h-4" />
-                주성분 상세 정보
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">성분</th>
-                      <th className="text-right py-2">고유값</th>
-                      <th className="text-right py-2">분산설명률</th>
-                      <th className="text-right py-2">누적설명률</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {components.map((comp) => (
-                      <tr key={comp.componentNumber} className="border-b">
-                        <td className="py-2">PC{comp.componentNumber}</td>
-                        <td className="text-right">{comp.eigenvalue.toFixed(3)}</td>
-                        <td className="text-right">{comp.varianceExplained.toFixed(1)}%</td>
-                        <td className="text-right font-medium">
-                          {comp.cumulativeVariance.toFixed(1)}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <StatisticsTable
+            title="주성분 상세 정보"
+            columns={[
+              { key: 'component', header: '성분', type: 'text' },
+              { key: 'eigenvalue', header: '고유값', type: 'number', align: 'right',
+                highlight: (value) => value > 1 ? 'positive' : null },
+              { key: 'varianceExplained', header: '분산설명률', type: 'percentage', align: 'right' },
+              { key: 'cumulativeVariance', header: '누적설명률', type: 'percentage', align: 'right' }
+            ]}
+            data={components.map((comp) => ({
+              component: `PC${comp.componentNumber}`,
+              eigenvalue: comp.eigenvalue,
+              varianceExplained: comp.varianceExplained,
+              cumulativeVariance: comp.cumulativeVariance
+            }))}
+          />
 
           {/* 성분 적재량 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">성분 적재량 (Component Loadings)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">변수</th>
-                      {components.slice(0, selectedComponents).map(comp => (
-                        <th key={comp.componentNumber} className="text-right py-2">
-                          PC{comp.componentNumber}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {Object.keys(components[0]?.loadings || {}).map((variable) => (
-                      <tr key={variable} className="border-b">
-                        <td className="py-2 font-medium">{variable}</td>
-                        {components.slice(0, selectedComponents).map((comp) => (
-                          <td
-                            key={comp.componentNumber}
-                            className="text-right"
-                            style={{
-                              color: Math.abs(comp.loadings[variable]) > 0.5 ? '#dc2626' : 'inherit',
-                              fontWeight: Math.abs(comp.loadings[variable]) > 0.5 ? 'bold' : 'normal'
-                            }}
-                          >
-                            {comp.loadings[variable].toFixed(3)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                * 절댓값 0.5 이상인 적재량은 빨간색으로 강조됩니다.
-              </p>
-            </CardContent>
-          </Card>
+          <StatisticsTable
+            title="성분 적재량 (Component Loadings)"
+            description="절댓값 0.5 이상인 적재량은 강조됩니다."
+            columns={[
+              { key: 'variable', header: '변수', type: 'text' },
+              ...components.slice(0, selectedComponents).map(comp => ({
+                key: `pc${comp.componentNumber}`,
+                header: `PC${comp.componentNumber}`,
+                type: 'number' as const,
+                align: 'right' as const,
+                highlight: (value: number) => Math.abs(value) > 0.5 ? 'negative' : null
+              }))
+            ]}
+            data={Object.keys(components[0]?.loadings || {}).map((variable) => ({
+              variable,
+              ...components.slice(0, selectedComponents).reduce((acc, comp) => ({
+                ...acc,
+                [`pc${comp.componentNumber}`]: comp.loadings[variable]
+              }), {})
+            }))}
+          />
 
           {/* Scree Plot 정보 */}
           <Card>
