@@ -20,8 +20,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
-import { Upload, FileText, Loader2, CheckCircle2, XCircle, X } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Upload, FileText, Loader2, CheckCircle2, XCircle, X, AlertTriangle, Settings } from 'lucide-react'
 import type { Document } from '@/lib/rag/providers/base-provider'
+import { checkDoclingAvailable } from '@/lib/utils/environment-detector'
+import { DoclingSetupDialog } from './docling-setup-dialog'
 
 interface FileUploadState {
   file: File
@@ -57,6 +60,12 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
   ])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Docling 상태 관리
+  const [doclingAvailable, setDoclingAvailable] = useState<boolean | null>(null)
+  const [showDoclingWarning, setShowDoclingWarning] = useState(false)
+  const [doclingDialogOpen, setDoclingDialogOpen] = useState(false)
+  const [pendingPdfFile, setPendingPdfFile] = useState<File | null>(null)
+
   // 지원 파일 형식을 API에서 가져오기 (Server-Side Parser Registry)
   useEffect(() => {
     fetch('/api/rag/supported-formats')
@@ -77,6 +86,11 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
         console.error('[FileUploader] Failed to fetch supported formats:', error)
         // ✅ Fallback은 이미 초기값으로 설정됨
       })
+  }, [])
+
+  // Docling 가용성 체크
+  useEffect(() => {
+    checkDoclingAvailable().then(setDoclingAvailable)
   }, [])
 
   const acceptedExtensions = supportedFormats.join(',')
@@ -139,34 +153,14 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
   }, [])
 
   /**
-   * 파일 선택 핸들러
+   * 파일 파싱 처리 (공통 로직)
    */
-  const handleFileSelect = useCallback(
-    async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      if (!file) return
-
-      // 파일 확장자 확인
+  const processFile = useCallback(
+    async (file: File) => {
       const ext = '.' + file.name.split('.').pop()?.toLowerCase()
-      if (!supportedFormats.includes(ext)) {
-        alert(
-          `지원하지 않는 파일 형식입니다.\n\n지원 형식: ${supportedFormats.join(', ')}`
-        )
-        return
-      }
-
-      // 파일 크기 제한 (50MB)
-      const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
-      if (file.size > MAX_FILE_SIZE) {
-        alert(
-          `파일 크기가 너무 큽니다.\n\n` +
-            `현재 크기: ${(file.size / 1024 / 1024).toFixed(1)}MB\n` +
-            `최대 크기: ${MAX_FILE_SIZE / 1024 / 1024}MB`
-        )
-        return
-      }
 
       setIsProcessing(true)
+      setShowDoclingWarning(false)
 
       try {
         // 1. 메타데이터 자동 추출
@@ -179,7 +173,7 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
           metadata,
         })
 
-        // 3. 파일 파싱 (✅ Bug Fix 1: Registry 없이 확장자만으로 결정)
+        // 3. 파일 파싱
         const parserType = getParserType(ext)
         const text = await parseFile(file, parserType)
 
@@ -207,9 +201,51 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
         )
       } finally {
         setIsProcessing(false)
+        setPendingPdfFile(null)
       }
     },
-    [supportedFormats, extractMetadata]
+    [extractMetadata]
+  )
+
+  /**
+   * 파일 선택 핸들러
+   */
+  const handleFileSelect = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      if (!file) return
+
+      // 파일 확장자 확인
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase()
+      if (!supportedFormats.includes(ext)) {
+        alert(
+          `지원하지 않는 파일 형식입니다.\n\n지원 형식: ${supportedFormats.join(', ')}`
+        )
+        return
+      }
+
+      // 파일 크기 제한 (50MB)
+      const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+      if (file.size > MAX_FILE_SIZE) {
+        alert(
+          `파일 크기가 너무 큽니다.\n\n` +
+            `현재 크기: ${(file.size / 1024 / 1024).toFixed(1)}MB\n` +
+            `최대 크기: ${MAX_FILE_SIZE / 1024 / 1024}MB`
+        )
+        return
+      }
+
+      // PDF 파일이고 Docling이 없으면 경고 표시
+      if (ext === '.pdf' && doclingAvailable === false) {
+        setPendingPdfFile(file)
+        setShowDoclingWarning(true)
+        return
+      }
+
+      // 파일 처리 진행
+      await processFile(file)
+    },
+    [supportedFormats, doclingAvailable, processFile]
   )
 
   /**
@@ -336,7 +372,7 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
         </div>
 
         {/* 파일 선택 */}
-        {!uploadState && (
+        {!uploadState && !showDoclingWarning && (
           <div className="space-y-2">
             <Input
               ref={fileInputRef}
@@ -348,6 +384,59 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
             <div className="text-xs text-muted-foreground">
               지원 형식: {supportedFormats.join(', ')}
             </div>
+          </div>
+        )}
+
+        {/* Docling 경고 배너 */}
+        {showDoclingWarning && pendingPdfFile && (
+          <div className="space-y-3">
+            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <div className="space-y-2">
+                  <p className="font-medium">PDF 고품질 파싱을 위해 Docling 설정이 필요합니다</p>
+                  <p className="text-sm">
+                    Docling 없이도 기본 파서로 처리할 수 있지만, 표/이미지 등이 제대로 추출되지 않을 수 있습니다.
+                  </p>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  if (pendingPdfFile) {
+                    processFile(pendingPdfFile)
+                  }
+                }}
+              >
+                기본 파서로 진행
+              </Button>
+              <Button
+                className="flex-1 gap-2"
+                onClick={() => setDoclingDialogOpen(true)}
+              >
+                <Settings className="h-4 w-4" />
+                Docling 설정하기
+              </Button>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                setShowDoclingWarning(false)
+                setPendingPdfFile(null)
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = ''
+                }
+              }}
+            >
+              취소
+            </Button>
           </div>
         )}
 
@@ -486,6 +575,20 @@ export function FileUploader({ onDocumentAdded, onClose }: FileUploaderProps) {
           </div>
         )}
       </div>
+
+      {/* Docling 설정 다이얼로그 */}
+      <DoclingSetupDialog
+        open={doclingDialogOpen}
+        onOpenChange={setDoclingDialogOpen}
+        onRetry={async () => {
+          // Docling 재확인 후 파일 처리
+          const available = await checkDoclingAvailable()
+          setDoclingAvailable(available)
+          if (available && pendingPdfFile) {
+            processFile(pendingPdfFile)
+          }
+        }}
+      />
     </Card>
   )
 }
