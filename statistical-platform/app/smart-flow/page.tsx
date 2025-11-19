@@ -128,7 +128,7 @@ export default function SmartFlowPage() {
   }, [setresults, goToNextStep])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 overflow-y-auto">
+    <div className="h-full bg-gradient-to-b from-background to-muted/20 overflow-y-auto">
       <div className="container max-w-6xl mx-auto p-6 pb-12 space-y-8">
         {/* 헤더 */}
         <div className="text-center space-y-2 relative">

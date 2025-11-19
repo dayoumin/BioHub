@@ -271,6 +271,12 @@ export const useSmartFlowStore = create<SmartFlowState>()(
 
       // IndexedDB에서 히스토리 불러오기 (초기화 시)
       loadHistoryFromDB: async () => {
+        // IndexedDB 가용성 체크 (지원하지 않는 브라우저에서 크래시 방지)
+        if (!isIndexedDBAvailable()) {
+          console.warn('[History] IndexedDB not available, skipping history load')
+          return
+        }
+
         // ⚠️ 마이그레이션: 기존 sessionStorage 히스토리를 IndexedDB로 복사
         try {
           const sessionData = sessionStorage.getItem('smart-flow-storage')
