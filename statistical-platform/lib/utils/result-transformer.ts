@@ -16,7 +16,7 @@ import { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types
  * Executor의 AnalysisResult를 Smart Flow UI의 AnalysisResult로 변환
  */
 export function transformExecutorResult(executorResult: ExecutorResult): SmartFlowResult {
-  // 효과크기 변환
+  // 효과크기 변환 (eta-squared)
   let effectSize: number | EffectSizeInfo | undefined
   if (executorResult.additionalInfo?.effectSize) {
     const es = executorResult.additionalInfo.effectSize
@@ -26,6 +26,22 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
       interpretation: es.interpretation
     }
   }
+
+  // omega-squared 효과크기 변환
+  let omegaSquared: EffectSizeInfo | undefined
+  if (executorResult.additionalInfo?.omegaSquared) {
+    const os = executorResult.additionalInfo.omegaSquared
+    omegaSquared = {
+      value: os.value,
+      type: os.type,
+      interpretation: os.interpretation
+    }
+  }
+
+  // 제곱합 값 추출
+  const ssBetween = executorResult.additionalInfo?.ssBetween as number | undefined
+  const ssWithin = executorResult.additionalInfo?.ssWithin as number | undefined
+  const ssTotal = executorResult.additionalInfo?.ssTotal as number | undefined
 
   // 사후검정 결과 변환
   let postHoc: PostHocResult[] | undefined
@@ -164,6 +180,10 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
     pValue: executorResult.mainResults.pvalue,
     df: executorResult.mainResults.df,
     effectSize,
+    omegaSquared,
+    ssBetween,
+    ssWithin,
+    ssTotal,
     confidence,
     interpretation: executorResult.mainResults.interpretation,
     assumptions,

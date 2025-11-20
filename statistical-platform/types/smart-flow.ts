@@ -205,6 +205,7 @@ export interface AnalysisResult {
   pValue: number
   df?: number  // 자유도
   effectSize?: number | EffectSizeInfo  // 단순 숫자 또는 상세 정보
+  omegaSquared?: EffectSizeInfo  // omega-squared 효과크기 (ANOVA용)
   confidence?: {
     lower: number
     upper: number
@@ -218,6 +219,11 @@ export interface AnalysisResult {
   postHoc?: PostHocResult[]  // 사후검정 결과
   coefficients?: CoefficientResult[]  // 회귀계수
   groupStats?: GroupStats[]  // 그룹별 통계
+
+  // 제곱합 (ANOVA용)
+  ssBetween?: number
+  ssWithin?: number
+  ssTotal?: number
 
   // 고급 정보
   additional?: {

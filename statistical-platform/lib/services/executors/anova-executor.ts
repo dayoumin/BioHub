@@ -31,8 +31,9 @@ export class AnovaExecutor extends BaseExecutor {
         })
       )
 
-      // 효과크기 (eta-squared) 계산
-      const etaSquared = anovaResult.etaSquared || 0
+      // 효과크기 (Worker에서 계산된 값 사용)
+      const etaSquared = anovaResult.etaSquared
+      const omegaSquared = anovaResult.omegaSquared
 
       return {
         metadata: {
@@ -60,6 +61,14 @@ export class AnovaExecutor extends BaseExecutor {
             type: 'eta-squared',
             interpretation: this.interpretEffectSize(etaSquared, 'eta')
           },
+          omegaSquared: {
+            value: omegaSquared,
+            type: 'omega-squared',
+            interpretation: this.interpretEffectSize(omegaSquared, 'omega')
+          },
+          ssBetween: anovaResult.ssBetween,
+          ssWithin: anovaResult.ssWithin,
+          ssTotal: anovaResult.ssTotal,
           groupStats
         },
         visualizationData: {
@@ -79,7 +88,7 @@ export class AnovaExecutor extends BaseExecutor {
    * 이원 분산분석
    */
   async executeTwoWay(
-    data: any[],
+    data: Record<string, unknown>[],
     factor1: string,
     factor2: string,
     dependent: string
@@ -282,27 +291,98 @@ export class AnovaExecutor extends BaseExecutor {
   }
 
   /**
+   * 원시 데이터를 그룹별 숫자 배열로 변환
+   */
+  private prepareGroups(
+    data: Record<string, unknown>[],
+    dependentVar: string,
+    groupVar: string
+  ): number[][] {
+    // 그룹별로 데이터 분할
+    const groupMap = new Map<string | number, number[]>()
+
+    for (const row of data) {
+      const groupValue = row[groupVar]
+      const depValue = row[dependentVar]
+
+      if (groupValue == null || depValue == null) continue
+
+      const groupKey = String(groupValue)
+      const numValue = typeof depValue === 'number' ? depValue : parseFloat(String(depValue))
+
+      if (isNaN(numValue)) continue
+
+      if (!groupMap.has(groupKey)) {
+        groupMap.set(groupKey, [])
+      }
+      groupMap.get(groupKey)!.push(numValue)
+    }
+
+    return Array.from(groupMap.values())
+  }
+
+  /**
    * 통합 실행 메서드
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async execute(data: any[], options?: any): Promise<AnalysisResult> {
     const { method = 'one-way', ...restOptions } = options || {}
 
+    // 타입 가드 헬퍼
+    const asRecordArray = (): Record<string, unknown>[] => data as Record<string, unknown>[]
+    const asNumberArray = (): number[][] => data as number[][]
+
     switch (method) {
       case 'one-way':
-        return this.executeOneWay(restOptions.groups || data)
+      case 'one-way-anova': {
+        // groups가 이미 제공되면 사용, 아니면 데이터에서 변환
+        let groups = restOptions.groups
+        if (!groups && restOptions.dependentVar && restOptions.groupVar) {
+          groups = this.prepareGroups(
+            asRecordArray(),
+            restOptions.dependentVar,
+            restOptions.groupVar
+          )
+        }
+        if (!groups || groups.length < 2) {
+          throw new Error('ANOVA를 위해 최소 2개 그룹이 필요합니다. 종속변수와 그룹변수를 확인하세요.')
+        }
+        return this.executeOneWay(groups)
+      }
       case 'two-way':
+      case 'two-way-anova':
         return this.executeTwoWay(
-          data,
-          restOptions.factor1,
-          restOptions.factor2,
-          restOptions.dependent
+          asRecordArray(),
+          restOptions.factor1 || restOptions.groupVar?.split(',')[0],
+          restOptions.factor2 || restOptions.groupVar?.split(',')[1],
+          restOptions.dependent || restOptions.dependentVar
         )
       case 'repeated-measures':
-        return this.executeRepeatedMeasures(data as number[][])
+      case 'repeated-measures-anova':
+        return this.executeRepeatedMeasures(asNumberArray())
       case 'tukey':
-        return this.executeTukeyHSD(restOptions.groups || data)
-      case 'games-howell':
-        return this.executeGamesHowell(restOptions.groups || data)
+      case 'tukey-hsd': {
+        let groups = restOptions.groups
+        if (!groups && restOptions.dependentVar && restOptions.groupVar) {
+          groups = this.prepareGroups(
+            asRecordArray(),
+            restOptions.dependentVar,
+            restOptions.groupVar
+          )
+        }
+        return this.executeTukeyHSD(groups || asNumberArray())
+      }
+      case 'games-howell': {
+        let groups = restOptions.groups
+        if (!groups && restOptions.dependentVar && restOptions.groupVar) {
+          groups = this.prepareGroups(
+            asRecordArray(),
+            restOptions.dependentVar,
+            restOptions.groupVar
+          )
+        }
+        return this.executeGamesHowell(groups || asNumberArray())
+      }
       default:
         throw new Error(`Unknown ANOVA method: ${method}`)
     }

@@ -288,11 +288,39 @@ def one_way_anova(groups):
 
     f_statistic, p_value = stats.f_oneway(*clean_groups)
 
+    # 효과크기 (eta-squared) 계산
+    # eta² = SS_between / SS_total
+    all_data = np.concatenate(clean_groups)
+    grand_mean = np.mean(all_data)
+
+    # SS_between: 그룹 간 제곱합
+    ss_between = sum(len(g) * (np.mean(g) - grand_mean) ** 2 for g in clean_groups)
+
+    # SS_total: 전체 제곱합
+    ss_total = np.sum((all_data - grand_mean) ** 2)
+
+    # eta-squared
+    eta_squared = ss_between / ss_total if ss_total > 0 else 0.0
+
+    # omega-squared (덜 편향된 효과크기)
+    # ω² = (SS_between - df_between * MS_within) / (SS_total + MS_within)
+    df_between = len(clean_groups) - 1
+    df_within = len(all_data) - len(clean_groups)
+    ss_within = ss_total - ss_between
+    ms_within = ss_within / df_within if df_within > 0 else 0
+
+    omega_squared = (ss_between - df_between * ms_within) / (ss_total + ms_within) if (ss_total + ms_within) > 0 else 0.0
+
     return {
         'fStatistic': float(f_statistic),
         'pValue': float(p_value),
-        'df1': int(len(clean_groups) - 1),
-        'df2': int(sum(len(g) for g in clean_groups) - len(clean_groups))
+        'dfBetween': int(df_between),
+        'dfWithin': int(df_within),
+        'etaSquared': float(eta_squared),
+        'omegaSquared': float(omega_squared),
+        'ssBetween': float(ss_between),
+        'ssWithin': float(ss_within),
+        'ssTotal': float(ss_total)
     }
 
 

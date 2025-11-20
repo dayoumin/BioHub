@@ -1053,14 +1053,23 @@ export class PyodideStatisticsService {
     fStatistic: number
     pValue: number
     df: number[]
-    etaSquared?: number
+    etaSquared: number
+    omegaSquared: number
+    ssBetween: number
+    ssWithin: number
+    ssTotal: number
   }> {
     // Worker 3 호출로 간소화
     const result = await this.oneWayAnovaWorker(groups)
     return {
       fStatistic: result.fStatistic,
       pValue: result.pValue,
-      df: [result.dfBetween, result.dfWithin]
+      df: [result.dfBetween, result.dfWithin],
+      etaSquared: result.etaSquared,
+      omegaSquared: result.omegaSquared,
+      ssBetween: result.ssBetween,
+      ssWithin: result.ssWithin,
+      ssTotal: result.ssTotal
     }
   }
 
@@ -1772,12 +1781,22 @@ export class PyodideStatisticsService {
     pValue: number
     dfBetween: number
     dfWithin: number
+    etaSquared: number
+    omegaSquared: number
+    ssBetween: number
+    ssWithin: number
+    ssTotal: number
   }> {
     return this.core.callWorkerMethod<{
       fStatistic: number
       pValue: number
       dfBetween: number
       dfWithin: number
+      etaSquared: number
+      omegaSquared: number
+      ssBetween: number
+      ssWithin: number
+      ssTotal: number
     }>(
       3,
       'one_way_anova',

@@ -20,7 +20,7 @@ export abstract class BaseExecutor {
   /**
    * 효과크기 해석
    */
-  protected interpretEffectSize(d: number, type: 'cohen' | 'eta' = 'cohen'): string {
+  protected interpretEffectSize(d: number, type: 'cohen' | 'eta' | 'omega' = 'cohen'): string {
     const absD = Math.abs(d)
 
     if (type === 'cohen') {
@@ -29,7 +29,7 @@ export abstract class BaseExecutor {
       if (absD < 0.8) return '중간 효과'
       return '큰 효과'
     } else {
-      // eta-squared
+      // eta-squared, omega-squared (동일한 기준)
       if (absD < 0.01) return '무시할 수준'
       if (absD < 0.06) return '작은 효과'
       if (absD < 0.14) return '중간 효과'

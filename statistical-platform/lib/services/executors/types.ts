@@ -45,6 +45,16 @@ export interface AnalysisResult {
       type: string
       interpretation: string
     }
+    // 추가 효과크기 (ANOVA용)
+    omegaSquared?: {
+      value: number
+      type: string
+      interpretation: string
+    }
+    // 제곱합 (ANOVA용)
+    ssBetween?: number
+    ssWithin?: number
+    ssTotal?: number
     postHoc?: Array<{
       group1: string
       group2: string
@@ -60,6 +70,7 @@ export interface AnalysisResult {
       tValue: number
       pvalue: number
     }>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any
   }
 
