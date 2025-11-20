@@ -24,21 +24,40 @@ function calculateCorrelation(x, y) {
   return denominator === 0 ? 0 : numerator / denominator
 }
 
-// 상관계수 행렬 계산
+/**
+ * Get paired numeric data from two columns with pairwise deletion
+ * Only returns rows where both columns have valid numeric values
+ * This ensures x and y arrays have the same length and aligned indices
+ */
+function getPairedNumericData(data, columnNameX, columnNameY) {
+  const xValues = []
+  const yValues = []
+
+  for (const row of data) {
+    const xRaw = row[columnNameX]
+    const yRaw = row[columnNameY]
+
+    // Skip if either value is missing
+    if (xRaw === null || xRaw === undefined || yRaw === null || yRaw === undefined) {
+      continue
+    }
+
+    const xNum = typeof xRaw === 'number' ? xRaw : Number(xRaw)
+    const yNum = typeof yRaw === 'number' ? yRaw : Number(yRaw)
+
+    // Only include if both are valid numbers
+    if (!isNaN(xNum) && isFinite(xNum) && !isNaN(yNum) && isFinite(yNum)) {
+      xValues.push(xNum)
+      yValues.push(yNum)
+    }
+  }
+
+  return { x: xValues, y: yValues }
+}
+
+// 상관계수 행렬 계산 (pairwise deletion 적용)
 function calculateCorrelationMatrix(data, columns) {
   const matrix = []
-  const columnDataCache = new Map()
-
-  // 각 컬럼 데이터를 미리 추출하여 캐싱
-  for (const col of columns) {
-    const colData = data
-      .map(row => {
-        const val = row[col.name]
-        return typeof val === 'number' ? val : Number(val)
-      })
-      .filter(v => !isNaN(v) && isFinite(v))
-    columnDataCache.set(col.name, colData)
-  }
 
   // 진행 상황 추적
   const totalCalculations = columns.length * columns.length
@@ -46,7 +65,6 @@ function calculateCorrelationMatrix(data, columns) {
 
   for (let i = 0; i < columns.length; i++) {
     const row = []
-    const col1Data = columnDataCache.get(columns[i].name) || []
 
     for (let j = 0; j < columns.length; j++) {
       if (i === j) {
@@ -55,9 +73,10 @@ function calculateCorrelationMatrix(data, columns) {
         // 대칭성 활용
         row.push(matrix[j][i])
       } else {
-        const col2Data = columnDataCache.get(columns[j].name) || []
-        if (col1Data.length > 1 && col2Data.length > 1) {
-          row.push(calculateCorrelation(col1Data, col2Data))
+        // Pairwise deletion: 각 pair마다 동일한 인덱스만 사용
+        const { x, y } = getPairedNumericData(data, columns[i].name, columns[j].name)
+        if (x.length > 1 && y.length > 1) {
+          row.push(calculateCorrelation(x, y))
         } else {
           row.push(0)
         }

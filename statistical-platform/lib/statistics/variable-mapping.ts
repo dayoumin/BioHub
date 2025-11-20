@@ -7,7 +7,7 @@ import { StatisticalMethod } from './method-mapping'
 export interface VariableMapping {
   // 기본 변수
   independentVar?: string | string[] // 독립변수 (X)
-  dependentVar?: string // 종속변수 (Y)
+  dependentVar?: string | string[] // 종속변수 (Y) - 다중 종속변수 지원 (McNemar, MANOVA 등)
   groupVar?: string // 그룹 변수 / 요인 (factor)
   timeVar?: string // 시간 변수
   variables?: string[] // 일반 변수들

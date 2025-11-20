@@ -36,22 +36,27 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
 
   // 변수 선택 완료 처리
   const handleVariablesSelected = (assignment: VariableAssignment) => {
-    // variableMapping 형식으로 변환
-    const mapping = {
-      dependent: assignment.dependent as string | string[] | undefined,
-      independent: assignment.independent as string | string[] | undefined,
-      factor: assignment.factor as string | string[] | undefined,
+    // variableMapping 형식으로 변환 (VariableMapping 인터페이스 키와 일치시킴)
+    // 다중 변수 선택 지원 (McNemar, MANOVA 등)
+    const mapping: VariableMapping = {
+      // dependent: 배열 그대로 전달 (다중 종속변수 지원)
+      dependentVar: assignment.dependent as string | string[] | undefined,
+      independentVar: assignment.independent as string | string[] | undefined,
+      // factor: 단일 값으로 변환
+      groupVar: Array.isArray(assignment.factor)
+        ? assignment.factor[0]
+        : assignment.factor as string | undefined,
       covariate: assignment.covariate as string | string[] | undefined,
       blocking: assignment.blocking as string | undefined,
-      within: assignment.within as string | string[] | undefined,
-      between: assignment.between as string | string[] | undefined,
-      time: assignment.time as string | undefined,
+      within: assignment.within as string[] | undefined,
+      between: assignment.between as string[] | undefined,
+      timeVar: assignment.time as string | undefined,
       event: assignment.event as string | undefined,
       censoring: assignment.censoring as string | undefined,
       weight: assignment.weight as string | undefined
     }
 
-    setVariableMapping(mapping as VariableMapping)
+    setVariableMapping(mapping)
     setIsValid(true)
     setValidationErrors([])
 
@@ -126,8 +131,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         {/* UI 모드 선택 */}
         <Tabs value={selectedMode} onValueChange={(v) => setSelectedMode(v as any)} className="mb-4">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="simple">드래그앤드롭 (추천)</TabsTrigger>
-            <TabsTrigger value="advanced">3단 레이아웃</TabsTrigger>
+            <TabsTrigger value="simple">버튼 선택 (추천)</TabsTrigger>
+            <TabsTrigger value="advanced">드래그앤드롭</TabsTrigger>
           </TabsList>
 
           <TabsContent value="simple" className="mt-4">
