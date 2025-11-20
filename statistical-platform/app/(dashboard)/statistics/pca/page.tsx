@@ -60,11 +60,11 @@ interface PCAResult {
   transformedData: Record<string, number>[]
   variableContributions: Record<string, number[]>
   qualityMetrics: {
-    kmo: number
+    kmo: number | null
     bartlett: {
-      statistic: number
-      pValue: number
-      significant: boolean
+      statistic: number | null
+      pValue: number | null
+      significant: boolean | null
     }
   }
   screeData: {
@@ -613,23 +613,35 @@ export default function PCAPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-sm">KMO 측도</span>
                     <div className="flex items-center gap-2">
-                      <Badge variant={qualityMetrics.kmo > 0.6 ? "default" : "destructive"}>
-                        {qualityMetrics.kmo.toFixed(3)}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        {qualityMetrics.kmo > 0.8 ? '우수' :
-                         qualityMetrics.kmo > 0.6 ? '보통' : '부족'}
-                      </span>
+                      {qualityMetrics.kmo != null ? (
+                        <>
+                          <Badge variant={qualityMetrics.kmo > 0.6 ? "default" : "destructive"}>
+                            {qualityMetrics.kmo.toFixed(3)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {qualityMetrics.kmo > 0.8 ? '우수' :
+                             qualityMetrics.kmo > 0.6 ? '보통' : '부족'}
+                          </span>
+                        </>
+                      ) : (
+                        <Badge variant="secondary">N/A</Badge>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex justify-between items-center">
                     <span className="text-sm">Bartlett 검정</span>
                     <div className="flex items-center gap-2">
-                      <PValueBadge value={qualityMetrics.bartlett.pValue} size="sm" />
-                      <Badge variant={qualityMetrics.bartlett.significant ? "default" : "destructive"}>
-                        {qualityMetrics.bartlett.significant ? '유의함' : '비유의'}
-                      </Badge>
+                      {qualityMetrics.bartlett.pValue != null ? (
+                        <>
+                          <PValueBadge value={qualityMetrics.bartlett.pValue} size="sm" />
+                          <Badge variant={qualityMetrics.bartlett.significant ? "default" : "destructive"}>
+                            {qualityMetrics.bartlett.significant ? '유의함' : '비유의'}
+                          </Badge>
+                        </>
+                      ) : (
+                        <Badge variant="secondary">N/A</Badge>
+                      )}
                     </div>
                   </div>
                 </div>

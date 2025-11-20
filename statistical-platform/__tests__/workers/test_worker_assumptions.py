@@ -1,22 +1,48 @@
 """
 가정 검정 함수들의 단위 테스트
 Phase 1 & 2: Regression, Partial Correlation, Repeated Measures ANOVA, Factor Analysis
+
+pytest/unittest 호환:
+  pytest __tests__/workers/test_worker_assumptions.py -v
+  python -m pytest __tests__/workers/test_worker_assumptions.py
 """
 
 import sys
 import os
 import json
+import importlib.util
 import numpy as np
 from scipy import stats
 
 # 워커 경로 추가
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'public', 'workers', 'python'))
+worker_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'public', 'workers', 'python')
+if worker_dir not in sys.path:
+    sys.path.insert(0, worker_dir)
 
-# 테스트 결과 저장
+def load_worker(name, filename):
+    """하이픈이 있는 파일명에서 모듈 로드"""
+    filepath = os.path.join(worker_dir, filename)
+    spec = importlib.util.spec_from_file_location(name, filepath)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+# 워커 모듈 로드 (모듈 스코프에서 실행)
+worker4 = load_worker('worker4_regression_advanced', 'worker4-regression-advanced.py')
+worker2 = load_worker('worker2_hypothesis', 'worker2-hypothesis.py')
+worker3 = load_worker('worker3_nonparametric_anova', 'worker3-nonparametric-anova.py')
+
+# 워커 함수 import
+from worker4_regression_advanced import linear_regression, multiple_regression, pca_analysis
+from worker2_hypothesis import partial_correlation_analysis
+from worker3_nonparametric_anova import repeated_measures_anova
+
+# 테스트 결과 저장 (standalone 실행용)
 test_results = []
 
 def run_test(name, test_func):
-    """테스트 실행 및 결과 기록"""
+    """테스트 실행 및 결과 기록 (standalone 실행용)"""
     try:
         result = test_func()
         if result:
@@ -38,7 +64,6 @@ def run_test(name, test_func):
 
 def test_linear_regression_assumptions():
     """선형 회귀 가정 검정 테스트"""
-    from worker4_regression_advanced import linear_regression
 
     # 테스트 데이터: 정규성, 독립성, 등분산성을 만족하는 데이터
     np.random.seed(42)
@@ -76,7 +101,6 @@ def test_linear_regression_assumptions():
 
 def test_linear_regression_autocorrelation_detection():
     """자기상관이 있는 데이터에서 Durbin-Watson이 감지하는지 테스트"""
-    from worker4_regression_advanced import linear_regression
 
     # 자기상관이 있는 데이터 생성
     np.random.seed(123)
@@ -102,7 +126,6 @@ def test_linear_regression_autocorrelation_detection():
 
 def test_linear_regression_heteroscedasticity_detection():
     """이분산이 있는 데이터에서 Breusch-Pagan이 감지하는지 테스트"""
-    from worker4_regression_advanced import linear_regression
 
     # 이분산 데이터: 분산이 x에 비례
     np.random.seed(456)
@@ -127,7 +150,6 @@ def test_linear_regression_heteroscedasticity_detection():
 
 def test_multiple_regression_assumptions():
     """다중 회귀 가정 검정 테스트"""
-    from worker4_regression_advanced import multiple_regression
     import pandas as pd
 
     # 테스트 데이터
@@ -162,7 +184,6 @@ def test_multiple_regression_assumptions():
 
 def test_partial_correlation_assumptions():
     """편상관 가정 검정 테스트"""
-    from worker2_hypothesis import partial_correlation_analysis
 
     # 테스트 데이터
     np.random.seed(111)
@@ -206,7 +227,6 @@ def test_partial_correlation_assumptions():
 
 def test_partial_correlation_multicollinearity():
     """통제변수 간 높은 상관이 있을 때 다중공선성 경고"""
-    from worker2_hypothesis import partial_correlation_analysis
 
     # 높은 상관관계를 가진 통제변수
     np.random.seed(222)
@@ -243,7 +263,6 @@ def test_partial_correlation_multicollinearity():
 
 def test_repeated_measures_sphericity():
     """반복측정 ANOVA Mauchly 구형성 검정 테스트"""
-    from worker3_nonparametric_anova import repeated_measures_anova
 
     # 테스트 데이터: 3 시점, 10 피험자
     np.random.seed(333)
@@ -292,7 +311,6 @@ def test_repeated_measures_sphericity():
 
 def test_repeated_measures_sphericity_with_2_timepoints():
     """2 시점에서는 구형성 검정이 불필요"""
-    from worker3_nonparametric_anova import repeated_measures_anova
 
     # 2 시점 데이터 (구형성 검정 불필요)
     np.random.seed(444)
@@ -322,7 +340,6 @@ def test_repeated_measures_sphericity_with_2_timepoints():
 
 def test_pca_kmo_bartlett():
     """PCA KMO와 Bartlett 검정 테스트"""
-    from worker4_regression_advanced import pca_analysis
 
     # 상관이 높은 변수들로 구성된 데이터 (PCA에 적합)
     np.random.seed(555)
@@ -368,7 +385,6 @@ def test_pca_kmo_bartlett():
 
 def test_pca_kmo_low_correlation():
     """상관이 낮은 데이터에서 KMO가 낮아야 함"""
-    from worker4_regression_advanced import pca_analysis
 
     # 독립적인 변수들 (PCA에 부적합)
     np.random.seed(666)
@@ -396,6 +412,7 @@ def test_pca_kmo_low_correlation():
     return True
 
 # =============================================================================
+# =============================================================================
 # 테스트 실행
 # =============================================================================
 
@@ -403,34 +420,7 @@ if __name__ == '__main__':
     print("=" * 60)
     print("가정 검정 함수 테스트")
     print("=" * 60)
-
-    # 워커 파일명 변환 (하이픈 -> 언더스코어)
-    worker_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'public', 'workers', 'python')
-
-    # 동적 import를 위한 설정
-    import importlib.util
-
-    def load_worker(name, filename):
-        """하이픈이 있는 파일명에서 모듈 로드"""
-        filepath = os.path.join(worker_dir, filename)
-        # worker_dir을 sys.path에 추가 (helpers 모듈 찾기 위해)
-        if worker_dir not in sys.path:
-            sys.path.insert(0, worker_dir)
-        spec = importlib.util.spec_from_file_location(name, filepath)
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[name] = module
-        spec.loader.exec_module(module)
-        return module
-
-    # 워커 모듈 로드
-    try:
-        worker4 = load_worker('worker4_regression_advanced', 'worker4-regression-advanced.py')
-        worker2 = load_worker('worker2_hypothesis', 'worker2-hypothesis.py')
-        worker3 = load_worker('worker3_nonparametric_anova', 'worker3-nonparametric-anova.py')
-        print("[OK] Worker modules loaded successfully")
-    except Exception as e:
-        print(f"[ERROR] Worker module load failed: {e}")
-        sys.exit(1)
+    print("[OK] Worker modules loaded successfully")
 
     # 테스트 실행
     print("\n[1] Linear Regression 가정 검정")
@@ -477,4 +467,3 @@ if __name__ == '__main__':
         sys.exit(1)
     else:
         print("\n[SUCCESS] All tests passed!")
-        sys.exit(0)
