@@ -241,14 +241,5 @@ export interface ReliabilityResult {
   interpretation: 'poor' | 'questionable' | 'acceptable' | 'good' | 'excellent'
 }
 
-/**
- * 변수 매핑 인터페이스
- */
-export interface VariableMapping {
-  dependent?: string[]
-  independent?: string[]
-  group?: string
-  time?: string
-  variables?: string[]
-  [key: string]: string | string[] | undefined
-}
+// VariableMapping은 @/lib/statistics/variable-mapping에서 import하세요
+// 중복 정의 제거됨 (2025-11-20)

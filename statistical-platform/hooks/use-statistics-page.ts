@@ -30,6 +30,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react'
+import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
 // ============================================================================
 // Types
@@ -44,12 +45,8 @@ export interface UploadedData {
   columns: string[]
 }
 
-/**
- * 변수 매핑 구조 (Pattern B용)
- */
-export interface VariableMapping {
-  [key: string]: string | string[] | undefined
-}
+// VariableMapping은 @/lib/statistics/variable-mapping에서 re-export
+export type { VariableMapping }
 
 /**
  * 훅 옵션

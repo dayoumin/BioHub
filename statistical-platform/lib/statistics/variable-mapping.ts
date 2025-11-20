@@ -20,6 +20,9 @@ export interface VariableMapping {
   event?: string // 이벤트 변수 (생존분석)
   censoring?: string // 중도절단 변수 (생존분석)
   weight?: string // 가중치 변수
+
+  // 확장성을 위한 index signature
+  [key: string]: string | string[] | undefined
 }
 
 export interface ColumnInfo {

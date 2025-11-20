@@ -3,15 +3,10 @@
  */
 
 import { StatisticalMethod } from './smart-flow'
+import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
-// 변수 매핑 타입 정의
-export interface VariableMapping {
-  dependent?: string[]
-  independent?: string[]
-  group?: string
-  time?: string
-  variables?: string[]
-}
+// VariableMapping은 @/lib/statistics/variable-mapping에서 re-export
+export type { VariableMapping }
 
 export interface StepNavigationProps {
   /** 다음 단계로 이동 */
