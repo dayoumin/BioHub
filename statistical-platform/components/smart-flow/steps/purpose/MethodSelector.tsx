@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, ChevronDown, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { Search, Check, ChevronDown, CheckCircle, XCircle, AlertCircle, Sparkles, ArrowUp, ArrowDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import type { StatisticalMethod } from '@/types/smart-flow'
 
@@ -13,6 +15,7 @@ interface MethodSelectorProps {
   assumptionResults?: any
   onMethodSelect: (method: StatisticalMethod) => void
   checkMethodRequirements: (method: StatisticalMethod, profile: any) => any
+  recommendedMethods?: StatisticalMethod[]
 }
 
 // 체크리스트 아이템 컴포넌트
@@ -180,94 +183,352 @@ function RequirementsChecklist({
   )
 }
 
+// 개별 메서드 아이템
+function MethodItem({
+  method,
+  isSelected,
+  isFocused,
+  isRecommended,
+  requirements,
+  dataProfile,
+  assumptionResults,
+  onSelect,
+  onToggleExpand,
+  isExpanded
+}: {
+  method: StatisticalMethod
+  isSelected: boolean
+  isFocused: boolean
+  isRecommended: boolean
+  requirements: { canUse: boolean; warnings: string[] }
+  dataProfile: any
+  assumptionResults?: any
+  onSelect: () => void
+  onToggleExpand: () => void
+  isExpanded: boolean
+}) {
+  return (
+    <div
+      className={`border rounded-lg transition-all ${
+        isSelected
+          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+          : isFocused
+            ? 'border-primary/50 bg-accent/50'
+            : 'border-border hover:border-primary/30'
+      } ${!requirements.canUse ? 'opacity-60' : ''}`}
+    >
+      <button
+        onClick={onSelect}
+        className="w-full text-left p-3 transition-colors"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-sm">{method.name}</span>
+              {isRecommended && (
+                <Badge variant="default" className="text-xs bg-amber-500 hover:bg-amber-600">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  추천
+                </Badge>
+              )}
+              {method.subcategory && (
+                <Badge variant="secondary" className="text-xs">
+                  {method.subcategory}
+                </Badge>
+              )}
+              {!requirements.canUse && (
+                <Badge variant="destructive" className="text-xs">
+                  요구사항 미충족
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+              {method.description}
+            </p>
+          </div>
+          {isSelected && (
+            <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+          )}
+        </div>
+      </button>
+
+      {/* 경고 메시지 인라인 표시 */}
+      {requirements.warnings.length > 0 && (
+        <div className="px-3 pb-2 space-y-1">
+          {requirements.warnings.map((warning, idx) => (
+            <p key={idx} className="text-xs text-amber-600 dark:text-amber-400">
+              ⚠️ {warning}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* 요구사항 체크리스트 Collapsible */}
+      {dataProfile && method.requirements && (
+        <Collapsible open={isExpanded} onOpenChange={() => onToggleExpand()}>
+          <CollapsibleTrigger className="w-full px-3 pb-2 text-xs text-primary hover:underline flex items-center gap-1">
+            요구사항 확인
+            <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-3 pb-3">
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <RequirementsChecklist
+                  method={method}
+                  dataProfile={dataProfile}
+                  assumptionResults={assumptionResults}
+                />
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+    </div>
+  )
+}
+
 export function MethodSelector({
   methods,
   selectedMethod,
   dataProfile,
   assumptionResults,
   onMethodSelect,
-  checkMethodRequirements
+  checkMethodRequirements,
+  recommendedMethods = []
 }: MethodSelectorProps) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [focusedIndex, setFocusedIndex] = useState(0)
   const [expandedMethod, setExpandedMethod] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  // 추천 메서드 ID Set
+  const recommendedIds = useMemo(() =>
+    new Set(recommendedMethods.map(m => m.id)),
+    [recommendedMethods]
+  )
+
+  // 검색 필터링
+  const filteredMethods = useMemo(() => {
+    if (!searchQuery.trim()) return methods
+
+    const query = searchQuery.toLowerCase()
+    return methods.filter(method =>
+      method.name.toLowerCase().includes(query) ||
+      method.description?.toLowerCase().includes(query) ||
+      method.subcategory?.toLowerCase().includes(query)
+    )
+  }, [methods, searchQuery])
+
+  // 추천 + 일반 그룹 분리
+  const groupedMethods = useMemo(() => {
+    const recommended: StatisticalMethod[] = []
+    const others: StatisticalMethod[] = []
+
+    filteredMethods.forEach(method => {
+      if (recommendedIds.has(method.id)) {
+        recommended.push(method)
+      } else {
+        others.push(method)
+      }
+    })
+
+    return { recommended, others }
+  }, [filteredMethods, recommendedIds])
+
+  // 전체 메서드 리스트 (네비게이션용)
+  const allDisplayedMethods = useMemo(() =>
+    [...groupedMethods.recommended, ...groupedMethods.others],
+    [groupedMethods]
+  )
+
+  // 키보드 네비게이션
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setFocusedIndex(prev =>
+          Math.min(prev + 1, allDisplayedMethods.length - 1)
+        )
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setFocusedIndex(prev => Math.max(prev - 1, 0))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (allDisplayedMethods[focusedIndex]) {
+          onMethodSelect(allDisplayedMethods[focusedIndex])
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        setSearchQuery('')
+        inputRef.current?.blur()
+        break
+    }
+  }, [allDisplayedMethods, focusedIndex, onMethodSelect])
+
+  // 포커스된 아이템 스크롤
+  useEffect(() => {
+    if (listRef.current && focusedIndex >= 0) {
+      const focusedElement = listRef.current.querySelector(`[data-index="${focusedIndex}"]`)
+      if (focusedElement) {
+        focusedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      }
+    }
+  }, [focusedIndex])
+
+  // 검색어 변경 시 포커스 리셋
+  useEffect(() => {
+    setFocusedIndex(0)
+  }, [searchQuery])
+
+  // 메서드별 인덱스 맵 (렌더링 중 변수 변경 방지)
+  const methodIndexMap = useMemo(() => {
+    const map = new Map<string, number>()
+    let index = 0
+    groupedMethods.recommended.forEach(m => {
+      map.set(m.id, index++)
+    })
+    groupedMethods.others.forEach(m => {
+      map.set(m.id, index++)
+    })
+    return map
+  }, [groupedMethods])
 
   return (
-    <div className="grid gap-2">
-      {methods.map((method) => {
-        const requirements = dataProfile
-          ? checkMethodRequirements(method, dataProfile)
-          : { canUse: true, warnings: [] }
+    <div className="space-y-3">
+      {/* 검색 입력 */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          ref={inputRef}
+          type="text"
+          placeholder="통계 방법 검색... (↑↓ 이동, Enter 선택)"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="pl-10 pr-4"
+        />
+        {searchQuery && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground">
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">
+              <ArrowUp className="w-3 h-3 inline" />
+            </kbd>
+            <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs">
+              <ArrowDown className="w-3 h-3 inline" />
+            </kbd>
+          </div>
+        )}
+      </div>
 
-        return (
-          <div
-            key={method.id}
-            className={`border rounded-lg transition-all ${
-              selectedMethod?.id === method.id
-                ? 'border-primary bg-primary/5'
-                : 'border-border'
-            } ${!requirements.canUse ? 'opacity-60' : ''}`}
-          >
-            <button
-              onClick={() => onMethodSelect(method)}
-              className="w-full text-left p-3 hover:bg-accent/50 transition-colors"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{method.name}</span>
-                    {method.subcategory && (
-                      <Badge variant="secondary" className="text-xs">
-                        {method.subcategory}
-                      </Badge>
-                    )}
-                    {!requirements.canUse && (
-                      <Badge variant="destructive" className="text-xs">
-                        요구사항 미충족
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {method.description}
-                  </p>
-                  {requirements.warnings.length > 0 && (
-                    <div className="mt-2 text-xs text-orange-600 dark:text-orange-400">
-                      {requirements.warnings.map((warning: string, idx: number) => (
-                        <div key={idx}>⚠️ {warning}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {selectedMethod?.id === method.id && (
-                  <Check className="w-5 h-5 text-primary ml-2 flex-shrink-0" />
-                )}
+      {/* 결과 카운트 */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>
+          {filteredMethods.length}개 방법
+          {searchQuery && ` (검색: "${searchQuery}")`}
+        </span>
+        {selectedMethod && (
+          <span className="text-primary font-medium">
+            선택됨: {selectedMethod.name}
+          </span>
+        )}
+      </div>
+
+      {/* 메서드 리스트 */}
+      <ScrollArea className="h-[320px] pr-4">
+        <div className="space-y-4" ref={listRef}>
+          {/* 추천 그룹 */}
+          {groupedMethods.recommended.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400 sticky top-0 bg-background/95 backdrop-blur py-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                AI 추천 ({groupedMethods.recommended.length})
               </div>
-            </button>
+              <div className="grid gap-2">
+                {groupedMethods.recommended.map((method) => {
+                  const index = methodIndexMap.get(method.id) ?? 0
+                  const requirements = dataProfile
+                    ? checkMethodRequirements(method, dataProfile)
+                    : { canUse: true, warnings: [] }
 
-            {/* 요구사항 체크리스트 Collapsible */}
-            {dataProfile && method.requirements && (
-              <Collapsible
-                open={expandedMethod === method.id}
-                onOpenChange={(open) => setExpandedMethod(open ? method.id : null)}
-              >
-                <CollapsibleTrigger className="w-full px-3 pb-2 text-xs text-primary hover:underline flex items-center gap-1">
-                  요구사항 확인
-                  <ChevronDown className={`h-3 w-3 transition-transform ${expandedMethod === method.id ? 'rotate-180' : ''}`} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="px-3 pb-3">
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <RequirementsChecklist
+                  return (
+                    <div key={method.id} data-index={index}>
+                      <MethodItem
                         method={method}
+                        isSelected={selectedMethod?.id === method.id}
+                        isFocused={focusedIndex === index}
+                        isRecommended={true}
+                        requirements={requirements}
                         dataProfile={dataProfile}
                         assumptionResults={assumptionResults}
+                        onSelect={() => onMethodSelect(method)}
+                        onToggleExpand={() =>
+                          setExpandedMethod(expandedMethod === method.id ? null : method.id)
+                        }
+                        isExpanded={expandedMethod === method.id}
                       />
                     </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-          </div>
-        )
-      })}
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 기타 방법 그룹 */}
+          {groupedMethods.others.length > 0 && (
+            <div className="space-y-2">
+              {groupedMethods.recommended.length > 0 && (
+                <div className="text-xs font-medium text-muted-foreground sticky top-0 bg-background/95 backdrop-blur py-1">
+                  기타 방법 ({groupedMethods.others.length})
+                </div>
+              )}
+              <div className="grid gap-2">
+                {groupedMethods.others.map((method) => {
+                  const index = methodIndexMap.get(method.id) ?? 0
+                  const requirements = dataProfile
+                    ? checkMethodRequirements(method, dataProfile)
+                    : { canUse: true, warnings: [] }
+
+                  return (
+                    <div key={method.id} data-index={index}>
+                      <MethodItem
+                        method={method}
+                        isSelected={selectedMethod?.id === method.id}
+                        isFocused={focusedIndex === index}
+                        isRecommended={false}
+                        requirements={requirements}
+                        dataProfile={dataProfile}
+                        assumptionResults={assumptionResults}
+                        onSelect={() => onMethodSelect(method)}
+                        onToggleExpand={() =>
+                          setExpandedMethod(expandedMethod === method.id ? null : method.id)
+                        }
+                        isExpanded={expandedMethod === method.id}
+                      />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 검색 결과 없음 */}
+          {filteredMethods.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">"{searchQuery}"에 해당하는 방법이 없습니다</p>
+              <button
+                onClick={() => setSearchQuery('')}
+                className="text-xs text-primary hover:underline mt-2"
+              >
+                검색 초기화
+              </button>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   )
 }

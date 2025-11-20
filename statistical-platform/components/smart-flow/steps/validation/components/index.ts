@@ -16,3 +16,15 @@ export {
   NumericStatsTable,
   type NumericStatsTableProps
 } from './NumericStatsTable'
+
+// Additional Statistics Card
+export { AdditionalStatsCard } from './AdditionalStatsCard'
+
+// Outlier Analysis Card
+export { OutlierAnalysisCard } from './OutlierAnalysisCard'
+
+// Categorical Frequency Card
+export { CategoricalFrequencyCard } from './CategoricalFrequencyCard'
+
+// Data Edit Guide Dialog
+export { DataEditGuideDialog } from './DataEditGuideDialog'

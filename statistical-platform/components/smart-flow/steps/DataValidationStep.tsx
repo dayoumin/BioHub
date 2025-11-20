@@ -1,81 +1,38 @@
 'use client'
 
-import { memo, useMemo, useState, useEffect, useCallback, useRef } from 'react'
-import { CheckCircle, CheckCircle2, AlertTriangle, XCircle, Info, BarChart, Clock, Pause, Play, TrendingUp, Activity, ArrowLeft, ChevronRight, BarChart3, LineChart, FlaskConical, Edit2, FileEdit } from 'lucide-react'
+import { memo, useMemo, useState, useEffect, useRef } from 'react'
+import { CheckCircle, CheckCircle2, AlertTriangle, XCircle, Info, BarChart, TrendingUp, Activity, BarChart3, LineChart, FlaskConical, Edit2 } from 'lucide-react'
 import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
-import { logger } from '@/lib/utils/logger'
 import { usePyodide } from '@/components/providers/PyodideProvider'
 import { PlotlyChartImproved } from '@/components/charts/PlotlyChartImproved'
 import { getHeatmapLayout, getModalLayout, CHART_STYLES } from '@/lib/plotly-config'
 import type { Data } from 'plotly.js'
 import { DataTypeDetector } from '@/lib/statistics/data-type-detector'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
-import { AssumptionResultsPanel, NumericStatsTable } from './validation/components'
+import {
+  AssumptionResultsPanel,
+  NumericStatsTable,
+  AdditionalStatsCard,
+  OutlierAnalysisCard,
+  CategoricalFrequencyCard,
+  DataEditGuideDialog
+} from './validation/components'
 import { useNormalityTest } from './validation/hooks'
-
-// Constants - 명확한 이름과 주석
-const VALIDATION_CONSTANTS = {
-  SKEWED_THRESHOLD: 0.8,        // 80% 이상이면 편향된 분포로 판단
-  SPARSE_THRESHOLD: 5,           // 5개 미만이면 희소 카테고리로 분류
-  MAX_DISPLAY_CATEGORIES: 5,     // UI에 표시할 최대 카테고리 수
-  MIN_SAMPLE_SIZE: 3,           // 통계 검정을 위한 최소 샘플 크기
-  DEBOUNCE_DELAY_MS: 200,        // 연속 호출 방지를 위한 디바운스 지연 시간
-  AUTO_PROGRESS_COUNTDOWN: 5,    // 자동 진행 카운트다운 초
-  OUTLIER_WARNING_THRESHOLD: 0.05,  // 이상치 경고 기준 (5%)
-  OUTLIER_CRITICAL_THRESHOLD: 0.1   // 이상치 심각 기준 (10%)
-} as const
+import {
+  VALIDATION_CONSTANTS,
+  calculateCorrelationMatrix,
+  inverseErf
+} from './validation/utils'
 
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
   return results !== null && 'columnStats' in results && Array.isArray(results.columnStats)
-}
-
-// 역 오차 함수 근사 (Q-Q Plot용)
-function inverseErf(x: number): number {
-  // 경계값 체크
-  if (Math.abs(x) >= 1) {
-    return x > 0 ? Infinity : -Infinity
-  }
-
-  const a = 0.147
-  const sign = x < 0 ? -1 : 1
-  x = Math.abs(x)
-
-  const ln1MinusX2 = Math.log(1 - x * x)
-  const part1 = 2 / (Math.PI * a) + ln1MinusX2 / 2
-  const part2 = ln1MinusX2 / a
-
-  return sign * Math.sqrt(Math.sqrt(part1 * part1 - part2) - part1)
-}
-
-// 유틸 함수: 컬럼 데이터를 숫자 배열로 변환
-function extractNumericData(data: DataRow[], columnName: string): number[] {
-  return data
-    .map(row => {
-      const value = row[columnName]
-      return typeof value === 'number' ? value : parseFloat(String(value))
-    })
-    .filter(v => !isNaN(v))
-}
-
-// 유틸 함수: 기본 통계량 계산
-function calculateBasicStats(values: number[]): { mean: number; std: number; n: number } {
-  const n = values.length
-  if (n === 0) return { mean: 0, std: 0, n: 0 }
-
-  const mean = values.reduce((a, b) => a + b, 0) / n
-  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n
-  const std = Math.sqrt(variance)
-
-  return { mean, std, n }
 }
 
 export const DataValidationStep = memo(function DataValidationStep({
@@ -89,19 +46,13 @@ export const DataValidationStep = memo(function DataValidationStep({
   totalSteps
 }: DataValidationStepProps) {
   // Local state
-  const [autoProgress, setAutoProgress] = useState(false)
-  const [countdown, setCountdown] = useState<number>(VALIDATION_CONSTANTS.AUTO_PROGRESS_COUNTDOWN)
-  const [isPaused, setIsPaused] = useState(false)
   const [isAssumptionLoading, setIsAssumptionLoading] = useState(false)
-  const [selectedColumn, setSelectedColumn] = useState<ColumnStatistics | null>(null)
-  const [showVisualization, setShowVisualization] = useState(false)
   const [alpha, setAlpha] = useState<number>(0.05)
   const [normalityRule, setNormalityRule] = useState<'any' | 'majority' | 'strict'>('any')
   const [validationError, setValidationError] = useState<string | null>(null)
   const [showDataEditGuide, setShowDataEditGuide] = useState(false)
   const assumptionRunId = useRef(0)
   const didAutoRunNormality = useRef(false)
-  const abortControllerRef = useRef<AbortController | null>(null)
 
   // PyodideProvider에서 상태 가져오기
   const { isLoaded: pyodideLoaded, isLoading: pyodideLoading, service: pyodideService, error: pyodideError } = usePyodide()
@@ -153,54 +104,14 @@ export const DataValidationStep = memo(function DataValidationStep({
     [columnStats]
   )
 
-  // Memoize correlation matrix for performance
+  // Memoize correlation matrix for performance (using optimized utility function)
   const correlationData = useMemo(() => {
     if (numericColumns.length < 2 || !data) return null
 
-    const numericVars = numericColumns.slice(0, 8) // 최대 8개 변수
-    const correlationMatrix: number[][] = []
-    const varNames = numericVars.map(v => v.name)
+    const varNames = numericColumns.slice(0, 8).map(v => v.name) // 최대 8개 변수
+    const { matrix } = calculateCorrelationMatrix(data, varNames)
 
-    // 각 변수 쌍에 대해 상관계수 계산
-    for (let i = 0; i < numericVars.length; i++) {
-      const row: number[] = []
-
-      for (let j = 0; j < numericVars.length; j++) {
-        if (i === j) {
-          row.push(1) // 자기 자신과의 상관계수는 1
-        } else {
-          // 유효한 쌍 데이터만 추출
-          const validPairs = data.filter(r =>
-            !isNaN(parseFloat(String(r[numericVars[i].name]))) &&
-            !isNaN(parseFloat(String(r[numericVars[j].name])))
-          )
-
-          if (validPairs.length > 1) {
-            const x = validPairs.map(r => parseFloat(String(r[numericVars[i].name])))
-            const y = validPairs.map(r => parseFloat(String(r[numericVars[j].name])))
-            const stats = {
-              x: calculateBasicStats(x),
-              y: calculateBasicStats(y)
-            }
-
-            const num = x.reduce((sum, xi, idx) =>
-              sum + (xi - stats.x.mean) * (y[idx] - stats.y.mean), 0)
-            const denX = Math.sqrt(x.reduce((sum, xi) =>
-              sum + Math.pow(xi - stats.x.mean, 2), 0))
-            const denY = Math.sqrt(y.reduce((sum, yi) =>
-              sum + Math.pow(yi - stats.y.mean, 2), 0))
-
-            const corr = denX === 0 || denY === 0 ? 0 : num / (denX * denY)
-            row.push(corr)
-          } else {
-            row.push(0)
-          }
-        }
-      }
-      correlationMatrix.push(row)
-    }
-
-    return { matrix: correlationMatrix, varNames }
+    return { matrix, varNames }
   }, [numericColumns, data])
 
   // 데이터 특성 자동 분석 및 통계 가정 검정 (백그라운드 + 200ms 디바운스)
@@ -297,32 +208,6 @@ export const DataValidationStep = memo(function DataValidationStep({
     didAutoRunNormality.current = true
     runNormalityTestsHook(data, numericColumns)
   }, [pyodideLoaded, pyodideService, data, numericColumns, isAssumptionLoading, isCalculating, pyodideLoading, runNormalityTestsHook])
-
-  // 자동 진행 기능
-  useEffect(() => {
-    if (!validationResults || hasErrors || isPaused || !autoProgress) return
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          if (onNext) onNext()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [validationResults, hasErrors, isPaused, autoProgress])
-
-  const toggleAutoProgress = () => {
-    setIsPaused(!isPaused)
-    if (isPaused) {
-      setCountdown(5) // 재시작 시 카운트다운 초기화
-    }
-  }
-
-  // 기본적으로 자동 실행하지 않음 (버튼으로 수동 실행)
 
   return (
     <div className="space-y-6">
@@ -532,210 +417,13 @@ export const DataValidationStep = memo(function DataValidationStep({
           {columnStats && <NumericStatsTable columnStats={columnStats} />}
 
           {/* 추가 기초 통계 */}
-          {columnStats && columnStats.some(s => s.type === 'numeric') && (
-            <Card>
-              <CardHeader>
-                <CardTitle>추가 기초 통계</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {columnStats
-                    .filter(s => s.type === 'numeric')
-                    .map((stat, idx) => (
-                      <div key={idx} className="border rounded-lg p-3">
-                        <h4 className="font-medium text-sm mb-2">{stat.name}</h4>
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">분위수 범위:</span>
-                            <span>
-                              Q1: {((stat.q25 || 0)).toFixed(1)} | Q3: {((stat.q75 || 0)).toFixed(1)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">IQR:</span>
-                            <span>{((stat.q75 || 0) - (stat.q25 || 0)).toFixed(1)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">범위:</span>
-                            <span>{stat.min?.toFixed(1)} ~ {stat.max?.toFixed(1)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">표준오차 (SE):</span>
-                            <span>{(stat.std && stat.numericCount ? (stat.std / Math.sqrt(stat.numericCount)).toFixed(3) : '-')}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">95% CI:</span>
-                            <span className="text-[10px]">
-                              [{(stat.mean! - 1.96 * (stat.std! / Math.sqrt(stat.numericCount))).toFixed(1)},
-                               {(stat.mean! + 1.96 * (stat.std! / Math.sqrt(stat.numericCount))).toFixed(1)}]
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {columnStats && <AdditionalStatsCard columnStats={columnStats} />}
 
           {/* 이상치 분석 */}
-          {columnStats && columnStats.some(s => s.type === 'numeric' && s.outliers && s.outliers.length > 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  이상치 분석
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {columnStats
-                    .filter(s => s.type === 'numeric')
-                    .map((stat, idx) => {
-                      const outlierCount = stat.outliers?.length || 0
-                      const outlierPercent = stat.numericCount > 0 ? (outlierCount / stat.numericCount * 100) : 0
-
-                      return (
-                        <div key={idx} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-medium">{stat.name}</h4>
-                            <Badge
-                              variant={outlierCount === 0 ? "success" :
-                                      outlierPercent > 10 ? "warning" : "secondary"}
-                              className="text-xs"
-                            >
-                              {outlierCount}개 이상치 ({outlierPercent.toFixed(1)}%)
-                            </Badge>
-                          </div>
-
-                          {outlierCount > 0 && (
-                            <>
-                              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                                <div>
-                                  <span className="text-muted-foreground">탐지 방법:</span>
-                                  <span className="ml-2">IQR × 1.5</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground">위치:</span>
-                                  <span className="ml-2">
-                                    {stat.outliers?.filter((v: number) => v < (stat.q25! - 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length}개 하단,
-                                    {stat.outliers?.filter((v: number) => v > (stat.q75! + 1.5 * ((stat.q75 || 0) - (stat.q25 || 0)))).length}개 상단
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="p-2 bg-muted/30 rounded text-xs">
-                                <p className="font-medium mb-1">이상치 값:</p>
-                                <p className="font-mono">
-                                  {stat.outliers?.slice(0, 10).map((v: number) => v.toFixed(2)).join(', ')}
-                                  {(stat.outliers?.length ?? 0) > 10 && ` ... 외 ${(stat.outliers?.length ?? 0) - 10}개`}
-                                </p>
-                              </div>
-
-                              {/* 처리 방법 제안 */}
-                              <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/20 rounded text-xs">
-                                <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">💡 처리 방법:</p>
-                                {outlierPercent < 5 ? (
-                                  <p className="text-amber-700 dark:text-amber-300">
-                                    • 5% 미만: 그대로 진행 가능, 로버스트 통계 고려
-                                  </p>
-                                ) : outlierPercent < 10 ? (
-                                  <p className="text-amber-700 dark:text-amber-300">
-                                    • 5-10%: Winsorization, Trimming 고려
-                                  </p>
-                                ) : (
-                                  <p className="text-amber-700 dark:text-amber-300">
-                                    • 10% 초과: 원인 파악 필수, 제거 또는 변환
-                                  </p>
-                                )}
-                              </div>
-                            </>
-                          )}
-
-                          {outlierCount === 0 && (
-                            <p className="text-sm text-muted-foreground">이상치가 발견되지 않았습니다</p>
-                          )}
-                        </div>
-                      )
-                    })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {columnStats && <OutlierAnalysisCard columnStats={columnStats} />}
 
           {/* 범주형 변수 빈도 분석 */}
-          {columnStats && columnStats.some(s => s.type === 'categorical') && (
-            <Card>
-              <CardHeader>
-                <CardTitle>범주형 변수 빈도 분석</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {columnStats
-                    .filter(s => s.type === 'categorical')
-                    .map((stat, idx) => {
-                      // 한 번만 계산
-                      const totalValidCount = stat.topValues?.reduce((acc, v) => acc + v.count, 0) || 1
-                      const hasSkewedDistribution = stat.topValues?.[0] &&
-                        (stat.topValues[0].count / totalValidCount) > VALIDATION_CONSTANTS.SKEWED_THRESHOLD
-                      const hasSparseCategories = stat.topValues?.some(v => v.count < VALIDATION_CONSTANTS.SPARSE_THRESHOLD)
-
-                      return (
-                      <div key={idx} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="font-medium">{stat.name}</h4>
-                          <div className="flex gap-2">
-                            <Badge variant="secondary">
-                              {stat.uniqueValues}개 카테고리
-                            </Badge>
-                            {hasSkewedDistribution && (
-                              <Badge variant="warning" className="text-xs">편향 분포</Badge>
-                            )}
-                            {hasSparseCategories && !hasSkewedDistribution && (
-                              <Badge variant="warning" className="text-xs">희소 카테고리</Badge>
-                            )}
-                          </div>
-                        </div>
-                        {stat.topValues && stat.topValues.length > 0 ? (
-                          <div className="space-y-2">
-                            {stat.topValues.slice(0, VALIDATION_CONSTANTS.MAX_DISPLAY_CATEGORIES).map((val, vidx) => {
-                              const percentage = ((val.count / totalValidCount) * 100).toFixed(1)
-                              return (
-                                <div key={vidx} className="flex items-center gap-3">
-                                  <span className="text-sm flex-1 truncate">{val.value || '(빈 값)'}</span>
-                                  <span className="text-sm text-muted-foreground">{val.count}개</span>
-                                  <div className="w-24">
-                                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                                      <div
-                                        className="h-full bg-primary transition-all"
-                                        style={{ width: `${percentage}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                  <span className="text-sm font-medium w-12 text-right">{percentage}%</span>
-                                </div>
-                              )
-                            })}
-                            {stat.uniqueValues > VALIDATION_CONSTANTS.MAX_DISPLAY_CATEGORIES && (
-                              <p className="text-xs text-muted-foreground mt-2">
-                                ... 외 {stat.uniqueValues - VALIDATION_CONSTANTS.MAX_DISPLAY_CATEGORIES}개 카테고리
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">빈도 정보 없음</p>
-                        )}
-                        {stat.missingCount > 0 && (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            결측값: {stat.missingCount}개
-                          </div>
-                        )}
-                      </div>
-                    )})}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {columnStats && <CategoricalFrequencyCard columnStats={columnStats} />}
 
         </TabsContent>
 
@@ -1974,111 +1662,10 @@ export const DataValidationStep = memo(function DataValidationStep({
       </Tabs>
 
       {/* 데이터 편집 가이드 다이얼로그 */}
-      <Dialog open={showDataEditGuide} onOpenChange={setShowDataEditGuide}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileEdit className="h-5 w-5" />
-              데이터 편집 가이드
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                통계 가정 충족을 위해 데이터를 변환하거나 편집해야 할 수 있습니다.
-                아래 방법들을 참고하여 데이터를 준비하세요.
-              </AlertDescription>
-            </Alert>
-
-            {/* 정규성 문제 해결 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">📉 정규성 문제 해결</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <h4 className="font-medium text-sm mb-2">변환 방법:</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-mono text-xs mb-1">np.log(data)</p>
-                      <p className="text-xs text-muted-foreground">로그 변환: 오른쪽으로 치우친 데이터</p>
-                    </div>
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-mono text-xs mb-1">np.sqrt(data)</p>
-                      <p className="text-xs text-muted-foreground">제곱근 변환: 약한 치우침</p>
-                    </div>
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-mono text-xs mb-1">scipy.stats.boxcox(data)</p>
-                      <p className="text-xs text-muted-foreground">Box-Cox 변환: 최적 람다 자동 결정</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 이상치 처리 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">⚠️ 이상치 처리</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <h4 className="font-medium text-sm mb-2">처리 방법:</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-medium text-xs mb-1">제거 (Removal):</p>
-                      <p className="font-mono text-xs">data = data[data['col'] &lt; threshold]</p>
-                    </div>
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-medium text-xs mb-1">Winsorization:</p>
-                      <p className="font-mono text-xs">data.clip(lower=q1, upper=q3)</p>
-                    </div>
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-medium text-xs mb-1">IQR 방법:</p>
-                      <p className="font-mono text-xs">Q1 - 1.5*IQR, Q3 + 1.5*IQR</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* 결측값 처리 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">🕳️ 결측값 처리</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <h4 className="font-medium text-sm mb-2">대체 방법:</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-medium text-xs mb-1">평균 대체:</p>
-                      <p className="font-mono text-xs">data.fillna(data.mean())</p>
-                    </div>
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-medium text-xs mb-1">중앙값 대체:</p>
-                      <p className="font-mono text-xs">data.fillna(data.median())</p>
-                    </div>
-                    <div className="p-2 bg-muted/50 rounded">
-                      <p className="font-medium text-xs mb-1">삭제:</p>
-                      <p className="font-mono text-xs">data.dropna()</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>주의:</strong> 데이터 변환 전 원본을 반드시 백업하세요.
-                변환은 해석에 영향을 줄 수 있으므로 신중하게 선택하세요.
-              </AlertDescription>
-            </Alert>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DataEditGuideDialog
+        open={showDataEditGuide}
+        onOpenChange={setShowDataEditGuide}
+      />
 
       {/* 에러 표시 */}
       {validationError && (
