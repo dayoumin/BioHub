@@ -42,8 +42,10 @@ function getPairedNumericData(data, columnNameX, columnNameY) {
       continue
     }
 
-    const xNum = typeof xRaw === 'number' ? xRaw : Number(xRaw)
-    const yNum = typeof yRaw === 'number' ? yRaw : Number(yRaw)
+    // Use parseFloat(String(...)) to match TS utility behavior
+    // This correctly treats empty strings, whitespace, and booleans as NaN
+    const xNum = typeof xRaw === 'number' ? xRaw : parseFloat(String(xRaw))
+    const yNum = typeof yRaw === 'number' ? yRaw : parseFloat(String(yRaw))
 
     // Only include if both are valid numbers
     if (!isNaN(xNum) && isFinite(xNum) && !isNaN(yNum) && isFinite(yNum)) {
@@ -62,6 +64,9 @@ function calculateCorrelationMatrix(data, columns) {
   // 진행 상황 추적
   const totalCalculations = columns.length * columns.length
   let completedCalculations = 0
+
+  // Guard against division by zero for small datasets (< 10 pairs)
+  const progressStep = Math.max(1, Math.floor(totalCalculations / 10))
 
   for (let i = 0; i < columns.length; i++) {
     const row = []
@@ -85,7 +90,7 @@ function calculateCorrelationMatrix(data, columns) {
       completedCalculations++
 
       // 10% 단위로 진행상황 보고
-      if (completedCalculations % Math.floor(totalCalculations / 10) === 0) {
+      if (completedCalculations % progressStep === 0) {
         self.postMessage({
           type: 'progress',
           data: {

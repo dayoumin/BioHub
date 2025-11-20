@@ -33,7 +33,11 @@ export function VariableMappingDisplay({ mapping, onClose }: VariableMappingDisp
         {mapping.dependentVar && (
           <div className="flex items-center gap-2">
             <Badge variant="outline">종속변수</Badge>
-            <span className="font-mono">{mapping.dependentVar}</span>
+            <span className="font-mono">
+              {Array.isArray(mapping.dependentVar)
+                ? mapping.dependentVar.join(', ')
+                : mapping.dependentVar}
+            </span>
           </div>
         )}
 
