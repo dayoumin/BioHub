@@ -12,6 +12,7 @@ import { HistogramChart, BoxPlotChart, BarChart as BarChartComponent } from '@/c
 import { PlotlyChartImproved } from '@/components/charts/PlotlyChartImproved'
 import { getHeatmapLayout, getModalLayout, CHART_STYLES } from '@/lib/plotly-config'
 import { workerManager, shouldUseWorker } from '@/lib/services/worker-manager'
+import { getPairedNumericData } from './validation/utils/correlationUtils'
 import type { Data } from 'plotly.js'
 
 interface DataValidationStepProps {
@@ -117,33 +118,6 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
           // Use synchronous calculation for small datasets (pairwise deletion)
           const labels = columnsToUse.map(col => col.name)
 
-          // Helper function to get paired numeric data
-          const getPairedNumericData = (columnNameX: string, columnNameY: string): { x: number[], y: number[] } => {
-            const xValues: number[] = []
-            const yValues: number[] = []
-
-            for (const row of data) {
-              const xRaw = row[columnNameX]
-              const yRaw = row[columnNameY]
-
-              // Skip if either value is missing
-              if (xRaw === null || xRaw === undefined || yRaw === null || yRaw === undefined) {
-                continue
-              }
-
-              const xNum = typeof xRaw === 'number' ? xRaw : Number(xRaw)
-              const yNum = typeof yRaw === 'number' ? yRaw : Number(yRaw)
-
-              // Only include if both are valid numbers
-              if (!isNaN(xNum) && isFinite(xNum) && !isNaN(yNum) && isFinite(yNum)) {
-                xValues.push(xNum)
-                yValues.push(yNum)
-              }
-            }
-
-            return { x: xValues, y: yValues }
-          }
-
           const matrix: number[][] = []
           for (let i = 0; i < columnsToUse.length; i++) {
             const row: number[] = []
@@ -155,7 +129,7 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
                 row.push(matrix[j][i])
               } else {
                 // Pairwise deletion: 각 pair마다 동일한 인덱스만 사용
-                const { x, y } = getPairedNumericData(columnsToUse[i].name, columnsToUse[j].name)
+                const { x, y } = getPairedNumericData(data, columnsToUse[i].name, columnsToUse[j].name)
                 if (x.length > 1 && y.length > 1) {
                   const correlation = calculateCorrelation(x, y)
                   row.push(correlation)

@@ -1,6 +1,10 @@
 /**
  * Calculate Pearson correlation coefficient between two numeric arrays
  * Uses pairwise deletion - only uses rows where both values are valid
+ *
+ * @param x - First numeric array
+ * @param y - Second numeric array
+ * @returns Pearson correlation coefficient (-1 to 1)
  */
 export function calculateCorrelation(x: number[], y: number[]): number {
   const n = Math.min(x.length, y.length)
