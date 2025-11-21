@@ -72,23 +72,15 @@ const ANALYSIS_PURPOSES = [
 export function PurposeInputStep({
   onPurposeSubmit,
   validationResults,
-  data,
-  onNext,
-  onPrevious,
-  canGoNext,
-  canGoPrevious
+  data
 }: PurposeInputStepProps) {
   const [selectedPurpose, setSelectedPurpose] = useState<AnalysisPurpose | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [aiProgress, setAiProgress] = useState(0)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
 
-  const {
-    assumptionResults,
-    dataCharacteristics,
-    setSelectedMethod,
-    setVariableMapping
-  } = useSmartFlowStore()
+  // Zustand store - setSelectedMethod만 사용
+  const setSelectedMethod = useSmartFlowStore(state => state.setSelectedMethod)
 
   // DataProfile 계산 (Step 2 결과 요약)
   const dataProfile = useMemo(() => {
@@ -116,57 +108,65 @@ export function PurposeInputStep({
   }, [validationResults, data])
 
   // Mock AI 추천 함수 (향후 실제 로직으로 교체)
-  const analyzeAndRecommend = useCallback(async (purpose: AnalysisPurpose): Promise<AIRecommendation> => {
-    setIsAnalyzing(true)
-    setAiProgress(0)
+  const analyzeAndRecommend = useCallback(async (_purpose: AnalysisPurpose): Promise<AIRecommendation | null> => {
+    try {
+      setIsAnalyzing(true)
+      setAiProgress(0)
 
-    // Step 1: 데이터 특성 분석
-    await new Promise(resolve => setTimeout(resolve, 500))
-    setAiProgress(30)
+      // Step 1: 데이터 특성 분석
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setAiProgress(30)
 
-    // Step 2: 통계 가정 검정
-    await new Promise(resolve => setTimeout(resolve, 500))
-    setAiProgress(60)
+      // Step 2: 통계 가정 검정
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setAiProgress(60)
 
-    // Step 3: 최적 방법 추천
-    await new Promise(resolve => setTimeout(resolve, 500))
-    setAiProgress(100)
+      // Step 3: 최적 방법 추천
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setAiProgress(100)
 
-    setIsAnalyzing(false)
-
-    // Mock 추천 결과 (실제로는 SmartRecommender 사용)
-    const mockMethod: StatisticalMethod = {
-      id: 'independent-t-test',
-      name: '독립표본 t-검정',
-      description: '두 독립 그룹 간 평균 차이를 검정합니다.',
-      category: 't-test',
-      requirements: {
-        minSampleSize: 30,
-        assumptions: ['정규성', '등분산성', '독립성']
-      }
-    }
-
-    return {
-      method: mockMethod,
-      confidence: 0.92,
-      reasoning: [
-        '두 독립 그룹 간 평균 비교가 필요합니다.',
-        '표본 크기가 충분합니다 (n=30).',
-        '정규성 가정이 충족되었습니다.',
-        '등분산성 가정이 충족되었습니다.'
-      ],
-      assumptions: [
-        { name: '정규성', passed: true, pValue: 0.08 },
-        { name: '등분산성', passed: true, pValue: 0.15 }
-      ],
-      alternatives: [
-        {
-          id: 'mann-whitney',
-          name: 'Mann-Whitney U 검정',
-          description: '비모수 대안',
-          category: 'nonparametric'
+      // Mock 추천 결과 (실제로는 SmartRecommender 사용)
+      const mockMethod: StatisticalMethod = {
+        id: 'independent-t-test',
+        name: '독립표본 t-검정',
+        description: '두 독립 그룹 간 평균 차이를 검정합니다.',
+        category: 't-test',
+        requirements: {
+          minSampleSize: 30,
+          assumptions: ['정규성', '등분산성', '독립성']
         }
-      ]
+      }
+
+      return {
+        method: mockMethod,
+        confidence: 0.92,
+        reasoning: [
+          '두 독립 그룹 간 평균 비교가 필요합니다.',
+          '표본 크기가 충분합니다 (n=30).',
+          '정규성 가정이 충족되었습니다.',
+          '등분산성 가정이 충족되었습니다.'
+        ],
+        assumptions: [
+          { name: '정규성', passed: true, pValue: 0.08 },
+          { name: '등분산성', passed: true, pValue: 0.15 }
+        ],
+        alternatives: [
+          {
+            id: 'mann-whitney',
+            name: 'Mann-Whitney U 검정',
+            description: '비모수 대안',
+            category: 'nonparametric'
+          }
+        ]
+      }
+    } catch (error) {
+      logger.error('AI 분석 중 오류 발생', { error })
+      // 에러 시 null 반환 (UI에서 에러 메시지 표시)
+      return null
+    } finally {
+      // 항상 로딩 상태 초기화
+      setIsAnalyzing(false)
+      setAiProgress(0)
     }
   }, [])
 
@@ -179,7 +179,14 @@ export function PurposeInputStep({
 
     // AI 분석 시작
     const result = await analyzeAndRecommend(purpose)
-    setRecommendation(result)
+
+    if (result === null) {
+      // 에러 발생 시 사용자에게 알림
+      logger.error('AI 추천 실패', { purpose })
+      // TODO: 에러 메시지 UI 표시 (Alert 컴포넌트 사용)
+    } else {
+      setRecommendation(result)
+    }
   }, [analyzeAndRecommend])
 
   // "이 방법으로 분석하기" 버튼
@@ -189,7 +196,7 @@ export function PurposeInputStep({
     // Step 4로 넘어가기 전 스토어에 저장
     setSelectedMethod(recommendation.method)
 
-    // 부모 콜백 호출
+    // 부모 콜백 호출 (onPurposeSubmit 내부에서 goToNextStep() 호출됨)
     if (onPurposeSubmit) {
       onPurposeSubmit(
         ANALYSIS_PURPOSES.find(p => p.id === selectedPurpose)?.title || '',
@@ -197,11 +204,10 @@ export function PurposeInputStep({
       )
     }
 
-    // Step 4로 이동 (변수 매핑은 Step 4에서 자동 진행)
-    if (onNext) {
-      onNext()
-    }
-  }, [recommendation, selectedPurpose, setSelectedMethod, onPurposeSubmit, onNext])
+    // ❌ onNext() 중복 호출 제거:
+    // onPurposeSubmit (handlePurposeSubmit)이 이미 goToNextStep()을 호출하므로
+    // 여기서 다시 호출하면 Step 4를 건너뛰고 Step 5로 이동하는 버그 발생
+  }, [recommendation, selectedPurpose, setSelectedMethod, onPurposeSubmit])
 
   return (
     <div className="w-full h-full flex flex-col space-y-6">

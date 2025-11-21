@@ -311,6 +311,8 @@ export default function SmartFlowPage() {
               <div className="animate-in fade-in duration-500">
                 <PurposeInputStep
                   onPurposeSubmit={handlePurposeSubmit}
+                  validationResults={validationResults}
+                  data={uploadedData}
                 />
               </div>
             )}

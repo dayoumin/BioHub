@@ -48,6 +48,16 @@ export function PurposeCard({
   disabled = false,
   className
 }: PurposeCardProps) {
+  // 키보드 핸들러 추가 (Enter, Space)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) return
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault() // Space의 기본 스크롤 동작 방지
+      onClick()
+    }
+  }
+
   return (
     <Card
       className={cn(
@@ -61,6 +71,11 @@ export function PurposeCard({
         className
       )}
       onClick={disabled ? undefined : onClick}
+      onKeyDown={disabled ? undefined : handleKeyDown}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-pressed={selected}
+      aria-disabled={disabled}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
