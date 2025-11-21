@@ -18,6 +18,7 @@ export interface ValidationResults {
   variables: string[]
   errors: string[]
   warnings: string[]
+  columns?: ColumnStatistics[] // Alias for columnStats (backward compatibility)
   columnStats?: ColumnStatistics[]
 }
 
@@ -81,6 +82,36 @@ export interface MethodWarning {
  * 통계 메서드 또는 경고 (UI 표시용 유니온 타입)
  */
 export type MethodOrWarning = StatisticalMethod | MethodWarning
+
+/**
+ * 분석 목적 타입 (Decision Tree 선택지)
+ */
+export type AnalysisPurpose =
+  | 'compare'       // 그룹 간 차이 비교
+  | 'relationship'  // 변수 간 관계 분석
+  | 'distribution'  // 분포와 빈도 분석
+  | 'prediction'    // 예측 모델링
+  | 'timeseries'    // 시계열 분석
+
+/**
+ * AI 추천 결과
+ */
+export interface AIRecommendation {
+  /** 추천 방법 */
+  method: StatisticalMethod
+  /** 신뢰도 (0-100) */
+  confidence: number
+  /** 추천 이유 목록 */
+  reasoning: string[]
+  /** 가정 검정 결과 */
+  assumptions: {
+    name: string
+    passed: boolean
+    pValue?: number
+  }[]
+  /** 대안 방법 목록 (옵션) */
+  alternatives?: StatisticalMethod[]
+}
 
 /**
  * 통계적 가정 검정 요약
