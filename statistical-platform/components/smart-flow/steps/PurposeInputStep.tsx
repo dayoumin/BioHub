@@ -15,10 +15,11 @@ import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgr
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
-import type { StatisticalMethod, AnalysisPurpose, AIRecommendation } from '@/types/smart-flow'
+import type { AnalysisPurpose, AIRecommendation } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
+import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 
 /**
  * Phase 2: PurposeInputStep 완전 재설계
@@ -83,7 +84,8 @@ export function PurposeInputStep({
   // WCAG 2.3.3: prefers-reduced-motion 감지
   const prefersReducedMotion = useReducedMotion()
 
-  // Zustand store - setSelectedMethod만 사용
+  // Zustand store - assumptionResults 및 setSelectedMethod 사용
+  const assumptionResults = useSmartFlowStore(state => state.assumptionResults)
   const setSelectedMethod = useSmartFlowStore(state => state.setSelectedMethod)
 
   // DataProfile 계산 (Step 2 결과 요약)
@@ -111,8 +113,8 @@ export function PurposeInputStep({
     }
   }, [validationResults, data])
 
-  // Mock AI 추천 함수 (향후 실제 로직으로 교체)
-  const analyzeAndRecommend = useCallback(async (_purpose: AnalysisPurpose): Promise<AIRecommendation | null> => {
+  // Decision Tree 기반 AI 추천 (Phase 4-A)
+  const analyzeAndRecommend = useCallback(async (purpose: AnalysisPurpose): Promise<AIRecommendation | null> => {
     try {
       setIsAnalyzing(true)
       setAiProgress(0)
@@ -125,44 +127,35 @@ export function PurposeInputStep({
       await new Promise(resolve => setTimeout(resolve, 500))
       setAiProgress(60)
 
-      // Step 3: 최적 방법 추천
+      // Step 3: DecisionTree 추천
       await new Promise(resolve => setTimeout(resolve, 500))
       setAiProgress(100)
 
-      // Mock 추천 결과 (실제로는 SmartRecommender 사용)
-      const mockMethod: StatisticalMethod = {
-        id: 'independent-t-test',
-        name: '독립표본 t-검정',
-        description: '두 독립 그룹 간 평균 차이를 검정합니다.',
-        category: 't-test',
-        requirements: {
-          minSampleSize: 30,
-          assumptions: ['정규성', '등분산성', '독립성']
-        }
+      // ✅ 데이터 검증
+      if (!data || data.length === 0) {
+        logger.error('Data is empty or null')
+        return null
       }
 
-      return {
-        method: mockMethod,
-        confidence: 0.92,
-        reasoning: [
-          '두 독립 그룹 간 평균 비교가 필요합니다.',
-          '표본 크기가 충분합니다 (n=30).',
-          '정규성 가정이 충족되었습니다.',
-          '등분산성 가정이 충족되었습니다.'
-        ],
-        assumptions: [
-          { name: '정규성', passed: true, pValue: 0.08 },
-          { name: '등분산성', passed: true, pValue: 0.15 }
-        ],
-        alternatives: [
-          {
-            id: 'mann-whitney',
-            name: 'Mann-Whitney U 검정',
-            description: '비모수 대안',
-            category: 'nonparametric'
-          }
-        ]
+      // ✅ Null 안전성: assumptionResults 체크 (AI Review Fix #4)
+      if (!assumptionResults) {
+        logger.warn('assumptionResults is null, using basic recommendation')
+
+        // 가정 검정 없이 기본 추천 (비모수 검정 우선)
+        return DecisionTreeRecommender.recommendWithoutAssumptions(
+          purpose,
+          validationResults,
+          data
+        )
       }
+
+      // ✅ assumptionResults 사용 가능 - DecisionTree 추천
+      return DecisionTreeRecommender.recommend(
+        purpose,
+        assumptionResults,
+        validationResults,
+        data
+      )
     } catch (error) {
       logger.error('AI 분석 중 오류 발생', { error })
       // 에러 시 null 반환 (UI에서 에러 메시지 표시)
@@ -172,7 +165,7 @@ export function PurposeInputStep({
       setIsAnalyzing(false)
       setAiProgress(0)
     }
-  }, [])
+  }, [assumptionResults, validationResults, data])
 
   // 목적 선택 핸들러
   const handlePurposeSelect = useCallback(async (purpose: AnalysisPurpose) => {

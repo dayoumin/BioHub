@@ -119,6 +119,32 @@ const ALL_METHODS: Record<string, StatisticalMethod> = {
   }
 }
 
+/**
+ * 메서드별 예상 Reasoning 키워드 (Phase 4 검증용)
+ * 추천 시 이 키워드들이 reasoning에 포함되어야 함
+ */
+const METHOD_REASONING_KEYWORDS: Record<string, string[]> = {
+  'independent-t-test': ['2개 그룹', '독립', '정규성', '등분산성'],
+  'paired-t-test': ['대응표본', 'paired', '전후', '동일 대상'],
+  'pearson-correlation': ['상관', '선형', '정규성'],
+  'spearman-correlation': ['상관', '순위', '비모수'],
+  'correlation': ['상관', 'correlation', '선형', '관계'],
+  'regression': ['회귀', 'regression', '예측', '영향'],
+  'simple-regression': ['회귀', '예측', '선형'],
+  'logistic-regression': ['로지스틱', '범주형', '예측'],
+  'one-way-anova': ['3개 이상', 'ANOVA', '분산', '정규성', '등분산성'],
+  'two-way-anova': ['요인', 'factor', 'ANOVA', '정규성', '등분산성'],
+  'anova': ['3개 이상', 'ANOVA', '분산', '그룹'],
+  'mann-whitney': ['비모수', '순위', '정규성 위배'],
+  'welch-t': ['등분산', 'Welch', '정규성'],
+  'wilcoxon-signed-rank': ['대응표본', '비모수', '순위'],
+  'kruskal-wallis': ['비모수', '순위', '3개 이상', '정규성 위배'],
+  'friedman': ['비모수', '요인', 'factor'],
+  'chi-square': ['범주형', '독립성', '카이제곱', '빈도'],
+  'descriptive-stats': ['기술통계', '분포', '빈도'],
+  'time-series-analysis': ['시계열', '시간', '추세'],
+}
+
 export class KeywordBasedRecommender {
   /**
    * 사용자 입력 텍스트를 분석하여 적절한 통계 방법 추천
@@ -261,5 +287,12 @@ export class KeywordBasedRecommender {
     }
 
     return [...new Set(keywords)]
+  }
+
+  /**
+   * 메서드별 예상 Reasoning 키워드 반환 (Phase 4 검증용)
+   */
+  static getExpectedReasoningKeywords(methodId: string): string[] {
+    return METHOD_REASONING_KEYWORDS[methodId] || []
   }
 }

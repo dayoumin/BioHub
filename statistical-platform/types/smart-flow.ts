@@ -103,6 +103,8 @@ export interface AIRecommendation {
   confidence: number
   /** 추천 이유 목록 */
   reasoning: string[]
+  /** 추천 근거 검증용 키워드 (Phase 4 검증용) */
+  expectedReasoningKeywords?: string[]
   /** 가정 검정 결과 */
   assumptions: {
     name: string
