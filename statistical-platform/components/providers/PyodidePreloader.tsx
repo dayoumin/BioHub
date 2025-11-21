@@ -10,13 +10,28 @@
  */
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
+// Pyodide가 필요하지 않은 경로 (UI-only 페이지)
+const PYODIDE_EXCLUDED_PATHS = [
+  '/components-showcase',
+  '/design-system',
+  '/style-guide',
+]
+
 export function PyodidePreloader() {
+  const pathname = usePathname()
   const [isPreloading, setIsPreloading] = useState(false)
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
+    // 제외된 경로에서는 Pyodide 로딩 안 함
+    if (PYODIDE_EXCLUDED_PATHS.some(path => pathname?.startsWith(path))) {
+      console.log('[PyodidePreloader] UI-only 페이지 감지 - Pyodide 로딩 스킵:', pathname)
+      return
+    }
+
     const coreService = PyodideCoreService.getInstance()
 
     // 이미 초기화된 경우 무시
@@ -52,7 +67,7 @@ export function PyodidePreloader() {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [])
+  }, [pathname])
 
   // 프리로딩 중이 아니면 렌더링 안 함
   if (!isPreloading) {

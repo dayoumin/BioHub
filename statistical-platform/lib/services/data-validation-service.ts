@@ -182,7 +182,9 @@ export class DataValidationService {
   }
 
   /**
-   * 컬럼별 상세 통계 분석
+   * 컬럼별 상세 통계 분석 (성능 최적화 버전)
+   * - 단일 순회로 평균/표준편차 계산
+   * - 정렬은 중앙값/사분위수 계산 시에만 1회 수행
    */
   static analyzeColumn(data: DataRow[], columnName: string): ColumnStatistics {
     // 컬럼 존재 여부 검증
@@ -206,14 +208,16 @@ export class DataValidationService {
       uniqueValues: new Set(nonMissingValues).size
     }
 
-    // 각 값의 타입 분류
+    // 각 값의 타입 분류 + 평균 계산 (단일 순회)
     const numericValues: number[] = []
     const textValues: string[] = []
+    let sum = 0
 
     nonMissingValues.forEach(value => {
       const numValue = Number(value)
       if (!isNaN(numValue)) {
         numericValues.push(numValue)
+        sum += numValue
         stats.numericCount++
       } else {
         textValues.push(String(value))
@@ -232,28 +236,35 @@ export class DataValidationService {
 
     // 수치형 통계 계산
     if (numericValues.length > 0) {
-      const sorted = [...numericValues].sort((a, b) => a - b)
-      const n = sorted.length
+      const n = numericValues.length
 
-      stats.mean = numericValues.reduce((a, b) => a + b, 0) / n
+      // 평균 (이미 계산됨)
+      stats.mean = sum / n
+
+      // 표준편차 (단일 순회)
+      let sumSquaredDiffs = 0
+      for (let i = 0; i < n; i++) {
+        const diff = numericValues[i] - stats.mean
+        sumSquaredDiffs += diff * diff
+      }
+      stats.std = Math.sqrt(sumSquaredDiffs / n)
+
+      // 중앙값/사분위수 계산 (정렬 1회만 수행)
+      const sorted = [...numericValues].sort((a, b) => a - b)
       stats.median = n % 2 === 0 ? (sorted[n/2 - 1] + sorted[n/2]) / 2 : sorted[Math.floor(n/2)]
       stats.min = sorted[0]
       stats.max = sorted[n - 1]
       stats.q1 = sorted[Math.floor(n * 0.25)]
       stats.q3 = sorted[Math.floor(n * 0.75)]
 
-      // 표준편차 계산
-      const squaredDiffs = numericValues.map(v => Math.pow(v - stats.mean!, 2))
-      stats.std = Math.sqrt(squaredDiffs.reduce((a, b) => a + b, 0) / n)
-
-      // IQR 기반 이상치 탐지
+      // IQR 기반 이상치 탐지 (정렬된 배열 활용)
       const iqr = stats.q3 - stats.q1
       const lowerBound = stats.q1 - 1.5 * iqr
       const upperBound = stats.q3 + 1.5 * iqr
-      stats.outliers = numericValues.filter(v => v < lowerBound || v > upperBound)
+      stats.outliers = sorted.filter(v => v < lowerBound || v > upperBound)
     }
 
-    // 범주형 통계 계산
+    // 범주형 통계 계산 (상위 10개만)
     if (textValues.length > 0 || stats.uniqueValues <= 20) {
       const valueCounts = new Map<string, number>()
       nonMissingValues.forEach(value => {
@@ -271,7 +282,30 @@ export class DataValidationService {
   }
 
   /**
-   * 전체 데이터 상세 검증 (개선된 버전)
+   * 스마트 샘플링 (대용량 데이터 성능 최적화)
+   * - 10,000행 이하: 전체 데이터 사용
+   * - 10,000행 초과: 계층적 샘플링 (10,000행)
+   */
+  private static smartSample(data: DataRow[], maxRows: number = 10000): DataRow[] {
+    if (data.length <= maxRows) {
+      return data
+    }
+
+    // 계층적 샘플링: 균등 간격으로 추출
+    const interval = Math.floor(data.length / maxRows)
+    const sampled: DataRow[] = []
+
+    for (let i = 0; i < data.length && sampled.length < maxRows; i += interval) {
+      sampled.push(data[i])
+    }
+
+    return sampled
+  }
+
+  /**
+   * 전체 데이터 상세 검증 (성능 최적화 버전)
+   * - 대용량 데이터: 스마트 샘플링 적용
+   * - 병렬 처리 가능한 구조로 변경
    */
   static performDetailedValidation(data: DataRow[]): ValidationResults {
     const basicValidation = this.performValidation(data)
@@ -280,8 +314,20 @@ export class DataValidationService {
       return basicValidation
     }
 
-    // 각 컬럼별 상세 통계 계산
-    const columnStats = Object.keys(data[0]).map(col => this.analyzeColumn(data, col))
+    // 대용량 데이터 처리 최적화
+    const originalRowCount = data.length
+    const shouldSample = data.length > 10000
+    const sampleData = shouldSample ? this.smartSample(data) : data
+
+    if (shouldSample) {
+      basicValidation.warnings.push(
+        `⚡ 성능 최적화: ${originalRowCount.toLocaleString()}행 중 ${sampleData.length.toLocaleString()}행을 샘플링하여 검증합니다.`
+      )
+    }
+
+    // 각 컬럼별 상세 통계 계산 (샘플 데이터 사용)
+    const columns = Object.keys(data[0])
+    const columnStats = columns.map(col => this.analyzeColumn(sampleData, col))
 
     // 혼합 데이터 타입 경고 추가
     columnStats.forEach(stat => {
@@ -291,17 +337,20 @@ export class DataValidationService {
         )
       }
 
-      // 이상치 경고
+      // 이상치 경고 (5% 이상만 표시)
       if (stat.outliers && stat.outliers.length > 0) {
-        const outlierPercent = ((stat.outliers.length / stat.numericCount) * 100).toFixed(1)
-        basicValidation.warnings.push(
-          `'${stat.name}' 변수에 ${stat.outliers.length}개(${outlierPercent}%)의 이상치가 발견되었습니다.`
-        )
+        const outlierPercent = ((stat.outliers.length / stat.numericCount) * 100)
+        if (outlierPercent >= 5) {
+          basicValidation.warnings.push(
+            `'${stat.name}' 변수에 ${stat.outliers.length}개(${outlierPercent.toFixed(1)}%)의 이상치가 발견되었습니다.`
+          )
+        }
       }
     })
 
     return {
       ...basicValidation,
+      totalRows: originalRowCount, // 원본 행 수 유지
       columnStats,
       columns: columnStats // ✅ Fix: columns 별칭 추가 (DecisionTreeRecommender 호환)
     }

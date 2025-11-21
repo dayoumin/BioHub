@@ -6,6 +6,7 @@ import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -53,7 +54,8 @@ export const DataValidationStep = memo(function DataValidationStep({
   )
 
   const categoricalColumns = useMemo(() =>
-    columnStats?.filter(s => s.type === 'categorical' || s.uniqueValues <= 20) || [],
+    // Bug #2 Fix: 숫자형 열 제외 (type이 명시적으로 categorical인 것만)
+    columnStats?.filter(s => s.type === 'categorical') || [],
     [columnStats]
   )
 
@@ -67,7 +69,13 @@ export const DataValidationStep = memo(function DataValidationStep({
       return
     }
 
+    let isCancelled = false
+
     const performAssumptionTests = async () => {
+      // Bug #1 Fix: 데이터 변경 시 로딩 상태 표시
+      if (isCancelled) return
+      setIsValidating(true)
+
       try {
         // 1. 기본 데이터 특성 저장
         const characteristics = {
@@ -101,6 +109,7 @@ export const DataValidationStep = memo(function DataValidationStep({
 
             if (numericData.length >= 3) {
               const shapiroResult = await pyodideCore.shapiroWilkTest(numericData)
+              if (isCancelled) return  // 클린업 체크
 
               if (shapiroResult.statistic !== undefined && shapiroResult.pValue !== undefined) {
                 assumptions.normality = {
@@ -146,6 +155,7 @@ export const DataValidationStep = memo(function DataValidationStep({
               const groups = Array.from(groupMap.values())
               if (groups.length >= 2 && groups.every(g => g.length >= 3)) {
                 const leveneResult = await pyodideCore.leveneTest(groups)
+                if (isCancelled) return  // 클린업 체크
 
                 if (leveneResult.statistic !== undefined && leveneResult.pValue !== undefined) {
                   assumptions.homogeneity = {
@@ -193,6 +203,11 @@ export const DataValidationStep = memo(function DataValidationStep({
     }
 
     performAssumptionTests()
+
+    // 클린업: 컴포넌트 언마운트 시 비동기 작업 취소
+    return () => {
+      isCancelled = true
+    }
   }, [data, validationResults, categoricalColumns, numericColumns, isPyodideLoaded, setDataCharacteristics, setAssumptionResults])
 
   if (!validationResults || !data) {
@@ -370,6 +385,15 @@ export const DataValidationStep = memo(function DataValidationStep({
           </div>
         </CardContent>
       </Card>
+
+      {/* 데이터 미리보기 */}
+      <DataPreviewTable
+        data={data}
+        maxRows={100}
+        defaultOpen={false}
+        title="원본 데이터 확인"
+        height="400px"
+      />
     </div>
   )
 })
