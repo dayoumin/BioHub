@@ -513,8 +513,11 @@ export class PyodideCoreService {
     }
 
     const workerCode = await response.text()
-    await this.pyodide.runPythonAsync(workerCode)
+
+    // ⚠️ CRITICAL: Load additional packages BEFORE executing worker code
+    // Worker 3/4 import sklearn/statsmodels at the top, so packages must be loaded first
     await this.loadAdditionalPackages(workerNumber)
+    await this.pyodide.runPythonAsync(workerCode)
 
     this.loadedWorkers.add(workerNumber)
     console.log(`? Worker ${workerNumber} �ε� �Ϸ�: ${workerName}`)
