@@ -30,7 +30,7 @@ export const DataValidationStep = memo(function DataValidationStep({
   const [isValidating, setIsValidating] = useState(true)
 
   // Pyodide 로딩 상태 추적 (Bug #4 Fix)
-  const { isLoaded: isPyodideLoaded } = usePyodide()
+  const { isLoaded: isPyodideLoaded, isLoading: isPyodideLoading, error: pyodideError } = usePyodide()
 
   // Store에서 상태 관리
   const {
@@ -206,13 +206,49 @@ export const DataValidationStep = memo(function DataValidationStep({
   const hasErrors = (validationResults.errors?.length || 0) > 0
   const hasWarnings = (validationResults.warnings?.length || 0) > 0
 
-  // Skeleton Loading
+  // Skeleton Loading (Pyodide 로딩 중 또는 가정 검정 진행 중)
   if (isValidating) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-20 w-full" />
+
+        {/* Pyodide 로딩 상태 안내 */}
+        {isPyodideLoading && (
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  통계 엔진(Pyodide) 로딩 중... 잠시만 기다려주세요.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Pyodide 로딩 실패 안내 */}
+        {pyodideError && (
+          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-red-500" />
+                  <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                    통계 엔진 로딩 실패
+                  </p>
+                </div>
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  {pyodideError}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  페이지를 새로고침하거나, 네트워크 연결을 확인해주세요.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     )
   }
