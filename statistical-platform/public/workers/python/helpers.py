@@ -27,7 +27,23 @@ def clean_array(data: List[Union[float, int, None]]) -> np.ndarray:
         >>> clean_array([1, 2, None, 3, np.nan, 4])
         array([1., 2., 3., 4.])
     """
-    return np.array([x for x in data if x is not None and not np.isnan(x)])
+    result = []
+    for x in data:
+        # Skip None
+        if x is None:
+            continue
+
+        # Try to convert to float
+        try:
+            x_float = float(x)
+            # Skip NaN and Inf
+            if not (np.isnan(x_float) or np.isinf(x_float)):
+                result.append(x_float)
+        except (TypeError, ValueError):
+            # Skip non-numeric values (e.g., strings)
+            continue
+
+    return np.array(result)
 
 
 # ============================================================================
@@ -61,16 +77,34 @@ def clean_paired_arrays(
     if len(array1) != len(array2):
         raise ValueError(f"Arrays must have same length: {len(array1)} != {len(array2)}")
 
-    valid_indices = [
-        i for i in range(len(array1))
-        if (array1[i] is not None and not np.isnan(array1[i]) and
-            array2[i] is not None and not np.isnan(array2[i]))
-    ]
+    clean1 = []
+    clean2 = []
 
-    clean1 = np.array([array1[i] for i in valid_indices])
-    clean2 = np.array([array2[i] for i in valid_indices])
+    for i in range(len(array1)):
+        val1 = array1[i]
+        val2 = array2[i]
 
-    return clean1, clean2
+        # Skip if either is None
+        if val1 is None or val2 is None:
+            continue
+
+        # Try to convert to float
+        try:
+            val1_float = float(val1)
+            val2_float = float(val2)
+
+            # Skip if either is NaN or Inf
+            if (np.isnan(val1_float) or np.isinf(val1_float) or
+                np.isnan(val2_float) or np.isinf(val2_float)):
+                continue
+
+            clean1.append(val1_float)
+            clean2.append(val2_float)
+        except (TypeError, ValueError):
+            # Skip non-numeric values
+            continue
+
+    return np.array(clean1), np.array(clean2)
 
 
 # ============================================================================
@@ -151,20 +185,47 @@ def clean_multiple_regression(
     if len(X_matrix) != len(y_data):
         raise ValueError(f"X and y must have same number of samples: {len(X_matrix)} != {len(y_data)}")
 
-    valid_indices = []
+    clean_X = []
+    clean_y = []
+
     for i in range(len(y_data)):
         y_val = y_data[i]
         x_row = X_matrix[i]
 
-        # Y가 유효하고, X 행의 모든 값이 유효한지 확인
-        if (y_val is not None and not np.isnan(y_val) and
-            all(x is not None and not np.isnan(x) for x in x_row)):
-            valid_indices.append(i)
+        # Skip if y is None
+        if y_val is None:
+            continue
 
-    clean_X = np.array([X_matrix[i] for i in valid_indices])
-    clean_y = np.array([y_data[i] for i in valid_indices])
+        # Try to convert y to float
+        try:
+            y_float = float(y_val)
+            if np.isnan(y_float) or np.isinf(y_float):
+                continue
+        except (TypeError, ValueError):
+            continue
 
-    return clean_X, clean_y
+        # Try to convert all x values to float
+        x_row_float = []
+        all_valid = True
+        for x in x_row:
+            if x is None:
+                all_valid = False
+                break
+            try:
+                x_float = float(x)
+                if np.isnan(x_float) or np.isinf(x_float):
+                    all_valid = False
+                    break
+                x_row_float.append(x_float)
+            except (TypeError, ValueError):
+                all_valid = False
+                break
+
+        if all_valid:
+            clean_X.append(x_row_float)
+            clean_y.append(y_float)
+
+    return np.array(clean_X), np.array(clean_y)
 
 
 # ============================================================================
@@ -194,6 +255,7 @@ def is_valid_number(value: Union[float, int, None]) -> bool:
     if value is None:
         return False
     try:
-        return not (np.isnan(value) or np.isinf(value))
+        value_float = float(value)
+        return not (np.isnan(value_float) or np.isinf(value_float))
     except (TypeError, ValueError):
         return False
