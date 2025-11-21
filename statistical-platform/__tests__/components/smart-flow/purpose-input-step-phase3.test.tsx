@@ -16,20 +16,25 @@ import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import type { ValidationResults, DataRow } from '@/types/smart-flow'
 
-// Mock Zustand store
+// Mock Zustand store - setSelectedMethod를 selector로 반환하도록 수정
 jest.mock('@/lib/stores/smart-flow-store', () => ({
-  useSmartFlowStore: () => ({
-    assumptionResults: {
-      normality: {
-        shapiroWilk: { isNormal: true, pValue: 0.08 }
+  useSmartFlowStore: jest.fn((selector) => {
+    const state = {
+      assumptionResults: {
+        normality: {
+          shapiroWilk: { isNormal: true, pValue: 0.08 }
+        },
+        homogeneity: {
+          levene: { equalVariance: true, pValue: 0.15 }
+        }
       },
-      homogeneity: {
-        levene: { equalVariance: true, pValue: 0.15 }
-      }
-    },
-    dataCharacteristics: null,
-    setSelectedMethod: jest.fn(),
-    setVariableMapping: jest.fn()
+      dataCharacteristics: null,
+      setSelectedMethod: jest.fn(),
+      setVariableMapping: jest.fn()
+    }
+
+    // selector 함수가 전달되면 해당 값 반환, 아니면 전체 state 반환
+    return selector ? selector(state) : state
   })
 }))
 
@@ -46,6 +51,18 @@ jest.mock('@/lib/utils/logger', () => ({
 jest.mock('@/lib/hooks/useReducedMotion', () => ({
   useReducedMotion: () => false  // 애니메이션 활성화 상태
 }))
+
+// Helper 함수: AI 분석 완료 시뮬레이션 (3단계 × 500ms)
+async function completeAIAnalysis() {
+  await act(async () => {
+    jest.advanceTimersByTime(500) // Step 1
+    await Promise.resolve()
+    jest.advanceTimersByTime(500) // Step 2
+    await Promise.resolve()
+    jest.advanceTimersByTime(500) // Step 3
+    await Promise.resolve()
+  })
+}
 
 describe('Phase 3: Animation & UX 개선', () => {
   const mockValidationResults: ValidationResults = {
@@ -184,11 +201,7 @@ describe('Phase 3: Animation & UX 개선', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
-
-        // Fake timer로 모든 타이머 실행 (AI 분석 시간: 3단계 × 500ms)
-        await act(async () => {
-          jest.runAllTimers()
-        })
+        await completeAIAnalysis()
 
         await waitFor(() => {
           const recommendationCard = screen.getByText(/추천: 독립표본 t-검정/).closest('div[class*="border-primary"]')
@@ -204,10 +217,7 @@ describe('Phase 3: Animation & UX 개선', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
-
-        await act(async () => {
-          jest.runAllTimers()
-        })
+        await completeAIAnalysis()
 
         await waitFor(() => {
           const recommendationCard = screen.getByText(/추천: 독립표본 t-검정/).closest('div[class*="border-primary"]')
@@ -223,10 +233,7 @@ describe('Phase 3: Animation & UX 개선', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
-
-        await act(async () => {
-          jest.runAllTimers()
-        })
+        await completeAIAnalysis()
 
         await waitFor(() => {
           const recommendationCard = screen.getByText(/추천: 독립표본 t-검정/).closest('div[class*="border-primary"]')
@@ -243,10 +250,7 @@ describe('Phase 3: Animation & UX 개선', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
-
-        await act(async () => {
-          jest.runAllTimers()
-        })
+        await completeAIAnalysis()
 
         await waitFor(() => {
           const reasoningSection = screen.getByText('추천 이유:').closest('div')
@@ -268,7 +272,12 @@ describe('Phase 3: Animation & UX 개선', () => {
         fireEvent.click(compareCard)
 
         await act(async () => {
-          jest.runAllTimers()
+          jest.advanceTimersByTime(500) // Step 1
+          await Promise.resolve()
+          jest.advanceTimersByTime(500) // Step 2
+          await Promise.resolve()
+          jest.advanceTimersByTime(500) // Step 3
+          await Promise.resolve()
         })
 
         await waitFor(() => {
@@ -293,7 +302,12 @@ describe('Phase 3: Animation & UX 개선', () => {
         fireEvent.click(compareCard)
 
         await act(async () => {
-          jest.runAllTimers()
+          jest.advanceTimersByTime(500) // Step 1
+          await Promise.resolve()
+          jest.advanceTimersByTime(500) // Step 2
+          await Promise.resolve()
+          jest.advanceTimersByTime(500) // Step 3
+          await Promise.resolve()
         })
 
         await waitFor(() => {
@@ -323,7 +337,12 @@ describe('Phase 3: Animation & UX 개선', () => {
         fireEvent.click(compareCard)
 
         await act(async () => {
-          jest.runAllTimers()
+          jest.advanceTimersByTime(500) // Step 1
+          await Promise.resolve()
+          jest.advanceTimersByTime(500) // Step 2
+          await Promise.resolve()
+          jest.advanceTimersByTime(500) // Step 3
+          await Promise.resolve()
         })
 
         await waitFor(() => {
@@ -398,7 +417,12 @@ describe('Phase 3: Animation & UX 개선', () => {
 
         // Fake timer로 1.5초 경과
         await act(async () => {
-          jest.runAllTimers()
+          jest.advanceTimersByTime(500) // Step 1
+          await Promise.resolve()
+          jest.advanceTimersByTime(500) // Step 2
+          await Promise.resolve()
+          jest.advanceTimersByTime(500) // Step 3
+          await Promise.resolve()
         })
 
         // AI 분석 완료 후 추천 결과 확인
