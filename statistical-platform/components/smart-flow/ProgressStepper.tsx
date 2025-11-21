@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { StepConfig } from '@/types/smart-flow'
-import { CheckCircle2, Circle, Loader2 } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 
 interface ProgressStepperProps {
   steps: StepConfig[]
@@ -44,13 +44,6 @@ export function ProgressStepper({
     return 'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-400'
   }
 
-  const getRippleColors = () => {
-    if (variant === 'blue-purple') {
-      return 'w-14 h-14 rounded-full bg-blue-500/20 animate-ping'
-    }
-    return 'w-14 h-14 rounded-full bg-gray-500/20 dark:bg-gray-400/20 animate-ping'
-  }
-
   return (
     <div className={cn("relative py-4", className)}>
       {/* Progress Bar - 원형 중심 기준으로 정렬 */}
@@ -85,15 +78,8 @@ export function ProgressStepper({
                 isActive && "scale-105"
               )}
             >
-              {/* Step Circle with Animation */}
+              {/* Step Circle - 단순하고 명확한 디자인 */}
               <div className="relative">
-                {/* Ripple Effect for Current Step */}
-                {isActive && !isCompleted && (
-                  <div className="absolute inset-0 -m-2">
-                    <div className={getRippleColors()} />
-                  </div>
-                )}
-
                 <div className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
                   "border-2 relative z-10 shadow-sm",
@@ -102,8 +88,6 @@ export function ProgressStepper({
                 )}>
                   {isCompleted ? (
                     <CheckCircle2 className="w-5 h-5" />
-                  ) : isActive ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <Icon className="w-5 h-5" />
                   )}

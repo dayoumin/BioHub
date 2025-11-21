@@ -148,7 +148,16 @@
       "Bash(git rev-parse:*)",
       "Bash(git fetch:*)",
       "Bash(git -C statistical-platform show HEAD:public/workers/python/worker1-descriptive.py)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(xxd:*)",
+      "Bash(type \"d:\\Projects\\Statics\\statistical-platform\\app\\(dashboard)\\statistics\\chi-square-independence\\page.tsx\")",
+      "Bash(if [ -f \"app/(dashboard)/statistics/$page/page.tsx\" ])",
+      "Bash(then grep -c \"StatisticsTable\\|<table\" \"app/(dashboard)/statistics/$page/page.tsx\")",
+      "Bash(else echo \"Not found\")",
+      "Bash(then echo \"=== $page ===\" grep -E \"postHoc|EffectSizeCard|AssumptionTestCard\" \"/d/Projects/Statics/statistical-platform/app/(dashboard)/statistics/$page/page.tsx\")",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(set:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

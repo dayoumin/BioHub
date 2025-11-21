@@ -437,8 +437,8 @@ export function MethodSelector({
       </div>
 
       {/* 메서드 리스트 */}
-      <ScrollArea className="h-[320px] pr-4">
-        <div className="space-y-4" ref={listRef}>
+      <ScrollArea className="h-[500px] pr-4">
+        <div className="space-y-3" ref={listRef}>
           {/* 추천 그룹 */}
           {groupedMethods.recommended.length > 0 && (
             <div className="space-y-2">

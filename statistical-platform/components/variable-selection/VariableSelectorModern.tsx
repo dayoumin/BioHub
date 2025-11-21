@@ -482,18 +482,10 @@ export function VariableSelectorModern({
           {/* 오른쪽: 역할별 드롭존 */}
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">변수 역할 할당</CardTitle>
-                <Button
-                  onClick={() => handleOpenModal(requirements.variables[0]?.role as VariableRole)}
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2"
-                >
-                  모달로 선택
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </div>
+              <CardTitle className="text-lg">변수 역할 할당</CardTitle>
+              <CardDescription className="mt-1">
+                각 역할 카드를 클릭하여 변수를 선택하세요 (드래그도 가능)
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {requirements.variables.map(varReq => {
@@ -511,6 +503,7 @@ export function VariableSelectorModern({
                     required={varReq.required}
                     assignedVariables={assignedArray}
                     onRemoveVariable={(varName) => handleRemoveVariable(varReq.role, varName)}
+                    onClick={() => handleOpenModal(varReq.role as VariableRole)}
                   />
                 )
               })}

@@ -45,7 +45,7 @@ export default function RootLayout({
               {/* 메인 영역 */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <Header />
-                <main className="flex-1 overflow-hidden">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden">
                   {children}
                 </main>
               </div>

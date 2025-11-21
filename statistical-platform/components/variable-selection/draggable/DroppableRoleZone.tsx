@@ -30,6 +30,7 @@ export interface DroppableRoleZoneProps {
   isOver?: boolean
   canDrop?: boolean
   onRemoveVariable?: (variableName: string) => void
+  onClick?: () => void
   className?: string
 }
 
@@ -43,6 +44,7 @@ export function DroppableRoleZone({
   required = false,
   assignedVariables,
   onRemoveVariable,
+  onClick,
   className
 }: DroppableRoleZoneProps) {
   // 드롭존 설정
@@ -107,8 +109,10 @@ export function DroppableRoleZone({
       {/* 드롭존 */}
       <div
         ref={setNodeRef}
+        onClick={onClick}
         className={cn(
           'min-h-[60px] p-3 border-2 rounded-md transition-all duration-200',
+          onClick && 'cursor-pointer hover:border-primary/50 hover:bg-primary/5',
           isOver
             ? 'border-primary bg-primary/10 border-dashed shadow-inner'
             : assignedVariables.length > 0
@@ -125,7 +129,7 @@ export function DroppableRoleZone({
                 ? 'text-primary font-medium'
                 : 'text-muted-foreground'
             )}>
-              {isOver ? '여기에 드롭하세요' : '+ 변수를 드래그하여 추가'}
+              {isOver ? '여기에 드롭하세요' : onClick ? '클릭하여 변수 선택 (또는 드래그)' : '+ 변수를 드래그하여 추가'}
             </p>
           </div>
         ) : (
@@ -145,7 +149,10 @@ export function DroppableRoleZone({
                   <span>{varName}</span>
                   {onRemoveVariable && (
                     <button
-                      onClick={() => onRemoveVariable(varName)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemoveVariable(varName)
+                      }}
                       className="hover:text-destructive transition-colors"
                       aria-label={`${varName} 제거`}
                     >

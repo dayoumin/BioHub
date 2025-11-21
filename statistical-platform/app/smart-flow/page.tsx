@@ -128,8 +128,8 @@ export default function SmartFlowPage() {
   }, [setresults, goToNextStep])
 
   return (
-    <div className="h-full bg-gradient-to-b from-background to-muted/20 overflow-y-auto">
-      <div className="container max-w-6xl mx-auto p-6 pb-12 space-y-8">
+    <div className="h-full bg-gradient-to-b from-background to-muted/20 overflow-y-auto overflow-x-hidden">
+      <div className="container max-w-6xl mx-auto p-6 pb-24 space-y-8">
         {/* 헤더 */}
         <div className="text-center space-y-2 relative">
           <div className="flex items-center justify-center gap-4 mb-4">
@@ -346,14 +346,17 @@ export default function SmartFlowPage() {
         {/* 네비게이션 버튼 */}
         <div className="flex justify-between">
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => startTransition(() => goToPreviousStep())}
-              disabled={currentStep === 1 || isLoading || isPending}
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              이전 단계
-            </Button>
+            {/* Step 1일 때는 "이전 단계" 버튼 완전히 숨김 */}
+            {currentStep > 1 && (
+              <Button
+                variant="outline"
+                onClick={() => startTransition(() => goToPreviousStep())}
+                disabled={isLoading || isPending}
+              >
+                <ChevronLeft className="w-4 h-4 mr-2" />
+                이전 단계
+              </Button>
+            )}
 
             {/* 초기화 버튼 - 언제든 처음부터 다시 시작 가능 */}
             <Button
