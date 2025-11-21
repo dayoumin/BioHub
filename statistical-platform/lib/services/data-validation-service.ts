@@ -302,7 +302,8 @@ export class DataValidationService {
 
     return {
       ...basicValidation,
-      columnStats
+      columnStats,
+      columns: columnStats // ✅ Fix: columns 별칭 추가 (DecisionTreeRecommender 호환)
     }
   }
 

@@ -227,6 +227,12 @@ export class DecisionTreeRecommender {
   ): AIRecommendation {
     const { normality, homogeneity } = assumptionResults
 
+    // ✅ Null 가드: shapiroWilk/levene 구조 확인 (Issue #3 Fix)
+    const hasShapiroWilk = normality?.shapiroWilk !== undefined
+    const hasLevene = homogeneity?.levene !== undefined
+    const isNormal = hasShapiroWilk ? normality?.shapiroWilk?.isNormal ?? false : false
+    const equalVariance = hasLevene ? homogeneity?.levene?.equalVariance ?? false : false
+
     // ✅ Paired Design 감지 (AI 리뷰 반영)
     const isPaired = this.detectPairedDesign(data, validationResults)
 
@@ -242,7 +248,7 @@ export class DecisionTreeRecommender {
 
     // === Paired Design 처리 ===
     if (isPaired) {
-      if (normality.shapiroWilk.isNormal) {
+      if (isNormal) {
         return this.addExpectedKeywords({
           method: {
             id: 'paired-t-test',
@@ -258,11 +264,11 @@ export class DecisionTreeRecommender {
           reasoning: [
             '대응표본 설계가 감지되었습니다 (ID/Subject 컬럼 존재).',
             `표본 크기: ${n} (적정)`,
-            `✓ 정규성 충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`
           ],
-          assumptions: [
-            { name: '정규성', passed: true, pValue: normality.shapiroWilk.pValue }
-          ],
+          assumptions: hasShapiroWilk ? [
+            { name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }
+          ] : [],
           alternatives: [
             {
               id: 'wilcoxon-signed-rank',
@@ -283,12 +289,12 @@ export class DecisionTreeRecommender {
           confidence: 0.93,
           reasoning: [
             '대응표본 설계가 감지되었습니다.',
-            `✗ 정규성 미충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`,
+            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
             '비모수 검정을 권장합니다.'
           ],
-          assumptions: [
-            { name: '정규성', passed: false, pValue: normality.shapiroWilk.pValue }
-          ],
+          assumptions: hasShapiroWilk ? [
+            { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
+          ] : [],
           alternatives: [
             {
               id: 'paired-t-test',
@@ -303,7 +309,7 @@ export class DecisionTreeRecommender {
 
     // === Multi-factor 처리 (Two-way ANOVA) ===
     if (factors.length >= 2) {
-      if (normality.shapiroWilk.isNormal && homogeneity.levene.equalVariance) {
+      if (isNormal && equalVariance) {
         return this.addExpectedKeywords({
           method: {
             id: 'two-way-anova',
@@ -319,12 +325,12 @@ export class DecisionTreeRecommender {
           reasoning: [
             `${factors.length}개의 요인(factor)이 감지되었습니다: ${factors.join(', ')}`,
             `표본 크기: ${n} (충분)`,
-            `✓ 정규성 충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`,
-            `✓ 등분산성 충족 (p=${homogeneity.levene.pValue.toFixed(3)})`
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
+            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''}`
           ],
           assumptions: [
-            { name: '정규성', passed: true, pValue: normality.shapiroWilk.pValue },
-            { name: '등분산성', passed: true, pValue: homogeneity.levene.pValue }
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity.levene!.pValue }] : [])
           ],
           alternatives: [
             {
@@ -349,8 +355,8 @@ export class DecisionTreeRecommender {
             '가정 검정 미충족으로 비모수 검정을 권장합니다.'
           ],
           assumptions: [
-            { name: '정규성', passed: normality.shapiroWilk.isNormal, pValue: normality.shapiroWilk.pValue },
-            { name: '등분산성', passed: homogeneity.levene.equalVariance, pValue: homogeneity.levene.pValue }
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: isNormal, pValue: normality.shapiroWilk!.pValue }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: equalVariance, pValue: homogeneity.levene!.pValue }] : [])
           ],
           alternatives: [
             {
@@ -366,7 +372,7 @@ export class DecisionTreeRecommender {
 
     // === 2-group 비교 (기존 로직) ===
     if (groups === 2) {
-      if (normality.shapiroWilk.isNormal && homogeneity.levene.equalVariance) {
+      if (isNormal && equalVariance) {
         // 정규성 ✓, 등분산 ✓
         return this.addExpectedKeywords({
           method: {
@@ -383,12 +389,12 @@ export class DecisionTreeRecommender {
           reasoning: [
             '두 독립 그룹 간 평균 비교가 필요합니다.',
             `표본 크기: ${n} (충분)`,
-            `✓ 정규성 충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`,
-            `✓ 등분산성 충족 (p=${homogeneity.levene.pValue.toFixed(3)})`
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
+            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''}`
           ],
           assumptions: [
-            { name: '정규성', passed: true, pValue: normality.shapiroWilk.pValue },
-            { name: '등분산성', passed: true, pValue: homogeneity.levene.pValue }
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity.levene!.pValue }] : [])
           ],
           alternatives: [
             {
@@ -399,7 +405,7 @@ export class DecisionTreeRecommender {
             }
           ]
         })
-      } else if (!normality.shapiroWilk.isNormal) {
+      } else if (!isNormal) {
         // 정규성 ✗
         return this.addExpectedKeywords({
           method: {
@@ -411,12 +417,12 @@ export class DecisionTreeRecommender {
           confidence: 0.95,
           reasoning: [
             '두 그룹 비교가 필요합니다.',
-            `✗ 정규성 미충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`,
+            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
             '비모수 검정을 권장합니다.'
           ],
-          assumptions: [
-            { name: '정규성', passed: false, pValue: normality.shapiroWilk.pValue }
-          ],
+          assumptions: hasShapiroWilk ? [
+            { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
+          ] : [],
           alternatives: [
             {
               id: 'independent-t-test',
@@ -438,13 +444,13 @@ export class DecisionTreeRecommender {
           confidence: 0.90,
           reasoning: [
             '두 그룹 비교가 필요합니다.',
-            `✓ 정규성 충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`,
-            `✗ 등분산성 미충족 (p=${homogeneity.levene.pValue.toFixed(3)})`,
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
+            `✗ 등분산성 미충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''}`,
             "Welch's t-검정을 권장합니다 (등분산 가정 불필요)."
           ],
           assumptions: [
-            { name: '정규성', passed: true, pValue: normality.shapiroWilk.pValue },
-            { name: '등분산성', passed: false, pValue: homogeneity.levene.pValue }
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: false, pValue: homogeneity.levene!.pValue }] : [])
           ],
           alternatives: [
             {
@@ -460,7 +466,7 @@ export class DecisionTreeRecommender {
 
     // === 3+ groups 비교 ===
     if (groups >= 3) {
-      if (normality.shapiroWilk.isNormal && homogeneity.levene.equalVariance) {
+      if (isNormal && equalVariance) {
         return this.addExpectedKeywords({
           method: {
             id: 'one-way-anova',
@@ -476,12 +482,12 @@ export class DecisionTreeRecommender {
           reasoning: [
             `${groups}개 그룹 간 평균 비교가 필요합니다.`,
             `표본 크기: ${n} (충분)`,
-            `✓ 정규성 충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`,
-            `✓ 등분산성 충족 (p=${homogeneity.levene.pValue.toFixed(3)})`
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality?.shapiroWilk?.pValue.toFixed(3)})` : ''}`,
+            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity?.levene?.pValue.toFixed(3)})` : ''}`
           ],
           assumptions: [
-            { name: '정규성', passed: true, pValue: normality.shapiroWilk.pValue },
-            { name: '등분산성', passed: true, pValue: homogeneity.levene.pValue }
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality?.shapiroWilk?.pValue ?? 0 }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity?.levene?.pValue ?? 0 }] : [])
           ],
           alternatives: [
             {
@@ -506,8 +512,8 @@ export class DecisionTreeRecommender {
             '가정 검정 미충족으로 비모수 검정을 권장합니다.'
           ],
           assumptions: [
-            { name: '정규성', passed: normality.shapiroWilk.isNormal, pValue: normality.shapiroWilk.pValue },
-            { name: '등분산성', passed: homogeneity.levene.equalVariance, pValue: homogeneity.levene.pValue }
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: isNormal, pValue: normality.shapiroWilk!.pValue }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: equalVariance, pValue: homogeneity.levene!.pValue }] : [])
           ],
           alternatives: [
             {
@@ -547,6 +553,10 @@ export class DecisionTreeRecommender {
     const { normality } = assumptionResults
     const n = data.length
 
+    // ✅ Null 가드: shapiroWilk 구조 확인 (Issue #3 Fix)
+    const hasShapiroWilk = normality?.shapiroWilk !== undefined
+    const isNormal = hasShapiroWilk ? normality?.shapiroWilk?.isNormal ?? false : false
+
     const numericVars = validationResults.columns?.filter(
       col => col.type === 'numeric'
     ).length || 0
@@ -566,7 +576,7 @@ export class DecisionTreeRecommender {
       })
     }
 
-    if (normality.shapiroWilk.isNormal) {
+    if (isNormal) {
       return this.addExpectedKeywords({
         method: {
           id: 'pearson-correlation',
@@ -582,11 +592,11 @@ export class DecisionTreeRecommender {
         reasoning: [
           `${numericVars}개의 수치형 변수 간 관계 분석`,
           `표본 크기: ${n} (충분)`,
-          `✓ 정규성 충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`
+          `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`
         ],
-        assumptions: [
-          { name: '정규성', passed: true, pValue: normality.shapiroWilk.pValue }
-        ],
+        assumptions: hasShapiroWilk ? [
+          { name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }
+        ] : [],
         alternatives: [
           {
             id: 'spearman-correlation',
@@ -607,12 +617,12 @@ export class DecisionTreeRecommender {
         confidence: 0.92,
         reasoning: [
           `${numericVars}개의 수치형 변수 간 관계 분석`,
-          `✗ 정규성 미충족 (p=${normality.shapiroWilk.pValue.toFixed(3)})`,
+          `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
           '비모수 상관분석을 권장합니다.'
         ],
-        assumptions: [
-          { name: '정규성', passed: false, pValue: normality.shapiroWilk.pValue }
-        ],
+        assumptions: hasShapiroWilk ? [
+          { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
+        ] : [],
         alternatives: [
           {
             id: 'pearson-correlation',
@@ -758,9 +768,9 @@ export class DecisionTreeRecommender {
   ): AIRecommendation {
     const n = data.length
 
-    // 날짜/시간 변수 탐지
+    // 날짜/시간 변수 탐지 (ColumnStatistics는 datetime 타입이 없으므로 우회)
     const hasDateTime = validationResults.columns?.some(
-      col => col.type === 'datetime'
+      col => (col as any).type === 'datetime'  // ✅ datetime은 ColumnStatistics에 없음, 향후 추가 예정
     ) || false
 
     if (hasDateTime) {
@@ -769,7 +779,7 @@ export class DecisionTreeRecommender {
           id: 'time-series-analysis',
           name: '시계열 분석',
           description: '시간에 따른 데이터 변화 분석',
-          category: 'timeseries',
+          category: 'regression' as const, // timeseries는 category에 없음, regression으로 분류
           requirements: {
             minSampleSize: 30,
             assumptions: ['정상성']
@@ -812,7 +822,7 @@ export class DecisionTreeRecommender {
             id: 'time-series-analysis',
             name: '시계열 분석',
             description: '날짜 변수 추가 시 사용 가능',
-            category: 'timeseries'
+            category: 'regression' as const
           }
         ]
       })
