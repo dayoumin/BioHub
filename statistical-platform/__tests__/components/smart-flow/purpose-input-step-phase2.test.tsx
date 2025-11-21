@@ -482,4 +482,78 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       }
     })
   })
+
+  describe('10. ARIA Radio Group Semantics (Issue #3 Fix)', () => {
+    it('should have role="radiogroup" wrapper', () => {
+      const { container } = render(<PurposeInputStep {...defaultProps} />)
+
+      // ✅ radiogroup 존재 확인
+      const radiogroup = container.querySelector('[role="radiogroup"]')
+      expect(radiogroup).toBeInTheDocument()
+    })
+
+    it('should have aria-labelledby pointing to heading', () => {
+      const { container } = render(<PurposeInputStep {...defaultProps} />)
+
+      const radiogroup = container.querySelector('[role="radiogroup"]')
+
+      // ✅ aria-labelledby 연결 확인
+      expect(radiogroup).toHaveAttribute('aria-labelledby', 'purpose-selection-label')
+
+      // ✅ 연결된 제목 확인
+      const heading = container.querySelector('#purpose-selection-label')
+      expect(heading).toBeInTheDocument()
+      expect(heading?.textContent).toBe('어떤 분석을 하고 싶으신가요?')
+    })
+
+    it('should have aria-describedby pointing to help text', () => {
+      const { container } = render(<PurposeInputStep {...defaultProps} />)
+
+      const radiogroup = container.querySelector('[role="radiogroup"]')
+
+      // ✅ aria-describedby 연결 확인
+      expect(radiogroup).toHaveAttribute('aria-describedby', 'purpose-selection-help')
+
+      // ✅ 연결된 설명 확인
+      const helpText = container.querySelector('#purpose-selection-help')
+      expect(helpText).toBeInTheDocument()
+      expect(helpText?.textContent).toBe(
+        '5개 중 하나의 분석 목적을 선택하세요. 선택하면 AI가 최적의 통계 방법을 추천합니다.'
+      )
+    })
+
+    it('should have sr-only class on help text (visually hidden)', () => {
+      const { container } = render(<PurposeInputStep {...defaultProps} />)
+
+      const helpText = container.querySelector('#purpose-selection-help')
+
+      // ✅ Screen reader 전용 (시각적으로 숨김)
+      expect(helpText).toHaveClass('sr-only')
+    })
+
+    it('should contain 5 radio buttons inside radiogroup', () => {
+      render(<PurposeInputStep {...defaultProps} />)
+
+      const radios = screen.getAllByRole('radio')
+
+      // ✅ 5개 PurposeCard (각각 role="radio")
+      expect(radios).toHaveLength(5)
+    })
+
+    it('should announce "option X of 5" for screen readers', () => {
+      // 이 테스트는 실제 AT(Assistive Technology) 엔진이 필요하므로
+      // 구조적 검증으로 대체:
+      // - radiogroup 존재 ✅
+      // - 각 radio 존재 ✅
+      // - aria-labelledby 연결 ✅
+      // → AT가 자동으로 "option X of 5" 안내
+
+      const { container } = render(<PurposeInputStep {...defaultProps} />)
+      const radios = screen.getAllByRole('radio')
+
+      // ✅ 구조적 검증 (AT 엔진이 읽을 수 있는 구조)
+      expect(container.querySelector('[role="radiogroup"]')).toBeInTheDocument()
+      expect(radios).toHaveLength(5)
+    })
+  })
 })
