@@ -224,17 +224,25 @@ export function PurposeInputStep({
           어떤 분석을 하고 싶으신가요?
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ANALYSIS_PURPOSES.map((purpose) => (
-            <PurposeCard
+          {ANALYSIS_PURPOSES.map((purpose, index) => (
+            <div
               key={purpose.id}
-              icon={purpose.icon}
-              title={purpose.title}
-              description={purpose.description}
-              examples={purpose.examples}
-              selected={selectedPurpose === purpose.id}
-              onClick={() => handlePurposeSelect(purpose.id)}
-              disabled={isAnalyzing}
-            />
+              className="animate-in fade-in slide-in-from-bottom-4"
+              style={{
+                animationDelay: `${index * 100}ms`,
+                animationFillMode: 'backwards'
+              }}
+            >
+              <PurposeCard
+                icon={purpose.icon}
+                title={purpose.title}
+                description={purpose.description}
+                examples={purpose.examples}
+                selected={selectedPurpose === purpose.id}
+                onClick={() => handlePurposeSelect(purpose.id)}
+                disabled={isAnalyzing}
+              />
+            </div>
           ))}
         </div>
       </div>
@@ -249,7 +257,7 @@ export function PurposeInputStep({
 
       {/* AI 추천 결과 */}
       {recommendation && !isAnalyzing && (
-        <Card className="border-2 border-primary bg-primary/5 animate-in fade-in duration-500">
+        <Card className="border-2 border-primary bg-primary/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -276,7 +284,16 @@ export function PurposeInputStep({
               <h4 className="font-medium mb-2">추천 이유:</h4>
               <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                 {recommendation.reasoning.map((reason, idx) => (
-                  <li key={idx}>{reason}</li>
+                  <li
+                    key={idx}
+                    className="animate-in fade-in slide-in-from-left-2"
+                    style={{
+                      animationDelay: `${idx * 100}ms`,
+                      animationFillMode: 'backwards'
+                    }}
+                  >
+                    {reason}
+                  </li>
                 ))}
               </ul>
             </div>
