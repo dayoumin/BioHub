@@ -996,6 +996,7 @@ interface CuratedTestCase {
   purpose: AnalysisPurpose
   dataFile: string
   expectedMethod: string
+  expectedReasoningKeywords: string[] // ✅ NEW: 추천 근거 검증 (v1.2)
   groundTruth: string
   reference: string
 }
@@ -1007,6 +1008,7 @@ const curatedDatasets: CuratedTestCase[] = [
     purpose: 'compare',
     dataFile: 'datasets/curated/iris.csv',
     expectedMethod: 'one-way-anova',
+    expectedReasoningKeywords: ['3개 그룹', 'species', '정규성', '등분산성'], // ✅ 추천 근거 검증
     groundTruth: '교과서 예제 (확정)',
     reference: 'Fisher, R.A. (1936). The use of multiple measurements'
   },
@@ -1016,6 +1018,7 @@ const curatedDatasets: CuratedTestCase[] = [
     purpose: 'compare',
     dataFile: 'datasets/curated/sleep.csv',
     expectedMethod: 'paired-t-test',
+    expectedReasoningKeywords: ['대응표본', 'paired', 'ID', '전후'], // ✅ Paired design 감지
     groundTruth: 'Student (1908) 원본',
     reference: 'Student (1908). The probable error of a mean'
   },
@@ -1025,6 +1028,7 @@ const curatedDatasets: CuratedTestCase[] = [
     purpose: 'relationship',
     dataFile: 'datasets/curated/mtcars.csv',
     expectedMethod: 'pearson-correlation',
+    expectedReasoningKeywords: ['상관', 'correlation', '선형', '정규성'], // ✅ 상관분석
     groundTruth: 'Henderson and Velleman (1981)',
     reference: 'Building multiple regression models'
   },
@@ -1128,6 +1132,19 @@ async function validateAccuracy() {
 
     const isCorrect = recommendation.method.id === testCase.expectedMethod
     if (isCorrect) correctCount++
+
+    // ✅ NEW: Reasoning 키워드 검증 (v1.2)
+    if (testCase.expectedReasoningKeywords) {
+      const reasoningText = recommendation.reasoning.join(' ')
+      const missingKeywords = testCase.expectedReasoningKeywords.filter(
+        keyword => !reasoningText.includes(keyword)
+      )
+      if (missingKeywords.length > 0) {
+        console.warn(`⚠️  [${testCase.name}] 누락된 키워드: ${missingKeywords.join(', ')}`)
+      } else {
+        console.log(`✅ [${testCase.name}] Reasoning 검증 통과`)
+      }
+    }
 
     results.push({
       category: 'curated',
@@ -1406,8 +1423,10 @@ async function validateAccuracy() {
 
 ### Phase 4-C (정확도 검증) (AI 리뷰 반영)
 - [ ] ✅ 20개 큐레이션 데이터셋 수집 (sklearn, R datasets)
+- [ ] ✅ 각 데이터셋에 expectedReasoningKeywords 추가 (v1.2)
 - [ ] ✅ 50개 합성 데이터셋 생성 (코드 자동 생성)
 - [ ] validate-accuracy.ts 스크립트 (큐레이션 + 합성)
+- [ ] ✅ Reasoning 키워드 검증 로직 추가 (v1.2)
 - [ ] 정확도 측정 (목표: **85% 이상**, 예상: 88-89%)
 - [ ] 규칙 보정 (필요 시)
 - [ ] 문서화 (SMART_FLOW_UX_REDESIGN.md)
@@ -1425,6 +1444,25 @@ async function validateAccuracy() {
 ---
 
 ## 📌 변경 이력
+
+### v1.2 (2025-11-21) - Reasoning 검증 + 코드 정리
+
+**주요 변경 사항**:
+1. **Reasoning 키워드 검증 추가**: CuratedTestCase에 `expectedReasoningKeywords` 필드 추가
+   - 추천 근거의 품질을 검증하기 위한 키워드 체크 로직 구현
+   - 예시: `['대응표본', 'paired', 'ID', '전후']` → Paired design 감지 검증
+2. **SmartAnalysisEngine 삭제 예정**: 사용되지 않는 코드 제거로 혼란 방지
+   - Phase 4-A 시작 전 삭제 예정
+   - Decision Tree가 Rule-based 추천 담당
+
+**작업 시간 변경**:
+- Day 3 (Phase 4-C): 3시간 → 3.5시간 (+30분, Reasoning 검증 추가)
+- **총 합계**: 12시간 → 12.5시간
+
+**사용자 요청**: "3.2도 추가하자. 그리고 사용하지 않는 것은 삭제하자. 혼돈 유발해."
+**반영 날짜**: 2025-11-21
+
+---
 
 ### v1.1 (2025-11-21) - AI 리뷰 반영
 
@@ -1444,11 +1482,13 @@ async function validateAccuracy() {
 **리뷰어**: External AI System
 **반영 날짜**: 2025-11-21
 
+---
+
 ### v1.0 (2025-11-21) - 초기 계획
 
 **최초 작성**: 2025-11-21
 
 ---
 
-**최종 검토일**: 2025-11-21 (v1.1 AI 리뷰 반영)
-**승인 상태**: ✅ AI 리뷰 통과, 사용자 확인 완료
+**최종 검토일**: 2025-11-21 (v1.2 Reasoning 검증 추가)
+**승인 상태**: ✅ 사용자 승인 완료, 구현 준비 완료
