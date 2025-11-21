@@ -54,8 +54,13 @@ export const DataValidationStep = memo(function DataValidationStep({
   )
 
   const categoricalColumns = useMemo(() =>
-    // Bug #2 Fix: 숫자형 열 제외 (type이 명시적으로 categorical인 것만)
-    columnStats?.filter(s => s.type === 'categorical') || [],
+    // Bug #2 Fix (Revised): 범주형 또는 고유값이 적은 숫자형 열 포함
+    // - 명시적 categorical 타입
+    // - 또는 고유값 <= 20인 numeric 타입 (숫자 인코딩된 범주형: 0/1, 1/2/3 등)
+    columnStats?.filter(s =>
+      s.type === 'categorical' ||
+      (s.type === 'numeric' && s.uniqueValues <= 20)
+    ) || [],
     [columnStats]
   )
 
@@ -78,6 +83,7 @@ export const DataValidationStep = memo(function DataValidationStep({
 
       try {
         // 1. 기본 데이터 특성 저장
+        if (isCancelled) return  // Bug #1 Fix: 클린업 체크
         const characteristics = {
           sampleSize: data.length,
           structure: 'wide' as const,
@@ -128,57 +134,66 @@ export const DataValidationStep = memo(function DataValidationStep({
           } catch (error) {
             logger.warn('Shapiro-Wilk test failed', { error })
             // Bug #5 Fix: 실패 시 이전 결과 무효화
-            setAssumptionResults(null)
+            if (!isCancelled) setAssumptionResults(null)  // Bug #1 Fix
           }
 
           // 2-2. Levene 등분산성 검정 (그룹 변수가 있을 때)
           if (categoricalColumns.length > 0 && numericColumns.length > 0) {
-            try {
-              const groupCol = categoricalColumns[0].name
-              const numericCol = numericColumns[0].name
+            const numericCol = numericColumns[0].name
+            const groupColumn = categoricalColumns.find(col => col.name !== numericCol)
 
-              // 그룹별 데이터 분리
-              const groupMap = new Map<string, number[]>()
-              for (const row of data) {
-                const groupValue = String(row[groupCol])
-                const numericValue = row[numericCol]
+            if (!groupColumn) {
+              logger.warn('Levene test skipped: no categorical column available for grouping', {
+                numericCol
+              })
+            } else {
+              try {
+                const groupCol = groupColumn.name
 
-                if (typeof numericValue === 'number' && !isNaN(numericValue)) {
-                  if (!groupMap.has(groupValue)) {
-                    groupMap.set(groupValue, [])
+                // 그룹별 데이터 분리
+                const groupMap = new Map<string, number[]>()
+                for (const row of data) {
+                  const groupValue = String(row[groupCol])
+                  const numericValue = row[numericCol]
+
+                  if (typeof numericValue === 'number' && !isNaN(numericValue)) {
+                    if (!groupMap.has(groupValue)) {
+                      groupMap.set(groupValue, [])
+                    }
+                    groupMap.get(groupValue)!.push(numericValue)
                   }
-                  groupMap.get(groupValue)!.push(numericValue)
                 }
-              }
 
-              // 2개 이상의 그룹이 있고, 각 그룹에 3개 이상의 데이터가 있을 때
-              const groups = Array.from(groupMap.values())
-              if (groups.length >= 2 && groups.every(g => g.length >= 3)) {
-                const leveneResult = await pyodideCore.leveneTest(groups)
-                if (isCancelled) return  // 클린업 체크
+                // 2개 이상의 그룹이 있고, 각 그룹에 3개 이상의 데이터가 있을 때
+                const groups = Array.from(groupMap.values())
+                if (groups.length >= 2 && groups.every(g => g.length >= 3)) {
+                  const leveneResult = await pyodideCore.leveneTest(groups)
+                  if (isCancelled) return  // 클린업 체크
 
-                if (leveneResult.statistic !== undefined && leveneResult.pValue !== undefined) {
-                  assumptions.homogeneity = {
-                    levene: {
-                      statistic: leveneResult.statistic,
+                  if (leveneResult.statistic !== undefined && leveneResult.pValue !== undefined) {
+                    assumptions.homogeneity = {
+                      levene: {
+                        statistic: leveneResult.statistic,
+                        pValue: leveneResult.pValue,
+                        equalVariance: leveneResult.pValue > 0.05
+                      }
+                    }
+                    logger.info('Levene test completed', {
                       pValue: leveneResult.pValue,
                       equalVariance: leveneResult.pValue > 0.05
-                    }
+                    })
                   }
-                  logger.info('Levene test completed', {
-                    pValue: leveneResult.pValue,
-                    equalVariance: leveneResult.pValue > 0.05
-                  })
                 }
+              } catch (error) {
+                logger.warn('Levene test failed', { error })
+                // Bug #5 Fix: 실패 시 이전 결과 무효화
+                if (!isCancelled) setAssumptionResults(null)  // Bug #1 Fix
               }
-            } catch (error) {
-              logger.warn('Levene test failed', { error })
-              // Bug #5 Fix: 실패 시 이전 결과 무효화
-              setAssumptionResults(null)
             }
           }
 
           // 3. 가정 검정 결과 스토어에 저장 (Issue #2 Fix + Bug #5 Fix)
+          if (isCancelled) return  // Bug #1 Fix: 클린업 체크
           if (Object.keys(assumptions).length > 0) {
             setAssumptionResults(assumptions)
             logger.info('Assumption results saved to store', { assumptions })
@@ -189,14 +204,17 @@ export const DataValidationStep = memo(function DataValidationStep({
           }
         } else {
           // Bug #5 Fix: 수치형 변수 없을 때 이전 결과 무효화
+          if (isCancelled) return  // Bug #1 Fix: 클린업 체크
           setAssumptionResults(null)
           logger.info('Skipping assumption tests (no numeric columns)')
         }
 
+        if (isCancelled) return  // Bug #1 Fix: 클린업 체크
         setIsValidating(false)
       } catch (error) {
         logger.error('Assumption tests failed', { error })
         // Bug #5 Fix: 에러 발생 시 이전 결과 무효화
+        if (isCancelled) return  // Bug #1 Fix: 클린업 체크
         setAssumptionResults(null)
         setIsValidating(false)
       }

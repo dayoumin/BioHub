@@ -69,13 +69,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 🔧 공통 컴포넌트 개발 워크플로우
 
-**1단계: Components Showcase에서 개발**
+**1단계: Design System에서 개발**
 ```bash
 npm run dev
-# → http://localhost:3004/components-showcase
+# → http://localhost:3004/design-system
 ```
 - 새 컴포넌트 작성
-- Showcase 페이지에 탭 추가
+- Design System 페이지에 탭 추가
 - 다양한 Props 조합 테스트
 - 실시간 확인 (HMR 지원)
 
@@ -116,7 +116,7 @@ npm run dev
 - [ ] **MethodComparisonCard** - 통계 방법 비교 카드
 - [ ] **PostHocTable** - 사후 검정 결과 테이블
 
-**참고**: 모든 새 컴포넌트는 `components-showcase` 페이지에 먼저 추가!
+**참고**: 모든 새 컴포넌트는 `/design-system` 페이지에 먼저 추가!
 
 ---
 

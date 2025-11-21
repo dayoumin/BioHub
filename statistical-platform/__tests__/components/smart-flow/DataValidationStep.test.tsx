@@ -10,32 +10,34 @@ import { useMemo } from 'react'
 
 describe('DataValidationStep Bug Fixes', () => {
   describe('Bug #2: categoricalColumns 필터링', () => {
-    it('숫자형 열을 categoricalColumns에서 제외해야 함', () => {
+    it('숫자형 열을 categoricalColumns에 포함 (uniqueValues <= 20인 경우)', () => {
       const columnStats = [
-        { name: 'age', type: 'numeric', uniqueValues: 5 },  // uniqueValues <= 20이지만 numeric
+        { name: 'age', type: 'numeric', uniqueValues: 5 },  // uniqueValues <= 20 → 포함
         { name: 'gender', type: 'categorical', uniqueValues: 2 },
-        { name: 'income', type: 'numeric', uniqueValues: 100 },
+        { name: 'income', type: 'numeric', uniqueValues: 100 },  // uniqueValues > 20 → 제외
         { name: 'status', type: 'categorical', uniqueValues: 3 }
       ]
 
       const { result } = renderHook(() =>
         useMemo(() =>
-          // Bug #2 Fix: 숫자형 열 제외 (type이 명시적으로 categorical인 것만)
-          columnStats?.filter(s => s.type === 'categorical') || [],
+          // Bug #2 Fix (Revised): 숫자 인코딩된 범주형 포함
+          columnStats?.filter(s =>
+            s.type === 'categorical' ||
+            (s.type === 'numeric' && s.uniqueValues <= 20)
+          ) || [],
           [columnStats]
         )
       )
 
-      // 검증: categorical 타입만 포함
-      expect(result.current).toHaveLength(2)
-      expect(result.current.map(c => c.name)).toEqual(['gender', 'status'])
+      // 검증: categorical + uniqueValues <= 20인 numeric 포함
+      expect(result.current).toHaveLength(3)
+      expect(result.current.map(c => c.name)).toEqual(['age', 'gender', 'status'])
 
-      // 검증: numeric 타입은 제외
-      expect(result.current.every(c => c.type === 'categorical')).toBe(true)
-      expect(result.current.find(c => c.name === 'age')).toBeUndefined()
+      // 검증: uniqueValues > 20인 numeric은 제외
+      expect(result.current.find(c => c.name === 'income')).toBeUndefined()
     })
 
-    it('uniqueValues <= 20인 숫자형 열이 categoricalColumns에 포함되지 않아야 함', () => {
+    it('uniqueValues <= 20인 숫자형 열이 categoricalColumns에 포함되어야 함 (Revised)', () => {
       const columnStats = [
         { name: 'score', type: 'numeric', uniqueValues: 10 },  // uniqueValues <= 20
         { name: 'rating', type: 'numeric', uniqueValues: 5 },   // uniqueValues <= 20
@@ -44,33 +46,43 @@ describe('DataValidationStep Bug Fixes', () => {
 
       const { result } = renderHook(() =>
         useMemo(() =>
-          columnStats?.filter(s => s.type === 'categorical') || [],
+          // Bug #2 Fix (Revised): 숫자 인코딩된 범주형 포함
+          columnStats?.filter(s =>
+            s.type === 'categorical' ||
+            (s.type === 'numeric' && s.uniqueValues <= 20)
+          ) || [],
           [columnStats]
         )
       )
 
-      // 검증: uniqueValues <= 20이어도 numeric은 제외
-      expect(result.current).toHaveLength(1)
-      expect(result.current[0].name).toBe('category')
+      // 검증: uniqueValues <= 20인 numeric도 포함 (숫자 인코딩된 범주형: 0/1, 1/2/3 등)
+      expect(result.current).toHaveLength(3)
+      expect(result.current.map(c => c.name)).toEqual(['score', 'rating', 'category'])
     })
 
-    it('Levene 검정 시나리오: 그룹 변수가 측정 변수와 동일하지 않아야 함', () => {
-      // 시나리오: age가 uniqueValues=5로 categorical로 오인되는 경우
+    it('Levene 검정 시나리오: 그룹 변수와 측정 변수가 동일하면 에러 발생', () => {
+      // 시나리오: age가 uniqueValues=5로 categoricalColumns에 포함됨
       const columnStats = [
-        { name: 'age', type: 'numeric', uniqueValues: 5 },  // 잘못 분류되면 그룹 변수로 사용
+        { name: 'age', type: 'numeric', uniqueValues: 5 },  // categoricalColumns와 numericColumns 모두에 포함
         { name: 'height', type: 'numeric', uniqueValues: 50 }
       ]
 
       const numericColumns = columnStats.filter(s => s.type === 'numeric')
-      const categoricalColumns = columnStats.filter(s => s.type === 'categorical')
+      const categoricalColumns = columnStats.filter(s =>
+        s.type === 'categorical' ||
+        (s.type === 'numeric' && s.uniqueValues <= 20)
+      )
 
-      // 검증: categorical이 비어있으므로 Levene 검정 스킵
-      expect(categoricalColumns).toHaveLength(0)
+      // 검증: age가 양쪽에 모두 포함
+      expect(categoricalColumns).toHaveLength(1)
       expect(numericColumns).toHaveLength(2)
+      expect(categoricalColumns[0].name).toBe('age')
+      expect(numericColumns[0].name).toBe('age')
 
-      // Levene 검정 조건 체크
-      const shouldRunLevene = categoricalColumns.length > 0 && numericColumns.length > 0
-      expect(shouldRunLevene).toBe(false)
+      // Levene 검정 시 그룹 변수와 측정 변수가 동일함을 감지해야 함
+      const groupCol = categoricalColumns[0].name
+      const numericCol = numericColumns[0].name
+      expect(groupCol).toBe(numericCol)  // 동일한 열 → 에러 발생해야 함
     })
   })
 
