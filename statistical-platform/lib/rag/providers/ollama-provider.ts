@@ -97,7 +97,7 @@ interface GenerateResponse {
   done: boolean
 }
 
-interface SearchResult {
+export interface SearchResult {
   doc_id: string
   title: string
   content: string

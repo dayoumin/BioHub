@@ -16,32 +16,34 @@
 ### 2. **LangGraph vs Langchain**
 - **LangGraph가 더 간단하고 강력함** (상태 머신 > 선형 체인)
 - **LMO의 LangGraph 선택이 완벽함** (복잡한 워크플로우 필수)
+- ✅ **LangGraph.js v1.0 출시** (2025-11-21): **브라우저 완벽 지원** (`@langchain/langgraph/web`)
 
 ---
 
+
 ## 📊 RAG 엔진 비교표 (수정판)
 
-| 구분 | **LMO_Desktop** (기존) | **Statistics** (참고) | **승자** |
-|------|----------------------|---------------------|---------|
-| **아키텍처** | Flutter + Python (stdin/stdout) | Next.js + Pyodide (브라우저) | - |
-| **언어** | Python 3.11 | TypeScript + Python (Pyodide) | - |
-| **RAG 프레임워크** | **LangGraph** ⭐⭐⭐ (상태 머신) | Langchain JS (선형 체인) | **LMO** |
-| **Vector Store** | **FAISS** ⭐⭐⭐ (C++ 최적화) | SQLite + JS 브루트 포스 | **LMO** |
-| **검색 속도** (3,200 벡터) | **0.01초** ⚡ | 0.5초 (50배 느림) | **LMO** |
-| **검색 방식** | Vector Only (Similarity) | **Hybrid** (BM25 + Vector) ⭐⭐⭐ | **Statistics** |
-| **메타데이터 쿼리** | 약함 (FAISS 한계) | **SQL** ⭐⭐ (복잡한 필터링 - LMO 구조엔 불필요) | 🟡 Statistics (LMO는 계층 RAG로 해결) |
-| **확장성** | 100만+ 벡터 가능 | 1만 벡터 한계 | **LMO** |
-| **GPU 가속** | ✅ 지원 | ❌ 불가능 | **LMO** |
-| **LLM** | Ollama (qwen3:8b) | Ollama (llama3.3) | - |
-| **임베딩** | Ollama/Qwen3 (2560차원) | Ollama (mxbai-embed-large) | - |
-| **PDF 파싱** | PyMuPDF + pdfplumber | **Docling** ⭐⭐⭐ | **Statistics** |
-| **계층적 RAG** | ✅ 폴더 기반 (summary/reference/guide) | ❌ 없음 | **LMO** |
-| **배치 처리** | ✅ 여러 질문 동시 처리 | ❌ 없음 | **LMO** |
-| **세션 관리** | ✅ 심화 검토 세션 (30분 TTL) | ❌ 없음 | **LMO** |
-| **스트리밍** | ✅ Python asyncio | ✅ SSE (Server-Sent Events) | 동등 |
-| **Citation** | ❌ 없음 | ✅ 인라인 인용 [1], [2] ⭐⭐⭐ | **Statistics** |
-| **문서 CRUD** | ✅ Python (VectorStoreManager) | ✅ TypeScript (IndexedDB) | 동등 |
-| **캐싱** | ✅ LRU 검색 캐시 | ❌ 없음 | **LMO** |
+| 항목 | **LMO_Desktop** (현헨) | **Statistics** (참고) | **승자** | **이유** |
+|------|-----------------------|----------------------|---------|---------|
+| **아타텍처** | Flutter + Python (stdin/stdout) | Next.js + Pyodide (브라우저) | ⚖️ 동륙 | 런타임 방향이 완전히 다르니 우연 판단 무의미 |
+| **언어** | Python 3.11 | TypeScript + Python (Pyodide) | ⚖️ 동륙 | Flutter·로컬 vs 브라우저·JS 제약에 맞춤 |
+| **RAG 프레임워크** | **LangGraph** ⭐⭐⭐ (상태 머신) | ~~Langchain JS~~ **→ LangGraph.js v1.0** ⭐ | **LMO** | LangGraph.js가 브라우저 지원 (2025-11) |
+| **Vector Store** | **FAISS** ⭐⭐⭐ (C++ 최적화) | SQLite + JS 브루트 포스 | **LMO** | 3,200 청크 0.01초, GPU·PQ 지원 |
+| **검색 속도** (3,200 벡터) | **0.01초** ⚡ | 0.5초 (50배 느림) | **LMO** | IVF+PQ 근사 + GPU 가속 |
+| **검색 방식** | Vector Only (Similarity) | **Hybrid** (BM25 + Vector) ⭐⭐⭐ | **Statistics** | 키워드·의미 검색 합성 |
+| **메타데이터 쿼리** | 약함 (FAISS 한계) | **SQL** ⭐⭐ (복잡 필터링) | **Statistics** | WHERE/ORDER로 정굉한 필터 |
+| **확장성** | 10만+ 벡터 확장 | 1만 벡터 한계 | **LMO** | 멀티 인덱스 + PQ 압축 |
+| **GPU 가속** | ✅ 지원 | ❌ 불가능 | **LMO** | CUDA/Metal 가속 |
+| **LLM** | Ollama (qwen3:8b) | Ollama (llama3.3) | ⚖️ 동륙 | 로컬 모델 기본 유지 |
+| **임베딩** | Qwen3 임베딩 (2560차원) | mxbai-embed-large | ⚖️ 동륙 | 목적별 튜닝 선택 |
+| **PDF 파싱** | PyMuPDF + pdfplumber | **Docling** ⭐⭐⭐ | **Statistics** | 학술 문서 구조를 Markdown으로 보존 |
+| **계층형 RAG** | ✅ 폴더 기반 (summary/reference/guide) | ❌ 없음 | **LMO** | 3중 FAISS로 문락 가중치 적용 |
+| **배치 처리** | ✅ 여러 질문 동시 처리 | ❌ 없음 | **LMO** | 규제 검토 다건 질의 대응 |
+| **세션 관리** | ✅ 심화 검토 세션 (30분 TTL) | ❌ 없음 | **LMO** | TTL 세션으로 검토 기록 유지 |
+| **스트리밍** | ✅ Python asyncio | ✅ SSE (Server-Sent Events) | ⚖️ 동륙 | 양쪽 모두 실시간 응답 |
+| **Citation** | ❌ 없음 | ✅ 인라인 인용 [1], [2] ⭐⭐⭐ | **Statistics** | 출처를 즉시 노출 |
+| **문서 CRUD** | ✅ Python (VectorStoreManager) | ✅ TypeScript (IndexedDB) | ⚖️ 동륙 | 구현 언어만 다르 |
+| **캐싱** | ✅ LRU 검색 캐시 | ❌ 없음 | **LMO** | 재질문 응답 속도 우위 |
 
 ---
 
@@ -78,6 +80,12 @@ async searchByVector(query: string): Promise<SearchResult[]> {
   return scores.sort((a, b) => b.score - a.score).slice(0, topK)
 }
 ```
+
+> 💡 **SQLite는 메타데이터/저장소 계층, FAISS는 벡터 검색 엔진이다.**
+> 
+> - SQLite는 임베딩을 BLOB으로 저장하고, JavaScript가 전수 비교를 수행하기 때문에 500개 수준에서는 충분하지만 1만+ 청크에서는 선형 지연이 폭증한다.
+> - 반면 FAISS는 IVF·PQ·HNSW 같은 전용 인덱스와 GPU 가속을 활용해 3,200 청크도 0.01초 안에 검색한다.
+> - 결론적으로 **SQLite = 메타데이터/관리 DB**, **FAISS = 실시간 벡터 검색기**로 역할이 완전히 다르다.
 
 **즉, Statistics는**:
 - ❌ FAISS 아님
@@ -207,6 +215,12 @@ metadata_db.query("""
 ---
 
 ### 1. RAG 프레임워크: LangGraph가 더 간단하고 강력함! ⭐⭐⭐
+
+> **한눈에 정리 – LangGraph가 쉬운 4가지 이유**
+> 1. 상태 전이를 선언형으로 표현해 if-else 트리를 제거한다.
+> 2. 그래프가 `state` 객체를 자동 전달해 파이프라인 보일러플레이트가 사라진다.
+> 3. 머메이드/이미지로 바로 시각화되어 디버깅 구조가 보인다.
+> 4. 각 노드 입출력이 로그로 남아 관측·재시도가 간단하다.
 
 #### **LangGraph가 더 간단한 이유** ⭐
 
@@ -984,6 +998,22 @@ class UnifiedRAGGraph:
 1. Docker 서버 설정
 2. `hybrid_pdf_loader.py` 수정 (Docling 옵션 추가)
 3. 성능 테스트 (속도 vs 품질)
+
+---
+
+## ✅ 최종 정리
+
+LMO는 이미 LangGraph + FAISS라는 핵심 축을 올바르게 선택했으며, Statistics에서 가져올 것은 검색·출처 강화뿐이다.
+
+| 항목 | LMO 선택 | 승자 | 이유 |
+|-----|---------|------|-----|
+| RAG 프레임워크 | LangGraph ⭐⭐⭐ | LMO | 상태 머신 기반 선언형 분기, if-else 제거 |
+| Vector Store | FAISS ⭐⭐⭐ | LMO | C++ 인덱스 + GPU, 3,200 청크 0.01초 |
+| 검색 방식 | Vector Only | Statistics | 하이브리드(BM25+Vector)로 30~40% 정확도 ↑ |
+
+- **즉시 추가**: 하이브리드 검색 → Citation → Docling(선택) 순으로 적용.
+- **절대 유지**: FAISS 다중 인덱스, LangGraph 워크플로우, 품목별 분리 구조.
+- **결론**: **“LMO는 이미 올바른 선택을 했다.”** 이제 정확도 상승 요소만 이식하면 된다.
 
 ---
 
