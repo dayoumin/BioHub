@@ -130,7 +130,7 @@ export class LangGraphOllamaProvider extends OllamaRAGProvider {
       .addNode('vectorSearch', this.vectorSearch.bind(this))
       .addNode('bm25Search', this.bm25Search.bind(this))
       .addNode('mergeResults', this.mergeResults.bind(this))
-      .addNode('generateAnswer', this.generateAnswer.bind(this))
+      .addNode('generateAnswer', this.generateLLMAnswer.bind(this))
 
     // 엣지 정의 (워크플로우)
     workflow
@@ -208,6 +208,12 @@ export class LangGraphOllamaProvider extends OllamaRAGProvider {
    * 노드 4: BM25 키워드 검색
    */
   private async bm25Search(state: RAGStateType): Promise<Partial<RAGStateType>> {
+    // Vector 전용 모드에서는 BM25 검색 스킵
+    if (state.searchMode === 'vector') {
+      console.log('[BM25Search] Vector 전용 모드 - BM25 검색 스킵')
+      return { bm25Results: [] }
+    }
+
     console.log('[BM25Search] BM25 검색 중...')
 
     try {
@@ -274,9 +280,9 @@ export class LangGraphOllamaProvider extends OllamaRAGProvider {
   }
 
   /**
-   * 노드 6: LLM 답변 생성
+   * 노드 6: LLM 답변 생성 (부모 클래스 generateAnswer와 충돌 방지)
    */
-  private async generateAnswer(state: RAGStateType): Promise<Partial<RAGStateType>> {
+  private async generateLLMAnswer(state: RAGStateType): Promise<Partial<RAGStateType>> {
     console.log('[GenerateAnswer] LLM 답변 생성 중...')
 
     const topK = (this as any).topK || 5

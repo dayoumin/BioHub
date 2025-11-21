@@ -46,6 +46,12 @@ class MockLangGraphOllamaProvider {
    * 노드 4: BM25 키워드 검색
    */
   async bm25Search(state: RAGStateType): Promise<Partial<RAGStateType>> {
+    // Vector 전용 모드에서는 BM25 검색 스킵
+    if (state.searchMode === 'vector') {
+      console.log('[BM25Search] Vector 전용 모드 - BM25 검색 스킵')
+      return { bm25Results: [] }
+    }
+
     console.log('[BM25Search] BM25 검색 중...')
 
     try {
@@ -157,6 +163,21 @@ describe('LangGraphOllamaProvider - BM25 검색 및 병합', () => {
         expect(typeof item.content).toBe('string')
         expect(typeof item.score).toBe('number')
       })
+    })
+
+    it('Vector 모드에서는 BM25 검색을 스킵해야 함', async () => {
+      const state: RAGStateType = {
+        query: 'vector mode query',
+        searchMode: 'vector',
+        vectorResults: [],
+        bm25Results: [],
+        mergedResults: [],
+      }
+
+      const result = await provider.bm25Search(state)
+
+      // Vector 모드에서는 빈 배열 반환 (검색하지 않음)
+      expect(result.bm25Results).toEqual([])
     })
 
     it('에러 발생 시 빈 배열을 반환해야 함', async () => {
