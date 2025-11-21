@@ -10,6 +10,7 @@ import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { logger } from '@/lib/utils/logger'
+import { usePyodide } from '@/components/providers/PyodideProvider'
 
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
@@ -27,6 +28,9 @@ export const DataValidationStep = memo(function DataValidationStep({
   totalSteps
 }: DataValidationStepProps) {
   const [isValidating, setIsValidating] = useState(true)
+
+  // Pyodide 로딩 상태 추적 (Bug #4 Fix)
+  const { isLoaded: isPyodideLoaded } = usePyodide()
 
   // Store에서 상태 관리
   const {
@@ -53,9 +57,15 @@ export const DataValidationStep = memo(function DataValidationStep({
     [columnStats]
   )
 
-  // 가정 검정 수행 (Issue #2 Fix)
+  // 가정 검정 수행 (Issue #2 Fix + Bug #4, #5 Fix)
   useEffect(() => {
-    if (!data || !validationResults) return
+    // Bug #4 Fix: Pyodide 초기화 대기
+    if (!data || !validationResults || !isPyodideLoaded) {
+      if (!isPyodideLoaded) {
+        logger.info('Waiting for Pyodide to load before assumption tests')
+      }
+      return
+    }
 
     const performAssumptionTests = async () => {
       try {
@@ -108,6 +118,8 @@ export const DataValidationStep = memo(function DataValidationStep({
             }
           } catch (error) {
             logger.warn('Shapiro-Wilk test failed', { error })
+            // Bug #5 Fix: 실패 시 이전 결과 무효화
+            setAssumptionResults(null)
           }
 
           // 2-2. Levene 등분산성 검정 (그룹 변수가 있을 때)
@@ -151,29 +163,37 @@ export const DataValidationStep = memo(function DataValidationStep({
               }
             } catch (error) {
               logger.warn('Levene test failed', { error })
+              // Bug #5 Fix: 실패 시 이전 결과 무효화
+              setAssumptionResults(null)
             }
           }
 
-          // 3. 가정 검정 결과 스토어에 저장 (Issue #2 Fix)
+          // 3. 가정 검정 결과 스토어에 저장 (Issue #2 Fix + Bug #5 Fix)
           if (Object.keys(assumptions).length > 0) {
             setAssumptionResults(assumptions)
             logger.info('Assumption results saved to store', { assumptions })
           } else {
+            // Bug #5 Fix: 가정 검정 실패/스킵 시 이전 결과 무효화
+            setAssumptionResults(null)
             logger.warn('No assumption tests were performed (insufficient data)')
           }
         } else {
+          // Bug #5 Fix: 수치형 변수 없을 때 이전 결과 무효화
+          setAssumptionResults(null)
           logger.info('Skipping assumption tests (no numeric columns)')
         }
 
         setIsValidating(false)
       } catch (error) {
         logger.error('Assumption tests failed', { error })
+        // Bug #5 Fix: 에러 발생 시 이전 결과 무효화
+        setAssumptionResults(null)
         setIsValidating(false)
       }
     }
 
     performAssumptionTests()
-  }, [data, validationResults, categoricalColumns, numericColumns, setDataCharacteristics, setAssumptionResults])
+  }, [data, validationResults, categoricalColumns, numericColumns, isPyodideLoaded, setDataCharacteristics, setAssumptionResults])
 
   if (!validationResults || !data) {
     return (
