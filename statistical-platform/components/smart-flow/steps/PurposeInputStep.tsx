@@ -230,10 +230,16 @@ export function PurposeInputStep({
 
       {/* 분석 목적 선택 (Decision Tree) */}
       <div>
-        <h3 className="text-lg font-semibold mb-3">
+        <h3 className="text-lg font-semibold mb-3" id="purpose-selection-label">
           어떤 분석을 하고 싶으신가요?
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* ✅ Issue #3 Fix: ARIA radio group semantics */}
+        <div
+          role="radiogroup"
+          aria-labelledby="purpose-selection-label"
+          aria-describedby="purpose-selection-help"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
           {ANALYSIS_PURPOSES.map((purpose, index) => (
             <div
               key={purpose.id}
@@ -254,6 +260,10 @@ export function PurposeInputStep({
               />
             </div>
           ))}
+        </div>
+        {/* Screen reader용 추가 설명 */}
+        <div id="purpose-selection-help" className="sr-only">
+          5개 중 하나의 분석 목적을 선택하세요. 선택하면 AI가 최적의 통계 방법을 추천합니다.
         </div>
       </div>
 

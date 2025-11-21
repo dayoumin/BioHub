@@ -18,7 +18,14 @@ import { useState, useEffect } from 'react'
  * ```
  */
 export function useReducedMotion(): boolean {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  // ✅ Issue #2 Fix: SSR-safe 초기값 lazy initialization
+  // prefers-reduced-motion 설정을 첫 렌더링부터 반영하여 애니메이션 플래시 방지
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return false
+    }
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
 
   useEffect(() => {
     // matchMedia 지원 여부 확인 (SSR/구형 브라우저)
@@ -28,7 +35,7 @@ export function useReducedMotion(): boolean {
 
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
 
-    // 초기 값 설정
+    // 초기 값 설정 (lazy initializer와 동기화 보장)
     setPrefersReducedMotion(mediaQuery.matches)
 
     // 실시간 변경 감지 (사용자가 OS 설정을 바꿀 때)
@@ -36,11 +43,24 @@ export function useReducedMotion(): boolean {
       setPrefersReducedMotion(event.matches)
     }
 
-    // 이벤트 리스너 등록
-    mediaQuery.addEventListener('change', handleChange)
+    // ✅ Issue #1 Fix: Safari ≤13 및 구형 브라우저 대응
+    // addEventListener가 없으면 addListener (deprecated API) 사용
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange)
+    } else {
+      // Legacy API (Safari ≤13, Android WebView 구형)
+      // @ts-ignore - addListener는 deprecated이지만 구형 브라우저에서 필요
+      mediaQuery.addListener(handleChange)
+    }
 
     return () => {
-      mediaQuery.removeEventListener('change', handleChange)
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleChange)
+      } else {
+        // Legacy API cleanup
+        // @ts-ignore
+        mediaQuery.removeListener(handleChange)
+      }
     }
   }, [])
 

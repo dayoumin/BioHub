@@ -72,9 +72,9 @@ export function PurposeCard({
       )}
       onClick={disabled ? undefined : onClick}
       onKeyDown={disabled ? undefined : handleKeyDown}
-      role="button"
+      role="radio"
       tabIndex={disabled ? -1 : 0}
-      aria-pressed={selected}
+      aria-checked={selected}
       aria-disabled={disabled}
     >
       <CardHeader className="pb-3">
