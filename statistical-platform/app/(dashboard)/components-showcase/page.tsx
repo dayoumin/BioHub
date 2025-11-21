@@ -18,6 +18,7 @@ import { useState } from 'react'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
+import { VariableSelectorSimple } from '@/components/common/VariableSelectorSimple'
 import { GitCompare, TrendingUp, PieChart, LineChart, Clock, Play, Pause } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -53,6 +54,15 @@ export default function ComponentsShowcasePage() {
     setIsProgressing(false)
   }
 
+  // VariableSelectorSimple 샘플 데이터
+  const sampleData = [
+    { group: 'A', value: 12.5, age: 25, score: 85, time: 120 },
+    { group: 'B', value: 10.3, age: 22, score: 78, time: 105 },
+    { group: 'A', value: 13.2, age: 28, score: 92, time: 135 },
+    { group: 'B', value: 9.7, age: 20, score: 73, time: 98 },
+    { group: 'A', value: 11.8, age: 26, score: 88, time: 125 }
+  ]
+
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* 페이지 헤더 */}
@@ -69,10 +79,11 @@ export default function ComponentsShowcasePage() {
       </div>
 
       <Tabs defaultValue="purpose-card" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="purpose-card">PurposeCard</TabsTrigger>
           <TabsTrigger value="ai-progress">AIAnalysisProgress</TabsTrigger>
           <TabsTrigger value="data-profile">DataProfileSummary</TabsTrigger>
+          <TabsTrigger value="variable-selector">VariableSelector</TabsTrigger>
         </TabsList>
 
         {/* ========================================
@@ -504,6 +515,148 @@ export default function ComponentsShowcasePage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========================================
+            4. VariableSelectorSimple 쇼케이스
+        ======================================== */}
+        <TabsContent value="variable-selector" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>VariableSelectorSimple - 초간단 변수 선택</CardTitle>
+              <CardDescription>
+                사용처: 스마트 분석, 개별 통계 페이지 변수 선택
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* 기본 사용 예제 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">기본 사용 예제</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  드래그앤드롭 없이 버튼 클릭만으로 변수 선택
+                </p>
+                <VariableSelectorSimple
+                  data={sampleData}
+                  onComplete={(selection) => {
+                    alert(`종속변수: ${selection.dependent}\n독립변수: ${selection.independent}`)
+                  }}
+                  title="변수 선택 데모"
+                  description="아래 버튼을 클릭하여 변수를 선택하세요"
+                />
+              </div>
+
+              {/* 디자인 특징 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">디자인 특징</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <h4 className="font-medium mb-2">✅ 장점</h4>
+                      <ul className="text-sm space-y-1 list-disc list-inside">
+                        <li>드래그앤드롭 제거 (번거로움 해소)</li>
+                        <li>할당 개념 제거 (초보자 친화적)</li>
+                        <li>버튼 클릭만으로 선택 (가장 직관적)</li>
+                        <li>한 화면에 모든 정보</li>
+                        <li>선택 상태 즉시 확인</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-6">
+                      <h4 className="font-medium mb-2">🎯 사용 시나리오</h4>
+                      <ul className="text-sm space-y-1 list-disc list-inside">
+                        <li>스마트 분석 변수 선택</li>
+                        <li>단순 회귀 분석</li>
+                        <li>상관 분석</li>
+                        <li>t-검정 (2변수)</li>
+                        <li>모든 기본 통계 분석</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Props 테이블 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Props 명세</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border rounded-lg">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="p-2 text-left">Prop</th>
+                        <th className="p-2 text-left">타입</th>
+                        <th className="p-2 text-left">필수</th>
+                        <th className="p-2 text-left">설명</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">data</td>
+                        <td className="p-2 font-mono text-xs">Record&lt;string, unknown&gt;[]</td>
+                        <td className="p-2">✅</td>
+                        <td className="p-2">분석할 데이터</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">onComplete</td>
+                        <td className="p-2 font-mono text-xs">(selection) =&gt; void</td>
+                        <td className="p-2">✅</td>
+                        <td className="p-2">선택 완료 콜백</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">onBack</td>
+                        <td className="p-2 font-mono text-xs">() =&gt; void?</td>
+                        <td className="p-2">❌</td>
+                        <td className="p-2">이전 버튼 핸들러</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">title</td>
+                        <td className="p-2 font-mono text-xs">string?</td>
+                        <td className="p-2">❌</td>
+                        <td className="p-2">제목 (기본: '변수 선택')</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">description</td>
+                        <td className="p-2 font-mono text-xs">string?</td>
+                        <td className="p-2">❌</td>
+                        <td className="p-2">설명 텍스트</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">className</td>
+                        <td className="p-2 font-mono text-xs">string?</td>
+                        <td className="p-2">❌</td>
+                        <td className="p-2">추가 CSS 클래스</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 사용 예제 코드 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">사용 예제 코드</h3>
+                <pre className="text-xs bg-muted p-4 rounded-md overflow-auto">
+{`import { VariableSelectorSimple } from '@/components/common/VariableSelectorSimple'
+
+function MyComponent() {
+  const [data, setData] = useState([...])
+
+  return (
+    <VariableSelectorSimple
+      data={data}
+      onComplete={(selection) => {
+        console.log('종속변수:', selection.dependent)
+        console.log('독립변수:', selection.independent)
+        // 분석 로직 실행
+      }}
+      onBack={() => goToPreviousStep()}
+    />
+  )
+}`}
+                </pre>
               </div>
             </CardContent>
           </Card>

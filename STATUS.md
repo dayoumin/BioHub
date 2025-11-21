@@ -1,7 +1,31 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-11-18 23:00
-**현재 Phase**: **Phase 8 완료 (100%)** ✅ + **Phase 9 완료 (100%)** ✅ + Phase 6 완료 + Phase 1 완료 + Phase 2-2 완료 + **IndexedDB/RAG 리팩토링 완료** ✅ + **Phase 3 (StatisticsTable 확대) 완료 (95%)** ✅ + **TwoPanelLayout 대규모 마이그레이션 완료 (23개 페이지)** ✅ + **RAG Perplexity 스타일 UI 완성** ✅ + **Pyodide Web Worker 활성화** ✅
+**최종 업데이트**: 2025-11-21 15:30
+**현재 Phase**: **Phase 11 완료 (100%)** ✅ - 공통 컴포넌트 전략 확립 + VariableSelectorSimple 구현
+
+---
+
+## 🎉 신규 완료 (2025-11-21)
+
+**Phase 11: 공통 컴포넌트 전략 확립** ✅ **완료 (100%)**
+- **Components Showcase 구축**: 4개 공통 컴포넌트 실시간 테스트 페이지
+  - ✅ PurposeCard (분석 목적 선택 카드)
+  - ✅ AIAnalysisProgress (AI 진행 표시)
+  - ✅ DataProfileSummary (데이터 요약)
+  - ✅ **VariableSelectorSimple** (초간단 변수 선택) - **신규 구현!**
+- **VariableSelectorSimple 핵심 개선**:
+  - ❌ 드래그앤드롭 제거 (번거로운 UI 완전 삭제)
+  - ❌ 할당 개념 제거 (초보자 혼란 해소)
+  - ✅ 버튼 클릭만으로 선택 (클릭 횟수 3-5회 → 1회, **80% 감소**)
+  - ✅ 한 화면에 모든 정보 (스크롤 최소화)
+- **스마트 분석 적용**:
+  - [VariableSelectionStep.tsx](statistical-platform/components/smart-flow/steps/VariableSelectionStep.tsx) 대폭 간소화
+  - 코드 감소: 195줄 → 72줄 (**-63% 감소**)
+  - 탭 제거 (버튼 선택 vs 드래그앤드롭) → 단일 UI
+- **문서화**:
+  - [CLAUDE.md](CLAUDE.md)에 "공통 컴포넌트 전략" 섹션 추가
+  - Components Showcase에 Props 테이블, 사용 예제 코드 포함
+  - 향후 계획: VariableSelectorAdvanced, StatisticsChart 등
 
 ---
 

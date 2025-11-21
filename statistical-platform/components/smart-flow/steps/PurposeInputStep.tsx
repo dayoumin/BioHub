@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
@@ -20,9 +21,10 @@ import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
+import { ollamaRecommender } from '@/lib/services/ollama-recommender'
 
 /**
- * Phase 2: PurposeInputStep 완전 재설계
+ * Phase 4-B: PurposeInputStep 하이브리드 추천 시스템
  *
  * 변경 사항:
  * 1. ❌ Textarea 제거
@@ -31,6 +33,7 @@ import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommende
  * 4. ✅ isAnalyzing 명시적 표시
  * 5. ✅ "이 방법으로 분석하기" 버튼으로 Step 4 분리
  * 6. ✅ Accordion으로 상세 정보 접기/펼치기
+ * 7. ✅ Phase 4-B: Hybrid Recommender (Ollama → DecisionTree 폴백)
  */
 
 const ANALYSIS_PURPOSES = [
@@ -113,23 +116,11 @@ export function PurposeInputStep({
     }
   }, [validationResults, data])
 
-  // Decision Tree 기반 AI 추천 (Phase 4-A)
+  // Phase 4-B: 하이브리드 AI 추천 (Ollama → DecisionTree 폴백)
   const analyzeAndRecommend = useCallback(async (purpose: AnalysisPurpose): Promise<AIRecommendation | null> => {
     try {
       setIsAnalyzing(true)
       setAiProgress(0)
-
-      // Step 1: 데이터 특성 분석
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setAiProgress(30)
-
-      // Step 2: 통계 가정 검정
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setAiProgress(60)
-
-      // Step 3: DecisionTree 추천
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setAiProgress(100)
 
       // ✅ 데이터 검증
       if (!data || data.length === 0) {
@@ -142,6 +133,7 @@ export function PurposeInputStep({
         logger.warn('assumptionResults is null, using basic recommendation')
 
         // 가정 검정 없이 기본 추천 (비모수 검정 우선)
+        setAiProgress(100)
         return DecisionTreeRecommender.recommendWithoutAssumptions(
           purpose,
           validationResults,
@@ -149,15 +141,60 @@ export function PurposeInputStep({
         )
       }
 
-      // ✅ assumptionResults 사용 가능 - DecisionTree 추천
-      return DecisionTreeRecommender.recommend(
+      // Step 1: Ollama Health Check
+      setAiProgress(20)
+      const ollamaAvailable = await ollamaRecommender.checkHealth()
+
+      if (ollamaAvailable) {
+        // ✅ Ollama 사용 가능 → LLM 추천 (95% 정확도)
+        logger.info('[Hybrid] Using Ollama LLM for recommendation')
+
+        setAiProgress(40)
+        const ollamaResult = await ollamaRecommender.recommend(
+          purpose,
+          assumptionResults,
+          validationResults,
+          data
+        )
+
+        setAiProgress(100)
+
+        if (ollamaResult) {
+          logger.info('[Hybrid] Ollama recommendation SUCCESS', {
+            method: ollamaResult.method.id,
+            confidence: ollamaResult.confidence
+          })
+          return ollamaResult
+        } else {
+          // Ollama 응답 파싱 실패 → DecisionTree 폴백
+          logger.warn('[Hybrid] Ollama parsing failed, falling back to DecisionTree')
+          setAiProgress(60)
+        }
+      } else {
+        // ✅ Ollama 사용 불가 → DecisionTree 폴백 (85-89% 정확도)
+        logger.info('[Hybrid] Ollama unavailable, using DecisionTree')
+        setAiProgress(60)
+      }
+
+      // Step 2: DecisionTree 폴백
+      setAiProgress(80)
+      const decisionTreeResult = DecisionTreeRecommender.recommend(
         purpose,
         assumptionResults,
         validationResults,
         data
       )
+
+      setAiProgress(100)
+
+      logger.info('[Hybrid] DecisionTree recommendation SUCCESS', {
+        method: decisionTreeResult.method.id,
+        confidence: decisionTreeResult.confidence
+      })
+
+      return decisionTreeResult
     } catch (error) {
-      logger.error('AI 분석 중 오류 발생', { error })
+      logger.error('[Hybrid] AI 분석 중 오류 발생', { error })
       // 에러 시 null 반환 (UI에서 에러 메시지 표시)
       return null
     } finally {
@@ -264,7 +301,7 @@ export function PurposeInputStep({
       {isAnalyzing && (
         <AIAnalysisProgress
           progress={aiProgress}
-          title="AI가 최적의 통계 방법을 찾고 있습니다..."
+          title="데이터 분석 중..."
         />
       )}
 
@@ -277,6 +314,12 @@ export function PurposeInputStep({
                 <CardTitle className="flex items-center gap-2">
                   <Check className="w-5 h-5 text-primary" />
                   추천: {recommendation.method.name}
+                  {/* 출처 배지: Ollama 사용 여부 표시 */}
+                  {recommendation.confidence >= 0.95 ? (
+                    <Badge variant="default" className="text-xs">LLM</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">Rule-based</Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
                   신뢰도: {(recommendation.confidence * 100).toFixed(0)}%

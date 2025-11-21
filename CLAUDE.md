@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    // ✅ 권장: import { PostHocComparison } from '@/types/statistics'
    ```
 
-3. ✅ **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard 등 사용 (`<table>` 직접 사용 금지)
+3. ✅ **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard, VariableSelectorSimple 등 사용 (`<table>` 직접 사용 금지)
 
 **표준 Role 매핑** (SPSS/R/SAS 표준):
 | variable-requirements.ts | types/statistics.ts | ❌ 금지 |
@@ -43,6 +43,80 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **필드명 규칙**: camelCase (pValue, ciLower, ciUpper) ✅ | snake_case (p_value, ci_lower) ❌
 
 **상세**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - Section 17-19
+
+---
+
+## 🎨 공통 컴포넌트 전략 (2025-11-21 신규)
+
+**목표**: 컴포넌트 재사용성 극대화 + 일관된 UX + 유지보수 효율화
+
+### 📦 현재 공통 컴포넌트 목록
+
+**1. 분석 관련 컴포넌트** (`components/common/analysis/`)
+- ✅ **PurposeCard** - 선택 가능한 카드 (분석 목적, 방법 선택)
+- ✅ **AIAnalysisProgress** - AI 분석 진행 표시 (프로그레스 바 + 단계)
+- ✅ **DataProfileSummary** - 데이터 요약 표시 (표본 크기, 변수 타입)
+
+**2. 변수 선택 컴포넌트** (`components/common/`)
+- ✅ **VariableSelectorSimple** - 초간단 변수 선택 (버튼 클릭만, 드래그앤드롭 제거)
+  - 사용처: 스마트 분석, 개별 통계 페이지 (2변수 분석)
+  - 디자인 철학: 드래그앤드롭 없음, 할당 개념 없음, 버튼 클릭만
+
+**3. 통계 결과 컴포넌트** (`components/common/statistics/`)
+- ✅ **StatisticsTable** - 통계 결과 테이블 (내보내기, 정렬 기능)
+- ✅ **EffectSizeCard** - 효과 크기 표시
+- ✅ **AssumptionTestCard** - 가정 검정 결과 표시
+
+### 🔧 공통 컴포넌트 개발 워크플로우
+
+**1단계: Components Showcase에서 개발**
+```bash
+npm run dev
+# → http://localhost:3004/components-showcase
+```
+- 새 컴포넌트 작성
+- Showcase 페이지에 탭 추가
+- 다양한 Props 조합 테스트
+- 실시간 확인 (HMR 지원)
+
+**2단계: 실제 페이지에 적용**
+- 스마트 분석 먼저 적용 (가장 많이 사용)
+- 개별 통계 페이지에 점진적 적용
+- 피드백 수집 → Showcase 업데이트
+
+**3단계: 문서화**
+- Showcase 페이지에 Props 테이블 추가
+- 사용 예제 코드 추가
+- 디자인 특징/사용 시나리오 명시
+
+### 📋 공통 컴포넌트 작성 규칙
+
+**필수 규칙**:
+1. ✅ **TypeScript 엄격 모드**: `any` 금지, 모든 Props 타입 명시
+2. ✅ **shadcn/ui 기반**: 기존 디자인 시스템 준수
+3. ✅ **접근성 고려**: ARIA 속성, 키보드 네비게이션
+4. ✅ **반응형 디자인**: 모바일/태블릿/데스크탑 모두 지원
+5. ✅ **에러 처리**: 잘못된 Props에 대한 fallback
+
+**파일 위치**:
+- 분석 관련: `components/common/analysis/`
+- 변수 선택: `components/common/`
+- 통계 결과: `components/common/statistics/`
+- UI 기본: `components/ui/` (shadcn/ui)
+
+### 🚀 향후 계획
+
+**우선순위 높음**:
+- [ ] **VariableSelectorAdvanced** - 다중 변수 선택 (ANOVA, MANOVA용)
+- [ ] **StatisticsChart** - 공통 차트 컴포넌트 (Box Plot, Histogram)
+- [ ] **ResultExportButton** - 통합 내보내기 버튼 (CSV, PNG, PDF)
+
+**우선순위 중간**:
+- [ ] **DataValidationAlert** - 데이터 검증 결과 표시
+- [ ] **MethodComparisonCard** - 통계 방법 비교 카드
+- [ ] **PostHocTable** - 사후 검정 결과 테이블
+
+**참고**: 모든 새 컴포넌트는 `components-showcase` 페이지에 먼저 추가!
 
 ---
 

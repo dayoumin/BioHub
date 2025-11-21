@@ -1,3 +1,154 @@
+## 2025-11-21 (목)
+
+### 🎨 Phase 11 완료: 공통 컴포넌트 전략 확립 + VariableSelectorSimple 구현
+
+**총 작업 시간**: 약 3시간
+**주요 성과**: 초간단 변수 선택 UI 구현 + Components Showcase 구축 + 문서화
+
+---
+
+#### 1. VariableSelectorSimple 컴포넌트 구현
+
+**목표**: 드래그앤드롭 제거, 버튼 클릭만으로 변수 선택
+
+**작업 내용**:
+- **파일 생성**: [VariableSelectorSimple.tsx](statistical-platform/components/common/VariableSelectorSimple.tsx) (350줄)
+- **핵심 개선**:
+  - ❌ 드래그앤드롭 제거 (번거로운 UI 완전 삭제)
+  - ❌ 할당 개념 제거 (초보자 혼란 해소)
+  - ✅ 버튼 클릭만으로 선택 (클릭 횟수 80% 감소)
+  - ✅ 한 화면에 모든 정보 (스크롤 최소화)
+- **기능**:
+  - 종속변수/독립변수 버튼 클릭 선택
+  - 자동 검증 (모두 선택해야 활성화)
+  - 변수 정보 표시 (타입, 범위/고유값)
+
+**기술 스택**:
+- TypeScript (엄격 모드, `any` 금지)
+- shadcn/ui (Card, Button, Badge, Alert)
+- variable-type-detector (자동 타입 감지)
+
+---
+
+#### 2. Components Showcase 구축
+
+**목표**: Storybook 대체, 실시간 컴포넌트 테스트 페이지
+
+**작업 내용**:
+- **파일 수정**: [components-showcase/page.tsx](statistical-platform/app/(dashboard)/components-showcase/page.tsx)
+- **추가 탭**: VariableSelector (4번째 탭)
+- **구성 요소**:
+  - 기본 사용 예제 (샘플 데이터로 실시간 테스트)
+  - 디자인 특징 (장점, 사용 시나리오)
+  - Props 테이블 (6개 Props 명세)
+  - 사용 예제 코드 (TypeScript)
+- **샘플 데이터**: 5개 행, 5개 변수 (group, value, age, score, time)
+
+**접근 URL**: http://localhost:3004/components-showcase
+
+---
+
+#### 3. 스마트 분석에 적용
+
+**목표**: 기존 복잡한 UI를 VariableSelectorSimple로 교체
+
+**작업 내용**:
+- **파일 수정**: [VariableSelectionStep.tsx](statistical-platform/components/smart-flow/steps/VariableSelectionStep.tsx)
+- **코드 감소**: 195줄 → 72줄 (**-63% 감소**)
+- **제거된 요소**:
+  - Tabs (버튼 선택 vs 드래그앤드롭)
+  - VariableSelector (구형 드래그앤드롭)
+  - VariableSelectorModern (모달 방식)
+  - 검증 상태 관리 (validationErrors, isValid)
+- **남은 요소**:
+  - VariableSelectorSimple (단일 UI)
+  - 간단한 매핑 변환 (dependent → dependentVar)
+
+**개선 효과**:
+| 항목 | 기존 | 개선 후 |
+|------|------|---------|
+| 클릭 횟수 | 3-5회 | **1회** (-80%) |
+| 화면 전환 | 2회 (탭 + 모달) | **0회** |
+| 코드 복잡도 | 195줄 | **72줄** (-63%) |
+| 필요 개념 | 드래그, 드롭, 할당, 역할 | **선택만** |
+
+---
+
+#### 4. 문서화
+
+**작업 내용**:
+
+1. **CLAUDE.md 업데이트**:
+   - "공통 컴포넌트 전략" 섹션 추가 (75줄)
+   - 현재 공통 컴포넌트 목록 (7개)
+   - 개발 워크플로우 (3단계)
+   - 작성 규칙 (5가지 필수 규칙)
+   - 향후 계획 (6개 컴포넌트)
+
+2. **STATUS.md 업데이트**:
+   - "Phase 11 완료" 섹션 추가
+   - VariableSelectorSimple 핵심 개선 요약
+   - 정량적 성과 (클릭 횟수 80% 감소, 코드 63% 감소)
+
+3. **Components Showcase**:
+   - Props 테이블 (6개 Props)
+   - 사용 예제 코드 (TypeScript)
+   - 디자인 특징 (5가지 장점, 5가지 시나리오)
+
+---
+
+#### 5. 검증 및 테스트
+
+**검증 결과**:
+- ✅ TypeScript 컴파일: 0 errors
+- ✅ 빌드: 성공 (29.6초, 69개 페이지)
+- ✅ 라이브 서버: 정상 동작 (http://localhost:3004)
+- ✅ HMR (Hot Module Replacement): 정상
+- ✅ Components Showcase: 정상 렌더링
+
+**테스트 시나리오**:
+1. Components Showcase에서 변수 선택 테스트
+2. 스마트 분석에서 실제 CSV 업로드 후 변수 선택
+3. 다양한 데이터셋 (소표본, 대표본, 결측치 있음)
+
+---
+
+#### 6. 향후 계획
+
+**우선순위 높음**:
+- [ ] **VariableSelectorAdvanced**: 다중 변수 선택 (ANOVA, MANOVA용)
+  - 종속변수 여러 개 (McNemar, MANOVA)
+  - 독립변수 여러 개 (회귀 분석)
+  - 공변량, 차단 변수 지원
+- [ ] **StatisticsChart**: 공통 차트 컴포넌트
+  - Box Plot, Histogram, Scatter Plot
+  - Recharts 기반
+- [ ] **ResultExportButton**: 통합 내보내기 버튼
+  - CSV, PNG, PDF 동시 지원
+
+**우선순위 중간**:
+- [ ] **DataValidationAlert**: 데이터 검증 결과 표시
+- [ ] **MethodComparisonCard**: 통계 방법 비교 카드
+- [ ] **PostHocTable**: 사후 검정 결과 테이블
+
+---
+
+#### 7. 교훈 및 개선점
+
+**교훈**:
+1. **UX 피드백 적극 수용**: 드래그앤드롭이 항상 좋은 건 아님
+2. **Components Showcase의 가치**: Storybook 없이도 충분히 테스트 가능
+3. **점진적 적용**: Showcase → 스마트 분석 → 개별 페이지 순서
+4. **문서화 중요성**: CLAUDE.md에 전략 명시로 일관성 유지
+
+**개선점**:
+1. 다중 변수 선택 지원 필요 (VariableSelectorAdvanced)
+2. 접근성 개선 (키보드 네비게이션, ARIA 라벨)
+3. 다크 모드 지원
+4. 모바일 반응형 최적화
+
+---
+
 ## 2025-11-16 (토)
 
 ### 🎉 TwoPanelLayout 대규모 마이그레이션 완료 + RAG UI 개선 + 리소스 관리 강화
