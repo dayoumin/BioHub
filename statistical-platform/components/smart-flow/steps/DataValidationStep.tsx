@@ -2,12 +2,14 @@
 
 import { memo, useMemo, useState, useEffect } from 'react'
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
-import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import { logger } from '@/lib/utils/logger'
 
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
@@ -51,33 +53,127 @@ export const DataValidationStep = memo(function DataValidationStep({
     [columnStats]
   )
 
-  // 빠른 검증 (1초 딜레이 + Skeleton)
+  // 가정 검정 수행 (Issue #2 Fix)
   useEffect(() => {
     if (!data || !validationResults) return
 
-    const validateQuickly = async () => {
-      // 1초 딜레이 (Skeleton 표시)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+    const performAssumptionTests = async () => {
+      try {
+        // 1. 기본 데이터 특성 저장
+        const characteristics = {
+          sampleSize: data.length,
+          structure: 'wide' as const,
+          studyDesign: 'cross-sectional' as const,
+          columns: [],
+          groupCount: categoricalColumns.length > 0 ? 2 : 1,
+          hasTimeComponent: false,
+          hasPairedData: false,
+          hasRepeatedMeasures: false,
+          recommendations: []
+        }
+        setDataCharacteristics(characteristics)
 
-      // 기본 데이터 특성만 저장 (무거운 분석은 Step 3에서)
-      const characteristics = {
-        sampleSize: data.length,
-        structure: 'wide' as const,
-        studyDesign: 'cross-sectional' as const,
-        columns: [],
-        groupCount: categoricalColumns.length > 0 ? 2 : 1,
-        hasTimeComponent: false,
-        hasPairedData: false,
-        hasRepeatedMeasures: false,
-        recommendations: []
+        // 2. 가정 검정 수행 (수치형 변수가 있을 때만)
+        if (numericColumns.length > 0) {
+          logger.info('Starting assumption tests', {
+            numericColumns: numericColumns.length
+          })
+
+          const pyodideCore = PyodideCoreService.getInstance()
+          const assumptions: StatisticalAssumptions = {}
+
+          // 2-1. Shapiro-Wilk 정규성 검정 (첫 번째 수치형 변수)
+          try {
+            const firstNumericCol = numericColumns[0].name
+            const numericData = data
+              .map(row => row[firstNumericCol])
+              .filter((val): val is number => typeof val === 'number' && !isNaN(val))
+
+            if (numericData.length >= 3) {
+              const shapiroResult = await pyodideCore.shapiroWilkTest(numericData)
+
+              if (shapiroResult.statistic !== undefined && shapiroResult.pValue !== undefined) {
+                assumptions.normality = {
+                  shapiroWilk: {
+                    statistic: shapiroResult.statistic,
+                    pValue: shapiroResult.pValue,
+                    isNormal: shapiroResult.pValue > 0.05
+                  }
+                }
+                logger.info('Shapiro-Wilk test completed', {
+                  pValue: shapiroResult.pValue,
+                  isNormal: shapiroResult.pValue > 0.05
+                })
+              }
+            }
+          } catch (error) {
+            logger.warn('Shapiro-Wilk test failed', { error })
+          }
+
+          // 2-2. Levene 등분산성 검정 (그룹 변수가 있을 때)
+          if (categoricalColumns.length > 0 && numericColumns.length > 0) {
+            try {
+              const groupCol = categoricalColumns[0].name
+              const numericCol = numericColumns[0].name
+
+              // 그룹별 데이터 분리
+              const groupMap = new Map<string, number[]>()
+              for (const row of data) {
+                const groupValue = String(row[groupCol])
+                const numericValue = row[numericCol]
+
+                if (typeof numericValue === 'number' && !isNaN(numericValue)) {
+                  if (!groupMap.has(groupValue)) {
+                    groupMap.set(groupValue, [])
+                  }
+                  groupMap.get(groupValue)!.push(numericValue)
+                }
+              }
+
+              // 2개 이상의 그룹이 있고, 각 그룹에 3개 이상의 데이터가 있을 때
+              const groups = Array.from(groupMap.values())
+              if (groups.length >= 2 && groups.every(g => g.length >= 3)) {
+                const leveneResult = await pyodideCore.leveneTest(groups)
+
+                if (leveneResult.statistic !== undefined && leveneResult.pValue !== undefined) {
+                  assumptions.homogeneity = {
+                    levene: {
+                      statistic: leveneResult.statistic,
+                      pValue: leveneResult.pValue,
+                      equalVariance: leveneResult.pValue > 0.05
+                    }
+                  }
+                  logger.info('Levene test completed', {
+                    pValue: leveneResult.pValue,
+                    equalVariance: leveneResult.pValue > 0.05
+                  })
+                }
+              }
+            } catch (error) {
+              logger.warn('Levene test failed', { error })
+            }
+          }
+
+          // 3. 가정 검정 결과 스토어에 저장 (Issue #2 Fix)
+          if (Object.keys(assumptions).length > 0) {
+            setAssumptionResults(assumptions)
+            logger.info('Assumption results saved to store', { assumptions })
+          } else {
+            logger.warn('No assumption tests were performed (insufficient data)')
+          }
+        } else {
+          logger.info('Skipping assumption tests (no numeric columns)')
+        }
+
+        setIsValidating(false)
+      } catch (error) {
+        logger.error('Assumption tests failed', { error })
+        setIsValidating(false)
       }
-      setDataCharacteristics(characteristics)
-
-      setIsValidating(false)
     }
 
-    validateQuickly()
-  }, [data, validationResults, categoricalColumns, setDataCharacteristics])
+    performAssumptionTests()
+  }, [data, validationResults, categoricalColumns, numericColumns, setDataCharacteristics, setAssumptionResults])
 
   if (!validationResults || !data) {
     return (

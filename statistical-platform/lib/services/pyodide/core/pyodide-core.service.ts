@@ -1339,6 +1339,14 @@ json.dumps(result)
   }
 
   /**
+   * Levene Test for Homogeneity of Variance
+   */
+  async leveneTest(groups: number[][]): Promise<StatisticsResult> {
+    await this.ensureWorker2Loaded()
+    return this.callWorkerMethod<StatisticsResult>(2, 'levene_test', { groups })
+  }
+
+  /**
    * Outlier Detection
    */
   async outlierDetection(data: number[], method?: 'iqr' | 'zscore' | 'isolation'): Promise<StatisticsResult> {
