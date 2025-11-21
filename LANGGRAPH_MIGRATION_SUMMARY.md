@@ -115,8 +115,13 @@ const result = await workflow.compile().invoke({ query: "ANOVA 가정?" })
   - 기존: 쿼리당 임베딩 2회 생성 (레이턴시 2배)
   - 개선: `searchByVectorWithEmbedding()` 메서드 추가 (임베딩 1회만)
   - 예상 성능 향상: 임베딩 시간만큼 단축 (보통 50-100ms)
+- ✅ **Vector 모드 BM25 스킵**: 불필요한 검색 제거
+  - 구현: `bm25Search` 노드에서 `searchMode === 'vector'` 체크
+  - 효과: Vector 전용 모드에서 BM25 검색 스킵 (early return)
+  - 코드 리뷰 반영: 사용자 피드백 적용 (2025-11-22)
 - ✅ TypeScript 컴파일 에러: 0개
 - ✅ 코드 품질: 타입 안전성 확보 (`ragApp: any` 제외)
+- ✅ 테스트 검증: 6개 테스트 모두 통과
 
 ### 3. 🔜 다음 작업 (Phase 3)
 

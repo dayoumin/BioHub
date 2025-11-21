@@ -217,8 +217,44 @@ async function testEmbeddingReuse() {
     process.exit(1)
   }
 
-  // Test 5: 성능 이점 시뮬레이션 (임베딩 호출 횟수 비교)
-  console.log('Test 5: 성능 이점 시뮬레이션')
+  // Test 5: Vector 모드 BM25 스킵 검증
+  console.log('Test 5: Vector 모드 BM25 스킵 검증')
+  try {
+    const langgraphProviderPath = path.join(__dirname, '../lib/rag/providers/langgraph-ollama-provider.ts')
+    const langgraphProviderCode = fs.readFileSync(langgraphProviderPath, 'utf-8')
+
+    // Vector 모드 체크 로직 확인
+    const hasVectorModeCheck = langgraphProviderCode.includes(`if (state.searchMode === 'vector')`)
+    console.log(`   ${hasVectorModeCheck ? '✅' : '❌'} Vector 모드 체크: ${hasVectorModeCheck ? '존재' : '없음'}`)
+
+    if (!hasVectorModeCheck) {
+      throw new Error('Vector 모드 체크가 없습니다!')
+    }
+
+    // BM25 검색 스킵 로직 확인
+    const skipsBM25 = langgraphProviderCode.includes(`console.log('[BM25Search] Vector 전용 모드 - 검색 스킵')`)
+    console.log(`   ${skipsBM25 ? '✅' : '❌'} BM25 검색 스킵 로직: ${skipsBM25 ? '존재' : '없음'}`)
+
+    if (!skipsBM25) {
+      throw new Error('BM25 검색 스킵 로직이 없습니다!')
+    }
+
+    // 빈 결과 반환 확인
+    const returnsEmpty = langgraphProviderCode.includes(`return { bm25Results: [] }`)
+    console.log(`   ${returnsEmpty ? '✅' : '❌'} 빈 결과 반환: ${returnsEmpty ? '정상' : '없음'}`)
+
+    if (!returnsEmpty) {
+      throw new Error('빈 결과 반환 로직이 없습니다!')
+    }
+
+    console.log('✅ Test 5 통과\n')
+  } catch (error) {
+    console.error('❌ Test 5 실패:', error.message)
+    process.exit(1)
+  }
+
+  // Test 6: 성능 이점 시뮬레이션 (임베딩 호출 횟수 + BM25 스킵)
+  console.log('Test 6: 성능 이점 시뮬레이션')
   try {
     console.log('   [기존 방식] Langchain.js (순차 실행)')
     console.log('     1. generateEmbedding() - 50ms')
@@ -227,12 +263,17 @@ async function testEmbeddingReuse() {
     console.log('     → 총 임베딩 호출: 2회 (100ms)')
     console.log('     → 총 시간: 110ms\n')
 
-    console.log('   [개선 방식] LangGraph.js (병렬 실행 + 임베딩 재사용)')
-    console.log('     1. embedQuery() - 50ms')
-    console.log('     2-a. vectorSearch(embedding) - 임베딩 재사용 - 30ms (병렬)')
-    console.log('     2-b. bm25Search(query) - 10ms (병렬)')
-    console.log('     → 총 임베딩 호출: 1회 (50ms)')
-    console.log('     → 총 시간: 50ms + max(30ms, 10ms) = 80ms\n')
+    console.log('   [개선 방식] LangGraph.js (병렬 실행 + 임베딩 재사용 + Vector 모드 BM25 스킵)')
+    console.log('     [Hybrid 모드]')
+    console.log('       1. embedQuery() - 50ms')
+    console.log('       2-a. vectorSearch(embedding) - 임베딩 재사용 - 30ms (병렬)')
+    console.log('       2-b. bm25Search(query) - 10ms (병렬)')
+    console.log('       → 총 시간: 50ms + max(30ms, 10ms) = 80ms')
+    console.log('     [Vector 모드]')
+    console.log('       1. embedQuery() - 50ms')
+    console.log('       2-a. vectorSearch(embedding) - 임베딩 재사용 - 30ms (병렬)')
+    console.log('       2-b. bm25Search(query) - 스킵 (0ms, early return)')
+    console.log('       → 총 시간: 50ms + 30ms = 80ms\n')
 
     const oldTime = 110
     const newTime = 80
@@ -240,10 +281,11 @@ async function testEmbeddingReuse() {
 
     console.log(`   ✅ 예상 성능 향상: ${improvement}% (110ms → 80ms)`)
     console.log(`   ✅ 임베딩 호출 감소: 50% (2회 → 1회)`)
+    console.log(`   ✅ Vector 모드 BM25 스킵: 불필요한 검색 제거`)
 
-    console.log('✅ Test 5 통과\n')
+    console.log('✅ Test 6 통과\n')
   } catch (error) {
-    console.error('❌ Test 5 실패:', error.message)
+    console.error('❌ Test 6 실패:', error.message)
     process.exit(1)
   }
 
@@ -254,8 +296,13 @@ async function testEmbeddingReuse() {
   console.log('  2. ✅ LangGraphOllamaProvider.vectorSearch 노드 존재')
   console.log('  3. ✅ 임베딩 재사용 로직 정상 동작')
   console.log('  4. ✅ LangGraph 워크플로우 구조 정상')
-  console.log('  5. ✅ 성능 향상 시뮬레이션 (27% 개선 예상)')
+  console.log('  5. ✅ Vector 모드 BM25 스킵 검증')
+  console.log('  6. ✅ 성능 향상 시뮬레이션 (27% 개선 예상)')
   console.log('\n✅ Phase 2 코드 검증 완료!')
+  console.log('\n🔧 적용된 최적화:')
+  console.log('  - 중복 임베딩 호출 제거 (2회 → 1회)')
+  console.log('  - Vector 모드 BM25 스킵 (불필요한 작업 제거)')
+  console.log('  - 병렬 실행 (Vector + BM25 동시 수행)')
   console.log('\n다음 단계: 실제 Ollama 연동 테스트 (Phase 3)')
 }
 

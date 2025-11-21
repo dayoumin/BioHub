@@ -144,8 +144,9 @@ export class LangGraphOllamaProvider extends OllamaRAGProvider {
           'hybrid': 'embedQuery',
         }
       )
+      // embedQuery 이후 조건부 분기 (vector는 vectorSearch만, hybrid는 둘 다)
       .addEdge('embedQuery', 'vectorSearch')
-      .addEdge('embedQuery', 'bm25Search') // 병렬 실행!
+      .addEdge('embedQuery', 'bm25Search')  // 병렬 실행 (bm25Search 내부에서 모드 체크)
       .addEdge('vectorSearch', 'mergeResults')
       .addEdge('bm25Search', 'mergeResults')
       .addEdge('mergeResults', 'generateAnswer')
@@ -206,11 +207,13 @@ export class LangGraphOllamaProvider extends OllamaRAGProvider {
 
   /**
    * 노드 4: BM25 키워드 검색
+   *
+   * Vector 전용 모드에서는 빈 결과 반환 (불필요한 검색 방지)
    */
   private async bm25Search(state: RAGStateType): Promise<Partial<RAGStateType>> {
-    // Vector 전용 모드에서는 BM25 검색 스킵
+    // Vector 전용 모드: BM25 검색 스킵
     if (state.searchMode === 'vector') {
-      console.log('[BM25Search] Vector 전용 모드 - BM25 검색 스킵')
+      console.log('[BM25Search] Vector 전용 모드 - 검색 스킵')
       return { bm25Results: [] }
     }
 
