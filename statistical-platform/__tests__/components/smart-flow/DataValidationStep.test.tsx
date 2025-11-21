@@ -60,8 +60,8 @@ describe('DataValidationStep Bug Fixes', () => {
       expect(result.current.map(c => c.name)).toEqual(['score', 'rating', 'category'])
     })
 
-    it('Levene 검정 시나리오: 그룹 변수와 측정 변수가 동일하면 에러 발생', () => {
-      // 시나리오: age가 uniqueValues=5로 categoricalColumns에 포함됨
+    it('Levene 검정 시나리오: 그룹 변수와 측정 변수가 동일하면 스킵되어야 함', () => {
+      // 시나리오: age가 uniqueValues=5로 categoricalColumns에 포함됨 (숫자 인코딩된 범주형)
       const columnStats = [
         { name: 'age', type: 'numeric', uniqueValues: 5 },  // categoricalColumns와 numericColumns 모두에 포함
         { name: 'height', type: 'numeric', uniqueValues: 50 }
@@ -79,10 +79,9 @@ describe('DataValidationStep Bug Fixes', () => {
       expect(categoricalColumns[0].name).toBe('age')
       expect(numericColumns[0].name).toBe('age')
 
-      // Levene 검정 시 그룹 변수와 측정 변수가 동일함을 감지해야 함
-      const groupCol = categoricalColumns[0].name
-      const numericCol = numericColumns[0].name
-      expect(groupCol).toBe(numericCol)  // 동일한 열 → 에러 발생해야 함
+      // 컴포넌트 로직: 그룹 변수는 측정 변수와 다른 열만 허용 → undefined면 스킵 처리
+      const groupCandidate = categoricalColumns.find(col => col.name !== numericColumns[0].name)
+      expect(groupCandidate).toBeUndefined()
     })
   })
 

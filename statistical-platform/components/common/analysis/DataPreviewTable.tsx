@@ -56,10 +56,17 @@ export function DataPreviewTable({
     return data.slice(0, maxRows)
   }, [data, maxRows])
 
-  // 컬럼 추출
+  // 컬럼 추출 (모든 행의 키 합집합)
   const columns = useMemo(() => {
     if (data.length === 0) return []
-    return Object.keys(data[0])
+
+    // 모든 행의 키를 수집하여 중복 제거
+    const allKeys = new Set<string>()
+    for (const row of data) {
+      Object.keys(row).forEach(key => allKeys.add(key))
+    }
+
+    return Array.from(allKeys)
   }, [data])
 
   if (data.length === 0) {
@@ -85,6 +92,9 @@ export function DataPreviewTable({
             size="sm"
             onClick={() => setIsOpen(!isOpen)}
             className="h-8 w-8 p-0"
+            aria-label={isOpen ? '데이터 테이블 접기' : '데이터 테이블 펼치기'}
+            aria-expanded={isOpen}
+            aria-controls="data-preview-table"
           >
             {isOpen ? (
               <ChevronUp className="w-4 h-4" />
@@ -99,8 +109,11 @@ export function DataPreviewTable({
         <CardContent>
           {/* 테이블 컨테이너 (가로/세로 스크롤) */}
           <div
+            id="data-preview-table"
             className="overflow-auto border rounded-md"
             style={{ maxHeight: height }}
+            role="region"
+            aria-label="데이터 미리보기 테이블"
           >
             <table className="w-full text-sm">
               <thead className="bg-muted/50 sticky top-0 z-10">
