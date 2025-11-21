@@ -14,10 +14,13 @@ import {
   DocumentInput,
 } from './providers/base-provider'
 import { OllamaRAGProvider, DBDocument } from './providers/ollama-provider'
+import { LangGraphOllamaProvider } from './providers/langgraph-ollama-provider'
 
-export type RAGProviderType = 'ollama'
+export type RAGProviderType = 'ollama' | 'langgraph'
 
 export interface RAGServiceConfig {
+  /** Provider 타입 선택 (기본: 'ollama') */
+  providerType?: RAGProviderType
   /** Vector Store ID (우선순위 1, 예: 'qwen3-embedding-0.6b') */
   vectorStoreId?: string
   /** 임베딩 모델 (우선순위 2, vectorStoreId가 없을 때 사용) */
@@ -39,7 +42,7 @@ export class RAGService {
   private config: RAGServiceConfig = {}
 
   private constructor() {
-    // Ollama Provider 고정 (내부망 전용)
+    // 기본 Provider: Ollama (내부망 전용)
     this.providerType = 'ollama'
   }
 
@@ -60,6 +63,7 @@ export class RAGService {
     // 설정이 변경되었으면 기존 provider 정리
     if (this.provider && config) {
       const hasConfigChanged =
+        config.providerType !== this.providerType ||
         config.vectorStoreId !== this.config.vectorStoreId ||
         config.embeddingModel !== this.config.embeddingModel ||
         config.inferenceModel !== this.config.inferenceModel
@@ -77,9 +81,13 @@ export class RAGService {
     // 설정 업데이트
     if (config) {
       this.config = { ...this.config, ...config }
+      if (config.providerType) {
+        this.providerType = config.providerType
+      }
     }
 
-    console.log('[RAGService] Ollama Provider 초기화 중...')
+    const providerName = this.providerType === 'langgraph' ? 'LangGraph' : 'Ollama'
+    console.log(`[RAGService] ${providerName} Provider 초기화 중...`)
 
     // vectorStoreId → vectorDbPath 변환
     let vectorDbPath = this.config.vectorDbPath || process.env.NEXT_PUBLIC_VECTOR_DB_PATH
@@ -91,9 +99,9 @@ export class RAGService {
       console.warn('[RAGService] ⚠️ vectorDbPath는 deprecated입니다. vectorStoreId 사용을 권장합니다.')
     }
 
-    // Ollama Provider 생성
-    this.provider = new OllamaRAGProvider({
-      name: 'Ollama (Local)',
+    // Provider 공통 설정
+    const providerConfig = {
+      name: this.providerType === 'langgraph' ? 'Ollama (LangGraph)' : 'Ollama (Local)',
       ollamaEndpoint:
         this.config.ollamaEndpoint ||
         process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT ||
@@ -106,11 +114,18 @@ export class RAGService {
         process.env.NEXT_PUBLIC_OLLAMA_INFERENCE_MODEL,
       vectorDbPath: vectorDbPath || '/rag-data/rag.db',
       topK: this.config.topK || parseInt(process.env.NEXT_PUBLIC_TOP_K || '5'),
-      testMode: process.env.NODE_ENV === 'test' // 테스트 환경에서 testMode 활성화
-    })
+      testMode: process.env.NODE_ENV === 'test', // 테스트 환경에서 testMode 활성화
+    }
+
+    // Provider 타입에 따라 생성
+    if (this.providerType === 'langgraph') {
+      this.provider = new LangGraphOllamaProvider(providerConfig)
+    } else {
+      this.provider = new OllamaRAGProvider(providerConfig)
+    }
 
     await this.provider.initialize()
-    console.log('[RAGService] Ollama Provider 초기화 완료')
+    console.log(`[RAGService] ${providerName} Provider 초기화 완료`)
   }
 
   /**
@@ -200,7 +215,8 @@ export class RAGService {
     if (!this.provider) {
       throw new Error('RAG Provider가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.')
     }
-    if (this.providerType !== 'ollama') {
+    // LangGraphOllamaProvider는 OllamaRAGProvider를 상속하므로 둘 다 허용
+    if (this.providerType !== 'ollama' && this.providerType !== 'langgraph') {
       throw new Error('현재 Provider는 OllamaRAGProvider가 아닙니다')
     }
     return this.provider as OllamaRAGProvider
