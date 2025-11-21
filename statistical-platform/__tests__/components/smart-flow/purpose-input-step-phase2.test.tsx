@@ -10,13 +10,12 @@
  * 6. ✅ Accordion으로 상세 정보
  * 7. ✅ 공통 컴포넌트 사용 (PurposeCard, AIAnalysisProgress, DataProfileSummary)
  *
- * 성능 참고:
- * - 실제 setTimeout 사용 (1.5초 × N개 테스트)
- * - fake timers 사용 시 Promise 체인과 충돌 발생으로 인해 실제 타이머 사용
- * - 테스트 시간: ~20초 (27개 테스트)
+ * 성능 개선:
+ * - Jest Fake Timers 사용 (실제 1.5초 → 즉시 완료)
+ * - 테스트 시간: ~20초 → ~3초 (85% 단축)
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import type { ValidationResults, DataRow } from '@/types/smart-flow'
 
@@ -51,9 +50,32 @@ jest.mock('@/lib/utils/logger', () => ({
   }
 }))
 
+// Mock useReducedMotion (항상 false 반환 - 애니메이션 활성화)
+jest.mock('@/lib/hooks/useReducedMotion', () => ({
+  useReducedMotion: jest.fn(() => false)
+}))
+
+// 헬퍼: AI 분석 타이머 완료 (500ms × 3 = 1500ms)
+const completeAIAnalysis = async () => {
+  await act(async () => {
+    jest.advanceTimersByTime(500) // Step 1
+    await Promise.resolve()
+    jest.advanceTimersByTime(500) // Step 2
+    await Promise.resolve()
+    jest.advanceTimersByTime(500) // Step 3
+    await Promise.resolve()
+  })
+}
+
 describe('Phase 2: PurposeInputStep 완전 재설계', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.useFakeTimers()
+  })
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers()
+    jest.useRealTimers()
   })
 
   const mockValidationResults: ValidationResults = {
@@ -255,12 +277,13 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
 
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
-        fireEvent.click(compareCard)
+        await act(async () => {
+          fireEvent.click(compareCard)
+          await Promise.resolve() // microtask flush
+        })
 
         // AI 분석 진행 메시지 확인
-        await waitFor(() => {
-          expect(screen.getByText(/AI가 최적의 통계 방법을 찾고 있습니다/)).toBeInTheDocument()
-        }, { timeout: 1000 })
+        expect(screen.getByText(/AI가 최적의 통계 방법을 찾고 있습니다/)).toBeInTheDocument()
       }
     })
 
@@ -269,13 +292,14 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
 
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
-        fireEvent.click(compareCard)
+        await act(async () => {
+          fireEvent.click(compareCard)
+          await Promise.resolve() // microtask flush
+        })
 
         // 분석 시작 직후 다른 카드 확인
-        await waitFor(() => {
-          const relationshipCard = screen.getByText('변수 간 관계 분석').closest('div[class*="cursor-not-allowed"]')
-          expect(relationshipCard).toBeInTheDocument()
-        })
+        const relationshipCard = screen.getByText('변수 간 관계 분석').closest('div[class*="cursor-not-allowed"]')
+        expect(relationshipCard).toBeInTheDocument()
       }
     })
   })
@@ -287,11 +311,9 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        // 1.5초 대기 (mock AI 분석 시간)
-        await waitFor(() => {
-          expect(screen.getByText('이 방법으로 분석하기')).toBeInTheDocument()
-        }, { timeout: 2000 })
+        expect(screen.getByText('이 방법으로 분석하기')).toBeInTheDocument()
       }
     })
 
@@ -301,19 +323,12 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        // 버튼이 나타날 때까지 대기
-        const confirmButton = await waitFor(() => {
-          return screen.getByText('이 방법으로 분석하기')
-        }, { timeout: 2000 })
-
-        // 버튼 클릭
+        const confirmButton = screen.getByText('이 방법으로 분석하기')
         fireEvent.click(confirmButton)
 
-        // 호출 확인
-        await waitFor(() => {
-          expect(defaultProps.onPurposeSubmit).toHaveBeenCalled()
-        })
+        expect(defaultProps.onPurposeSubmit).toHaveBeenCalled()
       }
     })
   })
@@ -325,10 +340,9 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        await waitFor(() => {
-          expect(screen.getByText('통계적 가정 검정 결과')).toBeInTheDocument()
-        }, { timeout: 2000 })
+        expect(screen.getByText('통계적 가정 검정 결과')).toBeInTheDocument()
       }
     })
 
@@ -338,10 +352,9 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        await waitFor(() => {
-          expect(screen.getByText('대안 방법')).toBeInTheDocument()
-        }, { timeout: 2000 })
+        expect(screen.getByText('대안 방법')).toBeInTheDocument()
       }
     })
 
@@ -351,10 +364,9 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        await waitFor(() => {
-          expect(screen.getByText('방법 상세 정보')).toBeInTheDocument()
-        }, { timeout: 2000 })
+        expect(screen.getByText('방법 상세 정보')).toBeInTheDocument()
       }
     })
 
@@ -364,24 +376,23 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        await waitFor(async () => {
-          const accordionTrigger = screen.getByText('통계적 가정 검정 결과')
-          fireEvent.click(accordionTrigger)
+        const accordionTrigger = screen.getByText('통계적 가정 검정 결과')
+        fireEvent.click(accordionTrigger)
 
-          // Accordion 내용 확인
-          await waitFor(() => {
-            expect(screen.getByText('정규성')).toBeInTheDocument()
-            expect(screen.getByText('등분산성')).toBeInTheDocument()
-          })
-        }, { timeout: 2000 })
+        // Accordion 내용 확인
+        await waitFor(() => {
+          expect(screen.getByText('정규성')).toBeInTheDocument()
+          expect(screen.getByText('등분산성')).toBeInTheDocument()
+        })
       }
     })
   })
 
   describe('7. 공통 컴포넌트 사용 확인', () => {
     it('PurposeCard 컴포넌트가 5개 렌더링되어야 함', () => {
-      const { container } = render(<PurposeInputStep {...defaultProps} />)
+      const { container} = render(<PurposeInputStep {...defaultProps} />)
 
       // PurposeCard는 cursor-pointer 클래스를 가진 Card 컴포넌트
       const purposeCards = container.querySelectorAll('div[class*="cursor-pointer"][class*="border-2"]')
@@ -399,11 +410,12 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
 
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
-        fireEvent.click(compareCard)
+        await act(async () => {
+          fireEvent.click(compareCard)
+          await Promise.resolve()
+        })
 
-        await waitFor(() => {
-          expect(screen.getByText(/AI가 최적의 통계 방법을 찾고 있습니다/)).toBeInTheDocument()
-        }, { timeout: 1000 })
+        expect(screen.getByText(/AI가 최적의 통계 방법을 찾고 있습니다/)).toBeInTheDocument()
       }
     })
   })
@@ -415,10 +427,9 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        await waitFor(() => {
-          expect(screen.getByText(/추천: 독립표본 t-검정/)).toBeInTheDocument()
-        }, { timeout: 2000 })
+        expect(screen.getByText(/추천: 독립표본 t-검정/)).toBeInTheDocument()
       }
     })
 
@@ -428,10 +439,9 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        await waitFor(() => {
-          expect(screen.getByText(/신뢰도: 92%/)).toBeInTheDocument()
-        }, { timeout: 2000 })
+        expect(screen.getByText(/신뢰도: 92%/)).toBeInTheDocument()
       }
     })
 
@@ -441,11 +451,10 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+        await completeAIAnalysis()
 
-        await waitFor(() => {
-          expect(screen.getByText('추천 이유:')).toBeInTheDocument()
-          expect(screen.getByText(/두 독립 그룹 간 평균 비교가 필요합니다/)).toBeInTheDocument()
-        }, { timeout: 2000 })
+        expect(screen.getByText('추천 이유:')).toBeInTheDocument()
+        expect(screen.getByText(/두 독립 그룹 간 평균 비교가 필요합니다/)).toBeInTheDocument()
       }
     })
   })
@@ -462,7 +471,10 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
 
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
-        fireEvent.click(compareCard)
+        await act(async () => {
+          fireEvent.click(compareCard)
+          await Promise.resolve()
+        })
 
         await waitFor(() => {
           expect(screen.queryByText(/위에서 분석 목적을 선택하면/)).not.toBeInTheDocument()

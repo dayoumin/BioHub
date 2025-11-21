@@ -18,6 +18,7 @@ import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
 import type { StatisticalMethod, AnalysisPurpose, AIRecommendation } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 
 /**
  * Phase 2: PurposeInputStep 완전 재설계
@@ -78,6 +79,9 @@ export function PurposeInputStep({
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [aiProgress, setAiProgress] = useState(0)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
+
+  // WCAG 2.3.3: prefers-reduced-motion 감지
+  const prefersReducedMotion = useReducedMotion()
 
   // Zustand store - setSelectedMethod만 사용
   const setSelectedMethod = useSmartFlowStore(state => state.setSelectedMethod)
@@ -233,8 +237,8 @@ export function PurposeInputStep({
           {ANALYSIS_PURPOSES.map((purpose, index) => (
             <div
               key={purpose.id}
-              className="animate-in fade-in slide-in-from-bottom-4"
-              style={{
+              className={prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4'}
+              style={prefersReducedMotion ? undefined : {
                 animationDelay: `${index * 100}ms`,
                 animationFillMode: 'backwards'
               }}
@@ -263,7 +267,7 @@ export function PurposeInputStep({
 
       {/* AI 추천 결과 */}
       {recommendation && !isAnalyzing && (
-        <Card className="border-2 border-primary bg-primary/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <Card className={`border-2 border-primary bg-primary/5 ${prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4 duration-500'}`}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -292,8 +296,8 @@ export function PurposeInputStep({
                 {recommendation.reasoning.map((reason, idx) => (
                   <li
                     key={idx}
-                    className="animate-in fade-in slide-in-from-left-2"
-                    style={{
+                    className={prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-left-2'}
+                    style={prefersReducedMotion ? undefined : {
                       animationDelay: `${idx * 100}ms`,
                       animationFillMode: 'backwards'
                     }}

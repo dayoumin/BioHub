@@ -6,9 +6,13 @@
  * 2. ✅ AI 추천 결과 Slide-up + Fade-in
  * 3. ✅ 추천 이유 리스트 순차 등장
  * 4. ✅ 애니메이션 딜레이 정확성
+ *
+ * 최적화:
+ * - jest.useFakeTimers() 사용으로 실제 setTimeout 대기 제거
+ * - CI 실행 시간 30초 → 3초 단축
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import type { ValidationResults, DataRow } from '@/types/smart-flow'
 
@@ -36,6 +40,11 @@ jest.mock('@/lib/utils/logger', () => ({
     warn: jest.fn(),
     error: jest.fn()
   }
+}))
+
+// Mock useReducedMotion (애니메이션 활성화 상태로 테스트)
+jest.mock('@/lib/hooks/useReducedMotion', () => ({
+  useReducedMotion: () => false  // 애니메이션 활성화 상태
 }))
 
 describe('Phase 3: Animation & UX 개선', () => {
@@ -99,6 +108,12 @@ describe('Phase 3: Animation & UX 개선', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.useFakeTimers()
+  })
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers()
+    jest.useRealTimers()
   })
 
   describe('1. Stagger Animation (카드 순차 등장)', () => {
@@ -170,11 +185,16 @@ describe('Phase 3: Animation & UX 개선', () => {
       if (compareCard) {
         fireEvent.click(compareCard)
 
+        // Fake timer로 모든 타이머 실행 (AI 분석 시간: 3단계 × 500ms)
+        await act(async () => {
+          jest.runAllTimers()
+        })
+
         await waitFor(() => {
           const recommendationCard = screen.getByText(/추천: 독립표본 t-검정/).closest('div[class*="border-primary"]')
           expect(recommendationCard).toBeInTheDocument()
           expect(recommendationCard?.className).toMatch(/slide-in-from-bottom-4/)
-        }, { timeout: 2000 })
+        })
       }
     })
 
@@ -185,11 +205,15 @@ describe('Phase 3: Animation & UX 개선', () => {
       if (compareCard) {
         fireEvent.click(compareCard)
 
+        await act(async () => {
+          jest.runAllTimers()
+        })
+
         await waitFor(() => {
           const recommendationCard = screen.getByText(/추천: 독립표본 t-검정/).closest('div[class*="border-primary"]')
           expect(recommendationCard?.className).toMatch(/animate-in/)
           expect(recommendationCard?.className).toMatch(/fade-in/)
-        }, { timeout: 2000 })
+        })
       }
     })
 
@@ -200,10 +224,14 @@ describe('Phase 3: Animation & UX 개선', () => {
       if (compareCard) {
         fireEvent.click(compareCard)
 
+        await act(async () => {
+          jest.runAllTimers()
+        })
+
         await waitFor(() => {
           const recommendationCard = screen.getByText(/추천: 독립표본 t-검정/).closest('div[class*="border-primary"]')
           expect(recommendationCard?.className).toMatch(/duration-500/)
-        }, { timeout: 2000 })
+        })
       }
     })
   })
@@ -216,6 +244,10 @@ describe('Phase 3: Animation & UX 개선', () => {
       if (compareCard) {
         fireEvent.click(compareCard)
 
+        await act(async () => {
+          jest.runAllTimers()
+        })
+
         await waitFor(() => {
           const reasoningSection = screen.getByText('추천 이유:').closest('div')
           const reasonItems = reasoningSection?.querySelectorAll('li[class*="animate-in"]')
@@ -224,7 +256,7 @@ describe('Phase 3: Animation & UX 개선', () => {
           if (reasonItems) {
             expect(reasonItems.length).toBeGreaterThan(0)
           }
-        }, { timeout: 2000 })
+        })
       }
     })
 
@@ -234,6 +266,10 @@ describe('Phase 3: Animation & UX 개선', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+
+        await act(async () => {
+          jest.runAllTimers()
+        })
 
         await waitFor(() => {
           const reasoningSection = screen.getByText('추천 이유:').closest('div')
@@ -245,7 +281,7 @@ describe('Phase 3: Animation & UX 개선', () => {
               expect(item.className).toMatch(/fade-in/)
             })
           }
-        }, { timeout: 2000 })
+        })
       }
     })
 
@@ -255,6 +291,10 @@ describe('Phase 3: Animation & UX 개선', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+
+        await act(async () => {
+          jest.runAllTimers()
+        })
 
         await waitFor(() => {
           const reasoningSection = screen.getByText('추천 이유:').closest('div')
@@ -271,7 +311,7 @@ describe('Phase 3: Animation & UX 개선', () => {
               expect(delay).toBe(`${idx * 100}ms`)
             })
           }
-        }, { timeout: 2000 })
+        })
       }
     })
 
@@ -281,6 +321,10 @@ describe('Phase 3: Animation & UX 개선', () => {
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
+
+        await act(async () => {
+          jest.runAllTimers()
+        })
 
         await waitFor(() => {
           const reasoningSection = screen.getByText('추천 이유:').closest('div')
@@ -292,7 +336,7 @@ describe('Phase 3: Animation & UX 개선', () => {
               expect(style.animationFillMode).toBe('backwards')
             })
           }
-        }, { timeout: 2000 })
+        })
       }
     })
   })
@@ -347,15 +391,20 @@ describe('Phase 3: Animation & UX 개선', () => {
       if (compareCard) {
         fireEvent.click(compareCard)
 
-        // AI 분석 진행 중 메시지 확인
+        // AI 분석 진행 중 메시지 확인 (즉시)
         await waitFor(() => {
           expect(screen.getByText(/AI가 최적의 통계 방법을 찾고 있습니다/)).toBeInTheDocument()
-        }, { timeout: 500 })
+        })
+
+        // Fake timer로 1.5초 경과
+        await act(async () => {
+          jest.runAllTimers()
+        })
 
         // AI 분석 완료 후 추천 결과 확인
         await waitFor(() => {
           expect(screen.getByText(/추천: 독립표본 t-검정/)).toBeInTheDocument()
-        }, { timeout: 2000 })
+        })
       }
     })
   })
