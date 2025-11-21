@@ -86,8 +86,8 @@ export type LangGraphOllamaProviderConfig = OllamaProviderConfig
  * LangGraph로 워크플로우만 재구성
  */
 export class LangGraphOllamaProvider extends OllamaRAGProvider {
-  // 컴파일된 LangGraph 앱
-  private ragApp: ReturnType<typeof StateGraph.prototype.compile> | null = null
+  // 컴파일된 LangGraph 앱 (any 타입으로 우회 - LangGraph 타입 복잡도 이슈)
+  private ragApp: any = null
 
   constructor(config: LangGraphOllamaProviderConfig) {
     super(config)
@@ -180,14 +180,23 @@ export class LangGraphOllamaProvider extends OllamaRAGProvider {
   }
 
   /**
-   * 노드 3: Vector 검색
+   * 노드 3: Vector 검색 (임베딩 재사용)
    */
   private async vectorSearch(state: RAGStateType): Promise<Partial<RAGStateType>> {
-    console.log('[VectorSearch] Vector 검색 중...')
+    console.log('[VectorSearch] Vector 검색 중 (임베딩 재사용)...')
 
     try {
-      // OllamaProvider의 searchByVector 메서드 사용
-      const vectorResults = await (this as any).searchByVector(state.query)
+      // embedQuery에서 이미 생성된 임베딩 재사용
+      if (state.queryEmbedding.length === 0) {
+        console.warn('[VectorSearch] 쿼리 임베딩이 없습니다. 검색 건너뜀.')
+        return { vectorResults: [] }
+      }
+
+      // OllamaProvider의 searchByVectorWithEmbedding 메서드 사용 (중복 임베딩 방지)
+      const vectorResults = await (this as any).searchByVectorWithEmbedding(
+        state.queryEmbedding,
+        state.startTime
+      )
       return { vectorResults }
     } catch (error) {
       console.warn('[VectorSearch] Vector 검색 실패:', error)

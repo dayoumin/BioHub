@@ -1408,8 +1408,34 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       const embeddingTime = Date.now() - startTime
       console.log(`[OllamaProvider] 쿼리 임베딩 생성: ${embeddingTime}ms`)
 
+      // 2. 임베딩으로 검색 (재사용 가능한 메서드 호출)
+      return await this.searchByVectorWithEmbedding(queryEmbedding, startTime)
+    } catch (error) {
+      console.error('[OllamaProvider] Vector 검색 실패:', error)
+      // Fallback: 빈 배열 반환 (query에서 Fallback 처리)
+      return []
+    }
+  }
+
+  /**
+   * Vector 검색 (임베딩 재사용 버전)
+   *
+   * LangGraph 워크플로우에서 이미 생성된 임베딩을 재사용하기 위한 메서드
+   * 중복 임베딩 호출을 방지하여 성능 향상
+   *
+   * @param queryEmbedding - 이미 생성된 쿼리 임베딩
+   * @param startTime - 성능 측정을 위한 시작 시간 (선택)
+   */
+  protected async searchByVectorWithEmbedding(
+    queryEmbedding: number[],
+    startTime?: number
+  ): Promise<SearchResult[]> {
+    const actualStartTime = startTime ?? Date.now()
+    console.log(`[OllamaProvider] Vector 검색 (임베딩 재사용)`)
+
+    try {
       // ========== Phase 3: 청크 기반 검색 ==========
-      // 2. IndexedDB에서 모든 청크 임베딩 로드
+      // 1. IndexedDB에서 모든 청크 임베딩 로드
       const allEmbeddings = await IndexedDBStorage.getEmbeddingsByModel(this.embeddingModel)
 
       if (allEmbeddings.length === 0) {
@@ -1486,7 +1512,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
       // 7. 점수 순 정렬 후 후보 개수만큼 반환 (Reranking을 위해)
       results.sort((a, b) => b.score - a.score)
-      const totalTime = Date.now() - startTime
+      const totalTime = Date.now() - actualStartTime
       const candidateLimit = this.topK * 4
       console.log(
         `[OllamaProvider] Vector 검색 완료: ${totalTime}ms (${allEmbeddings.length}개 청크 → ${results.length}개 문서)`
@@ -1494,7 +1520,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
 
       return results.slice(0, candidateLimit)
     } catch (error) {
-      console.error('[OllamaProvider] Vector 검색 실패:', error)
+      console.error('[OllamaProvider] Vector 검색 (임베딩 재사용) 실패:', error)
       // Fallback: 빈 배열 반환 (query에서 Fallback 처리)
       return []
     }
