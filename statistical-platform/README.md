@@ -105,6 +105,29 @@ statistical-platform/
 
 ## 📖 문서
 
+### 🎨 디자인 시스템 쇼케이스
+
+**실시간 컴포넌트 테스트 페이지**: [http://localhost:3000/design-system](http://localhost:3000/design-system)
+
+개발 서버 실행 후 `/design-system` 경로에서 모든 공통 컴포넌트를 실시간으로 테스트할 수 있습니다.
+
+**포함된 섹션**:
+- 🎨 **Colors**: shadcn/ui 색상 팔레트 (Primary, Secondary, Muted, Accent, Destructive, Success)
+- 🔘 **Buttons**: 라이브 플레이그라운드 (variant + size 조합 실시간 테스트)
+- 📝 **Typography**: Headings, Body Text 스타일 가이드
+- 🧩 **Components**: 공통 컴포넌트 쇼케이스
+  - **PurposeCard**: 선택 가능한 카드 (분석 목적, 방법 선택)
+  - **AIAnalysisProgress**: AI 분석 진행 표시 (프로그레스 바 + 단계)
+  - **DataPreviewTable**: 데이터 미리보기 테이블 (토글 방식)
+  - **VariableSelectorSimple**: 초간단 변수 선택 (드래그앤드롭 제거)
+
+**특징**:
+- ✅ 사이드바 네비게이션 (Storybook 스타일)
+- ✅ 코드 복사 버튼 (원클릭)
+- ✅ 인터랙티브 플레이그라운드
+- ✅ 반응형 디자인 (모바일 햄버거 메뉴)
+- ✅ Props 테이블 + 사용 예제 코드
+
 ### 📚 사용자 가이드
 - [통계 분석 쉽게 하기](docs/guides/EASY_STATISTICS_GUIDE.md)
 - [연구자를 위한 가이드](docs/guides/RESEARCH_USER_GUIDE.md)

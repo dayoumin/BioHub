@@ -69,13 +69,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 🔧 공통 컴포넌트 개발 워크플로우
 
-**1단계: Design System에서 개발**
+**⚠️ CRITICAL: 모든 컴포넌트 작업은 Design System 쇼케이스를 참조하세요!**
+
+**Design System 쇼케이스 접속**:
 ```bash
 npm run dev
-# → http://localhost:3004/design-system
+# → http://localhost:3000/design-system
 ```
+
+**현재 쇼케이스 구성** (4개 섹션):
+- 🎨 **Colors**: shadcn/ui 색상 팔레트 (6가지)
+- 🔘 **Buttons**: 라이브 플레이그라운드 (variant + size)
+- 📝 **Typography**: Headings, Body Text 스타일
+- 🧩 **Components**: 공통 컴포넌트 실시간 테스트
+  - PurposeCard (선택 가능한 카드)
+  - AIAnalysisProgress (진행률 표시)
+  - DataPreviewTable (데이터 미리보기)
+  - VariableSelectorSimple (변수 선택)
+
+**1단계: Design System에서 개발**
 - 새 컴포넌트 작성
-- Design System 페이지에 탭 추가
+- Design System 페이지에 새 섹션/카드 추가
 - 다양한 Props 조합 테스트
 - 실시간 확인 (HMR 지원)
 

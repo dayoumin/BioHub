@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // 네비게이션 섹션 정의
 const NAV_SECTIONS = [
@@ -451,7 +452,7 @@ export default function ComponentsShowcasePage() {
               4. 공통 컴포넌트
           ======================================== */}
           {activeSection === 'components' && (
-            <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="space-y-6 animate-in fade-in duration-500">
               <div>
                 <h1 className="text-4xl font-bold mb-2">공통 컴포넌트</h1>
                 <p className="text-muted-foreground">
@@ -459,97 +460,212 @@ export default function ComponentsShowcasePage() {
                 </p>
               </div>
 
-              {/* PurposeCard */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>PurposeCard</CardTitle>
-                  <CardDescription>선택 가능한 카드 컴포넌트</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <PurposeCard
-                      icon={<GitCompare className="h-6 w-6" />}
-                      title="비교 분석"
-                      description="그룹 간 차이를 비교합니다"
-                      selected={selectedPurpose === 'compare'}
-                      onClick={() => setSelectedPurpose('compare')}
-                    />
-                    <PurposeCard
-                      icon={<TrendingUp className="h-6 w-6" />}
-                      title="추세 분석"
-                      description="시간에 따른 변화를 분석합니다"
-                      selected={selectedPurpose === 'trend'}
-                      onClick={() => setSelectedPurpose('trend')}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              <Tabs defaultValue="purpose-card" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+                  <TabsTrigger value="purpose-card">PurposeCard</TabsTrigger>
+                  <TabsTrigger value="ai-progress">AIProgress</TabsTrigger>
+                  <TabsTrigger value="data-preview">DataPreview</TabsTrigger>
+                  <TabsTrigger value="variable-selector">VariableSelector</TabsTrigger>
+                </TabsList>
 
-              {/* AIAnalysisProgress */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>AIAnalysisProgress</CardTitle>
-                  <CardDescription>AI 분석 진행률 표시</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <AIAnalysisProgress progress={progress} />
-                  <div className="flex gap-2">
-                    <Button onClick={startProgress} disabled={isProgressing}>
-                      <Play className="mr-2 h-4 w-4" />
-                      시작
-                    </Button>
-                    <Button onClick={resetProgress} variant="outline">
-                      <Pause className="mr-2 h-4 w-4" />
-                      리셋
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                {/* PurposeCard 탭 */}
+                <TabsContent value="purpose-card" className="space-y-4 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>PurposeCard</CardTitle>
+                      <CardDescription>선택 가능한 카드 컴포넌트 - 분석 목적 또는 방법 선택에 사용</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <PurposeCard
+                          icon={<GitCompare className="h-6 w-6" />}
+                          title="비교 분석"
+                          description="그룹 간 차이를 비교합니다"
+                          selected={selectedPurpose === 'compare'}
+                          onClick={() => setSelectedPurpose('compare')}
+                        />
+                        <PurposeCard
+                          icon={<TrendingUp className="h-6 w-6" />}
+                          title="추세 분석"
+                          description="시간에 따른 변화를 분석합니다"
+                          selected={selectedPurpose === 'trend'}
+                          onClick={() => setSelectedPurpose('trend')}
+                        />
+                      </div>
 
-              {/* DataPreviewTable */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>DataPreviewTable</CardTitle>
-                  <CardDescription>데이터 미리보기 테이블 (토글 방식)</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <DataPreviewTable
-                    data={sampleData}
-                    maxRows={50}
-                    defaultOpen={true}
-                    title="샘플 데이터"
-                    height="300px"
-                  />
-                  <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                    <h4 className="font-medium text-sm">Props:</h4>
-                    <ul className="text-xs text-muted-foreground space-y-1">
-                      <li>• <code>data</code>: DataRow[] - 표시할 데이터</li>
-                      <li>• <code>maxRows</code>: number - 최대 표시 행 (기본: 100)</li>
-                      <li>• <code>defaultOpen</code>: boolean - 초기 열림 상태 (기본: false)</li>
-                      <li>• <code>title</code>: string - 제목 (기본: "데이터 미리보기")</li>
-                      <li>• <code>height</code>: string - 테이블 높이 (기본: "400px")</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
+                      {/* Props 테이블 */}
+                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                        <h4 className="font-medium text-sm">Props:</h4>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li>• <code>icon</code>: ReactNode - 카드 아이콘</li>
+                          <li>• <code>title</code>: string - 카드 제목</li>
+                          <li>• <code>description</code>: string - 카드 설명</li>
+                          <li>• <code>selected</code>: boolean - 선택 상태</li>
+                          <li>• <code>onClick</code>: () =&gt; void - 클릭 핸들러</li>
+                        </ul>
+                      </div>
 
-              {/* VariableSelectorSimple */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>VariableSelectorSimple</CardTitle>
-                  <CardDescription>초간단 변수 선택 컴포넌트</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <VariableSelectorSimple
-                    data={sampleData}
-                    onComplete={(selection) => {
-                      toast.success(`종속변수: ${selection.dependent}, 독립변수: ${selection.independent}`)
-                    }}
-                    title="변수 선택 데모"
-                    description="아래 버튼을 클릭하여 변수를 선택하세요"
-                  />
-                </CardContent>
-              </Card>
+                      {/* 사용 예제 */}
+                      <div className="relative">
+                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
+                          <code>{`<PurposeCard
+  icon={<GitCompare className="h-6 w-6" />}
+  title="비교 분석"
+  description="그룹 간 차이를 비교합니다"
+  selected={selected === 'compare'}
+  onClick={() => setSelected('compare')}
+/>`}</code>
+                        </pre>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* AIAnalysisProgress 탭 */}
+                <TabsContent value="ai-progress" className="space-y-4 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>AIAnalysisProgress</CardTitle>
+                      <CardDescription>AI 분석 진행률 표시 - 프로그레스 바와 단계 정보</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <AIAnalysisProgress progress={progress} />
+                      <div className="flex gap-2">
+                        <Button onClick={startProgress} disabled={isProgressing}>
+                          <Play className="mr-2 h-4 w-4" />
+                          시작
+                        </Button>
+                        <Button onClick={resetProgress} variant="outline">
+                          <Pause className="mr-2 h-4 w-4" />
+                          리셋
+                        </Button>
+                      </div>
+
+                      {/* Props 테이블 */}
+                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                        <h4 className="font-medium text-sm">Props:</h4>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li>• <code>progress</code>: number - 진행률 (0-100)</li>
+                        </ul>
+                      </div>
+
+                      {/* 사용 예제 */}
+                      <div className="relative">
+                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
+                          <code>{`const [progress, setProgress] = useState(0)
+
+<AIAnalysisProgress progress={progress} />`}</code>
+                        </pre>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* DataPreviewTable 탭 */}
+                <TabsContent value="data-preview" className="space-y-4 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>DataPreviewTable</CardTitle>
+                      <CardDescription>데이터 미리보기 테이블 - 토글 방식으로 대용량 데이터 표시</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <DataPreviewTable
+                        data={sampleData}
+                        maxRows={50}
+                        defaultOpen={true}
+                        title="샘플 데이터"
+                        height="300px"
+                      />
+
+                      {/* Props 테이블 */}
+                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                        <h4 className="font-medium text-sm">Props:</h4>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li>• <code>data</code>: DataRow[] - 표시할 데이터</li>
+                          <li>• <code>maxRows</code>: number - 최대 표시 행 (기본: 100)</li>
+                          <li>• <code>defaultOpen</code>: boolean - 초기 열림 상태 (기본: false)</li>
+                          <li>• <code>title</code>: string - 제목 (기본: "데이터 미리보기")</li>
+                          <li>• <code>height</code>: string - 테이블 높이 (기본: "400px")</li>
+                        </ul>
+                      </div>
+
+                      {/* 사용 예제 */}
+                      <div className="relative">
+                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
+                          <code>{`<DataPreviewTable
+  data={uploadedData}
+  maxRows={100}
+  defaultOpen={false}
+  title="업로드된 데이터"
+  height="400px"
+/>`}</code>
+                        </pre>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* VariableSelectorSimple 탭 */}
+                <TabsContent value="variable-selector" className="space-y-4 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>VariableSelectorSimple</CardTitle>
+                      <CardDescription>초간단 변수 선택 - 드래그앤드롭 없이 버튼 클릭만으로 선택</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <VariableSelectorSimple
+                        data={sampleData}
+                        onComplete={(selection) => {
+                          toast.success(`종속변수: ${selection.dependent}, 독립변수: ${selection.independent}`)
+                        }}
+                        title="변수 선택 데모"
+                        description="아래 버튼을 클릭하여 변수를 선택하세요"
+                      />
+
+                      {/* Props 테이블 */}
+                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                        <h4 className="font-medium text-sm">Props:</h4>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li>• <code>data</code>: DataRow[] - 원본 데이터</li>
+                          <li>• <code>onComplete</code>: (selection) =&gt; void - 선택 완료 핸들러</li>
+                          <li>• <code>onBack</code>: () =&gt; void - 이전 단계 핸들러 (선택)</li>
+                          <li>• <code>title</code>: string - 제목 (선택)</li>
+                          <li>• <code>description</code>: string - 설명 (선택)</li>
+                        </ul>
+                      </div>
+
+                      {/* 디자인 특징 */}
+                      <div className="bg-primary/5 rounded-lg p-4 space-y-2">
+                        <h4 className="font-medium text-sm">✨ 디자인 특징:</h4>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li>• ❌ 드래그앤드롭 제거 (번거로운 UI 완전 삭제)</li>
+                          <li>• ❌ 할당 개념 제거 (초보자 혼란 해소)</li>
+                          <li>• ✅ 버튼 클릭만으로 선택 (클릭 횟수 80% 감소)</li>
+                          <li>• ✅ 한 화면에 모든 정보 (스크롤 최소화)</li>
+                          <li>• ✅ 자동 검증 (모두 선택해야 활성화)</li>
+                        </ul>
+                      </div>
+
+                      {/* 사용 예제 */}
+                      <div className="relative">
+                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
+                          <code>{`<VariableSelectorSimple
+  data={uploadedData}
+  onComplete={(selection) => {
+    console.log('종속:', selection.dependent)
+    console.log('독립:', selection.independent)
+    goToNextStep()
+  }}
+  onBack={goToPreviousStep}
+  title="분석 변수 선택"
+  description="분석에 사용할 변수를 선택하세요"
+/>`}</code>
+                        </pre>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </div>
           )}
         </div>

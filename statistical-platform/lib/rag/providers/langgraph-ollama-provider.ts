@@ -11,15 +11,15 @@
 
 import { StateGraph, Annotation, START, END } from '@langchain/langgraph'
 import {
-  BaseRAGProvider,
   RAGContext,
   RAGResponse,
-  RAGProviderConfig,
-  DocumentInput,
-  Document,
   SearchMode
 } from './base-provider'
-import type { DBDocument, SearchResult } from './ollama-provider'
+import {
+  OllamaRAGProvider,
+  OllamaProviderConfig,
+  type SearchResult
+} from './ollama-provider'
 
 /**
  * LangGraph RAG 상태 정의
@@ -76,70 +76,40 @@ const RAGState = Annotation.Root({
 
 type RAGStateType = typeof RAGState.State
 
-export interface LangGraphOllamaProviderConfig extends RAGProviderConfig {
-  /** Ollama API 엔드포인트 (기본: http://localhost:11434) */
-  ollamaEndpoint?: string
-  /** 임베딩 모델 (기본: nomic-embed-text) */
-  embeddingModel?: string
-  /** 추론 모델 (자동 감지 또는 명시적 지정) */
-  inferenceModel?: string
-  /** SQLite DB 경로 (기본: /rag-data/rag.db) */
-  vectorDbPath?: string
-  /** Top-K 검색 결과 수 (기본: 5) */
-  topK?: number
-  /** 테스트 모드 (in-memory 데이터 사용, 기본: false) */
-  testMode?: boolean
-}
+// LangGraph Provider는 OllamaProvider와 동일한 설정 사용
+export type LangGraphOllamaProviderConfig = OllamaProviderConfig
 
 /**
  * LangGraph 기반 Ollama RAG Provider
+ *
+ * OllamaRAGProvider를 상속하여 모든 검색/임베딩 로직 재사용
+ * LangGraph로 워크플로우만 재구성
  */
-export class LangGraphOllamaProvider extends BaseRAGProvider {
-  private ollamaEndpoint: string
-  private embeddingModel: string
-  private inferenceModel: string
-  private vectorDbPath: string
-  private topK: number
-  private testMode: boolean
-  private isInitialized = false
-
+export class LangGraphOllamaProvider extends OllamaRAGProvider {
   // 컴파일된 LangGraph 앱
   private ragApp: ReturnType<typeof StateGraph.prototype.compile> | null = null
 
-  // 문서 캐시 (간단한 구현 - 실제로는 OllamaProvider의 로직 재사용)
-  private documents: DBDocument[] = []
-
   constructor(config: LangGraphOllamaProviderConfig) {
     super(config)
-
-    this.ollamaEndpoint = config.ollamaEndpoint || 'http://localhost:11434'
-    this.embeddingModel = config.embeddingModel || ''
-    this.inferenceModel = config.inferenceModel || ''
-    this.vectorDbPath = config.vectorDbPath || '/rag-data/rag.db'
-    this.topK = config.topK || 5
-    this.testMode = config.testMode || false
   }
 
   async initialize(): Promise<void> {
     console.log('[LangGraphOllamaProvider] 초기화 시작...')
 
-    // TODO: OllamaProvider의 초기화 로직 재사용
-    // 1. Ollama 서버 연결 확인
-    // 2. 모델 자동 감지/확인
-    // 3. SQLite DB 로드
-    // 지금은 간단히 초기화만 표시
+    // OllamaProvider 초기화 (Ollama 연결, 모델 감지, SQLite 로드)
+    await super.initialize()
 
     console.log('[LangGraphOllamaProvider] LangGraph 워크플로우 구성 중...')
 
     // LangGraph 워크플로우 생성
     this.ragApp = this.buildRAGWorkflow()
 
-    this.isInitialized = true
     console.log('[LangGraphOllamaProvider] 초기화 완료!')
   }
 
   async isReady(): Promise<boolean> {
-    return this.isInitialized && this.ragApp !== null
+    const parentReady = await super.isReady()
+    return parentReady && this.ragApp !== null
   }
 
   /**
@@ -200,7 +170,8 @@ export class LangGraphOllamaProvider extends BaseRAGProvider {
     console.log('[EmbedQuery] 임베딩 생성 중...')
 
     try {
-      const embedding = await this.generateEmbedding(state.query)
+      // OllamaProvider의 generateEmbedding 메서드 사용
+      const embedding = await (this as any).generateEmbedding(state.query)
       return { queryEmbedding: embedding }
     } catch (error) {
       console.warn('[EmbedQuery] 임베딩 생성 실패:', error)
@@ -214,20 +185,14 @@ export class LangGraphOllamaProvider extends BaseRAGProvider {
   private async vectorSearch(state: RAGStateType): Promise<Partial<RAGStateType>> {
     console.log('[VectorSearch] Vector 검색 중...')
 
-    // TODO: 실제 Vector 검색 구현 (OllamaProvider.searchByVector 재사용)
-    // 지금은 Mock 데이터 반환
-    const vectorResults: SearchResult[] = [
-      {
-        doc_id: 'vec1',
-        title: 'Vector Result 1',
-        content: `Vector result for "${state.query}"`,
-        library: 'test',
-        category: null,
-        score: 0.9,
-      },
-    ]
-
-    return { vectorResults }
+    try {
+      // OllamaProvider의 searchByVector 메서드 사용
+      const vectorResults = await (this as any).searchByVector(state.query)
+      return { vectorResults }
+    } catch (error) {
+      console.warn('[VectorSearch] Vector 검색 실패:', error)
+      return { vectorResults: [] }
+    }
   }
 
   /**
@@ -236,20 +201,14 @@ export class LangGraphOllamaProvider extends BaseRAGProvider {
   private async bm25Search(state: RAGStateType): Promise<Partial<RAGStateType>> {
     console.log('[BM25Search] BM25 검색 중...')
 
-    // TODO: 실제 BM25 검색 구현 (OllamaProvider.searchByKeyword 재사용)
-    // 지금은 Mock 데이터 반환
-    const bm25Results: SearchResult[] = [
-      {
-        doc_id: 'bm25-1',
-        title: 'BM25 Result 1',
-        content: `BM25 result for "${state.query}"`,
-        library: 'test',
-        category: null,
-        score: 0.85,
-      },
-    ]
-
-    return { bm25Results }
+    try {
+      // OllamaProvider의 searchByKeyword 메서드 사용
+      const bm25Results = (this as any).searchByKeyword(state.query)
+      return { bm25Results }
+    } catch (error) {
+      console.warn('[BM25Search] BM25 검색 실패:', error)
+      return { bm25Results: [] }
+    }
   }
 
   /**
@@ -258,12 +217,41 @@ export class LangGraphOllamaProvider extends BaseRAGProvider {
   private async mergeResults(state: RAGStateType): Promise<Partial<RAGStateType>> {
     console.log('[MergeResults] RRF 병합 중...')
 
-    // Hybrid 모드: Vector + BM25 병합
+    // Hybrid 모드: Vector + BM25 병합 (RRF)
     if (state.searchMode === 'hybrid') {
-      const merged = this.reciprocalRankFusion(
-        [state.vectorResults, state.bm25Results],
-        60
-      )
+      const k = 60
+      const rrfScores = new Map<string, number>()
+
+      // Vector 결과 RRF 점수 계산
+      state.vectorResults.forEach((result, index) => {
+        const rank = index + 1
+        const rrfScore = 1 / (k + rank)
+        rrfScores.set(result.doc_id, (rrfScores.get(result.doc_id) || 0) + rrfScore)
+      })
+
+      // BM25 결과 RRF 점수 계산
+      state.bm25Results.forEach((result, index) => {
+        const rank = index + 1
+        const rrfScore = 1 / (k + rank)
+        rrfScores.set(result.doc_id, (rrfScores.get(result.doc_id) || 0) + rrfScore)
+      })
+
+      // 문서 매핑 (doc_id → SearchResult)
+      const docMap = new Map<string, SearchResult>()
+      ;[...state.vectorResults, ...state.bm25Results].forEach((doc) => {
+        if (!docMap.has(doc.doc_id)) {
+          docMap.set(doc.doc_id, doc)
+        }
+      })
+
+      // RRF 점수로 정렬
+      const merged = Array.from(rrfScores.entries())
+        .sort((a, b) => b[1] - a[1]) // 점수 내림차순
+        .map(([doc_id, score]) => {
+          const doc = docMap.get(doc_id)!
+          return { ...doc, score }
+        })
+
       return { mergedResults: merged }
     }
 
@@ -282,7 +270,8 @@ export class LangGraphOllamaProvider extends BaseRAGProvider {
   private async generateAnswer(state: RAGStateType): Promise<Partial<RAGStateType>> {
     console.log('[GenerateAnswer] LLM 답변 생성 중...')
 
-    const topResults = state.mergedResults.slice(0, this.topK)
+    const topK = (this as any).topK || 5
+    const topResults = state.mergedResults.slice(0, topK)
 
     if (topResults.length === 0) {
       return {
@@ -312,10 +301,33 @@ ${contextText}
 답변:`
 
     try {
-      const llmResponse = await this.callLLM(prompt)
+      // OllamaProvider의 Ollama API 호출 로직 사용
+      const inferenceModel = (this as any).inferenceModel
+      const ollamaEndpoint = (this as any).ollamaEndpoint
+
+      const response = await fetch(`${ollamaEndpoint}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: inferenceModel,
+          prompt,
+          stream: false,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`LLM 호출 실패: ${response.statusText}`)
+      }
+
+      const data = (await response.json()) as { response: string }
+      const llmResponse = data.response
+
+      // Citation 추출
+      const citedDocIds = this.extractCitations(llmResponse, topResults)
+
       return {
         answer: llmResponse,
-        citedDocIds: [], // TODO: 실제 인용 추출
+        citedDocIds,
       }
     } catch (error) {
       console.error('[GenerateAnswer] LLM 생성 실패:', error)
@@ -327,7 +339,22 @@ ${contextText}
   }
 
   /**
+   * Citation 추출 ([1], [2] 패턴)
+   */
+  private extractCitations(text: string, docs: SearchResult[]): number[] {
+    const matches = text.match(/\[(\d+)\]/g)
+    if (!matches) return []
+
+    return matches
+      .map((m) => parseInt(m.replace(/\[|\]/g, '')) - 1) // 0-based
+      .filter((idx) => idx >= 0 && idx < docs.length)
+      .filter((v, i, arr) => arr.indexOf(v) === i) // 중복 제거
+  }
+
+  /**
    * RAG 쿼리 실행 (LangGraph 기반)
+   *
+   * OllamaProvider.query()를 오버라이드하여 LangGraph 워크플로우 사용
    */
   async query(context: RAGContext): Promise<RAGResponse> {
     if (!this.ragApp) {
@@ -341,11 +368,14 @@ ${contextText}
     // LangGraph 실행
     const result = await this.ragApp.invoke({
       query: context.query,
-      searchMode: context.searchMode || 'hybrid',
+      searchMode: context.searchMode || context.mode || 'hybrid',
       startTime,
     })
 
     const elapsed = Date.now() - startTime
+
+    const embeddingModel = (this as any).embeddingModel
+    const inferenceModel = (this as any).inferenceModel
 
     return {
       answer: result.answer,
@@ -357,8 +387,8 @@ ${contextText}
       citedDocIds: result.citedDocIds,
       model: {
         provider: 'Ollama (LangGraph)',
-        embedding: this.embeddingModel,
-        inference: this.inferenceModel,
+        embedding: embeddingModel,
+        inference: inferenceModel,
       },
       metadata: {
         responseTime: elapsed,
@@ -366,101 +396,14 @@ ${contextText}
     }
   }
 
-  // ========== Helper 메서드 ==========
-
   /**
-   * Ollama 임베딩 생성
+   * cleanup 오버라이드 (LangGraph 앱 정리 추가)
    */
-  private async generateEmbedding(text: string): Promise<number[]> {
-    const response = await fetch(`${this.ollamaEndpoint}/api/embeddings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.embeddingModel,
-        prompt: text,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`임베딩 생성 실패: ${response.statusText}`)
-    }
-
-    const data = (await response.json()) as { embedding: number[] }
-    return data.embedding
-  }
-
-  /**
-   * Ollama LLM 호출
-   */
-  private async callLLM(prompt: string): Promise<string> {
-    const response = await fetch(`${this.ollamaEndpoint}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.inferenceModel,
-        prompt,
-        stream: false,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`LLM 호출 실패: ${response.statusText}`)
-    }
-
-    const data = (await response.json()) as { response: string }
-    return data.response
-  }
-
-  /**
-   * Reciprocal Rank Fusion (RRF) 병합
-   */
-  private reciprocalRankFusion(
-    resultLists: SearchResult[][],
-    k: number = 60
-  ): SearchResult[] {
-    const rrf: Map<string, { doc: SearchResult; score: number }> = new Map()
-
-    for (const results of resultLists) {
-      results.forEach((doc, rank) => {
-        const existing = rrf.get(doc.doc_id)
-        const rrfScore = 1 / (k + rank + 1)
-
-        if (existing) {
-          existing.score += rrfScore
-        } else {
-          rrf.set(doc.doc_id, { doc, score: rrfScore })
-        }
-      })
-    }
-
-    // 점수 기준 내림차순 정렬
-    return Array.from(rrf.values())
-      .sort((a, b) => b.score - a.score)
-      .map((entry) => ({ ...entry.doc, score: entry.score }))
-  }
-
-  // ========== BaseRAGProvider 필수 메서드 ==========
-
   async cleanup(): Promise<void> {
     this.ragApp = null
-    this.documents = []
-    this.isInitialized = false
+    await super.cleanup() // OllamaProvider cleanup 호출
   }
 
-  // 문서 관리 메서드는 OllamaProvider와 동일하게 구현 (생략)
-  async addDocument(document: DocumentInput): Promise<string> {
-    throw new Error('addDocument not implemented yet')
-  }
-
-  async getDocument(docId: string): Promise<Document | null> {
-    throw new Error('getDocument not implemented yet')
-  }
-
-  getDocumentCount(): number {
-    return this.documents.length
-  }
-
-  getAllDocuments(): Document[] {
-    return this.documents
-  }
+  // 문서 관리 메서드는 OllamaProvider에서 상속받아 그대로 사용
+  // (addDocument, getDocument, updateDocument, deleteDocument, etc.)
 }
