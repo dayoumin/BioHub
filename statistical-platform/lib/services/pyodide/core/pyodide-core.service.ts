@@ -763,16 +763,17 @@ json.dumps(result)
 
           if (retryCount >= MAX_RETRIES) {
             // 최대 재시도 횟수 초과
-            console.error(
-              `❌ Worker ${workerNumber}: ${pkg} 로드 실패 (${MAX_RETRIES}회 시도)\n` +
-              `   에러: ${errorMessage}`
-            )
-            // 사용자 알림 (선택사항 - 토스트 등으로 확장 가능)
-            if (typeof window !== 'undefined') {
-              // TODO: 토스트 알림 추가
-              console.warn(`⚠️ ${pkg} 패키지를 로드하지 못했습니다. 일부 기능이 제한될 수 있습니다.`)
-            }
-            break // 실패해도 다음 패키지 시도
+            const fullErrorMessage =
+              `Worker ${workerNumber}: ${pkg} 패키지 로드 실패 (${MAX_RETRIES}회 시도)\n` +
+              `에러: ${errorMessage}\n` +
+              `Worker ${workerNumber}는 ${pkg} 없이 실행할 수 없습니다.`
+
+            console.error(`❌ ${fullErrorMessage}`)
+
+            // ⚠️ CRITICAL: Worker 3/4는 sklearn/statsmodels을 파일 첫 줄에서 import하므로
+            // 패키지 없으면 Worker 코드 실행이 무조건 실패함
+            // 따라서 에러를 throw하여 Worker 로드 자체를 중단
+            throw new Error(fullErrorMessage)
           }
 
           // 재시도 전 대기 (지수 백오프)
