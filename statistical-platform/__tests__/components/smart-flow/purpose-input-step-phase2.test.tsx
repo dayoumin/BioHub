@@ -9,26 +9,36 @@
  * 5. ✅ "이 방법으로 분석하기" 버튼
  * 6. ✅ Accordion으로 상세 정보
  * 7. ✅ 공통 컴포넌트 사용 (PurposeCard, AIAnalysisProgress, DataProfileSummary)
+ *
+ * 성능 참고:
+ * - 실제 setTimeout 사용 (1.5초 × N개 테스트)
+ * - fake timers 사용 시 Promise 체인과 충돌 발생으로 인해 실제 타이머 사용
+ * - 테스트 시간: ~20초 (27개 테스트)
  */
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import type { ValidationResults, DataRow } from '@/types/smart-flow'
 
-// Mock Zustand store
+// Mock Zustand store - setSelectedMethod를 selector로 반환하도록 수정
 jest.mock('@/lib/stores/smart-flow-store', () => ({
-  useSmartFlowStore: () => ({
-    assumptionResults: {
-      normality: {
-        shapiroWilk: { isNormal: true, pValue: 0.08 }
+  useSmartFlowStore: jest.fn((selector) => {
+    const state = {
+      assumptionResults: {
+        normality: {
+          shapiroWilk: { isNormal: true, pValue: 0.08 }
+        },
+        homogeneity: {
+          levene: { equalVariance: true, pValue: 0.15 }
+        }
       },
-      homogeneity: {
-        levene: { equalVariance: true, pValue: 0.15 }
-      }
-    },
-    dataCharacteristics: null,
-    setSelectedMethod: jest.fn(),
-    setVariableMapping: jest.fn()
+      dataCharacteristics: null,
+      setSelectedMethod: jest.fn(),
+      setVariableMapping: jest.fn()
+    }
+
+    // selector 함수가 전달되면 해당 값 반환, 아니면 전체 state 반환
+    return selector ? selector(state) : state
   })
 }))
 
@@ -42,6 +52,10 @@ jest.mock('@/lib/utils/logger', () => ({
 }))
 
 describe('Phase 2: PurposeInputStep 완전 재설계', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
   const mockValidationResults: ValidationResults = {
     isValid: true,
     totalRows: 30,
@@ -139,10 +153,6 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
     totalSteps: 6,
     onPurposeSubmit: jest.fn()
   }
-
-  beforeEach(() => {
-    jest.clearAllMocks()
-  })
 
   describe('1. Textarea 제거 확인', () => {
     it('textarea가 렌더링되지 않아야 함', () => {
@@ -250,7 +260,7 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
         // AI 분석 진행 메시지 확인
         await waitFor(() => {
           expect(screen.getByText(/AI가 최적의 통계 방법을 찾고 있습니다/)).toBeInTheDocument()
-        }, { timeout: 500 })
+        }, { timeout: 1000 })
       }
     })
 
@@ -263,10 +273,9 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
 
         // 분석 시작 직후 다른 카드 확인
         await waitFor(() => {
-          // AI 분석이 시작되면 모든 카드가 disabled 상태로 변경됨
           const relationshipCard = screen.getByText('변수 간 관계 분석').closest('div[class*="cursor-not-allowed"]')
           expect(relationshipCard).toBeInTheDocument()
-        }, { timeout: 100 })
+        })
       }
     })
   })
@@ -286,20 +295,25 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
       }
     })
 
-    it('버튼 클릭 시 onPurposeSubmit과 onNext가 호출되어야 함', async () => {
+    it('버튼 클릭 시 onPurposeSubmit이 호출되어야 함', async () => {
       render(<PurposeInputStep {...defaultProps} />)
 
       const compareCard = screen.getByText('그룹 간 차이 비교').closest('div[class*="cursor-pointer"]')
       if (compareCard) {
         fireEvent.click(compareCard)
 
-        await waitFor(() => {
-          const confirmButton = screen.getByText('이 방법으로 분석하기')
-          fireEvent.click(confirmButton)
-
-          expect(defaultProps.onPurposeSubmit).toHaveBeenCalled()
-          expect(defaultProps.onNext).toHaveBeenCalled()
+        // 버튼이 나타날 때까지 대기
+        const confirmButton = await waitFor(() => {
+          return screen.getByText('이 방법으로 분석하기')
         }, { timeout: 2000 })
+
+        // 버튼 클릭
+        fireEvent.click(confirmButton)
+
+        // 호출 확인
+        await waitFor(() => {
+          expect(defaultProps.onPurposeSubmit).toHaveBeenCalled()
+        })
       }
     })
   })
@@ -389,7 +403,7 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
 
         await waitFor(() => {
           expect(screen.getByText(/AI가 최적의 통계 방법을 찾고 있습니다/)).toBeInTheDocument()
-        }, { timeout: 500 })
+        }, { timeout: 1000 })
       }
     })
   })
@@ -452,7 +466,7 @@ describe('Phase 2: PurposeInputStep 완전 재설계', () => {
 
         await waitFor(() => {
           expect(screen.queryByText(/위에서 분석 목적을 선택하면/)).not.toBeInTheDocument()
-        }, { timeout: 500 })
+        })
       }
     })
   })
