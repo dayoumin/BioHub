@@ -202,8 +202,8 @@ export class LangGraphOllamaProvider extends OllamaRAGProvider {
     console.log('[BM25Search] BM25 검색 중...')
 
     try {
-      // OllamaProvider의 searchByKeyword 메서드 사용
-      const bm25Results = (this as any).searchByKeyword(state.query)
+      // OllamaProvider의 searchByKeyword 메서드 사용 (비동기 호출)
+      const bm25Results = await (this as any).searchByKeyword(state.query)
       return { bm25Results }
     } catch (error) {
       console.warn('[BM25Search] BM25 검색 실패:', error)
