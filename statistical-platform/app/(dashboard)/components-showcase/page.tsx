@@ -14,7 +14,7 @@
  * → http://localhost:3000/components-showcase
  */
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
@@ -31,16 +31,25 @@ export default function ComponentsShowcasePage() {
   // AIAnalysisProgress 상태
   const [progress, setProgress] = useState(0)
   const [isProgressing, setIsProgressing] = useState(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // AIAnalysisProgress 시뮬레이션
   const startProgress = () => {
+    // 기존 interval이 있으면 먼저 정리 (중복 방지)
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+
     setIsProgressing(true)
     setProgress(0)
 
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(interval)
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current)
+            intervalRef.current = null
+          }
           setIsProgressing(false)
           return 100
         }
@@ -50,9 +59,23 @@ export default function ComponentsShowcasePage() {
   }
 
   const resetProgress = () => {
+    // interval 정리
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
     setProgress(0)
     setIsProgressing(false)
   }
+
+  // 컴포넌트 언마운트 시 cleanup
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
+  }, [])
 
   // VariableSelectorSimple 샘플 데이터
   const sampleData = [
@@ -67,27 +90,355 @@ export default function ComponentsShowcasePage() {
     <div className="container mx-auto py-8 px-4 max-w-7xl">
       {/* 페이지 헤더 */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">공통 컴포넌트 쇼케이스</h1>
+        <h1 className="text-3xl font-bold mb-2">디자인 시스템 & 컴포넌트 쇼케이스</h1>
         <p className="text-muted-foreground">
-          모든 공통 컴포넌트를 한눈에 확인하고 테스트할 수 있습니다.
+          색상, 타이포그래피, 버튼, 공통 컴포넌트 등 모든 UI 요소를 한눈에 확인하고 테스트할 수 있습니다.
         </p>
         <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
           <p className="text-sm">
-            <strong>💡 사용 목적:</strong> Storybook 대체, 실시간 컴포넌트 동작 확인, Props 조합 테스트
+            <strong>💡 사용 목적:</strong> Storybook 대체, 디자인 시스템 문서화, 실시간 컴포넌트 동작 확인, Props 조합 테스트
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="purpose-card" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-8">
-          <TabsTrigger value="purpose-card">PurposeCard</TabsTrigger>
-          <TabsTrigger value="ai-progress">AIAnalysisProgress</TabsTrigger>
-          <TabsTrigger value="data-profile">DataProfileSummary</TabsTrigger>
-          <TabsTrigger value="variable-selector">VariableSelector</TabsTrigger>
+        <TabsList className="flex flex-wrap gap-2 h-auto p-2 mb-8">
+          <TabsTrigger value="purpose-card" className="flex-shrink-0">Components</TabsTrigger>
+          <TabsTrigger value="colors" className="flex-shrink-0">Colors</TabsTrigger>
+          <TabsTrigger value="buttons" className="flex-shrink-0">Buttons</TabsTrigger>
+          <TabsTrigger value="typography" className="flex-shrink-0">Typography</TabsTrigger>
+          <TabsTrigger value="ai-progress" className="flex-shrink-0">Progress</TabsTrigger>
+          <TabsTrigger value="data-profile" className="flex-shrink-0">Data</TabsTrigger>
+          <TabsTrigger value="variable-selector" className="flex-shrink-0">Variables</TabsTrigger>
         </TabsList>
 
         {/* ========================================
-            1. PurposeCard 쇼케이스
+            1. 색상 시스템
+        ======================================== */}
+        <TabsContent value="colors" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>색상 시스템 (Color System)</CardTitle>
+              <CardDescription>
+                shadcn/ui 기반 색상 팔레트 및 시맨틱 색상
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* 시맨틱 색상 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">시맨틱 색상 (Semantic Colors)</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <div className="h-20 bg-primary rounded-md flex items-center justify-center text-primary-foreground font-medium">
+                      Primary
+                    </div>
+                    <p className="text-xs text-muted-foreground">주요 액션, 링크</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 bg-secondary rounded-md flex items-center justify-center text-secondary-foreground font-medium">
+                      Secondary
+                    </div>
+                    <p className="text-xs text-muted-foreground">보조 버튼</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 bg-muted rounded-md flex items-center justify-center text-muted-foreground font-medium">
+                      Muted
+                    </div>
+                    <p className="text-xs text-muted-foreground">배경, 비활성</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 bg-accent rounded-md flex items-center justify-center text-accent-foreground font-medium">
+                      Accent
+                    </div>
+                    <p className="text-xs text-muted-foreground">강조</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 bg-destructive rounded-md flex items-center justify-center text-destructive-foreground font-medium">
+                      Destructive
+                    </div>
+                    <p className="text-xs text-muted-foreground">삭제, 에러</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 bg-success rounded-md flex items-center justify-center text-white font-medium">
+                      Success
+                    </div>
+                    <p className="text-xs text-muted-foreground">성공, 완료</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 bg-warning rounded-md flex items-center justify-center text-warning-foreground font-medium">
+                      Warning
+                    </div>
+                    <p className="text-xs text-muted-foreground">경고</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 border-2 bg-background rounded-md flex items-center justify-center text-foreground font-medium">
+                      Background
+                    </div>
+                    <p className="text-xs text-muted-foreground">기본 배경</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 경계선 및 카드 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">경계선 및 카드 (Borders & Cards)</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <div className="h-20 border rounded-md flex items-center justify-center font-medium">
+                      Border
+                    </div>
+                    <p className="text-xs text-muted-foreground">기본 경계선</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 bg-card border rounded-md flex items-center justify-center text-card-foreground font-medium">
+                      Card
+                    </div>
+                    <p className="text-xs text-muted-foreground">카드 배경</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-20 bg-popover border rounded-md flex items-center justify-center text-popover-foreground font-medium">
+                      Popover
+                    </div>
+                    <p className="text-xs text-muted-foreground">팝오버 배경</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 텍스트 색상 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">텍스트 색상 (Text Colors)</h3>
+                <div className="space-y-3">
+                  <div className="p-4 border rounded-md">
+                    <p className="text-foreground font-medium">Foreground - 기본 텍스트</p>
+                  </div>
+                  <div className="p-4 border rounded-md">
+                    <p className="text-muted-foreground">Muted Foreground - 보조 텍스트</p>
+                  </div>
+                  <div className="p-4 border rounded-md bg-primary">
+                    <p className="text-primary-foreground font-medium">Primary Foreground - Primary 배경 위 텍스트</p>
+                  </div>
+                  <div className="p-4 border rounded-md bg-destructive">
+                    <p className="text-destructive-foreground font-medium">Destructive Foreground - Destructive 배경 위 텍스트</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CSS 변수 */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">CSS 변수 (Tailwind Classes)</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border rounded-lg">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="p-2 text-left">색상</th>
+                        <th className="p-2 text-left">Tailwind 클래스</th>
+                        <th className="p-2 text-left">용도</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">primary</td>
+                        <td className="p-2 font-mono text-xs">bg-primary, text-primary</td>
+                        <td className="p-2">주요 버튼, 링크</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">secondary</td>
+                        <td className="p-2 font-mono text-xs">bg-secondary, text-secondary</td>
+                        <td className="p-2">보조 버튼</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">muted</td>
+                        <td className="p-2 font-mono text-xs">bg-muted, text-muted-foreground</td>
+                        <td className="p-2">비활성 상태, 보조 텍스트</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">destructive</td>
+                        <td className="p-2 font-mono text-xs">bg-destructive, text-destructive</td>
+                        <td className="p-2">삭제 버튼, 에러 메시지</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono">success</td>
+                        <td className="p-2 font-mono text-xs">bg-success, text-success</td>
+                        <td className="p-2">성공 메시지, 완료 상태</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========================================
+            2. 버튼
+        ======================================== */}
+        <TabsContent value="buttons" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>버튼 (Buttons)</CardTitle>
+              <CardDescription>
+                모든 버튼 variants와 sizes
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Variants */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Variants</h3>
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="default">Default</Button>
+                  <Button variant="destructive">Destructive</Button>
+                  <Button variant="outline">Outline</Button>
+                  <Button variant="secondary">Secondary</Button>
+                  <Button variant="ghost">Ghost</Button>
+                  <Button variant="link">Link</Button>
+                </div>
+              </div>
+
+              {/* Sizes */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Sizes</h3>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button size="sm">Small</Button>
+                  <Button size="default">Default</Button>
+                  <Button size="lg">Large</Button>
+                  <Button size="icon">
+                    <GitCompare className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* States */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">States</h3>
+                <div className="flex flex-wrap gap-3">
+                  <Button>Normal</Button>
+                  <Button disabled>Disabled</Button>
+                  <Button>
+                    <Play className="mr-2 h-4 w-4" />
+                    With Icon
+                  </Button>
+                </div>
+              </div>
+
+              {/* Combination Examples */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">조합 예제</h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Primary Actions</p>
+                    <div className="space-y-2">
+                      <Button className="w-full">분석 시작</Button>
+                      <Button className="w-full" size="sm">데이터 업로드</Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Secondary Actions</p>
+                    <div className="space-y-2">
+                      <Button variant="outline" className="w-full">취소</Button>
+                      <Button variant="ghost" className="w-full">건너뛰기</Button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Destructive Actions</p>
+                    <div className="space-y-2">
+                      <Button variant="destructive" className="w-full">삭제</Button>
+                      <Button variant="destructive" size="sm" className="w-full">초기화</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========================================
+            3. 타이포그래피
+        ======================================== */}
+        <TabsContent value="typography" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>타이포그래피 (Typography)</CardTitle>
+              <CardDescription>
+                헤딩, 본문, 코드 등 모든 텍스트 스타일
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Headings */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Headings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <h1 className="text-4xl font-bold">Heading 1</h1>
+                    <p className="text-xs text-muted-foreground mt-1">text-4xl font-bold</p>
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold">Heading 2</h2>
+                    <p className="text-xs text-muted-foreground mt-1">text-3xl font-bold</p>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-semibold">Heading 3</h3>
+                    <p className="text-xs text-muted-foreground mt-1">text-2xl font-semibold</p>
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-semibold">Heading 4</h4>
+                    <p className="text-xs text-muted-foreground mt-1">text-xl font-semibold</p>
+                  </div>
+                  <div>
+                    <h5 className="text-lg font-medium">Heading 5</h5>
+                    <p className="text-xs text-muted-foreground mt-1">text-lg font-medium</p>
+                  </div>
+                  <div>
+                    <h6 className="text-base font-medium">Heading 6</h6>
+                    <p className="text-xs text-muted-foreground mt-1">text-base font-medium</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body Text */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Body Text</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-base">Base - 기본 본문 텍스트입니다. (text-base)</p>
+                  </div>
+                  <div>
+                    <p className="text-sm">Small - 작은 본문 텍스트입니다. (text-sm)</p>
+                  </div>
+                  <div>
+                    <p className="text-xs">Extra Small - 매우 작은 텍스트입니다. (text-xs)</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Muted - 보조 설명 텍스트입니다. (text-muted-foreground)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Code */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Code</h3>
+                <div className="space-y-3">
+                  <div>
+                    <code className="px-2 py-1 bg-muted rounded text-sm font-mono">
+                      inline code
+                    </code>
+                  </div>
+                  <div>
+                    <pre className="p-4 bg-muted rounded-md overflow-auto">
+                      <code className="text-sm font-mono">
+{`function example() {
+  return "code block"
+}`}
+                      </code>
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ========================================
+            4. PurposeCard 쇼케이스
         ======================================== */}
         <TabsContent value="purpose-card" className="space-y-6">
           <Card>
