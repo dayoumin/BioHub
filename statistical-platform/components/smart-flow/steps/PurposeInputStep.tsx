@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, ArrowRight, AlertTriangle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -227,30 +227,46 @@ export function PurposeInputStep({
     }
   }, [analyzeAndRecommend])
 
-  // "이 방법으로 분석하기" 버튼 (중복 클릭 방지)
+  // "이 방법으로 분석하기" 버튼 (중복 클릭 방지 + 에러 복구)
   const handleConfirmMethod = useCallback(() => {
     if (!recommendation || !selectedPurpose || isNavigating || isAnalyzing) return
 
     setIsNavigating(true)
 
-    // Step 4로 넘어가기 전 스토어에 저장
-    setSelectedMethod(recommendation.method)
+    try {
+      // Step 4로 넘어가기 전 스토어에 저장
+      setSelectedMethod(recommendation.method)
 
-    // 부모 콜백 호출 (onPurposeSubmit 내부에서 goToNextStep() 호출됨)
-    if (onPurposeSubmit) {
-      onPurposeSubmit(
-        ANALYSIS_PURPOSES.find(p => p.id === selectedPurpose)?.title || '',
-        recommendation.method
-      )
+      // 부모 콜백 호출 (onPurposeSubmit 내부에서 goToNextStep() 호출됨)
+      if (onPurposeSubmit) {
+        onPurposeSubmit(
+          ANALYSIS_PURPOSES.find(p => p.id === selectedPurpose)?.title || '',
+          recommendation.method
+        )
+      }
+
+      // ✅ 정상 케이스: goToNextStep()은 동기 함수로 즉시 currentStep 변경
+      // → 컴포넌트 언마운트 → React가 자동으로 상태 정리
+
+      // ❌ onNext() 중복 호출 제거:
+      // onPurposeSubmit (handlePurposeSubmit)이 이미 goToNextStep()을 호출하므로
+      // 여기서 다시 호출하면 Step 4를 건너뛰고 Step 5로 이동하는 버그 발생
+    } catch (error) {
+      // ⚠️ 엣지 케이스: onPurposeSubmit() 호출 실패 시 (미래의 검증 로직 추가 등)
+      // → 컴포넌트가 언마운트되지 않으므로 isNavigating 수동 리셋 필요
+      logger.error('Navigation failed', { error })
+      setIsNavigating(false)
     }
-
-    // ✅ 컴포넌트 언마운트 시 자동으로 상태가 정리되므로 별도 리셋 불필요
-    // (goToNextStep()은 동기 함수로 즉시 currentStep 변경 → 컴포넌트 언마운트)
-
-    // ❌ onNext() 중복 호출 제거:
-    // onPurposeSubmit (handlePurposeSubmit)이 이미 goToNextStep()을 호출하므로
-    // 여기서 다시 호출하면 Step 4를 건너뛰고 Step 5로 이동하는 버그 발생
   }, [recommendation, selectedPurpose, isNavigating, isAnalyzing, setSelectedMethod, onPurposeSubmit])
+
+  // ✅ Cleanup: 컴포넌트 언마운트 시 상태 리셋 (추가 안전장치)
+  useEffect(() => {
+    return () => {
+      // 정상 네비게이션 시에는 이미 언마운트되어 실행 안 됨
+      // 비정상 케이스에서만 실행됨 (메모리 누수 방지)
+      setIsNavigating(false)
+    }
+  }, [])
 
   return (
     <div className="w-full h-full flex flex-col space-y-6">

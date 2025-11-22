@@ -333,6 +333,9 @@ export class AnovaExecutor extends BaseExecutor {
       const groupKey = String(groupValue)
 
       // 숫자 변환 (BaseExecutor와 동일한 로직)
+      // 빈 문자열 체크 (Number('') === 0 버그 방지)
+      if (typeof depValue === 'string' && depValue.trim() === '') continue
+
       let numValue: number
       if (typeof depValue === 'number') {
         numValue = depValue
@@ -396,6 +399,11 @@ export class AnovaExecutor extends BaseExecutor {
         const dependent = typeof restOptions.dependent === 'string'
           ? restOptions.dependent
           : (typeof restOptions.dependentVar === 'string' ? restOptions.dependentVar : '')
+
+        // 필드명 사전 검증 (Pyodide 초기화 전)
+        if (!factor1 || !factor2 || !dependent) {
+          throw new Error('Two-Way ANOVA를 위해 factor1, factor2, dependent 변수가 모두 필요합니다.')
+        }
 
         return this.executeTwoWay(asRecordArray(), factor1, factor2, dependent)
       }

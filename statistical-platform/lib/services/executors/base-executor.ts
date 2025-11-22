@@ -118,6 +118,10 @@ export abstract class BaseExecutor {
         .map((v) => {
           // null/undefined 체크 (Number(null) === 0 버그 방지)
           if (v === null || v === undefined) return null
+
+          // 빈 문자열/공백 체크 (Number('') === 0 버그 방지)
+          if (typeof v === 'string' && v.trim() === '') return null
+
           const num = typeof v === 'number' ? v : Number(v)
           return Number.isFinite(num) ? num : null
         })
@@ -161,6 +165,10 @@ export abstract class BaseExecutor {
         .map((value) => {
           // null/undefined를 먼저 체크 (Number(null) === 0 버그 방지)
           if (value === null || value === undefined) return null
+
+          // 빈 문자열/공백 체크 (Number('') === 0 버그 방지)
+          if (typeof value === 'string' && value.trim() === '') return null
+
           const num = typeof value === 'number' ? value : Number(value)
           return Number.isFinite(num) ? num : null
         })

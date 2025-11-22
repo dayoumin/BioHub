@@ -242,9 +242,16 @@ export class TTestExecutor extends BaseExecutor {
       const stats2 = await pyodideStats.calculateDescriptiveStats(group2)
 
       // Welch는 이분산이므로 pooled SD 대신 평균 SD 사용
-
       const meanStd = Math.sqrt((Math.pow(stats1.std, 2) + Math.pow(stats2.std, 2)) / 2)
-      const cohensD = (stats1.mean - stats2.mean) / meanStd
+
+      // Zero variance 가드 (두 그룹이 모두 상수인 경우)
+      let cohensD: number
+      if (meanStd === 0) {
+        // 분산이 0이면 효과 크기를 계산할 수 없음 (평균 차이는 있을 수 있지만)
+        cohensD = (stats1.mean === stats2.mean) ? 0 : NaN
+      } else {
+        cohensD = (stats1.mean - stats2.mean) / meanStd
+      }
 
       return {
         metadata: {

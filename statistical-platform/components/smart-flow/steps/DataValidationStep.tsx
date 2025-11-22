@@ -86,14 +86,31 @@ export const DataValidationStep = memo(function DataValidationStep({
     logger.info('Basic data characteristics saved (fast validation)', { characteristics })
   }, [data, validationResults, categoricalColumns, setDataCharacteristics, setAssumptionResults])
 
-  // 다음 단계로 이동 (중복 클릭 방지)
+  // 다음 단계로 이동 (중복 클릭 방지 + 에러 복구)
   const handleNext = useCallback(() => {
     if (isNavigating || !onNext) return
+
     setIsNavigating(true)
-    onNext()
-    // ✅ 컴포넌트 언마운트 시 자동으로 상태가 정리되므로 별도 리셋 불필요
-    // (goToNextStep()은 동기 함수로 즉시 currentStep 변경 → 컴포넌트 언마운트)
+    try {
+      onNext()
+      // ✅ 정상 케이스: goToNextStep()은 동기 함수로 즉시 currentStep 변경
+      // → 컴포넌트 언마운트 → React가 자동으로 상태 정리
+    } catch (error) {
+      // ⚠️ 엣지 케이스: onNext() 호출 실패 시 (미래의 검증 로직 추가 등)
+      // → 컴포넌트가 언마운트되지 않으므로 isNavigating 수동 리셋 필요
+      logger.error('Navigation failed', { error })
+      setIsNavigating(false)
+    }
   }, [isNavigating, onNext])
+
+  // ✅ Cleanup: 컴포넌트 언마운트 시 상태 리셋 (추가 안전장치)
+  useEffect(() => {
+    return () => {
+      // 정상 네비게이션 시에는 이미 언마운트되어 실행 안 됨
+      // 비정상 케이스에서만 실행됨 (메모리 누수 방지)
+      setIsNavigating(false)
+    }
+  }, [])
 
   if (!validationResults || !data) {
     return (
