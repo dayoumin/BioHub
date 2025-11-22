@@ -100,16 +100,27 @@ export default function SmartFlowPage() {
 
   const handleUploadComplete = useCallback((file: File, data: DataRow[]) => {
     try {
+      // 1단계: 데이터 저장 (즉시)
       setUploadedFile(file)
       setUploadedData(data)
 
-      // 향상된 데이터 검증
-      const validation = performDataValidation(data)
-      setValidationResults(validation)
+      // 2단계: 빠른 기본 검증만 수행 (상세 검증은 Step 2에서)
+      const quickValidation = DataValidationService.performValidation(data)
+      setValidationResults(quickValidation)
 
-      // 검증 성공 시 다음 단계로
-      if (validation.isValid) {
+      // 검증 성공 시 즉시 다음 단계로
+      if (quickValidation.isValid) {
         goToNextStep()
+
+        // 3단계: 백그라운드에서 상세 검증 수행 (비동기)
+        // requestIdleCallback으로 메인 스레드 블로킹 방지
+        const timeoutId = setTimeout(() => {
+          const detailedValidation = performDataValidation(data)
+          setValidationResults(detailedValidation)
+        }, 100) // 100ms 지연: Step 2 렌더링 완료 대기
+
+        // Cleanup (컴포넌트 언마운트 시 타이머 정리는 useEffect에서 처리)
+        return () => clearTimeout(timeoutId)
       }
     } catch (err) {
       setError('데이터 업로드 중 오류가 발생했습니다: ' + (err as Error).message)

@@ -379,21 +379,19 @@ export class PyodideCoreService {
         })
 
         const helpersResponse = await fetch('/workers/python/helpers.py')
-        if (helpersResponse.ok) {
-          const helpersCode = await helpersResponse.text()
-          const registerHelpersModule = [
-            'import sys',
-            'import types',
-            'helpers_module = types.ModuleType("helpers")',
-            `helpers_code = ${JSON.stringify(helpersCode)}`,
-            'exec(helpers_code, helpers_module.__dict__)',
-            'sys.modules["helpers"] = helpers_module',
-            'globals()["helpers"] = helpers_module'
-          ].join('\n')
-
-          await this.pyodide.runPythonAsync(registerHelpersModule)
-          console.log('✅ helpers.py 로드 완료 (module registered)')
+        if (!helpersResponse.ok) {
+          throw new Error(`Failed to load helpers.py: ${helpersResponse.status} ${helpersResponse.statusText}`)
         }
+
+        const helpersCode = await helpersResponse.text()
+
+        // Write helpers.py to Pyodide virtual filesystem
+        this.pyodide.FS.writeFile('/helpers.py', helpersCode)
+
+        // Import helpers module (avoid double execution by using import instead of runPythonAsync)
+        await this.pyodide.runPythonAsync('import helpers')
+
+        console.log('✅ helpers.py 로드 완료 (filesystem + imported)')
 
         this.packagesLoaded = true
         this.isLoading = false
