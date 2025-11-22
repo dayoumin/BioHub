@@ -17,7 +17,7 @@ import {
 import Link from 'next/link'
 import { ProgressStepper } from '@/components/smart-flow/ProgressStepper'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { DataValidationStep } from '@/components/smart-flow/steps/DataValidationStep'
+import { DataValidationStepWithCharts as DataValidationStep } from '@/components/smart-flow/steps/DataValidationStepWithCharts'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import { VariableSelectionStep } from '@/components/smart-flow/steps/VariableSelectionStep'
 import { AnalysisExecutionStep } from '@/components/smart-flow/steps/AnalysisExecutionStep'
