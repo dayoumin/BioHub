@@ -9,7 +9,7 @@ import { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
 import { ResultsVisualization } from '../ResultsVisualization'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { getEffectSizeInfo } from '@/lib/utils/result-transformer'
 
 
@@ -191,6 +191,112 @@ function interpretEffectSize(effectSize: number | EffectSizeInfo, type?: string)
   return "효과크기 정보 없음"
 }
 
+// 목적별 해석 패널 Props
+interface ResultInterpretationPanelProps {
+  results: AnalysisResult
+  purpose: string
+}
+
+// 목적별 해석 컴포넌트
+function ResultInterpretationPanel({ results, purpose }: ResultInterpretationPanelProps) {
+  const interpretation = useMemo(() => {
+    const purposeLower = purpose.toLowerCase()
+
+    // 그룹 비교 (compare, difference, 비교, 차이)
+    if (purposeLower.includes('비교') || purposeLower.includes('차이') || purposeLower.includes('compare') || purposeLower.includes('difference')) {
+      // ✅ Fix: 3개 이상 그룹일 때는 숨김 (ANOVA는 사후 검정에서 처리)
+      if (results.groupStats && results.groupStats.length === 2) {
+        const group1 = results.groupStats[0]
+        const group2 = results.groupStats[1]
+        const diff = group1.mean - group2.mean
+
+        return {
+          title: '그룹 비교 결과',
+          summary: `${group1.name || '그룹 1'} 평균(${group1.mean.toFixed(2)})이 ${group2.name || '그룹 2'} 평균(${group2.mean.toFixed(2)})보다 ${Math.abs(diff).toFixed(2)}점 ${diff > 0 ? '높습니다' : '낮습니다'}.`,
+          statistical: results.pValue < 0.05
+            ? `통계적으로 유의한 차이가 있습니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
+            : `통계적으로 유의한 차이가 없습니다 (p=${results.pValue.toFixed(3)}).`,
+          practical: results.effectSize
+            ? `실질적 효과 크기는 ${interpretEffectSize(results.effectSize)}입니다.`
+            : null
+        }
+      }
+    }
+
+    // 상관관계 (relationship, correlation, 관계, 상관)
+    if (purposeLower.includes('관계') || purposeLower.includes('상관') || purposeLower.includes('relationship') || purposeLower.includes('correlation')) {
+      // ✅ Fix: r을 [-1, 1]로 클램핑 + 약한 상관(~0) 처리
+      const rawR = results.statistic
+      const r = Math.max(-1, Math.min(1, rawR)) // Clamp to [-1, 1]
+      const absR = Math.abs(r)
+
+      // 약한 상관 (|r| < 0.1) 처리
+      if (absR < 0.1) {
+        return {
+          title: '변수 간 관계 분석',
+          summary: `X와 Y 사이에 뚜렷한 상관관계가 발견되지 않았습니다 (r=${r.toFixed(3)}).`,
+          statistical: `상관계수가 0에 가까워 실질적 관계가 거의 없습니다.`,
+          practical: null
+        }
+      }
+
+      const direction = r > 0 ? '양의' : '음의'
+      const strength = absR > 0.7 ? '강한' : absR > 0.4 ? '중간' : '약한'
+
+      return {
+        title: '변수 간 관계 분석',
+        summary: `X가 증가할 때 Y는 ${r > 0 ? '함께 증가' : '반대로 감소'}하는 경향이 있습니다 (r=${r.toFixed(3)}).`,
+        statistical: results.pValue < 0.05
+          ? `${strength} ${direction} 상관관계가 통계적으로 유의합니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
+          : `상관관계가 통계적으로 유의하지 않습니다 (p=${results.pValue.toFixed(3)}).`,
+        practical: `상관계수 r=${r.toFixed(3)} → X 변동의 약 ${(r * r * 100).toFixed(1)}%가 Y 변동과 관련됩니다.`
+      }
+    }
+
+    // 예측/회귀 (prediction, regression, 예측, 회귀)
+    if (purposeLower.includes('예측') || purposeLower.includes('회귀') || purposeLower.includes('prediction') || purposeLower.includes('regression')) {
+      // ✅ Fix: coefficients와 R²가 없으면 패널 숨김 (0% 오해 방지)
+      const hasCoefficients = results.coefficients && results.coefficients.length > 1
+      const hasRSquared = results.additional?.rSquared !== undefined && results.additional.rSquared !== null
+
+      if (!hasCoefficients || !hasRSquared) {
+        return null // 회귀 데이터 없음 → 패널 숨김
+      }
+
+      const coef = results.coefficients[1].value
+      const rSquared = results.additional.rSquared
+
+      return {
+        title: '예측 모델 결과',
+        summary: `독립변수가 1단위 증가할 때 종속변수는 ${coef.toFixed(3)}만큼 변합니다.`,
+        statistical: `모델 설명력(R²) = ${(rSquared * 100).toFixed(1)}% - ${
+          rSquared > 0.7 ? '높은 설명력' :
+          rSquared > 0.4 ? '중간 설명력' :
+          '낮은 설명력'
+        }`,
+        practical: `이 모델로 종속변수 변동의 ${(rSquared * 100).toFixed(1)}%를 예측할 수 있습니다.`
+      }
+    }
+
+    return null
+  }, [results, purpose])
+
+  if (!interpretation) return null
+
+  return (
+    <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200">
+      <AlertDescription>
+        <h4 className="font-semibold mb-2">{interpretation.title}</h4>
+        <div className="space-y-1 text-sm">
+          <p>📊 {interpretation.summary}</p>
+          <p>📈 {interpretation.statistical}</p>
+          {interpretation.practical && <p>💡 {interpretation.practical}</p>}
+        </div>
+      </AlertDescription>
+    </Alert>
+  )
+}
+
 interface ResultsActionStepProps {
   results: AnalysisResult | null
 }
@@ -200,7 +306,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
-  const { saveToHistory, reset, uploadedData, variableMapping } = useSmartFlowStore()
+  const { saveToHistory, reset, uploadedData, variableMapping, analysisPurpose } = useSmartFlowStore()
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -470,6 +576,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               )}
             </div>
           </div>
+        )}
+
+        {/* 목적별 해석 패널 */}
+        {analysisPurpose && (
+          <ResultInterpretationPanel results={results} purpose={analysisPurpose} />
         )}
 
         <div className="space-y-4">
