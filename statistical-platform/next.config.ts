@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
+  // 개발/테스트 페이지 빌드에서 제외 (LangGraph node:async_hooks 이슈)
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'].map(ext =>
+    process.env.NODE_ENV === 'production' ? ext : ext
+  ),
+
   // Note: redirects() is not compatible with output: 'export'
   // Redirects for moved pages are handled client-side in the pages themselves
 
@@ -24,7 +29,16 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, webpack }) => {
+    // LangGraph 프로덕션 빌드에서 제외 (개발 모드에서만 사용)
+    if (process.env.NODE_ENV === 'production') {
+      config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /langgraph-ollama-provider/,
+        })
+      )
+    }
+
     // 서버 사이드에서 Pyodide 완전히 배제
     if (isServer) {
       config.externals = config.externals || []
@@ -40,7 +54,7 @@ const nextConfig: NextConfig = {
         buffer: require.resolve('buffer'),
       };
     }
-    
+
     // Node.js 모듈 완전 차단
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -50,6 +64,7 @@ const nextConfig: NextConfig = {
       'node:crypto': false,
       'node:stream': false,
       'node:util': false,
+      'node:async_hooks': false, // LangGraph 빌드 에러 해결
     };
     
     // Pyodide 관련 모듈들을 external로 처리

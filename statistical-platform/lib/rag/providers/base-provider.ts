@@ -73,6 +73,10 @@ export interface RAGResponse {
   metadata?: {
     tokensUsed?: number
     responseTime?: number
+    /** 첫 토큰까지 시간 (ms) - Time To First Token */
+    ttft?: number
+    /** 초당 토큰 수 - Tokens Per Second */
+    tokensPerSecond?: number
   }
 }
 

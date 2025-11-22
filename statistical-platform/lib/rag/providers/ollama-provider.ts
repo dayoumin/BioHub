@@ -427,6 +427,50 @@ export class OllamaRAGProvider extends BaseRAGProvider {
   }
 
   /**
+   * Helper: LLM 응답에서 내부 추론 태그 제거
+   *
+   * 제거 대상:
+   * - <think>...</think>: 모델의 내부 사고 과정
+   * - &lt;think&gt;...&lt;/think&gt;: HTML 이스케이프된 태그
+   * - -sensitive: 민감 정보 마커
+   */
+  private cleanThinkTags(text: string): string {
+    return text
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;/gi, '')
+      .replace(/-?sensitive\s*<think>[\s\S]*?<\/think>/gi, '')
+      .replace(/^-?sensitive\s*/im, '')
+  }
+
+  /**
+   * Helper: 토큰 수 추정 (간단한 휴리스틱)
+   *
+   * 정확한 토큰화는 모델별 토크나이저가 필요하지만,
+   * 성능 모니터링 목적으로는 근사치로 충분합니다.
+   *
+   * 추정 방식:
+   * - 영문: ~4자 = 1토큰
+   * - 한글: ~2자 = 1토큰
+   * - 공백/구두점: 별도 카운트
+   */
+  private estimateTokenCount(text: string): number {
+    // 한글 문자 수
+    const koreanChars = (text.match(/[\u3131-\uD79D]/g) || []).length
+    // 영문 + 숫자
+    const alphanumericChars = (text.match(/[a-zA-Z0-9]/g) || []).length
+    // 공백 + 구두점
+    const whitespaceAndPunctuation = (text.match(/[\s\p{P}]/gu) || []).length
+
+    // 추정 토큰 수
+    const estimatedTokens =
+      Math.ceil(koreanChars / 2) + // 한글 2자 ≈ 1토큰
+      Math.ceil(alphanumericChars / 4) + // 영문 4자 ≈ 1토큰
+      whitespaceAndPunctuation * 0.5 // 공백/구두점 ≈ 0.5토큰
+
+    return Math.max(1, Math.round(estimatedTokens))
+  }
+
+  /**
    * 문서 추가 (청크 기반 임베딩 - Phase 3)
    *
    * 변경 사항:
@@ -1035,14 +1079,25 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       // 관련 문서 컨텍스트 생성
       const contextText = this.buildContext(searchResults, context)
 
-      // 스트리밍 응답 생성
+      // 스트리밍 응답 생성 (성능 메트릭 수집)
       console.log('[OllamaProvider] 스트리밍 응답 생성 중...')
       let fullAnswer = ''
+      let firstTokenTime: number | null = null
+      let tokenCount = 0
+      const generationStartTime = Date.now()
 
       for await (const chunk of this.streamGenerateAnswer(contextText, context.query)) {
+        // 첫 토큰 시간 기록 (TTFT)
+        if (firstTokenTime === null) {
+          firstTokenTime = Date.now()
+        }
+
         fullAnswer += chunk
+        tokenCount += this.estimateTokenCount(chunk)
         onChunk(chunk)
       }
+
+      const generationTime = Date.now() - generationStartTime
 
       // <cited_docs> 태그 파싱 (스트리밍 완료 후)
       const citedDocsMatch = fullAnswer.match(/<cited_docs>([\d,\s-]+)<\/cited_docs>/i)
@@ -1060,8 +1115,13 @@ export class OllamaRAGProvider extends BaseRAGProvider {
       }
 
       const responseTime = Date.now() - startTime
+      const ttft = firstTokenTime ? firstTokenTime - generationStartTime : undefined
+      const tokensPerSecond = generationTime > 0 ? (tokenCount / generationTime) * 1000 : undefined
 
       console.log(`[OllamaProvider] ✓ 스트리밍 완료 (사용 문서: ${citedDocIds.length}개 / ${searchResults.length}개)`)
+      if (ttft !== undefined) {
+        console.log(`[OllamaProvider] 성능: TTFT=${ttft}ms, TPS=${tokensPerSecond?.toFixed(2)}, 토큰=${tokenCount}개`)
+      }
 
       return {
         sources: searchResults.map((result) => ({
@@ -1076,7 +1136,10 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           inference: this.inferenceModel
         },
         metadata: {
-          responseTime
+          responseTime,
+          tokensUsed: tokenCount,
+          ttft,
+          tokensPerSecond
         }
       }
     } catch (error) {
@@ -1931,9 +1994,61 @@ ${contextText}
    *
    * @param contextText - RAG 검색 결과로 생성한 컨텍스트
    * @param query - 사용자 질문
+   * @param options - 스트리밍 옵션
    * @yields 생성된 응답의 토큰들
    */
-  async *streamGenerateAnswer(contextText: string, query: string): AsyncGenerator<string> {
+  async *streamGenerateAnswer(
+    contextText: string,
+    query: string,
+    options?: {
+      /** 최대 재시도 횟수 (기본: 3) */
+      maxRetries?: number
+      /** 취소 신호 (AbortController) */
+      signal?: AbortSignal
+    }
+  ): AsyncGenerator<string> {
+    const maxRetries = options?.maxRetries ?? 3
+    const signal = options?.signal
+
+    // 중복 방지: 첫 청크 발생 여부 추적
+    let hasYieldedAnyChunk = false
+
+    // Exponential backoff로 재시도
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        for await (const chunk of this.streamGenerateAnswerInternal(contextText, query, signal)) {
+          hasYieldedAnyChunk = true
+          yield chunk
+        }
+        return // 성공 시 종료
+      } catch (error) {
+        // 이미 청크를 yield했다면 재시도 불가 (중복 방지)
+        if (hasYieldedAnyChunk) {
+          console.error('[streamGenerateAnswer] 스트리밍 중 에러 발생, 재시도 불가 (이미 청크 전송됨)')
+          throw error
+        }
+
+        // 마지막 시도 또는 사용자 취소 시 에러 전파
+        if (attempt === maxRetries || (error instanceof Error && error.name === 'AbortError')) {
+          throw error
+        }
+
+        // Exponential backoff (1s, 2s, 4s...)
+        const delayMs = 1000 * Math.pow(2, attempt - 1)
+        console.warn(`[streamGenerateAnswer] 시도 ${attempt}/${maxRetries} 실패, ${delayMs}ms 후 재시도...`, error)
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+
+  /**
+   * 스트리밍 응답 생성 내부 로직 (재시도 로직 분리)
+   */
+  private async *streamGenerateAnswerInternal(
+    contextText: string,
+    query: string,
+    signal?: AbortSignal
+  ): AsyncGenerator<string> {
     const systemPrompt = `당신은 통계 분석 분야의 경험 많은 튜터입니다.
 아래 제공된 한국 통계 교육 자료를 바탕으로, 사용자의 질문에 명확하고 친근하게 답변해주세요.
 
@@ -1997,7 +2112,8 @@ ${contextText}
           top_p: 0.9,
           num_predict: 3000
         }
-      })
+      }),
+      signal // AbortController 신호 전달
     })
 
     if (!response.ok) {
@@ -2030,12 +2146,8 @@ ${contextText}
           try {
             const json = JSON.parse(line) as { response?: string; done?: boolean }
             if (json.response) {
-              // <think> 태그 제거 (스트리밍 중)
-              let chunk = json.response
-              chunk = chunk.replace(/<think>[\s\S]*?<\/think>/gi, '')
-              chunk = chunk.replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;/gi, '')
-              chunk = chunk.replace(/-?sensitive\s*<think>[\s\S]*?<\/think>/gi, '')
-              chunk = chunk.replace(/^-?sensitive\s*/im, '')
+              // Helper를 사용한 태그 제거
+              const chunk = this.cleanThinkTags(json.response)
 
               if (chunk) {
                 yield chunk
@@ -2043,28 +2155,27 @@ ${contextText}
             }
           } catch {
             // JSON 파싱 실패는 무시 (불완전한 데이터일 수 있음)
-            console.debug('[streamGenerateAnswer] JSON 파싱 실패:', line)
+            console.debug('[streamGenerateAnswerInternal] JSON 파싱 실패:', line)
           }
         }
       }
+
+      // TextDecoder 플러시 (멀티바이트 문자 보호)
+      buffer += decoder.decode()
 
       // 남은 버퍼 처리
       if (buffer.trim()) {
         try {
           const json = JSON.parse(buffer) as { response?: string }
           if (json.response) {
-            let chunk = json.response
-            chunk = chunk.replace(/<think>[\s\S]*?<\/think>/gi, '')
-            chunk = chunk.replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;/gi, '')
-            chunk = chunk.replace(/-?sensitive\s*<think>[\s\S]*?<\/think>/gi, '')
-            chunk = chunk.replace(/^-?sensitive\s*/im, '')
+            const chunk = this.cleanThinkTags(json.response)
 
             if (chunk) {
               yield chunk
             }
           }
         } catch {
-          console.debug('[streamGenerateAnswer] 최종 버퍼 JSON 파싱 실패')
+          console.debug('[streamGenerateAnswerInternal] 최종 버퍼 JSON 파싱 실패')
         }
       }
     } finally {

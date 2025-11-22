@@ -14,7 +14,8 @@ import {
   DocumentInput,
 } from './providers/base-provider'
 import { OllamaRAGProvider, DBDocument } from './providers/ollama-provider'
-import { LangGraphOllamaProvider } from './providers/langgraph-ollama-provider'
+// LangGraph는 동적 import로 변경 (빌드 에러 방지)
+// import { LangGraphOllamaProvider } from './providers/langgraph-ollama-provider'
 
 export type RAGProviderType = 'ollama' | 'langgraph'
 
@@ -119,6 +120,8 @@ export class RAGService {
 
     // Provider 타입에 따라 생성
     if (this.providerType === 'langgraph') {
+      // 동적 import로 LangGraph 로드 (빌드 에러 방지)
+      const { LangGraphOllamaProvider } = await import('./providers/langgraph-ollama-provider')
       this.provider = new LangGraphOllamaProvider(providerConfig)
     } else {
       this.provider = new OllamaRAGProvider(providerConfig)
