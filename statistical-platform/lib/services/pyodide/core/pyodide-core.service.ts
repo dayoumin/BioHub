@@ -27,6 +27,7 @@
 import type { PyodideInterface } from '@/types/pyodide'
 import { getPyodideCDNUrls } from '@/lib/constants'
 import type { WorkerRequest, WorkerResponse } from './pyodide-worker'
+import { registerHelpersModule } from './pyodide-init-logic'
 
 // ========================================
 // 타입 정의
@@ -385,13 +386,10 @@ export class PyodideCoreService {
 
         const helpersCode = await helpersResponse.text()
 
-        // Write helpers.py to Pyodide virtual filesystem
-        this.pyodide.FS.writeFile('/helpers.py', helpersCode)
+        // Register helpers.py using the same logic as pyodide-worker.ts
+        await registerHelpersModule(this.pyodide, helpersCode)
 
-        // Import helpers module (avoid double execution by using import instead of runPythonAsync)
-        await this.pyodide.runPythonAsync('import helpers')
-
-        console.log('✅ helpers.py 로드 완료 (filesystem + imported)')
+        console.log('✅ helpers.py 로드 완료 (sys.modules에 등록)')
 
         this.packagesLoaded = true
         this.isLoading = false

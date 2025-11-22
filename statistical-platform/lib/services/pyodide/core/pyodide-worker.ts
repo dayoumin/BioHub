@@ -96,18 +96,59 @@ const WORKER_FILE_NAMES: Record<number, string> = {
 // ============================================================================
 
 /**
- * helpers.py를 Pyodide 가상 파일시스템에 등록하고 실행
- * (pyodide-init-logic.ts의 registerHelpersModule와 동일)
+ * helpers.py를 Pyodide 가상 파일시스템에 등록하고 sys.modules에 추가
+ *
+ * ✅ 수정 내용 (2025-11-22):
+ * - 기존: 파일 쓰기 + 코드 실행만 (sys.modules에 미등록)
+ * - 수정: 파일 쓰기 + import 수행 (sys.modules에 정상 등록)
+ * - 결과: Worker3에서 "from helpers import ..." 정상 작동
  */
 async function registerHelpersModule(
   pyodideInstance: PyodideInterface,
   helpersCode: string
 ): Promise<void> {
-  // 1. helpers.py를 가상 파일시스템에 등록
-  pyodideInstance.FS.writeFile('/helpers.py', helpersCode)
+  // 1. helpers.py를 안전한 작업 디렉터리에 저장
+  const helpersPath = '/home/pyodide/helpers.py'
 
-  // 2. helpers.py 실행 (import 가능하게 만듦)
-  await pyodideInstance.runPythonAsync(helpersCode)
+  try {
+    // 디렉터리 생성 (이미 존재하면 무시)
+    try {
+      pyodideInstance.FS.mkdir('/home/pyodide')
+    } catch (e) {
+      // 디렉터리가 이미 존재하면 무시
+    }
+
+    pyodideInstance.FS.writeFile(helpersPath, helpersCode)
+    console.log('[PyodideWorker] ✓ helpers.py written to', helpersPath)
+
+    // 2. sys.path에 경로 추가 + 실제 import 수행하여 sys.modules에 등록
+    await pyodideInstance.runPythonAsync(`
+import sys
+import importlib.util
+
+# 작업 디렉터리를 sys.path에 추가
+if '/home/pyodide' not in sys.path:
+    sys.path.insert(0, '/home/pyodide')
+    print('[Python] Added /home/pyodide to sys.path')
+
+# importlib로 helpers 모듈을 명시적으로 sys.modules에 등록
+spec = importlib.util.spec_from_file_location('helpers', '${helpersPath}')
+if spec is None or spec.loader is None:
+    raise ImportError('Failed to create module spec for helpers.py')
+
+module = importlib.util.module_from_spec(spec)
+sys.modules['helpers'] = module
+spec.loader.exec_module(module)
+
+print('[Python] ✓ helpers module registered in sys.modules')
+`)
+
+    console.log('[PyodideWorker] ✓ helpers module registered in sys.modules')
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    console.error('[PyodideWorker] Failed to register helpers module:', errorMessage)
+    throw new Error(`helpers.py registration failed: ${errorMessage}`)
+  }
 }
 
 /**

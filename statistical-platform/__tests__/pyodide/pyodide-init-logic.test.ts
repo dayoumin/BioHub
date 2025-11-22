@@ -48,24 +48,33 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
       mockPyodide = createMockPyodide()
     })
 
-    it('should call FS.writeFile with /helpers.py path', async () => {
+    it('should call FS.mkdir and FS.writeFile with /home/pyodide/helpers.py path', async () => {
+      const mkdirSpy = jest.fn()
       const writeFileSpy = jest.fn()
+      mockPyodide.FS.mkdir = mkdirSpy
       mockPyodide.FS.writeFile = writeFileSpy
 
       const helpersCode = 'def test():\n    pass'
       await registerHelpersModule(mockPyodide, helpersCode)
 
-      expect(writeFileSpy).toHaveBeenCalledWith('/helpers.py', helpersCode)
+      expect(mkdirSpy).toHaveBeenCalledWith('/home/pyodide')
+      expect(writeFileSpy).toHaveBeenCalledWith('/home/pyodide/helpers.py', helpersCode)
     })
 
-    it('should call runPythonAsync with helpers code', async () => {
+    it('should call runPythonAsync with importlib code to register module', async () => {
       const runPythonSpy = jest.fn().mockResolvedValue('')
       mockPyodide.runPythonAsync = runPythonSpy
 
       const helpersCode = 'def test():\n    pass'
       await registerHelpersModule(mockPyodide, helpersCode)
 
-      expect(runPythonSpy).toHaveBeenCalledWith(helpersCode)
+      // importlib를 사용하여 sys.modules에 등록하는 Python 코드 호출 확인
+      expect(runPythonSpy).toHaveBeenCalled()
+      const pythonCode = runPythonSpy.mock.calls[0][0]
+      expect(pythonCode).toContain('import sys')
+      expect(pythonCode).toContain('import importlib.util')
+      expect(pythonCode).toContain('sys.modules[\'helpers\']')
+      expect(pythonCode).toContain('/home/pyodide/helpers.py')
     })
 
     it('should call writeFile BEFORE runPythonAsync', async () => {

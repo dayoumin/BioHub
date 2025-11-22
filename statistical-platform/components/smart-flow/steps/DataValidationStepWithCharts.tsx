@@ -90,11 +90,11 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
   } | null>(null)
   const [isCalculatingCorrelation, setIsCalculatingCorrelation] = useState(false)
   const [correlationProgress, setCorrelationProgress] = useState(0)
+  const [shouldCalculateCorrelation, setShouldCalculateCorrelation] = useState(false)
 
-  // Calculate correlation matrix with Web Worker for large datasets
+  // Calculate correlation matrix ONLY when user clicks the visualization tab
   useEffect(() => {
-    if (!numericColumns.length || numericColumns.length < 2 || !data) {
-      setCorrelationMatrix(null)
+    if (!shouldCalculateCorrelation || !numericColumns.length || numericColumns.length < 2 || !data) {
       return
     }
 
@@ -153,7 +153,7 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
     }
 
     calculateMatrix()
-  }, [numericColumns.length, data?.length]) // 배열 자체가 아닌 길이만 의존성으로
+  }, [shouldCalculateCorrelation]) // 사용자가 시각화 탭 클릭 시에만 실행
 
   const getColumnData = (columnName: string) => {
     if (!data) return []
@@ -310,7 +310,12 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
       </div>
 
       {/* 상세 정보 탭 */}
-      <Tabs defaultValue="variables" className="w-full">
+      <Tabs defaultValue="variables" className="w-full" onValueChange={(value) => {
+        // 시각화 탭 클릭 시에만 상관계수 계산 시작
+        if (value === 'visualization' && !shouldCalculateCorrelation && !correlationMatrix) {
+          setShouldCalculateCorrelation(true)
+        }
+      }}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="variables" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />

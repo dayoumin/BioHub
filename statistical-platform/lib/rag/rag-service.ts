@@ -87,8 +87,7 @@ export class RAGService {
       }
     }
 
-    const providerName = this.providerType === 'langgraph' ? 'LangGraph' : 'Ollama'
-    console.log(`[RAGService] ${providerName} Provider 초기화 중...`)
+    console.log('[RAGService] Ollama Provider 초기화 중...')
 
     // vectorStoreId → vectorDbPath 변환
     let vectorDbPath = this.config.vectorDbPath || process.env.NEXT_PUBLIC_VECTOR_DB_PATH
@@ -101,9 +100,8 @@ export class RAGService {
     }
 
     // Provider 공통 설정
-    const providerName = 'Ollama (Local)'
     const providerConfig = {
-      name: providerName,
+      name: 'Ollama (Local)',
       ollamaEndpoint:
         this.config.ollamaEndpoint ||
         process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT ||
@@ -123,7 +121,7 @@ export class RAGService {
     this.provider = new OllamaRAGProvider(providerConfig)
 
     await this.provider.initialize()
-    console.log(`[RAGService] ${providerName} Provider 초기화 완료`)
+    console.log('[RAGService] Ollama (Local) Provider 초기화 완료')
   }
 
   /**

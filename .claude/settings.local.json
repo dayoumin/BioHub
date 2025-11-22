@@ -157,7 +157,8 @@
       "Bash(then echo \"=== $page ===\" grep -E \"postHoc|EffectSizeCard|AssumptionTestCard\" \"/d/Projects/Statics/statistical-platform/app/(dashboard)/statistics/$page/page.tsx\")",
       "Bash(npx shadcn@latest add:*)",
       "Bash(set:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

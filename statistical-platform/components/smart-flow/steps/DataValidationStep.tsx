@@ -1,17 +1,14 @@
 'use client'
 
-import { memo, useMemo, useState, useEffect } from 'react'
+import { memo, useMemo, useEffect } from 'react'
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
-import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
-import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { logger } from '@/lib/utils/logger'
-import { usePyodide } from '@/components/providers/PyodideProvider'
 
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
@@ -28,11 +25,6 @@ export const DataValidationStep = memo(function DataValidationStep({
   currentStep,
   totalSteps
 }: DataValidationStepProps) {
-  const [isValidating, setIsValidating] = useState(true)
-
-  // Pyodide 로딩 상태 추적 (Bug #4 Fix)
-  const { isLoaded: isPyodideLoaded, isLoading: isPyodideLoading, error: pyodideError } = usePyodide()
-
   // Store에서 상태 관리
   const {
     uploadedFile,
@@ -64,169 +56,31 @@ export const DataValidationStep = memo(function DataValidationStep({
     [columnStats]
   )
 
-  // 가정 검정 수행 (Issue #2 Fix + Bug #4, #5 Fix)
+  // 기본 데이터 특성 저장 (가정 검정은 Step 5에서 수행)
   useEffect(() => {
-    // Bug #4 Fix: Pyodide 초기화 대기
-    if (!data || !validationResults || !isPyodideLoaded) {
-      if (!isPyodideLoaded) {
-        logger.info('Waiting for Pyodide to load before assumption tests')
-      }
+    if (!data || !validationResults) {
       return
     }
 
-    let isCancelled = false
-
-    const performAssumptionTests = async () => {
-      // Bug #1 Fix: 데이터 변경 시 로딩 상태 표시
-      if (isCancelled) return
-      setIsValidating(true)
-
-      try {
-        // 1. 기본 데이터 특성 저장
-        if (isCancelled) return  // Bug #1 Fix: 클린업 체크
-        const characteristics = {
-          sampleSize: data.length,
-          structure: 'wide' as const,
-          studyDesign: 'cross-sectional' as const,
-          columns: [],
-          groupCount: categoricalColumns.length > 0 ? 2 : 1,
-          hasTimeComponent: false,
-          hasPairedData: false,
-          hasRepeatedMeasures: false,
-          recommendations: []
-        }
-        setDataCharacteristics(characteristics)
-
-        // 2. 가정 검정 수행 (수치형 변수가 있을 때만)
-        if (numericColumns.length > 0) {
-          logger.info('Starting assumption tests', {
-            numericColumns: numericColumns.length
-          })
-
-          const pyodideCore = PyodideCoreService.getInstance()
-          const assumptions: StatisticalAssumptions = {}
-
-          // 2-1. Shapiro-Wilk 정규성 검정 (첫 번째 수치형 변수)
-          try {
-            const firstNumericCol = numericColumns[0].name
-            const numericData = data
-              .map(row => row[firstNumericCol])
-              .filter((val): val is number => typeof val === 'number' && !isNaN(val))
-
-            if (numericData.length >= 3) {
-              const shapiroResult = await pyodideCore.shapiroWilkTest(numericData)
-              if (isCancelled) return  // 클린업 체크
-
-              if (shapiroResult.statistic !== undefined && shapiroResult.pValue !== undefined) {
-                assumptions.normality = {
-                  shapiroWilk: {
-                    statistic: shapiroResult.statistic,
-                    pValue: shapiroResult.pValue,
-                    isNormal: shapiroResult.pValue > 0.05
-                  }
-                }
-                logger.info('Shapiro-Wilk test completed', {
-                  pValue: shapiroResult.pValue,
-                  isNormal: shapiroResult.pValue > 0.05
-                })
-              }
-            }
-          } catch (error) {
-            logger.warn('Shapiro-Wilk test failed', { error })
-            // Bug #5 Fix: 실패 시 이전 결과 무효화
-            if (!isCancelled) setAssumptionResults(null)  // Bug #1 Fix
-          }
-
-          // 2-2. Levene 등분산성 검정 (그룹 변수가 있을 때)
-          if (categoricalColumns.length > 0 && numericColumns.length > 0) {
-            const numericCol = numericColumns[0].name
-            const groupColumn = categoricalColumns.find(col => col.name !== numericCol)
-
-            if (!groupColumn) {
-              logger.warn('Levene test skipped: no categorical column available for grouping', {
-                numericCol
-              })
-            } else {
-              try {
-                const groupCol = groupColumn.name
-
-                // 그룹별 데이터 분리
-                const groupMap = new Map<string, number[]>()
-                for (const row of data) {
-                  const groupValue = String(row[groupCol])
-                  const numericValue = row[numericCol]
-
-                  if (typeof numericValue === 'number' && !isNaN(numericValue)) {
-                    if (!groupMap.has(groupValue)) {
-                      groupMap.set(groupValue, [])
-                    }
-                    groupMap.get(groupValue)!.push(numericValue)
-                  }
-                }
-
-                // 2개 이상의 그룹이 있고, 각 그룹에 3개 이상의 데이터가 있을 때
-                const groups = Array.from(groupMap.values())
-                if (groups.length >= 2 && groups.every(g => g.length >= 3)) {
-                  const leveneResult = await pyodideCore.leveneTest(groups)
-                  if (isCancelled) return  // 클린업 체크
-
-                  if (leveneResult.statistic !== undefined && leveneResult.pValue !== undefined) {
-                    assumptions.homogeneity = {
-                      levene: {
-                        statistic: leveneResult.statistic,
-                        pValue: leveneResult.pValue,
-                        equalVariance: leveneResult.pValue > 0.05
-                      }
-                    }
-                    logger.info('Levene test completed', {
-                      pValue: leveneResult.pValue,
-                      equalVariance: leveneResult.pValue > 0.05
-                    })
-                  }
-                }
-              } catch (error) {
-                logger.warn('Levene test failed', { error })
-                // Bug #5 Fix: 실패 시 이전 결과 무효화
-                if (!isCancelled) setAssumptionResults(null)  // Bug #1 Fix
-              }
-            }
-          }
-
-          // 3. 가정 검정 결과 스토어에 저장 (Issue #2 Fix + Bug #5 Fix)
-          if (isCancelled) return  // Bug #1 Fix: 클린업 체크
-          if (Object.keys(assumptions).length > 0) {
-            setAssumptionResults(assumptions)
-            logger.info('Assumption results saved to store', { assumptions })
-          } else {
-            // Bug #5 Fix: 가정 검정 실패/스킵 시 이전 결과 무효화
-            setAssumptionResults(null)
-            logger.warn('No assumption tests were performed (insufficient data)')
-          }
-        } else {
-          // Bug #5 Fix: 수치형 변수 없을 때 이전 결과 무효화
-          if (isCancelled) return  // Bug #1 Fix: 클린업 체크
-          setAssumptionResults(null)
-          logger.info('Skipping assumption tests (no numeric columns)')
-        }
-
-        if (isCancelled) return  // Bug #1 Fix: 클린업 체크
-        setIsValidating(false)
-      } catch (error) {
-        logger.error('Assumption tests failed', { error })
-        // Bug #5 Fix: 에러 발생 시 이전 결과 무효화
-        if (isCancelled) return  // Bug #1 Fix: 클린업 체크
-        setAssumptionResults(null)
-        setIsValidating(false)
-      }
+    // 간단한 데이터 특성만 저장 (무거운 통계 계산 없음)
+    const characteristics = {
+      sampleSize: data.length,
+      structure: 'wide' as const,
+      studyDesign: 'cross-sectional' as const,
+      columns: [],
+      groupCount: categoricalColumns.length > 0 ? 2 : 1,
+      hasTimeComponent: false,
+      hasPairedData: false,
+      hasRepeatedMeasures: false,
+      recommendations: []
     }
+    setDataCharacteristics(characteristics)
 
-    performAssumptionTests()
+    // 가정 검정은 Step 5 (AnalysisExecutionStep)에서 수행
+    setAssumptionResults(null)
 
-    // 클린업: 컴포넌트 언마운트 시 비동기 작업 취소
-    return () => {
-      isCancelled = true
-    }
-  }, [data, validationResults, categoricalColumns, numericColumns, isPyodideLoaded, setDataCharacteristics, setAssumptionResults])
+    logger.info('Basic data characteristics saved (fast validation)', { characteristics })
+  }, [data, validationResults, categoricalColumns, setDataCharacteristics, setAssumptionResults])
 
   if (!validationResults || !data) {
     return (
@@ -239,54 +93,6 @@ export const DataValidationStep = memo(function DataValidationStep({
   const hasErrors = (validationResults.errors?.length || 0) > 0
   const hasWarnings = (validationResults.warnings?.length || 0) > 0
 
-  // Skeleton Loading (Pyodide 로딩 중 또는 가정 검정 진행 중)
-  if (isValidating) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-20 w-full" />
-
-        {/* Pyodide 로딩 상태 안내 */}
-        {isPyodideLoading && (
-          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  통계 엔진(Pyodide) 로딩 중... 잠시만 기다려주세요.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Pyodide 로딩 실패 안내 */}
-        {pyodideError && (
-          <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
-            <CardContent className="pt-6">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <XCircle className="w-5 h-5 text-red-500" />
-                  <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                    통계 엔진 로딩 실패
-                  </p>
-                </div>
-                <p className="text-xs text-red-600 dark:text-red-400">
-                  {pyodideError}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  페이지를 새로고침하거나, 네트워크 연결을 확인해주세요.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-    )
-  }
-
-  // Fade-in Animation
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* 검증 요약 카드 */}

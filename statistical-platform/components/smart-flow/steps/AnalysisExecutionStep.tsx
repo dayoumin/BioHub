@@ -13,6 +13,8 @@ import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
 import type { AnalysisExecutionStepProps } from '@/types/smart-flow-navigation'
 import type { StatisticalMethod } from '@/lib/statistics/method-mapping'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
+import type { StatisticalAssumptions } from '@/types/smart-flow'
 
 // 진행 단계 정의
 const EXECUTION_STAGES = [
@@ -46,7 +48,7 @@ export function AnalysisExecutionStep({
   const [analysisResult, setAnalysisResult] = useState<ExecutorResult | null>(null)
 
   // Store에서 데이터 가져오기
-  const { uploadedData, validationResults } = useSmartFlowStore()
+  const { uploadedData, validationResults, setAssumptionResults } = useSmartFlowStore()
 
   /**
    * 로그 추가 함수
@@ -116,11 +118,99 @@ export function AnalysisExecutionStep({
       setCompletedStages(prev => [...prev, 'preprocess'])
       updateStage('assumptions', 35)
 
-      // Stage 3: 가정 검정
-      if (selectedMethod.requirements?.assumptions) {
-        for (const assumption of selectedMethod.requirements.assumptions) {
-          await new Promise(resolve => setTimeout(resolve, 300))
-          addLog(`${assumption} 검정 완료`)
+      // Stage 3: 가정 검정 (실제 PyodideCore 호출)
+      const assumptions: StatisticalAssumptions = {}
+
+      if (validationResults?.columnStats) {
+        const numericColumns = validationResults.columnStats.filter(s => s.type === 'numeric')
+        const categoricalColumns = validationResults.columnStats.filter(s =>
+          s.type === 'categorical' || (s.type === 'numeric' && s.uniqueValues <= 20)
+        )
+
+        // Shapiro-Wilk 정규성 검정 (첫 번째 수치형 변수)
+        if (numericColumns.length > 0 && uploadedData.length >= 3) {
+          try {
+            const firstNumericCol = numericColumns[0].name
+            const numericData = uploadedData
+              .map(row => row[firstNumericCol])
+              .filter((val): val is number => typeof val === 'number' && !isNaN(val))
+
+            if (numericData.length >= 3) {
+              addLog('정규성 검정 (Shapiro-Wilk) 시작...')
+              const pyodideCore = PyodideCoreService.getInstance()
+              const shapiroResult = await pyodideCore.shapiroWilkTest(numericData)
+
+              if (shapiroResult.statistic !== undefined && shapiroResult.pValue !== undefined) {
+                assumptions.normality = {
+                  shapiroWilk: {
+                    statistic: shapiroResult.statistic,
+                    pValue: shapiroResult.pValue,
+                    isNormal: shapiroResult.pValue > 0.05
+                  }
+                }
+                addLog(`정규성 검정 완료 (p=${shapiroResult.pValue.toFixed(4)})`)
+              }
+            }
+          } catch (error) {
+            logger.warn('Shapiro-Wilk 검정 실패', { error })
+            addLog('정규성 검정 실패 (데이터 부족 또는 오류)')
+          }
+        }
+
+        // Levene 등분산성 검정 (그룹 변수가 있을 때)
+        if (categoricalColumns.length > 0 && numericColumns.length > 0 && uploadedData.length >= 6) {
+          try {
+            const numericCol = numericColumns[0].name
+            const groupColumn = categoricalColumns.find(col => col.name !== numericCol)
+
+            if (groupColumn) {
+              const groupCol = groupColumn.name
+
+              // 그룹별 데이터 분리
+              const groupMap = new Map<string, number[]>()
+              for (const row of uploadedData) {
+                const groupValue = String(row[groupCol])
+                const numericValue = row[numericCol]
+
+                if (typeof numericValue === 'number' && !isNaN(numericValue)) {
+                  if (!groupMap.has(groupValue)) {
+                    groupMap.set(groupValue, [])
+                  }
+                  groupMap.get(groupValue)!.push(numericValue)
+                }
+              }
+
+              // 2개 이상의 그룹이 있고, 각 그룹에 3개 이상의 데이터가 있을 때
+              const groups = Array.from(groupMap.values())
+              if (groups.length >= 2 && groups.every(g => g.length >= 3)) {
+                addLog('등분산성 검정 (Levene) 시작...')
+                const pyodideCore = PyodideCoreService.getInstance()
+                const leveneResult = await pyodideCore.leveneTest(groups)
+
+                if (leveneResult.statistic !== undefined && leveneResult.pValue !== undefined) {
+                  assumptions.homogeneity = {
+                    levene: {
+                      statistic: leveneResult.statistic,
+                      pValue: leveneResult.pValue,
+                      equalVariance: leveneResult.pValue > 0.05
+                    }
+                  }
+                  addLog(`등분산성 검정 완료 (p=${leveneResult.pValue.toFixed(4)})`)
+                }
+              }
+            }
+          } catch (error) {
+            logger.warn('Levene 검정 실패', { error })
+            addLog('등분산성 검정 실패 (데이터 부족 또는 오류)')
+          }
+        }
+
+        // 가정 검정 결과 저장
+        if (Object.keys(assumptions).length > 0) {
+          setAssumptionResults(assumptions)
+          logger.info('가정 검정 결과 저장 완료', { assumptions })
+        } else {
+          addLog('가정 검정 스킵 (조건 미충족)')
         }
       }
 

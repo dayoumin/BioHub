@@ -12,6 +12,15 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
+  // 개발 환경에서 캐시 비활성화 (브라우저 + 빌드)
+  ...(process.env.NODE_ENV !== 'production' && {
+    // 개발 환경에서만 적용
+    generateBuildId: async () => {
+      // 매번 다른 빌드 ID 생성 → 캐시 무력화
+      return `dev-${Date.now()}`;
+    },
+  }),
+
   // 개발/테스트 페이지 빌드에서 제외 (LangGraph node:async_hooks 이슈)
   pageExtensions: ['tsx', 'ts', 'jsx', 'js'].map(ext =>
     process.env.NODE_ENV === 'production' ? ext : ext
