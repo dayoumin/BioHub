@@ -1,14 +1,155 @@
 'use client'
 
-import { ChevronRight, Download, BarChart3, FileText, Save, History, FileDown, Copy, AlertCircle } from 'lucide-react'
+import { ChevronRight, Download, BarChart3, FileText, Save, History, FileDown, Copy, AlertCircle, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
 import { ResultsVisualization } from '../ResultsVisualization'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { useState, useRef, useEffect } from 'react'
 import { getEffectSizeInfo } from '@/lib/utils/result-transformer'
+
+
+
+// 가설 생성 함수
+function generateHypothesis(method: string): { null: string; alternative: string } | null {
+  const methodLower = method.toLowerCase();
+
+  // 독립표본 t-검정
+  if (methodLower.includes('독립표본') && methodLower.includes('t')) {
+    return {
+      null: '두 그룹의 평균이 같다 (μ₁ = μ₂)',
+      alternative: '두 그룹의 평균이 다르다 (μ₁ ≠ μ₂)'
+    };
+  }
+
+  // 대응표본 t-검정
+  if (methodLower.includes('대응') && methodLower.includes('t')) {
+    return {
+      null: '측정 전후 평균 차이가 없다 (μd = 0)',
+      alternative: '측정 전후 평균 차이가 있다 (μd ≠ 0)'
+    };
+  }
+
+  // 일원배치 ANOVA
+  if (methodLower.includes('anova') || methodLower.includes('분산분석')) {
+    return {
+      null: '모든 그룹의 평균이 같다 (μ₁ = μ₂ = ... = μₖ)',
+      alternative: '적어도 한 그룹의 평균이 다르다'
+    };
+  }
+
+  // 상관분석
+  if (methodLower.includes('상관')) {
+    return {
+      null: '두 변수 간 상관관계가 없다 (ρ = 0)',
+      alternative: '두 변수 간 상관관계가 있다 (ρ ≠ 0)'
+    };
+  }
+
+  // 회귀분석
+  if (methodLower.includes('회귀')) {
+    return {
+      null: '회귀계수가 0이다 (β = 0)',
+      alternative: '회귀계수가 0이 아니다 (β ≠ 0)'
+    };
+  }
+
+  // 카이제곱 검정
+  if (methodLower.includes('카이') || methodLower.includes('chi')) {
+    return {
+      null: '두 변수는 독립적이다 (관련성 없음)',
+      alternative: '두 변수는 독립적이지 않다 (관련성 있음)'
+    };
+  }
+
+  // Mann-Whitney U 검정
+  if (methodLower.includes('mann') || methodLower.includes('whitney')) {
+    return {
+      null: '두 그룹의 중위수가 같다',
+      alternative: '두 그룹의 중위수가 다르다'
+    };
+  }
+
+  // Wilcoxon 부호순위 검정
+  if (methodLower.includes('wilcoxon')) {
+    return {
+      null: '측정 전후 중위수 차이가 없다',
+      alternative: '측정 전후 중위수 차이가 있다'
+    };
+  }
+
+  // Kruskal-Wallis 검정
+  if (methodLower.includes('kruskal')) {
+    return {
+      null: '모든 그룹의 중위수가 같다',
+      alternative: '적어도 한 그룹의 중위수가 다르다'
+    };
+  }
+
+  // 기본값 (방법을 모르는 경우)
+  return null;
+}
+
+// p-value 자연어 해석 함수
+function interpretPValue(pValue: number): string {
+  if (pValue < 0.001) return "매우 강력한 증거 (p < 0.001)"
+  if (pValue < 0.01) return "강력한 증거 (p < 0.01)"
+  if (pValue < 0.05) return "유의한 차이 있음 (p < 0.05)"
+  if (pValue < 0.10) return "약한 경향성 (p < 0.10)"
+  return "통계적 차이 없음"
+}
+
+// 효과크기 해석 함수
+function interpretEffectSize(effectSize: number | EffectSizeInfo, type?: string): string {
+  // effectSize가 객체인 경우
+  if (typeof effectSize === 'object' && effectSize !== null) {
+    const { value, type: effectType } = effectSize
+    const absValue = Math.abs(value)
+
+    if (effectType === "Cohen's d") {
+      if (absValue < 0.2) return "무시할 만한 차이"
+      if (absValue < 0.5) return "작은 효과"
+      if (absValue < 0.8) return "중간 효과"
+      return "큰 효과"
+    }
+
+    if (effectType === "Pearson r" || effectType === "Correlation") {
+      if (absValue < 0.3) return "약한 상관"
+      if (absValue < 0.5) return "중간 상관"
+      return "강한 상관"
+    }
+
+    if (effectType === "Eta-squared" || effectType === "R-squared") {
+      if (absValue < 0.01) return "무시할 만한 효과"
+      if (absValue < 0.06) return "작은 효과"
+      if (absValue < 0.14) return "중간 효과"
+      return "큰 효과"
+    }
+  }
+
+  // effectSize가 숫자인 경우 (type 파라미터 사용)
+  if (typeof effectSize === 'number') {
+    const absValue = Math.abs(effectSize)
+
+    if (type === "Cohen's d") {
+      if (absValue < 0.2) return "무시할 만한 차이"
+      if (absValue < 0.5) return "작은 효과"
+      if (absValue < 0.8) return "중간 효과"
+      return "큰 효과"
+    }
+
+    // 기본: 상관계수 기준
+    if (absValue < 0.3) return "약한 효과"
+    if (absValue < 0.5) return "중간 효과"
+    return "큰 효과"
+  }
+
+  return "효과크기 정보 없음"
+}
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -19,7 +160,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
-  const { saveToHistory, reset, uploadedData } = useSmartFlowStore()
+  const { saveToHistory, reset, uploadedData, variableMapping } = useSmartFlowStore()
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -234,14 +375,88 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         <ResultsVisualization results={results} />
       </div>
       
+      
+      {/* 데이터 보안 안내 */}
+      <Alert>
+        <ShieldCheck className="h-4 w-4" />
+        <AlertTitle>데이터 보안 안내</AlertTitle>
+        <AlertDescription>
+          업로드하신 데이터는 브라우저에만 저장되며, 서버로 전송되지 않습니다.
+          분석 결과만 화면에 표시되며, 원본 데이터는 외부로 유출되지 않습니다.
+        </AlertDescription>
+      </Alert>
+
       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">📊 분석 결과</h3>
+
+
+        {/* 분석 요약 배지 */}
+        {variableMapping && (
+          <div className="mb-4 p-3 bg-muted/50 rounded-lg space-y-2">
+            <p className="text-xs text-muted-foreground font-medium">분석 요약</p>
+            <div className="flex flex-wrap gap-2">
+              {uploadedData && (
+                <Badge variant="outline" className="text-xs">
+                  표본 크기: N={uploadedData.length}
+                </Badge>
+              )}
+              {variableMapping.dependentVar && (
+                <Badge variant="secondary" className="text-xs">
+                  종속변수: {Array.isArray(variableMapping.dependentVar)
+                    ? variableMapping.dependentVar.join(', ')
+                    : variableMapping.dependentVar}
+                </Badge>
+              )}
+              {variableMapping.independentVar && (
+                <Badge variant="secondary" className="text-xs">
+                  독립변수: {Array.isArray(variableMapping.independentVar)
+                    ? variableMapping.independentVar.join(', ')
+                    : variableMapping.independentVar}
+                </Badge>
+              )}
+              {variableMapping.groupVar && (
+                <Badge variant="secondary" className="text-xs">
+                  그룹변수: {variableMapping.groupVar}
+                </Badge>
+              )}
+              {variableMapping.covariate && (
+                <Badge variant="secondary" className="text-xs">
+                  공변량: {Array.isArray(variableMapping.covariate)
+                    ? variableMapping.covariate.join(', ')
+                    : variableMapping.covariate}
+                </Badge>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>
             <p className="text-sm text-muted-foreground mb-1">검정 방법</p>
             <p className="font-medium">{results.method}</p>
           </div>
+
+          {/* 가설 */}
+          {(() => {
+            const hypothesis = generateHypothesis(results.method);
+            if (!hypothesis) return null;
+
+            return (
+              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">📝 검정 가설</p>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300 min-w-[60px]">귀무가설:</span>
+                    <span className="text-xs text-blue-800 dark:text-blue-200">{hypothesis.null}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300 min-w-[60px]">대립가설:</span>
+                    <span className="text-xs text-blue-800 dark:text-blue-200">{hypothesis.alternative}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* 기본 통계량 - 확장된 그리드 */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -269,12 +484,24 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <div>
                 <p className="text-sm text-muted-foreground">효과크기</p>
                 {typeof results.effectSize === 'number' ? (
-                  <p className="text-lg font-medium">{results.effectSize.toFixed(3)}</p>
+                  <div>
+                    <p className="text-lg font-medium">{results.effectSize.toFixed(3)}</p>
+                    <p className="text-xs text-primary/80">
+                      {interpretEffectSize(results.effectSize)}
+                    </p>
+                  </div>
                 ) : (
                   <div>
                     <p className="text-lg font-medium">{results.effectSize.value.toFixed(3)}</p>
                     <p className="text-xs text-muted-foreground">
-                      {results.effectSize.type} ({results.effectSize.interpretation})
+                      {results.effectSize.type}
+                    </p>
+                    <p className="text-xs text-primary/80 mt-1">
+                      → {interpretEffectSize(results.effectSize)}
+                      {results.effectSize.interpretation &&
+                        results.effectSize.interpretation !== interpretEffectSize(results.effectSize) &&
+                        ` (실무적으로 의미 있는 차이)`
+                      }
                     </p>
                   </div>
                 )}
@@ -572,12 +799,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           <div className="pt-4 border-t">
             <p className="font-medium mb-2">💡 해석</p>
             <p className="text-sm">{results.interpretation}</p>
-            {results.pValue < 0.05 && (
-              <p className="text-sm mt-2 text-green-600 dark:text-green-400">
-                p-값이 0.05보다 작으므로 (p = {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}),
-                통계적으로 유의한 결과입니다.
+
+            {/* p-value 자연어 해석 */}
+            <div className="mt-3 p-3 bg-muted/50 rounded-lg space-y-2">
+              <p className="text-sm">
+                <strong>통계적 유의성:</strong> {interpretPValue(results.pValue)}
               </p>
-            )}
+              <p className="text-xs text-muted-foreground">
+                {results.pValue < 0.05
+                  ? `두 집단 간 유의한 차이가 있습니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
+                  : `통계적으로 유의한 차이가 발견되지 않았습니다 (p=${results.pValue.toFixed(3)}).`
+                }
+              </p>
+            </div>
           </div>
 
           {/* 가정 검정 결과 */}
