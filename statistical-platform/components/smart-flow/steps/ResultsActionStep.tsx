@@ -18,23 +18,23 @@ import { getEffectSizeInfo } from '@/lib/utils/result-transformer'
 function generateHypothesis(method: string): { null: string; alternative: string } | null {
   const methodLower = method.toLowerCase();
 
-  // 독립표본 t-검정
-  if (methodLower.includes('독립표본') && methodLower.includes('t')) {
+  // 독립표본 t-검정 (한글 + 영어)
+  if ((methodLower.includes('독립표본') || methodLower.includes('independent')) && methodLower.includes('t')) {
     return {
       null: '두 그룹의 평균이 같다 (μ₁ = μ₂)',
       alternative: '두 그룹의 평균이 다르다 (μ₁ ≠ μ₂)'
     };
   }
 
-  // 대응표본 t-검정
-  if (methodLower.includes('대응') && methodLower.includes('t')) {
+  // 대응표본 t-검정 (한글 + 영어)
+  if (methodLower.includes('대응') || methodLower.includes('paired') || methodLower.includes('dependent samples')) {
     return {
       null: '측정 전후 평균 차이가 없다 (μd = 0)',
       alternative: '측정 전후 평균 차이가 있다 (μd ≠ 0)'
     };
   }
 
-  // 일원배치 ANOVA
+  // 일원배치 ANOVA (한글 + 영어)
   if (methodLower.includes('anova') || methodLower.includes('분산분석')) {
     return {
       null: '모든 그룹의 평균이 같다 (μ₁ = μ₂ = ... = μₖ)',
@@ -42,23 +42,23 @@ function generateHypothesis(method: string): { null: string; alternative: string
     };
   }
 
-  // 상관분석
-  if (methodLower.includes('상관')) {
+  // 상관분석 (한글 + 영어)
+  if (methodLower.includes('상관') || methodLower.includes('correlation')) {
     return {
       null: '두 변수 간 상관관계가 없다 (ρ = 0)',
       alternative: '두 변수 간 상관관계가 있다 (ρ ≠ 0)'
     };
   }
 
-  // 회귀분석
-  if (methodLower.includes('회귀')) {
+  // 회귀분석 (한글 + 영어)
+  if (methodLower.includes('회귀') || methodLower.includes('regression')) {
     return {
       null: '회귀계수가 0이다 (β = 0)',
       alternative: '회귀계수가 0이 아니다 (β ≠ 0)'
     };
   }
 
-  // 카이제곱 검정
+  // 카이제곱 검정 (한글 + 영어)
   if (methodLower.includes('카이') || methodLower.includes('chi')) {
     return {
       null: '두 변수는 독립적이다 (관련성 없음)',
@@ -103,27 +103,66 @@ function interpretPValue(pValue: number): string {
   return "통계적 차이 없음"
 }
 
+
+// 효과크기 타입 정규화 함수 (별칭 → 표준 이름)
+function normalizeEffectSizeType(type: string): string {
+  const typeLower = type.toLowerCase().replace(/[_\s-]/g, '');
+
+  // Cohen's d 별칭
+  if (typeLower.includes('cohen') || typeLower === 'd') {
+    return "Cohen's d";
+  }
+
+  // Pearson r 별칭
+  if (typeLower === 'r' || typeLower === 'pearson' || typeLower === 'pearsonr') {
+    return "Pearson r";
+  }
+
+  // Eta-squared 별칭
+  if (typeLower === 'etasquared' || typeLower === 'eta2' || typeLower === 'η2' || typeLower === 'η²') {
+    return "Eta-squared";
+  }
+
+  // R-squared 별칭
+  if (typeLower === 'rsquared' || typeLower === 'r2') {
+    return "R-squared";
+  }
+
+  // Omega-squared 별칭
+  if (typeLower === 'omegasquared' || typeLower === 'omega2' || typeLower === 'ω2' || typeLower === 'ω²') {
+    return "Omega-squared";
+  }
+
+  // Correlation (일반)
+  if (typeLower === 'correlation' || typeLower === 'corr') {
+    return "Correlation";
+  }
+
+  return type; // 알 수 없는 타입은 그대로 반환
+}
+
 // 효과크기 해석 함수
 function interpretEffectSize(effectSize: number | EffectSizeInfo, type?: string): string {
   // effectSize가 객체인 경우
   if (typeof effectSize === 'object' && effectSize !== null) {
     const { value, type: effectType } = effectSize
     const absValue = Math.abs(value)
+    const normalizedType = normalizeEffectSizeType(effectType)
 
-    if (effectType === "Cohen's d") {
+    if (normalizedType === "Cohen's d") {
       if (absValue < 0.2) return "무시할 만한 차이"
       if (absValue < 0.5) return "작은 효과"
       if (absValue < 0.8) return "중간 효과"
       return "큰 효과"
     }
 
-    if (effectType === "Pearson r" || effectType === "Correlation") {
+    if (normalizedType === "Pearson r" || normalizedType === "Correlation") {
       if (absValue < 0.3) return "약한 상관"
       if (absValue < 0.5) return "중간 상관"
       return "강한 상관"
     }
 
-    if (effectType === "Eta-squared" || effectType === "R-squared") {
+    if (normalizedType === "Eta-squared" || normalizedType === "R-squared" || normalizedType === "Omega-squared") {
       if (absValue < 0.01) return "무시할 만한 효과"
       if (absValue < 0.06) return "작은 효과"
       if (absValue < 0.14) return "중간 효과"
@@ -134,8 +173,9 @@ function interpretEffectSize(effectSize: number | EffectSizeInfo, type?: string)
   // effectSize가 숫자인 경우 (type 파라미터 사용)
   if (typeof effectSize === 'number') {
     const absValue = Math.abs(effectSize)
+    const normalizedType = type ? normalizeEffectSizeType(type) : undefined
 
-    if (type === "Cohen's d") {
+    if (normalizedType === "Cohen's d") {
       if (absValue < 0.2) return "무시할 만한 차이"
       if (absValue < 0.5) return "작은 효과"
       if (absValue < 0.8) return "중간 효과"
@@ -315,8 +355,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       })
     }
 
-    // t-test 후 효과크기 계산 추천
-    if (results.method?.includes('t-test') && !results.effectSize) {
+    // t-test 후 효과크기 계산 추천 (한글 + 영어)
+    const methodLower = results.method?.toLowerCase() || '';
+    const isTTest = methodLower.includes('t-test') || methodLower.includes('t-검정') || methodLower.includes('t검정');
+    if (isTTest && !results.effectSize) {
       actions.push({
         title: "Cohen's d 계산",
         description: '실질적 차이의 크기 평가',

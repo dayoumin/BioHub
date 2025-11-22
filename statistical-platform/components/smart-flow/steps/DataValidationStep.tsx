@@ -200,6 +200,59 @@ export const DataValidationStep = memo(function DataValidationStep({
     [columnStats]
   )
 
+  // 분석 추천 로직
+  const recommendedAnalyses = useMemo(() => {
+    const analyses: Array<{ emoji: string; text: string }> = []
+
+    // 기본: 기술통계 (항상 가능)
+    analyses.push({
+      emoji: '📊',
+      text: '기술통계 (평균, 표준편차, 분포)'
+    })
+
+    // 그룹 비교 (범주형 1개 + 연속형 1개)
+    if (categoricalColumns.length >= 1 && numericColumns.length >= 1) {
+      const groupCount = categoricalColumns[0].uniqueValues || 2
+      if (groupCount === 2) {
+        analyses.push({
+          emoji: '⚖️',
+          text: '2집단 비교 (t-검정, Mann-Whitney)'
+        })
+      } else if (groupCount >= 3) {
+        analyses.push({
+          emoji: '📈',
+          text: '다집단 비교 (ANOVA, Kruskal-Wallis)'
+        })
+      }
+    }
+
+    // 상관분석 (연속형 2개 이상)
+    if (numericColumns.length >= 2) {
+      analyses.push({
+        emoji: '🔗',
+        text: '상관분석 (Pearson, Spearman)'
+      })
+    }
+
+    // 회귀분석 (연속형 2개 이상)
+    if (numericColumns.length >= 2) {
+      analyses.push({
+        emoji: '📉',
+        text: '회귀분석 (예측 모델)'
+      })
+    }
+
+    // 카이제곱 (범주형 2개)
+    if (categoricalColumns.length >= 2) {
+      analyses.push({
+        emoji: '🎲',
+        text: '카이제곱 검정 (범주형 연관성)'
+      })
+    }
+
+    return analyses
+  }, [numericColumns, categoricalColumns])
+
   // 기본 데이터 특성 저장 (가정 검정은 Step 5에서 수행)
   useEffect(() => {
     if (!data || !validationResults) {
@@ -349,6 +402,28 @@ export const DataValidationStep = memo(function DataValidationStep({
           )}
         </CardContent>
       </Card>
+
+      {/* 분석 추천 카드 */}
+      {!hasErrors && recommendedAnalyses.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardHeader>
+            <CardTitle className="text-base">💡 이 데이터로 할 수 있는 분석</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {recommendedAnalyses.map((analysis, idx) => (
+                <div key={idx} className="flex items-center gap-2 text-sm">
+                  <span>{analysis.emoji}</span>
+                  <span>{analysis.text}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              💡 다음 단계에서 분석 목적을 선택하면 AI가 최적의 방법을 추천합니다.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 다음 단계 안내 메시지 */}
       {!hasErrors && onNext && (

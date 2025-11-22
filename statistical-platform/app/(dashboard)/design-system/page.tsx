@@ -12,17 +12,10 @@
  * - Hydration 안정화 (깜빡임 방지)
  */
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { PurposeCard } from '@/components/common/analysis/PurposeCard'
-import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
-import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
-import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
-import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
-import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
+import { useState, useCallback } from 'react'
 import {
-  GitCompare, TrendingUp, PieChart, LineChart, Clock, Play, Pause,
-  Copy, Check, Menu, X, Palette, Type, SquareStack, Sparkles, ArrowRight, AlertTriangle,
-  ExternalLink, Table, Zap
+  Copy, Check, Menu, X, Palette, Type, SquareStack,
+  ExternalLink, Table, Zap, GitCompare
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -36,7 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
+// 데모 컴포넌트 import
+import { PurposeCardDemo } from './components/PurposeCardDemo'
+import { AIProgressDemo } from './components/AIProgressDemo'
+import { DataPreviewDemo } from './components/DataPreviewDemo'
+import { GuidanceCardDemo } from './components/GuidanceCardDemo'
+import { VariableSelectorDemo } from './components/VariableSelectorDemo'
+import { COMPONENT_LIST } from './constants'
 
 // 네비게이션 섹션 정의
 const NAV_SECTIONS = [
@@ -70,13 +70,8 @@ export default function ComponentsShowcasePage() {
   const [buttonVariant, setButtonVariant] = useState<'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'>('default')
   const [buttonSize, setButtonSize] = useState<'sm' | 'default' | 'lg'>('default')
 
-  // PurposeCard 상태
-  const [selectedPurpose, setSelectedPurpose] = useState<string | null>(null)
-
-  // AIAnalysisProgress 상태
-  const [progress, setProgress] = useState(0)
-  const [isProgressing, setIsProgressing] = useState(false)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  // 컴포넌트 선택 상태 (버튼 그리드용)
+  const [selectedComponent, setSelectedComponent] = useState<string>('purpose-card')
 
   // 코드 복사 함수
   const copyToClipboard = useCallback((code: string, label: string) => {
@@ -86,57 +81,6 @@ export default function ComponentsShowcasePage() {
 
     setTimeout(() => setCopiedCode(null), 2000)
   }, [])
-
-  // AIAnalysisProgress 시뮬레이션
-  const startProgress = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-    }
-
-    setIsProgressing(true)
-    setProgress(0)
-
-    intervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current)
-            intervalRef.current = null
-          }
-          setIsProgressing(false)
-          return 100
-        }
-        return prev + 10
-      })
-    }, 500)
-  }, [])
-
-  const resetProgress = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-    setProgress(0)
-    setIsProgressing(false)
-  }, [])
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
-    }
-  }, [])
-
-  // VariableSelectorToggle 샘플 데이터
-  const sampleData = [
-    { group: 'A', value: 12.5, age: 25, score: 85, time: 120 },
-    { group: 'B', value: 10.3, age: 22, score: 78, time: 105 },
-    { group: 'A', value: 13.2, age: 28, score: 92, time: 135 },
-    { group: 'B', value: 9.7, age: 20, score: 73, time: 98 },
-    { group: 'A', value: 11.8, age: 26, score: 88, time: 125 }
-  ]
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -336,7 +280,7 @@ export default function ComponentsShowcasePage() {
 
                   {/* 코드 스니펫 */}
                   <div className="relative">
-                    <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
+                    <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
                       <code>{`<Button variant="${buttonVariant}" size="${buttonSize}">
   Preview Button
 </Button>`}</code>
@@ -676,421 +620,45 @@ animation: {
                 </p>
               </div>
 
-              <Tabs defaultValue="purpose-card" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-                  <TabsTrigger value="purpose-card">PurposeCard</TabsTrigger>
-                  <TabsTrigger value="ai-progress">AIProgress</TabsTrigger>
-                  <TabsTrigger value="data-preview">DataPreview</TabsTrigger>
-                  <TabsTrigger value="guidance-card">GuidanceCard 🆕</TabsTrigger>
-                  <TabsTrigger value="variable-selector">VarSelector</TabsTrigger>
-                </TabsList>
+              {/* 컴포넌트 선택 버튼 그리드 */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {COMPONENT_LIST.map((component) => (
+                  <Button
+                    key={component.id}
+                    variant={selectedComponent === component.id ? 'default' : 'outline'}
+                    className="h-auto py-3 px-4 flex flex-col items-center gap-1"
+                    onClick={() => setSelectedComponent(component.id)}
+                  >
+                    <span className="font-medium">{component.label}</span>
+                    {component.badge && (
+                      <Badge variant="secondary" className="text-xs">
+                        {component.badge}
+                      </Badge>
+                    )}
+                  </Button>
+                ))}
+              </div>
 
-                {/* PurposeCard 탭 */}
-                <TabsContent value="purpose-card" className="space-y-4 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>PurposeCard</CardTitle>
-                      <CardDescription>선택 가능한 카드 컴포넌트 - 분석 목적 또는 방법 선택에 사용</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <PurposeCard
-                          icon={<GitCompare className="h-6 w-6" />}
-                          title="비교 분석"
-                          description="그룹 간 차이를 비교합니다"
-                          selected={selectedPurpose === 'compare'}
-                          onClick={() => setSelectedPurpose('compare')}
-                        />
-                        <PurposeCard
-                          icon={<TrendingUp className="h-6 w-6" />}
-                          title="추세 분석"
-                          description="시간에 따른 변화를 분석합니다"
-                          selected={selectedPurpose === 'trend'}
-                          onClick={() => setSelectedPurpose('trend')}
-                        />
-                      </div>
+              {/* 선택된 컴포넌트 데모 표시 */}
+              {selectedComponent === 'purpose-card' && (
+                <PurposeCardDemo />
+              )}
 
-                      {/* Props 테이블 */}
-                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">Props:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• <code>icon</code>: ReactNode - 카드 아이콘</li>
-                          <li>• <code>title</code>: string - 카드 제목</li>
-                          <li>• <code>description</code>: string - 카드 설명</li>
-                          <li>• <code>selected</code>: boolean - 선택 상태</li>
-                          <li>• <code>onClick</code>: () =&gt; void - 클릭 핸들러</li>
-                        </ul>
-                      </div>
+              {selectedComponent === 'ai-progress' && (
+                <AIProgressDemo />
+              )}
 
-                      {/* 사용 예제 */}
-                      <div className="relative">
-                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
-                          <code>{`<PurposeCard
-  icon={<GitCompare className="h-6 w-6" />}
-  title="비교 분석"
-  description="그룹 간 차이를 비교합니다"
-  selected={selected === 'compare'}
-  onClick={() => setSelected('compare')}
-/>`}</code>
-                        </pre>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+              {selectedComponent === 'data-preview' && (
+                <DataPreviewDemo />
+              )}
 
-                {/* AIAnalysisProgress 탭 */}
-                <TabsContent value="ai-progress" className="space-y-4 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>AIAnalysisProgress</CardTitle>
-                      <CardDescription>AI 분석 진행률 표시 - 프로그레스 바와 단계 정보</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <AIAnalysisProgress progress={progress} />
-                      <div className="flex gap-2">
-                        <Button onClick={startProgress} disabled={isProgressing}>
-                          <Play className="mr-2 h-4 w-4" />
-                          시작
-                        </Button>
-                        <Button onClick={resetProgress} variant="outline">
-                          <Pause className="mr-2 h-4 w-4" />
-                          리셋
-                        </Button>
-                      </div>
+              {selectedComponent === 'guidance-card' && (
+                <GuidanceCardDemo />
+              )}
 
-                      {/* Props 테이블 */}
-                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">Props:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• <code>progress</code>: number - 진행률 (0-100)</li>
-                        </ul>
-                      </div>
-
-                      {/* 사용 예제 */}
-                      <div className="relative">
-                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
-                          <code>{`const [progress, setProgress] = useState(0)
-
-<AIAnalysisProgress progress={progress} />`}</code>
-                        </pre>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* DataPreviewTable 탭 */}
-                <TabsContent value="data-preview" className="space-y-4 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>DataPreviewTable</CardTitle>
-                      <CardDescription>데이터 미리보기 테이블 - 토글 방식으로 대용량 데이터 표시</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <DataPreviewTable
-                        data={sampleData}
-                        maxRows={50}
-                        defaultOpen={true}
-                        title="샘플 데이터"
-                        height="300px"
-                      />
-
-                      {/* Props 테이블 */}
-                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">Props:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• <code>data</code>: DataRow[] - 표시할 데이터</li>
-                          <li>• <code>maxRows</code>: number - 최대 표시 행 (기본: 100)</li>
-                          <li>• <code>defaultOpen</code>: boolean - 초기 열림 상태 (기본: false)</li>
-                          <li>• <code>title</code>: string - 제목 (기본: "데이터 미리보기")</li>
-                          <li>• <code>height</code>: string - 테이블 높이 (기본: "400px")</li>
-                        </ul>
-                      </div>
-
-                      {/* 사용 예제 */}
-                      <div className="relative">
-                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
-                          <code>{`<DataPreviewTable
-  data={uploadedData}
-  maxRows={100}
-  defaultOpen={false}
-  title="업로드된 데이터"
-  height="400px"
-/>`}</code>
-                        </pre>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* GuidanceCard 탭 */}
-                <TabsContent value="guidance-card" className="space-y-4 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        GuidanceCard
-                        <Badge variant="default" className="text-xs">NEW</Badge>
-                      </CardTitle>
-                      <CardDescription>단계별 안내 카드 - Smart Flow에서 사용 (Step 2, Step 3)</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* 기본 예제 */}
-                      <div className="space-y-4">
-                        <h4 className="font-medium text-sm">기본 예제 (Step 2 스타일)</h4>
-                        <GuidanceCard
-                          title="데이터 준비 완료!"
-                          description={
-                            <>
-                              총 <strong>1,234개</strong> 데이터, <strong>5개</strong> 변수가 분석 준비되었습니다.
-                            </>
-                          }
-                          steps={[
-                            { emoji: '1️⃣', text: '분석 목적 선택 (그룹 비교, 관계 분석 등)' },
-                            { emoji: '2️⃣', text: 'AI가 데이터를 분석하여 최적의 통계 방법 추천' },
-                            { emoji: '3️⃣', text: '변수 선택 후 자동 분석 실행' }
-                          ]}
-                          ctaText="분석 목적 선택하기"
-                          ctaIcon={<Sparkles className="w-4 h-4" />}
-                          onCtaClick={() => toast.success('분석 목적 선택 화면으로 이동합니다')}
-                          data-testid="guidance-demo-basic"
-                        />
-                      </div>
-
-                      {/* 경고 메시지 포함 예제 */}
-                      <div className="space-y-4">
-                        <h4 className="font-medium text-sm">경고 메시지 포함</h4>
-                        <GuidanceCard
-                          title="데이터 준비 완료!"
-                          description="경고가 있지만 분석을 계속할 수 있습니다."
-                          steps={[
-                            { emoji: '1️⃣', text: '분석 목적 선택' },
-                            { emoji: '2️⃣', text: 'AI 추천 받기' },
-                            { emoji: '3️⃣', text: '변수 선택 후 실행' }
-                          ]}
-                          ctaText="계속하기"
-                          ctaIcon={<ArrowRight className="w-4 h-4" />}
-                          onCtaClick={() => toast.info('경고를 무시하고 계속합니다')}
-                          warningMessage="경고 사항이 있지만 분석을 계속할 수 있습니다"
-                          data-testid="guidance-demo-warning"
-                        />
-                      </div>
-
-                      {/* 비활성화 예제 */}
-                      <div className="space-y-4">
-                        <h4 className="font-medium text-sm">CTA 버튼 비활성화 (중복 클릭 방지)</h4>
-                        <GuidanceCard
-                          title="분석 방법이 결정되었습니다!"
-                          description={
-                            <>
-                              <strong>독립표본 t-검정</strong> 방법으로 분석합니다.
-                            </>
-                          }
-                          steps={[
-                            { emoji: '1️⃣', text: '분석에 사용할 변수 선택' },
-                            { emoji: '2️⃣', text: '자동 분석 실행 + 가정 검정' },
-                            { emoji: '3️⃣', text: '결과 확인 및 해석' }
-                          ]}
-                          ctaText="변수 선택하기"
-                          ctaIcon={<ArrowRight className="w-4 h-4" />}
-                          onCtaClick={() => {}}
-                          ctaDisabled={true}
-                          animationDelay={700}
-                          data-testid="guidance-demo-disabled"
-                        />
-                      </div>
-
-                      {/* Props 테이블 */}
-                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">Props:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• <code>title</code>: string - 카드 제목 (필수)</li>
-                          <li>• <code>description</code>: string | ReactNode - 부제목/설명 (선택)</li>
-                          <li>• <code>steps</code>: {`Array<{emoji: string, text: string}>`} - 다음 단계 리스트 (필수)</li>
-                          <li>• <code>ctaText</code>: string - CTA 버튼 텍스트 (필수)</li>
-                          <li>• <code>ctaIcon</code>: ReactNode - CTA 버튼 아이콘 (선택)</li>
-                          <li>• <code>onCtaClick</code>: () =&gt; void - CTA 클릭 핸들러 (필수)</li>
-                          <li>• <code>ctaDisabled</code>: boolean - CTA 비활성화 여부 (선택, 기본: false)</li>
-                          <li>• <code>warningMessage</code>: string - 경고 메시지 (선택)</li>
-                          <li>• <code>animationDelay</code>: number - 애니메이션 딜레이 ms (선택, 기본: 700)</li>
-                          <li>• <code>data-testid</code>: string - 테스트 ID (선택)</li>
-                        </ul>
-                      </div>
-
-                      {/* 리팩토링 정보 */}
-                      <div className="bg-success/10 border border-success rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm text-success">🎯 2025-11-22 리팩토링 완료!</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-destructive">❌ 이전 방식</p>
-                            <ul className="text-xs text-muted-foreground space-y-1">
-                              <li>• Step 2/3에서 각각 50줄씩 중복</li>
-                              <li>• 중복 클릭 방지 없음</li>
-                              <li>• 유지보수 어려움</li>
-                            </ul>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-success">✅ 새 방식</p>
-                            <ul className="text-xs text-muted-foreground space-y-1">
-                              <li>• 공통 컴포넌트로 추출 (55줄 감소)</li>
-                              <li>• ctaDisabled prop으로 중복 방지</li>
-                              <li>• 단일 파일 수정으로 모든 단계 업데이트</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 디자인 특징 */}
-                      <div className="bg-primary/5 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">✨ 디자인 특징:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• ✅ 일관된 디자인 (border-dashed, bg-primary/5)</li>
-                          <li>• ✅ 성공 아이콘 (CheckCircle, 16x16)</li>
-                          <li>• ✅ 3단계 프로세스 리스트 (이모지 + 텍스트)</li>
-                          <li>• ✅ CTA 버튼 + 아이콘 (size=lg)</li>
-                          <li>• ✅ 선택적 경고 메시지 (AlertTriangle)</li>
-                          <li>• ✅ prefers-reduced-motion 지원 (WCAG 2.3.3)</li>
-                          <li>• ✅ 중복 클릭 방지 (ctaDisabled prop)</li>
-                        </ul>
-                      </div>
-
-                      {/* 사용 예제 */}
-                      <div className="relative">
-                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
-                          <code>{`// Step 2 예제 (✅ 최신: Try/Catch + useEffect Cleanup)
-const [isNavigating, setIsNavigating] = useState(false)
-
-const handleNext = useCallback(() => {
-  if (isNavigating || !onNext) return
-
-  setIsNavigating(true)
-  try {
-    onNext()
-    // ✅ 정상: goToNextStep()은 동기 함수로 즉시 언마운트
-  } catch (error) {
-    // ⚠️ 엣지 케이스: 에러 시 수동 리셋
-    logger.error('Navigation failed', { error })
-    setIsNavigating(false)
-  }
-}, [isNavigating, onNext])
-
-// ✅ Cleanup: 언마운트 시 자동 리셋
-useEffect(() => {
-  return () => {
-    setIsNavigating(false)
-  }
-}, [])
-
-<GuidanceCard
-  title="데이터 준비 완료!"
-  description={
-    <>
-      총 <strong>{totalRows.toLocaleString()}개</strong> 데이터,
-      <strong>{columnCount}개</strong> 변수가 준비되었습니다.
-    </>
-  }
-  steps={[
-    { emoji: '1️⃣', text: '분석 목적 선택 (그룹 비교, 관계 분석 등)' },
-    { emoji: '2️⃣', text: 'AI가 데이터를 분석하여 최적의 통계 방법 추천' },
-    { emoji: '3️⃣', text: '변수 선택 후 자동 분석 실행' }
-  ]}
-  ctaText="분석 목적 선택하기"
-  ctaIcon={<Sparkles className="w-4 h-4" />}
-  onCtaClick={handleNext}
-  ctaDisabled={isNavigating}
-  warningMessage={hasWarnings ? '경고 사항이 있지만 분석을 계속할 수 있습니다' : undefined}
-/>`}</code>
-                        </pre>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* VariableSelectorToggle 탭 */}
-                <TabsContent value="variable-selector" className="space-y-4 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        VariableSelectorToggle
-                        <Badge variant="default" className="text-xs">NEW</Badge>
-                      </CardTitle>
-                      <CardDescription>토글 방식 변수 선택 - 클릭 한 번으로 즉시 선택/해제</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <VariableSelectorToggle
-                        data={sampleData}
-                        onComplete={(selection) => {
-                          toast.success(`종속변수: ${selection.dependent}, 독립변수: ${selection.independent}`)
-                        }}
-                        title="변수 선택 (리뉴얼)"
-                        description="클릭 한 번으로 즉시 선택/해제됩니다"
-                      />
-
-                      {/* Props 테이블 */}
-                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">Props:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• <code>data</code>: DataRow[] - 원본 데이터</li>
-                          <li>• <code>onComplete</code>: (selection) =&gt; void - 선택 완료 핸들러</li>
-                          <li>• <code>onBack</code>: () =&gt; void - 이전 단계 핸들러 (선택)</li>
-                          <li>• <code>title</code>: string - 제목 (선택)</li>
-                          <li>• <code>description</code>: string - 설명 (선택)</li>
-                        </ul>
-                      </div>
-
-                      {/* 리뉴얼 비교 */}
-                      <div className="bg-success/10 border border-success rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm text-success">🎯 2025-11-22 리뉴얼 완료!</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-destructive">❌ 이전 방식</p>
-                            <ul className="text-xs text-muted-foreground space-y-1">
-                              <li>• 선택 후 변수 목록 숨김</li>
-                              <li>• "변경" 버튼 클릭 필요</li>
-                              <li>• 2단계 프로세스</li>
-                            </ul>
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium text-success">✅ 새 방식</p>
-                            <ul className="text-xs text-muted-foreground space-y-1">
-                              <li>• 모든 변수 항상 표시</li>
-                              <li>• 클릭 한 번에 토글</li>
-                              <li>• 좌우 영역 분리</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 디자인 특징 */}
-                      <div className="bg-primary/5 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">✨ 디자인 특징:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• ✅ 즉시 피드백 (클릭 시 바로 선택/해제)</li>
-                          <li>• ✅ 시각적 하이라이트 (선택된 변수 강조)</li>
-                          <li>• ✅ 좌우 영역 구분 (종속/독립 명확히)</li>
-                          <li>• ✅ 선택 요약 표시 (하단에 현재 선택 상태)</li>
-                          <li>• ✅ 체크 마크 애니메이션 (선택 시각화)</li>
-                        </ul>
-                      </div>
-
-                      {/* 사용 예제 */}
-                      <div className="relative">
-                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
-                          <code>{`<VariableSelectorToggle
-  data={uploadedData}
-  onComplete={(selection) => {
-    console.log('종속:', selection.dependent)
-    console.log('독립:', selection.independent)
-    startAnalysis(selection)
-  }}
-  onBack={goToPreviousStep}
-  title="분석 변수 선택"
-  description="클릭 한 번으로 즉시 선택/해제됩니다"
-/>`}</code>
-                        </pre>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+              {selectedComponent === 'variable-selector' && (
+                <VariableSelectorDemo />
+              )}
             </div>
           )}
 
@@ -1357,7 +925,7 @@ const handleOpenDataInNewWindow = useCallback(() => {
                     >
                       {copiedCode === '새 창 열기 코드' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
-                    <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-[400px]">
+                    <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
                       <code>{`// DataValidationStep.tsx에서 사용 예제
 const handleOpenDataInNewWindow = useCallback(() => {
   if (!data || data.length === 0) return

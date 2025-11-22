@@ -46,6 +46,63 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## 🔧 UTF-8 인코딩 문제 해결 방법 (2025-11-23 신규)
+
+**문제**: Claude Code의 Edit Tool과 Write Tool은 한글(UTF-8) 파일 수정 시 인코딩 손상 발생
+
+**증상**:
+- 한글 텍스트가 `M-pM-^_M-^S` 같은 바이트 시퀀스로 변환됨
+- Read Tool은 자동 보정하여 정상으로 표시하지만, 실제 파일은 손상 상태
+- TypeScript 컴파일은 통과하지만 브라우저에서 깨진 텍스트 표시
+
+**해결 방법**: Node.js 스크립트 사용 (UTF-8 기본 지원)
+
+```javascript
+// example-fix.mjs
+import { readFileSync, writeFileSync } from 'fs';
+
+const filePath = 'path/to/file.tsx';
+
+// UTF-8로 읽기
+let content = readFileSync(filePath, 'utf8');
+
+// 문자열 치환 (정규표현식 사용 가능)
+content = content.replace('old text', 'new text');
+
+// UTF-8로 쓰기
+writeFileSync(filePath, content, 'utf8');
+
+console.log('완료: UTF-8 인코딩 보존됨');
+```
+
+**실행**:
+```bash
+node example-fix.mjs
+```
+
+**검증 방법**:
+```bash
+# 1. 인코딩 손상 확인 (0이어야 정상)
+cat -A file.tsx | grep -E "(M-|�)" | wc -l
+
+# 2. TypeScript 컴파일
+cd statistical-platform
+npx tsc --noEmit
+
+# 3. 테스트 실행
+npm test -- __tests__/path/to/test.tsx
+```
+
+**주의사항**:
+- ❌ Edit Tool: 한글 파일 수정 시 사용 금지
+- ❌ Write Tool: 한글 파일 수정 시 사용 금지
+- ❌ Python 스크립트: Windows cp949 인코딩 문제
+- ✅ Node.js 스크립트 (.mjs): UTF-8 기본 지원으로 안전
+
+**예제**: `statistical-platform/components/smart-flow/steps/ResultsActionStep.tsx` 수정 시 사용됨 (2025-11-23)
+
+---
+
 ## 🎨 공통 컴포넌트 전략 (2025-11-21 신규)
 
 **목표**: 컴포넌트 재사용성 극대화 + 일관된 UX + 유지보수 효율화
@@ -76,6 +133,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev
 # → http://localhost:3000/design-system
 ```
+
+**파일 위치**: `statistical-platform/app/(dashboard)/design-system/page.tsx`
 
 **현재 쇼케이스 구성** (4개 섹션):
 - 🎨 **Colors**: shadcn/ui 색상 팔레트 (6가지)
