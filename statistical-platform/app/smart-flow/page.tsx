@@ -302,13 +302,13 @@ export default function SmartFlowPage() {
             )}
 
             {currentStep === 1 && (
-              <div className="animate-in fade-in duration-500">
+              <div className="animate-fade-in">
                 <DataUploadStep onUploadComplete={handleUploadComplete} />
               </div>
             )}
 
             {currentStep === 2 && (
-              <div className="animate-in fade-in duration-500">
+              <div className="animate-fade-in">
                 <ErrorBoundary>
                   <DataValidationStep
                     validationResults={validationResults}
@@ -320,7 +320,7 @@ export default function SmartFlowPage() {
             )}
 
             {currentStep === 3 && (
-              <div className="animate-in fade-in duration-500">
+              <div className="animate-fade-in">
                 <PurposeInputStep
                   onPurposeSubmit={handlePurposeSubmit}
                   validationResults={validationResults}
@@ -330,13 +330,13 @@ export default function SmartFlowPage() {
             )}
 
             {currentStep === 4 && (
-              <div className="animate-in fade-in duration-500">
+              <div className="animate-fade-in">
                 <VariableSelectionStep />
               </div>
             )}
 
             {currentStep === 5 && (
-              <div className="animate-in fade-in duration-500">
+              <div className="animate-fade-in">
                 <AnalysisExecutionStep
                   selectedMethod={selectedMethod}
                   variableMapping={variableMapping || {}}
@@ -350,7 +350,7 @@ export default function SmartFlowPage() {
             )}
 
             {currentStep === 6 && (
-              <div className="animate-in fade-in duration-500">
+              <div className="animate-fade-in">
                 <ResultsActionStep results={results} />
               </div>
             )}
