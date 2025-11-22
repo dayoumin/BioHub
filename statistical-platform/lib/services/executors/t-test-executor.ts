@@ -229,19 +229,22 @@ export class TTestExecutor extends BaseExecutor {
         throw new Error('각 그룹에 유효한 수치형 데이터가 필요합니다. 변수 선택 및 데이터를 확인해주세요.')
       }
 
+      // 작은 표본 (n < 3) 가드 - Pyodide 호출 전에 체크
+      if (group1.length < 3 || group2.length < 3) {
+        throw new Error('Welch t-test는 각 그룹에 최소 3개 이상의 데이터가 필요합니다.')
+      }
+
       // Welch's t-test는 항상 이분산 가정 (equalVar: false)
       const result = await pyodideStats.tTest(group1, group2, { equalVar: false })
 
-      // 효과크기 계산
+      // 효과크기 계산 (Welch의 경우 Glass's delta 또는 단순 평균 SD 사용)
       const stats1 = await pyodideStats.calculateDescriptiveStats(group1)
       const stats2 = await pyodideStats.calculateDescriptiveStats(group2)
 
-      const pooledStd = Math.sqrt(
-        ((group1.length - 1) * Math.pow(stats1.std, 2) +
-         (group2.length - 1) * Math.pow(stats2.std, 2)) /
-        (group1.length + group2.length - 2)
-      )
-      const cohensD = (stats1.mean - stats2.mean) / pooledStd
+      // Welch는 이분산이므로 pooled SD 대신 평균 SD 사용
+
+      const meanStd = Math.sqrt((Math.pow(stats1.std, 2) + Math.pow(stats2.std, 2)) / 2)
+      const cohensD = (stats1.mean - stats2.mean) / meanStd
 
       return {
         metadata: {

@@ -244,8 +244,8 @@ export function PurposeInputStep({
       )
     }
 
-    // 네비게이션 완료 후 상태 리셋 (안전장치)
-    setTimeout(() => setIsNavigating(false), 1000)
+    // ✅ 컴포넌트 언마운트 시 자동으로 상태가 정리되므로 별도 리셋 불필요
+    // (goToNextStep()은 동기 함수로 즉시 currentStep 변경 → 컴포넌트 언마운트)
 
     // ❌ onNext() 중복 호출 제거:
     // onPurposeSubmit (handlePurposeSubmit)이 이미 goToNextStep()을 호출하므로

@@ -91,8 +91,8 @@ export const DataValidationStep = memo(function DataValidationStep({
     if (isNavigating || !onNext) return
     setIsNavigating(true)
     onNext()
-    // 네비게이션 완료 후 상태 리셋 (다음 페이지로 이동하므로 실제로는 불필요하지만 안전장치)
-    setTimeout(() => setIsNavigating(false), 1000)
+    // ✅ 컴포넌트 언마운트 시 자동으로 상태가 정리되므로 별도 리셋 불필요
+    // (goToNextStep()은 동기 함수로 즉시 currentStep 변경 → 컴포넌트 언마운트)
   }, [isNavigating, onNext])
 
   if (!validationResults || !data) {

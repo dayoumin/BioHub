@@ -110,11 +110,18 @@ export abstract class BaseExecutor {
     if (!Array.isArray(data)) return []
     if (data.length === 0) return []
 
-    // 이미 숫자 배열로 들어온 경우
-    if (typeof data[0] === 'number') {
+    // 이미 숫자 또는 문자열 숫자 배열로 들어온 경우
+    // (primitive 타입이면 객체 배열이 아님)
+    const firstItem = data[0]
+    if (typeof firstItem === 'number' || typeof firstItem === 'string') {
       return (data as Array<unknown>)
-        .map((v) => Number(v))
-        .filter((v) => Number.isFinite(v))
+        .map((v) => {
+          // null/undefined 체크 (Number(null) === 0 버그 방지)
+          if (v === null || v === undefined) return null
+          const num = typeof v === 'number' ? v : Number(v)
+          return Number.isFinite(num) ? num : null
+        })
+        .filter((v): v is number => v !== null)
     }
 
     const rows = data as Array<Record<string, unknown>>

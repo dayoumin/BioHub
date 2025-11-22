@@ -101,10 +101,12 @@ export class AnovaExecutor extends BaseExecutor {
       // 데이터 구조화: { factor1, factor2, value } 형식으로 변환
       const formattedData = data
         .map(row => {
+          const factor1Value = row[factor1]
+          const factor2Value = row[factor2]
           const depValue = row[dependent]
 
-          // null/undefined 체크 (Number(null) === 0 버그 방지)
-          if (depValue === null || depValue === undefined) return null
+          // null/undefined 체크 (모든 변수에 대해)
+          if (factor1Value == null || factor2Value == null || depValue == null) return null
 
           const numValue = typeof depValue === 'number' ? depValue : Number(depValue)
 
@@ -112,17 +114,22 @@ export class AnovaExecutor extends BaseExecutor {
           if (!Number.isFinite(numValue)) return null
 
           return {
-            factor1: String(row[factor1]),
-            factor2: String(row[factor2]),
+            factor1: String(factor1Value),
+            factor2: String(factor2Value),
             value: numValue
           }
         })
         .filter((item): item is { factor1: string; factor2: string; value: number } => item !== null)
 
+      // 빈 데이터 가드
+      if (formattedData.length === 0) {
+        throw new Error('유효한 데이터가 없습니다. 모든 행이 null 또는 유효하지 않은 값입니다.')
+      }
+
       const result = await pyodideStats.twoWayAnova(formattedData)
 
       return {
-        metadata: this.createMetadata('이원 분산분석', data.length, startTime),
+        metadata: this.createMetadata('이원 분산분석', formattedData.length, startTime),
         mainResults: {
           statistic: result.factor1.fStatistic,
           pvalue: result.factor1.pValue,
