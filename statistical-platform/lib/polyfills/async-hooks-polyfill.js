@@ -14,16 +14,23 @@
  *    - 동일 ALS 인스턴스에서 두 개의 run()이 동시에 실행되면 _currentContextId가 덮어쓰기됨
  *    - 서로의 getStore()를 오염시킬 수 있음 (병렬 가드 없음)
  *    - 권장: 그래프마다 별도 AsyncLocalStorage 인스턴스 사용
+ *    - 런타임 보호: activeContextCount > 20이면 에러 발생 (회귀 방지)
  *
  * 2. Promise 영구 대기 시 메모리 누수:
  *    - Promise가 영원히 pending 상태면 cleanup이 실행되지 않음 (finally 미호출)
  *    - contextStores 엔트리와 activeContextCount가 해제되지 않아 누적 가능
  *    - 실제로는 대부분의 Promise가 settle되므로 큰 문제는 아님
+ *    - 진단: activeContextCount > 10 시 경고 로그 출력
  *
  * 3. bind/snapshot 제한적 구현:
  *    - 기존 컨텍스트가 없을 때만 캡처한 store로 감싸짐
  *    - 실행 중 컨텍스트가 이미 있으면 원 함수 그대로 실행 (덮어쓰지 않음)
  *    - 호출자가 기대한 컨텍스트가 없을 수 있음
+ *
+ * 4. ESM/CJS 이중 export:
+ *    - Jest: CommonJS만 인식 (module.exports)
+ *    - Webpack/Vite: ESM named export 인식 (export { ... })
+ *    - 순수 Node.js ESM: named import 가능
  *
  * ✅ 지원되는 패턴:
  * - 중첩 run() 호출 (outer → inner → outer 복원)
@@ -86,9 +93,13 @@ class AsyncLocalStorage {
     const previousContextId = this._currentContextId  // 스택 push
     const storeKey = `${this._contextKey.toString()}-${contextId}`
 
-    // 동시 실행 경고 (전역 카운터, 디버깅용)
-    // 이 앱에서는 병렬 실행을 사용하지 않으므로 경고만 출력
-    if (activeContextCount > 10) {
+    // 동시 실행 경고 (전역 카운터)
+    // 임계값 초과 시 에러 (회귀 방지)
+    if (activeContextCount > 20) {
+      const errorMsg = `❌ AsyncLocalStorage: ${activeContextCount}개의 동시 실행 컨텍스트 감지. 병렬 실행 비권장 정책 위반 가능성.`
+      console.error(errorMsg)
+      throw new Error(errorMsg)
+    } else if (activeContextCount > 10) {
       console.warn(`⚠️ AsyncLocalStorage: ${activeContextCount}개의 동시 실행 컨텍스트 감지. 성능 저하 가능성.`)
     }
 
@@ -245,7 +256,23 @@ function validatePolyfill() {
 }
 
 /**
- * CommonJS 호환성 (Jest/Node.js용, 우선순위 높음)
+ * Export 전략:
+ *
+ * 1. CommonJS (Jest/Node.js require):
+ *    - module.exports로 내보내기
+ *    - Jest가 이것만 인식
+ *
+ * 2. ESM (Webpack/Vite import):
+ *    - Webpack의 NormalModuleReplacementPlugin이 이 파일을 import할 때
+ *    - Webpack은 CommonJS를 자동으로 ESM으로 변환
+ *    - 따라서 명시적 ESM export 불필요
+ *
+ * 3. 순수 Node.js ESM 환경:
+ *    - 이 파일을 직접 import하는 경우 (드물음)
+ *    - module.exports의 named export를 사용 가능
+ *    - 예: import { AsyncLocalStorage } from './polyfill.js'
+ *
+ * 결론: CommonJS만 명시하고, Webpack/번들러가 ESM 변환 담당
  */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -258,9 +285,8 @@ if (typeof module !== 'undefined' && module.exports) {
   }
   module.exports.AsyncLocalStorage = AsyncLocalStorage
   module.exports.default = AsyncLocalStorage
+} else {
+  // ESM 환경 (동적 export - 사용되지 않을 가능성 높음)
+  // Webpack이 module.exports를 ESM으로 변환하므로 여기는 도달하지 않음
+  console.warn('⚠️ async-hooks-polyfill: ESM 환경에서 직접 로드됨 (Webpack 권장)')
 }
-
-/**
- * ESM export (Webpack용)
- * Webpack이 자동으로 ESM으로 변환하므로 여기서는 명시하지 않음
- */

@@ -3,11 +3,13 @@
  *
  * 검증 항목:
  * 1. 기본 run() 동작 (동기/비동기)
- * 2. getStore() 컨텍스트 격리
- * 3. 중첩/순차 실행 지원 (병렬 가드 없음)
+ * 2. 중첩/순차 실행 지원 (스택 기반 복원)
+ * 3. 인스턴스 격리 (다른 인스턴스 간 격리)
+ * 4. 에러 처리 (cleanup 보장)
  *
- * ⚠️ 제한 사항:
- * - 동일 인스턴스에서 병렬 run() 시 컨텍스트 오염 가능 (병렬 가드 제거됨)
+ * ⚠️ 제한 사항 (CRITICAL):
+ * - 동일 인스턴스에서 병렬 run() 시 컨텍스트 오염 가능 (병렬 가드 없음)
+ * - 런타임 보호: activeContextCount > 20이면 에러 발생 (회귀 방지)
  * - 이 앱은 병렬 실행을 사용하지 않으므로 안전
  */
 
@@ -163,8 +165,9 @@ describe('AsyncLocalStorage Polyfill - 기본 동작', () => {
     })
   })
 
-  describe('컨텍스트 격리', () => {
-    it('서로 다른 run() 호출은 격리되어야 함', async () => {
+  describe('인스턴스 격리', () => {
+    it('다른 AsyncLocalStorage 인스턴스는 서로 격리되어야 함', async () => {
+      // 다른 인스턴스는 Symbol이 다르므로 격리됨
       const storage1 = new AsyncLocalStorage()
       const storage2 = new AsyncLocalStorage()
 
@@ -184,6 +187,14 @@ describe('AsyncLocalStorage Polyfill - 기본 동작', () => {
 
       expect(result1).toEqual({ id: 'A' })
       expect(result2).toEqual({ id: 'B' })
+    })
+
+    // ⚠️ 동일 인스턴스 병렬 실행은 미지원 (문서 정책)
+    // 아래 테스트는 타이밍에 따라 실패할 수 있으므로 skip
+    it.skip('동일 인스턴스 병렬 실행은 컨텍스트 오염 가능 (비권장)', async () => {
+      // 이 테스트는 의도적으로 skip됨
+      // 이유: 동일 인스턴스에서 병렬 run() 시 _currentContextId 덮어쓰기
+      // 정책: 그래프마다 별도 AsyncLocalStorage 인스턴스 사용 권장
     })
   })
 })
