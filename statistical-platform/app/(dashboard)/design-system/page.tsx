@@ -17,7 +17,7 @@ import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
-import { VariableSelectorSimple } from '@/components/common/VariableSelectorSimple'
+import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
 import {
   GitCompare, TrendingUp, PieChart, LineChart, Clock, Play, Pause,
   Copy, Check, Menu, X, Palette, Type, SquareStack
@@ -125,7 +125,7 @@ export default function ComponentsShowcasePage() {
     }
   }, [])
 
-  // VariableSelectorSimple 샘플 데이터
+  // VariableSelectorToggle 샘플 데이터
   const sampleData = [
     { group: 'A', value: 12.5, age: 25, score: 85, time: 120 },
     { group: 'B', value: 10.3, age: 22, score: 78, time: 105 },
@@ -462,12 +462,11 @@ export default function ComponentsShowcasePage() {
               </div>
 
               <Tabs defaultValue="purpose-card" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
                   <TabsTrigger value="purpose-card">PurposeCard</TabsTrigger>
                   <TabsTrigger value="ai-progress">AIProgress</TabsTrigger>
                   <TabsTrigger value="data-preview">DataPreview</TabsTrigger>
-                  <TabsTrigger value="variable-selector">VarSelector</TabsTrigger>
-                  <TabsTrigger value="variable-toggle">VarToggle 🆕</TabsTrigger>
+                  <TabsTrigger value="variable-selector">VarSelector 🆕</TabsTrigger>
                 </TabsList>
 
                 {/* PurposeCard 탭 */}
@@ -607,21 +606,24 @@ export default function ComponentsShowcasePage() {
                   </Card>
                 </TabsContent>
 
-                {/* VariableSelectorSimple 탭 */}
+                {/* VariableSelectorToggle 탭 */}
                 <TabsContent value="variable-selector" className="space-y-4 mt-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>VariableSelectorSimple</CardTitle>
-                      <CardDescription>초간단 변수 선택 - 드래그앤드롭 없이 버튼 클릭만으로 선택</CardDescription>
+                      <CardTitle className="flex items-center gap-2">
+                        VariableSelectorToggle
+                        <Badge variant="default" className="text-xs">NEW</Badge>
+                      </CardTitle>
+                      <CardDescription>토글 방식 변수 선택 - 클릭 한 번으로 즉시 선택/해제</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <VariableSelectorSimple
+                      <VariableSelectorToggle
                         data={sampleData}
                         onComplete={(selection) => {
                           toast.success(`종속변수: ${selection.dependent}, 독립변수: ${selection.independent}`)
                         }}
-                        title="변수 선택 데모"
-                        description="아래 버튼을 클릭하여 변수를 선택하세요"
+                        title="변수 선택 (리뉴얼)"
+                        description="클릭 한 번으로 즉시 선택/해제됩니다"
                       />
 
                       {/* Props 테이블 */}
@@ -636,100 +638,32 @@ export default function ComponentsShowcasePage() {
                         </ul>
                       </div>
 
-                      {/* 디자인 특징 */}
-                      <div className="bg-primary/5 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">✨ 디자인 특징:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• ❌ 드래그앤드롭 제거 (번거로운 UI 완전 삭제)</li>
-                          <li>• ❌ 할당 개념 제거 (초보자 혼란 해소)</li>
-                          <li>• ✅ 버튼 클릭만으로 선택 (클릭 횟수 80% 감소)</li>
-                          <li>• ✅ 한 화면에 모든 정보 (스크롤 최소화)</li>
-                          <li>• ✅ 자동 검증 (모두 선택해야 활성화)</li>
-                        </ul>
-                      </div>
-
-                      {/* 사용 예제 */}
-                      <div className="relative">
-                        <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
-                          <code>{`<VariableSelectorSimple
-  data={uploadedData}
-  onComplete={(selection) => {
-    console.log('종속:', selection.dependent)
-    console.log('독립:', selection.independent)
-    goToNextStep()
-  }}
-  onBack={goToPreviousStep}
-  title="분석 변수 선택"
-  description="분석에 사용할 변수를 선택하세요"
-/>`}</code>
-                        </pre>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* VariableSelectorToggle 탭 (NEW!) */}
-                <TabsContent value="variable-toggle" className="space-y-4 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        VariableSelectorToggle
-                        <Badge variant="default" className="text-xs">NEW</Badge>
-                      </CardTitle>
-                      <CardDescription>
-                        개선된 변수 선택 UI - 토글 방식으로 즉시 선택/해제
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <VariableSelectorToggle
-                        data={sampleData}
-                        onComplete={(selection) => {
-                          toast.success(`종속변수: ${selection.dependent}, 독립변수: ${selection.independent}`)
-                        }}
-                        title="변수 선택 (개선판)"
-                        description="클릭 한 번으로 즉시 선택/해제됩니다"
-                      />
-
-                      {/* 개선 사항 비교 */}
+                      {/* 리뉴얼 비교 */}
                       <div className="bg-success/10 border border-success rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm text-success">✨ 이전 버전 대비 개선 사항:</h4>
+                        <h4 className="font-medium text-sm text-success">🎯 2025-11-22 리뉴얼 완료!</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                           <div className="space-y-2">
-                            <p className="text-xs font-medium text-destructive">❌ 이전 방식 (VariableSelectorSimple)</p>
+                            <p className="text-xs font-medium text-destructive">❌ 이전 방식</p>
                             <ul className="text-xs text-muted-foreground space-y-1">
-                              <li>• 선택 후 변수 목록이 숨겨짐</li>
+                              <li>• 선택 후 변수 목록 숨김</li>
                               <li>• "변경" 버튼 클릭 필요</li>
-                              <li>• 2단계 프로세스 (선택 → 변경)</li>
-                              <li>• 선택된 변수만 보임</li>
+                              <li>• 2단계 프로세스</li>
                             </ul>
                           </div>
                           <div className="space-y-2">
-                            <p className="text-xs font-medium text-success">✅ 새 방식 (VariableSelectorToggle)</p>
+                            <p className="text-xs font-medium text-success">✅ 새 방식</p>
                             <ul className="text-xs text-muted-foreground space-y-1">
                               <li>• 모든 변수 항상 표시</li>
-                              <li>• 클릭 한 번에 토글 (변경 버튼 불필요)</li>
-                              <li>• 1단계 프로세스 (즉시 선택/해제)</li>
-                              <li>• 좌우 영역 분리 (종속/독립)</li>
+                              <li>• 클릭 한 번에 토글</li>
+                              <li>• 좌우 영역 분리</li>
                             </ul>
                           </div>
                         </div>
                       </div>
 
-                      {/* Props 테이블 */}
-                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">Props:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          <li>• <code>data</code>: Record&lt;string, unknown&gt;[] - 원본 데이터</li>
-                          <li>• <code>onComplete</code>: (selection) =&gt; void - 선택 완료 핸들러</li>
-                          <li>• <code>onBack</code>: () =&gt; void - 이전 단계 핸들러 (선택)</li>
-                          <li>• <code>title</code>: string - 제목 (선택)</li>
-                          <li>• <code>description</code>: string - 설명 (선택)</li>
-                        </ul>
-                      </div>
-
                       {/* 디자인 특징 */}
                       <div className="bg-primary/5 rounded-lg p-4 space-y-2">
-                        <h4 className="font-medium text-sm">🎯 디자인 특징:</h4>
+                        <h4 className="font-medium text-sm">✨ 디자인 특징:</h4>
                         <ul className="text-xs text-muted-foreground space-y-1">
                           <li>• ✅ 즉시 피드백 (클릭 시 바로 선택/해제)</li>
                           <li>• ✅ 시각적 하이라이트 (선택된 변수 강조)</li>

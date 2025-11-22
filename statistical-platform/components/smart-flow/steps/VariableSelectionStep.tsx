@@ -4,7 +4,7 @@ import React from 'react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { AlertCircle } from 'lucide-react'
-import { VariableSelectorSimple } from '@/components/common/VariableSelectorSimple'
+import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
@@ -59,7 +59,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
         )}
       </div>
 
-      <VariableSelectorSimple
+      <VariableSelectorToggle
         data={uploadedData}
         onComplete={handleComplete}
         onBack={onBack || goToPreviousStep}

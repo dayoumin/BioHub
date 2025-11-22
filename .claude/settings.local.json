@@ -158,7 +158,8 @@
       "Bash(npx shadcn@latest add:*)",
       "Bash(set:*)",
       "Bash(mv:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm run dev:clean:*)"
     ],
     "deny": [],
     "ask": []

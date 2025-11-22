@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * VariableSelectorSimple - 토글 방식 변수 선택 컴포넌트
+ * VariableSelectorToggle - 토글 방식 변수 선택 컴포넌트
  *
- * 🎯 2025-11-22 리뉴얼: 기존 방식 완전히 개선
+ * 🎯 2025-11-22 새로 도입: 직관적인 토글 방식
  *
  * 이전 방식의 문제점:
  * - ❌ 선택 후 변수 목록이 숨겨짐
@@ -35,7 +35,7 @@ import {
 import { isRecord } from '@/lib/utils/type-guards'
 
 // Props 인터페이스
-export interface VariableSelectorSimpleProps {
+export interface VariableSelectorToggleProps {
   data: Record<string, unknown>[]
   onComplete: (selection: {
     dependent: string | null
@@ -50,14 +50,14 @@ export interface VariableSelectorSimpleProps {
 /**
  * 메인 컴포넌트
  */
-export function VariableSelectorSimple({
+export function VariableSelectorToggle({
   data,
   onComplete,
   onBack,
   title = '변수 선택',
   description = '분석에 사용할 변수를 클릭하여 선택하세요',
   className
-}: VariableSelectorSimpleProps) {
+}: VariableSelectorToggleProps) {
   // 선택된 변수
   const [dependentVar, setDependentVar] = useState<string | null>(null)
   const [independentVar, setIndependentVar] = useState<string | null>(null)
