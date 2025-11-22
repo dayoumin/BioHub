@@ -30,12 +30,14 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   webpack: (config, { isServer, webpack }) => {
-    // LangGraph 프로덕션 빌드에서 제외 (개발 모드에서만 사용)
-    if (process.env.NODE_ENV === 'production') {
+    // node:async_hooks Polyfill (클라이언트 빌드에서만 적용)
+    // Static Export에서는 서버 코드가 없지만, 명시적으로 클라이언트만 적용
+    if (!isServer) {
       config.plugins.push(
-        new webpack.IgnorePlugin({
-          resourceRegExp: /langgraph-ollama-provider/,
-        })
+        new webpack.NormalModuleReplacementPlugin(
+          /^node:async_hooks$/,
+          require.resolve('./lib/polyfills/async-hooks-polyfill.js')
+        )
       )
     }
 
@@ -64,7 +66,7 @@ const nextConfig: NextConfig = {
       'node:crypto': false,
       'node:stream': false,
       'node:util': false,
-      'node:async_hooks': false, // LangGraph 빌드 에러 해결
+      // 'node:async_hooks'는 NormalModuleReplacementPlugin으로 처리 (위에서 polyfill 적용)
     };
     
     // Pyodide 관련 모듈들을 external로 처리
