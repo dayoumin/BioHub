@@ -15,7 +15,8 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
-  Cell
+  Cell,
+  ErrorBar
 } from 'recharts'
 import { Card } from '@/components/ui/card'
 import { AnalysisResult } from '@/types/smart-flow'
@@ -133,12 +134,12 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     return { groupData: [], scatterData: [], distributionData: [] }
   }, [uploadedData])
 
-  // t-검정이나 ANOVA의 경우 막대 그래프
+  // t-검정이나 ANOVA의 경우 막대 그래프 + Error Bar
   if (results.method?.includes('검정') || results.method?.includes('ANOVA')) {
     return (
       <Card className="p-6 bg-gradient-to-br from-blue-50/30 to-success-bg/30 dark:from-blue-950/20 dark:to-success-bg/20">
-        <h4 className="text-lg font-semibold mb-4">📊 그룹 간 평균 비교</h4>
-        
+        <h4 className="text-lg font-semibold mb-4">📊 그룹 간 평균 비교 (평균 ± 표준편차)</h4>
+
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData.groupData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -154,12 +155,13 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               dataKey="mean"
               fill="#3b82f6"
               name="평균"
-              label={{ position: 'top' }}
+              label={{ position: 'top', formatter: (value: number) => value.toFixed(2) }}
               radius={[8, 8, 0, 0]}
             >
               {chartData.groupData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#10b981'} />
               ))}
+              <ErrorBar dataKey="std" width={4} strokeWidth={2} stroke="#374151" />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -313,14 +315,14 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     )
   }
 
-  // 비모수 검정 (Mann-Whitney, Wilcoxon, Kruskal-Wallis 등) - 박스플롯
+  // 비모수 검정 (Mann-Whitney, Wilcoxon, Kruskal-Wallis 등) - Error Bar 포함
   if (results.method?.includes('Mann-Whitney') ||
       results.method?.includes('Wilcoxon') ||
       results.method?.includes('Kruskal') ||
       results.method?.includes('비모수')) {
     return (
       <Card className="p-6 bg-gradient-to-br from-teal-50/30 to-cyan-50/30 dark:from-teal-950/20 dark:to-cyan-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 비모수 검정 결과</h4>
+        <h4 className="text-lg font-semibold mb-4">📊 비모수 검정 결과 (중위수/평균 ± 분산)</h4>
 
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={chartData.groupData}>
@@ -337,11 +339,13 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               dataKey="mean"
               fill="#14b8a6"
               name="중위수/평균"
+              label={{ position: 'top', formatter: (value: number) => value.toFixed(2) }}
               radius={[8, 8, 0, 0]}
             >
               {chartData.groupData.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#14b8a6' : '#06b6d4'} />
               ))}
+              <ErrorBar dataKey="std" width={4} strokeWidth={2} stroke="#0f766e" />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
