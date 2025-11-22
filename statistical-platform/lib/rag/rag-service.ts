@@ -101,8 +101,9 @@ export class RAGService {
     }
 
     // Provider 공통 설정
+    const providerName = 'Ollama (Local)'
     const providerConfig = {
-      name: this.providerType === 'langgraph' ? 'Ollama (LangGraph)' : 'Ollama (Local)',
+      name: providerName,
       ollamaEndpoint:
         this.config.ollamaEndpoint ||
         process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT ||
@@ -118,14 +119,8 @@ export class RAGService {
       testMode: process.env.NODE_ENV === 'test', // 테스트 환경에서 testMode 활성화
     }
 
-    // Provider 타입에 따라 생성
-    if (this.providerType === 'langgraph') {
-      // 동적 import로 LangGraph 로드 (빌드 에러 방지)
-      const { LangGraphOllamaProvider } = await import('./providers/langgraph-ollama-provider')
-      this.provider = new LangGraphOllamaProvider(providerConfig)
-    } else {
-      this.provider = new OllamaRAGProvider(providerConfig)
-    }
+    // Ollama Provider 생성 (langgraph 제거됨)
+    this.provider = new OllamaRAGProvider(providerConfig)
 
     await this.provider.initialize()
     console.log(`[RAGService] ${providerName} Provider 초기화 완료`)
