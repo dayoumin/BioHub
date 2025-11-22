@@ -25,12 +25,12 @@ import { ResultsActionStep } from '@/components/smart-flow/steps/ResultsActionSt
 import { AnalysisHistoryPanel } from '@/components/smart-flow/AnalysisHistoryPanel'
 
 const steps: StepConfig[] = [
-  { id: 1, name: '데이터 업로드', icon: Upload, description: '' },
-  { id: 2, name: '데이터 검증', icon: CheckCircle, description: '' },
-  { id: 3, name: '분석 목적', icon: Sparkles, description: '' },
-  { id: 4, name: '변수 선택', icon: HelpCircle, description: '' },
-  { id: 5, name: '통계 분석', icon: BarChart3, description: '' },
-  { id: 6, name: '결과 및 액션', icon: FileText, description: '' }
+  { id: 1, name: '데이터 업로드', icon: Upload, description: 'CSV/Excel 파일 업로드' },
+  { id: 2, name: '데이터 요약', icon: CheckCircle, description: '업로드된 데이터 정보 확인' },
+  { id: 3, name: '분석 목적', icon: Sparkles, description: '수행할 분석 유형 선택' },
+  { id: 4, name: '변수 선택', icon: HelpCircle, description: '분석에 사용할 변수 지정' },
+  { id: 5, name: '통계 분석', icon: BarChart3, description: '선택한 방법으로 분석 실행' },
+  { id: 6, name: '결과 확인', icon: FileText, description: '분석 결과 및 다운로드' }
 ]
 
 export default function SmartFlowPage() {
@@ -313,6 +313,7 @@ export default function SmartFlowPage() {
                   <DataValidationStep
                     validationResults={validationResults}
                     data={uploadedData}
+                    onNext={goToNextStep}
                   />
                 </ErrorBoundary>
               </div>

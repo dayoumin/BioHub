@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useMemo, useState, useCallback, useEffect } from 'react'
-import { CheckCircle, AlertTriangle, XCircle, Info, BarChart, LineChart, BarChart3 } from 'lucide-react'
+import { CheckCircle, AlertTriangle, XCircle, Info, BarChart, LineChart, BarChart3, Sparkles } from 'lucide-react'
 import { ValidationResults, ColumnStatistics } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -20,6 +20,7 @@ import { logger } from '@/lib/utils/logger'
 interface DataValidationStepProps {
   validationResults: ValidationResults | null
   data: any[] | null
+  onNext?: () => void
 }
 
 // Type guard for ValidationResults with columnStats
@@ -29,7 +30,8 @@ function hasColumnStats(results: ValidationResults | null): results is Validatio
 
 export const DataValidationStepWithCharts = memo(function DataValidationStepWithCharts({
   validationResults,
-  data
+  data,
+  onNext
 }: DataValidationStepProps) {
   const [selectedColumn, setSelectedColumn] = useState<ColumnStatistics | null>(null)
   const [showVisualization, setShowVisualization] = useState(false)
@@ -806,6 +808,44 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 다음 단계 안내 메시지 */}
+      {!hasErrors && onNext && (
+        <Card className="border-2 border-dashed border-primary/50 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <CheckCircle className="w-16 h-16 text-success mx-auto" />
+              <h3 className="text-xl font-semibold">데이터 준비 완료!</h3>
+              <p className="text-muted-foreground">
+                총 <strong>{validationResults.totalRows.toLocaleString()}개</strong> 데이터, <strong>{validationResults.columnCount}개</strong> 변수가 분석 준비되었습니다.
+              </p>
+
+              <div className="bg-muted p-4 rounded-lg space-y-3 max-w-md mx-auto">
+                <p className="text-sm font-medium">다음 단계:</p>
+                <ol className="text-sm text-muted-foreground text-left space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary">1️⃣</span>
+                    <span>분석 목적 선택 (그룹 비교, 관계 분석 등)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary">2️⃣</span>
+                    <span>AI가 데이터를 분석하여 최적의 통계 방법 추천</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary">3️⃣</span>
+                    <span>변수 선택 후 자동 분석 실행</span>
+                  </li>
+                </ol>
+              </div>
+
+              <Button size="lg" onClick={onNext} className="mt-4">
+                분석 목적 선택하기
+                <Sparkles className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 변수 상세 시각화 다이얼로그 */}
       <Dialog open={showVisualization} onOpenChange={setShowVisualization}>
