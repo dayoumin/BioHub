@@ -18,12 +18,12 @@ import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgr
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { VariableSelectorSimple } from '@/components/common/VariableSelectorSimple'
-import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
 import {
   GitCompare, TrendingUp, PieChart, LineChart, Clock, Play, Pause,
   Copy, Check, Menu, X, Palette, Type, SquareStack
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'

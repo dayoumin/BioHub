@@ -1,24 +1,23 @@
 'use client'
 
 /**
- * VariableSelectorSimple - 초간단 변수 선택 컴포넌트
+ * VariableSelectorSimple - 토글 방식 변수 선택 컴포넌트
  *
- * 디자인 철학:
- * - 드래그앤드롭 없음 (번거로움 제거)
- * - 할당 개념 없음 (사용자 혼란 제거)
- * - 버튼 클릭만으로 선택 (가장 직관적)
- * - 한 화면에 모든 정보 (스크롤 최소화)
+ * 🎯 2025-11-22 리뉴얼: 기존 방식 완전히 개선
  *
- * 사용 예:
- * ```tsx
- * <VariableSelectorSimple
- *   data={myData}
- *   onComplete={(selected) => {
- *     console.log('종속변수:', selected.dependent)
- *     console.log('독립변수:', selected.independent)
- *   }}
- * />
- * ```
+ * 이전 방식의 문제점:
+ * - ❌ 선택 후 변수 목록이 숨겨짐
+ * - ❌ "변경" 버튼 클릭 필요
+ * - ❌ 2단계 프로세스 (선택 → 변경 버튼 → 다시 선택)
+ * - ❌ 선택된 변수만 보임
+ *
+ * 새로운 방식:
+ * - ✅ 모든 변수 항상 표시 (숨기지 않음)
+ * - ✅ 클릭 한 번에 선택/해제 (토글 방식)
+ * - ✅ 1단계 프로세스 (즉시 선택/해제)
+ * - ✅ 좌우 영역 분리 (종속/독립 변수 명확히)
+ * - ✅ 시각적 하이라이트 (선택 상태 명확)
+ * - ✅ 즉시 피드백 (변경 버튼 불필요)
  */
 
 import React, { useState, useMemo, useCallback } from 'react'
@@ -56,7 +55,7 @@ export function VariableSelectorSimple({
   onComplete,
   onBack,
   title = '변수 선택',
-  description = '분석에 사용할 변수를 선택하세요',
+  description = '분석에 사용할 변수를 클릭하여 선택하세요',
   className
 }: VariableSelectorSimpleProps) {
   // 선택된 변수
@@ -76,6 +75,16 @@ export function VariableSelectorSimple({
   const isValid = useMemo(() => {
     return dependentVar !== null && independentVar !== null
   }, [dependentVar, independentVar])
+
+  // 종속변수 토글
+  const toggleDependent = useCallback((columnName: string) => {
+    setDependentVar(prev => prev === columnName ? null : columnName)
+  }, [])
+
+  // 독립변수 토글
+  const toggleIndependent = useCallback((columnName: string) => {
+    setIndependentVar(prev => prev === columnName ? null : columnName)
+  }, [])
 
   // 제출
   const handleSubmit = useCallback(() => {
@@ -108,102 +117,107 @@ export function VariableSelectorSimple({
         </CardHeader>
       </Card>
 
-      {/* 종속변수 선택 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-lg">종속변수 (Dependent Variable)</CardTitle>
-            <span className="text-destructive">*</span>
-          </div>
-          <CardDescription>
-            예측하거나 설명하려는 대상 변수 (예: 몸무게, 시험 점수)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {dependentVar ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-                <span className="text-sm font-medium">선택됨:</span>
-                <Badge variant="secondary" className="text-sm">
-                  {dependentVar}
+      {/* 변수 선택 영역 (좌우 분할) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 종속변수 선택 */}
+        <Card className="h-fit">
+          <CardHeader className="pb-3 bg-primary/5">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">종속변수</CardTitle>
+              <span className="text-destructive">*</span>
+              {dependentVar && (
+                <Badge variant="default" className="ml-auto">
+                  선택됨
                 </Badge>
-                <Button
-                  onClick={() => setDependentVar(null)}
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto"
-                >
-                  변경
-                </Button>
-              </div>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            <CardDescription className="text-xs">
+              예측/설명 대상 (예: 몸무게, 점수)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-2">
               {analysis.columns.map(col => (
-                <VariableButton
+                <VariableToggleButton
                   key={col.name}
                   column={col}
-                  onClick={() => setDependentVar(col.name)}
+                  selected={col.name === dependentVar}
+                  onClick={() => toggleDependent(col.name)}
                   disabled={col.name === independentVar}
+                  variant="dependent"
                 />
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* 독립변수 선택 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-lg">독립변수 (Independent Variable)</CardTitle>
-            <span className="text-destructive">*</span>
-          </div>
-          <CardDescription>
-            종속변수에 영향을 주는 변수 (예: 키, 공부 시간)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {independentVar ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-success" />
-                <span className="text-sm font-medium">선택됨:</span>
-                <Badge variant="secondary" className="text-sm">
-                  {independentVar}
+        {/* 독립변수 선택 */}
+        <Card className="h-fit">
+          <CardHeader className="pb-3 bg-secondary/5">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">독립변수</CardTitle>
+              <span className="text-destructive">*</span>
+              {independentVar && (
+                <Badge variant="secondary" className="ml-auto">
+                  선택됨
                 </Badge>
-                <Button
-                  onClick={() => setIndependentVar(null)}
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto"
-                >
-                  변경
-                </Button>
-              </div>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            <CardDescription className="text-xs">
+              영향을 주는 변수 (예: 키, 공부 시간)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-2">
               {analysis.columns.map(col => (
-                <VariableButton
+                <VariableToggleButton
                   key={col.name}
                   column={col}
-                  onClick={() => setIndependentVar(col.name)}
+                  selected={col.name === independentVar}
+                  onClick={() => toggleIndependent(col.name)}
                   disabled={col.name === dependentVar}
+                  variant="independent"
                 />
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 선택 요약 */}
+      {(dependentVar || independentVar) && (
+        <Card className="bg-muted/30">
+          <CardContent className="pt-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">종속변수:</span>
+                {dependentVar ? (
+                  <Badge variant="default">{dependentVar}</Badge>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">선택 안됨</span>
+                )}
+              </div>
+              <ArrowRight className="hidden sm:block h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">독립변수:</span>
+                {independentVar ? (
+                  <Badge variant="secondary">{independentVar}</Badge>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">선택 안됨</span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 검증 피드백 */}
-      {!isValid && (
+      {!isValid && (dependentVar || independentVar) && (
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            종속변수와 독립변수를 모두 선택해주세요.
+            {!dependentVar && '종속변수를 선택해주세요.'}
+            {!independentVar && dependentVar && '독립변수를 선택해주세요.'}
           </AlertDescription>
         </Alert>
       )}
@@ -244,39 +258,81 @@ export function VariableSelectorSimple({
 }
 
 /**
- * VariableButton - 변수 선택 버튼
+ * VariableToggleButton - 토글 가능한 변수 버튼
  */
-interface VariableButtonProps {
+interface VariableToggleButtonProps {
   column: ColumnAnalysis
+  selected: boolean
   onClick: () => void
   disabled?: boolean
+  variant: 'dependent' | 'independent'
 }
 
-function VariableButton({ column, onClick, disabled }: VariableButtonProps) {
+function VariableToggleButton({
+  column,
+  selected,
+  onClick,
+  disabled,
+  variant
+}: VariableToggleButtonProps) {
   return (
-    <Button
+    <button
       onClick={onClick}
       disabled={disabled}
-      variant="outline"
       className={cn(
-        'h-auto flex-col items-start p-3 text-left',
-        'hover:bg-primary/5 hover:border-primary transition-colors',
-        disabled && 'opacity-50 cursor-not-allowed'
+        'w-full p-3 rounded-lg border-2 transition-all duration-200',
+        'flex items-center justify-between gap-3',
+        'text-left hover:shadow-md',
+
+        // 선택되지 않은 상태
+        !selected && !disabled && 'border-border bg-card hover:border-primary/50',
+
+        // 선택된 상태
+        selected && variant === 'dependent' && 'border-primary bg-primary/10 shadow-sm',
+        selected && variant === 'independent' && 'border-secondary bg-secondary/10 shadow-sm',
+
+        // 비활성화 상태
+        disabled && 'opacity-40 cursor-not-allowed hover:border-border hover:shadow-none',
+
+        // 호버 애니메이션
+        !disabled && 'hover:scale-[1.01]'
       )}
     >
-      <div className="flex items-center gap-2 w-full mb-1">
-        <span className="font-medium text-sm truncate">{column.name}</span>
-        <Badge variant="secondary" className="text-xs ml-auto">
-          {column.type}
-        </Badge>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className={cn(
+            'font-medium text-sm truncate',
+            selected && 'font-semibold'
+          )}>
+            {column.name}
+          </span>
+          <Badge
+            variant={selected ? 'default' : 'outline'}
+            className="text-xs shrink-0"
+          >
+            {column.type}
+          </Badge>
+        </div>
+        {column.statistics && (
+          <p className="text-xs text-muted-foreground">
+            {column.dataType === 'number' && column.statistics.min !== undefined && column.statistics.max !== undefined
+              ? `범위: ${column.statistics.min.toFixed(1)} ~ ${column.statistics.max.toFixed(1)}`
+              : `고유값: ${column.uniqueCount}개`}
+          </p>
+        )}
       </div>
-      {column.statistics && (
-        <span className="text-xs text-muted-foreground">
-          {column.dataType === 'number' && column.statistics.min !== undefined && column.statistics.max !== undefined
-            ? `범위: ${column.statistics.min.toFixed(1)} ~ ${column.statistics.max.toFixed(1)}`
-            : `고유값: ${column.uniqueCount}개`}
-        </span>
-      )}
-    </Button>
+
+      {/* 선택 표시 */}
+      <div className={cn(
+        'shrink-0 w-5 h-5 rounded-full border-2 transition-all',
+        selected && variant === 'dependent' && 'border-primary bg-primary',
+        selected && variant === 'independent' && 'border-secondary bg-secondary',
+        !selected && 'border-muted-foreground/30'
+      )}>
+        {selected && (
+          <CheckCircle2 className="w-full h-full text-primary-foreground" />
+        )}
+      </div>
+    </button>
   )
 }
