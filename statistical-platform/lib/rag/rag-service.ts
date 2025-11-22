@@ -117,11 +117,33 @@ export class RAGService {
       testMode: process.env.NODE_ENV === 'test', // 테스트 환경에서 testMode 활성화
     }
 
-    // Ollama Provider 생성 (langgraph 제거됨)
-    this.provider = new OllamaRAGProvider(providerConfig)
+    // Provider 생성 (providerType에 따라 분기)
+    if (this.providerType === 'langgraph') {
+      try {
+        // LangGraph Provider 동적 import (파일이 없으면 폴백)
+        console.log('[RAGService] LangGraph Provider 로드 시도 중...')
+        // @ts-ignore - 파일이 없을 수 있으므로 런타임 에러 처리로 대응
+        const { LangGraphOllamaProvider } = await import('./providers/langgraph-ollama-provider')
+        this.provider = new LangGraphOllamaProvider(providerConfig)
+        console.log('[RAGService] LangGraph Provider 로드 성공')
+      } catch (error) {
+        console.warn('[RAGService] ⚠️ LangGraph Provider 로드 실패, Ollama로 폴백합니다:', error)
+        console.warn('[RAGService] langgraph-ollama-provider.ts 파일이 없거나 손상되었습니다.')
+        this.provider = new OllamaRAGProvider(providerConfig)
+        this.providerType = 'ollama' // 폴백 성공 시 타입 변경
+      }
+    } else {
+      // 기본: Ollama Provider
+      this.provider = new OllamaRAGProvider(providerConfig)
+    }
+
+    // provider가 null일 수 없음 (위에서 반드시 할당됨)
+    if (!this.provider) {
+      throw new Error('[RAGService] Provider 초기화 실패')
+    }
 
     await this.provider.initialize()
-    console.log('[RAGService] Ollama (Local) Provider 초기화 완료')
+    console.log(`[RAGService] ${this.providerType === 'ollama' ? 'Ollama (Local)' : 'LangGraph'} Provider 초기화 완료`)
   }
 
   /**

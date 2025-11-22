@@ -14,6 +14,8 @@ import { getHeatmapLayout, getModalLayout, CHART_STYLES } from '@/lib/plotly-con
 import { workerManager, shouldUseWorker } from '@/lib/services/worker-manager'
 import { getPairedNumericData } from './validation/utils/correlationUtils'
 import type { Data } from 'plotly.js'
+import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { logger } from '@/lib/utils/logger'
 
 interface DataValidationStepProps {
   validationResults: ValidationResults | null
@@ -31,6 +33,9 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
 }: DataValidationStepProps) {
   const [selectedColumn, setSelectedColumn] = useState<ColumnStatistics | null>(null)
   const [showVisualization, setShowVisualization] = useState(false)
+
+  // Store에서 상태 관리 가져오기
+  const { setDataCharacteristics, setAssumptionResults } = useSmartFlowStore()
 
   if (!validationResults || !data) {
     return (
@@ -60,6 +65,32 @@ export const DataValidationStepWithCharts = memo(function DataValidationStepWith
     columnStats?.filter(s => s.type === 'categorical' || s.uniqueValues <= 20) || [],
     [columnStats]
   )
+
+  // 🔥 초기화 로직 이식: 업로드마다 데이터 특성 설정 및 가정 검정 초기화
+  useEffect(() => {
+    if (!data || !validationResults) {
+      return
+    }
+
+    // 간단한 데이터 특성만 저장 (무거운 통계 계산 없음)
+    const characteristics = {
+      sampleSize: data.length,
+      structure: 'wide' as const,
+      studyDesign: 'cross-sectional' as const,
+      columns: [],
+      groupCount: categoricalColumns.length > 0 ? 2 : 1,
+      hasTimeComponent: false,
+      hasPairedData: false,
+      hasRepeatedMeasures: false,
+      recommendations: []
+    }
+    setDataCharacteristics(characteristics)
+
+    // 가정 검정 결과 초기화 (상태 누적 방지)
+    setAssumptionResults(null)
+
+    logger.info('Data characteristics saved (with charts)', { characteristics })
+  }, [data, validationResults, categoricalColumns, setDataCharacteristics, setAssumptionResults])
 
   // Optimized Pearson correlation calculation
   const calculateCorrelation = useCallback((x: number[], y: number[]): number => {
