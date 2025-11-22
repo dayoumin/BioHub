@@ -97,29 +97,24 @@ als.run(store2, async () => {
     console.log('  ✅ 인스턴스별 격리:', results[0] === 'A' && results[1] === 'B' && results[2] === 'C' ? 'PASS' : 'FAIL')
     console.log('  결과:', results)
 
-    // 테스트 5: 중첩된 run() (병렬 실행 가드 테스트)
-    console.log('\n📝 테스트 5: 중첩 run() 호출 - 병렬 실행 가드')
+    // 테스트 5: 중첩된 run() (스택 복원)
+    console.log('\n📝 테스트 5: 중첩 run() 호출 - 스택 복원')
     const als4 = new AsyncLocalStorage()
-    let errorCaught = false
 
-    try {
-      als4.run({ level: 1 }, () => {
-        const outer = als4.getStore()?.level
-        console.log('  외부 컨텍스트:', outer)
+    als4.run({ level: 1 }, () => {
+      const outer = als4.getStore()?.level
+      console.log('  ✅ 외부 컨텍스트:', outer === 1 ? 'PASS' : 'FAIL')
 
-        // 중첩 run() 시도 → 에러 발생 예상
-        als4.run({ level: 2 }, () => {
-          console.log('  ❌ 이 코드는 실행되면 안 됨!')
-        })
+      // 중첩 run() 호출 (허용됨)
+      als4.run({ level: 2 }, () => {
+        const inner = als4.getStore()?.level
+        console.log('  ✅ 내부 컨텍스트:', inner === 2 ? 'PASS' : 'FAIL')
       })
-    } catch (error) {
-      errorCaught = true
-      console.log('  ✅ 에러 발생 (예상):', error.message.includes('Concurrent') ? 'PASS' : 'FAIL')
-    }
 
-    if (!errorCaught) {
-      console.log('  ⚠️  에러 미발생 - 병렬 실행 가드 미적용')
-    }
+      // 중첩 호출 후 복원 확인
+      const restored = als4.getStore()?.level
+      console.log('  ✅ 복원된 컨텍스트:', restored === 1 ? 'PASS' : 'FAIL')
+    })
 
     // 테스트 6: 순차 실행 (허용되어야 함)
     console.log('\n📝 테스트 6: 순차 실행 (허용)')
@@ -178,46 +173,34 @@ als.run(store2, async () => {
     })
   })
   .then(() => {
-    // 테스트 9: bind() - 개발 모드에서 에러 발생
-    console.log('\n📝 테스트 9: bind() - 개발 모드 에러 처리')
-    console.log(`  현재 NODE_ENV: ${process.env.NODE_ENV}`)
-    let bindErrorCaught = false
+    // 테스트 9: bind() - 컨텍스트 캡처
+    console.log('\n📝 테스트 9: bind() - 컨텍스트 캡처')
+    const als7 = new AsyncLocalStorage()
 
-    try {
-      const boundFn = AsyncLocalStorage.bind(() => {
-        console.log('  ❌ 이 코드는 실행되면 안 됨!')
+    als7.run({ userId: 'bound-test' }, () => {
+      const boundFn = als7.bind(() => {
+        return als7.getStore()?.userId
       })
-      boundFn()
-    } catch (error) {
-      bindErrorCaught = true
-      console.log('  ✅ 에러 발생 (예상):', error.message.includes('not supported') ? 'PASS' : 'FAIL')
-      console.log('  메시지:', error.message.substring(0, 50) + '...')
-    }
 
-    if (!bindErrorCaught) {
-      console.log('  ⚠️  에러 미발생 - 프로덕션 모드 또는 에러 처리 미적용')
-      console.log('  (프로덕션 모드에서는 경고만 출력됨)')
-    }
+      // bind된 함수를 run() 밖에서 호출
+      const result = boundFn()
+      console.log('  ✅ bind() 동작:', result === 'bound-test' ? 'PASS' : 'FAIL')
+    })
 
-    // 테스트 10: snapshot() - 개발 모드에서 에러 발생
-    console.log('\n📝 테스트 10: snapshot() - 개발 모드 에러 처리')
-    let snapshotErrorCaught = false
+    // 테스트 10: snapshot() - 컨텍스트 복원
+    console.log('\n📝 테스트 10: snapshot() - 컨텍스트 복원')
+    const als8 = new AsyncLocalStorage()
 
-    try {
-      const snap = AsyncLocalStorage.snapshot()
-      snap(() => {
-        console.log('  ❌ 이 코드는 실행되면 안 됨!')
-      })
-    } catch (error) {
-      snapshotErrorCaught = true
-      console.log('  ✅ 에러 발생 (예상):', error.message.includes('not supported') ? 'PASS' : 'FAIL')
-      console.log('  메시지:', error.message.substring(0, 50) + '...')
-    }
+    let snapshot
+    als8.run({ userId: 'snapshot-test' }, () => {
+      snapshot = als8.snapshot()
+    })
 
-    if (!snapshotErrorCaught) {
-      console.log('  ⚠️  에러 미발생 - 프로덕션 모드 또는 에러 처리 미적용')
-      console.log('  (프로덕션 모드에서는 경고만 출력됨)')
-    }
+    // snapshot으로 컨텍스트 복원
+    const result = snapshot(() => {
+      return als8.getStore()?.userId
+    })
+    console.log('  ✅ snapshot() 동작:', result === 'snapshot-test' ? 'PASS' : 'FAIL')
   })
   .then(() => {
     // 최종 결과

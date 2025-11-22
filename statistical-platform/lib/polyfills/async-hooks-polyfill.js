@@ -57,33 +57,23 @@ export class AsyncLocalStorage {
    * - finally()로 컨텍스트 정리를 지연
    * - async/await 후에도 컨텍스트 유지
    *
-   * 병렬 안전성:
-   * - 동일 인스턴스에서 중첩 run() 호출 감지
-   * - 병렬 실행 시 에러 발생 (프로덕션 경쟁 조건 방지)
+   * 중첩 지원:
+   * - 이전 컨텍스트를 스택에 저장 (previousContextId)
+   * - cleanup 시 복원하여 Node.js ALS처럼 동작
+   * - LangGraph의 runWithConfig 중첩 호출 지원
    */
   run(store, callback, ...args) {
-    // 병렬 실행 가드 (경쟁 조건 방지)
-    if (this._currentContextId !== null) {
-      const error = new Error(
-        'AsyncLocalStorage: Concurrent run() detected. ' +
-        'This polyfill does not support parallel executions on the same instance. ' +
-        'Create separate AsyncLocalStorage instances for concurrent operations.'
-      )
-      if (process.env.NODE_ENV === 'development') {
-        console.error('🔴', error.message)
-        console.trace('Current context:', this._currentContextId)
-      }
-      throw error
-    }
+    // 컨텍스트 스택 관리 (중첩 허용)
+    // - 이전 컨텍스트를 previousContextId에 저장
+    // - cleanup 시 복원하여 스택처럼 동작
+    const contextId = ++contextIdCounter
+    const previousContextId = this._currentContextId  // 스택 push
+    const storeKey = `${this._contextKey.toString()}-${contextId}`
 
     // 동시 실행 경고 (전역 카운터, 디버깅용)
-    if (activeContextCount > 5) {
+    if (activeContextCount > 10) {
       console.warn(`⚠️ AsyncLocalStorage: ${activeContextCount}개의 동시 실행 컨텍스트 감지. 성능 저하 가능성.`)
     }
-
-    const contextId = ++contextIdCounter
-    const previousContextId = this._currentContextId
-    const storeKey = `${this._contextKey.toString()}-${contextId}`
 
     // 컨텍스트 설정
     this._currentContextId = contextId
@@ -184,51 +174,44 @@ export class AsyncLocalStorage {
 
   /**
    * bind() - 함수에 현재 컨텍스트 바인딩
-   * 브라우저에서는 미지원 (개발 모드에서 에러)
    *
-   * 에러 처리:
-   * - 개발 모드: 에러 발생 (조용한 실패 방지)
-   * - 프로덕션: 경고 + 원본 함수 반환 (fallback)
+   * 최소 구현:
+   * - 현재 컨텍스트를 캡처하여 함수 래핑
+   * - 완벽한 구현은 아니지만 기본 동작 지원
+   * - 프로덕션에서 조용한 실패 방지
    */
-  static bind(fn) {
-    const errorMessage = 'AsyncLocalStorage.bind() is not supported in browser polyfill. ' +
-      'Use run() or enterWith() instead.'
+  bind(fn) {
+    const currentStore = this.getStore()
+    const self = this
 
-    // process.env.NODE_ENV가 'production'이 아니면 개발 모드로 간주
-    const isProduction = typeof process !== 'undefined' &&
-      process.env &&
-      process.env.NODE_ENV === 'production'
-
-    if (!isProduction) {
-      throw new Error(errorMessage)
-    } else {
-      console.warn('⚠️', errorMessage)
-      return fn
+    return function boundFunction(...args) {
+      // 현재 컨텍스트가 없으면 캡처한 store로 실행
+      if (self._currentContextId === null && currentStore !== undefined) {
+        return self.run(currentStore, () => fn(...args))
+      }
+      // 이미 컨텍스트가 있으면 그대로 실행
+      return fn(...args)
     }
   }
 
   /**
    * snapshot() - 현재 컨텍스트 스냅샷
-   * 브라우저에서는 미지원 (개발 모드에서 에러)
    *
-   * 에러 처리:
-   * - 개발 모드: 에러 발생 (조용한 실패 방지)
-   * - 프로덕션: 경고 + no-op 반환 (fallback)
+   * 최소 구현:
+   * - 현재 store를 캡처하여 복원 함수 반환
+   * - 완벽한 구현은 아니지만 기본 동작 지원
    */
-  static snapshot() {
-    const errorMessage = 'AsyncLocalStorage.snapshot() is not supported in browser polyfill. ' +
-      'Use run() or enterWith() instead.'
+  snapshot() {
+    const currentStore = this.getStore()
+    const self = this
 
-    // process.env.NODE_ENV가 'production'이 아니면 개발 모드로 간주
-    const isProduction = typeof process !== 'undefined' &&
-      process.env &&
-      process.env.NODE_ENV === 'production'
-
-    if (!isProduction) {
-      throw new Error(errorMessage)
-    } else {
-      console.warn('⚠️', errorMessage)
-      return (fn, ...args) => fn(...args)
+    return function restoreSnapshot(fn, ...args) {
+      // 캡처한 store가 있으면 그걸로 실행
+      if (currentStore !== undefined) {
+        return self.run(currentStore, () => fn(...args))
+      }
+      // 없으면 그대로 실행
+      return fn(...args)
     }
   }
 }
@@ -237,20 +220,26 @@ export class AsyncLocalStorage {
  * Node.js async_hooks 호환 함수들
  * (LangGraph가 직접 사용하지 않지만 호환성을 위해 export)
  */
-const executionAsyncId = () => 0
-const triggerAsyncId = () => 0
-const executionAsyncResource = () => ({})
-const asyncWrapProviders = {}
+export const executionAsyncId = () => 0
+export const triggerAsyncId = () => 0
+export const executionAsyncResource = () => ({})
+export const asyncWrapProviders = {}
 
 /**
  * 폴리필 검증 함수 (개발 환경에서 사용)
  */
-function validatePolyfill() {
+export function validatePolyfill() {
   if (typeof window !== 'undefined') {
     console.info('ℹ️ Using AsyncLocalStorage polyfill (browser mode)')
-    console.info('ℹ️ Limitations: Limited context isolation for concurrent executions')
+    console.info('ℹ️ Limitations: Nested run() is supported, but parallel async calls may race')
   }
 }
+
+/**
+ * Default export (ESM)
+ */
+export { AsyncLocalStorage }
+export default AsyncLocalStorage
 
 /**
  * Exports (CommonJS + ESM 호환)
