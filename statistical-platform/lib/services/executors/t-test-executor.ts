@@ -210,18 +210,66 @@ export class TTestExecutor extends BaseExecutor {
   /**
    * 통합 실행 메서드
    */
-  async execute(data: any[], options?: any): Promise<AnalysisResult> {
-    const { method = 'independent', ...restOptions } = options || {}
+  async execute(data: unknown[], options?: unknown): Promise<AnalysisResult> {
+    // 타입 가드로 options 파싱
+    const parseOptions = (opts: unknown): { method?: string; [key: string]: unknown } => {
+      if (!opts || typeof opts !== 'object') return { method: 'independent' }
+      return opts as { method?: string; [key: string]: unknown }
+    }
+
+    const { method = 'independent', ...restOptions } = parseOptions(options)
 
     switch (method) {
-      case 'one-sample':
-        return this.executeOneSample(data as number[], restOptions.populationMean)
-      case 'independent':
-        return this.executeIndependent(restOptions.group1, restOptions.group2)
-      case 'paired':
-        return this.executePaired(restOptions.before, restOptions.after)
-      case 'welch':
-        return this.executeWelch(restOptions.group1, restOptions.group2)
+      case 'one-sample': {
+        // 데이터 추출 (객체 배열 또는 숫자 배열)
+        const numericData = this.extractNumericSeries(data, restOptions)
+        const populationMean = typeof restOptions.populationMean === 'number'
+          ? restOptions.populationMean
+          : 0
+        return this.executeOneSample(numericData, populationMean)
+      }
+      case 'independent': {
+        // 그룹 데이터 추출
+        const group1Data = restOptions.group1 as unknown[]
+        const group2Data = restOptions.group2 as unknown[]
+
+        const group1 = Array.isArray(group1Data)
+          ? this.extractNumericSeries(group1Data, restOptions)
+          : []
+        const group2 = Array.isArray(group2Data)
+          ? this.extractNumericSeries(group2Data, restOptions)
+          : []
+
+        return this.executeIndependent(group1, group2)
+      }
+      case 'paired': {
+        // 대응 데이터 추출
+        const beforeData = restOptions.before as unknown[]
+        const afterData = restOptions.after as unknown[]
+
+        const before = Array.isArray(beforeData)
+          ? this.extractNumericSeries(beforeData, restOptions)
+          : []
+        const after = Array.isArray(afterData)
+          ? this.extractNumericSeries(afterData, restOptions)
+          : []
+
+        return this.executePaired(before, after)
+      }
+      case 'welch': {
+        // Welch's t-test (이분산)
+        const group1Data = restOptions.group1 as unknown[]
+        const group2Data = restOptions.group2 as unknown[]
+
+        const group1 = Array.isArray(group1Data)
+          ? this.extractNumericSeries(group1Data, restOptions)
+          : []
+        const group2 = Array.isArray(group2Data)
+          ? this.extractNumericSeries(group2Data, restOptions)
+          : []
+
+        return this.executeWelch(group1, group2)
+      }
       default:
         throw new Error(`Unknown t-test method: ${method}`)
     }

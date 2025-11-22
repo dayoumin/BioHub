@@ -292,6 +292,7 @@ export class AnovaExecutor extends BaseExecutor {
 
   /**
    * 원시 데이터를 그룹별 숫자 배열로 변환
+   * - extractNumericSeries와 유사하지만 그룹별 분할 수행
    */
   private prepareGroups(
     data: Record<string, unknown>[],
@@ -305,12 +306,21 @@ export class AnovaExecutor extends BaseExecutor {
       const groupValue = row[groupVar]
       const depValue = row[dependentVar]
 
+      // null/undefined 체크 (Number(null) === 0 버그 방지)
       if (groupValue == null || depValue == null) continue
 
       const groupKey = String(groupValue)
-      const numValue = typeof depValue === 'number' ? depValue : parseFloat(String(depValue))
 
-      if (isNaN(numValue)) continue
+      // 숫자 변환 (BaseExecutor와 동일한 로직)
+      let numValue: number
+      if (typeof depValue === 'number') {
+        numValue = depValue
+      } else {
+        numValue = Number(depValue)
+      }
+
+      // NaN/Infinity 필터링
+      if (!Number.isFinite(numValue)) continue
 
       if (!groupMap.has(groupKey)) {
         groupMap.set(groupKey, [])
@@ -324,9 +334,14 @@ export class AnovaExecutor extends BaseExecutor {
   /**
    * 통합 실행 메서드
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async execute(data: any[], options?: any): Promise<AnalysisResult> {
-    const { method = 'one-way', ...restOptions } = options || {}
+  async execute(data: unknown[], options?: unknown): Promise<AnalysisResult> {
+    // 타입 가드로 options 파싱
+    const parseOptions = (opts: unknown): { method?: string; [key: string]: unknown } => {
+      if (!opts || typeof opts !== 'object') return { method: 'one-way' }
+      return opts as { method?: string; [key: string]: unknown }
+    }
+
+    const { method = 'one-way', ...restOptions } = parseOptions(options)
 
     // 타입 가드 헬퍼
     const asRecordArray = (): Record<string, unknown>[] => data as Record<string, unknown>[]
@@ -336,8 +351,8 @@ export class AnovaExecutor extends BaseExecutor {
       case 'one-way':
       case 'one-way-anova': {
         // groups가 이미 제공되면 사용, 아니면 데이터에서 변환
-        let groups = restOptions.groups
-        if (!groups && restOptions.dependentVar && restOptions.groupVar) {
+        let groups = restOptions.groups as number[][] | undefined
+        if (!groups && typeof restOptions.dependentVar === 'string' && typeof restOptions.groupVar === 'string') {
           groups = this.prepareGroups(
             asRecordArray(),
             restOptions.dependentVar,
@@ -350,20 +365,26 @@ export class AnovaExecutor extends BaseExecutor {
         return this.executeOneWay(groups)
       }
       case 'two-way':
-      case 'two-way-anova':
-        return this.executeTwoWay(
-          asRecordArray(),
-          restOptions.factor1 || restOptions.groupVar?.split(',')[0],
-          restOptions.factor2 || restOptions.groupVar?.split(',')[1],
-          restOptions.dependent || restOptions.dependentVar
-        )
+      case 'two-way-anova': {
+        const factor1 = typeof restOptions.factor1 === 'string'
+          ? restOptions.factor1
+          : (typeof restOptions.groupVar === 'string' ? restOptions.groupVar.split(',')[0] : '')
+        const factor2 = typeof restOptions.factor2 === 'string'
+          ? restOptions.factor2
+          : (typeof restOptions.groupVar === 'string' ? restOptions.groupVar.split(',')[1] : '')
+        const dependent = typeof restOptions.dependent === 'string'
+          ? restOptions.dependent
+          : (typeof restOptions.dependentVar === 'string' ? restOptions.dependentVar : '')
+
+        return this.executeTwoWay(asRecordArray(), factor1, factor2, dependent)
+      }
       case 'repeated-measures':
       case 'repeated-measures-anova':
         return this.executeRepeatedMeasures(asNumberArray())
       case 'tukey':
       case 'tukey-hsd': {
-        let groups = restOptions.groups
-        if (!groups && restOptions.dependentVar && restOptions.groupVar) {
+        let groups = restOptions.groups as number[][] | undefined
+        if (!groups && typeof restOptions.dependentVar === 'string' && typeof restOptions.groupVar === 'string') {
           groups = this.prepareGroups(
             asRecordArray(),
             restOptions.dependentVar,
@@ -373,8 +394,8 @@ export class AnovaExecutor extends BaseExecutor {
         return this.executeTukeyHSD(groups || asNumberArray())
       }
       case 'games-howell': {
-        let groups = restOptions.groups
-        if (!groups && restOptions.dependentVar && restOptions.groupVar) {
+        let groups = restOptions.groups as number[][] | undefined
+        if (!groups && typeof restOptions.dependentVar === 'string' && typeof restOptions.groupVar === 'string') {
           groups = this.prepareGroups(
             asRecordArray(),
             restOptions.dependentVar,
