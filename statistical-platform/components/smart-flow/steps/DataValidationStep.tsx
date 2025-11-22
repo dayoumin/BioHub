@@ -1,12 +1,13 @@
 'use client'
 
 import { memo, useMemo, useEffect, useState, useCallback } from 'react'
-import { CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react'
-import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
+import { CheckCircle, AlertTriangle, XCircle, Sparkles, ExternalLink } from 'lucide-react'
+import { ValidationResults, ColumnStatistics } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
+import { Button } from '@/components/ui/button'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
@@ -19,12 +20,7 @@ function hasColumnStats(results: ValidationResults | null): results is Validatio
 export const DataValidationStep = memo(function DataValidationStep({
   validationResults,
   data,
-  onNext,
-  onPrevious,
-  canGoNext,
-  canGoPrevious,
-  currentStep,
-  totalSteps
+  onNext
 }: DataValidationStepProps) {
   // Store에서 상태 관리
   const {
@@ -36,6 +32,136 @@ export const DataValidationStep = memo(function DataValidationStep({
 
   // 중복 클릭 방지
   const [isNavigating, setIsNavigating] = useState(false)
+
+  // 새 창으로 데이터 보기
+  const handleOpenDataInNewWindow = useCallback(() => {
+    if (!data || data.length === 0) return
+
+    // 데이터를 HTML 테이블로 변환
+    const columns = Object.keys(data[0])
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>전체 데이터 - ${uploadedFile?.name || uploadedFileName || '데이터'}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 100%;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .header {
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e5e5e5;
+    }
+    h1 {
+      font-size: 24px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .info {
+      color: #666;
+      font-size: 14px;
+    }
+    .table-wrapper {
+      overflow: auto;
+      max-height: calc(100vh - 140px);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #f8f9fa;
+      color: #333;
+      font-weight: 600;
+      padding: 12px 8px;
+      text-align: left;
+      border-bottom: 2px solid #dee2e6;
+      z-index: 10;
+    }
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e9ecef;
+      color: #495057;
+    }
+    tr:hover {
+      background-color: #f8f9fa;
+    }
+    .row-number {
+      background: #f1f3f5;
+      font-weight: 500;
+      color: #868e96;
+      text-align: center;
+      width: 60px;
+    }
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${uploadedFile?.name || uploadedFileName || '업로드된 데이터'}</h1>
+      <div class="info">
+        총 ${validationResults.totalRows.toLocaleString()}행 × ${validationResults.columnCount}개 변수
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="row-number">#</th>
+            ${columns.map(col => `<th>${col}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${data.map((row, idx) => `
+            <tr>
+              <td class="row-number">${idx + 1}</td>
+              ${columns.map(col => `<td>${row[col] ?? ''}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+    `
+
+    // 새 창 열기
+    const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+    if (newWindow) {
+      newWindow.document.write(htmlContent)
+      newWindow.document.close()
+    }
+  }, [data, uploadedFile, uploadedFileName, validationResults.totalRows, validationResults.columnCount])
 
   // Type-safe column stats extraction
   const columnStats = useMemo(() =>
@@ -233,14 +359,32 @@ export const DataValidationStep = memo(function DataValidationStep({
         />
       )}
 
-      {/* 데이터 미리보기 */}
-      <DataPreviewTable
-        data={data}
-        maxRows={100}
-        defaultOpen={false}
-        title="원본 데이터 확인"
-        height="400px"
-      />
+      {/* 전체 데이터 확인 - 스크롤 가능 */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>업로드된 전체 데이터</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenDataInNewWindow}
+              className="gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              새 창으로 보기
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DataPreviewTable
+            data={data}
+            maxRows={validationResults.totalRows}
+            defaultOpen={true}
+            title=""
+            height="500px"
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 })
