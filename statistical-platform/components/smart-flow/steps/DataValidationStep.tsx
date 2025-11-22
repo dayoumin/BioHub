@@ -12,6 +12,20 @@ import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
 
+// HTML escape 함수 - XSS 공격 방지
+function escapeHtml(text: string | number | null | undefined): string {
+  if (text == null) return ''
+  const str = String(text)
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }
+  return str.replace(/[&<>"']/g, m => map[m])
+}
+
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
   return results !== null && 'columnStats' in results && Array.isArray(results.columnStats)
@@ -127,7 +141,7 @@ export const DataValidationStep = memo(function DataValidationStep({
 <body>
   <div class="container">
     <div class="header">
-      <h1>${uploadedFile?.name || uploadedFileName || '업로드된 데이터'}</h1>
+      <h1>${escapeHtml(uploadedFile?.name || uploadedFileName || '업로드된 데이터')}</h1>
       <div class="info">
         총 ${validationResults.totalRows.toLocaleString()}행 × ${validationResults.columnCount}개 변수
       </div>
@@ -137,14 +151,14 @@ export const DataValidationStep = memo(function DataValidationStep({
         <thead>
           <tr>
             <th class="row-number">#</th>
-            ${columns.map(col => `<th>${col}</th>`).join('')}
+            ${columns.map(col => `<th>${escapeHtml(col)}</th>`).join('')}
           </tr>
         </thead>
         <tbody>
           ${data.map((row, idx) => `
             <tr>
               <td class="row-number">${idx + 1}</td>
-              ${columns.map(col => `<td>${row[col] ?? ''}</td>`).join('')}
+              ${columns.map(col => `<td>${escapeHtml(row[col])}</td>`).join('')}
             </tr>
           `).join('')}
         </tbody>

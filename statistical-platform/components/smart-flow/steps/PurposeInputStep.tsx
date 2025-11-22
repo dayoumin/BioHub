@@ -298,9 +298,9 @@ export function PurposeInputStep({
           {ANALYSIS_PURPOSES.map((purpose, index) => (
             <div
               key={purpose.id}
-              className={prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4'}
+              className={prefersReducedMotion ? '' : 'animate-slide-in'}
               style={prefersReducedMotion ? undefined : {
-                animationDelay: `${index * 100}ms`,
+                animationDelay: `${index * 150}ms`,
                 animationFillMode: 'backwards'
               }}
             >
@@ -360,9 +360,9 @@ export function PurposeInputStep({
                 {recommendation.reasoning.map((reason, idx) => (
                   <li
                     key={idx}
-                    className={prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-left-2'}
+                    className={prefersReducedMotion ? '' : 'animate-slide-in'}
                     style={prefersReducedMotion ? undefined : {
-                      animationDelay: `${idx * 100}ms`,
+                      animationDelay: `${idx * 150}ms`,
                       animationFillMode: 'backwards'
                     }}
                   >

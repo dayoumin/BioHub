@@ -271,9 +271,8 @@ describe('DataValidationStep - 새 창으로 데이터 보기', () => {
 
     const htmlContent = mockDocumentWrite.mock.calls[0][0] as string
 
-    // ⚠️ 현재 구현은 XSS 방지가 없음! (개선 필요)
-    // 이 테스트는 현재 실패할 수 있음
-    // 향후: HTML escape 함수 추가 후 통과
-    expect(htmlContent).toContain('<script>')
+    // ✅ HTML escape 적용 확인
+    expect(htmlContent).toContain('&lt;script&gt;')  // <script> → &lt;script&gt;
+    expect(htmlContent).not.toContain('<script>alert')  // 실제 스크립트 태그 없음
   })
 })

@@ -45,7 +45,15 @@
 
 #### 1. p-value 자연어 해석 (1시간)
 **파일**: `components/smart-flow/steps/ResultsActionStep.tsx`
-**위치**: Line 575 (해석 섹션) 이후
+**위치**: Line 571-574 (해석 섹션 수정)
+**현재 코드** (Line 571-574):
+```typescript
+{/* 해석 */}
+<div className="pt-4 border-t">
+  <p className="font-medium mb-2">💡 해석</p>
+  <p className="text-sm">{results.interpretation}</p>
+```
+
 **추가 코드**:
 ```typescript
 // 해석 함수
@@ -93,6 +101,20 @@ function interpretPValue(pValue: number): string {
 #### 2. 효과크기 해석 (30분)
 **파일**: `components/smart-flow/steps/ResultsActionStep.tsx`
 **위치**: Line 268-283 (효과크기 표시 부분)
+**Import 추가** (Line 6 확인됨):
+```typescript
+import { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
+```
+
+**타입 정의** (types/smart-flow.ts, Line 185-189 확인됨):
+```typescript
+export interface EffectSizeInfo {
+  value: number
+  type: string  // "Cohen's d", "eta-squared", "r", etc.
+  interpretation: string  // "작은 효과", "중간 효과", "큰 효과"
+}
+```
+
 **추가 코드**:
 ```typescript
 // 효과크기 해석 함수
@@ -154,6 +176,11 @@ Cohen's d
 #### 3. 데이터 미표시 사유 (15분)
 **파일**: `components/smart-flow/steps/ResultsActionStep.tsx`
 **위치**: Line 230 (분석 결과 카드 시작 전)
+**Import 확인** (Line 3 - 이미 존재함):
+```typescript
+import { ChevronRight, Download, BarChart3, FileText, Save, History, FileDown, Copy, AlertCircle } from 'lucide-react'
+```
+
 **추가 코드**:
 ```typescript
 {/* 보안 안내 */}
@@ -197,10 +224,20 @@ Cohen's d
 </div>
 ```
 
-**문제**: `variableMapping`이 props로 전달되지 않음
-**해결**: `useSmartFlowStore`에서 가져오기
+**Store 확인** (Line 22 - 이미 uploadedData 가져옴):
 ```typescript
-const { uploadedData, variableMapping } = useSmartFlowStore()
+const { saveToHistory, reset, uploadedData } = useSmartFlowStore()
+```
+
+**수정 필요** (variableMapping 추가):
+```typescript
+const { saveToHistory, reset, uploadedData, variableMapping } = useSmartFlowStore()
+```
+
+**타입 확인** (lib/stores/smart-flow-store.ts, Line 72):
+```typescript
+variableMapping: VariableMapping | null  // Line 72
+// VariableMapping 타입은 independent, dependent, factor 등 필드 포함
 ```
 
 ---
@@ -225,7 +262,23 @@ const { uploadedData, variableMapping } = useSmartFlowStore()
 
 #### 5. 가능한 분석 자동 추천 - Step 2 (2시간)
 **파일**: `components/smart-flow/steps/DataValidationStep.tsx`
-**위치**: Line 360 (GuidanceCard 이전)
+**위치**: Line 338-360 (GuidanceCard 이전)
+**의존성 확인** (Line 173-186 - 이미 존재함):
+```typescript
+const numericColumns = useMemo(() =>
+  columnStats?.filter(s => s.type === 'numeric') || [],
+  [columnStats]
+)
+
+const categoricalColumns = useMemo(() =>
+  columnStats?.filter(s =>
+    s.type === 'categorical' ||
+    (s.type === 'numeric' && s.uniqueValues <= 20)
+  ) || [],
+  [columnStats]
+)
+```
+
 **추가 코드**:
 ```typescript
 // 분석 추천 로직
@@ -430,13 +483,17 @@ function generateHypothesis(method: string): {
               <span className="text-green-600 dark:text-green-400">
                 귀무가설 기각 (p={results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)})
                 <br />
-                → {hypothesis.alternative.replace('.', '는 것으로 나타났습니다.')}
+                → {/* 문법 수정: "다르다." → "다르다는 것으로" */}
+                {hypothesis.alternative
+                  .replace('두 집단의 평균은 다르다.', '두 집단의 평균이 다르다는 것으로 나타났습니다.')
+                  .replace('모든 집단의 평균은 같다.', '최소 하나의 집단 평균이 다르다는 것으로 나타났습니다.')
+                  .replace(/\.$/, '는 것으로 나타났습니다.')}
               </span>
             ) : (
               <span className="text-gray-600">
                 귀무가설 채택 (p={results.pValue.toFixed(3)})
                 <br />
-                → {hypothesis.null.replace('.', '는 것으로 나타났습니다.')}
+                → {hypothesis.null.replace(/\.$/, '는 것으로 나타났습니다.')}
               </span>
             )}
           </div>
@@ -454,7 +511,7 @@ function generateHypothesis(method: string): {
 대립가설 (H₁): 두 집단의 평균은 다르다.
 
 검정 결과: 귀무가설 기각 (p=0.032)
-→ 두 집단의 평균은 다르는 것으로 나타났습니다.
+→ 두 집단의 평균이 다르다는 것으로 나타났습니다.
 ```
 
 ---
@@ -575,18 +632,23 @@ function ResultInterpretationPanel({ results, purpose }: ResultInterpretationPan
 **현재 상태**: 막대 그래프만 표시
 **개선**: 데이터 타입별 자동 차트 선택
 
+**라이브러리 확인** (package.json 검증됨):
+```json
+"recharts": "^3.2.0"  // Line 109 - ✅ 이미 설치됨
+"@types/recharts": "^1.8.29"  // Line 83
+```
+
 **추가 차트**:
-1. **히스토그램** (연속형 분포) - Recharts `<BarChart>` 사용
-2. **박스플롯** (그룹 비교) - 직접 SVG 구현 또는 `recharts-boxplot` 라이브러리
-3. **산점도** (상관분석) - Recharts `<ScatterChart>` 사용
+1. **히스토그램** (연속형 분포) - Recharts `<BarChart>` 사용 ✅
+2. **박스플롯** (그룹 비교) - 직접 SVG 구현 필요 (Recharts 미지원)
+3. **산점도** (상관분석) - Recharts `<ScatterChart>` 사용 ✅
 
-**문제**:
-- 박스플롯 라이브러리 없음 (Recharts 기본 미지원)
-- 직접 구현 필요 (5사분위수 계산 + SVG 그리기)
+**박스플롯 구현 옵션**:
+- **옵션 1**: 직접 SVG 구현 (5사분위수 계산 + SVG 경로)
+- **옵션 2**: Error Bar Chart (평균 ± 표준편차) - 더 간단
+- **옵션 3**: 외부 라이브러리 (`@mui/x-charts`) - 추가 설치 필요
 
-**간단한 대안**:
-- 박스플롯 대신 **Violin Plot** (더 간단)
-- 또는 **Error Bar Chart** (평균 ± 표준편차)
+**권장**: 옵션 2 (Error Bar Chart) - Recharts로 구현 가능
 
 ---
 
@@ -695,5 +757,35 @@ function ResultInterpretationPanel({ results, purpose }: ResultInterpretationPan
 
 ---
 
+---
+
+## 📝 문서 수정 이력
+
+### **2025-11-22 (초안 작성)**
+- 사용자 피드백 분석 완료
+- 3가지 옵션 설계 (A/B/C)
+- 총 700줄 문서 작성
+
+### **2025-11-22 (검증 및 수정)**
+- ✅ 실제 파일 확인 (ResultsActionStep.tsx, DataValidationStep.tsx)
+- ✅ 타입 정의 검증 (EffectSizeInfo, VariableMapping)
+- ✅ Import 확인 (AlertCircle 이미 존재)
+- ✅ 라인 번호 정확도 개선 (Line 571-574 확인)
+- ✅ 의존성 확인 (numericColumns, categoricalColumns 존재)
+- ✅ 가설 문장 문법 수정 ("다르는" → "다르다는")
+- ✅ 라이브러리 검증 (recharts 3.2.0 설치됨)
+
+**수정된 이슈** (7개):
+1. 라인 번호 부정확 → Line 571-574로 정확히 명시
+2. 타입 오류 → EffectSizeInfo 타입 정의 추가 (Line 185-189)
+3. Import 누락 → AlertCircle 이미 존재 확인 (Line 3)
+4. Store 타입 → variableMapping 타입 확인 (Line 72)
+5. 의존성 체크 → numericColumns, categoricalColumns 존재 확인 (Line 173-186)
+6. 가설 문법 오류 → 문법 수정 코드 추가
+7. 시각화 라이브러리 → recharts 설치 확인 (package.json Line 109)
+
+---
+
 **문서 작성 완료**: 2025-11-22
+**검증 완료**: 2025-11-22
 **다음**: 사용자 의사결정 대기
