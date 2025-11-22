@@ -204,46 +204,70 @@ export const DataValidationStep = memo(function DataValidationStep({
   const recommendedAnalyses = useMemo(() => {
     const analyses: Array<{ emoji: string; text: string }> = []
 
-    // 기본: 기술통계 (항상 가능)
-    analyses.push({
-      emoji: '📊',
-      text: '기술통계 (평균, 표준편차, 분포)'
+    // 실질적 연속형 변수 판단: uniqueValues가 전체 행의 5% 이상인 숫자형만
+    const continuousColumns = numericColumns.filter(col => {
+      const uniqueRatio = col.uniqueValues / (validationResults?.totalRows || 1)
+      return uniqueRatio >= 0.05 // 5% 미만이면 코드형/ID형으로 간주
     })
 
+    // 기본: 기술통계 (숫자형 컬럼이 있을 때만)
+    if (numericColumns.length > 0) {
+      analyses.push({
+        emoji: '📊',
+        text: '기술통계 (평균, 표준편차, 분포)'
+      })
+    }
+
     // 그룹 비교 (범주형 1개 + 연속형 1개)
+    // 범주형 컬럼 중 실제 그룹이 2개 이상인 것만 검사
     if (categoricalColumns.length >= 1 && numericColumns.length >= 1) {
-      const groupCount = categoricalColumns[0].uniqueValues || 2
-      if (groupCount === 2) {
-        analyses.push({
-          emoji: '⚖️',
-          text: '2집단 비교 (t-검정, Mann-Whitney)'
-        })
-      } else if (groupCount >= 3) {
-        analyses.push({
-          emoji: '📈',
-          text: '다집단 비교 (ANOVA, Kruskal-Wallis)'
-        })
+      const validGroupColumns = categoricalColumns.filter(
+        col => col.uniqueValues && col.uniqueValues >= 2
+      )
+      if (validGroupColumns.length > 0) {
+        // 2집단 가능 여부 검사 (모든 범주형 컬럼 고려)
+        const has2Groups = validGroupColumns.some(col => col.uniqueValues === 2)
+
+        // 다집단 가능 여부 검사 (모든 범주형 컬럼 고려)
+        const hasMultipleGroups = validGroupColumns.some(col => col.uniqueValues >= 3)
+
+        if (has2Groups) {
+          analyses.push({
+            emoji: '⚖️',
+            text: '2집단 비교 (t-검정, Mann-Whitney)'
+          })
+        }
+
+        if (hasMultipleGroups) {
+          analyses.push({
+            emoji: '📈',
+            text: '다집단 비교 (ANOVA, Kruskal-Wallis)'
+          })
+        }
       }
     }
 
-    // 상관분석 (연속형 2개 이상)
-    if (numericColumns.length >= 2) {
+    // 상관분석 (실질적 연속형 2개 이상)
+    if (continuousColumns.length >= 2) {
       analyses.push({
         emoji: '🔗',
         text: '상관분석 (Pearson, Spearman)'
       })
     }
 
-    // 회귀분석 (연속형 2개 이상)
-    if (numericColumns.length >= 2) {
+    // 회귀분석 (실질적 연속형 2개 이상)
+    if (continuousColumns.length >= 2) {
       analyses.push({
         emoji: '📉',
         text: '회귀분석 (예측 모델)'
       })
     }
 
-    // 카이제곱 (범주형 2개)
-    if (categoricalColumns.length >= 2) {
+    // 카이제곱 (범주형 2개, 각각 수준 2개 이상)
+    const validCategoricalForChiSquare = categoricalColumns.filter(
+      col => col.uniqueValues && col.uniqueValues >= 2
+    )
+    if (validCategoricalForChiSquare.length >= 2) {
       analyses.push({
         emoji: '🎲',
         text: '카이제곱 검정 (범주형 연관성)'
@@ -251,7 +275,7 @@ export const DataValidationStep = memo(function DataValidationStep({
     }
 
     return analyses
-  }, [numericColumns, categoricalColumns])
+  }, [numericColumns, categoricalColumns, validationResults?.totalRows])
 
   // 기본 데이터 특성 저장 (가정 검정은 Step 5에서 수행)
   useEffect(() => {
