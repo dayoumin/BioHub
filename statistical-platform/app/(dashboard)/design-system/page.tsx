@@ -741,15 +741,29 @@ export default function ComponentsShowcasePage() {
                       {/* 사용 예제 */}
                       <div className="relative">
                         <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto">
-                          <code>{`// Step 2 예제
+                          <code>{`// Step 2 예제 (✅ 최신: Try/Catch + useEffect Cleanup)
 const [isNavigating, setIsNavigating] = useState(false)
 
 const handleNext = useCallback(() => {
   if (isNavigating || !onNext) return
+
   setIsNavigating(true)
-  onNext()
-  setTimeout(() => setIsNavigating(false), 1000)
+  try {
+    onNext()
+    // ✅ 정상: goToNextStep()은 동기 함수로 즉시 언마운트
+  } catch (error) {
+    // ⚠️ 엣지 케이스: 에러 시 수동 리셋
+    logger.error('Navigation failed', { error })
+    setIsNavigating(false)
+  }
 }, [isNavigating, onNext])
+
+// ✅ Cleanup: 언마운트 시 자동 리셋
+useEffect(() => {
+  return () => {
+    setIsNavigating(false)
+  }
+}, [])
 
 <GuidanceCard
   title="데이터 준비 완료!"

@@ -159,7 +159,9 @@
       "Bash(set:*)",
       "Bash(mv:*)",
       "Bash(test:*)",
-      "Bash(npm run dev:clean:*)"
+      "Bash(npm run dev:clean:*)",
+      "Bash(the component stays mounted with isNavigating=true,)",
+      "Bash(permanently blocking further navigation attempts.\"\n  → Try/Catch + useEffect cleanup으로 완전 해결\n\n검증 결과:\n- 테스트: 14/14 passing ✓\n- 빌드: ✓ Successful (68/68 pages)\n- 타입 체크: 0 errors\n\n추가 변경 (이전 작업):\n- lib/services/executors/base-executor.ts: extractNumericSeries 메서드 추가\n- lib/services/executors/t-test-executor.ts: Welch t-test 소표본/zero-variance 가드\n- lib/services/executors/anova-executor.ts: prepareGroups 빈 문자열 체크 강화\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []
