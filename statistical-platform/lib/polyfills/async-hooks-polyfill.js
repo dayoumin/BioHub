@@ -5,14 +5,30 @@
  *
  * 개선 사항:
  * 1. Promise/async-await 지원 (비동기 경계 후에도 컨텍스트 유지)
- * 2. 동시 실행 격리 (간이 컨텍스트 맵)
+ * 2. 중첩/순차 실행 지원 (스택 기반 컨텍스트 복원)
  * 3. 런타임 경고 (미지원 API 호출 감지)
  * 4. 브라우저 전용 (Node.js 환경에서 로드 시 경고)
  *
- * 제한 사항:
- * - 실제 Node.js AsyncLocalStorage보다 격리 수준이 낮음
- * - 매우 복잡한 동시 실행 시나리오에서는 오염 가능성 있음
- * - exit(), bind(), snapshot()은 부분 구현
+ * ⚠️ 제한 사항 (CRITICAL):
+ * 1. 병렬 실행 비권장 (동일 인스턴스):
+ *    - 동일 ALS 인스턴스에서 두 개의 run()이 동시에 실행되면 _currentContextId가 덮어쓰기됨
+ *    - 서로의 getStore()를 오염시킬 수 있음 (병렬 가드 없음)
+ *    - 권장: 그래프마다 별도 AsyncLocalStorage 인스턴스 사용
+ *
+ * 2. Promise 영구 대기 시 메모리 누수:
+ *    - Promise가 영원히 pending 상태면 cleanup이 실행되지 않음 (finally 미호출)
+ *    - contextStores 엔트리와 activeContextCount가 해제되지 않아 누적 가능
+ *    - 실제로는 대부분의 Promise가 settle되므로 큰 문제는 아님
+ *
+ * 3. bind/snapshot 제한적 구현:
+ *    - 기존 컨텍스트가 없을 때만 캡처한 store로 감싸짐
+ *    - 실행 중 컨텍스트가 이미 있으면 원 함수 그대로 실행 (덮어쓰지 않음)
+ *    - 호출자가 기대한 컨텍스트가 없을 수 있음
+ *
+ * ✅ 지원되는 패턴:
+ * - 중첩 run() 호출 (outer → inner → outer 복원)
+ * - 순차 run() 호출 (await 후 재호출)
+ * - LangGraph runWithConfig 중첩/순차 호출
  */
 
 // 환경 체크
@@ -33,7 +49,7 @@ let activeContextCount = 0
  * - Promise 체인을 따라 컨텍스트 전파
  * - WeakMap 대신 Map 사용 (성능 trade-off)
  */
-export class AsyncLocalStorage {
+class AsyncLocalStorage {
   constructor() {
     this._contextKey = Symbol('AsyncLocalStorageContext')
     this._currentContextId = null
@@ -212,15 +228,15 @@ export class AsyncLocalStorage {
  * Node.js async_hooks 호환 함수들
  * (LangGraph가 직접 사용하지 않지만 호환성을 위해 export)
  */
-export const executionAsyncId = () => 0
-export const triggerAsyncId = () => 0
-export const executionAsyncResource = () => ({})
-export const asyncWrapProviders = {}
+const executionAsyncId = () => 0
+const triggerAsyncId = () => 0
+const executionAsyncResource = () => ({})
+const asyncWrapProviders = {}
 
 /**
  * 폴리필 검증 함수 (개발 환경에서 사용)
  */
-export function validatePolyfill() {
+function validatePolyfill() {
   if (typeof window !== 'undefined') {
     console.info('ℹ️ Using AsyncLocalStorage polyfill (browser mode)')
     console.info('ℹ️ Limitations: Nested/sequential run() is supported')
@@ -229,12 +245,7 @@ export function validatePolyfill() {
 }
 
 /**
- * Default export
- */
-export default AsyncLocalStorage
-
-/**
- * CommonJS 호환성 (Webpack이 자동 변환)
+ * CommonJS 호환성 (Jest/Node.js용, 우선순위 높음)
  */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -248,3 +259,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.AsyncLocalStorage = AsyncLocalStorage
   module.exports.default = AsyncLocalStorage
 }
+
+/**
+ * ESM export (Webpack용)
+ * Webpack이 자동으로 ESM으로 변환하므로 여기서는 명시하지 않음
+ */

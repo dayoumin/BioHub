@@ -2,9 +2,13 @@
  * AsyncLocalStorage Polyfill 테스트
  *
  * 검증 항목:
- * 1. 병렬 실행 가드 (경쟁 조건 방지)
- * 2. 기본 run() 동작 (동기/비동기)
- * 3. getStore() 컨텍스트 격리
+ * 1. 기본 run() 동작 (동기/비동기)
+ * 2. getStore() 컨텍스트 격리
+ * 3. 중첩/순차 실행 지원 (병렬 가드 없음)
+ *
+ * ⚠️ 제한 사항:
+ * - 동일 인스턴스에서 병렬 run() 시 컨텍스트 오염 가능 (병렬 가드 제거됨)
+ * - 이 앱은 병렬 실행을 사용하지 않으므로 안전
  */
 
 // Node.js 환경에서 실행 (브라우저 체크 우회)
@@ -12,7 +16,7 @@ global.window = undefined
 
 const { AsyncLocalStorage } = require('../../lib/polyfills/async-hooks-polyfill.js')
 
-describe('AsyncLocalStorage Polyfill - Step 1: 병렬 실행 가드', () => {
+describe('AsyncLocalStorage Polyfill - 기본 동작', () => {
   let storage
 
   beforeEach(() => {
@@ -58,29 +62,45 @@ describe('AsyncLocalStorage Polyfill - Step 1: 병렬 실행 가드', () => {
     })
   })
 
-  describe('병렬 실행 가드 (Critical)', () => {
-    it('동일 인스턴스에서 중첩 run() 호출 시 에러를 던져야 함', () => {
-      expect(() => {
-        storage.run({ outer: true }, () => {
-          // 중첩 호출 시도
-          storage.run({ inner: true }, () => {
-            // 이 코드는 실행되면 안 됨
-          })
+  describe('중첩/순차 실행 지원', () => {
+    it('중첩 run() 호출이 허용되어야 함 (스택 복원)', () => {
+      let outerStore, innerStore, restoredStore
+
+      storage.run({ level: 'outer' }, () => {
+        outerStore = storage.getStore()
+
+        // 중첩 호출 허용
+        storage.run({ level: 'inner' }, () => {
+          innerStore = storage.getStore()
         })
-      }).toThrow('Concurrent run() detected')
+
+        // 복원 확인
+        restoredStore = storage.getStore()
+      })
+
+      expect(outerStore).toEqual({ level: 'outer' })
+      expect(innerStore).toEqual({ level: 'inner' })
+      expect(restoredStore).toEqual({ level: 'outer' })
     })
 
-    it('비동기 중첩 run() 호출 시 에러를 던져야 함', async () => {
-      await expect(async () => {
-        await storage.run({ outer: true }, async () => {
-          await new Promise(resolve => setTimeout(resolve, 10))
+    it('비동기 중첩 run() 호출이 허용되어야 함', async () => {
+      const result = await storage.run({ userId: 'outer' }, async () => {
+        const outer = storage.getStore()?.userId
+        await new Promise(resolve => setTimeout(resolve, 10))
 
-          // 비동기 중첩 호출 시도
-          await storage.run({ inner: true }, () => {
-            // 이 코드는 실행되면 안 됨
-          })
+        // await 후 중첩 호출 허용
+        const inner = await storage.run({ userId: 'inner' }, async () => {
+          await new Promise(resolve => setTimeout(resolve, 5))
+          return storage.getStore()?.userId
         })
-      }).rejects.toThrow('Concurrent run() detected')
+
+        const outerAfter = storage.getStore()?.userId
+        return { outer, inner, outerAfter }
+      })
+
+      expect(result.outer).toBe('outer')
+      expect(result.inner).toBe('inner')
+      expect(result.outerAfter).toBe('outer')
     })
 
     it('다른 인스턴스에서는 병렬 실행이 가능해야 함', async () => {
