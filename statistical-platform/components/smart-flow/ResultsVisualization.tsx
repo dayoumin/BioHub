@@ -54,6 +54,43 @@ const CHART_COLORS = {
   foreground: () => getCSSColor('--foreground') // 기본 텍스트 색상
 }
 
+// Custom Tooltip 컴포넌트 (Recharts 최신 UX - 깔끔한 hover 정보)
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: Array<{
+    value: number
+    name: string
+    dataKey: string
+    color?: string
+  }>
+  label?: string
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null
+
+  return (
+    <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-3">
+      {label && (
+        <p className="font-semibold text-sm mb-2 text-foreground">{label}</p>
+      )}
+      <div className="space-y-1">
+        {payload.map((entry, index) => (
+          <div key={index} className="flex items-center gap-2 text-sm">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: entry.color || CHART_COLORS.primary() }}
+            />
+            <span className="text-muted-foreground">{entry.name}:</span>
+            <span className="font-medium text-foreground">{entry.value.toFixed(2)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
 // 타입 안전성을 위한 확장 인터페이스
 interface RegressionResult extends AnalysisResult {
   additional?: {
@@ -177,11 +214,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />
-            <Tooltip
-              formatter={(value: number) => value.toFixed(2)}
-              labelStyle={{ color: '#000' }}
-              contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #e5e7eb' }}
-            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
             <Legend />
             <Bar
               dataKey="mean"
@@ -230,7 +263,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="x" name="X" />
             <YAxis dataKey="y" name="Y" />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
             <Scatter 
               name="데이터" 
               data={chartData.scatterData} 
@@ -294,7 +327,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="x" name="독립변수" />
             <YAxis dataKey="y" name="종속변수" />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
             <Scatter 
               name="데이터" 
               data={chartData.scatterData} 
@@ -361,11 +394,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />
-            <Tooltip
-              formatter={(value: number) => value.toFixed(2)}
-              labelStyle={{ color: '#000' }}
-              contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #e5e7eb' }}
-            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
             <Legend />
             <Bar
               dataKey="mean"
@@ -415,7 +444,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="x" />
               <YAxis />
-              <Tooltip />
+              <Tooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="normal1" stroke={CHART_COLORS.primary()} name="분포" />
             </LineChart>
           </ResponsiveContainer>
@@ -455,7 +484,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis unit="%" />
-              <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
+              <Tooltip content={<CustomTooltip />} />
               <Legend />
               <Bar dataKey="variance" fill="#6366f1" name="개별 분산" radius={[4, 4, 0, 0]} />
               <Line type="monotone" dataKey="cumulative" stroke={CHART_COLORS.accent()} name="누적 분산" />
@@ -495,7 +524,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="x" name="차원 1" />
             <YAxis dataKey="y" name="차원 2" />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
             <Scatter
               name="데이터"
               data={chartData.scatterData}
@@ -539,7 +568,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" domain={[0, 1]} />
               <YAxis dataKey="name" type="category" width={60} />
-              <Tooltip formatter={(value: number) => value.toFixed(3)} />
+              <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="correlation" fill="#f59e0b" radius={[0, 4, 4, 0]}>
                 {itemData.map((entry, index) => (
                   <Cell
@@ -588,7 +617,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="n" name="표본 크기" />
             <YAxis unit="%" domain={[0, 100]} />
-            <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
+            <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={80} stroke={CHART_COLORS.destructive()} strokeDasharray="5 5" label="80%" />
             <Line type="monotone" dataKey="power" stroke={CHART_COLORS.primary()} strokeWidth={2} name="검정력" />
           </LineChart>
