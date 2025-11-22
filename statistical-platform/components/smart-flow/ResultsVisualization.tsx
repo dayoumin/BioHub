@@ -22,6 +22,38 @@ import { Card } from '@/components/ui/card'
 import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 
+// CSS 변수를 Recharts용 HEX 색상으로 변환 (Design System 통일)
+const getCSSColor = (variable: string): string => {
+  if (typeof window === 'undefined') return '#000000' // SSR 안전성
+
+  const hslValue = getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
+
+  // HSL → RGB → HEX 변환
+  if (hslValue.startsWith('hsl(') || hslValue.includes(' ')) {
+    const [h, s, l] = hslValue.replace(/hsl\(|\)|%/g, '').split(/[,\s]+/).map(Number)
+
+    const a = s * Math.min(l, 100 - l) / 100
+    const f = (n: number) => {
+      const k = (n + h / 30) % 12
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+      return Math.round(255 * color / 100).toString(16).padStart(2, '0')
+    }
+    return `#${f(0)}${f(8)}${f(4)}`
+  }
+
+  return '#000000' // Fallback
+}
+
+// Design System 색상 (shadcn/ui)
+const CHART_COLORS = {
+  primary: () => getCSSColor('--primary'),      // 메인 색상 (파란색)
+  success: () => getCSSColor('--success'),      // 성공 색상 (초록색)
+  accent: () => getCSSColor('--accent'),        // 강조 색상 (보라색)
+  muted: () => getCSSColor('--muted'),          // 배경/비활성 색상
+  destructive: () => getCSSColor('--destructive'), // 삭제/에러 색상
+  foreground: () => getCSSColor('--foreground') // 기본 텍스트 색상
+}
+
 // 타입 안전성을 위한 확장 인터페이스
 interface RegressionResult extends AnalysisResult {
   additional?: {
@@ -153,15 +185,15 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <Legend />
             <Bar
               dataKey="mean"
-              fill="#3b82f6"
+              fill={CHART_COLORS.primary()}
               name="평균"
               label={{ position: 'top', formatter: (value: number) => value.toFixed(2) }}
               radius={[8, 8, 0, 0]}
             >
               {chartData.groupData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#10b981'} />
+                <Cell key={`cell-${index}`} fill={index === 0 ? CHART_COLORS.primary() : CHART_COLORS.success()} />
               ))}
-              <ErrorBar dataKey="std" width={4} strokeWidth={2} stroke="#374151" />
+              <ErrorBar dataKey="std" width={4} strokeWidth={2} stroke={CHART_COLORS.foreground()} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -273,7 +305,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
                 data={lineData}
                 type="monotone"
                 dataKey="y"
-                stroke="#ef4444"
+                stroke={CHART_COLORS.destructive()}
                 strokeWidth={2}
                 dot={false}
                 name="회귀선"
@@ -337,15 +369,15 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <Legend />
             <Bar
               dataKey="mean"
-              fill="#14b8a6"
+              fill={CHART_COLORS.accent()}
               name="중위수/평균"
               label={{ position: 'top', formatter: (value: number) => value.toFixed(2) }}
               radius={[8, 8, 0, 0]}
             >
               {chartData.groupData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#14b8a6' : '#06b6d4'} />
+                <Cell key={`cell-${index}`} fill={CHART_COLORS.accent()} />
               ))}
-              <ErrorBar dataKey="std" width={4} strokeWidth={2} stroke="#0f766e" />
+              <ErrorBar dataKey="std" width={4} strokeWidth={2} stroke={CHART_COLORS.foreground()} />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -384,7 +416,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <XAxis dataKey="x" />
               <YAxis />
               <Tooltip />
-              <Line type="monotone" dataKey="normal1" stroke="#3b82f6" name="분포" />
+              <Line type="monotone" dataKey="normal1" stroke={CHART_COLORS.primary()} name="분포" />
             </LineChart>
           </ResponsiveContainer>
         ) : (
@@ -426,7 +458,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
               <Legend />
               <Bar dataKey="variance" fill="#6366f1" name="개별 분산" radius={[4, 4, 0, 0]} />
-              <Line type="monotone" dataKey="cumulative" stroke="#f59e0b" name="누적 분산" />
+              <Line type="monotone" dataKey="cumulative" stroke={CHART_COLORS.accent()} name="누적 분산" />
             </BarChart>
           </ResponsiveContainer>
         ) : (
@@ -557,8 +589,8 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
             <XAxis dataKey="n" name="표본 크기" />
             <YAxis unit="%" domain={[0, 100]} />
             <Tooltip formatter={(value: number) => `${value.toFixed(1)}%`} />
-            <ReferenceLine y={80} stroke="#ef4444" strokeDasharray="5 5" label="80%" />
-            <Line type="monotone" dataKey="power" stroke="#ec4899" strokeWidth={2} name="검정력" />
+            <ReferenceLine y={80} stroke={CHART_COLORS.destructive()} strokeDasharray="5 5" label="80%" />
+            <Line type="monotone" dataKey="power" stroke={CHART_COLORS.primary()} strokeWidth={2} name="검정력" />
           </LineChart>
         </ResponsiveContainer>
 
