@@ -46,8 +46,8 @@ als.run(store2, async () => {
   console.log('  ✅ await 후:', after?.userId === 456 ? 'PASS' : 'FAIL')
 })
   .then(async () => {
-    // 테스트 3: 동일 인스턴스 병렬 실행 (경쟁 조건 가능)
-    console.log('\n📝 테스트 3: 동일 인스턴스 병렬 실행 (경쟁 조건 경고)')
+    // 테스트 3: 동일 인스턴스 병렬 실행 차단 (에러 기대)
+    console.log('\n📝 테스트 3: 동일 인스턴스 병렬 실행 차단')
 
     // 첫 번째 run() 시작
     const promise1 = als.run({ userId: 1 }, async () => {
@@ -55,18 +55,26 @@ als.run(store2, async () => {
       return als.getStore()?.userId
     })
 
-    // 약간의 지연 후 두 번째 run() 시도 (병렬 실행)
+    // 약간의 지연 후 두 번째 run() 시도 (병렬 실행 시도)
     await new Promise(resolve => setTimeout(resolve, 5))
 
-    const promise2 = als.run({ userId: 2 }, async () => {
-      await new Promise(resolve => setTimeout(resolve, 10))
-      return als.getStore()?.userId
-    })
+    let error = null
+    try {
+      await als.run({ userId: 2 }, async () => {
+        await new Promise(resolve => setTimeout(resolve, 10))
+        return als.getStore()?.userId
+      })
+    } catch (err) {
+      error = err
+    }
 
-    const results = await Promise.all([promise1, promise2])
+    // 첫 번째 Promise 완료 대기
+    await promise1
 
-    console.log('  ⚠️  병렬 실행 결과:', results)
-    console.log('  ⚠️  경쟁 조건 가능 (권장: 별도 인스턴스 사용)')
+    console.log('  ✅ 병렬 에러:', error?.message.includes('Concurrent run()') ? 'PASS' : 'FAIL')
+    if (error) {
+      console.log('  에러 메시지:', error.message.substring(0, 80) + '...')
+    }
 
     // 테스트 4: 다른 인스턴스에서 병렬 실행 (권장)
     console.log('\n📝 테스트 4: 다른 인스턴스에서 병렬 실행 (권장 패턴)')
@@ -203,12 +211,13 @@ als.run(store2, async () => {
     console.log('\n' + '='.repeat(50))
     console.log('✅ 모든 테스트 완료!')
     console.log('\nℹ️  주요 기능:')
-    console.log('   - 중첩 run() 지원: 스택 기반 컨텍스트 복원')
+    console.log('   - 중첩 run() 지원: 동기적 스택 기반 컨텍스트 복원')
+    console.log('   - 병렬 차단: 동일 인스턴스에서 병렬 실행 에러')
     console.log('   - 메모리 안전: enterWith() cleanup, Map 정리')
     console.log('   - bind/snapshot: 최소 구현 제공 (조용한 실패 방지)')
     console.log('   - LangGraph 호환: runWithConfig 중첩 호출 지원')
     console.log('\nℹ️  제한 사항:')
-    console.log('   - 병렬 비동기 호출 시 경쟁 조건 가능 (동일 인스턴스)')
+    console.log('   - 병렬 비동기 호출 금지 (동일 인스턴스)')
     console.log('   - 권장: 그래프마다 별도 AsyncLocalStorage 인스턴스 사용')
     console.log('='.repeat(50))
   })

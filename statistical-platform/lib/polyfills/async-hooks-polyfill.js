@@ -37,6 +37,7 @@ export class AsyncLocalStorage {
   constructor() {
     this._contextKey = Symbol('AsyncLocalStorageContext')
     this._currentContextId = null
+    this._runningPromise = null  // 병렬 감지용
     this._isPolyfill = true // 폴리필 마커
   }
 
@@ -63,6 +64,17 @@ export class AsyncLocalStorage {
    * - LangGraph의 runWithConfig 중첩 호출 지원
    */
   run(store, callback, ...args) {
+    // 병렬 실행 가드 (동일 인스턴스에서 병렬 차단)
+    // - 중첩 호출(동기적)은 허용
+    // - 병렬 비동기 실행(Promise 진행 중 새 run())은 차단
+    if (this._runningPromise !== null) {
+      throw new Error(
+        'Concurrent run() detected on same AsyncLocalStorage instance. ' +
+        'Use separate instances for parallel execution. ' +
+        'Nested synchronous calls are allowed.'
+      )
+    }
+
     // 컨텍스트 스택 관리 (중첩 허용)
     // - 이전 컨텍스트를 previousContextId에 저장
     // - cleanup 시 복원하여 스택처럼 동작
@@ -82,6 +94,7 @@ export class AsyncLocalStorage {
 
     const cleanup = () => {
       this._currentContextId = previousContextId
+      this._runningPromise = null  // Promise 완료
       contextStores.delete(storeKey)
       activeContextCount--
     }
@@ -91,6 +104,8 @@ export class AsyncLocalStorage {
 
       // Promise인 경우 비동기 처리
       if (result && typeof result.then === 'function') {
+        this._runningPromise = result  // 병렬 감지용
+
         return result
           .then(
             (value) => {
@@ -220,23 +235,28 @@ export class AsyncLocalStorage {
  * Node.js async_hooks 호환 함수들
  * (LangGraph가 직접 사용하지 않지만 호환성을 위해 export)
  */
-const executionAsyncId = () => 0
-const triggerAsyncId = () => 0
-const executionAsyncResource = () => ({})
-const asyncWrapProviders = {}
+export const executionAsyncId = () => 0
+export const triggerAsyncId = () => 0
+export const executionAsyncResource = () => ({})
+export const asyncWrapProviders = {}
 
 /**
  * 폴리필 검증 함수 (개발 환경에서 사용)
  */
-function validatePolyfill() {
+export function validatePolyfill() {
   if (typeof window !== 'undefined') {
     console.info('ℹ️ Using AsyncLocalStorage polyfill (browser mode)')
-    console.info('ℹ️ Limitations: Nested run() is supported, but parallel async calls may race')
+    console.info('ℹ️ Limitations: Nested sync run() is supported, but parallel async calls are blocked')
   }
 }
 
 /**
- * Exports (CommonJS, Webpack이 ESM으로 변환)
+ * Default export
+ */
+export default AsyncLocalStorage
+
+/**
+ * CommonJS 호환성 (Webpack이 자동 변환)
  */
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
@@ -248,5 +268,5 @@ if (typeof module !== 'undefined' && module.exports) {
     validatePolyfill
   }
   module.exports.AsyncLocalStorage = AsyncLocalStorage
-  module.exports.default = module.exports
+  module.exports.default = AsyncLocalStorage
 }
