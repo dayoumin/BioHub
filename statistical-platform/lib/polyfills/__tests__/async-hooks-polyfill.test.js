@@ -1,14 +1,12 @@
 /**
- * AsyncLocalStorage Polyfill 테스트
+ * AsyncLocalStorage Polyfill tests (CommonJS)
  *
- * 주요 시나리오:
- * 1. 동기 함수에서 컨텍스트 유지
- * 2. Promise/async-await에서 컨텍스트 유지
- * 3. 동시 실행 격리
- * 4. 중첩된 run() 호출
+ * Notes:
+ * - Same-instance parallel run() is NOT supported by the polyfill (documented). We do not test that case.
+ * - Cross-instance parallel execution is allowed.
  */
 
-import { AsyncLocalStorage } from '../async-hooks-polyfill.js'
+const { AsyncLocalStorage } = require('../async-hooks-polyfill.js')
 
 describe('AsyncLocalStorage Polyfill', () => {
   let als
@@ -17,146 +15,155 @@ describe('AsyncLocalStorage Polyfill', () => {
     als = new AsyncLocalStorage()
   })
 
-  describe('동기 함수', () => {
-    it('run() 안에서 getStore() 작동', () => {
+  describe('basic behavior', () => {
+    it('sets and gets store inside run()', () => {
       const store = { userId: 123 }
-
       als.run(store, () => {
         expect(als.getStore()).toEqual(store)
       })
     })
 
-    it('run() 밖에서는 undefined 반환', () => {
+    it('returns undefined outside run()', () => {
       expect(als.getStore()).toBeUndefined()
     })
 
-    it('run() 종료 후 이전 컨텍스트 복원', () => {
-      const store1 = { userId: 1 }
-      const store2 = { userId: 2 }
+    it('restores previous context after nested run()', () => {
+      const outer = { userId: 1 }
+      const inner = { userId: 2 }
 
-      als.run(store1, () => {
-        expect(als.getStore()).toEqual(store1)
+      als.run(outer, () => {
+        expect(als.getStore()).toEqual(outer)
 
-        als.run(store2, () => {
-          expect(als.getStore()).toEqual(store2)
+        als.run(inner, () => {
+          expect(als.getStore()).toEqual(inner)
         })
 
-        // 중첩 run() 종료 후 복원
-        expect(als.getStore()).toEqual(store1)
+        expect(als.getStore()).toEqual(outer)
       })
 
-      // 모든 run() 종료 후
       expect(als.getStore()).toBeUndefined()
     })
   })
 
-  describe('비동기 함수 (Promise)', () => {
-    it('async/await 후에도 컨텍스트 유지', async () => {
+  describe('async behavior', () => {
+    it('keeps context across await', async () => {
       const store = { userId: 456 }
-
       await als.run(store, async () => {
         expect(als.getStore()).toEqual(store)
-
         await Promise.resolve()
-
-        // await 후에도 유지!
         expect(als.getStore()).toEqual(store)
       })
     })
 
-    it('Promise.then() 체인에서 컨텍스트 유지', async () => {
+    it('keeps context across Promise chains', async () => {
       const store = { userId: 789 }
-
       await als.run(store, () => {
-        return Promise.resolve(als.getStore())
-          .then((value) => {
-            expect(value).toEqual(store)
-            return als.getStore()
-          })
+        return Promise.resolve()
+          .then(() => als.getStore())
           .then((value) => {
             expect(value).toEqual(store)
           })
       })
     })
+  })
 
-    it('에러 발생 시에도 컨텍스트 정리', async () => {
-      const store = { userId: 999 }
-
-      await expect(
-        als.run(store, async () => {
-          expect(als.getStore()).toEqual(store)
+  describe('errors', () => {
+    it('cleans context after sync error', () => {
+      expect(() => {
+        als.run({ data: 'test' }, () => {
           throw new Error('Test error')
         })
-      ).rejects.toThrow('Test error')
+      }).toThrow('Test error')
+      expect(als.getStore()).toBeUndefined()
+    })
 
-      // 에러 후 컨텍스트 정리 확인
+    it('cleans context after async error', async () => {
+      await expect(
+        als.run({ data: 'test' }, async () => {
+          await Promise.resolve()
+          throw new Error('Async test error')
+        })
+      ).rejects.toThrow('Async test error')
       expect(als.getStore()).toBeUndefined()
     })
   })
 
-  describe('동시 실행 격리', () => {
-    it('여러 run() 호출이 서로 간섭하지 않음', async () => {
-      const store1 = { userId: 1 }
-      const store2 = { userId: 2 }
-      const store3 = { userId: 3 }
+  describe('sequential and cross-instance execution', () => {
+    it('supports sequential runs', async () => {
+      const first = await als.run({ seq: 1 }, async () => {
+        await Promise.resolve()
+        return als.getStore()
+      })
+      const second = await als.run({ seq: 2 }, async () => {
+        await Promise.resolve()
+        return als.getStore()
+      })
 
-      const results = await Promise.all([
-        als.run(store1, async () => {
-          await new Promise(resolve => setTimeout(resolve, 10))
-          return als.getStore()
+      expect(first).toEqual({ seq: 1 })
+      expect(second).toEqual({ seq: 2 })
+    })
+
+    it('allows parallel runs on different instances', async () => {
+      const a = new AsyncLocalStorage()
+      const b = new AsyncLocalStorage()
+
+      const [resA, resB] = await Promise.all([
+        a.run({ id: 'A' }, async () => {
+          await new Promise((r) => setTimeout(r, 10))
+          return a.getStore()
         }),
-        als.run(store2, async () => {
-          await new Promise(resolve => setTimeout(resolve, 5))
-          return als.getStore()
-        }),
-        als.run(store3, async () => {
-          await new Promise(resolve => setTimeout(resolve, 15))
-          return als.getStore()
+        b.run({ id: 'B' }, async () => {
+          await new Promise((r) => setTimeout(r, 5))
+          return b.getStore()
         })
       ])
 
-      expect(results[0]).toEqual(store1)
-      expect(results[1]).toEqual(store2)
-      expect(results[2]).toEqual(store3)
+      expect(resA).toEqual({ id: 'A' })
+      expect(resB).toEqual({ id: 'B' })
     })
   })
 
-  describe('기타 API', () => {
-    it('enterWith() 작동', () => {
-      const store = { userId: 111 }
-      als.enterWith(store)
-
-      expect(als.getStore()).toEqual(store)
-    })
-
-    it('disable() 작동', () => {
-      const store = { userId: 222 }
-      als.enterWith(store)
-      expect(als.getStore()).toEqual(store)
+  describe('API helpers', () => {
+    it('enterWith sets store and disable clears it', () => {
+      als.enterWith({ userId: 111 })
+      expect(als.getStore()).toEqual({ userId: 111 })
 
       als.disable()
       expect(als.getStore()).toBeUndefined()
     })
 
-    it('exit() 일시적으로 컨텍스트 제거', () => {
-      const store = { userId: 333 }
-
-      als.run(store, () => {
-        expect(als.getStore()).toEqual(store)
-
+    it('exit temporarily clears and then restores', () => {
+      als.run({ flag: true }, () => {
+        expect(als.getStore()).toEqual({ flag: true })
         const result = als.exit(() => {
           expect(als.getStore()).toBeUndefined()
           return 'exited'
         })
-
         expect(result).toBe('exited')
-        expect(als.getStore()).toEqual(store)
+        expect(als.getStore()).toEqual({ flag: true })
       })
+    })
+
+    it('bind captures current store when none is active', () => {
+      let bound
+      als.run({ userId: 'bound' }, () => {
+        bound = als.bind(() => als.getStore())
+      })
+      expect(bound()).toEqual({ userId: 'bound' })
+    })
+
+    it('snapshot restores captured store', () => {
+      let snapshot
+      als.run({ userId: 'snap' }, () => {
+        snapshot = als.snapshot()
+      })
+      const result = snapshot(() => als.getStore())
+      expect(result).toEqual({ userId: 'snap' })
     })
   })
 
-  describe('폴리필 마커', () => {
-    it('_isPolyfill 속성 존재', () => {
+  describe('polyfill marker', () => {
+    it('sets _isPolyfill flag', () => {
       expect(als._isPolyfill).toBe(true)
     })
   })
