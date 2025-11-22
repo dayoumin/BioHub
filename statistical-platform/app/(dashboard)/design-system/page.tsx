@@ -21,7 +21,8 @@ import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
 import { VariableSelectorToggle } from '@/components/common/VariableSelectorToggle'
 import {
   GitCompare, TrendingUp, PieChart, LineChart, Clock, Play, Pause,
-  Copy, Check, Menu, X, Palette, Type, SquareStack, Sparkles, ArrowRight, AlertTriangle
+  Copy, Check, Menu, X, Palette, Type, SquareStack, Sparkles, ArrowRight, AlertTriangle,
+  ExternalLink, Table
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -43,6 +44,7 @@ const NAV_SECTIONS = [
   { id: 'buttons', label: 'Buttons', icon: SquareStack },
   { id: 'typography', label: 'Typography', icon: Type },
   { id: 'components', label: 'Components', icon: GitCompare },
+  { id: 'data-utils', label: 'Data Utilities', icon: Table },
 ]
 
 // 색상 데이터
@@ -877,6 +879,336 @@ useEffect(() => {
                   </Card>
                 </TabsContent>
               </Tabs>
+            </div>
+          )}
+
+          {/* Data Utilities 섹션 */}
+          {activeSection === 'data-utils' && (
+            <div className="space-y-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ExternalLink className="w-5 h-5" />
+                    새 창으로 데이터 보기
+                    <Badge variant="default" className="text-xs">NEW</Badge>
+                  </CardTitle>
+                  <CardDescription>대용량 데이터를 별도 창에서 확인하는 유틸리티</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* 라이브 데모 */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                      <div>
+                        <h4 className="font-medium">샘플 데이터 (5행 × 5열)</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          group, value, age, score, time 변수
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => {
+                          const sampleData = [
+                            { group: 'A', value: 10, age: 25, score: 85, time: '10:30' },
+                            { group: 'B', value: 20, age: 30, score: 90, time: '11:00' },
+                            { group: 'A', value: 15, age: 28, score: 88, time: '10:45' },
+                            { group: 'B', value: 25, age: 32, score: 92, time: '11:15' },
+                            { group: 'A', value: 12, age: 26, score: 86, time: '10:35' }
+                          ]
+
+                          const columns = Object.keys(sampleData[0])
+                          const htmlContent = `
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>샘플 데이터 - 디자인 시스템</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 100%;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .header {
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e5e5e5;
+    }
+    h1 {
+      font-size: 24px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .info {
+      color: #666;
+      font-size: 14px;
+    }
+    .table-wrapper {
+      overflow: auto;
+      max-height: calc(100vh - 140px);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      background: #f8f9fa;
+      color: #333;
+      font-weight: 600;
+      padding: 12px 8px;
+      text-align: left;
+      border-bottom: 2px solid #dee2e6;
+      z-index: 10;
+    }
+    td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e9ecef;
+      color: #495057;
+    }
+    tr:hover {
+      background-color: #f8f9fa;
+    }
+    .row-number {
+      background: #f1f3f5;
+      font-weight: 500;
+      color: #868e96;
+      text-align: center;
+      width: 60px;
+    }
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      .container {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>샘플 데이터 (디자인 시스템)</h1>
+      <div class="info">
+        총 5행 × 5개 변수
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th class="row-number">#</th>
+            ${columns.map(col => `<th>${col}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${sampleData.map((row, idx) => `
+            <tr>
+              <td class="row-number">${idx + 1}</td>
+              ${columns.map(col => `<td>${row[col as keyof typeof row] ?? ''}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
+                          `
+
+                          const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+                          if (newWindow) {
+                            newWindow.document.write(htmlContent)
+                            newWindow.document.close()
+                            toast.success('새 창에서 데이터를 열었습니다!')
+                          }
+                        }}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        새 창으로 보기
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* 기능 설명 */}
+                  <div className="bg-primary/5 rounded-lg p-4 space-y-2">
+                    <h4 className="font-medium text-sm">✨ 주요 기능:</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• ✅ Sticky Header (스크롤 시 헤더 고정)</li>
+                      <li>• ✅ 행 번호 표시 (#1, #2, #3...)</li>
+                      <li>• ✅ Hover 효과 (마우스 오버 시 배경 변경)</li>
+                      <li>• ✅ 인쇄 지원 (@media print)</li>
+                      <li>• ✅ 반응형 디자인 (모바일/태블릿 대응)</li>
+                      <li>• ✅ 대용량 데이터 최적화 (가상 스크롤 가능)</li>
+                    </ul>
+                  </div>
+
+                  {/* 사용 시나리오 */}
+                  <div className="bg-success/10 border border-success rounded-lg p-4 space-y-2">
+                    <h4 className="font-medium text-sm text-success">🎯 사용 시나리오:</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• 📊 데이터 검증 후 원본 전체 확인</li>
+                      <li>• 🔍 요약 정보가 이상할 때 원본 대조</li>
+                      <li>• 📋 인쇄용 테이블 (보고서 작성)</li>
+                      <li>• 💾 대용량 데이터 (10,000+ 행) 확인</li>
+                      <li>• 📱 듀얼 모니터 환경 (데이터는 별도 창)</li>
+                    </ul>
+                  </div>
+
+                  {/* Props 테이블 */}
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                    <h4 className="font-medium text-sm">함수 시그니처:</h4>
+                    <pre className="text-xs"><code>{`const handleOpenDataInNewWindow = (
+  data: DataRow[],
+  fileName?: string,
+  totalRows: number,
+  columnCount: number
+) => void`}</code></pre>
+                  </div>
+
+                  {/* 사용 예제 */}
+                  <div className="relative">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="absolute top-2 right-2"
+                      onClick={() => {
+                        const code = `// DataValidationStep.tsx에서 사용 예제
+const handleOpenDataInNewWindow = useCallback(() => {
+  if (!data || data.length === 0) return
+
+  const columns = Object.keys(data[0])
+  const htmlContent = \`
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>전체 데이터 - \${fileName}</title>
+  <style>
+    /* Sticky header, 행 번호, hover 효과 등 */
+    th { position: sticky; top: 0; background: #f8f9fa; }
+  </style>
+</head>
+<body>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        \${columns.map(col => \`<th>\${col}</th>\`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      \${data.map((row, idx) => \`
+        <tr>
+          <td>\${idx + 1}</td>
+          \${columns.map(col => \`<td>\${row[col] ?? ''}</td>\`).join('')}
+        </tr>
+      \`).join('')}
+    </tbody>
+  </table>
+</body>
+</html>
+  \`
+
+  const newWindow = window.open('', '_blank', 'width=1200,height=800')
+  if (newWindow) {
+    newWindow.document.write(htmlContent)
+    newWindow.document.close()
+  }
+}, [data, fileName])
+
+// 사용
+<Button onClick={handleOpenDataInNewWindow}>
+  <ExternalLink className="w-4 h-4" />
+  새 창으로 보기
+</Button>`
+                        copyToClipboard(code, '새 창 열기 코드')
+                      }}
+                    >
+                      {copiedCode === '새 창 열기 코드' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                    <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-[400px]">
+                      <code>{`// DataValidationStep.tsx에서 사용 예제
+const handleOpenDataInNewWindow = useCallback(() => {
+  if (!data || data.length === 0) return
+
+  const columns = Object.keys(data[0])
+  const htmlContent = \`
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>전체 데이터 - \${fileName}</title>
+  <style>
+    /* Sticky header, 행 번호, hover 효과 등 */
+    th { position: sticky; top: 0; background: #f8f9fa; }
+  </style>
+</head>
+<body>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        \${columns.map(col => \`<th>\${col}</th>\`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      \${data.map((row, idx) => \`
+        <tr>
+          <td>\${idx + 1}</td>
+          \${columns.map(col => \`<td>\${row[col] ?? ''}</td>\`).join('')}
+        </tr>
+      \`).join('')}
+    </tbody>
+  </table>
+</body>
+</html>
+  \`
+
+  const newWindow = window.open('', '_blank', 'width=1200,height=800')
+  if (newWindow) {
+    newWindow.document.write(htmlContent)
+    newWindow.document.close()
+  }
+}, [data, fileName])
+
+// 사용
+<Button onClick={handleOpenDataInNewWindow}>
+  <ExternalLink className="w-4 h-4" />
+  새 창으로 보기
+</Button>`}</code>
+                    </pre>
+                  </div>
+
+                  {/* 보안 주의사항 */}
+                  <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 space-y-2">
+                    <h4 className="font-medium text-sm text-yellow-800 dark:text-yellow-300">⚠️ 보안 주의사항:</h4>
+                    <ul className="text-xs text-yellow-700 dark:text-yellow-400 space-y-1">
+                      <li>• XSS 방지: 사용자 데이터에 HTML escape 필요</li>
+                      <li>• 권장: DOMPurify 라이브러리 사용</li>
+                      <li>• 또는: <code>String(value).replace(/&lt;/g, '&amp;lt;')</code></li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
