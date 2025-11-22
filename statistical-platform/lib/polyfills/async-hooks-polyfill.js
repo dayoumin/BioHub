@@ -220,15 +220,15 @@ export class AsyncLocalStorage {
  * Node.js async_hooks 호환 함수들
  * (LangGraph가 직접 사용하지 않지만 호환성을 위해 export)
  */
-export const executionAsyncId = () => 0
-export const triggerAsyncId = () => 0
-export const executionAsyncResource = () => ({})
-export const asyncWrapProviders = {}
+const executionAsyncId = () => 0
+const triggerAsyncId = () => 0
+const executionAsyncResource = () => ({})
+const asyncWrapProviders = {}
 
 /**
  * 폴리필 검증 함수 (개발 환경에서 사용)
  */
-export function validatePolyfill() {
+function validatePolyfill() {
   if (typeof window !== 'undefined') {
     console.info('ℹ️ Using AsyncLocalStorage polyfill (browser mode)')
     console.info('ℹ️ Limitations: Nested run() is supported, but parallel async calls may race')
@@ -236,16 +236,9 @@ export function validatePolyfill() {
 }
 
 /**
- * Default export (ESM)
- */
-export { AsyncLocalStorage }
-export default AsyncLocalStorage
-
-/**
- * Exports (CommonJS + ESM 호환)
+ * Exports (CommonJS, Webpack이 ESM으로 변환)
  */
 if (typeof module !== 'undefined' && module.exports) {
-  // CommonJS (Node.js/Jest)
   module.exports = {
     AsyncLocalStorage,
     executionAsyncId,
@@ -256,22 +249,4 @@ if (typeof module !== 'undefined' && module.exports) {
   }
   module.exports.AsyncLocalStorage = AsyncLocalStorage
   module.exports.default = module.exports
-} else {
-  // ESM (Webpack/브라우저)
-  if (typeof exports !== 'undefined') {
-    exports.AsyncLocalStorage = AsyncLocalStorage
-    exports.executionAsyncId = executionAsyncId
-    exports.triggerAsyncId = triggerAsyncId
-    exports.executionAsyncResource = executionAsyncResource
-    exports.asyncWrapProviders = asyncWrapProviders
-    exports.validatePolyfill = validatePolyfill
-    exports.default = {
-      AsyncLocalStorage,
-      executionAsyncId,
-      triggerAsyncId,
-      executionAsyncResource,
-      asyncWrapProviders,
-      validatePolyfill
-    }
-  }
 }
