@@ -95,7 +95,80 @@ export abstract class BaseExecutor {
   }
 
   /**
+   * 업로드된 행 데이터에서 수치형 시리즈를 추출한다.
+   * - variables / dependentVar 우선 사용
+   * - 숫자 배열이 그대로 들어오면 그대로 사용
+   *
+   * @param data - 원본 데이터 (숫자 배열 또는 객체 배열)
+   * @param options - 변수 옵션 (variables, dependentVar 등)
+   * @returns 유효한 숫자 배열
+   */
+  protected extractNumericSeries(
+    data: unknown[],
+    options?: unknown
+  ): number[] {
+    if (!Array.isArray(data)) return []
+    if (data.length === 0) return []
+
+    // 이미 숫자 배열로 들어온 경우
+    if (typeof data[0] === 'number') {
+      return (data as Array<unknown>)
+        .map((v) => Number(v))
+        .filter((v) => Number.isFinite(v))
+    }
+
+    const rows = data as Array<Record<string, unknown>>
+
+    // 타입 가드: options에서 변수명 추출
+    const getVariableCandidates = (opts: unknown): string[] => {
+      if (!opts || typeof opts !== 'object') return []
+
+      const candidates: string[] = []
+      const obj = opts as Record<string, unknown>
+
+      // variables (배열 또는 단일 문자열)
+      if (Array.isArray(obj.variables)) {
+        candidates.push(...obj.variables.filter((v: unknown): v is string => typeof v === 'string'))
+      } else if (typeof obj.variables === 'string') {
+        candidates.push(obj.variables)
+      }
+
+      // 기타 후보 필드
+      const fallbackFields = ['dependentVar', 'dependent', 'variable']
+      for (const field of fallbackFields) {
+        if (typeof obj[field] === 'string') {
+          candidates.push(obj[field])
+        }
+      }
+
+      return candidates
+    }
+
+    const candidates = getVariableCandidates(options)
+    const tryColumns = candidates.length > 0 ? candidates : Object.keys(rows[0] || {})
+
+    // 각 컬럼을 시도하여 숫자 데이터 추출
+    for (const col of tryColumns) {
+      const numericValues = rows
+        .map((row) => row?.[col])
+        .map((value) => {
+          // null/undefined를 먼저 체크 (Number(null) === 0 버그 방지)
+          if (value === null || value === undefined) return null
+          const num = typeof value === 'number' ? value : Number(value)
+          return Number.isFinite(num) ? num : null
+        })
+        .filter((v): v is number => v !== null)
+
+      if (numericValues.length > 0) {
+        return numericValues
+      }
+    }
+
+    return []
+  }
+
+  /**
    * 추상 메서드 - 각 실행자가 구현해야 함
    */
-  abstract execute(data: any[], options?: any): Promise<AnalysisResult>
+  abstract execute(data: unknown[], options?: unknown): Promise<AnalysisResult>
 }

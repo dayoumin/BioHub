@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useMemo, useEffect } from 'react'
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react'
+import { CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react'
 import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
+import { Button } from '@/components/ui/button'
 
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
@@ -180,35 +181,53 @@ export const DataValidationStep = memo(function DataValidationStep({
         </CardContent>
       </Card>
 
-      {/* 안내 메시지 */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center space-y-3">
-            <p className="text-sm text-muted-foreground">
-              데이터 검증이 완료되었습니다. 다음 단계에서 분석 목적을 선택하면
-            </p>
-            <p className="text-sm text-muted-foreground">
-              <strong>AI가 자동으로 최적의 통계 방법을 추천</strong>해드립니다.
-            </p>
-            <div className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                <span>상세 분석</span>
+      {/* 다음 단계 안내 메시지 */}
+      {!hasErrors && onNext && (
+        <Card className="border-2 border-dashed border-primary/50 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <CheckCircle className="w-16 h-16 text-success mx-auto" />
+              <h3 className="text-xl font-semibold">데이터 준비 완료!</h3>
+              <p className="text-muted-foreground">
+                총 <strong>{validationResults.totalRows.toLocaleString()}개</strong> 데이터, <strong>{validationResults.columnCount}개</strong> 변수가 분석 준비되었습니다.
+              </p>
+
+              {/* 경고가 있는 경우 추가 안내 */}
+              {hasWarnings && (
+                <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mx-auto max-w-md">
+                  <div className="flex items-center gap-2 text-sm text-warning-foreground">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="font-medium">경고 사항이 있지만 분석을 계속할 수 있습니다</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-muted p-4 rounded-lg space-y-3 max-w-md mx-auto">
+                <p className="text-sm font-medium">다음 단계:</p>
+                <ol className="text-sm text-muted-foreground text-left space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary">1️⃣</span>
+                    <span>분석 목적 선택 (그룹 비교, 관계 분석 등)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary">2️⃣</span>
+                    <span>AI가 데이터를 분석하여 최적의 통계 방법 추천</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-bold text-primary">3️⃣</span>
+                    <span>변수 선택 후 자동 분석 실행</span>
+                  </li>
+                </ol>
               </div>
-              <span>→</span>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse delay-150" />
-                <span>가정 검정</span>
-              </div>
-              <span>→</span>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse delay-300" />
-                <span>AI 추천</span>
-              </div>
+
+              <Button size="lg" onClick={onNext} className="mt-4">
+                분석 목적 선택하기
+                <Sparkles className="w-4 h-4 ml-2" />
+              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 데이터 미리보기 */}
       <DataPreviewTable

@@ -1,10 +1,9 @@
 import { BaseExecutor } from './base-executor'
 import { AnalysisResult } from './types'
 import { pyodideStats } from '../pyodide-statistics'
-import { logger } from '@/lib/utils/logger'
 
 /**
- * 기술통계 실행자
+ * 기술통계 실행기
  */
 export class DescriptiveExecutor extends BaseExecutor {
   /**
@@ -15,6 +14,10 @@ export class DescriptiveExecutor extends BaseExecutor {
 
     try {
       await this.ensurePyodideInitialized()
+
+      if (!data || data.length === 0) {
+        throw new Error('유효한 수치형 데이터가 없습니다. 변수 선택을 확인해주세요.')
+      }
 
       const stats = await pyodideStats.calculateDescriptiveStats(data)
 
@@ -66,7 +69,7 @@ export class DescriptiveExecutor extends BaseExecutor {
         mainResults: {
           statistic: sortedFreq.length,
           pvalue: 1,
-          interpretation: `범주 수: ${sortedFreq.length}개, 최빈값: ${mode} (${modeCount}회, ${(modeCount/total*100).toFixed(1)}%)`
+          interpretation: `범주 수 ${sortedFreq.length}개, 최빈값 ${mode} (${modeCount}건 ${(modeCount / total * 100).toFixed(1)}%)`
         },
         additionalInfo: {
           frequencies: Object.fromEntries(sortedFreq),
@@ -88,7 +91,7 @@ export class DescriptiveExecutor extends BaseExecutor {
   }
 
   /**
-   * 교차표 분석
+   * 교차분석
    */
   async executeCrossTab(data: any[], var1: string, var2: string): Promise<AnalysisResult> {
     const startTime = Date.now()
@@ -112,7 +115,7 @@ export class DescriptiveExecutor extends BaseExecutor {
       const rowLabels: string[] = []
       const colLabels: string[] = []
 
-      // 모든 고유한 열 값 수집
+      // 모든 고유 열 값 수집
       const allColValues = new Set<string>()
       crosstab.forEach(innerMap => {
         innerMap.forEach((_, col) => allColValues.add(col))
@@ -132,7 +135,7 @@ export class DescriptiveExecutor extends BaseExecutor {
       const chiSquare = await pyodideStats.chiSquare(contingencyTable)
 
       return {
-        metadata: this.createMetadata('교차표 분석', data.length, startTime),
+        metadata: this.createMetadata('교차분석', data.length, startTime),
         mainResults: {
           statistic: chiSquare.statistic,
           pvalue: chiSquare.pvalue,
@@ -158,24 +161,34 @@ export class DescriptiveExecutor extends BaseExecutor {
         }
       }
     } catch (error) {
-      return this.handleError(error, '교차표 분석')
+      return this.handleError(error, '교차분석')
     }
   }
 
   /**
    * 통합 실행 메서드
    */
-  async execute(data: any[], options?: any): Promise<AnalysisResult> {
-    const { method = 'basic', ...restOptions } = options || {}
+  async execute(data: unknown[], options?: unknown): Promise<AnalysisResult> {
+    // 타입 가드로 options 파싱
+    const parseOptions = (opts: unknown): { method?: string; [key: string]: unknown } => {
+      if (!opts || typeof opts !== 'object') return { method: 'basic' }
+      return opts as { method?: string; [key: string]: unknown }
+    }
+
+    const { method = 'basic', ...restOptions } = parseOptions(options)
 
     switch (method) {
       case 'basic':
-      case 'descriptive-stats': // method-mapping.ts에서 사용하는 ID
-        return this.executeBasicStats(data as number[])
+      case 'descriptive-stats': // method-mapping.ts에서 사용되는 ID
+        return this.executeBasicStats(this.extractNumericSeries(data, restOptions))
       case 'frequency':
         return this.executeFrequencyAnalysis(data as string[])
-      case 'crosstab':
-        return this.executeCrossTab(data, restOptions.var1, restOptions.var2)
+      case 'crosstab': {
+        const crosstabOpts = restOptions as { var1?: string; var2?: string }
+        const var1 = crosstabOpts.var1 || ''
+        const var2 = crosstabOpts.var2 || ''
+        return this.executeCrossTab(data, var1, var2)
+      }
       default:
         throw new Error(`Unknown descriptive method: ${method}`)
     }
