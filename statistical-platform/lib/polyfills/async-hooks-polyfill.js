@@ -37,7 +37,6 @@ export class AsyncLocalStorage {
   constructor() {
     this._contextKey = Symbol('AsyncLocalStorageContext')
     this._currentContextId = null
-    this._runningPromise = null  // 병렬 감지용
     this._isPolyfill = true // 폴리필 마커
   }
 
@@ -64,17 +63,6 @@ export class AsyncLocalStorage {
    * - LangGraph의 runWithConfig 중첩 호출 지원
    */
   run(store, callback, ...args) {
-    // 병렬 실행 가드 (동일 인스턴스에서 병렬 차단)
-    // - 중첩 호출(동기적)은 허용
-    // - 병렬 비동기 실행(Promise 진행 중 새 run())은 차단
-    if (this._runningPromise !== null) {
-      throw new Error(
-        'Concurrent run() detected on same AsyncLocalStorage instance. ' +
-        'Use separate instances for parallel execution. ' +
-        'Nested synchronous calls are allowed.'
-      )
-    }
-
     // 컨텍스트 스택 관리 (중첩 허용)
     // - 이전 컨텍스트를 previousContextId에 저장
     // - cleanup 시 복원하여 스택처럼 동작
@@ -83,6 +71,7 @@ export class AsyncLocalStorage {
     const storeKey = `${this._contextKey.toString()}-${contextId}`
 
     // 동시 실행 경고 (전역 카운터, 디버깅용)
+    // 이 앱에서는 병렬 실행을 사용하지 않으므로 경고만 출력
     if (activeContextCount > 10) {
       console.warn(`⚠️ AsyncLocalStorage: ${activeContextCount}개의 동시 실행 컨텍스트 감지. 성능 저하 가능성.`)
     }
@@ -93,8 +82,7 @@ export class AsyncLocalStorage {
     activeContextCount++
 
     const cleanup = () => {
-      this._currentContextId = previousContextId
-      this._runningPromise = null  // Promise 완료
+      this._currentContextId = previousContextId  // 스택 pop
       contextStores.delete(storeKey)
       activeContextCount--
     }
@@ -104,19 +92,8 @@ export class AsyncLocalStorage {
 
       // Promise인 경우 비동기 처리
       if (result && typeof result.then === 'function') {
-        this._runningPromise = result  // 병렬 감지용
-
-        return result
-          .then(
-            (value) => {
-              cleanup()
-              return value
-            },
-            (error) => {
-              cleanup()
-              throw error
-            }
-          )
+        // Promise cleanup은 finally에서 처리
+        return result.finally(cleanup)
       }
 
       // 동기 함수인 경우 즉시 정리
@@ -246,7 +223,8 @@ export const asyncWrapProviders = {}
 export function validatePolyfill() {
   if (typeof window !== 'undefined') {
     console.info('ℹ️ Using AsyncLocalStorage polyfill (browser mode)')
-    console.info('ℹ️ Limitations: Nested sync run() is supported, but parallel async calls are blocked')
+    console.info('ℹ️ Limitations: Nested/sequential run() is supported')
+    console.info('ℹ️ Warning: Avoid parallel execution on the same instance (use separate instances)')
   }
 }
 
