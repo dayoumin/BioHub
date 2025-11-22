@@ -55,6 +55,7 @@ export class DecisionTreeRecommender {
 
         default:
           // Fallback: 기본 기술통계
+          const n1 = data.length
           return this.addExpectedKeywords({
             method: {
               id: 'descriptive-stats',
@@ -63,7 +64,11 @@ export class DecisionTreeRecommender {
               category: 'descriptive'
             },
             confidence: 0.50,
-            reasoning: ['알 수 없는 분석 목적입니다. 기본 기술통계를 추천합니다.'],
+            reasoning: [
+              '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
+              '알 수 없는 분석 목적입니다.',
+              `표본 크기: ${n1}${n1 < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`
+            ],
             assumptions: [],
             alternatives: []
           })
@@ -72,6 +77,7 @@ export class DecisionTreeRecommender {
       logger.error('DecisionTree: Recommendation failed', { error, purpose })
 
       // 에러 시 기본 추천
+      const n2 = data.length
       return this.addExpectedKeywords({
         method: {
           id: 'descriptive-stats',
@@ -80,7 +86,11 @@ export class DecisionTreeRecommender {
           category: 'descriptive'
         },
         confidence: 0.50,
-        reasoning: ['추천 중 오류가 발생했습니다. 기본 기술통계를 추천합니다.'],
+        reasoning: [
+          '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
+          '추천 중 오류가 발생했습니다.',
+          `표본 크기: ${n2}${n2 < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`
+        ],
         assumptions: [],
         alternatives: []
       })
@@ -104,6 +114,7 @@ export class DecisionTreeRecommender {
         const groups = this.detectGroupCount(data, validationResults)
 
         if (groups === 2) {
+          const n = data.length
           return this.addExpectedKeywords({
             method: {
               id: 'mann-whitney',
@@ -113,9 +124,10 @@ export class DecisionTreeRecommender {
             },
             confidence: 0.70,
             reasoning: [
+              '✓ 보통 신뢰도 (70%)로 Mann-Whitney U 검정을 추천합니다.',
               '⚠ 통계적 가정 검정을 수행하지 않았습니다.',
               '비모수 검정을 권장합니다 (보수적 접근).',
-              `표본 크기: ${data.length}개`
+              `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
             ],
             assumptions: [],
             alternatives: [
@@ -128,6 +140,7 @@ export class DecisionTreeRecommender {
             ]
           })
         } else if (groups >= 3) {
+          const n = data.length
           return this.addExpectedKeywords({
             method: {
               id: 'kruskal-wallis',
@@ -137,8 +150,10 @@ export class DecisionTreeRecommender {
             },
             confidence: 0.70,
             reasoning: [
+              '✓ 보통 신뢰도 (70%)로 Kruskal-Wallis 검정을 추천합니다.',
               '⚠ 통계적 가정 검정을 수행하지 않았습니다.',
-              `${groups}개 그룹 비교를 위한 비모수 검정을 권장합니다.`
+              `${groups}개 그룹 비교를 위한 비모수 검정을 권장합니다.`,
+              `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
             ],
             assumptions: [],
             alternatives: [
@@ -154,7 +169,8 @@ export class DecisionTreeRecommender {
         break
       }
 
-      case 'relationship':
+      case 'relationship': {
+        const n = data.length
         return this.addExpectedKeywords({
           method: {
             id: 'spearman-correlation',
@@ -164,8 +180,10 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.70,
           reasoning: [
+            '✓ 보통 신뢰도 (70%)로 Spearman 상관분석을 추천합니다.',
             '⚠ 통계적 가정 검정을 수행하지 않았습니다.',
-            '비모수 상관분석을 권장합니다.'
+            '비모수 상관분석을 권장합니다.',
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: [],
           alternatives: [
@@ -177,6 +195,7 @@ export class DecisionTreeRecommender {
             }
           ]
         })
+      }
 
       case 'distribution':
         return this.recommendForDistribution(validationResults, data)
@@ -187,7 +206,8 @@ export class DecisionTreeRecommender {
       case 'timeseries':
         return this.recommendForTimeseries(validationResults, data)
 
-      default:
+      default: {
+        const n3 = data.length
         return this.addExpectedKeywords({
           method: {
             id: 'descriptive-stats',
@@ -196,13 +216,19 @@ export class DecisionTreeRecommender {
             category: 'descriptive'
           },
           confidence: 0.50,
-          reasoning: ['기본 기술통계를 추천합니다.'],
+          reasoning: [
+            '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
+            '알 수 없는 분석 목적입니다.',
+            `표본 크기: ${n3}${n3 < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`
+          ],
           assumptions: [],
           alternatives: []
         })
+      }
     }
 
     // Fallback
+    const n4 = data.length
     return this.addExpectedKeywords({
       method: {
         id: 'descriptive-stats',
@@ -211,7 +237,11 @@ export class DecisionTreeRecommender {
         category: 'descriptive'
       },
       confidence: 0.50,
-      reasoning: ['기본 기술통계를 추천합니다.'],
+      reasoning: [
+        '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
+        '분석 경로를 찾을 수 없습니다.',
+        `표본 크기: ${n4}${n4 < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`
+      ],
       assumptions: [],
       alternatives: []
     })
@@ -262,8 +292,9 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.91,
           reasoning: [
+            '✓ 높은 신뢰도 (91%)로 대응표본 t-검정을 추천합니다.',
             '대응표본 설계가 감지되었습니다 (ID/Subject 컬럼 존재).',
-            `표본 크기: ${n} (적정)`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
             `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`
           ],
           assumptions: hasShapiroWilk ? [
@@ -288,9 +319,10 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.93,
           reasoning: [
-            '대응표본 설계가 감지되었습니다.',
-            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
-            '비모수 검정을 권장합니다.'
+            '✓ 높은 신뢰도 (93%)로 Wilcoxon 검정을 추천합니다.',
+            '대응표본 설계가 감지되었으나 정규성이 충족되지 않았습니다.',
+            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''} → 비모수 검정 권장`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: hasShapiroWilk ? [
             { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
@@ -323,8 +355,9 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.87,
           reasoning: [
+            '✓ 높은 신뢰도 (87%)로 이원분산분석을 추천합니다.',
             `${factors.length}개의 요인(factor)이 감지되었습니다: ${factors.join(', ')}`,
-            `표본 크기: ${n} (충분)`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
             `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
             `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''}`
           ],
@@ -351,8 +384,10 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.89,
           reasoning: [
-            `${factors.length}개의 요인(factor)이 감지되었습니다.`,
-            '가정 검정 미충족으로 비모수 검정을 권장합니다.'
+            '✓ 높은 신뢰도 (89%)로 Friedman 검정을 추천합니다.',
+            `${factors.length}개의 요인(factor)이 감지되었으나 가정이 충족되지 않았습니다.`,
+            `${!isNormal ? '✗ 정규성 미충족' : ''}${!equalVariance ? ' ✗ 등분산성 미충족' : ''} → 비모수 검정 권장`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: [
             ...(hasShapiroWilk ? [{ name: '정규성', passed: isNormal, pValue: normality.shapiroWilk!.pValue }] : []),
@@ -387,8 +422,9 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.92,
           reasoning: [
-            '두 독립 그룹 간 평균 비교가 필요합니다.',
-            `표본 크기: ${n} (충분)`,
+            '✓ 매우 높은 신뢰도 (92%)로 독립표본 t-검정을 추천합니다.',
+            '두 독립 그룹 간 평균 비교에 적합합니다.',
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
             `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
             `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''}`
           ],
@@ -416,9 +452,10 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.95,
           reasoning: [
-            '두 그룹 비교가 필요합니다.',
-            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
-            '비모수 검정을 권장합니다.'
+            '✓ 매우 높은 신뢰도 (95%)로 Mann-Whitney U 검정을 추천합니다.',
+            '두 그룹 비교에서 정규성이 충족되지 않았습니다.',
+            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''} → 비모수 검정 권장`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: hasShapiroWilk ? [
             { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
@@ -443,10 +480,11 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.90,
           reasoning: [
-            '두 그룹 비교가 필요합니다.',
+            "✓ 높은 신뢰도 (90%)로 Welch's t-검정을 추천합니다.",
+            '두 그룹 비교에서 등분산성이 충족되지 않았습니다.',
             `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
-            `✗ 등분산성 미충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''}`,
-            "Welch's t-검정을 권장합니다 (등분산 가정 불필요)."
+            `✗ 등분산성 미충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''} → Welch's t-검정 권장`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: [
             ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }] : []),
@@ -480,8 +518,9 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.90,
           reasoning: [
-            `${groups}개 그룹 간 평균 비교가 필요합니다.`,
-            `표본 크기: ${n} (충분)`,
+            '✓ 높은 신뢰도 (90%)로 일원분산분석을 추천합니다.',
+            `${groups}개 그룹 간 평균 비교에 적합합니다.`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
             `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality?.shapiroWilk?.pValue.toFixed(3)})` : ''}`,
             `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity?.levene?.pValue.toFixed(3)})` : ''}`
           ],
@@ -508,8 +547,10 @@ export class DecisionTreeRecommender {
           },
           confidence: 0.92,
           reasoning: [
-            `${groups}개 그룹 간 비교가 필요합니다.`,
-            '가정 검정 미충족으로 비모수 검정을 권장합니다.'
+            '✓ 매우 높은 신뢰도 (92%)로 Kruskal-Wallis 검정을 추천합니다.',
+            `${groups}개 그룹 비교에서 가정이 충족되지 않았습니다.`,
+            `${!isNormal ? '✗ 정규성 미충족' : ''}${!equalVariance ? ' ✗ 등분산성 미충족' : ''} → 비모수 검정 권장`,
+            `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: [
             ...(hasShapiroWilk ? [{ name: '정규성', passed: isNormal, pValue: normality.shapiroWilk!.pValue }] : []),
@@ -536,7 +577,11 @@ export class DecisionTreeRecommender {
         category: 'descriptive'
       },
       confidence: 0.60,
-      reasoning: ['그룹 변수를 찾을 수 없습니다. 기술통계를 확인하세요.'],
+      reasoning: [
+        '⚠ 보통 신뢰도 (60%)로 기술통계를 추천합니다.',
+        '그룹 변수를 찾을 수 없습니다.',
+        `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`
+      ],
       assumptions: [],
       alternatives: []
     })
@@ -570,7 +615,11 @@ export class DecisionTreeRecommender {
           category: 'descriptive'
         },
         confidence: 0.50,
-        reasoning: ['수치형 변수가 부족합니다.'],
+        reasoning: [
+          '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
+          '수치형 변수가 부족합니다 (상관분석에는 최소 2개 필요).',
+          `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`
+        ],
         assumptions: [],
         alternatives: []
       })
@@ -590,8 +639,9 @@ export class DecisionTreeRecommender {
         },
         confidence: 0.90,
         reasoning: [
-          `${numericVars}개의 수치형 변수 간 관계 분석`,
-          `표본 크기: ${n} (충분)`,
+          '✓ 높은 신뢰도 (90%)로 Pearson 상관분석을 추천합니다.',
+          `${numericVars}개의 수치형 변수 간 선형 상관관계 분석에 적합합니다.`,
+          `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
           `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`
         ],
         assumptions: hasShapiroWilk ? [
@@ -616,9 +666,10 @@ export class DecisionTreeRecommender {
         },
         confidence: 0.92,
         reasoning: [
-          `${numericVars}개의 수치형 변수 간 관계 분석`,
-          `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
-          '비모수 상관분석을 권장합니다.'
+          '✓ 매우 높은 신뢰도 (92%)로 Spearman 상관분석을 추천합니다.',
+          `${numericVars}개의 수치형 변수 간 상관관계 분석에서 정규성이 충족되지 않았습니다.`,
+          `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''} → 비모수 상관분석 권장`,
+          `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
         ],
         assumptions: hasShapiroWilk ? [
           { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
@@ -657,8 +708,9 @@ export class DecisionTreeRecommender {
       },
       confidence: 1.0,
       reasoning: [
+        '✓ 완벽한 신뢰도 (100%)로 기술통계를 추천합니다.',
         '데이터 분포와 빈도를 파악합니다.',
-        `표본 크기: ${n}개`,
+        `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`,
         '히스토그램, 박스플롯, 빈도표를 제공합니다.'
       ],
       assumptions: [],
@@ -699,7 +751,8 @@ export class DecisionTreeRecommender {
         },
         confidence: 0.85,
         reasoning: [
-          `표본 크기: ${n} (${n >= 30 ? '충분' : '부족'})`,
+          '✓ 높은 신뢰도 (85%)로 단순 선형회귀를 추천합니다.',
+          `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ` (${n >= 30 ? '충분' : '부족'})`}`,
           '수치형 변수 간 회귀분석을 권장합니다.',
           '다중 독립변수가 있다면 다중회귀를 고려하세요.'
         ],
@@ -726,7 +779,8 @@ export class DecisionTreeRecommender {
         },
         confidence: 0.82,
         reasoning: [
-          `표본 크기: ${n}`,
+          '✓ 높은 신뢰도 (82%)로 로지스틱 회귀를 추천합니다.',
+          `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`,
           '범주형 결과 변수 예측을 위한 로지스틱 회귀를 권장합니다.'
         ],
         assumptions: [],
@@ -751,7 +805,8 @@ export class DecisionTreeRecommender {
       },
       confidence: 0.70,
       reasoning: [
-        `표본 크기: ${n}`,
+        '✓ 보통 신뢰도 (70%)로 단순 선형회귀를 추천합니다.',
+        `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`,
         '기본 회귀분석을 권장합니다.'
       ],
       assumptions: [],
@@ -787,8 +842,9 @@ export class DecisionTreeRecommender {
         },
         confidence: 0.80,
         reasoning: [
-          `표본 크기: ${n} (${n >= 30 ? '충분' : '부족'})`,
+          '✓ 높은 신뢰도 (80%)로 시계열 분석을 추천합니다.',
           '날짜/시간 변수가 감지되었습니다.',
+          `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`,
           '추세, 계절성, 자기상관을 분석합니다.'
         ],
         assumptions: [],
@@ -812,8 +868,9 @@ export class DecisionTreeRecommender {
         },
         confidence: 0.75,
         reasoning: [
+          '✓ 높은 신뢰도 (75%)로 대응표본 t-검정을 추천합니다.',
           '날짜 변수가 없지만 전후 비교가 가능합니다.',
-          `표본 크기: ${n}`,
+          `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`,
           '시간 순서를 ID로 활용하여 대응표본 분석을 고려하세요.'
         ],
         assumptions: [],
