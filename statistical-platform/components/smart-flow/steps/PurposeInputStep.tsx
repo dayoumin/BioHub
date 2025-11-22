@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
-import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, CheckCircle, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, ArrowRight, AlertTriangle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Accordion,
@@ -9,11 +9,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
+import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
 import type { AnalysisPurpose, AIRecommendation } from '@/types/smart-flow'
@@ -84,6 +84,7 @@ export function PurposeInputStep({
   const [aiProgress, setAiProgress] = useState(0)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
   const [analysisError, setAnalysisError] = useState(false)
+  const [isNavigating, setIsNavigating] = useState(false) // 중복 클릭 방지
 
   // WCAG 2.3.3: prefers-reduced-motion 감지
   const prefersReducedMotion = useReducedMotion()
@@ -226,9 +227,11 @@ export function PurposeInputStep({
     }
   }, [analyzeAndRecommend])
 
-  // "이 방법으로 분석하기" 버튼
+  // "이 방법으로 분석하기" 버튼 (중복 클릭 방지)
   const handleConfirmMethod = useCallback(() => {
-    if (!recommendation || !selectedPurpose) return
+    if (!recommendation || !selectedPurpose || isNavigating || isAnalyzing) return
+
+    setIsNavigating(true)
 
     // Step 4로 넘어가기 전 스토어에 저장
     setSelectedMethod(recommendation.method)
@@ -241,10 +244,13 @@ export function PurposeInputStep({
       )
     }
 
+    // 네비게이션 완료 후 상태 리셋 (안전장치)
+    setTimeout(() => setIsNavigating(false), 1000)
+
     // ❌ onNext() 중복 호출 제거:
     // onPurposeSubmit (handlePurposeSubmit)이 이미 goToNextStep()을 호출하므로
     // 여기서 다시 호출하면 Step 4를 건너뛰고 Step 5로 이동하는 버그 발생
-  }, [recommendation, selectedPurpose, setSelectedMethod, onPurposeSubmit])
+  }, [recommendation, selectedPurpose, isNavigating, isAnalyzing, setSelectedMethod, onPurposeSubmit])
 
   return (
     <div className="w-full h-full flex flex-col space-y-6">
@@ -430,40 +436,25 @@ export function PurposeInputStep({
 
       {/* 다음 단계 안내 카드 (Step 2 스타일 일관성) */}
       {recommendation && !isAnalyzing && (
-        <Card className={`border-2 border-dashed border-primary/50 bg-primary/5 ${prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4 duration-700'}`}>
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <CheckCircle className="w-16 h-16 text-success mx-auto" />
-              <h3 className="text-xl font-semibold">분석 방법이 결정되었습니다!</h3>
-              <p className="text-muted-foreground">
-                <strong>{recommendation.method.name}</strong> 방법으로 분석합니다.
-              </p>
-
-              <div className="bg-muted p-4 rounded-lg space-y-3 max-w-md mx-auto">
-                <p className="text-sm font-medium">다음 단계:</p>
-                <ol className="text-sm text-muted-foreground text-left space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold text-primary">1️⃣</span>
-                    <span>분석에 사용할 변수 선택</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold text-primary">2️⃣</span>
-                    <span>자동 분석 실행 + 가정 검정</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold text-primary">3️⃣</span>
-                    <span>결과 확인 및 해석</span>
-                  </li>
-                </ol>
-              </div>
-
-              <Button size="lg" onClick={handleConfirmMethod} className="mt-4">
-                변수 선택하기
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <GuidanceCard
+          title="분석 방법이 결정되었습니다!"
+          description={
+            <>
+              <strong>{recommendation.method.name}</strong> 방법으로 분석합니다.
+            </>
+          }
+          steps={[
+            { emoji: '1️⃣', text: '분석에 사용할 변수 선택' },
+            { emoji: '2️⃣', text: '자동 분석 실행 + 가정 검정' },
+            { emoji: '3️⃣', text: '결과 확인 및 해석' }
+          ]}
+          ctaText="변수 선택하기"
+          ctaIcon={<ArrowRight className="w-4 h-4" />}
+          onCtaClick={handleConfirmMethod}
+          ctaDisabled={isNavigating || isAnalyzing}
+          animationDelay={700}
+          data-testid="step3-guidance-card"
+        />
       )}
 
       {/* AI 분석 에러 메시지 */}

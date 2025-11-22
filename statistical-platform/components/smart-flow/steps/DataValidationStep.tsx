@@ -1,15 +1,15 @@
 'use client'
 
-import { memo, useMemo, useEffect } from 'react'
+import { memo, useMemo, useEffect, useState, useCallback } from 'react'
 import { CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react'
 import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
+import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
-import { Button } from '@/components/ui/button'
 
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
@@ -33,6 +33,9 @@ export const DataValidationStep = memo(function DataValidationStep({
     setDataCharacteristics,
     setAssumptionResults
   } = useSmartFlowStore()
+
+  // 중복 클릭 방지
+  const [isNavigating, setIsNavigating] = useState(false)
 
   // Type-safe column stats extraction
   const columnStats = useMemo(() =>
@@ -82,6 +85,15 @@ export const DataValidationStep = memo(function DataValidationStep({
 
     logger.info('Basic data characteristics saved (fast validation)', { characteristics })
   }, [data, validationResults, categoricalColumns, setDataCharacteristics, setAssumptionResults])
+
+  // 다음 단계로 이동 (중복 클릭 방지)
+  const handleNext = useCallback(() => {
+    if (isNavigating || !onNext) return
+    setIsNavigating(true)
+    onNext()
+    // 네비게이션 완료 후 상태 리셋 (다음 페이지로 이동하므로 실제로는 불필요하지만 안전장치)
+    setTimeout(() => setIsNavigating(false), 1000)
+  }, [isNavigating, onNext])
 
   if (!validationResults || !data) {
     return (
@@ -183,50 +195,25 @@ export const DataValidationStep = memo(function DataValidationStep({
 
       {/* 다음 단계 안내 메시지 */}
       {!hasErrors && onNext && (
-        <Card className="border-2 border-dashed border-primary/50 bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <CheckCircle className="w-16 h-16 text-success mx-auto" />
-              <h3 className="text-xl font-semibold">데이터 준비 완료!</h3>
-              <p className="text-muted-foreground">
-                총 <strong>{validationResults.totalRows.toLocaleString()}개</strong> 데이터, <strong>{validationResults.columnCount}개</strong> 변수가 분석 준비되었습니다.
-              </p>
-
-              {/* 경고가 있는 경우 추가 안내 */}
-              {hasWarnings && (
-                <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mx-auto max-w-md">
-                  <div className="flex items-center gap-2 text-sm text-warning-foreground">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span className="font-medium">경고 사항이 있지만 분석을 계속할 수 있습니다</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-muted p-4 rounded-lg space-y-3 max-w-md mx-auto">
-                <p className="text-sm font-medium">다음 단계:</p>
-                <ol className="text-sm text-muted-foreground text-left space-y-2">
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold text-primary">1️⃣</span>
-                    <span>분석 목적 선택 (그룹 비교, 관계 분석 등)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold text-primary">2️⃣</span>
-                    <span>AI가 데이터를 분석하여 최적의 통계 방법 추천</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-bold text-primary">3️⃣</span>
-                    <span>변수 선택 후 자동 분석 실행</span>
-                  </li>
-                </ol>
-              </div>
-
-              <Button size="lg" onClick={onNext} className="mt-4">
-                분석 목적 선택하기
-                <Sparkles className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <GuidanceCard
+          title="데이터 준비 완료!"
+          description={
+            <>
+              총 <strong>{validationResults.totalRows.toLocaleString()}개</strong> 데이터, <strong>{validationResults.columnCount}개</strong> 변수가 분석 준비되었습니다.
+            </>
+          }
+          steps={[
+            { emoji: '1️⃣', text: '분석 목적 선택 (그룹 비교, 관계 분석 등)' },
+            { emoji: '2️⃣', text: 'AI가 데이터를 분석하여 최적의 통계 방법 추천' },
+            { emoji: '3️⃣', text: '변수 선택 후 자동 분석 실행' }
+          ]}
+          ctaText="분석 목적 선택하기"
+          ctaIcon={<Sparkles className="w-4 h-4" />}
+          onCtaClick={handleNext}
+          ctaDisabled={isNavigating}
+          warningMessage={hasWarnings ? '경고 사항이 있지만 분석을 계속할 수 있습니다' : undefined}
+          data-testid="step2-guidance-card"
+        />
       )}
 
       {/* 데이터 미리보기 */}

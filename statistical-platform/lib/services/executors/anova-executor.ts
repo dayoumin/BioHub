@@ -99,11 +99,25 @@ export class AnovaExecutor extends BaseExecutor {
       await this.ensurePyodideInitialized()
 
       // 데이터 구조화: { factor1, factor2, value } 형식으로 변환
-      const formattedData = data.map(row => ({
-        factor1: String(row[factor1]),
-        factor2: String(row[factor2]),
-        value: Number(row[dependent])
-      }))
+      const formattedData = data
+        .map(row => {
+          const depValue = row[dependent]
+
+          // null/undefined 체크 (Number(null) === 0 버그 방지)
+          if (depValue === null || depValue === undefined) return null
+
+          const numValue = typeof depValue === 'number' ? depValue : Number(depValue)
+
+          // NaN/Infinity 필터링
+          if (!Number.isFinite(numValue)) return null
+
+          return {
+            factor1: String(row[factor1]),
+            factor2: String(row[factor2]),
+            value: numValue
+          }
+        })
+        .filter((item): item is { factor1: string; factor2: string; value: number } => item !== null)
 
       const result = await pyodideStats.twoWayAnova(formattedData)
 

@@ -16,6 +16,11 @@ export class TTestExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
+      // 빈 배열 체크
+      if (!data || data.length === 0) {
+        throw new Error('유효한 수치형 데이터가 없습니다. 변수 선택 및 데이터를 확인해주세요.')
+      }
+
       const result = await pyodideStats.oneSampleTTest(data, populationMean)
 
       // 효과크기 계산 (Cohen's d)
@@ -67,6 +72,11 @@ export class TTestExecutor extends BaseExecutor {
 
     try {
       await this.ensurePyodideInitialized()
+
+      // 빈 배열 체크
+      if (!group1 || group1.length === 0 || !group2 || group2.length === 0) {
+        throw new Error('각 그룹에 유효한 수치형 데이터가 필요합니다. 변수 선택 및 데이터를 확인해주세요.')
+      }
 
       // Levene 검정으로 등분산 확인
       const leveneResult = await pyodideStats.leveneTest([group1, group2])
@@ -150,6 +160,11 @@ export class TTestExecutor extends BaseExecutor {
     try {
       await this.ensurePyodideInitialized()
 
+      // 빈 배열 체크
+      if (!before || before.length === 0 || !after || after.length === 0) {
+        throw new Error('대응표본에 유효한 수치형 데이터가 필요합니다. 변수 선택 및 데이터를 확인해주세요.')
+      }
+
       if (before.length !== after.length) {
         throw new Error('대응표본의 크기가 일치하지 않습니다')
       }
@@ -204,7 +219,82 @@ export class TTestExecutor extends BaseExecutor {
    * Welch's t-검정 (이분산 가정)
    */
   async executeWelch(group1: number[], group2: number[]): Promise<AnalysisResult> {
-    return this.executeIndependent(group1, group2) // equalVar: false로 처리됨
+    const startTime = Date.now()
+
+    try {
+      await this.ensurePyodideInitialized()
+
+      // 빈 배열 체크
+      if (!group1 || group1.length === 0 || !group2 || group2.length === 0) {
+        throw new Error('각 그룹에 유효한 수치형 데이터가 필요합니다. 변수 선택 및 데이터를 확인해주세요.')
+      }
+
+      // Welch's t-test는 항상 이분산 가정 (equalVar: false)
+      const result = await pyodideStats.tTest(group1, group2, { equalVar: false })
+
+      // 효과크기 계산
+      const stats1 = await pyodideStats.calculateDescriptiveStats(group1)
+      const stats2 = await pyodideStats.calculateDescriptiveStats(group2)
+
+      const pooledStd = Math.sqrt(
+        ((group1.length - 1) * Math.pow(stats1.std, 2) +
+         (group2.length - 1) * Math.pow(stats2.std, 2)) /
+        (group1.length + group2.length - 2)
+      )
+      const cohensD = (stats1.mean - stats2.mean) / pooledStd
+
+      return {
+        metadata: {
+          ...this.createMetadata("Welch's t-검정", group1.length + group2.length, startTime),
+          assumptions: {
+            normality: { passed: true, test: 'Shapiro-Wilk' },
+            homogeneity: {
+              passed: false, // Welch는 이분산 가정
+              test: 'None (assumes unequal variances)'
+            },
+            independence: { passed: true }
+          }
+        },
+        mainResults: {
+          statistic: result.statistic,
+          pvalue: result.pvalue,
+          df: result.df,
+          interpretation: `${this.interpretPValue(result.pvalue)}. 그룹 1 평균(${stats1.mean.toFixed(2)})과 그룹 2 평균(${stats2.mean.toFixed(2)}) 간 차이 (이분산 가정)`,
+          confidenceInterval: result.confidenceInterval ? {
+            lower: result.confidenceInterval.lower,
+            upper: result.confidenceInterval.upper,
+            level: 0.95
+          } : undefined
+        },
+        additionalInfo: {
+          effectSize: {
+            value: cohensD,
+            type: "Cohen's d",
+            interpretation: this.interpretEffectSize(cohensD)
+          },
+          group1Stats: {
+            mean: stats1.mean,
+            std: stats1.std,
+            n: group1.length
+          },
+          group2Stats: {
+            mean: stats2.mean,
+            std: stats2.std,
+            n: group2.length
+          },
+          equalVariance: false // Welch는 항상 이분산
+        },
+        visualizationData: {
+          type: 'boxplot',
+          data: {
+            groups: ['그룹 1', '그룹 2'],
+            values: [group1, group2]
+          }
+        }
+      }
+    } catch (error) {
+      return this.handleError(error, "Welch's t-검정")
+    }
   }
 
   /**
