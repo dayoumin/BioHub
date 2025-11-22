@@ -1953,15 +1953,8 @@ ${contextText}
     const data = (await response.json()) as GenerateResponse
     let answer = data.response.trim()
 
-    // <think> 태그 및 내용 제거 (후처리)
-    // 패턴 1: <think>...</think> 태그와 내용 모두 제거
-    answer = answer.replace(/<think>[\s\S]*?<\/think>/gi, '')
-    // 패턴 2: HTML 이스케이프된 태그도 제거
-    answer = answer.replace(/&lt;think&gt;[\s\S]*?&lt;\/think&gt;/gi, '')
-    // 패턴 3: -sensitive <think> 형태 제거
-    answer = answer.replace(/-?sensitive\s*<think>[\s\S]*?<\/think>/gi, '')
-    // 패턴 4: 줄 시작의 -sensitive 제거
-    answer = answer.replace(/^-?sensitive\s*/im, '')
+    // Helper를 사용한 태그 제거 (스트리밍과 동일한 로직)
+    answer = this.cleanThinkTags(answer)
 
     // <cited_docs> 태그 파싱 (Perplexity 스타일 - 답변에 사용된 문서 추적)
     // 정규식: 숫자, 쉼표, 공백, 마이너스 기호 허용 (LLM 오류 처리)
