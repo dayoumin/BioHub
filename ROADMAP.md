@@ -1010,6 +1010,81 @@ async function copyTableToClipboard(data: any[]) {
 
 ---
 
+## 🧪 Phase 11: 자동화 테스트 시스템 (예정)
+
+**목표**: 43개 통계 앱의 해석 엔진을 인간 개입 없이 완벽하게 검증
+
+**배경**:
+- 현재 해석 엔진: 31+/43 통계 커버리지 (72%+)
+- 수동 검증의 한계: 43개 통계 × 3 시나리오 = 129개 케이스
+- 필요성: 코드 수정 시 회귀(regression) 자동 탐지
+
+**4단계 자동화 전략**:
+
+### Phase 11-1: Golden Snapshot 테스트 (우선순위: 최상)
+**기간**: 14시간 (2일)
+**내용**:
+- 43개 통계 × 3 시나리오 = 129개 스냅샷 JSON 생성
+- 각 시나리오: significant-large-effect, nonsignificant, boundary-case
+- Jest 스냅샷 테스트 자동화
+- 해석 텍스트 변경 시 자동 diff 비교
+
+**산출물**:
+- `__tests__/lib/interpretation/snapshots/*.json` (129개)
+- `__tests__/lib/interpretation/snapshots.test.ts`
+
+### Phase 11-2: Contract 테스트 (우선순위: 높음)
+**기간**: 9시간 (1-2일)
+**내용**:
+- Zod 스키마로 입력/출력 검증
+- 경계값 테스트 (p=0.049 vs 0.051, r=±1, etc.)
+- Edge case 방어 (NaN, Infinity, 범위 벗어남)
+- 타입 안전성 강화
+
+**산출물**:
+- `lib/interpretation/schemas.ts` (Zod 스키마)
+- `__tests__/lib/interpretation/contracts.test.ts`
+
+### Phase 11-3: E2E 테스트 (우선순위: 중간)
+**기간**: 40시간 (5일)
+**내용**:
+- Playwright로 실제 결과 페이지 검증
+- 43개 통계 × 2 시나리오 = 86개 E2E 테스트
+- 브라우저 자동화 (데이터 업로드 → 분석 → 해석 확인)
+- 병렬 실행으로 시간 단축
+
+**산출물**:
+- `e2e/statistics/*.spec.ts` (43개)
+- `e2e/fixtures/*.csv` (86개)
+- `playwright.config.ts`
+
+### Phase 11-4: CI/CD 통합 (우선순위: 중간)
+**기간**: 5시간 (1일)
+**내용**:
+- GitHub Actions 워크플로우
+- PR마다 자동 테스트 실행
+- 테스트 커버리지 리포트 (Codecov)
+- 실패 시 알림 (Slack/Email)
+
+**산출물**:
+- `.github/workflows/automated-tests.yml`
+- 커버리지 배지 (README.md)
+
+**총 예상 시간**: 68시간 (~8.5 작업일)
+
+**성공 지표**:
+- [ ] 129개 Golden Snapshot 테스트 100% 통과
+- [ ] Contract 테스트 커버리지 >80%
+- [ ] E2E 테스트 43/43 통계 커버 (100%)
+- [ ] CI/CD 파이프라인 안정적 작동 (성공률 >95%)
+
+**참조 문서**:
+- [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md) - 상세 계획
+- [INTERPRETATION_TEST_PLAN.md](statistical-platform/docs/INTERPRETATION_TEST_PLAN.md) - 테스트 전략
+- [INTERPRETATION_ENGINE_COVERAGE.md](statistical-platform/docs/INTERPRETATION_ENGINE_COVERAGE.md) - 현재 커버리지
+
+---
+
 ## 🔮 장기 비전
 
 ### 기술적 목표

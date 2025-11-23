@@ -498,13 +498,11 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
   - ✅ 사용자 혼란 제거: 단일 스마트 분석 경로 유지
 
 **다음 작업**:
-- 🔜 **자동화 테스트 시스템**: 해석 엔진 검증 자동화 (68시간 예상, 내일/모레 시작)
-  - Phase 1: Golden Snapshot 테스트 (129 시나리오)
-  - Phase 2: Contract 테스트 (Zod 스키마)
-  - Phase 3: E2E 테스트 (Playwright)
-  - Phase 4: CI/CD 통합 (GitHub Actions)
-  - 📋 상세 계획: [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md)
-- 🔜 Phase 11: Tauri 데스크탑 앱 (향후 검토)
+- 🔜 **Phase 11: 자동화 테스트 시스템** (68시간 예상)
+  - 목표: 43개 통계 앱 해석 엔진 완벽 자동 검증
+  - 📋 상세 계획: [ROADMAP.md - Phase 11](ROADMAP.md#-phase-11-자동화-테스트-시스템-예정)
+  - 📋 구현 가이드: [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md)
+- 🔜 Phase 12: Tauri 데스크탑 앱 (향후 검토)
 - 🔜 추가 개선 사항 (성능 최적화, 시각화 고도화 등)
 
 **📝 상세 작업 기록**: [dailywork.md](dailywork.md) | [STATUS.md](STATUS.md)
