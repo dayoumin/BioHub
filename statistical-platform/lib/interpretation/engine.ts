@@ -293,6 +293,157 @@ function getInterpretationByMethod(
     }
   }
 
+  // ========================================
+  // Phase 3: 회귀 변형 (5개)
+  // ========================================
+
+  // Poisson Regression (포아송 회귀)
+  // 정규화 후: 'poissonregression', '포아송회귀', '포아송' 모두 매칭
+  if (methodLower.includes('poisson') || methodLower.includes('포아송')) {
+    const hasCoefficients = results.coefficients && results.coefficients.length > 0
+    const modelInfo = results.additional as { pseudo_r_squared_mcfadden?: number; aic?: number }
+    const pseudoR2 = modelInfo?.pseudo_r_squared_mcfadden
+
+    // 유의한 예측변수 개수 카운트
+    const significantPredictors = hasCoefficients
+      ? results.coefficients!.filter(c =>
+          c.name !== 'Intercept' &&
+          c.name !== 'const' &&
+          c.pvalue !== undefined &&
+          isSignificant(c.pvalue)
+        ).length
+      : 0
+
+    return {
+      title: '포아송 회귀 결과',
+      summary: `카운트 데이터를 예측하는 포아송 회귀 모형을 적합했습니다${hasCoefficients ? ` (예측변수 ${results.coefficients!.length - 1}개)` : ''}.`,
+      statistical: hasCoefficients && significantPredictors > 0
+        ? `${significantPredictors}개 예측변수가 카운트 결과에 통계적으로 유의한 영향을 미칩니다 (p<0.05).${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`
+        : `유의한 예측변수가 없습니다.${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`,
+      practical: hasCoefficients && significantPredictors > 0
+        ? 'IRR (Incidence Rate Ratio) 값을 통해 각 예측변수의 효과 크기를 확인하세요. IRR > 1은 양의 효과, IRR < 1은 음의 효과를 의미합니다.'
+        : '예측변수가 카운트 결과에 유의한 영향을 주지 않습니다. 모형 재검토가 필요합니다.'
+    }
+  }
+
+  // Ordinal Regression (순서형 회귀)
+  // 정규화 후: 'ordinalregression', '순서형회귀', '순서형' 모두 매칭
+  if (methodLower.includes('ordinal') || methodLower.includes('순서형')) {
+    const hasCoefficients = results.coefficients && results.coefficients.length > 0
+    const modelInfo = results.additional as { pseudo_r_squared?: number; aic?: number }
+    const pseudoR2 = modelInfo?.pseudo_r_squared
+
+    // 유의한 예측변수 개수 카운트
+    const significantPredictors = hasCoefficients
+      ? results.coefficients!.filter(c =>
+          c.name !== 'Intercept' &&
+          c.name !== 'const' &&
+          c.pvalue !== undefined &&
+          isSignificant(c.pvalue)
+        ).length
+      : 0
+
+    return {
+      title: '순서형 회귀 결과',
+      summary: `순서형 종속변수를 예측하는 비례 오즈 모형(Proportional Odds Model)을 적합했습니다${hasCoefficients ? ` (예측변수 ${results.coefficients!.length}개)` : ''}.`,
+      statistical: hasCoefficients && significantPredictors > 0
+        ? `${significantPredictors}개 예측변수가 순서형 결과에 통계적으로 유의한 영향을 미칩니다 (p<0.05).${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`
+        : `유의한 예측변수가 없습니다.${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`,
+      practical: hasCoefficients && significantPredictors > 0
+        ? '오즈비(Odds Ratio)를 통해 각 예측변수가 상위 범주로 이동할 확률에 미치는 영향을 확인하세요. OR > 1은 양의 효과, OR < 1은 음의 효과를 의미합니다.'
+        : '예측변수가 순서형 결과에 유의한 영향을 주지 않습니다. 모형 재검토가 필요합니다.'
+    }
+  }
+
+  // Logistic Regression (로지스틱 회귀)
+  // 정규화 후: 'logistic', '로지스틱', 'binary' 모두 매칭
+  if (methodLower.includes('logistic') || methodLower.includes('로지스틱') || methodLower.includes('binary')) {
+    const hasCoefficients = results.coefficients && results.coefficients.length > 0
+    const modelInfo = results.additional as { pseudo_r_squared?: number; accuracy?: number; aic?: number }
+    const pseudoR2 = modelInfo?.pseudo_r_squared
+    const accuracy = modelInfo?.accuracy
+
+    // 유의한 예측변수 개수 카운트
+    const significantPredictors = hasCoefficients
+      ? results.coefficients!.filter(c =>
+          c.name !== 'Intercept' &&
+          c.name !== 'const' &&
+          c.pvalue !== undefined &&
+          isSignificant(c.pvalue)
+        ).length
+      : 0
+
+    return {
+      title: '로지스틱 회귀 결과',
+      summary: `이분형 종속변수(0/1)를 예측하는 로지스틱 회귀 모형을 적합했습니다${hasCoefficients ? ` (예측변수 ${results.coefficients!.length - 1}개)` : ''}.`,
+      statistical: hasCoefficients && significantPredictors > 0
+        ? `${significantPredictors}개 예측변수가 결과 확률에 통계적으로 유의한 영향을 미칩니다 (p<0.05).${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}${accuracy ? ` 정확도: ${formatPercent(accuracy)}` : ''}`
+        : `유의한 예측변수가 없습니다.${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`,
+      practical: hasCoefficients && significantPredictors > 0
+        ? '오즈비(Odds Ratio)를 통해 각 예측변수가 결과 발생 확률에 미치는 영향을 확인하세요. OR > 1은 양의 효과, OR < 1은 음의 효과를 의미합니다.'
+        : '예측변수가 결과에 유의한 영향을 주지 않습니다. 모형 재검토가 필요합니다.'
+    }
+  }
+
+  // Stepwise Regression (단계적 회귀)
+  // 정규화 후: 'stepwise', '단계적', 'forward', 'backward' 모두 매칭
+  if (methodLower.includes('stepwise') || methodLower.includes('단계적') || methodLower.includes('forward') || methodLower.includes('backward')) {
+    const hasCoefficients = results.coefficients && results.coefficients.length > 0
+    const modelInfo = results.additional as { rSquared?: number; adjRSquared?: number; finalVariables?: string[] }
+    const rSquared = modelInfo?.rSquared
+    const adjRSquared = modelInfo?.adjRSquared
+    const selectedVars = modelInfo?.finalVariables?.length
+
+    // 최종 선택된 유의한 예측변수 개수
+    const significantPredictors = hasCoefficients
+      ? results.coefficients!.filter(c =>
+          c.name !== 'Intercept' &&
+          c.name !== 'const' &&
+          c.pvalue !== undefined &&
+          isSignificant(c.pvalue)
+        ).length
+      : 0
+
+    return {
+      title: '단계적 회귀 결과',
+      summary: `단계적 변수 선택 방법을 통해 최적의 예측 모형을 구축했습니다${selectedVars ? ` (최종 선택 변수: ${selectedVars}개)` : ''}.`,
+      statistical: hasCoefficients && significantPredictors > 0
+        ? `${significantPredictors}개 예측변수가 최종 모형에 포함되었습니다 (p<0.05).${rSquared ? ` R² = ${formatPercent(rSquared)}` : ''}${adjRSquared ? ` (adj. R² = ${formatPercent(adjRSquared)})` : ''}`
+        : `최종 모형에 유의한 예측변수가 없습니다.${rSquared ? ` R² = ${formatPercent(rSquared)}` : ''}`,
+      practical: hasCoefficients && significantPredictors > 0
+        ? '선택된 변수들의 회귀계수를 확인하여 각 변수의 상대적 중요도를 파악하세요. 다중공선성(VIF)도 확인이 필요합니다.'
+        : '선택된 변수가 없거나 모형 설명력이 낮습니다. 다른 예측변수를 고려하거나 비선형 모형을 시도하세요.'
+    }
+  }
+
+  // Partial Correlation (편상관)
+  // 정규화 후: 'partial', '편상관' 모두 매칭
+  if (methodLower.includes('partial') || methodLower.includes('편상관')) {
+    const r = results.statistic ?? 0
+    const clampedR = Math.max(-1, Math.min(1, r))
+    const absR = Math.abs(clampedR)
+    const rSquared = absR * absR
+
+    let strength = ''
+    if (absR < THRESHOLDS.CORRELATION.WEAK) strength = '매우 약한'
+    else if (absR < THRESHOLDS.CORRELATION.MODERATE) strength = '약한'
+    else if (absR < THRESHOLDS.CORRELATION.STRONG) strength = '중간 강도의'
+    else strength = '강한'
+
+    const direction = clampedR > 0 ? '양의' : '음의'
+
+    return {
+      title: '편상관 분석 결과',
+      summary: `통제변수의 영향을 제거한 후 두 변수 간의 순수한 관계를 분석했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `통제변수를 고려한 편상관계수는 ${clampedR.toFixed(3)}으로, 통계적으로 유의합니다 (p=${formatPValue(results.pValue)}).`
+        : `통제변수를 고려한 편상관계수는 ${clampedR.toFixed(3)}으로, 통계적으로 유의하지 않습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? `${strength} ${direction} 관계가 있습니다 (r² = ${formatPercent(rSquared)}). 이는 통제변수의 영향을 제거했을 때의 순수한 관계입니다.`
+        : '통제변수의 영향을 제거하면 두 변수 간 유의한 관계가 없습니다.'
+    }
+  }
+
   // One-way ANOVA / Kruskal-Wallis (기본 다집단 비교 - 마지막에 매칭)
   if (methodLower.includes('anova') || methodLower.includes('분산분석') || methodLower.includes('kruskal')) {
     const groupStats = results.groupStats
