@@ -68,6 +68,9 @@ export interface InterpretationResult {
  * @example formatPValue(0.0234) → "0.023"
  */
 function formatPValue(p: number): string {
+  // Edge case 방어: NaN, Infinity, 범위 벗어남
+  if (!isFinite(p) || p < 0 || p > 1) return 'N/A'
+
   if (p < THRESHOLDS.P_VALUE.VERY_STRONG) return '< 0.001'
   return p.toFixed(3)
 }
@@ -77,7 +80,12 @@ function formatPValue(p: number): string {
  * @example formatPercent(0.456, 1) → "45.6%"
  */
 function formatPercent(value: number, decimals: number = 1): string {
-  return `${(value * 100).toFixed(decimals)}%`
+  // Edge case 방어: NaN, Infinity
+  if (!isFinite(value)) return 'N/A'
+
+  // [0, 1] 범위로 클램핑 (R², 상관계수 등은 항상 이 범위)
+  const clamped = Math.max(0, Math.min(1, value))
+  return `${(clamped * 100).toFixed(decimals)}%`
 }
 
 /**
