@@ -13,6 +13,10 @@ import type { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
  * 해석 기준 임계값 (통계학 표준)
  */
 const THRESHOLDS = {
+  P_VALUE: {
+    ALPHA: 0.05,      // α = 0.05: 통계적 유의성 기준
+    VERY_STRONG: 0.001 // p < 0.001: 매우 강력한 증거
+  },
   CORRELATION: {
     WEAK: 0.1,      // |r| < 0.1: 거의 없는 상관
     MODERATE: 0.4,  // |r| >= 0.4: 중간 상관
@@ -51,6 +55,36 @@ export interface InterpretationResult {
   summary: string
   statistical: string
   practical: string | null
+}
+
+
+/**
+ * 포맷팅 Helper 함수들
+ */
+
+/**
+ * p-value 포맷팅 (DRY 원칙)
+ * @example formatPValue(0.0001) → "< 0.001"
+ * @example formatPValue(0.0234) → "0.023"
+ */
+function formatPValue(p: number): string {
+  if (p < THRESHOLDS.P_VALUE.VERY_STRONG) return '< 0.001'
+  return p.toFixed(3)
+}
+
+/**
+ * 퍼센트 포맷팅
+ * @example formatPercent(0.456, 1) → "45.6%"
+ */
+function formatPercent(value: number, decimals: number = 1): string {
+  return `${(value * 100).toFixed(decimals)}%`
+}
+
+/**
+ * 통계적 유의성 판단
+ */
+function isSignificant(p: number): boolean {
+  return p < THRESHOLDS.P_VALUE.ALPHA
 }
 
 /**
@@ -96,9 +130,9 @@ function getInterpretationByPurpose(
       return {
         title: '그룹 비교 결과',
         summary: `${group1.name || '그룹 1'} 평균(${group1.mean.toFixed(2)})이 ${group2.name || '그룹 2'} 평균(${group2.mean.toFixed(2)})보다 ${Math.abs(diff).toFixed(2)}점 ${diff > 0 ? '높습니다' : '낮습니다'}.`,
-        statistical: results.pValue < 0.05
-          ? `통계적으로 유의한 차이가 있습니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
-          : `통계적으로 유의한 차이가 없습니다 (p=${results.pValue.toFixed(3)}).`,
+        statistical: isSignificant(results.pValue)
+          ? `통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+          : `통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
         practical: results.effectSize
           ? `실질적 효과 크기는 ${interpretEffectSize(results.effectSize)}입니다.`
           : null
@@ -130,9 +164,9 @@ function getInterpretationByPurpose(
       title: '변수 간 관계 분석',
       summary: `X가 증가할 때 Y는 ${r > 0 ? '함께 증가' : '반대로 감소'}하는 경향이 있습니다 (r=${r.toFixed(3)}).`,
       statistical: results.pValue < 0.05
-        ? `${strength} ${direction} 상관관계가 통계적으로 유의합니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
-        : `상관관계가 통계적으로 유의하지 않습니다 (p=${results.pValue.toFixed(3)}).`,
-      practical: `상관계수 r=${r.toFixed(3)} → X 변동의 약 ${(r * r * 100).toFixed(1)}%가 Y 변동과 관련됩니다.`
+        ? `${strength} ${direction} 상관관계가 통계적으로 유의합니다 (p=${formatPValue(results.pValue)}).`
+        : `상관관계가 통계적으로 유의하지 않습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: `상관계수 r=${r.toFixed(3)} → X 변동의 약 ${formatPercent(r * r)}가 Y 변동과 관련됩니다.`
     }
   }
 
@@ -152,12 +186,12 @@ function getInterpretationByPurpose(
     return {
       title: '예측 모델 결과',
       summary: `독립변수가 1단위 증가할 때 종속변수는 ${coef.toFixed(3)}만큼 변합니다.`,
-      statistical: `모델 설명력(R²) = ${(rSquared * 100).toFixed(1)}% - ${
+      statistical: `모델 설명력(R²) = ${formatPercent(rSquared)} - ${
         rSquared >= THRESHOLDS.R_SQUARED.HIGH ? '높은 설명력' :
         rSquared >= THRESHOLDS.R_SQUARED.LOW ? '중간 설명력' :
         '낮은 설명력'
       }`,
-      practical: `이 모델로 종속변수 변동의 ${(rSquared * 100).toFixed(1)}%를 예측할 수 있습니다.`
+      practical: `이 모델로 종속변수 변동의 ${formatPercent(rSquared)}를 예측할 수 있습니다.`
     }
   }
 
@@ -191,12 +225,12 @@ function getInterpretationByMethod(
       return {
         title: '다집단 비교 결과',
         summary: `${groupCount}개 그룹의 평균 범위는 ${minMean.toFixed(2)} ~ ${maxMean.toFixed(2)} (차이: ${range.toFixed(2)})입니다.`,
-        statistical: results.pValue < 0.05
-          ? `적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
-          : `모든 그룹 평균이 통계적으로 유사합니다 (p=${results.pValue.toFixed(3)}).`,
+        statistical: isSignificant(results.pValue)
+          ? `적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p=${formatPValue(results.pValue)}).`
+          : `모든 그룹 평균이 통계적으로 유사합니다 (p=${formatPValue(results.pValue)}).`,
         practical: results.postHoc && results.postHoc.length > 0
           ? `사후 검정 결과: ${results.postHoc.filter(p => p.significant).length}개 쌍에서 유의한 차이 발견`
-          : results.pValue < 0.05
+          : isSignificant(results.pValue)
             ? '사후 검정을 수행하여 어느 그룹이 다른지 확인하세요.'
             : null
       }
@@ -208,10 +242,10 @@ function getInterpretationByMethod(
     return {
       title: '범주형 변수 연관성 검정',
       summary: `두 범주형 변수 간 독립성을 검정했습니다.`,
-      statistical: results.pValue < 0.05
-        ? `통계적으로 유의한 연관성이 있습니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
-        : `통계적으로 유의한 연관성이 없습니다 (p=${results.pValue.toFixed(3)}).`,
-      practical: results.pValue < 0.05
+      statistical: isSignificant(results.pValue)
+        ? `통계적으로 유의한 연관성이 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 연관성이 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
         ? '두 변수는 서로 독립적이지 않습니다 (관련성 있음).'
         : '두 변수는 독립적입니다 (관련성 없음).'
     }
@@ -222,10 +256,10 @@ function getInterpretationByMethod(
     return {
       title: '정규성 검정 결과',
       summary: `데이터가 정규분포를 따르는지 검정했습니다.`,
-      statistical: results.pValue < 0.05
-        ? `정규분포를 따르지 않습니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
-        : `정규분포를 따릅니다 (p=${results.pValue.toFixed(3)}).`,
-      practical: results.pValue < 0.05
+      statistical: isSignificant(results.pValue)
+        ? `정규분포를 따르지 않습니다 (p=${formatPValue(results.pValue)}).`
+        : `정규분포를 따릅니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
         ? '비모수 검정(Mann-Whitney, Kruskal-Wallis 등) 사용을 권장합니다.'
         : '모수 검정(t-test, ANOVA 등) 사용이 적절합니다.'
     }
@@ -236,10 +270,10 @@ function getInterpretationByMethod(
     return {
       title: '등분산성 검정 결과',
       summary: `그룹 간 분산이 동일한지 검정했습니다.`,
-      statistical: results.pValue < 0.05
-        ? `등분산 가정을 만족하지 않습니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
-        : `등분산 가정을 만족합니다 (p=${results.pValue.toFixed(3)}).`,
-      practical: results.pValue < 0.05
+      statistical: isSignificant(results.pValue)
+        ? `등분산 가정을 만족하지 않습니다 (p=${formatPValue(results.pValue)}).`
+        : `등분산 가정을 만족합니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
         ? "Welch's t-test 또는 비모수 검정 사용을 권장합니다."
         : '일반 t-test 또는 ANOVA 사용이 적절합니다.'
     }
@@ -309,7 +343,7 @@ function getInterpretationByMethod(
       return {
         title: '차원 축소 결과',
         summary: `${componentCount}개 성분으로 축소되었습니다.`,
-        statistical: `누적 설명력 = ${(totalVariance * 100).toFixed(1)}%`,
+        statistical: `누적 설명력 = ${formatPercent(totalVariance)}`,
         practical: totalVariance >= THRESHOLDS.VARIANCE.GOOD
           ? '70% 이상의 변동을 설명합니다 (우수한 축소).'
           : totalVariance >= THRESHOLDS.VARIANCE.ACCEPTABLE
