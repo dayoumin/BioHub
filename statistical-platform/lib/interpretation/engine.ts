@@ -225,7 +225,9 @@ function getInterpretationByMethod(
   // ===== 1. 다집단 비교 (ANOVA 변형 먼저, 일반 ANOVA 나중에) =====
 
   // Two-way ANOVA (이원분산분석)
-  if ((methodLower.includes('two') && methodLower.includes('way') && methodLower.includes('anova')) ||
+  // 정규화 후: 'twowayanova', '2wayanova', '이원분산분석', '2원분산분석' 모두 매칭
+  if (methodLower.includes('twoway') ||
+      methodLower.includes('2way') ||
       methodLower.includes('이원분산분석') ||
       methodLower.includes('2원분산분석')) {
     return {
@@ -241,7 +243,8 @@ function getInterpretationByMethod(
   }
 
   // Repeated Measures ANOVA (반복측정 분산분석)
-  if ((methodLower.includes('repeated') && methodLower.includes('measures') && methodLower.includes('anova')) ||
+  // 정규화 후: 'repeatedmeasures', '반복측정', 'within' 모두 매칭
+  if (methodLower.includes('repeatedmeasures') ||
       methodLower.includes('반복측정') ||
       methodLower.includes('within')) {
     return {
@@ -257,9 +260,10 @@ function getInterpretationByMethod(
   }
 
   // ANCOVA (공분산분석)
+  // 정규화 후: 'ancova', '공분산분석', 'analysisofcovariance' 모두 매칭
   if (methodLower.includes('ancova') ||
       methodLower.includes('공분산분석') ||
-      (methodLower.includes('analysis') && methodLower.includes('covariance'))) {
+      methodLower.includes('analysisofcovariance')) {
     return {
       title: '공분산분석 결과',
       summary: `공변량(covariate)을 통제한 후 집단 간 평균 차이를 검정했습니다.`,
@@ -273,9 +277,10 @@ function getInterpretationByMethod(
   }
 
   // MANOVA (다변량 분산분석)
+  // 정규화 후: 'manova', '다변량', 'multivariateanova' 모두 매칭
   if (methodLower.includes('manova') ||
       methodLower.includes('다변량') ||
-      (methodLower.includes('multivariate') && methodLower.includes('anova'))) {
+      methodLower.includes('multivariateanova')) {
     return {
       title: '다변량 분산분석 결과',
       summary: `여러 종속변수를 동시에 고려하여 집단 간 차이를 검정했습니다.`,
@@ -589,14 +594,19 @@ function getInterpretationByMethod(
 /**
  * 방법 문자열 정규화
  *
- * 대소문자, 특수문자 제거하여 매칭 용이하게 함
+ * 대소문자, 특수문자, 공백, 하이픈 제거하여 매칭 용이하게 함
+ *
+ * 예시:
+ * - '이원 분산분석' → '이원분산분석'
+ * - 'Two-way ANOVA' → 'twowayanova'
+ * - '2-way ANOVA' → '2wayanova'
  */
 function normalizeMethod(method: string): string {
   if (!method) return ''
 
   return method.toLowerCase()
-    .replace(/[()'']/g, '') // 괄호, 작은따옴표 제거
-    .replace(/\s+/g, ' ')   // 연속 공백 하나로
+    .replace(/[()'']/g, '')  // 괄호, 작은따옴표 제거
+    .replace(/[-\s]+/g, '')  // 하이픈, 공백 모두 제거
     .trim()
 }
 

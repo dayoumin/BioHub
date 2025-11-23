@@ -75,6 +75,34 @@ describe('Interpretation Engine ANOVA Variants (Phase 2)', () => {
       expect(interpretation).not.toBeNull()
       expect(interpretation?.title).toBe('이원분산분석 결과')
     })
+
+    it('공백 포함 한글 표기 (이원 분산분석)', () => {
+      const results: AnalysisResult = {
+        method: '이원 분산분석',
+        pValue: 0.01,
+        statistic: 7.5,
+        interpretation: ''
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('이원분산분석 결과')
+    })
+
+    it('하이픈 표기 (2-way ANOVA)', () => {
+      const results: AnalysisResult = {
+        method: '2-way ANOVA',
+        pValue: 0.003,
+        statistic: 10.2,
+        interpretation: ''
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('이원분산분석 결과')
+    })
   })
 
   describe('Repeated Measures ANOVA (반복측정 분산분석)', () => {
@@ -131,6 +159,20 @@ describe('Interpretation Engine ANOVA Variants (Phase 2)', () => {
         method: 'Within-subjects ANOVA',
         pValue: 0.003,
         statistic: 10.5,
+        interpretation: ''
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('반복측정 분산분석 결과')
+    })
+
+    it('공백 포함 표기 (Repeated Measures ANOVA)', () => {
+      const results: AnalysisResult = {
+        method: 'Repeated Measures ANOVA',
+        pValue: 0.02,
+        statistic: 6.8,
         interpretation: ''
       }
 
@@ -203,6 +245,20 @@ describe('Interpretation Engine ANOVA Variants (Phase 2)', () => {
       expect(interpretation).not.toBeNull()
       expect(interpretation?.title).toBe('공분산분석 결과')
     })
+
+    it('공백 포함 한글 표기 (공분산 분석)', () => {
+      const results: AnalysisResult = {
+        method: '공분산 분석',
+        pValue: 0.015,
+        statistic: 6.1,
+        interpretation: ''
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('공분산분석 결과')
+    })
   })
 
   describe('MANOVA (다변량 분산분석)', () => {
@@ -260,6 +316,20 @@ describe('Interpretation Engine ANOVA Variants (Phase 2)', () => {
         method: 'Multivariate ANOVA',
         pValue: 0.001,
         statistic: 12.3,
+        interpretation: ''
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('다변량 분산분석 결과')
+    })
+
+    it('공백 포함 한글 표기 (다변량 분산분석)', () => {
+      const results: AnalysisResult = {
+        method: '다변량 분산분석',
+        pValue: 0.005,
+        statistic: 9.2,
         interpretation: ''
       }
 
