@@ -405,6 +405,120 @@ describe('Phase 5: Basic Statistics Interpretation', () => {
     })
   })
 
+
+  // ===== Guard Tests (Issue Fix) =====
+  describe('Guard Tests', () => {
+    it('Issue 1 (High): Means Plot with negative means should use absolute denominator', () => {
+      const result = getInterpretation({
+        method: '평균 플롯',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          descriptives: {
+            'Group A': { mean: -5.0 },
+            'Group B': { mean: -3.0 },
+            'Group C': { mean: -1.0 }
+          }
+        }
+      })
+
+      expect(result).not.toBeNull()
+      expect(result?.title).toBe('집단별 평균 비교')
+      expect(result?.summary).toContain('-5.00 ~ -1.00')
+      expect(result?.summary).toContain('차이: 4.00')
+      // diffPercent = (4 / Math.max(Math.abs(-3), 1e-10)) * 100 = 133.3%
+      expect(result?.statistical).toContain('집단 간 평균 차이가 큽니다')
+    })
+
+    it('Issue 1 (High): Means Plot with near-zero means should use EPS guard', () => {
+      const result = getInterpretation({
+        method: 'Means Plot',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          plotData: [
+            { mean: 0.0001 },
+            { mean: 0.0002 },
+            { mean: 0.0003 }
+          ]
+        }
+      })
+
+      expect(result).not.toBeNull()
+      // range = 0.0002, avgMean = 0.0002
+      // safeDenominator = Math.max(0.0002, 1e-10) = 0.0002
+      // diffPercent = (0.0002 / 0.0002) * 100 = 100%
+      expect(result?.statistical).toContain('집단 간 평균 차이가 큽니다')
+    })
+
+    it('Issue 2 (Medium): Descriptive with zero mean should use std-based interpretation', () => {
+      const result = getInterpretation({
+        method: 'Descriptive',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          mean: 0.0,
+          std: 3.5,
+          skewness: 0.1,
+          kurtosis: -0.2,
+          n: 100
+        }
+      })
+
+      expect(result).not.toBeNull()
+      expect(result?.title).toBe('기술통계량 요약')
+      expect(result?.summary).toContain('평균 0.00')
+      expect(result?.summary).toContain('표준편차 3.50')
+      expect(result?.statistical).toContain('평균이 0에 가까워')
+      expect(result?.practical).toContain('표준편차가')
+    })
+
+    it('Issue 2 (Medium): Explore with near-zero mean should use std-based interpretation', () => {
+      const result = getInterpretation({
+        method: 'Explore',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          mean: 0.0,
+          median: 0.0,
+          std: 10.0,
+          n: 80
+        }
+      })
+
+      expect(result).not.toBeNull()
+      expect(result?.title).toBe('탐색적 데이터 분석')
+      expect(result?.statistical).toContain('평균이 0에 가까워')
+      expect(result?.practical).toContain('표준편차가')
+    })
+
+    it('Issue 3 (Low): One-sample t-test with EffectSizeInfo object should show interpretation', () => {
+      const result = getInterpretation({
+        method: 'One-sample t-test',
+        statistic: 0,
+        pValue: 0.01,
+        interpretation: '',
+        additional: {
+          mean: 55.0,
+          testValue: 50.0,
+          cohensD: {
+            value: 0.85,
+            type: "Cohen's d",
+            interpretation: '큼'
+          } as any // EffectSizeInfo 객체
+        }
+      })
+
+      expect(result).not.toBeNull()
+      expect(result?.summary).toContain('효과 크기')
+      expect(result?.summary).toContain('큰 효과')
+    })
+  })
+
   // ===== Integration Test =====
   describe('Integration with existing methods', () => {
     it('should prioritize Proportion Test over One-sample t-test', () => {

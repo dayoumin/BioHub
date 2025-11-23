@@ -604,6 +604,55 @@ function getInterpretationByMethod(
     }
   }
 
+  // Discriminant Analysis (판별분석)
+  // 정규화 후: 'discriminant', '판별', 'lda', 'qda' 모두 매칭
+  if (methodLower.includes('discriminant') || methodLower.includes('판별') || methodLower.includes('lda') || methodLower.includes('qda')) {
+    const discriminantInfo = results.additional as {
+      accuracy?: number
+      selectedFunctions?: number
+      totalVariance?: number
+      equalityTests?: {
+        wilksLambda?: { statistic?: number; pValue?: number; significant?: boolean }
+        boxM?: { statistic?: number; pValue?: number; significant?: boolean }
+      }
+    }
+
+    const accuracy = discriminantInfo?.accuracy
+    const numFunctions = discriminantInfo?.selectedFunctions
+    const totalVariance = discriminantInfo?.totalVariance
+    const wilksLambda = discriminantInfo?.equalityTests?.wilksLambda
+    const boxM = discriminantInfo?.equalityTests?.boxM
+
+    // 정확도 기반 해석 (통계학 표준: 70%/50% 기준)
+    let accuracyLevel: 'high' | 'moderate' | 'low' = 'moderate'
+    if (accuracy !== undefined) {
+      if (accuracy >= 0.70) accuracyLevel = 'high'
+      else if (accuracy < 0.50) accuracyLevel = 'low'
+    }
+
+    // Wilks' Lambda 유의성 체크 (낮을수록 그룹 간 차이 큼)
+    const wilksSignificant = wilksLambda?.significant ?? (wilksLambda?.pValue !== undefined && wilksLambda.pValue < 0.05)
+
+    return {
+      title: '판별분석 결과',
+      summary: accuracy !== undefined
+        ? `판별함수${numFunctions ? ` ${numFunctions}개` : ''}를 사용하여 ${(accuracy * 100).toFixed(1)}%의 분류 정확도를 달성했습니다${totalVariance ? ` (전체 분산의 ${(totalVariance * 100).toFixed(1)}% 설명)` : ''}.`
+        : `판별분석을 통해 그룹 분류 모형을 적합했습니다.`,
+      statistical: wilksLambda?.pValue !== undefined
+        ? wilksSignificant
+          ? `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수가 그룹을 효과적으로 구분합니다.`
+          : `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수의 유효성이 낮습니다.`
+        : accuracy !== undefined
+          ? `분류 정확도는 ${(accuracy * 100).toFixed(1)}%입니다.`
+          : '판별분석이 완료되었습니다.',
+      practical: accuracyLevel === 'high'
+        ? `정확도가 높습니다 (${accuracy ? (accuracy * 100).toFixed(1) : ''}% ≥ 70%). 판별함수를 새로운 데이터 분류에 사용할 수 있습니다. 판별계수(discriminant coefficients)가 큰 변수가 주요 판별변수입니다.`
+        : accuracyLevel === 'moderate'
+          ? `정확도가 중간 수준입니다 (${accuracy ? (accuracy * 100).toFixed(1) : ''}%). 추가 변수를 포함하거나 변수 변환(로그, 다항식 등)을 고려하세요. 혼동행렬(confusion matrix)에서 오분류 패턴을 분석하세요.`
+          : `정확도가 낮습니다 (${accuracy ? (accuracy * 100).toFixed(1) : ''}% < 50%). 판별 변수를 재검토하거나, 비선형 방법(QDA, 머신러닝)을 고려하세요. ${boxM?.significant === true ? 'Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
+    }
+  }
+
 
   // ===== Phase 5: 기타 분석 (Descriptive, Proportion, One-sample t-test, Explore, Means Plot) =====
 
@@ -616,7 +665,21 @@ function getInterpretationByMethod(
     const n = results.additional?.n
 
     if (typeof mean === 'number' && typeof std === 'number' && typeof n === 'number') {
-      // 변동계수 (Coefficient of Variation)
+      // 변동계수 (Coefficient of Variation) - 제로 평균 가드
+      const EPS = 1e-10
+      if (Math.abs(mean) < EPS) {
+        // 평균이 0에 가까우면 CV 대신 표준편차 사용
+        return {
+          title: '기술통계량 요약',
+          summary: `평균 ${mean.toFixed(2)}, 표준편차 ${std.toFixed(2)} (n=${n})`,
+          statistical: '평균이 0에 가까워 변동계수를 계산할 수 없습니다.',
+          practical: std < 1
+            ? '표준편차가 1 미만으로 변동성이 낮습니다.'
+            : std < 5
+              ? '표준편차가 5 미만으로 변동성이 중간 수준입니다.'
+              : '표준편차가 5 이상으로 변동성이 높습니다.'
+        }
+      }
       const cv = (std / Math.abs(mean)) * 100
 
       // 왜도 해석
@@ -704,6 +767,9 @@ function getInterpretationByMethod(
             : dAbs < 0.8
               ? '(효과 크기: 중간)'
               : '(효과 크기: 큼)'
+      } else if (typeof cohensD === 'object' && cohensD !== null) {
+        // EffectSizeInfo 객체 처리
+        effectSizeInfo = `(효과 크기: ${interpretEffectSize(cohensD)})`
       }
 
       return {
@@ -727,6 +793,22 @@ function getInterpretationByMethod(
 
     if (typeof mean === 'number' && typeof median === 'number' && typeof std === 'number' && typeof n === 'number') {
       const meanMedianDiff = Math.abs(mean - median)
+
+      // CV 계산 - 제로 평균 가드
+      const EPS = 1e-10
+      if (Math.abs(mean) < EPS) {
+        // 평균이 0에 가까우면 CV 대신 표준편차 사용
+        return {
+          title: '탐색적 데이터 분석',
+          summary: `중심값: 평균 ${mean.toFixed(2)}, 중앙값 ${median.toFixed(2)} | 변동성: 표준편차 ${std.toFixed(2)} (n=${n})`,
+          statistical: '평균이 0에 가까워 변동계수를 계산할 수 없습니다.',
+          practical: std < 1
+            ? '표준편차가 1 미만으로 데이터가 비교적 균일합니다.'
+            : std < 5
+              ? '표준편차가 5 미만으로 변동성이 중간 수준입니다.'
+              : '표준편차가 5 이상으로 변동성이 매우 높습니다. 비모수적 검정이나 로그 변환을 고려하세요.'
+        }
+      }
       const cv = (std / Math.abs(mean)) * 100
 
       // 평균-중앙값 차이로 대칭성 판단
@@ -786,7 +868,9 @@ function getInterpretationByMethod(
           const avgMean = means.reduce((a, b) => a + b, 0) / means.length
 
           // 평균 차이 비율
-          const diffPercent = (range / avgMean) * 100
+          const EPS = 1e-10
+          const safeDenominator = Math.max(Math.abs(avgMean), EPS)
+          const diffPercent = (range / safeDenominator) * 100
 
           return {
             title: '집단별 평균 비교',
@@ -816,7 +900,9 @@ function getInterpretationByMethod(
         const minMean = Math.min(...means)
         const range = maxMean - minMean
         const avgMean = means.reduce((a, b) => a + b, 0) / means.length
-        const diffPercent = (range / avgMean) * 100
+        const EPS = 1e-10
+        const safeDenominator = Math.max(Math.abs(avgMean), EPS)
+        const diffPercent = (range / safeDenominator) * 100
 
         return {
           title: '집단별 평균 비교',

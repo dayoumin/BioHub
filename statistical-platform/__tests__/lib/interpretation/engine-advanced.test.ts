@@ -459,4 +459,209 @@ describe('Interpretation Engine Advanced Analytics (Phase 4)', () => {
       expect(paInterpretation?.title).toBe('검정력 분석 결과 (A-priori)')
     })
   })
+
+  describe('Discriminant Analysis (판별분석)', () => {
+    it('높은 정확도 (accuracy ≥ 70%)', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        pValue: 0.0001,
+        statistic: 25.5,
+        interpretation: '',
+        additional: {
+          accuracy: 0.85,
+          selectedFunctions: 2,
+          totalVariance: 0.92,
+          equalityTests: {
+            wilksLambda: {
+              statistic: 0.15,
+              pValue: 0.0001,
+              significant: true
+            },
+            boxM: {
+              statistic: 12.3,
+              pValue: 0.05,
+              significant: false
+            }
+          }
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('판별분석 결과')
+      expect(interpretation?.summary).toContain('85.0%')
+      expect(interpretation?.summary).toContain('2개')
+      expect(interpretation?.summary).toContain('92.0%')
+      expect(interpretation?.statistical).toContain('Wilks\' Lambda')
+      expect(interpretation?.statistical).toContain('유의한 차이가 있습니다')
+      expect(interpretation?.statistical).toContain('< 0.001')
+      expect(interpretation?.practical).toContain('정확도가 높습니다')
+      expect(interpretation?.practical).toContain('≥ 70%')
+      expect(interpretation?.practical).toContain('판별계수')
+    })
+
+    it('중간 정확도 (50% ≤ accuracy < 70%)', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        pValue: 0.02,
+        statistic: 8.5,
+        interpretation: '',
+        additional: {
+          accuracy: 0.60,
+          selectedFunctions: 1,
+          totalVariance: 0.65,
+          equalityTests: {
+            wilksLambda: {
+              statistic: 0.40,
+              pValue: 0.02,
+              significant: true
+            }
+          }
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.summary).toContain('60.0%')
+      expect(interpretation?.statistical).toContain('p=0.020')
+      expect(interpretation?.practical).toContain('정확도가 중간 수준입니다')
+      expect(interpretation?.practical).toContain('추가 변수')
+      expect(interpretation?.practical).toContain('혼동행렬')
+    })
+
+    it('낮은 정확도 (accuracy < 50%)', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        pValue: 0.35,
+        statistic: 2.1,
+        interpretation: '',
+        additional: {
+          accuracy: 0.40,
+          selectedFunctions: 1,
+          totalVariance: 0.45,
+          equalityTests: {
+            wilksLambda: {
+              statistic: 0.85,
+              pValue: 0.35,
+              significant: false
+            }
+          }
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.summary).toContain('40.0%')
+      expect(interpretation?.statistical).toContain('유의한 차이가 없습니다')
+      expect(interpretation?.practical).toContain('정확도가 낮습니다')
+      expect(interpretation?.practical).toContain('< 50%')
+      expect(interpretation?.practical).toContain('비선형 방법')
+      expect(interpretation?.practical).toContain('QDA')
+    })
+
+    it('Box\'s M 위배 경고 (공분산 동질성 가정 위배)', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        pValue: 0.15,
+        statistic: 4.2,
+        interpretation: '',
+        additional: {
+          accuracy: 0.45,
+          selectedFunctions: 2,
+          totalVariance: 0.50,
+          equalityTests: {
+            wilksLambda: {
+              statistic: 0.75,
+              pValue: 0.15,
+              significant: false
+            },
+            boxM: {
+              statistic: 35.8,
+              pValue: 0.001,
+              significant: true
+            }
+          }
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.practical).toContain('Box\'s M 검정이 유의하여')
+      expect(interpretation?.practical).toContain('공분산 행렬 동질성 가정이 위배')
+    })
+
+    it('한글 표기 (판별분석)', () => {
+      const results: AnalysisResult = {
+        method: '판별분석',
+        pValue: 0.005,
+        statistic: 15.2,
+        interpretation: '',
+        additional: {
+          accuracy: 0.75,
+          selectedFunctions: 2
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('판별분석 결과')
+    })
+
+    it('영어 대소문자 표기 (discriminant analysis)', () => {
+      const results: AnalysisResult = {
+        method: 'discriminant analysis',
+        pValue: 0.008,
+        statistic: 12.5,
+        interpretation: '',
+        additional: {
+          accuracy: 0.70
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('판별분석 결과')
+    })
+
+    it('LDA 별칭 (Linear Discriminant Analysis)', () => {
+      const results: AnalysisResult = {
+        method: 'LDA',
+        pValue: 0.001,
+        statistic: 20.8,
+        interpretation: '',
+        additional: {
+          accuracy: 0.80,
+          selectedFunctions: 3
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('판별분석 결과')
+    })
+
+    it('QDA 별칭 (Quadratic Discriminant Analysis)', () => {
+      const results: AnalysisResult = {
+        method: 'QDA',
+        pValue: 0.002,
+        statistic: 18.5,
+        interpretation: '',
+        additional: {
+          accuracy: 0.78
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.title).toBe('판별분석 결과')
+    })
+  })
 })
