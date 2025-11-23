@@ -114,7 +114,7 @@ describe('Interpretation Engine Batch 2 (독립/무작위 검정)', () => {
     it('증가 추세 유의 (p < 0.05, statistic > 0)', () => {
       const results: AnalysisResult = {
         method: 'Mann-Kendall Test',
-        pValue: 0.001,
+        pValue: 0.0001,
         statistic: 120.5,
         interpretation: ''
       }
