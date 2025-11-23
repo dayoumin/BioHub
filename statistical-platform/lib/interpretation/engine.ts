@@ -373,7 +373,21 @@ function getInterpretationByMethod(
 
   // ===== 8. 대응/쌍대 비모수 검정 (Wilcoxon, Sign, Friedman, Cochran Q) =====
 
-  // Wilcoxon Signed-Rank Test (윌콕슨 부호 순위 검정)
+  // Mann-Whitney U Test (독립표본 비모수 검정)
+  if ((methodLower.includes('mann') && methodLower.includes('whitney')) || methodLower.includes('mann-whitney')) {
+    return {
+      title: '독립표본 비모수 검정',
+      summary: `두 독립 그룹의 중앙값 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '두 그룹의 중앙값이 실질적으로 다릅니다.'
+        : '두 그룹의 중앙값이 유사합니다.'
+    }
+  }
+
+  // Wilcoxon Signed-Rank Test (대응표본 비모수 검정)
   if (methodLower.includes('wilcoxon') && !methodLower.includes('mann')) {
     return {
       title: '대응표본 비모수 검정',
@@ -435,13 +449,13 @@ function getInterpretationByMethod(
   if (methodLower.includes('mood') && methodLower.includes('median')) {
     return {
       title: '중앙값 검정 결과',
-      summary: `두 그룹의 중앙값이 같은지 검정했습니다.`,
+      summary: `각 그룹의 중앙값이 같은지 검정했습니다.`,
       statistical: isSignificant(results.pValue)
         ? `통계적으로 유의한 중앙값 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
         : `통계적으로 유의한 중앙값 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
-        ? '두 그룹의 중심 경향이 다릅니다.'
-        : '두 그룹의 중심 경향이 유사합니다.'
+        ? '그룹 간 중심 경향이 다릅니다.'
+        : '그룹 간 중심 경향이 유사합니다.'
     }
   }
 
@@ -461,17 +475,29 @@ function getInterpretationByMethod(
 
   // Mann-Kendall Test (추세 검정)
   if (methodLower.includes('mann') && methodLower.includes('kendall')) {
+    // statistic 유효성 검증
+    const stat = results.statistic
+    const hasValidStat = typeof stat === 'number' && Number.isFinite(stat)
+
+    let practicalMsg: string
+    if (!isSignificant(results.pValue)) {
+      practicalMsg = '시간에 따른 일관된 변화가 없습니다.'
+    } else if (!hasValidStat) {
+      // statistic이 유효하지 않으면 방향 판단 불가
+      practicalMsg = '통계적으로 유의한 추세가 있습니다.'
+    } else {
+      practicalMsg = stat > 0
+        ? '시간에 따라 증가하는 추세가 있습니다.'
+        : '시간에 따라 감소하는 추세가 있습니다.'
+    }
+
     return {
       title: '추세 검정 결과',
       summary: `시계열 데이터의 단조 추세를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
         ? `통계적으로 유의한 추세가 있습니다 (p=${formatPValue(results.pValue)}).`
         : `통계적으로 유의한 추세가 없습니다 (p=${formatPValue(results.pValue)}).`,
-      practical: isSignificant(results.pValue)
-        ? results.statistic > 0
-          ? '시간에 따라 증가하는 추세가 있습니다.'
-          : '시간에 따라 감소하는 추세가 있습니다.'
-        : '시간에 따른 일관된 변화가 없습니다.'
+      practical: practicalMsg
     }
   }
 
