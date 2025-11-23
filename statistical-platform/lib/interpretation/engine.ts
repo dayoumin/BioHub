@@ -617,11 +617,12 @@ function getInterpretationByMethod(
       }
     }
 
-    const accuracy = discriminantInfo?.accuracy
-    const numFunctions = discriminantInfo?.selectedFunctions
+    // Support both structures: discriminantInfo.equalityTests and direct additional fields
+    const accuracy = discriminantInfo?.accuracy ?? results.additional?.accuracy
+    const numFunctions = discriminantInfo?.selectedFunctions ?? results.additional?.selectedFunctions
     const totalVariance = discriminantInfo?.totalVariance
-    const wilksLambda = discriminantInfo?.equalityTests?.wilksLambda
-    const boxM = discriminantInfo?.equalityTests?.boxM
+    const wilksLambda = discriminantInfo?.equalityTests?.wilksLambda ?? results.additional?.wilksLambda
+    const boxM = discriminantInfo?.equalityTests?.boxM ?? results.additional?.boxM
 
     // 정확도 기반 해석 (통계학 표준: 70%/50% 기준)
     let accuracyLevel: 'high' | 'moderate' | 'low' = 'moderate'
@@ -632,6 +633,7 @@ function getInterpretationByMethod(
 
     // Wilks' Lambda 유의성 체크 (낮을수록 그룹 간 차이 큼)
     const wilksSignificant = wilksLambda?.significant ?? (wilksLambda?.pValue !== undefined && wilksLambda.pValue < 0.05)
+    const boxMSignificant = boxM?.significant ?? (boxM?.pValue !== undefined && boxM.pValue < 0.05)
 
     return {
       title: '판별분석 결과',
@@ -640,11 +642,11 @@ function getInterpretationByMethod(
         : `판별분석을 통해 그룹 분류 모형을 적합했습니다.`,
       statistical: wilksLambda?.pValue !== undefined
         ? wilksSignificant
-          ? `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수가 그룹을 효과적으로 구분합니다.${boxM?.significant === true ? ' 단, Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
-          : `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수의 유효성이 낮습니다.${boxM?.significant === true ? ' 또한 Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`
+          ? `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수가 그룹을 효과적으로 구분합니다.${boxMSignificant ? ' 단, Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
+          : `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수의 유효성이 낮습니다.${boxMSignificant ? ' 또한 Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`
         : accuracy !== undefined
-          ? `분류 정확도는 ${(accuracy * 100).toFixed(1)}%입니다.${boxM?.significant === true ? ' Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
-          : `판별분석이 완료되었습니다.${boxM?.significant === true ? ' Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`,
+          ? `분류 정확도는 ${(accuracy * 100).toFixed(1)}%입니다.${boxMSignificant ? ' Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
+          : `판별분석이 완료되었습니다.${boxMSignificant ? ' Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`,
       practical: accuracy !== undefined
         ? (accuracyLevel === 'high'
           ? `정확도가 높습니다 (${(accuracy * 100).toFixed(1)}% ≥ 70%). 판별함수를 새로운 데이터 분류에 사용할 수 있습니다. 판별계수(discriminant coefficients)가 큰 변수가 주요 판별변수입니다.`

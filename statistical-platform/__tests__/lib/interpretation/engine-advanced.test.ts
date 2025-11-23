@@ -135,6 +135,25 @@ describe('Interpretation Engine Advanced Analytics (Phase 4)', () => {
       expect(interpretation?.statistical).toContain('Box\'s M 검정이 유의하여')
     })
 
+    it('Issue 3 (Minor): Box M pValue fallback (significant 없이 pValue < 0.05)', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          accuracy: 0.75, // high
+          boxM: { pValue: 0.03 } // significant 없음, pValue만 제공
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.statistical).toContain('Box\'s M 검정이 유의하여')
+      expect(interpretation?.statistical).toContain('공분산 행렬 동질성 가정이 위배')
+    })
+
 
     it('중간 적합도 (0.5 < R² < 0.8)', () => {
       const results: AnalysisResult = {
@@ -686,8 +705,8 @@ describe('Interpretation Engine Advanced Analytics (Phase 4)', () => {
       const interpretation = getInterpretation(results)
 
       expect(interpretation).not.toBeNull()
-      expect(interpretation?.practical).toContain('Box\'s M 검정이 유의하여')
-      expect(interpretation?.practical).toContain('공분산 행렬 동질성 가정이 위배')
+      expect(interpretation?.statistical).toContain('Box\'s M 검정이 유의하여')
+      expect(interpretation?.statistical).toContain('공분산 행렬 동질성 가정이 위배')
     })
 
     it('한글 표기 (판별분석)', () => {

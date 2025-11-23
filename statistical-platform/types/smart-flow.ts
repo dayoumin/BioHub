@@ -349,6 +349,22 @@ export interface AnalysisResult {
     finalVariables?: string[]  // Selected variables in stepwise regression
     deviance?: number  // Model deviance
     log_likelihood?: number  // Log-likelihood
+    // Discriminant Analysis
+    wilksLambda?: {
+      pValue?: number
+      significant?: boolean
+    }
+    boxM?: {
+      pValue?: number
+      significant?: boolean
+    }
+    accuracy?: number
+    // Dose-Response Analysis
+    hill_slope?: number
+    // Response Surface Methodology
+    selectedFunctions?: string[]
+    // Effect Size (ANOVA, ANCOVA, etc.)
+    effectSize?: number | { value: number; interpretation: string; type: string }
   }
 
   // 시각화 데이터
