@@ -1,6 +1,28 @@
 # 해석 엔진 커버리지 분석
 
-## 현재 지원 중인 통계 방법 (16개)
+## ✅ Phase 1 완료 (2025-11-23)
+
+**결과**: 8개 비모수 검정 해석 추가 완료 + 3가지 버그 수정
+- **Batch 1**: Wilcoxon, Sign Test, Friedman, Cochran Q (4개) ✓
+- **Batch 2**: Mood's Median, Runs Test, Mann-Kendall, Binomial Test (4개) ✓
+- **추가**: Mann-Whitney U Test 해석 추가 (누락 발견) ✓
+- **커버리지**: 16개 → 24개 (+8개, +50%)
+- **테스트**: 66개 → 107개 (+41개, +62%)
+- **코드**: +290줄 (실제 기능) + 477줄 (테스트)
+
+**버그 수정**:
+1. [High] Mann-Whitney null 반환 → 독립표본 비모수 검정 추가
+2. [Low] Mood's Median "두 그룹" → "각 그룹" (3+ 그룹 대응)
+3. [Low] Mann-Kendall NaN/Infinity 검증 강화
+
+**테스트 파일**:
+- engine-batch1.test.ts (13개 테스트)
+- engine-batch2.test.ts (16개 테스트)
+- engine-fixes.test.ts (12개 테스트)
+
+---
+
+## 현재 지원 중인 통계 방법 (24개)
 
 ### Phase 1: Purpose 기반 (3개)
 1. ✅ **그룹 비교** (2-group comparison)
@@ -10,7 +32,7 @@
 3. ✅ **예측/회귀** (regression)
    - Linear regression, Multiple regression
 
-### Phase 2: Method 기반 (13개)
+### Phase 2: Method 기반 (21개)
 4. ✅ **ANOVA** (다집단 비교)
    - One-way ANOVA, Kruskal-Wallis
 5. ✅ **Chi-Square** (범주형 연관성)
@@ -26,20 +48,25 @@
     - K-means clustering
 11. ✅ **PCA** (차원 축소)
     - Principal Component Analysis, Factor Analysis
+12. ✅ **비모수 검정 - 대응/쌍대** (4개) - Batch 1
+    - Wilcoxon Signed-Rank, Sign Test, Friedman, Cochran Q
+13. ✅ **비모수 검정 - 독립/무작위** (4개) - Batch 2
+    - Mood's Median, Runs Test, Mann-Kendall, Binomial Test
+14. ✅ **Mann-Whitney U Test** (독립표본 비모수) - 버그 수정으로 추가
 
 ---
 
-## 지원 필요한 통계 방법 (28개)
+## 지원 필요한 통계 방법 (20개)
 
-### 우선순위 1: 비모수 검정 (8개) - 사용 빈도 높음
-1. ⬜ **Wilcoxon** (대응표본 비모수)
-2. ⬜ **Sign Test** (대응표본 부호 검정)
-3. ⬜ **Friedman** (반복측정 비모수)
-4. ⬜ **Mood's Median** (중앙값 검정)
-5. ⬜ **Runs Test** (무작위성 검정)
-6. ⬜ **Cochran Q** (다중 이분형)
-7. ⬜ **Mann-Kendall** (추세 검정)
-8. ⬜ **Binomial Test** (이항 검정)
+### ~~우선순위 1: 비모수 검정 (8개)~~ ✅ 완료
+1. ✅ **Wilcoxon** (대응표본 비모수) - Batch 1
+2. ✅ **Sign Test** (대응표본 부호 검정) - Batch 1
+3. ✅ **Friedman** (반복측정 비모수) - Batch 1
+4. ✅ **Mood's Median** (중앙값 검정) - Batch 2
+5. ✅ **Runs Test** (무작위성 검정) - Batch 2
+6. ✅ **Cochran Q** (다중 이분형) - Batch 1
+7. ✅ **Mann-Kendall** (추세 검정) - Batch 2
+8. ✅ **Binomial Test** (이항 검정) - Batch 2
 
 ### 우선순위 2: ANOVA 변형 (4개)
 9. ⬜ **Two-way ANOVA** (이원분산분석)
@@ -71,28 +98,42 @@
 
 ---
 
-## Phase 1 개선 계획 (8개)
+## 실제 작업 결과 (Phase 1)
 
-**우선순위 1: 비모수 검정** - 가장 자주 사용되며 해석이 명확함
+### ✅ Batch 1 (4개) - 대응/쌍대 검정
+1. ✅ Wilcoxon Signed-Rank Test (대응표본 비모수)
+2. ✅ Sign Test (부호 검정)
+3. ✅ Friedman Test (반복측정 비모수 ANOVA)
+4. ✅ Cochran Q Test (다중 이분형 변수)
 
-### Batch 1 (4개) - 대응/쌍대 검정
-1. Wilcoxon (대응표본 비모수 검정)
-2. Sign Test (부호 검정)
-3. Friedman (반복측정 비모수 ANOVA)
-4. Cochran Q (다중 이분형 변수)
+**코드**: +105줄 (engine.ts) | **테스트**: engine-batch1.test.ts (225줄, 13개 테스트)
 
-### Batch 2 (4개) - 독립/무작위 검정
-5. Mood's Median (중앙값 검정)
-6. Runs Test (무작위성 검정)
-7. Mann-Kendall (추세 검정)
-8. Binomial Test (이항 검정)
+### ✅ Batch 2 (4개) - 독립/무작위 검정
+5. ✅ Mood's Median Test (중앙값 검정)
+6. ✅ Runs Test (무작위성 검정)
+7. ✅ Mann-Kendall Test (추세 검정)
+8. ✅ Binomial Test (이항 검정)
+
+**코드**: +95줄 (engine.ts) | **테스트**: engine-batch2.test.ts (267줄, 16개 테스트)
+
+### ✅ 버그 수정 (3개)
+- [High] Mann-Whitney U Test 해석 추가 (+13줄)
+- [Low] Mood's Median 표현 개선 (+2줄)
+- [Low] Mann-Kendall 검증 강화 (+27줄)
+
+**코드**: +42줄 (engine.ts) | **테스트**: engine-fixes.test.ts (227줄, 12개 테스트)
 
 ---
 
-## 예상 작업량
+## 실제 vs 예상 비교
 
-- **Batch 1**: 약 100줄 코드 추가 + 20개 테스트
-- **Batch 2**: 약 100줄 코드 추가 + 20개 테스트
-- **검증**: TypeScript 컴파일 + 테스트 실행
+| 항목 | 예상 | 실제 | 차이 |
+|------|------|------|------|
+| 기능 코드 | 200줄 | 290줄 | +45% (더 견고한 검증) |
+| 테스트 코드 | 40개 | 41개 | +2.5% |
+| 테스트 파일 크기 | - | 719줄 | - |
+| 버그 발견/수정 | 0개 | 3개 | 품질 검증 효과 |
+| TypeScript 에러 | 0개 | 0개 | ✓ |
+| 테스트 통과율 | 100% | 107/107 | ✓ |
 
-**총 예상**: 200줄 코드 + 40개 테스트
+**결론**: 예상보다 45% 더 많은 코드를 작성했지만, 엣지 케이스 검증과 버그 수정으로 품질이 크게 향상됨.
