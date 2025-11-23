@@ -92,6 +92,8 @@ function formatPercent(value: number, decimals: number = 1): string {
  * 통계적 유의성 판단
  */
 function isSignificant(p: number): boolean {
+  // Edge case: 음수/NaN/Infinity는 무조건 false (유의하지 않음)
+  if (!Number.isFinite(p) || p < 0) return false
   return p < THRESHOLDS.P_VALUE.ALPHA
 }
 
@@ -190,13 +192,17 @@ function getInterpretationByPurpose(
 
     const coef = results.coefficients?.[1]?.value ?? 0
     const rSquared = results.additional?.rSquared ?? 0
+    // Edge case: R² 클램핑 (formatPercent와 동일 로직)
+    const clampedR2 = Number.isFinite(rSquared)
+      ? Math.max(0, Math.min(1, rSquared))
+      : 0
 
     return {
       title: '예측 모델 결과',
       summary: `독립변수가 1단위 증가할 때 종속변수는 ${coef.toFixed(3)}만큼 변합니다.`,
       statistical: `모델 설명력(R²) = ${formatPercent(rSquared)} - ${
-        rSquared >= THRESHOLDS.R_SQUARED.HIGH ? '높은 설명력' :
-        rSquared >= THRESHOLDS.R_SQUARED.LOW ? '중간 설명력' :
+        clampedR2 >= THRESHOLDS.R_SQUARED.HIGH ? '높은 설명력' :
+        clampedR2 >= THRESHOLDS.R_SQUARED.LOW ? '중간 설명력' :
         '낮은 설명력'
       }`,
       practical: `이 모델로 종속변수 변동의 ${formatPercent(rSquared)}를 예측할 수 있습니다.`
@@ -423,7 +429,67 @@ function getInterpretationByMethod(
     }
   }
 
-  // ===== 9. Fallback: 기본 해석 =====
+  // ===== 9. 독립/무작위 검정 (Mood's Median, Runs, Mann-Kendall, Binomial) =====
+
+  // Mood's Median Test (무드 중앙값 검정)
+  if (methodLower.includes('mood') && methodLower.includes('median')) {
+    return {
+      title: '중앙값 검정 결과',
+      summary: `두 그룹의 중앙값이 같은지 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `통계적으로 유의한 중앙값 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 중앙값 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '두 그룹의 중심 경향이 다릅니다.'
+        : '두 그룹의 중심 경향이 유사합니다.'
+    }
+  }
+
+  // Runs Test (연속성 검정)
+  if (methodLower.includes('runs') && methodLower.includes('test')) {
+    return {
+      title: '무작위성 검정 결과',
+      summary: `데이터의 무작위성을 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `무작위성 가정을 만족하지 않습니다 (p=${formatPValue(results.pValue)}).`
+        : `무작위성 가정을 만족합니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '데이터에 패턴 또는 추세가 있습니다.'
+        : '데이터가 무작위로 분포되어 있습니다.'
+    }
+  }
+
+  // Mann-Kendall Test (추세 검정)
+  if (methodLower.includes('mann') && methodLower.includes('kendall')) {
+    return {
+      title: '추세 검정 결과',
+      summary: `시계열 데이터의 단조 추세를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `통계적으로 유의한 추세가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 추세가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? results.statistic > 0
+          ? '시간에 따라 증가하는 추세가 있습니다.'
+          : '시간에 따라 감소하는 추세가 있습니다.'
+        : '시간에 따른 일관된 변화가 없습니다.'
+    }
+  }
+
+  // Binomial Test (이항 검정)
+  if (methodLower.includes('binomial') && methodLower.includes('test')) {
+    return {
+      title: '이항 검정 결과',
+      summary: `성공 확률이 기대값과 같은지 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '관측된 비율이 기대 비율과 다릅니다.'
+        : '관측된 비율이 기대 비율과 일치합니다.'
+    }
+  }
+
+  // ===== 10. Fallback: 기본 해석 =====
   // method 매칭 실패 시 기본 p-value/효과크기 해석만 제공
   return null
 }
