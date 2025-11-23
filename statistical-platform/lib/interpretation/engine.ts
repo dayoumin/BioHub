@@ -457,6 +457,153 @@ function getInterpretationByMethod(
     }
   }
 
+  // ===== Phase 4: Advanced Analytics (고급 분석) =====
+
+  // Response Surface Analysis (반응표면 분석) - 먼저 체크 (Dose-Response와 'response' 중복 방지)
+  if (methodLower.includes('response surface') || methodLower.includes('반응표면') || methodLower.includes('rsm')) {
+    const modelInfo = results.additional as {
+      rSquared?: number
+      adjRSquared?: number
+      adjustedRSquared?: number
+      model_type?: string
+    }
+    const rSquared = modelInfo?.rSquared
+    const adjRSquared = modelInfo?.adjRSquared ?? modelInfo?.adjustedRSquared
+    const modelType = modelInfo?.model_type || '2차 모델'
+
+    return {
+      title: '반응표면 분석 결과',
+      summary: `${modelType}을 사용하여 반응표면을 구축했습니다${rSquared ? ` (R² = ${formatPercent(rSquared)})` : ''}.`,
+      statistical: rSquared && rSquared > 0.8
+        ? `모델이 매우 잘 적합합니다 (R² = ${formatPercent(rSquared)}${adjRSquared ? `, adj. R² = ${formatPercent(adjRSquared)}` : ''}).`
+        : rSquared && rSquared > 0.6
+          ? `모델이 적절히 적합합니다 (R² = ${formatPercent(rSquared)}${adjRSquared ? `, adj. R² = ${formatPercent(adjRSquared)}` : ''}).`
+          : `모델 적합도가 낮습니다${rSquared ? ` (R² = ${formatPercent(rSquared)})` : ''}. 1차 또는 3차 모델을 시도하세요.`,
+      practical: rSquared && rSquared > 0.8
+        ? '최적점(saddle point, maximum, minimum)을 찾아 공정 조건을 최적화할 수 있습니다. 등고선 플롯과 3D 표면 플롯을 확인하세요.'
+        : rSquared && rSquared > 0.6
+          ? '모델을 참고할 수 있지만, 추가 실험점을 수집하여 모델을 개선하는 것이 좋습니다.'
+          : '교호작용 항이나 2차 항 포함 여부를 재검토하거나, 실험 설계를 조정하세요.'
+    }
+  }
+
+  // Dose-Response Analysis (용량-반응 분석)
+  if (methodLower.includes('dose') || methodLower.includes('용량') || methodLower.includes('response curve')) {
+    const modelInfo = results.additional as {
+      model?: string
+      r_squared?: number
+      aic?: number
+      ec50?: number
+      ic50?: number
+      hill_slope?: number
+    }
+    const rSquared = modelInfo?.r_squared
+    const ec50 = modelInfo?.ec50
+    const ic50 = modelInfo?.ic50
+    const modelType = modelInfo?.model || '용량-반응 모델'
+
+    return {
+      title: '용량-반응 분석 결과',
+      summary: `${modelType} 곡선을 적합하여 용량-반응 관계를 분석했습니다${rSquared ? ` (R² = ${formatPercent(rSquared)})` : ''}.`,
+      statistical: rSquared && rSquared > 0.8
+        ? `모델이 데이터에 잘 적합합니다 (R² = ${formatPercent(rSquared)}).${ec50 ? ` EC50 = ${ec50.toFixed(3)}` : ''}${ic50 ? ` IC50 = ${ic50.toFixed(3)}` : ''}`
+        : rSquared && rSquared > 0.5
+          ? `모델이 데이터에 적절히 적합합니다 (R² = ${formatPercent(rSquared)}).${ec50 ? ` EC50 = ${ec50.toFixed(3)}` : ''}`
+          : `모델 적합도가 낮습니다${rSquared ? ` (R² = ${formatPercent(rSquared)})` : ''}. 다른 모델을 시도하세요.`,
+      practical: rSquared && rSquared > 0.8
+        ? `EC50/IC50 값을 활용하여 최적 용량을 결정할 수 있습니다. 모델 파라미터의 신뢰구간도 확인하세요.`
+        : rSquared && rSquared > 0.5
+          ? `모델 파라미터를 참고하되, 예측값에 대한 신뢰도는 제한적입니다.`
+          : '다른 용량-반응 모델(4PL, Weibull, Hill 등)을 시도하거나 데이터 품질을 확인하세요.'
+    }
+  }
+
+  // Mixed Model (혼합 모형)
+  if (methodLower.includes('mixed') || methodLower.includes('혼합') || methodLower.includes('lme') || methodLower.includes('lmm')) {
+    const hasCoefficients = results.coefficients && results.coefficients.length > 0
+    const modelInfo = results.additional as {
+      marginal_r_squared?: number
+      conditional_r_squared?: number
+      icc?: number
+    }
+    const marginalR2 = modelInfo?.marginal_r_squared
+    const conditionalR2 = modelInfo?.conditional_r_squared
+    const icc = modelInfo?.icc
+
+    // 유의한 고정효과 개수 (Intercept 제외)
+    const fixedEffects = hasCoefficients
+      ? results.coefficients!.filter(c =>
+          c.name.toLowerCase() !== 'intercept' &&
+          c.name.toLowerCase() !== 'const'
+        )
+      : []
+
+    const significantEffects = fixedEffects.filter(c =>
+      c.pvalue !== undefined && isSignificant(c.pvalue)
+    ).length
+
+    return {
+      title: '혼합 모형 결과',
+      summary: `고정효과와 무선효과를 모두 고려한 혼합 모형을 적합했습니다${fixedEffects.length > 0 ? ` (고정효과 ${fixedEffects.length}개)` : ''}.`,
+      statistical: hasCoefficients && significantEffects > 0
+        ? `${significantEffects}개 고정효과가 통계적으로 유의합니다 (p<0.05).${marginalR2 ? ` 고정효과 설명력: ${formatPercent(marginalR2)}` : ''}${conditionalR2 ? `, 전체 모델 설명력: ${formatPercent(conditionalR2)}` : ''}`
+        : `유의한 고정효과가 없습니다.${marginalR2 ? ` 고정효과 설명력: ${formatPercent(marginalR2)}` : ''}`,
+      practical: hasCoefficients && significantEffects > 0
+        ? `ICC(급내상관계수)${icc ? ` = ${formatPercent(icc)}` : ''}를 확인하여 무선효과의 중요성을 평가하세요. 고정효과 계수로 예측 모델을 구축할 수 있습니다.`
+        : '무선효과만으로도 충분한 설명력이 있는지 확인하거나, 추가 고정효과 변수를 고려하세요.'
+    }
+  }
+
+  // Power Analysis (검정력 분석)
+  if (methodLower.includes('power') || methodLower.includes('검정력') || methodLower.includes('표본')) {
+    const powerInfo = results.additional as {
+      analysisType?: string
+      sampleSize?: number
+      power?: number
+      effectSize?: number
+      alpha?: number
+    }
+    const analysisType = powerInfo?.analysisType || 'a-priori'
+    const sampleSize = powerInfo?.sampleSize
+    const power = powerInfo?.power
+    const effectSize = powerInfo?.effectSize
+    const alpha = powerInfo?.alpha || 0.05
+
+    if (analysisType === 'a-priori' && sampleSize) {
+      // A-priori: 필요 표본 크기 계산
+      return {
+        title: '검정력 분석 결과 (A-priori)',
+        summary: `원하는 검정력${power ? ` (${(power * 100).toFixed(0)}%)` : ''}을 달성하기 위한 표본 크기를 계산했습니다.`,
+        statistical: `효과크기 ${effectSize?.toFixed(2) || 'medium'}, 유의수준 α=${alpha}일 때, 그룹당 최소 ${sampleSize}명이 필요합니다.`,
+        practical: sampleSize > 100
+          ? `표본 크기가 큽니다 (${sampleSize}명). 효과크기가 작거나, 요구 검정력이 높은 경우입니다. 연구 실행 가능성을 재검토하세요.`
+          : `표본 ${sampleSize}명을 수집하되, 탈락률 10-20%를 고려하여 여유있게 모집하세요.`
+      }
+    } else if (analysisType === 'post-hoc' && power !== undefined) {
+      // Post-hoc: 달성된 검정력 계산
+      return {
+        title: '검정력 분석 결과 (Post-hoc)',
+        summary: `현재 표본 크기${sampleSize ? ` (${sampleSize}명)` : ''}로 달성 가능한 검정력을 계산했습니다.`,
+        statistical: `효과크기 ${effectSize?.toFixed(2) || 'medium'}, 유의수준 α=${alpha}일 때, 검정력은 ${(power * 100).toFixed(1)}%입니다.`,
+        practical: power >= 0.8
+          ? `검정력이 충분합니다 (${(power * 100).toFixed(1)}% ≥ 80%). 통계적 검정 결과를 신뢰할 수 있습니다.`
+          : power >= 0.5
+            ? `검정력이 낮습니다 (${(power * 100).toFixed(1)}% < 80%). 표본 크기를 늘리거나 더 큰 효과크기를 기대할 수 있는 경우만 진행하세요.`
+            : `검정력이 매우 낮습니다 (${(power * 100).toFixed(1)}% < 50%). 추가 표본 수집이 필수적입니다.`
+      }
+    } else {
+      // Compromise 또는 기타
+      return {
+        title: '검정력 분석 결과',
+        summary: `검정력, 표본 크기, 효과크기, 유의수준 간의 균형을 분석했습니다.`,
+        statistical: sampleSize && power
+          ? `표본 크기 ${sampleSize}명일 때 검정력은 ${(power * 100).toFixed(1)}%입니다.`
+          : '검정력 분석 결과를 확인하세요.',
+        practical: '검정력 곡선을 참고하여 연구 설계를 최적화하세요. 실행 가능성과 통계적 검정력 간의 균형을 맞추는 것이 중요합니다.'
+      }
+    }
+  }
+
   // One-way ANOVA / Kruskal-Wallis (기본 다집단 비교 - 마지막에 매칭)
   if (methodLower.includes('anova') || methodLower.includes('분산분석') || methodLower.includes('kruskal')) {
     const groupStats = results.groupStats
