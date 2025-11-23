@@ -130,7 +130,7 @@ function getInterpretationByPurpose(
   // ===== 1. 그룹 비교 (compare, difference, 비교, 차이) =====
   if (purposeLower.includes('비교') || purposeLower.includes('차이') || purposeLower.includes('compare') || purposeLower.includes('difference')) {
     // ✅ Fix: 3개 이상 그룹일 때는 숨김 (ANOVA는 사후 검정에서 처리)
-    if (results.groupStats && results.groupStats.length === 2) {
+    if (results.groupStats?.length === 2) {
       const group1 = results.groupStats[0]
       const group2 = results.groupStats[1]
       const diff = group1.mean - group2.mean
@@ -171,7 +171,7 @@ function getInterpretationByPurpose(
     return {
       title: '변수 간 관계 분석',
       summary: `X가 증가할 때 Y는 ${r > 0 ? '함께 증가' : '반대로 감소'}하는 경향이 있습니다 (r=${r.toFixed(3)}).`,
-      statistical: results.pValue < 0.05
+      statistical: isSignificant(results.pValue)
         ? `${strength} ${direction} 상관관계가 통계적으로 유의합니다 (p=${formatPValue(results.pValue)}).`
         : `상관관계가 통계적으로 유의하지 않습니다 (p=${formatPValue(results.pValue)}).`,
       practical: `상관계수 r=${r.toFixed(3)} → X 변동의 약 ${formatPercent(r * r)}가 Y 변동과 관련됩니다.`
@@ -218,9 +218,10 @@ function getInterpretationByMethod(
 
   // ===== 1. 다집단 비교 (ANOVA, Kruskal-Wallis) =====
   if (methodLower.includes('anova') || methodLower.includes('분산분석') || methodLower.includes('kruskal')) {
-    if (results.groupStats && results.groupStats.length >= 3) {
-      const groupCount = results.groupStats.length
-      const means = results.groupStats
+    const groupStats = results.groupStats
+    if (groupStats && groupStats.length >= 3) {
+      const groupCount = groupStats.length
+      const means = groupStats
         .map(g => g.mean)
         .filter((m): m is number => typeof m === 'number' && !isNaN(m))
 
@@ -230,17 +231,20 @@ function getInterpretationByMethod(
       const minMean = Math.min(...means)
       const range = maxMean - minMean
 
+      const postHoc = results.postHoc
+      const postHocSummary = postHoc && postHoc.length > 0
+        ? `사후 검정 결과: ${postHoc.filter(p => p.significant).length}개 쌍에서 유의한 차이 발견`
+        : isSignificant(results.pValue)
+          ? '사후 검정을 수행하여 어느 그룹이 다른지 확인하세요.'
+          : null
+
       return {
         title: '다집단 비교 결과',
         summary: `${groupCount}개 그룹의 평균 범위는 ${minMean.toFixed(2)} ~ ${maxMean.toFixed(2)} (차이: ${range.toFixed(2)})입니다.`,
         statistical: isSignificant(results.pValue)
           ? `적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p=${formatPValue(results.pValue)}).`
           : `모든 그룹 평균이 통계적으로 유사합니다 (p=${formatPValue(results.pValue)}).`,
-        practical: results.postHoc && results.postHoc.length > 0
-          ? `사후 검정 결과: ${results.postHoc.filter(p => p.significant).length}개 쌍에서 유의한 차이 발견`
-          : isSignificant(results.pValue)
-            ? '사후 검정을 수행하여 어느 그룹이 다른지 확인하세요.'
-            : null
+        practical: postHocSummary
       }
     }
   }
@@ -361,7 +365,65 @@ function getInterpretationByMethod(
     }
   }
 
-  // ===== 8. Fallback: 기본 해석 =====
+  // ===== 8. 대응/쌍대 비모수 검정 (Wilcoxon, Sign, Friedman, Cochran Q) =====
+
+  // Wilcoxon Signed-Rank Test (윌콕슨 부호 순위 검정)
+  if (methodLower.includes('wilcoxon') && !methodLower.includes('mann')) {
+    return {
+      title: '대응표본 비모수 검정',
+      summary: `두 대응 측정값의 중앙값 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '두 측정 시점 간 중앙값이 실질적으로 다릅니다.'
+        : '두 측정 시점 간 중앙값이 유사합니다.'
+    }
+  }
+
+  // Sign Test (부호 검정)
+  if (methodLower.includes('sign') && methodLower.includes('test')) {
+    return {
+      title: '부호 검정 결과',
+      summary: `대응 데이터의 증가/감소 방향을 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `통계적으로 유의한 변화가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 변화가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '대부분의 관측치가 일관된 방향으로 변화했습니다.'
+        : '증가와 감소가 비슷한 비율로 나타났습니다.'
+    }
+  }
+
+  // Friedman Test (프리드만 검정)
+  if (methodLower.includes('friedman')) {
+    return {
+      title: '반복측정 비모수 검정',
+      summary: `3개 이상 반복측정값의 중앙값 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `적어도 하나의 시점에서 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `모든 시점의 중앙값이 통계적으로 유사합니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '사후 검정(Nemenyi, Wilcoxon)을 수행하여 어느 시점이 다른지 확인하세요.'
+        : '시간에 따른 유의한 변화가 없습니다.'
+    }
+  }
+
+  // Cochran Q Test (코크란 Q 검정)
+  if (methodLower.includes('cochran') || methodLower.includes('cochranq')) {
+    return {
+      title: '다중 이분형 변수 검정',
+      summary: `3개 이상 이분형 반복측정값의 비율 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `적어도 하나의 시점에서 통계적으로 유의한 비율 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `모든 시점의 비율이 통계적으로 유사합니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? 'McNemar 사후 검정을 수행하여 어느 시점 쌍이 다른지 확인하세요.'
+        : '시간에 따른 비율 변화가 없습니다.'
+    }
+  }
+
+  // ===== 9. Fallback: 기본 해석 =====
   // method 매칭 실패 시 기본 p-value/효과크기 해석만 제공
   return null
 }
