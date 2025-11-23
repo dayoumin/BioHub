@@ -222,7 +222,73 @@ function getInterpretationByMethod(
 ): InterpretationResult | null {
   const methodLower = normalizeMethod(results.method)
 
-  // ===== 1. 다집단 비교 (ANOVA, Kruskal-Wallis) =====
+  // ===== 1. 다집단 비교 (ANOVA 변형 먼저, 일반 ANOVA 나중에) =====
+
+  // Two-way ANOVA (이원분산분석)
+  if ((methodLower.includes('two') && methodLower.includes('way') && methodLower.includes('anova')) ||
+      methodLower.includes('이원분산분석') ||
+      methodLower.includes('2원분산분석')) {
+    return {
+      title: '이원분산분석 결과',
+      summary: `두 독립변수(요인)가 종속변수에 미치는 주효과와 상호작용 효과를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `통계적으로 유의한 효과가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 효과가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '주효과 또는 상호작용 효과를 해석하고, 필요 시 사후 검정을 수행하세요.'
+        : '두 요인 모두 종속변수에 영향을 주지 않습니다.'
+    }
+  }
+
+  // Repeated Measures ANOVA (반복측정 분산분석)
+  if ((methodLower.includes('repeated') && methodLower.includes('measures') && methodLower.includes('anova')) ||
+      methodLower.includes('반복측정') ||
+      methodLower.includes('within')) {
+    return {
+      title: '반복측정 분산분석 결과',
+      summary: `동일 개체에서 3회 이상 측정한 값의 평균 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `시점 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `시점 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '사후 검정(예: Bonferroni)을 통해 어느 시점이 다른지 확인하세요.'
+        : '측정 시점에 따른 유의한 변화가 없습니다.'
+    }
+  }
+
+  // ANCOVA (공분산분석)
+  if (methodLower.includes('ancova') ||
+      methodLower.includes('공분산분석') ||
+      (methodLower.includes('analysis') && methodLower.includes('covariance'))) {
+    return {
+      title: '공분산분석 결과',
+      summary: `공변량(covariate)을 통제한 후 집단 간 평균 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `공변량 보정 후 집단 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `공변량 보정 후 집단 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '공변량의 영향을 제거한 순수한 집단 효과가 존재합니다.'
+        : '공변량을 통제해도 집단 간 차이가 없습니다.'
+    }
+  }
+
+  // MANOVA (다변량 분산분석)
+  if (methodLower.includes('manova') ||
+      methodLower.includes('다변량') ||
+      (methodLower.includes('multivariate') && methodLower.includes('anova'))) {
+    return {
+      title: '다변량 분산분석 결과',
+      summary: `여러 종속변수를 동시에 고려하여 집단 간 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `다변량 차원에서 통계적으로 유의한 집단 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
+        : `다변량 차원에서 통계적으로 유의한 집단 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '개별 종속변수에 대한 일원분산분석(follow-up ANOVA)을 수행하세요.'
+        : '모든 종속변수에서 집단 간 차이가 없습니다.'
+    }
+  }
+
+  // One-way ANOVA / Kruskal-Wallis (기본 다집단 비교 - 마지막에 매칭)
   if (methodLower.includes('anova') || methodLower.includes('분산분석') || methodLower.includes('kruskal')) {
     const groupStats = results.groupStats
     if (groupStats && groupStats.length >= 3) {
