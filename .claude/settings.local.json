@@ -12,7 +12,8 @@
       "Bash(iconv:*)",
       "Bash(npm run build:*)",
       "Bash(python fix-encoding.py:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []
