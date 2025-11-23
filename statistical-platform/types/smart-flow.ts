@@ -282,13 +282,66 @@ export interface AnalysisResult {
     communalities?: number[]
     eigenvalues?: number[]
     rankings?: number[]
-    itemTotalCorrelations?: number[]
-    alpha?: number  // Cronbach's alpha
+    // Phase 5: Basic Statistics
+    mean?: number
+    median?: number
+    std?: number
+    variance?: number
+    min?: number
+    max?: number
+    q1?: number
+    q3?: number
+    iqr?: number
+    skewness?: number
+    kurtosis?: number
+    n?: number
+
+    // Proportion Test
+    sampleProportion?: number
+    nullProportion?: number
+    pValueExact?: number
+    pValueApprox?: number
+    zStatistic?: number
+
+    // One-sample t-test
+    testValue?: number
+    mu?: number
+    cohensD?: number
+
+    // Means Plot & Explore
+    descriptives?: Record<string, {
+      group?: string
+      mean?: number
+      std?: number
+      sem?: number
+      count?: number
+      ciLower?: number
+      ciUpper?: number
+    }>
+    plotData?: Array<{
+      group?: string
+      mean?: number
+      ciLower?: number
+      ciUpper?: number
+    }>
+
+    // Phase 4: Advanced Statistics (기존 필드 유지)
+    model?: string
+    // Phase 4: Advanced Statistics (추가 필드)
+    model_type?: string
+    r_squared?: number  // snake_case 버전 (Python Worker 호환)
+    marginal_r_squared?: number
+    conditional_r_squared?: number
+    icc?: number
+    analysisType?: 'a-priori' | 'post-hoc' | 'compromise'
+    sampleSize?: number
     power?: number
-    requiredSampleSize?: number
-    // Regression-specific metrics
-    aic?: number  // Akaike Information Criterion
-    bic?: number  // Bayesian Information Criterion
+    alpha?: number
+    ec50?: number
+    ic50?: number
+    aic?: number
+    bic?: number
+    itemTotalCorrelations?: number[]
     pseudo_r_squared_mcfadden?: number  // McFadden pseudo R² (Poisson, Ordinal)
     pseudo_r_squared_nagelkerke?: number  // Nagelkerke pseudo R² (Ordinal, Logistic)
     pseudo_r_squared_cox_snell?: number  // Cox-Snell pseudo R² (Ordinal, Logistic)

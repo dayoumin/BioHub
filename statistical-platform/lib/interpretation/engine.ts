@@ -555,7 +555,7 @@ function getInterpretationByMethod(
   }
 
   // Power Analysis (검정력 분석)
-  if (methodLower.includes('power') || methodLower.includes('검정력') || methodLower.includes('표본')) {
+  if (methodLower.includes('power') || methodLower.includes('검정력') || (methodLower.includes('표본') && (methodLower.includes('크기') || methodLower.includes('수')))) {
     const powerInfo = results.additional as {
       analysisType?: string
       sampleSize?: number
@@ -600,6 +600,234 @@ function getInterpretationByMethod(
           ? `표본 크기 ${sampleSize}명일 때 검정력은 ${(power * 100).toFixed(1)}%입니다.`
           : '검정력 분석 결과를 확인하세요.',
         practical: '검정력 곡선을 참고하여 연구 설계를 최적화하세요. 실행 가능성과 통계적 검정력 간의 균형을 맞추는 것이 중요합니다.'
+      }
+    }
+  }
+
+
+  // ===== Phase 5: 기타 분석 (Descriptive, Proportion, One-sample t-test, Explore, Means Plot) =====
+
+  // 1. Descriptive Statistics (기술통계)
+  if (methodLower.includes('descriptive') || methodLower.includes('기술통계')) {
+    const mean = results.additional?.mean
+    const std = results.additional?.std
+    const skewness = results.additional?.skewness
+    const kurtosis = results.additional?.kurtosis
+    const n = results.additional?.n
+
+    if (typeof mean === 'number' && typeof std === 'number' && typeof n === 'number') {
+      // 변동계수 (Coefficient of Variation)
+      const cv = (std / Math.abs(mean)) * 100
+
+      // 왜도 해석
+      let skewnessInterpretation = ''
+      if (typeof skewness === 'number') {
+        if (Math.abs(skewness) < 0.5) {
+          skewnessInterpretation = '분포가 대칭적입니다 (정규분포에 가까움).'
+        } else if (skewness > 0.5) {
+          skewnessInterpretation = '양의 왜도: 오른쪽 꼬리가 깁니다 (큰 값들이 드물게 존재).'
+        } else {
+          skewnessInterpretation = '음의 왜도: 왼쪽 꼬리가 깁니다 (작은 값들이 드물게 존재).'
+        }
+      }
+
+      // 첨도 해석
+      let kurtosisInterpretation = ''
+      if (typeof kurtosis === 'number') {
+        if (Math.abs(kurtosis) < 0.5) {
+          kurtosisInterpretation = '정규분포와 유사한 꼬리 두께입니다.'
+        } else if (kurtosis > 0.5) {
+          kurtosisInterpretation = '양의 첨도: 극단값이 많습니다 (두꺼운 꼬리).'
+        } else {
+          kurtosisInterpretation = '음의 첨도: 극단값이 적습니다 (얇은 꼬리).'
+        }
+      }
+
+      return {
+        title: '기술통계량 요약',
+        summary: `평균 ${mean.toFixed(2)}, 표준편차 ${std.toFixed(2)}, 변동계수 ${cv.toFixed(1)}% (n=${n})`,
+        statistical: [skewnessInterpretation, kurtosisInterpretation].filter(s => s).join(' '),
+        practical: cv < 15
+          ? '데이터 변동성이 낮습니다 (일관적).'
+          : cv < 30
+            ? '데이터 변동성이 중간 수준입니다.'
+            : '데이터 변동성이 높습니다 (이질적).'
+      }
+    }
+  }
+
+  // 2. Proportion Test (비율 검정)
+  if (methodLower.includes('proportion') || methodLower.includes('비율')) {
+    const sampleProp = results.additional?.sampleProportion
+    const nullProp = results.additional?.nullProportion
+    const pValue = results.additional?.pValueExact ?? results.pValue
+
+    if (typeof sampleProp === 'number' && typeof nullProp === 'number' && typeof pValue === 'number') {
+      const propDiff = (sampleProp - nullProp) * 100
+      const propDiffAbs = Math.abs(propDiff)
+
+      return {
+        title: '비율 검정 결과',
+        summary: `관찰 비율 ${(sampleProp * 100).toFixed(1)}% vs 귀무 비율 ${(nullProp * 100).toFixed(1)}% (차이: ${propDiffAbs.toFixed(1)}%p)`,
+        statistical: isSignificant(pValue)
+          ? `관찰 비율이 귀무 비율과 통계적으로 다릅니다 (p=${formatPValue(pValue)}).`
+          : `관찰 비율이 귀무 비율과 통계적으로 유사합니다 (p=${formatPValue(pValue)}).`,
+        practical: propDiffAbs < 5
+          ? '실질적 차이가 매우 작습니다.'
+          : propDiffAbs < 10
+            ? '실질적 차이가 작은 편입니다.'
+            : '실질적 차이가 큽니다.'
+      }
+    }
+  }
+
+  // 3. One-sample t-test (일표본 t검정) - Proportion Test보다 뒤에 체크
+  if ((methodLower.includes('one') && methodLower.includes('sample') && !methodLower.includes('proportion'))
+      || methodLower.includes('일표본')) {
+    const mean = results.additional?.mean
+    const testValue = results.additional?.testValue ?? results.additional?.mu
+    const pValue = results.pValue
+
+    if (typeof mean === 'number' && typeof testValue === 'number' && typeof pValue === 'number') {
+      const diff = mean - testValue
+      const diffAbs = Math.abs(diff)
+
+      // 효과 크기 (Cohen's d) 계산 시도
+      let effectSizeInfo = ''
+      const cohensD = results.additional?.cohensD ?? results.effectSize
+      if (typeof cohensD === 'number') {
+        const dAbs = Math.abs(cohensD)
+        effectSizeInfo = dAbs < 0.2
+          ? '(효과 크기: 매우 작음)'
+          : dAbs < 0.5
+            ? '(효과 크기: 작음)'
+            : dAbs < 0.8
+              ? '(효과 크기: 중간)'
+              : '(효과 크기: 큼)'
+      }
+
+      return {
+        title: '일표본 t검정 결과',
+        summary: `표본 평균 ${mean.toFixed(2)} vs 검정값 ${testValue.toFixed(2)} (차이: ${diffAbs.toFixed(2)}) ${effectSizeInfo}`,
+        statistical: isSignificant(pValue)
+          ? `표본 평균이 검정값과 통계적으로 다릅니다 (p=${formatPValue(pValue)}).`
+          : `표본 평균이 검정값과 통계적으로 유사합니다 (p=${formatPValue(pValue)}).`,
+        practical: effectSizeInfo || (diffAbs < 0.5 ? '실질적 차이가 작습니다.' : '실질적 차이가 있습니다.')
+      }
+    }
+  }
+
+  // 4. Explore Data (탐색적 분석) - Descriptive과 유사하지만 더 포괄적
+  if (methodLower.includes('explore') || methodLower.includes('탐색')) {
+    const mean = results.additional?.mean
+    const median = results.additional?.median
+    const std = results.additional?.std
+    const skewness = results.additional?.skewness
+    const n = results.additional?.n
+
+    if (typeof mean === 'number' && typeof median === 'number' && typeof std === 'number' && typeof n === 'number') {
+      const meanMedianDiff = Math.abs(mean - median)
+      const cv = (std / Math.abs(mean)) * 100
+
+      // 평균-중앙값 차이로 대칭성 판단
+      let symmetryInterpretation = ''
+      if (typeof skewness === 'number') {
+        if (Math.abs(skewness) < 0.5) {
+          symmetryInterpretation = '분포가 대칭적입니다.'
+        } else if (skewness > 0) {
+          symmetryInterpretation = '분포가 오른쪽으로 치우쳐 있습니다 (평균 > 중앙값).'
+        } else {
+          symmetryInterpretation = '분포가 왼쪽으로 치우쳐 있습니다 (평균 < 중앙값).'
+        }
+      } else {
+        // 왜도 데이터 없을 경우 평균-중앙값 차이로 판단
+        symmetryInterpretation = meanMedianDiff < 0.1 * std
+          ? '분포가 대칭적입니다.'
+          : mean > median
+            ? '분포가 오른쪽으로 치우쳐 있습니다.'
+            : '분포가 왼쪽으로 치우쳐 있습니다.'
+      }
+
+      return {
+        title: '탐색적 데이터 분석',
+        summary: `중심값: 평균 ${mean.toFixed(2)}, 중앙값 ${median.toFixed(2)} | 변동성: CV ${cv.toFixed(1)}% (n=${n})`,
+        statistical: symmetryInterpretation,
+        practical: cv < 20
+          ? '데이터가 비교적 균일합니다. 모수적 검정을 고려할 수 있습니다.'
+          : cv < 50
+            ? '데이터 변동성이 중간 수준입니다. 검정 방법을 신중히 선택하세요.'
+            : '데이터 변동성이 매우 높습니다. 비모수적 검정이나 로그 변환을 고려하세요.'
+      }
+    }
+  }
+
+  // 5. Means Plot (평균 플롯) - 집단별 평균 비교 시각화
+  if (methodLower.includes('meansplot') || methodLower.includes('평균플롯')) {
+    // descriptives 객체 또는 plotData 배열에서 정보 추출
+    const descriptives = results.additional?.descriptives
+    const plotData = results.additional?.plotData
+
+    if (descriptives && typeof descriptives === 'object') {
+      const groups = Object.values(descriptives)
+      if (groups.length >= 2) {
+        const means = groups
+          .map((g: unknown) => {
+            if (typeof g === 'object' && g !== null && 'mean' in g) {
+              return (g as { mean: unknown }).mean
+            }
+            return null
+          })
+          .filter((m): m is number => typeof m === 'number' && !isNaN(m))
+
+        if (means.length >= 2) {
+          const maxMean = Math.max(...means)
+          const minMean = Math.min(...means)
+          const range = maxMean - minMean
+          const avgMean = means.reduce((a, b) => a + b, 0) / means.length
+
+          // 평균 차이 비율
+          const diffPercent = (range / avgMean) * 100
+
+          return {
+            title: '집단별 평균 비교',
+            summary: `${means.length}개 집단의 평균 범위: ${minMean.toFixed(2)} ~ ${maxMean.toFixed(2)} (차이: ${range.toFixed(2)}, ${diffPercent.toFixed(1)}%)`,
+            statistical: diffPercent < 10
+              ? '집단 간 평균 차이가 작습니다.'
+              : diffPercent < 30
+                ? '집단 간 평균 차이가 중간 수준입니다.'
+                : '집단 간 평균 차이가 큽니다.',
+            practical: '오차 막대(95% CI)가 겹치는지 확인하세요. 겹치지 않으면 통계적으로 유의한 차이일 가능성이 높습니다. ANOVA나 t검정으로 검증하세요.'
+          }
+        }
+      }
+    } else if (Array.isArray(plotData) && plotData.length >= 2) {
+      // plotData 배열에서 직접 추출
+      const means = plotData
+        .map((p: unknown) => {
+          if (typeof p === 'object' && p !== null && 'mean' in p) {
+            return (p as { mean: unknown }).mean
+          }
+          return null
+        })
+        .filter((m): m is number => typeof m === 'number' && !isNaN(m))
+
+      if (means.length >= 2) {
+        const maxMean = Math.max(...means)
+        const minMean = Math.min(...means)
+        const range = maxMean - minMean
+        const avgMean = means.reduce((a, b) => a + b, 0) / means.length
+        const diffPercent = (range / avgMean) * 100
+
+        return {
+          title: '집단별 평균 비교',
+          summary: `${means.length}개 집단의 평균 범위: ${minMean.toFixed(2)} ~ ${maxMean.toFixed(2)} (차이: ${range.toFixed(2)}, ${diffPercent.toFixed(1)}%)`,
+          statistical: diffPercent < 10
+            ? '집단 간 평균 차이가 작습니다.'
+            : diffPercent < 30
+              ? '집단 간 평균 차이가 중간 수준입니다.'
+              : '집단 간 평균 차이가 큽니다.',
+          practical: '오차 막대(95% CI)가 겹치는지 확인하세요. 겹치지 않으면 통계적으로 유의한 차이일 가능성이 높습니다. ANOVA나 t검정으로 검증하세요.'
+        }
       }
     }
   }
