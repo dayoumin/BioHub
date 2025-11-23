@@ -304,19 +304,22 @@ function getInterpretationByMethod(
     const modelInfo = results.additional as { pseudo_r_squared_mcfadden?: number; aic?: number }
     const pseudoR2 = modelInfo?.pseudo_r_squared_mcfadden
 
-    // 유의한 예측변수 개수 카운트
-    const significantPredictors = hasCoefficients
+    // 예측변수 필터링 (intercept/const 제외, case-insensitive)
+    const predictors = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name !== 'Intercept' &&
-          c.name !== 'const' &&
-          c.pvalue !== undefined &&
-          isSignificant(c.pvalue)
-        ).length
-      : 0
+          c.name.toLowerCase() !== 'intercept' &&
+          c.name.toLowerCase() !== 'const'
+        )
+      : []
+
+    // 유의한 예측변수 개수 카운트
+    const significantPredictors = predictors.filter(c =>
+      c.pvalue !== undefined && isSignificant(c.pvalue)
+    ).length
 
     return {
       title: '포아송 회귀 결과',
-      summary: `카운트 데이터를 예측하는 포아송 회귀 모형을 적합했습니다${hasCoefficients ? ` (예측변수 ${results.coefficients!.length - 1}개)` : ''}.`,
+      summary: `카운트 데이터를 예측하는 포아송 회귀 모형을 적합했습니다${predictors.length > 0 ? ` (예측변수 ${predictors.length}개)` : ''}.`,
       statistical: hasCoefficients && significantPredictors > 0
         ? `${significantPredictors}개 예측변수가 카운트 결과에 통계적으로 유의한 영향을 미칩니다 (p<0.05).${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`
         : `유의한 예측변수가 없습니다.${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`,
@@ -333,19 +336,22 @@ function getInterpretationByMethod(
     const modelInfo = results.additional as { pseudo_r_squared?: number; aic?: number }
     const pseudoR2 = modelInfo?.pseudo_r_squared
 
-    // 유의한 예측변수 개수 카운트
-    const significantPredictors = hasCoefficients
+    // 예측변수 필터링 (intercept/const 제외, case-insensitive)
+    const predictors = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name !== 'Intercept' &&
-          c.name !== 'const' &&
-          c.pvalue !== undefined &&
-          isSignificant(c.pvalue)
-        ).length
-      : 0
+          c.name.toLowerCase() !== 'intercept' &&
+          c.name.toLowerCase() !== 'const'
+        )
+      : []
+
+    // 유의한 예측변수 개수 카운트
+    const significantPredictors = predictors.filter(c =>
+      c.pvalue !== undefined && isSignificant(c.pvalue)
+    ).length
 
     return {
       title: '순서형 회귀 결과',
-      summary: `순서형 종속변수를 예측하는 비례 오즈 모형(Proportional Odds Model)을 적합했습니다${hasCoefficients ? ` (예측변수 ${results.coefficients!.length}개)` : ''}.`,
+      summary: `순서형 종속변수를 예측하는 비례 오즈 모형(Proportional Odds Model)을 적합했습니다${predictors.length > 0 ? ` (예측변수 ${predictors.length}개)` : ''}.`,
       statistical: hasCoefficients && significantPredictors > 0
         ? `${significantPredictors}개 예측변수가 순서형 결과에 통계적으로 유의한 영향을 미칩니다 (p<0.05).${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`
         : `유의한 예측변수가 없습니다.${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`,
@@ -363,19 +369,22 @@ function getInterpretationByMethod(
     const pseudoR2 = modelInfo?.pseudo_r_squared
     const accuracy = modelInfo?.accuracy
 
-    // 유의한 예측변수 개수 카운트
-    const significantPredictors = hasCoefficients
+    // 예측변수 필터링 (intercept/const 제외, case-insensitive)
+    const predictors = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name !== 'Intercept' &&
-          c.name !== 'const' &&
-          c.pvalue !== undefined &&
-          isSignificant(c.pvalue)
-        ).length
-      : 0
+          c.name.toLowerCase() !== 'intercept' &&
+          c.name.toLowerCase() !== 'const'
+        )
+      : []
+
+    // 유의한 예측변수 개수 카운트
+    const significantPredictors = predictors.filter(c =>
+      c.pvalue !== undefined && isSignificant(c.pvalue)
+    ).length
 
     return {
       title: '로지스틱 회귀 결과',
-      summary: `이분형 종속변수(0/1)를 예측하는 로지스틱 회귀 모형을 적합했습니다${hasCoefficients ? ` (예측변수 ${results.coefficients!.length - 1}개)` : ''}.`,
+      summary: `이분형 종속변수(0/1)를 예측하는 로지스틱 회귀 모형을 적합했습니다${predictors.length > 0 ? ` (예측변수 ${predictors.length}개)` : ''}.`,
       statistical: hasCoefficients && significantPredictors > 0
         ? `${significantPredictors}개 예측변수가 결과 확률에 통계적으로 유의한 영향을 미칩니다 (p<0.05).${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}${accuracy ? ` 정확도: ${formatPercent(accuracy)}` : ''}`
         : `유의한 예측변수가 없습니다.${pseudoR2 ? ` 모형 설명력: ${formatPercent(pseudoR2)}` : ''}`,
@@ -389,20 +398,24 @@ function getInterpretationByMethod(
   // 정규화 후: 'stepwise', '단계적', 'forward', 'backward' 모두 매칭
   if (methodLower.includes('stepwise') || methodLower.includes('단계적') || methodLower.includes('forward') || methodLower.includes('backward')) {
     const hasCoefficients = results.coefficients && results.coefficients.length > 0
-    const modelInfo = results.additional as { rSquared?: number; adjRSquared?: number; finalVariables?: string[] }
+    const modelInfo = results.additional as { rSquared?: number; adjRSquared?: number; adjustedRSquared?: number; finalVariables?: string[] }
     const rSquared = modelInfo?.rSquared
-    const adjRSquared = modelInfo?.adjRSquared
+    // Bug fix: Support both adjRSquared and adjustedRSquared keys
+    const adjRSquared = modelInfo?.adjRSquared ?? modelInfo?.adjustedRSquared
     const selectedVars = modelInfo?.finalVariables?.length
 
-    // 최종 선택된 유의한 예측변수 개수
-    const significantPredictors = hasCoefficients
+    // 예측변수 필터링 (intercept/const 제외, case-insensitive)
+    const predictors = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name !== 'Intercept' &&
-          c.name !== 'const' &&
-          c.pvalue !== undefined &&
-          isSignificant(c.pvalue)
-        ).length
-      : 0
+          c.name.toLowerCase() !== 'intercept' &&
+          c.name.toLowerCase() !== 'const'
+        )
+      : []
+
+    // 최종 선택된 유의한 예측변수 개수
+    const significantPredictors = predictors.filter(c =>
+      c.pvalue !== undefined && isSignificant(c.pvalue)
+    ).length
 
     return {
       title: '단계적 회귀 결과',

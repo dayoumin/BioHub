@@ -144,6 +144,7 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
     rmse: executorResult.additionalInfo?.rmse,
     rSquared: executorResult.additionalInfo?.rSquared,
     adjustedRSquared: executorResult.additionalInfo?.adjustedRSquared,
+    adjRSquared: executorResult.additionalInfo?.adjustedRSquared,  // Alias for backward compatibility
     vif: executorResult.additionalInfo?.vif,
     residuals: executorResult.additionalInfo?.residuals,
     predictions: executorResult.additionalInfo?.predictions,
@@ -164,7 +165,17 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
     itemTotalCorrelations: executorResult.additionalInfo?.itemTotalCorrelations,
     alpha: executorResult.additionalInfo?.alpha,
     power: executorResult.additionalInfo?.power,
-    requiredSampleSize: executorResult.additionalInfo?.requiredSampleSize
+    requiredSampleSize: executorResult.additionalInfo?.requiredSampleSize,
+    // Regression-specific metrics (Phase 3 fix)
+    aic: executorResult.additionalInfo?.aic,
+    bic: executorResult.additionalInfo?.bic,
+    pseudo_r_squared_mcfadden: executorResult.additionalInfo?.pseudo_r_squared_mcfadden,
+    pseudo_r_squared_nagelkerke: executorResult.additionalInfo?.pseudo_r_squared_nagelkerke,
+    pseudo_r_squared_cox_snell: executorResult.additionalInfo?.pseudo_r_squared_cox_snell,
+    pseudo_r_squared: executorResult.additionalInfo?.pseudo_r_squared,
+    finalVariables: executorResult.additionalInfo?.finalVariables,
+    deviance: executorResult.additionalInfo?.deviance,
+    log_likelihood: executorResult.additionalInfo?.log_likelihood
   }
 
   // 시각화 데이터 변환

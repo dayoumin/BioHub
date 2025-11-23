@@ -264,6 +264,7 @@ export interface AnalysisResult {
     rmse?: number
     rSquared?: number
     adjustedRSquared?: number
+    adjRSquared?: number  // Alias for adjustedRSquared (legacy compatibility)
     vif?: number[]  // 분산팽창지수
     residuals?: number[]
     predictions?: number[]
@@ -285,6 +286,16 @@ export interface AnalysisResult {
     alpha?: number  // Cronbach's alpha
     power?: number
     requiredSampleSize?: number
+    // Regression-specific metrics
+    aic?: number  // Akaike Information Criterion
+    bic?: number  // Bayesian Information Criterion
+    pseudo_r_squared_mcfadden?: number  // McFadden pseudo R² (Poisson, Ordinal)
+    pseudo_r_squared_nagelkerke?: number  // Nagelkerke pseudo R² (Ordinal, Logistic)
+    pseudo_r_squared_cox_snell?: number  // Cox-Snell pseudo R² (Ordinal, Logistic)
+    pseudo_r_squared?: number  // Generic pseudo R² (Ordinal, Logistic)
+    finalVariables?: string[]  // Selected variables in stepwise regression
+    deviance?: number  // Model deviance
+    log_likelihood?: number  // Log-likelihood
   }
 
   // 시각화 데이터
