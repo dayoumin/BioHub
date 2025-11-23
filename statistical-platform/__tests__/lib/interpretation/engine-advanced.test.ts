@@ -40,6 +40,102 @@ describe('Interpretation Engine Advanced Analytics (Phase 4)', () => {
       expect(interpretation?.practical).toContain('EC50/IC50 값을 활용')
     })
 
+    // ===== Guard Tests (Issue Fix) =====
+    it('Issue 1: accuracy undefined should show neutral practical message', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          // accuracy 없음
+          wilksLambda: { pValue: 0.01, significant: true }
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.practical).toBe('판별계수(discriminant coefficients)가 큰 변수가 주요 판별변수입니다. 혼동행렬로 분류 성능을 평가하세요.')
+      expect(interpretation?.practical).not.toContain('(%)') // 빈 괄호 없음
+    })
+
+    it('Issue 2: accuracy = 0 should display as 0.0%', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          accuracy: 0.0 // 0%
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.practical).toContain('0.0%')
+      expect(interpretation?.practical).not.toContain('()%') // 빈 괄호% 없음
+    })
+
+    it('Issue 3: Box M warning should appear in high accuracy', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          accuracy: 0.85, // high
+          wilksLambda: { pValue: 0.01, significant: true },
+          boxM: { significant: true, pValue: 0.02 }
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.statistical).toContain('Box\'s M 검정이 유의하여')
+      expect(interpretation?.practical).toContain('정확도가 높습니다')
+    })
+
+    it('Issue 3: Box M warning should appear in moderate accuracy', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          accuracy: 0.60, // moderate
+          boxM: { significant: true, pValue: 0.02 }
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.statistical).toContain('Box\'s M 검정이 유의하여')
+      expect(interpretation?.practical).toContain('정확도가 중간 수준입니다')
+    })
+
+    it('Issue 3: Box M warning should appear when accuracy is undefined', () => {
+      const results: AnalysisResult = {
+        method: 'Discriminant Analysis',
+        statistic: 0,
+        pValue: 0.05,
+        interpretation: '',
+        additional: {
+          // accuracy 없음
+          boxM: { significant: true, pValue: 0.02 }
+        }
+      }
+
+      const interpretation = getInterpretation(results)
+
+      expect(interpretation).not.toBeNull()
+      expect(interpretation?.statistical).toContain('Box\'s M 검정이 유의하여')
+    })
+
+
     it('중간 적합도 (0.5 < R² < 0.8)', () => {
       const results: AnalysisResult = {
         method: 'Dose-Response',

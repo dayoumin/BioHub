@@ -640,16 +640,18 @@ function getInterpretationByMethod(
         : `판별분석을 통해 그룹 분류 모형을 적합했습니다.`,
       statistical: wilksLambda?.pValue !== undefined
         ? wilksSignificant
-          ? `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수가 그룹을 효과적으로 구분합니다.`
-          : `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수의 유효성이 낮습니다.`
+          ? `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수가 그룹을 효과적으로 구분합니다.${boxM?.significant === true ? ' 단, Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
+          : `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수의 유효성이 낮습니다.${boxM?.significant === true ? ' 또한 Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`
         : accuracy !== undefined
-          ? `분류 정확도는 ${(accuracy * 100).toFixed(1)}%입니다.`
-          : '판별분석이 완료되었습니다.',
-      practical: accuracyLevel === 'high'
-        ? `정확도가 높습니다 (${accuracy ? (accuracy * 100).toFixed(1) : ''}% ≥ 70%). 판별함수를 새로운 데이터 분류에 사용할 수 있습니다. 판별계수(discriminant coefficients)가 큰 변수가 주요 판별변수입니다.`
-        : accuracyLevel === 'moderate'
-          ? `정확도가 중간 수준입니다 (${accuracy ? (accuracy * 100).toFixed(1) : ''}%). 추가 변수를 포함하거나 변수 변환(로그, 다항식 등)을 고려하세요. 혼동행렬(confusion matrix)에서 오분류 패턴을 분석하세요.`
-          : `정확도가 낮습니다 (${accuracy ? (accuracy * 100).toFixed(1) : ''}% < 50%). 판별 변수를 재검토하거나, 비선형 방법(QDA, 머신러닝)을 고려하세요. ${boxM?.significant === true ? 'Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
+          ? `분류 정확도는 ${(accuracy * 100).toFixed(1)}%입니다.${boxM?.significant === true ? ' Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
+          : `판별분석이 완료되었습니다.${boxM?.significant === true ? ' Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`,
+      practical: accuracy !== undefined
+        ? (accuracyLevel === 'high'
+          ? `정확도가 높습니다 (${(accuracy * 100).toFixed(1)}% ≥ 70%). 판별함수를 새로운 데이터 분류에 사용할 수 있습니다. 판별계수(discriminant coefficients)가 큰 변수가 주요 판별변수입니다.`
+          : accuracyLevel === 'moderate'
+            ? `정확도가 중간 수준입니다 (${(accuracy * 100).toFixed(1)}%). 추가 변수를 포함하거나 변수 변환(로그, 다항식 등)을 고려하세요. 혼동행렬(confusion matrix)에서 오분류 패턴을 분석하세요.`
+            : `정확도가 낮습니다 (${(accuracy * 100).toFixed(1)}% < 50%). 판별 변수를 재검토하거나, 비선형 방법(QDA, 머신러닝)을 고려하세요.`)
+        : '판별계수(discriminant coefficients)가 큰 변수가 주요 판별변수입니다. 혼동행렬로 분류 성능을 평가하세요.'
     }
   }
 
