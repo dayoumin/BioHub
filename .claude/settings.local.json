@@ -13,7 +13,8 @@
       "Bash(npm run build:*)",
       "Bash(python fix-encoding.py:*)",
       "Bash(git add:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

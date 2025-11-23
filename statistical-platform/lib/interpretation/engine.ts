@@ -9,6 +9,43 @@
 
 import type { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
 
+/**
+ * 해석 기준 임계값 (통계학 표준)
+ */
+const THRESHOLDS = {
+  CORRELATION: {
+    WEAK: 0.1,      // |r| < 0.1: 거의 없는 상관
+    MODERATE: 0.4,  // |r| >= 0.4: 중간 상관
+    STRONG: 0.7     // |r| >= 0.7: 강한 상관
+  },
+  R_SQUARED: {
+    LOW: 0.4,       // R² < 0.4: 낮은 설명력
+    HIGH: 0.7       // R² >= 0.7: 높은 설명력
+  },
+  ALPHA: {
+    POOR: 0.6,           // α < 0.6: 낮은 신뢰도
+    QUESTIONABLE: 0.7,   // α < 0.7: 의문스러운 신뢰도
+    ACCEPTABLE: 0.8,     // α < 0.8: 수용 가능한 신뢰도
+    GOOD: 0.9            // α >= 0.9: 우수한 신뢰도
+  },
+  SILHOUETTE: {
+    WEAK: 0.25,     // < 0.25: 인위적 구조
+    FAIR: 0.5,      // >= 0.5: 합리적 구조
+    STRONG: 0.7     // >= 0.7: 강한 구조
+  },
+  VARIANCE: {
+    ACCEPTABLE: 0.5,  // >= 50%: 적절한 축소
+    GOOD: 0.7         // >= 70%: 우수한 축소
+  },
+  EFFECT_SIZE: {
+    COHENS_D: { SMALL: 0.2, MEDIUM: 0.5, LARGE: 0.8 },
+    PEARSON_R: { WEAK: 0.3, MODERATE: 0.5 },
+    ETA_SQUARED: { SMALL: 0.01, MEDIUM: 0.06, LARGE: 0.14 }
+  }
+} as const
+
+
+
 export interface InterpretationResult {
   title: string
   summary: string
@@ -77,7 +114,7 @@ function getInterpretationByPurpose(
     const absR = Math.abs(r)
 
     // 약한 상관 (|r| < 0.1) 처리
-    if (absR < 0.1) {
+    if (absR < THRESHOLDS.CORRELATION.WEAK) {
       return {
         title: '변수 간 관계 분석',
         summary: `X와 Y 사이에 뚜렷한 상관관계가 발견되지 않았습니다 (r=${r.toFixed(3)}).`,
@@ -87,7 +124,7 @@ function getInterpretationByPurpose(
     }
 
     const direction = r > 0 ? '양의' : '음의'
-    const strength = absR > 0.7 ? '강한' : absR > 0.4 ? '중간' : '약한'
+    const strength = absR >= THRESHOLDS.CORRELATION.STRONG ? '강한' : absR >= THRESHOLDS.CORRELATION.MODERATE ? '중간' : '약한'
 
     return {
       title: '변수 간 관계 분석',
@@ -116,8 +153,8 @@ function getInterpretationByPurpose(
       title: '예측 모델 결과',
       summary: `독립변수가 1단위 증가할 때 종속변수는 ${coef.toFixed(3)}만큼 변합니다.`,
       statistical: `모델 설명력(R²) = ${(rSquared * 100).toFixed(1)}% - ${
-        rSquared > 0.7 ? '높은 설명력' :
-        rSquared > 0.4 ? '중간 설명력' :
+        rSquared >= THRESHOLDS.R_SQUARED.HIGH ? '높은 설명력' :
+        rSquared >= THRESHOLDS.R_SQUARED.LOW ? '중간 설명력' :
         '낮은 설명력'
       }`,
       practical: `이 모델로 종속변수 변동의 ${(rSquared * 100).toFixed(1)}%를 예측할 수 있습니다.`
@@ -141,7 +178,12 @@ function getInterpretationByMethod(
   if (methodLower.includes('anova') || methodLower.includes('분산분석') || methodLower.includes('kruskal')) {
     if (results.groupStats && results.groupStats.length >= 3) {
       const groupCount = results.groupStats.length
-      const means = results.groupStats.map(g => g.mean)
+      const means = results.groupStats
+        .map(g => g.mean)
+        .filter((m): m is number => typeof m === 'number' && !isNaN(m))
+
+      if (means.length < 3) return null // 유효한 평균 데이터 부족
+
       const maxMean = Math.max(...means)
       const minMean = Math.min(...means)
       const range = maxMean - minMean
@@ -206,26 +248,26 @@ function getInterpretationByMethod(
   // ===== 5. 신뢰도 분석 (Cronbach's Alpha) =====
   if (methodLower.includes('cronbach') || methodLower.includes('alpha') || methodLower.includes('신뢰도')) {
     const alpha = results.additional?.alpha
-    if (alpha !== undefined && alpha !== null) {
-      const alphaValue = typeof alpha === 'number' ? alpha : 0
+    if (typeof alpha !== 'number' || isNaN(alpha)) return null // 유효하지 않은 alpha → 패널 숨김
 
-      let interpretation = ''
-      if (alphaValue >= 0.9) interpretation = '우수한 신뢰도'
-      else if (alphaValue >= 0.8) interpretation = '좋은 신뢰도'
-      else if (alphaValue >= 0.7) interpretation = '수용 가능한 신뢰도'
-      else if (alphaValue >= 0.6) interpretation = '의문스러운 신뢰도'
+    const alphaValue = alpha
+
+    let interpretation = ''
+      if (alphaValue >= THRESHOLDS.ALPHA.GOOD) interpretation = '우수한 신뢰도'
+      else if (alphaValue >= THRESHOLDS.ALPHA.ACCEPTABLE) interpretation = '좋은 신뢰도'
+      else if (alphaValue >= THRESHOLDS.ALPHA.QUESTIONABLE) interpretation = '수용 가능한 신뢰도'
+      else if (alphaValue >= THRESHOLDS.ALPHA.POOR) interpretation = '의문스러운 신뢰도'
       else interpretation = '낮은 신뢰도'
 
       return {
         title: '신뢰도 분석 결과',
         summary: `Cronbach's Alpha = ${alphaValue.toFixed(3)} (${interpretation})`,
-        statistical: `α ≥ 0.7 기준: ${alphaValue >= 0.7 ? '만족' : '불만족'}`,
-        practical: alphaValue < 0.7
+        statistical: `α ≥ 0.7 기준: ${alphaValue >= THRESHOLDS.ALPHA.QUESTIONABLE ? '만족' : '불만족'}`,
+        practical: alphaValue < THRESHOLDS.ALPHA.QUESTIONABLE
           ? '문항 수정 또는 제거를 고려하세요.'
-          : alphaValue >= 0.9
+          : alphaValue >= THRESHOLDS.ALPHA.GOOD
             ? '매우 신뢰할 수 있는 척도입니다.'
             : '신뢰할 수 있는 척도입니다.'
-      }
     }
   }
 
@@ -234,14 +276,15 @@ function getInterpretationByMethod(
     const silhouette = results.additional?.silhouetteScore
     const clusters = results.additional?.clusters
 
-    if (silhouette !== undefined && silhouette !== null) {
-      const silhouetteValue = typeof silhouette === 'number' ? silhouette : 0
-      const clusterCount = clusters && Array.isArray(clusters) ? new Set(clusters).size : 0
+    if (typeof silhouette !== 'number' || isNaN(silhouette)) return null // 유효하지 않은 silhouette → 패널 숨김
+
+    const silhouetteValue = silhouette
+    const clusterCount = clusters && Array.isArray(clusters) ? new Set(clusters).size : 0
 
       let quality = ''
-      if (silhouetteValue >= 0.7) quality = '강한 구조'
-      else if (silhouetteValue >= 0.5) quality = '합리적 구조'
-      else if (silhouetteValue >= 0.25) quality = '약한 구조'
+      if (silhouetteValue >= THRESHOLDS.SILHOUETTE.STRONG) quality = '강한 구조'
+      else if (silhouetteValue >= THRESHOLDS.SILHOUETTE.FAIR) quality = '합리적 구조'
+      else if (silhouetteValue >= THRESHOLDS.SILHOUETTE.WEAK) quality = '약한 구조'
       else quality = '인위적 구조'
 
       return {
@@ -250,10 +293,9 @@ function getInterpretationByMethod(
           ? `${clusterCount}개 군집으로 분류되었습니다.`
           : '군집 분석이 완료되었습니다.',
         statistical: `Silhouette Score = ${silhouetteValue.toFixed(3)} (${quality})`,
-        practical: silhouetteValue < 0.5
+        practical: silhouetteValue < THRESHOLDS.SILHOUETTE.FAIR
           ? '군집 수(K)를 조정하거나 다른 알고리즘을 시도하세요.'
           : '군집이 잘 분리되었습니다.'
-      }
     }
   }
 
@@ -268,9 +310,9 @@ function getInterpretationByMethod(
         title: '차원 축소 결과',
         summary: `${componentCount}개 성분으로 축소되었습니다.`,
         statistical: `누적 설명력 = ${(totalVariance * 100).toFixed(1)}%`,
-        practical: totalVariance >= 0.7
+        practical: totalVariance >= THRESHOLDS.VARIANCE.GOOD
           ? '70% 이상의 변동을 설명합니다 (우수한 축소).'
-          : totalVariance >= 0.5
+          : totalVariance >= THRESHOLDS.VARIANCE.ACCEPTABLE
             ? '50% 이상의 변동을 설명합니다 (적절한 축소).'
             : '설명력이 낮습니다. 성분 수를 조정하세요.'
       }
@@ -310,22 +352,22 @@ function interpretEffectSize(
     const normalizedType = normalizeEffectSizeType(effectType)
 
     if (normalizedType === "Cohen's d") {
-      if (absValue < 0.2) return "무시할 만한 차이"
-      if (absValue < 0.5) return "작은 효과"
-      if (absValue < 0.8) return "중간 효과"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.COHENS_D.SMALL) return "무시할 만한 차이"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.COHENS_D.MEDIUM) return "작은 효과"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.COHENS_D.LARGE) return "중간 효과"
       return "큰 효과"
     }
 
     if (normalizedType === "Pearson r" || normalizedType === "Correlation") {
-      if (absValue < 0.3) return "약한 상관"
-      if (absValue < 0.5) return "중간 상관"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.PEARSON_R.WEAK) return "약한 상관"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.PEARSON_R.MODERATE) return "중간 상관"
       return "강한 상관"
     }
 
     if (normalizedType === "Eta-squared" || normalizedType === "R-squared" || normalizedType === "Omega-squared") {
-      if (absValue < 0.01) return "무시할 만한 효과"
-      if (absValue < 0.06) return "작은 효과"
-      if (absValue < 0.14) return "중간 효과"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.ETA_SQUARED.SMALL) return "무시할 만한 효과"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.ETA_SQUARED.MEDIUM) return "작은 효과"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.ETA_SQUARED.LARGE) return "중간 효과"
       return "큰 효과"
     }
   }
@@ -336,15 +378,15 @@ function interpretEffectSize(
     const normalizedType = type ? normalizeEffectSizeType(type) : undefined
 
     if (normalizedType === "Cohen's d") {
-      if (absValue < 0.2) return "무시할 만한 차이"
-      if (absValue < 0.5) return "작은 효과"
-      if (absValue < 0.8) return "중간 효과"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.COHENS_D.SMALL) return "무시할 만한 차이"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.COHENS_D.MEDIUM) return "작은 효과"
+      if (absValue < THRESHOLDS.EFFECT_SIZE.COHENS_D.LARGE) return "중간 효과"
       return "큰 효과"
     }
 
     // 기본: 상관계수 기준
-    if (absValue < 0.3) return "약한 효과"
-    if (absValue < 0.5) return "중간 효과"
+    if (absValue < THRESHOLDS.EFFECT_SIZE.PEARSON_R.WEAK) return "약한 효과"
+    if (absValue < THRESHOLDS.EFFECT_SIZE.PEARSON_R.MODERATE) return "중간 효과"
     return "큰 효과"
   }
 
