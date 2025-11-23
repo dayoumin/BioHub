@@ -211,12 +211,15 @@ export default function MixedModelPage() {
   )
 
   const runAnalysis = useCallback(async (_variables: VariableAssignment) => {
-    if (!pyodideReady || !uploadedData || !selectedVariables) {
+    if (!pyodideReady || !uploadedData) {
       if (actions?.setError) {
         actions.setError('데이터나 통계 엔진이 준비되지 않았습니다.')
       }
       return
     }
+
+    // Use _variables parameter instead of selectedVariables state
+    const mixedModelVars = toMixedModelVariables(_variables)
 
     if (actions?.startAnalysis) {
       actions.startAnalysis()
@@ -233,15 +236,15 @@ export default function MixedModelPage() {
         PyodideWorker.Hypothesis,
         'mixed_model',
         {
-          dependent_var: selectedVariables.dependent,
-          fixed_effects: selectedVariables.factor,
-          random_effects: selectedVariables.blocking || [],
+          dependent_var: mixedModelVars.dependent,
+          fixed_effects: mixedModelVars.factor,
+          random_effects: mixedModelVars.blocking || [],
           data: uploadedData.data as never
         }
       )
 
       if (actions?.completeAnalysis) {
-        actions.completeAnalysis(workerResult, 2)
+        actions.completeAnalysis(workerResult, 3)  // Move to step 3 (results)
       }
     } catch (err) {
       console.error('Mixed Model 분석 실패:', err)
@@ -251,7 +254,7 @@ export default function MixedModelPage() {
     } finally {
       // isAnalyzing managed by hook
     }
-  }, [uploadedData, pyodideReady, selectedVariables, actions])
+  }, [uploadedData, pyodideReady, actions])
 
   const handleVariableSelection = useCallback(
     createVariableSelectionHandler<MixedModelVariables>(

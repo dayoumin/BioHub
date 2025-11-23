@@ -232,7 +232,7 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
       setResult(analysisResult)
 
       if (actions.completeAnalysis) {
-        actions.completeAnalysis(analysisResult, 3)
+        actions.completeAnalysis(analysisResult, 2)  // Stay on step 2 (results shown here)
       }
     } catch (err) {
       if (actions.setError) {

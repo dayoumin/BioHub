@@ -589,6 +589,36 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
     ],
     notes: ['위계적 자료 구조에 적합', 'REML 추정 사용']
   },
+  {
+    id: 'response-surface',
+    name: '반응표면 분석',
+    category: 'glm',
+    description: '2개 이상의 예측변수와 반응변수 간의 최적 조건 탐색',
+    minSampleSize: 20,
+    assumptions: ['정규성', '독립성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '반응 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '최적화할 연속형 변수',
+        example: '수율, 강도, 효율'
+      },
+      {
+        role: 'independent',
+        label: '예측 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: true,
+        minCount: 2,
+        description: '최적 조건을 탐색할 연속형 변수들',
+        example: '온도, 압력, 시간'
+      }
+    ],
+    notes: ['2차 모델 적합', '최적점/saddle point 탐색', 'Central Composite Design 권장']
+  },
 
   // ========================================
   // 4. 상관분석 (Correlate) - 4개
