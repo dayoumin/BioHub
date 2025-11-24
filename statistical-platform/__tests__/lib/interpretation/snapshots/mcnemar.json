@@ -1,0 +1,50 @@
+{
+  "method": "McNemar Test",
+  "scenarios": [
+    {
+      "name": "significant-strong-effect",
+      "description": "유의한 결과 (p=0.005)",
+      "input": {
+        "method": "McNemar Test",
+        "statistic": 10.5,
+        "pValue": 0.005
+      },
+      "expectedOutput": {
+        "title": "범주형 변수 연관성 검정",
+        "summary": "두 범주형 변수 간 독립성을 검정했습니다.",
+        "statistical": "두 변수 간 통계적으로 유의한 연관성이 있습니다 (p=0.005).",
+        "practical": "두 변수가 서로 독립적이지 않습니다."
+      }
+    },
+    {
+      "name": "nonsignificant-weak-effect",
+      "description": "유의하지 않은 결과 (p=0.432)",
+      "input": {
+        "method": "McNemar Test",
+        "statistic": 1.8,
+        "pValue": 0.432
+      },
+      "expectedOutput": {
+        "title": "범주형 변수 연관성 검정",
+        "summary": "두 범주형 변수 간 독립성을 검정했습니다.",
+        "statistical": "두 변수 간 통계적으로 유의한 연관성이 없습니다 (p=0.432).",
+        "practical": "두 변수는 서로 독립적입니다."
+      }
+    },
+    {
+      "name": "boundary-case-p-near-0.05",
+      "description": "경계값 (p=0.046)",
+      "input": {
+        "method": "McNemar Test",
+        "statistic": 4.2,
+        "pValue": 0.046
+      },
+      "expectedOutput": {
+        "title": "범주형 변수 연관성 검정",
+        "summary": "두 범주형 변수 간 독립성을 검정했습니다.",
+        "statistical": "두 변수 간 통계적으로 유의한 연관성이 있습니다 (p=0.046).",
+        "practical": "두 변수가 서로 독립적이지 않습니다."
+      }
+    }
+  ]
+}

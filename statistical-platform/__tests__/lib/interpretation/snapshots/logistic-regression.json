@@ -1,0 +1,59 @@
+{
+  "method": "Logistic Regression",
+  "scenarios": [
+    {
+      "name": "significant-strong-effect",
+      "description": "유의한 결과 (p=0.002)",
+      "input": {
+        "method": "Logistic Regression",
+        "statistic": 10.5,
+        "pValue": 0.002,
+        "additional": {
+          "rSquared": 0.68
+        }
+      },
+      "expectedOutput": {
+        "title": "예측 모델 결과",
+        "summary": "로지스틱 회귀 모델을 적합했습니다.",
+        "statistical": "모델이 통계적으로 유의합니다 (p=0.002).",
+        "practical": "모델의 설명력이 높습니다 (Pseudo R²=68.0%)."
+      }
+    },
+    {
+      "name": "nonsignificant-weak-effect",
+      "description": "유의하지 않은 결과 (p=0.321)",
+      "input": {
+        "method": "Logistic Regression",
+        "statistic": 1.8,
+        "pValue": 0.321,
+        "additional": {
+          "rSquared": 0.15
+        }
+      },
+      "expectedOutput": {
+        "title": "예측 모델 결과",
+        "summary": "로지스틱 회귀 모델을 적합했습니다.",
+        "statistical": "모델이 통계적으로 유의하지 않습니다 (p=0.321).",
+        "practical": "모델의 설명력이 낮습니다 (Pseudo R²=15.0%)."
+      }
+    },
+    {
+      "name": "boundary-case-p-near-0.05",
+      "description": "경계값 (p=0.049)",
+      "input": {
+        "method": "Logistic Regression",
+        "statistic": 4.2,
+        "pValue": 0.049,
+        "additional": {
+          "rSquared": 0.38
+        }
+      },
+      "expectedOutput": {
+        "title": "예측 모델 결과",
+        "summary": "로지스틱 회귀 모델을 적합했습니다.",
+        "statistical": "모델이 통계적으로 유의합니다 (p=0.049).",
+        "practical": "모델의 설명력이 중간입니다 (Pseudo R²=38.0%)."
+      }
+    }
+  ]
+}

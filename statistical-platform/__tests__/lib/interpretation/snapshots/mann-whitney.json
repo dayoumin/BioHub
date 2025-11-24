@@ -1,0 +1,92 @@
+{
+  "method": "Mann-Whitney U Test",
+  "scenarios": [
+    {
+      "name": "significant-medium-effect",
+      "description": "유의한 결과 (p=0.012)",
+      "input": {
+        "method": "Mann-Whitney U Test",
+        "statistic": 350,
+        "pValue": 0.012,
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 50,
+            "std": 10,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 58,
+            "std": 12,
+            "n": 30
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "독립표본 비모수 검정",
+        "summary": "두 독립 그룹의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.012).",
+        "practical": "두 그룹의 중앙값이 실질적으로 다릅니다."
+      }
+    },
+    {
+      "name": "nonsignificant-small-effect",
+      "description": "유의하지 않은 결과 (p=0.234)",
+      "input": {
+        "method": "Mann-Whitney U Test",
+        "statistic": 420,
+        "pValue": 0.234,
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 50,
+            "std": 10,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 52,
+            "std": 11,
+            "n": 30
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "독립표본 비모수 검정",
+        "summary": "두 독립 그룹의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 없습니다 (p=0.234).",
+        "practical": "두 그룹의 중앙값이 유사합니다."
+      }
+    },
+    {
+      "name": "boundary-case-p-near-0.05",
+      "description": "경계값 (p=0.048)",
+      "input": {
+        "method": "Mann-Whitney U Test",
+        "statistic": 380,
+        "pValue": 0.048,
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 50,
+            "std": 10,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 55,
+            "std": 11,
+            "n": 30
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "독립표본 비모수 검정",
+        "summary": "두 독립 그룹의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.048).",
+        "practical": "두 그룹의 중앙값이 실질적으로 다릅니다."
+      }
+    }
+  ]
+}

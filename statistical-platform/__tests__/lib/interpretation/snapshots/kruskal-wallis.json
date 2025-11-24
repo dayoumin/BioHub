@@ -1,0 +1,50 @@
+{
+  "method": "Kruskal-Wallis Test",
+  "scenarios": [
+    {
+      "name": "significant-strong-effect",
+      "description": "유의한 결과 (p=0.003)",
+      "input": {
+        "method": "Kruskal-Wallis Test",
+        "statistic": 10.5,
+        "pValue": 0.003
+      },
+      "expectedOutput": {
+        "title": "다집단 비교 결과",
+        "summary": "3개 이상 그룹의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.003).",
+        "practical": "사후 검정을 수행하여 어느 그룹이 다른지 확인하세요."
+      }
+    },
+    {
+      "name": "nonsignificant-weak-effect",
+      "description": "유의하지 않은 결과 (p=0.312)",
+      "input": {
+        "method": "Kruskal-Wallis Test",
+        "statistic": 1.8,
+        "pValue": 0.312
+      },
+      "expectedOutput": {
+        "title": "다집단 비교 결과",
+        "summary": "3개 이상 그룹의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 없습니다 (p=0.312).",
+        "practical": "모든 그룹의 중앙값이 유사합니다."
+      }
+    },
+    {
+      "name": "boundary-case-p-near-0.05",
+      "description": "경계값 (p=0.047)",
+      "input": {
+        "method": "Kruskal-Wallis Test",
+        "statistic": 4.2,
+        "pValue": 0.047
+      },
+      "expectedOutput": {
+        "title": "다집단 비교 결과",
+        "summary": "3개 이상 그룹의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.047).",
+        "practical": "사후 검정을 수행하여 어느 그룹이 다른지 확인하세요."
+      }
+    }
+  ]
+}

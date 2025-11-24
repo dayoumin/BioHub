@@ -1,0 +1,50 @@
+{
+  "method": "Levene Test",
+  "scenarios": [
+    {
+      "name": "significant-strong-effect",
+      "description": "유의한 결과 (p=0.002)",
+      "input": {
+        "method": "Levene Test",
+        "statistic": 10.5,
+        "pValue": 0.002
+      },
+      "expectedOutput": {
+        "title": "등분산성 검정 결과",
+        "summary": "그룹 간 분산이 동일한지 검정했습니다.",
+        "statistical": "등분산 가정을 만족하지 않습니다 (p=0.002).",
+        "practical": "Welch's t-test 또는 비모수 검정 사용을 권장합니다."
+      }
+    },
+    {
+      "name": "nonsignificant-weak-effect",
+      "description": "유의하지 않은 결과 (p=0.512)",
+      "input": {
+        "method": "Levene Test",
+        "statistic": 1.8,
+        "pValue": 0.512
+      },
+      "expectedOutput": {
+        "title": "등분산성 검정 결과",
+        "summary": "그룹 간 분산이 동일한지 검정했습니다.",
+        "statistical": "등분산 가정을 만족합니다 (p=0.512).",
+        "practical": "일반 t-test 또는 ANOVA 사용이 적절합니다."
+      }
+    },
+    {
+      "name": "boundary-case-p-near-0.05",
+      "description": "경계값 (p=0.047)",
+      "input": {
+        "method": "Levene Test",
+        "statistic": 4.2,
+        "pValue": 0.047
+      },
+      "expectedOutput": {
+        "title": "등분산성 검정 결과",
+        "summary": "그룹 간 분산이 동일한지 검정했습니다.",
+        "statistical": "등분산 가정을 만족하지 않습니다 (p=0.047).",
+        "practical": "Welch's t-test 또는 비모수 검정 사용을 권장합니다."
+      }
+    }
+  ]
+}

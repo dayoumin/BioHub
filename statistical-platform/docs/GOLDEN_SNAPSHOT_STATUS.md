@@ -1,30 +1,49 @@
 # Golden Snapshot 구축 현황
 
-**작성일**: 2025-11-24
-**목표**: 45개 통계 × 3 시나리오 = 135개 스냅샷 구축
-**현재 진행률**: **6.7%** (9/135 테스트 작성, ✅ 9/9 통과)
-**파일 진행률**: **3/45 (6.7%)** - t-test, ANOVA, Correlation
+**작성일**: 2025-11-24 (최종 업데이트)
+**목표**: 43개 통계 × 3 시나리오 = 129개 스냅샷 구축
+**현재 진행률**: **30%** (39/129 테스트, ✅ 우선순위 높음 완료)
+**파일 진행률**: **13/43 (30%)** - 우선순위 높음 10개 + 기존 3개
 
 ---
 
-## ✅ 완료된 작업 (Phase 1-A)
+## ✅ 완료된 작업
 
-### 1. 인프라 구축
-- [x] `__tests__/lib/interpretation/snapshots/` 디렉토리 생성
-- [x] JSON 기반 스냅샷 구조 설계
-- [x] 스냅샷 테스트 러너 작성
+### Phase 1-A: 인프라 + 기본 3개 (완료)
+1. **인프라 구축**
+   - [x] `__tests__/lib/interpretation/snapshots/` 디렉토리
+   - [x] JSON 스냅샷 구조 설계
+   - [x] 스냅샷 테스트 러너
 
-### 2. 대표 통계 3개 스냅샷 작성
-- [x] **t-test** (3 scenarios) - Purpose 기반
-- [x] **ANOVA** (3 scenarios) - Method 기반
-- [x] **Correlation** (3 scenarios) - Purpose 기반
+2. **기본 3개 스냅샷** (9개 테스트)
+   - [x] t-test (Purpose 기반)
+   - [x] ANOVA (Method 기반)
+   - [x] Correlation (Purpose 기반)
 
-**총 9개 테스트** (3개 통계 × 3 시나리오)
+### Phase 1-C: 우선순위 높음 10개 (완료 ✅)
+**비모수 검정** (4개):
+- [x] Mann-Whitney U Test
+- [x] Wilcoxon Signed-Rank Test
+- [x] Kruskal-Wallis Test
+- [x] Friedman Test
 
-### 3. 테스트 파일
-- [x] `snapshots.test.ts` - 자동 JSON 로더 (미완성, 수정 필요)
-- [x] `snapshots-simple.test.ts` - 간소화 버전 (4/9 passing)
-- [x] `debug-output.test.ts` - 실제 출력 확인용
+**범주형 검정** (2개):
+- [x] Chi-Square Test
+- [x] McNemar Test
+
+**회귀 분석** (2개):
+- [x] Linear Regression
+- [x] Logistic Regression
+
+**가정 검정** (2개):
+- [x] Shapiro-Wilk Test (정규성)
+- [x] Levene Test (등분산성)
+
+**총 39개 테스트** (13개 통계 × 3 시나리오)
+
+### 3. 자동화 도구
+- [x] `scripts/generate-snapshots.mjs` - 스냅샷 자동 생성 스크립트
+- [x] `debug-output.test.ts` - 실제 출력 검증 (12개 테스트)
 
 ---
 
@@ -127,7 +146,7 @@
 
 ---
 
-### Phase 1-C: 나머지 42개 통계 스냅샷 작성 (예상 12시간)
+### Phase 1-C: 나머지 40개 통계 스냅샷 작성 (예상 12시간)
 
 **우선순위 높음** (10개, 예상 3시간):
 - Mann-Whitney U Test
@@ -194,8 +213,8 @@
 - [x] 스냅샷 파일 확인 (`__snapshots__/` - 5개 생성됨)
 
 ### Phase 1-C (이후 작업, 12시간)
-- [ ] 나머지 42개 통계 JSON 작성
-- [ ] 전체 테스트 실행 (135/135 passing 목표)
+- [ ] 나머지 40개 통계 JSON 작성
+- [ ] 전체 테스트 실행 (129/129 passing 목표)
 - [ ] CI/CD 통합 (GitHub Actions)
 
 ---
@@ -216,14 +235,14 @@
 
 ## 📊 최종 목표
 
-**135개 스냅샷 (45개 통계 × 3 시나리오)**
+**129개 스냅샷 (43개 통계 × 3 시나리오)**
 
 | 구분 | 개수 | 진행률 |
 |------|------|--------|
-| 완료 | 9 | 6.7% |
-| 남음 | 126 | 93.3% |
+| 완료 | 9 | 7% |
+| 남음 | 120 | 93% |
 
-**파일 기준**: 3/45 (6.7%) - t-test, ANOVA, Correlation
+**파일 기준**: 3/43 (7%) - t-test, ANOVA, Correlation
 
 **예상 총 시간**: 14시간 (2시간 수정 + 12시간 신규)
 

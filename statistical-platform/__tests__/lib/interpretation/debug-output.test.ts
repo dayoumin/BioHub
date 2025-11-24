@@ -53,4 +53,83 @@ describe('Debug: 실제 출력 확인', () => {
     console.log('=== t-test 실제 출력 (purpose 없음) ===')
     console.log(JSON.stringify(result, null, 2))
   })
+
+  it('Mann-Whitney 실제 출력 - Scenario 1 (significant)', () => {
+    const result = getInterpretation({
+      method: 'Mann-Whitney U Test',
+      statistic: 350,
+      pValue: 0.012,
+      groupStats: [
+        { name: 'Group A', mean: 50, std: 10, n: 30 },
+        { name: 'Group B', mean: 58, std: 12, n: 30 }
+      ]
+    } as AnalysisResult)
+
+    console.log('=== Mann-Whitney Scenario 1 (significant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Mann-Whitney 실제 출력 - Scenario 2 (nonsignificant)', () => {
+    const result = getInterpretation({
+      method: 'Mann-Whitney U Test',
+      statistic: 420,
+      pValue: 0.234,
+      groupStats: [
+        { name: 'Group A', mean: 50, std: 10, n: 30 },
+        { name: 'Group B', mean: 52, std: 11, n: 30 }
+      ]
+    } as AnalysisResult)
+
+    console.log('=== Mann-Whitney Scenario 2 (nonsignificant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Mann-Whitney 실제 출력 - Scenario 3 (boundary)', () => {
+    const result = getInterpretation({
+      method: 'Mann-Whitney U Test',
+      statistic: 380,
+      pValue: 0.048,
+      groupStats: [
+        { name: 'Group A', mean: 50, std: 10, n: 30 },
+        { name: 'Group B', mean: 55, std: 11, n: 30 }
+      ]
+    } as AnalysisResult)
+
+    console.log('=== Mann-Whitney Scenario 3 (boundary) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  // Wilcoxon Signed-Rank Test
+  it('Wilcoxon 실제 출력 - Scenario 1 (significant)', () => {
+    const result = getInterpretation({
+      method: 'Wilcoxon Signed-Rank Test',
+      statistic: 120,
+      pValue: 0.008
+    } as AnalysisResult)
+
+    console.log('=== Wilcoxon Scenario 1 (significant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Wilcoxon 실제 출력 - Scenario 2 (nonsignificant)', () => {
+    const result = getInterpretation({
+      method: 'Wilcoxon Signed-Rank Test',
+      statistic: 180,
+      pValue: 0.421
+    } as AnalysisResult)
+
+    console.log('=== Wilcoxon Scenario 2 (nonsignificant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Wilcoxon 실제 출력 - Scenario 3 (boundary)', () => {
+    const result = getInterpretation({
+      method: 'Wilcoxon Signed-Rank Test',
+      statistic: 145,
+      pValue: 0.049
+    } as AnalysisResult)
+
+    console.log('=== Wilcoxon Scenario 3 (boundary) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
 })

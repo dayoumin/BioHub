@@ -1,0 +1,50 @@
+{
+  "method": "Friedman Test",
+  "scenarios": [
+    {
+      "name": "significant-strong-effect",
+      "description": "유의한 결과 (p=0.007)",
+      "input": {
+        "method": "Friedman Test",
+        "statistic": 10.5,
+        "pValue": 0.007
+      },
+      "expectedOutput": {
+        "title": "반복측정 비모수 검정",
+        "summary": "동일 개체에서 3회 이상 측정한 값의 중앙값 차이를 검정했습니다.",
+        "statistical": "측정 시점 간 통계적으로 유의한 차이가 있습니다 (p=0.007).",
+        "practical": "사후 검정을 통해 어느 시점이 다른지 확인하세요."
+      }
+    },
+    {
+      "name": "nonsignificant-weak-effect",
+      "description": "유의하지 않은 결과 (p=0.421)",
+      "input": {
+        "method": "Friedman Test",
+        "statistic": 1.8,
+        "pValue": 0.421
+      },
+      "expectedOutput": {
+        "title": "반복측정 비모수 검정",
+        "summary": "동일 개체에서 3회 이상 측정한 값의 중앙값 차이를 검정했습니다.",
+        "statistical": "측정 시점 간 통계적으로 유의한 차이가 없습니다 (p=0.421).",
+        "practical": "측정 시점에 따른 유의한 변화가 없습니다."
+      }
+    },
+    {
+      "name": "boundary-case-p-near-0.05",
+      "description": "경계값 (p=0.049)",
+      "input": {
+        "method": "Friedman Test",
+        "statistic": 4.2,
+        "pValue": 0.049
+      },
+      "expectedOutput": {
+        "title": "반복측정 비모수 검정",
+        "summary": "동일 개체에서 3회 이상 측정한 값의 중앙값 차이를 검정했습니다.",
+        "statistical": "측정 시점 간 통계적으로 유의한 차이가 있습니다 (p=0.049).",
+        "practical": "사후 검정을 통해 어느 시점이 다른지 확인하세요."
+      }
+    }
+  ]
+}

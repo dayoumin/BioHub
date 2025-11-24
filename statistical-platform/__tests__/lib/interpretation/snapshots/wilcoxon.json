@@ -1,0 +1,50 @@
+{
+  "method": "Wilcoxon Signed-Rank Test",
+  "scenarios": [
+    {
+      "name": "significant-paired-difference",
+      "description": "유의한 결과 (p=0.008)",
+      "input": {
+        "method": "Wilcoxon Signed-Rank Test",
+        "statistic": 120,
+        "pValue": 0.008
+      },
+      "expectedOutput": {
+        "title": "대응표본 비모수 검정",
+        "summary": "두 대응 측정값의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.008).",
+        "practical": "두 측정 시점 간 중앙값이 실질적으로 다릅니다."
+      }
+    },
+    {
+      "name": "nonsignificant-no-change",
+      "description": "유의하지 않은 결과 (p=0.421)",
+      "input": {
+        "method": "Wilcoxon Signed-Rank Test",
+        "statistic": 180,
+        "pValue": 0.421
+      },
+      "expectedOutput": {
+        "title": "대응표본 비모수 검정",
+        "summary": "두 대응 측정값의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 없습니다 (p=0.421).",
+        "practical": "두 측정 시점 간 중앙값이 유사합니다."
+      }
+    },
+    {
+      "name": "boundary-case-p-near-0.05",
+      "description": "경계값 (p=0.049)",
+      "input": {
+        "method": "Wilcoxon Signed-Rank Test",
+        "statistic": 145,
+        "pValue": 0.049
+      },
+      "expectedOutput": {
+        "title": "대응표본 비모수 검정",
+        "summary": "두 대응 측정값의 중앙값 차이를 검정했습니다.",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.049).",
+        "practical": "두 측정 시점 간 중앙값이 실질적으로 다릅니다."
+      }
+    }
+  ]
+}
