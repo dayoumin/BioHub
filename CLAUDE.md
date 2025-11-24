@@ -2,90 +2,48 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🚨 현재 중요 규칙 (2025-11-11 업데이트)
+## 🎨 Design System 메타데이터 동기화 (CRITICAL)
 
-**상태**: ✅ Phase A-3-R1 완료 (변수 role 매핑 표준화 + Critical 버그 수정)
+**⚠️ 다음 파일 수정 시 Design System 메타데이터 동기화 필수!**
 
-**해결된 문제**:
-- ✅ **변수 role 일치**: variable-requirements.ts === types/statistics.ts (6개 인터페이스 수정)
-- ✅ **타입 중앙화**: Section 18 준수 (mood-median 중복 정의 제거)
-- ✅ **Critical 버그 수정**: chi-square-independence, binomial-test, runs-test (3개)
-- 🟡 **공통 컴포넌트 미활용**: 향후 개선 예정 (우선순위 낮음)
+| 트리거 파일 | 메타데이터 | 업데이트 조건 |
+|------------|----------|-------------|
+| `lib/utils/type-guards.ts` | `metadata/type-guards.json` | 함수 추가/변경 시 |
+| `components/rag/*.tsx`<br>`lib/rag/*.ts` | `metadata/rag-components.json` | 컴포넌트/서비스 추가/변경 시 |
+| `docs/STATISTICS_CODING_STANDARDS.md`<br>`hooks/use-statistics-page.ts` | `metadata/statistics-page-pattern.json` | 규칙/버그 추가 시 |
+| `__tests__/**/*.test.tsx` | `metadata/test-snippets.json` | 새 패턴 발견 시 |
+
+**상세 규칙**: [DESIGN_SYSTEM_SYNC_RULES.md](statistical-platform/docs/DESIGN_SYSTEM_SYNC_RULES.md)
+
+**워크플로우**:
+1. 트리거 파일 수정
+2. 대응 메타데이터 JSON 업데이트 (`lastUpdated` 필드 필수)
+3. 사용자에게 보고: "메타데이터 업데이트 완료"
+
+---
+
+## 🚨 현재 중요 규칙
+
+**상태**: ✅ Phase 9 Complete (2025-11-24) - AI-Native Design System 추가
 
 **반드시 지킬 것** (CRITICAL):
 1. ✅ **변수 role 일치**: variable-requirements.ts의 `role`을 types/statistics.ts에 정확히 반영
-   ```typescript
-   // variable-requirements.ts: role: 'factor'
-   // types/statistics.ts: factor: string[]  ✅
-   // types/statistics.ts: groups: string[]  ❌ 금지!
-   ```
+   - `role: 'factor'` → `factor: string[]` ✅
+   - `role: 'factor'` → `groups: string[]` ❌ 금지!
 
 2. ✅ **타입 단일 정의**: types/statistics.ts에만 정의 (페이지별 재정의 절대 금지)
-   ```typescript
-   // ❌ 금지: mann-whitney/page.tsx에서 interface PostHocComparison {...}
-   // ✅ 권장: import { PostHocComparison } from '@/types/statistics'
-   ```
+   - ❌ 금지: `mann-whitney/page.tsx`에서 `interface PostHocComparison {...}`
+   - ✅ 권장: `import { PostHocComparison } from '@/types/statistics'`
 
-3. ✅ **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard, VariableSelectorSimple 등 사용 (`<table>` 직접 사용 금지)
-
-**표준 Role 매핑** (SPSS/R/SAS 표준):
-| variable-requirements.ts | types/statistics.ts | ❌ 금지 |
-|-------------------------|---------------------|---------|
-| `role: 'factor'` | `factor: string[]` | `groups`, `independent` |
-| `role: 'within'` | `within: string[]` | `conditions` |
-| `role: 'covariate'` | `covariate: string[]` | `covariates` |
-| `role: 'blocking'` | `blocking?: string[]` | `randomEffects` |
-
-**예외 케이스** (2개 role을 별도 필드로 사용):
-- **chi-square-independence**: `role: 'independent'` + `role: 'dependent'` → `row: string` + `column: string`
-  - 컨버터: `independent||row`, `dependent||column` fallback 적용
-
-**필드명 규칙**: camelCase (pValue, ciLower, ciUpper) ✅ | snake_case (p_value, ci_lower) ❌
+3. ✅ **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard, VariableSelectorSimple 등 사용
 
 **상세**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - Section 17-19
 
 ---
 
-## ✅ p-value 표기법 표준 (2025-11-24 최종 확정)
-
-**상태**: ✅ APA 표준 적용 완료
-
-**채택한 표준**: **APA (American Psychological Association) 7th Edition**
-- 이유: 교육/연구 플랫폼 → 사용자는 논문 작성 시 APA 표준 사용
-- 형식: `p < 0.001`, `p = 0.048` (등호/부등호 앞뒤 공백 필수)
-
-**현재 상태** (2025-11-24):
-- ✅ engine.ts: `return '< 0.001'`, `return \`= ${p.toFixed(3)}\`` (Line 74-75)
-- ✅ 13개 스냅샷: `expectedOutput.statistical` 필드 APA 표준
-- ✅ 2개 스냅샷: `description` 필드 APA 표준 (linear-regression, logistic-regression)
-- ✅ 테스트: 42/42 통과
-
-**표기 규칙**:
-```typescript
-// 매우 유의한 경우 (p < 0.001)
-if (p < 0.001) return '< 0.001'  // 부등호 뒤 공백
-
-// 일반적인 경우 (p = 0.048)
-return `= ${p.toFixed(3)}`        // 등호 뒤 공백
-```
-
-**다른 표준 참고**:
-- **의학/생물 저널**: `p<0.001`, `p=0.048` (공백 없음, 테이블 공간 절약)
-- **통계학 교과서**: 혼용 (일관성만 유지)
-- **한국 KCI 논문**: APA 표준 (공백 있음)
-
-**중요**: 프로젝트 내 일관성이 최우선! 다른 표준 적용 시 engine.ts + 모든 스냅샷 동시 업데이트 필수
-
----
-
-## 🔧 UTF-8 인코딩 문제 해결 방법 (2025-11-23 신규)
+## 🔧 UTF-8 인코딩 문제 해결 방법
 
 **문제**: Claude Code의 Edit Tool과 Write Tool은 한글(UTF-8) 파일 수정 시 인코딩 손상 발생
-
-**증상**:
-- 한글 텍스트가 `M-pM-^_M-^S` 같은 바이트 시퀀스로 변환됨
-- Read Tool은 자동 보정하여 정상으로 표시하지만, 실제 파일은 손상 상태
-- TypeScript 컴파일은 통과하지만 브라우저에서 깨진 텍스트 표시
 
 **해결 방법**: Node.js 스크립트 사용 (UTF-8 기본 지원)
 
@@ -94,48 +52,26 @@ return `= ${p.toFixed(3)}`        // 등호 뒤 공백
 import { readFileSync, writeFileSync } from 'fs';
 
 const filePath = 'path/to/file.tsx';
-
-// UTF-8로 읽기
 let content = readFileSync(filePath, 'utf8');
-
-// 문자열 치환 (정규표현식 사용 가능)
 content = content.replace('old text', 'new text');
-
-// UTF-8로 쓰기
 writeFileSync(filePath, content, 'utf8');
-
-console.log('완료: UTF-8 인코딩 보존됨');
 ```
 
-**실행**:
+**검증**:
 ```bash
-node example-fix.mjs
-```
-
-**검증 방법**:
-```bash
-# 1. 인코딩 손상 확인 (0이어야 정상)
-cat -A file.tsx | grep -E "(M-|�)" | wc -l
-
-# 2. TypeScript 컴파일
-cd statistical-platform
+cat -A file.tsx | grep -E "(M-|�)" | wc -l  # 0이어야 정상
 npx tsc --noEmit
-
-# 3. 테스트 실행
 npm test -- __tests__/path/to/test.tsx
 ```
 
 **주의사항**:
 - ❌ Edit Tool: 한글 파일 수정 시 사용 금지
 - ❌ Write Tool: 한글 파일 수정 시 사용 금지
-- ❌ Python 스크립트: Windows cp949 인코딩 문제
 - ✅ Node.js 스크립트 (.mjs): UTF-8 기본 지원으로 안전
-
-**예제**: `statistical-platform/components/smart-flow/steps/ResultsActionStep.tsx` 수정 시 사용됨 (2025-11-23)
 
 ---
 
-## 🎨 공통 컴포넌트 전략 (2025-11-21 신규)
+## 🎨 공통 컴포넌트 전략
 
 **목표**: 컴포넌트 재사용성 극대화 + 일관된 UX + 유지보수 효율화
 
@@ -148,8 +84,6 @@ npm test -- __tests__/path/to/test.tsx
 
 **2. 변수 선택 컴포넌트** (`components/common/`)
 - ✅ **VariableSelectorSimple** - 초간단 변수 선택 (버튼 클릭만, 드래그앤드롭 제거)
-  - 사용처: 스마트 분석, 개별 통계 페이지 (2변수 분석)
-  - 디자인 철학: 드래그앤드롭 없음, 할당 개념 없음, 버튼 클릭만
 
 **3. 통계 결과 컴포넌트** (`components/common/statistics/`)
 - ✅ **StatisticsTable** - 통계 결과 테이블 (내보내기, 정렬 기능)
@@ -168,60 +102,17 @@ npm run dev
 
 **파일 위치**: `statistical-platform/app/(dashboard)/design-system/page.tsx`
 
-**현재 쇼케이스 구성** (4개 섹션):
-- 🎨 **Colors**: shadcn/ui 색상 팔레트 (6가지)
-- 🔘 **Buttons**: 라이브 플레이그라운드 (variant + size)
-- 📝 **Typography**: Headings, Body Text 스타일
+**현재 쇼케이스 구성** (11개 섹션):
+- 🎨 **Colors**: shadcn/ui 색상 팔레트
+- 🔘 **Buttons**: 라이브 플레이그라운드
+- 📝 **Typography**: Headings, Body Text
 - 🧩 **Components**: 공통 컴포넌트 실시간 테스트
-  - PurposeCard (선택 가능한 카드)
-  - AIAnalysisProgress (진행률 표시)
-  - DataPreviewTable (데이터 미리보기)
-  - VariableSelectorSimple (변수 선택)
-
-**1단계: Design System에서 개발**
-- 새 컴포넌트 작성
-- Design System 페이지에 새 섹션/카드 추가
-- 다양한 Props 조합 테스트
-- 실시간 확인 (HMR 지원)
-
-**2단계: 실제 페이지에 적용**
-- 스마트 분석 먼저 적용 (가장 많이 사용)
-- 개별 통계 페이지에 점진적 적용
-- 피드백 수집 → Showcase 업데이트
-
-**3단계: 문서화**
-- Showcase 페이지에 Props 테이블 추가
-- 사용 예제 코드 추가
-- 디자인 특징/사용 시나리오 명시
-
-### 📋 공통 컴포넌트 작성 규칙
-
-**필수 규칙**:
-1. ✅ **TypeScript 엄격 모드**: `any` 금지, 모든 Props 타입 명시
-2. ✅ **shadcn/ui 기반**: 기존 디자인 시스템 준수
-3. ✅ **접근성 고려**: ARIA 속성, 키보드 네비게이션
-4. ✅ **반응형 디자인**: 모바일/태블릿/데스크탑 모두 지원
-5. ✅ **에러 처리**: 잘못된 Props에 대한 fallback
-
-**파일 위치**:
-- 분석 관련: `components/common/analysis/`
-- 변수 선택: `components/common/`
-- 통계 결과: `components/common/statistics/`
-- UI 기본: `components/ui/` (shadcn/ui)
-
-### 🚀 향후 계획
-
-**우선순위 높음**:
-- [ ] **VariableSelectorAdvanced** - 다중 변수 선택 (ANOVA, MANOVA용)
-- [ ] **StatisticsChart** - 공통 차트 컴포넌트 (Box Plot, Histogram)
-- [ ] **ResultExportButton** - 통합 내보내기 버튼 (CSV, PNG, PDF)
-
-**우선순위 중간**:
-- [ ] **DataValidationAlert** - 데이터 검증 결과 표시
-- [ ] **MethodComparisonCard** - 통계 방법 비교 카드
-- [ ] **PostHocTable** - 사후 검정 결과 테이블
-
-**참고**: 모든 새 컴포넌트는 `/design-system` 페이지에 먼저 추가!
+- 📊 **Visualizations**: 차트 컴포넌트
+- 📋 **Data Utilities**: 데이터 처리 유틸리티
+- 💻 **Statistics Pattern** (DEV) - 통계 페이지 코딩 표준
+- 🛡️ **Type Guards** (DEV) - 타입 가드 라이브러리
+- 💬 **RAG Components** (DEV) - RAG 시스템 컴포넌트
+- 🧪 **Test Snippets** (DEV) - Jest 테스트 패턴
 
 ---
 
@@ -231,8 +122,10 @@ npm run dev
 - **목표**: SPSS/R Studio 급 고급 통계 소프트웨어
 - **대상**: 수산과학 연구자, 통계 전문가, 데이터 분석가
 - **기술**: Next.js 15 + TypeScript + shadcn/ui + Pyodide + Tauri
-- **현재**: Phase 9 완료 (95%) - 계산 방법 표준화 + 데이터 도구 분리
+- **현재**: Phase 9 완료 (100%) - PyodideWorker Enum 표준화 + AI-Native Design System
 - **전체 페이지**: 45개 (통계 43개 + 데이터 도구 2개)
+
+---
 
 ## ⚠️ AI 코딩 엄격 규칙 (CRITICAL)
 
@@ -257,9 +150,6 @@ npm run dev
 ### 3. 통계 페이지 코딩 표준 (CRITICAL)
 
 **43개 통계 페이지 일관성 유지 필수!**
-- **전체 프로젝트**: 45개 (통계 43개 + 데이터 도구 2개)
-- **통계 페이지**: PyodideCore 표준 (41/43 = 95%)
-- **데이터 도구**: JavaScript 단순 카운팅 (2개: frequency-table, cross-tabulation)
 
 ⚠️ **상세 규칙**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md)
 
@@ -269,10 +159,7 @@ npm run dev
 - ✅ **await 패턴 사용** (setTimeout 사용 금지)
 - ✅ `any` 타입 절대 금지 (unknown + 타입 가드)
 - ✅ TypeScript 컴파일 에러 0개
-- ✅ **변수 role 매핑**: variable-requirements.ts와 types/statistics.ts 일치 (위 "현재 중요 규칙" 참조)
-- ✅ **타입 중앙 정의**: types/statistics.ts 단일 정의 (페이지별 재정의 금지)
-- ✅ **공통 컴포넌트 사용**: StatisticsTable, EffectSizeCard 등 활용
-- ✅ **PyodideCore 사용**: 모든 통계 계산은 검증된 라이브러리 (SciPy, statsmodels, sklearn)
+- ✅ **PyodideCore 사용**: 모든 통계 계산은 검증된 라이브러리
 
 **참고 문서**:
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방
@@ -319,8 +206,6 @@ npm test [파일명]
 - [ ] Null 체크: Optional chaining (`?.`) 사용
 - [ ] 일관성: 기존 코드 패턴 준수
 - [ ] 부작용: 다른 파일에 영향 없음
-- [ ] 변수 role 매핑: variable-requirements.ts와 일치
-- [ ] 타입 정의: types/statistics.ts에만 정의 (페이지 재정의 없음)
 
 **✅ 테스트 검증**:
 
@@ -329,19 +214,6 @@ npm test [파일명]
 npm run dev
 # → 브라우저에서 실제 동작 확인
 ```
-
-**통합 테스트 체크리스트**:
-1. **UI 렌더링**
-   - [ ] 새 컴포넌트가 화면에 표시되는가?
-   - [ ] 레이아웃이 깨지지 않는가?
-
-2. **기능 동작**
-   - [ ] 버튼/드롭다운 클릭 시 정상 작동하는가?
-   - [ ] 상태 변경이 UI에 반영되는가?
-
-3. **에러 처리**
-   - [ ] 잘못된 입력 시 에러 메시지가 표시되는가?
-   - [ ] 콘솔에 에러가 없는가?
 
 ---
 
@@ -374,7 +246,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - 커밋 완료 후 사용자에게 보고
 - 사용자가 명시적으로 "푸시해" 요청 시에만 푸시
 
-
 ### 5. 테스트 프레임워크 규칙 (CRITICAL)
 
 **이 프로젝트는 Jest를 사용합니다 (Vitest 아님!)**
@@ -383,21 +254,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - ✅ **테스트 파일은 항상 Jest 문법 사용**
 - ❌ Vitest import 절대 금지 (`import { describe, it } from 'vitest'` ❌)
 - ✅ Jest import 사용 (`import { describe, it } from '@jest/globals'` 또는 전역 사용)
-
-**테스트 파일 작성 예시**:
-```typescript
-// ✅ 올바른 방법 (Jest)
-import { render, screen } from '@testing-library/react'
-
-describe('Component', () => {
-  it('should render', () => {
-    expect(screen.getByText('Hello')).toBeInTheDocument()
-  })
-})
-
-// ❌ 잘못된 방법 (Vitest)
-import { describe, it, expect, vi } from 'vitest'  // ❌ 금지!
-```
 
 **테스트 실행**:
 ```bash
@@ -409,29 +265,7 @@ npm test:coverage     # 커버리지
 
 ---
 
-### 6. 테스트 자동화 핵심 원칙 (CRITICAL)
-
-**원칙**: "정직한 테스트 > 이상적인 테스트"
-
-```typescript
-// ❌ 거짓: 45개 강제 (실제 3개만 존재)
-expect(snapshots.size).toBe(45)
-
-// ✅ 정직: 3개 검증 + .skip()으로 미래 작업 명시
-expect(snapshots.size).toBe(3)
-describe.skip('Phase 1-C 대기', () => { /* 42개 추가 예정 */ })
-```
-
-**교훈**:
-- 테스트는 **실제 상태** 반영 (이상 상태 X), 미완성은 `.skip()` 명시
-- Zod: `passthrough() + fallback` → NaN 우회 가능 → 개별 스키마 직접 테스트 + fallback 제거
-- 문서: 숫자 사용 시 "무엇 기준"인지 명시 (43페이지 vs 45블록)
-
-**상세**: [RECONCILIATION_REPORT.md](statistical-platform/docs/RECONCILIATION_REPORT.md) (2025-11-24)
-
----
-
-### 7. 코드 스타일
+### 6. 코드 스타일
 
 - ❌ 식별자에 이모지 절대 금지 (변수명, 함수명, 클래스명)
 - ✅ Next.js 15 App Router 사용 (Pages Router 금지)
@@ -439,28 +273,19 @@ describe.skip('Phase 1-C 대기', () => { /* 42개 추가 예정 */ })
 
 ---
 
-## 🏗️ 아키텍처 (Phase 6)
+## 🏗️ 아키텍처
 
 ### 구조 개요
 ```
-사용자 → Groups → PyodideCore → Python Workers (SciPy/statsmodels)
-         ↓        ↓
-    데이터 가공   직접 호출 (callWorkerMethod<T>)
-    UI 포맷팅    타입 안전성 향상
+사용자 → PyodideCore → Python Workers (SciPy/statsmodels)
+         ↓
+    직접 호출 (callWorkerMethod<T>)
+    타입 안전성 향상
 ```
-
-### 핵심 원칙
-- **Groups**: TypeScript로 데이터 검증/가공, UI 포맷팅만
-- **PyodideCore**: Python Workers 호출 관리
-- **Python Workers**: 실제 통계 계산 (SciPy/statsmodels)
-- ❌ Groups에서 통계 직접 계산 금지
 
 ### 핵심 디렉토리
 ```
 statistical-platform/
-├── lib/statistics/
-│   ├── groups/                      - 6개 그룹 (TypeScript)
-│   └── registry/                    - 60개 메서드 메타데이터
 ├── lib/services/
 │   └── pyodide-core.ts              - PyodideCore (421 lines)
 └── public/workers/python/           - Python Workers (4개)
@@ -470,19 +295,16 @@ statistical-platform/
 
 ## 📦 배포 시나리오
 
-이 프로젝트는 **2가지 배포 방식**을 지원합니다:
+**2가지 배포 방식** 지원:
 
 ### Vercel 클라우드 배포 (일반 사용자)
 - ✅ **CDN 자동 다운로드**: Pyodide를 CDN에서 자동으로 로드
 - ✅ **빌드 크기**: ~50MB (Pyodide 미포함)
-- ✅ **환경변수**: `NEXT_PUBLIC_OLLAMA_ENDPOINT` (선택)
-- 🎯 **대상**: 인터넷 연결 가능한 일반 사용자
 
 ### 로컬 오프라인 배포 (폐쇄망 환경)
 - ✅ **완전 오프라인**: 인터넷 없이 모든 기능 동작
 - ✅ **빌드 크기**: ~250MB (Pyodide 200MB 포함)
 - ✅ **환경변수**: `NEXT_PUBLIC_PYODIDE_USE_LOCAL=true` (필수)
-- 🎯 **대상**: 군대/병원/연구소 등 폐쇄망 환경
 
 **상세**: [DEPLOYMENT_SCENARIOS.md](statistical-platform/docs/DEPLOYMENT_SCENARIOS.md)
 
@@ -499,67 +321,7 @@ npx tsc --noEmit     # 타입 체크
 
 # 오프라인 배포 사전 준비
 npm run setup:pyodide    # Pyodide 다운로드 (200MB)
-ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 ```
-
----
-
-## 📋 현재 작업 상태
-
-**최신 상태** (2025-11-18):
-- ✅ **Phase 8 완료 (100%)**: RAG 시스템 (Ollama + Vector DB) (2025-11-16 완료)
-  - ✅ **Vector DB**: ChromaDB + Ollama embeddings (mxbai-embed-large)
-  - ✅ **문서 수집**: SciPy, statsmodels, pingouin 등 통계 라이브러리
-  - ✅ **/chatbot 페이지**: Grok 스타일 전체 화면 채팅
-  - ✅ **FloatingChatbot**: 전역 플로팅 버튼 (Intercom 스타일)
-  - ✅ **ChatPanel (우측 패널)**: Layout 레벨 전역 구현
-    - Header MessageCircle (💬) 버튼으로 열기
-    - 320px~800px 리사이징, 접기/펼치기
-    - RAGAssistantCompact 포함
-- ✅ **Phase 9 완료 (100%)**: 계산 방법 표준화 + 데이터 도구 분리 (2025-11-18 완료)
-  - ✅ **전체 프로젝트**: 45개 (통계 43개 + 데이터 도구 2개)
-  - ✅ **PyodideCore**: 43/43 통계 페이지 (100%) 목표 달성! 🎉
-  - ✅ **Batch 1-4**: 23개 페이지 변환 완료 (pyodideStats, Legacy, JavaScript, None)
-  - ✅ **데이터 도구 분리**: frequency-table, cross-tabulation → /data-tools/
-  - ✅ **코드 감소**: -2,005줄 / **Worker 메서드 총 88개** (W1:12, W2:23, W3:23, W4:30)
-  - ✅ **통계 신뢰성**: statsmodels, SciPy, sklearn 100% 사용
-  - ✅ **PyodideWorker Enum 표준화**: 43/43 페이지 (100%) - 타입 안전성 강화 완료
-  - ✅ **레거시 코드 제거**: usePyodideService 통계 페이지에서 완전 제거
-- ✅ **Phase 10 완료**: 배포 준비 완료 (Web Worker 활성화 + 배포 가이드) (2025-11-16)
-  - ✅ **TwoPanelLayout 대규모 마이그레이션**: 23개 통계 페이지 완료
-  - ✅ **RAG Perplexity 스타일 UI**: 인라인 인용 + 스트리밍 + 타이핑 커서
-  - ✅ **Pyodide Web Worker 활성화**: UI 블로킹 방지 + 동시 실행
-  - ✅ **DEPLOYMENT_COMPANY_GUIDE.md**: 회사 배포 가이드 (345줄)
-- ✅ Phase 6 완료: PyodideCore 직접 연결
-  - ✅ 10개 handler 완전 변환 (39개 메서드, 100%)
-  - ✅ TypeScript 컴파일 에러: **0개** (core groups/handlers)
-  - ✅ 코드 품질: **5.0/5** ⭐⭐⭐⭐⭐
-- ✅ Phase 1 완료: setTimeout 패턴 제거
-  - ✅ 27/27 페이지 (100%) 표준 패턴으로 전환
-  - ✅ isAnalyzing Critical 버그 10개 수정
-- ✅ Phase 2-2 완료: 코드 품질 개선
-  - ✅ **43/43 통계 페이지 (100%)** 완료
-  - ✅ TypeScript 에러: 717 → 0 (-100%, 완전 제거)
-  - ✅ 코드 품질: 3.5/5 → 4.97/5 (+42% 향상)
-- ✅ **Phase 3 (StatisticsTable 확대) 완료 (95%)**:
-  - ✅ 8개 페이지, 19개 테이블 변환 (코드 평균 -30%)
-  - ✅ 내보내기 버튼 비활성화: 22개 페이지
-
-- ✅ **UI 통합 (2025-11-18 완료)**: `/smart-analysis` → `/smart-flow` 통합
-  - ✅ `/smart-analysis` 폴더 삭제 (구형 962줄 제거)
-  - ✅ 모든 링크 `/smart-flow`로 변경 ([app/page.tsx](statistical-platform/app/page.tsx), [app/(dashboard)/dashboard/page.tsx](statistical-platform/app/(dashboard)/dashboard/page.tsx))
-  - ✅ 코드 감소: -868줄 (-90%)
-  - ✅ 사용자 혼란 제거: 단일 스마트 분석 경로 유지
-
-**다음 작업**:
-- 🔜 **Phase 11: 자동화 테스트 시스템** (68시간 예상)
-  - 목표: 43개 통계 앱 해석 엔진 완벽 자동 검증
-  - 📋 상세 계획: [ROADMAP.md - Phase 11](ROADMAP.md#-phase-11-자동화-테스트-시스템-예정)
-  - 📋 구현 가이드: [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md)
-- 🔜 Phase 12: Tauri 데스크탑 앱 (향후 검토)
-- 🔜 추가 개선 사항 (성능 최적화, 시각화 고도화 등)
-
-**📝 상세 작업 기록**: [dailywork.md](dailywork.md) | [STATUS.md](STATUS.md)
 
 ---
 
@@ -576,9 +338,10 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 - [AI-CODING-RULES.md](statistical-platform/docs/AI-CODING-RULES.md) - any → unknown 예제
 - [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - 통계 모듈 코딩 표준 ⭐
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방 🚨
-- [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md) - 자동화 테스트 계획 (Golden Snapshot + E2E) 🧪
-- [RAG_ARCHITECTURE.md](statistical-platform/docs/RAG_ARCHITECTURE.md) - RAG 시스템 아키텍처 (SQLite 의존성 구조) 🔍
-- [NEXTJS_STATIC_EXPORT.md](statistical-platform/docs/NEXTJS_STATIC_EXPORT.md) - Static Export vs API Route (빌드 에러 해결) 📦
+- [DESIGN_SYSTEM_SYNC_RULES.md](statistical-platform/docs/DESIGN_SYSTEM_SYNC_RULES.md) - Design System 메타데이터 동기화 ⭐ **신규**
+- [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md) - 자동화 테스트 계획 🧪
+- [RAG_ARCHITECTURE.md](statistical-platform/docs/RAG_ARCHITECTURE.md) - RAG 시스템 아키텍처 🔍
+- [NEXTJS_STATIC_EXPORT.md](statistical-platform/docs/NEXTJS_STATIC_EXPORT.md) - Static Export vs API Route 📦
 
 ### 문서 관리 규칙
 - **dailywork.md**: 최근 7일만 유지 (주말마다 `archive/dailywork/`로 이동)
@@ -587,4 +350,4 @@ ollama pull mxbai-embed-large  # Ollama 모델 (선택)
 
 ---
 
-**Updated**: 2025-11-18 | **Version**: Phase 9 Complete (100%) - PyodideWorker Enum 표준화 (43/43 페이지) | **Next**: Phase 8 (RAG 고도화) or Phase 11 (Tauri 앱)
+**Updated**: 2025-11-24 | **Version**: Phase 9 Complete + AI-Native Design System | **Next**: Phase 11 (자동화 테스트 시스템)

@@ -13,9 +13,10 @@
  */
 
 import { useState, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack,
-  ExternalLink, Table, Zap, GitCompare
+  ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +40,42 @@ import { VariableSelectorDemo } from './components/VariableSelectorDemo'
 import { VisualizationDemo } from './components/VisualizationDemo'
 import { COMPONENT_LIST } from './constants'
 
+// 개발 전용 섹션 (프로덕션에서 제외)
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-12">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <span className="ml-3 text-muted-foreground">Loading...</span>
+  </div>
+);
+
+const StatisticsPagePatternSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/StatisticsPagePatternSection').then(mod => ({ default: mod.StatisticsPagePatternSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
+
+const TypeGuardsSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/TypeGuardsSection').then(mod => ({ default: mod.TypeGuardsSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
+
+const RAGComponentsSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/RAGComponentsSection').then(mod => ({ default: mod.RAGComponentsSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
+
+const TestSnippetsSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/TestSnippetsSection').then(mod => ({ default: mod.TestSnippetsSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
+
 // 네비게이션 섹션 정의
 const NAV_SECTIONS = [
   { id: 'colors', label: 'Colors', icon: Palette },
@@ -48,7 +85,14 @@ const NAV_SECTIONS = [
   { id: 'components', label: 'Components', icon: GitCompare },
   { id: 'visualizations', label: 'Visualizations', icon: SquareStack },
   { id: 'data-utils', label: 'Data Utilities', icon: Table },
-]
+  // 개발 전용 섹션 (프로덕션에서 제외)
+  ...(process.env.NODE_ENV !== 'production' ? [
+    { id: 'stats-pattern', label: 'Statistics Pattern', icon: Code, devOnly: true },
+    { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
+    { id: 'rag-components', label: 'RAG Components', icon: MessageCircle, devOnly: true },
+    { id: 'test-snippets', label: 'Test Snippets', icon: FlaskConical, devOnly: true },
+  ] : [])
+] as const
 
 // 색상 데이터
 const COLOR_PALETTE = [
@@ -130,6 +174,11 @@ export default function ComponentsShowcasePage() {
               >
                 <Icon className="h-4 w-4" />
                 {section.label}
+                {'devOnly' in section && section.devOnly && (
+                  <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">
+                    DEV
+                  </Badge>
+                )}
               </button>
             )
           })}
@@ -1022,6 +1071,34 @@ const handleOpenDataInNewWindow = useCallback(() => {
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {/* ========================================
+              8. Statistics Pattern (개발 전용)
+          ======================================== */}
+          {activeSection === 'stats-pattern' && StatisticsPagePatternSection && (
+            <StatisticsPagePatternSection />
+          )}
+
+          {/* ========================================
+              9. Type Guards (개발 전용)
+          ======================================== */}
+          {activeSection === 'type-guards' && TypeGuardsSection && (
+            <TypeGuardsSection />
+          )}
+
+          {/* ========================================
+              10. RAG Components (개발 전용)
+          ======================================== */}
+          {activeSection === 'rag-components' && RAGComponentsSection && (
+            <RAGComponentsSection />
+          )}
+
+          {/* ========================================
+              11. Test Snippets (개발 전용)
+          ======================================== */}
+          {activeSection === 'test-snippets' && TestSnippetsSection && (
+            <TestSnippetsSection />
           )}
         </div>
       </main>

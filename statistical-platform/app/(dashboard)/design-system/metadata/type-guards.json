@@ -1,0 +1,185 @@
+{
+  "id": "type-guards",
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-24",
+  "sources": [
+    "statistical-platform/lib/utils/type-guards.ts",
+    "statistical-platform/docs/AI-CODING-RULES.md"
+  ],
+  "categories": [
+    {
+      "name": "Basic Type Guards",
+      "description": "기본 타입 체크 함수",
+      "functions": [
+        {
+          "name": "isRecord",
+          "signature": "function isRecord(value: unknown): value is Record<string, unknown>",
+          "purpose": "객체 타입 가드 (배열 제외)",
+          "example": "if (isRecord(data)) {\n  console.log(data.name); // ✅ 안전\n}",
+          "returns": "value가 유효한 객체인지 여부"
+        },
+        {
+          "name": "isDataArray",
+          "signature": "function isDataArray(data: unknown): data is Record<string, unknown>[]",
+          "purpose": "객체 배열 타입 가드",
+          "example": "if (isDataArray(uploadedData)) {\n  uploadedData.forEach(row => {\n    console.log(row.id); // ✅ 안전\n  });\n}",
+          "returns": "data의 모든 요소가 유효한 객체인지 여부"
+        },
+        {
+          "name": "isNumeric",
+          "signature": "function isNumeric(value: unknown): value is number",
+          "purpose": "숫자 타입 가드 (NaN, Infinity 제외)",
+          "example": "if (isNumeric(value)) {\n  const result = value * 2; // ✅ 안전\n}",
+          "returns": "value가 유효한 숫자인지 여부"
+        },
+        {
+          "name": "isString",
+          "signature": "function isString(value: unknown): value is string",
+          "purpose": "문자열 타입 가드",
+          "example": "if (isString(value)) {\n  console.log(value.toUpperCase()); // ✅ 안전\n}",
+          "returns": "value가 문자열인지 여부"
+        },
+        {
+          "name": "isBoolean",
+          "signature": "function isBoolean(value: unknown): value is boolean",
+          "purpose": "불리언 타입 가드",
+          "example": "if (isBoolean(value)) {\n  if (value) { ... } // ✅ 안전\n}",
+          "returns": "value가 불리언인지 여부"
+        }
+      ]
+    },
+    {
+      "name": "Safe Converters",
+      "description": "안전한 타입 변환 함수",
+      "functions": [
+        {
+          "name": "toNumber",
+          "signature": "function toNumber(value: unknown): number | null",
+          "purpose": "unknown → number 안전 변환",
+          "example": "const num = toNumber(value);\nif (num !== null) {\n  console.log(num + 1); // ✅ 안전\n}",
+          "returns": "변환된 숫자 또는 null"
+        },
+        {
+          "name": "toString",
+          "signature": "function toString(value: unknown): string",
+          "purpose": "unknown → string 안전 변환",
+          "example": "const str = toString(123);\n// str === '123'",
+          "returns": "변환된 문자열 (null/undefined → 빈 문자열)"
+        },
+        {
+          "name": "filterNumeric",
+          "signature": "function filterNumeric(values: unknown[]): number[]",
+          "purpose": "배열에서 숫자만 추출",
+          "example": "const values = [1, '2', null, 3, 'invalid', 4.5];\nconst numbers = filterNumeric(values);\n// numbers === [1, 2, 3, 4.5]",
+          "returns": "숫자 배열"
+        },
+        {
+          "name": "filterStrings",
+          "signature": "function filterStrings(values: unknown[]): string[]",
+          "purpose": "배열에서 문자열만 추출 (빈 문자열 제외)",
+          "example": "const values = ['a', 123, null, 'b', ''];\nconst strings = filterStrings(values);\n// strings === ['a', 'b']",
+          "returns": "문자열 배열"
+        }
+      ]
+    },
+    {
+      "name": "Null/Undefined Checkers",
+      "description": "Null/Undefined 체크 함수",
+      "functions": [
+        {
+          "name": "isNullish",
+          "signature": "function isNullish(value: unknown): value is null | undefined",
+          "purpose": "null 또는 undefined 체크",
+          "example": "if (isNullish(value)) {\n  console.log('값이 없습니다');\n}",
+          "returns": "null/undefined 여부"
+        },
+        {
+          "name": "hasValue",
+          "signature": "function hasValue(value: unknown): boolean",
+          "purpose": "값 존재 체크 (null/undefined/빈 문자열 제외)",
+          "example": "if (hasValue(value)) {\n  // 유효한 값이 있음\n}",
+          "returns": "값 존재 여부"
+        }
+      ]
+    },
+    {
+      "name": "Object Property Guards",
+      "description": "객체 속성 접근 함수",
+      "functions": [
+        {
+          "name": "getProperty",
+          "signature": "function getProperty(obj: Record<string, unknown>, key: string): unknown",
+          "purpose": "안전한 객체 키 접근",
+          "example": "const row: Record<string, unknown> = { name: 'test', age: 30 };\nconst name = getProperty(row, 'name');\n// name === 'test' (unknown 타입)",
+          "returns": "값 또는 undefined"
+        },
+        {
+          "name": "hasProperty",
+          "signature": "function hasProperty(obj: Record<string, unknown>, key: string): boolean",
+          "purpose": "객체 키 존재 여부 확인",
+          "example": "if (hasProperty(row, 'name')) {\n  const value = row.name; // unknown\n}",
+          "returns": "키 존재 여부"
+        }
+      ]
+    },
+    {
+      "name": "AnalysisResult Guards",
+      "description": "통계 결과 타입 가드 (2025-11-24 추가)",
+      "functions": [
+        {
+          "name": "hasPowerAnalysis",
+          "signature": "function hasPowerAnalysis(additional?: AnalysisResult['additional']): additional is NonNullable<AnalysisResult['additional']> & { power: number }",
+          "purpose": "Power Analysis 필드 존재 확인",
+          "example": "if (hasPowerAnalysis(results.additional)) {\n  console.log(results.additional.power); // ✅ 안전\n}",
+          "returns": "power 필드 존재 여부"
+        },
+        {
+          "name": "hasRSquared",
+          "signature": "function hasRSquared(additional?: AnalysisResult['additional']): additional is NonNullable<AnalysisResult['additional']> & { rSquared: number }",
+          "purpose": "R-squared 필드 존재 확인 (회귀분석)",
+          "example": "if (hasRSquared(results.additional)) {\n  console.log(results.additional.rSquared); // ✅ 안전\n}",
+          "returns": "rSquared 필드 존재 여부"
+        },
+        {
+          "name": "hasAlpha",
+          "signature": "function hasAlpha(additional?: AnalysisResult['additional']): additional is NonNullable<AnalysisResult['additional']> & { alpha: number }",
+          "purpose": "Cronbach's Alpha 필드 존재 확인 (신뢰도 분석)",
+          "example": "if (hasAlpha(results.additional)) {\n  console.log(results.additional.alpha); // ✅ 안전\n}",
+          "returns": "alpha 필드 존재 여부"
+        }
+      ]
+    }
+  ],
+  "usagePatterns": [
+    {
+      "name": "CSV 데이터 검증",
+      "code": "// 1. 배열 체크\nif (!isDataArray(uploadedData)) {\n  return { error: 'Invalid data format' };\n}\n\n// 2. 각 행 검증\nconst validRows = uploadedData.filter(row => {\n  return hasProperty(row, 'id') && isNumeric(row.id);\n});\n\n// 3. 컬럼 추출\nconst ages = filterNumeric(\n  uploadedData.map(row => row.age)\n);"
+    },
+    {
+      "name": "통계 결과 검증",
+      "code": "// 1. 기본 필드 체크\nif (!isRecord(results)) {\n  throw new Error('Invalid results');\n}\n\n// 2. 선택적 필드 체크\nif (hasPowerAnalysis(results.additional)) {\n  console.log(`Power: ${results.additional.power}`);\n}\n\nif (hasRSquared(results.additional)) {\n  console.log(`R²: ${results.additional.rSquared}`);\n}"
+    },
+    {
+      "name": "Python 응답 검증",
+      "code": "// Python Worker에서 받은 데이터 검증\nconst result = await pyodideCore.callMethod(...);\n\n// 1. 객체 체크\nif (!isRecord(result)) {\n  throw new Error('Invalid Python response');\n}\n\n// 2. 필수 필드 체크\nif (!hasProperty(result, 'statistic') || !isNumeric(result.statistic)) {\n  throw new Error('Missing statistic field');\n}\n\nif (!hasProperty(result, 'pValue') || !isNumeric(result.pValue)) {\n  throw new Error('Missing pValue field');\n}"
+    }
+  ],
+  "bestPractices": [
+    {
+      "title": "Early Return 패턴",
+      "description": "타입 가드를 사용하여 early return으로 에러 처리",
+      "example": "function processData(data: unknown) {\n  // 1. 타입 가드로 검증\n  if (!isDataArray(data)) {\n    return { error: 'Invalid data' };\n  }\n  \n  // 2. 이제 data는 Record<string, unknown>[] 타입\n  const result = data.map(row => {\n    // 안전하게 사용 가능\n    return row.id;\n  });\n  \n  return { result };\n}"
+    },
+    {
+      "title": "any 금지 → unknown + 타입 가드",
+      "description": "any 대신 unknown과 타입 가드 조합 사용",
+      "bad": "// ❌ Bad\nfunction getValue(data: any) {\n  return data.value; // 타입 체크 없음\n}",
+      "good": "// ✅ Good\nfunction getValue(data: unknown): number {\n  if (!isRecord(data)) {\n    throw new Error('Invalid data');\n  }\n  if (!hasProperty(data, 'value') || !isNumeric(data.value)) {\n    throw new Error('Invalid value');\n  }\n  return data.value; // ✅ 안전\n}"
+    },
+    {
+      "title": "Optional Chaining과 조합",
+      "description": "타입 가드 + Optional Chaining으로 안전한 접근",
+      "example": "// 1. Null 체크\nif (results?.additional && hasPowerAnalysis(results.additional)) {\n  console.log(results.additional.power);\n}\n\n// 2. 체이닝\nconst power = results?.additional && hasPowerAnalysis(results.additional)\n  ? results.additional.power\n  : null;"
+    }
+  ]
+}

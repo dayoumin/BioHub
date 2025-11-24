@@ -1,0 +1,146 @@
+{
+  "id": "test-snippets",
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-24",
+  "sources": [
+    "statistical-platform/__tests__/",
+    "statistical-platform/jest.config.js"
+  ],
+  "categories": [
+    {
+      "name": "React Component Tests",
+      "description": "React 컴포넌트 테스트 패턴",
+      "patterns": [
+        {
+          "name": "기본 렌더링 테스트",
+          "purpose": "컴포넌트가 정상적으로 렌더링되는지 확인",
+          "code": "import { render, screen } from '@testing-library/react';\nimport { MyComponent } from '@/components/MyComponent';\n\ndescribe('MyComponent', () => {\n  it('기본 렌더링이 정상적으로 동작해야 함', () => {\n    render(<MyComponent />);\n    \n    expect(screen.getByText('Hello')).toBeInTheDocument();\n    expect(screen.getByRole('button')).toBeInTheDocument();\n  });\n});",
+          "keywords": ["render", "screen", "getByText", "toBeInTheDocument"]
+        },
+        {
+          "name": "이벤트 핸들링 테스트",
+          "purpose": "사용자 이벤트(클릭, 입력 등)가 정상 동작하는지 확인",
+          "code": "import { render, screen, fireEvent, waitFor } from '@testing-library/react';\nimport { MyComponent } from '@/components/MyComponent';\n\ndescribe('MyComponent 이벤트', () => {\n  it('버튼 클릭 시 콜백이 호출되어야 함', async () => {\n    const handleClick = jest.fn();\n    render(<MyComponent onClick={handleClick} />);\n    \n    fireEvent.click(screen.getByRole('button'));\n    \n    await waitFor(() => {\n      expect(handleClick).toHaveBeenCalledTimes(1);\n    });\n  });\n  \n  it('입력 필드에 텍스트 입력 시 상태가 업데이트되어야 함', () => {\n    render(<MyComponent />);\n    \n    const input = screen.getByPlaceholderText('Enter text');\n    fireEvent.change(input, { target: { value: 'Hello' } });\n    \n    expect(input).toHaveValue('Hello');\n  });\n});",
+          "keywords": ["fireEvent", "click", "change", "waitFor"]
+        },
+        {
+          "name": "비동기 데이터 로딩 테스트",
+          "purpose": "비동기 데이터 로딩 및 로딩 상태 확인",
+          "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport { MyComponent } from '@/components/MyComponent';\nimport { fetchData } from '@/lib/api';\n\njest.mock('@/lib/api');\nconst mockFetchData = fetchData as jest.MockedFunction<typeof fetchData>;\n\ndescribe('MyComponent 비동기', () => {\n  it('로딩 중에는 스피너가 표시되어야 함', async () => {\n    mockFetchData.mockImplementation(() => \n      new Promise(resolve => setTimeout(() => resolve([]), 1000))\n    );\n    \n    render(<MyComponent />);\n    \n    // 로딩 스피너 확인\n    expect(screen.getByRole('status')).toBeInTheDocument();\n    \n    // 데이터 로딩 완료 후\n    await waitFor(() => {\n      expect(screen.queryByRole('status')).not.toBeInTheDocument();\n    });\n  });\n  \n  it('데이터 로딩 실패 시 에러 메시지가 표시되어야 함', async () => {\n    mockFetchData.mockRejectedValue(new Error('Failed to fetch'));\n    \n    render(<MyComponent />);\n    \n    await waitFor(() => {\n      expect(screen.getByText(/Failed to fetch/)).toBeInTheDocument();\n    });\n  });\n});",
+          "keywords": ["mock", "mockResolvedValue", "mockRejectedValue", "waitFor"]
+        }
+      ]
+    },
+    {
+      "name": "Integration Tests",
+      "description": "통합 테스트 패턴 (프론트-백엔드 연결)",
+      "patterns": [
+        {
+          "name": "데이터 구조 검증",
+          "purpose": "프론트 → Python Worker 데이터 구조 일치 확인",
+          "code": "import { describe, it, expect } from '@jest/globals';\n\ndescribe('ANOVA Integration Tests', () => {\n  it('데이터 구조가 Python Worker와 일치해야 함', () => {\n    // 프론트에서 준비하는 데이터 구조\n    const dataValues = [10, 12, 14, 16, 18, 20];\n    const factor1Values = ['A', 'A', 'B', 'B', 'C', 'C'];\n    \n    // 검증: 배열 길이 일치\n    expect(dataValues.length).toBe(factor1Values.length);\n    \n    // 검증: 최소 데이터 (4개 이상)\n    expect(dataValues.length).toBeGreaterThanOrEqual(4);\n    \n    // 검증: 데이터 타입\n    expect(Array.isArray(dataValues)).toBe(true);\n    expect(dataValues.every(v => typeof v === 'number')).toBe(true);\n  });\n});",
+          "keywords": ["integration", "data validation", "Python Worker"]
+        },
+        {
+          "name": "Python Worker 파라미터 검증",
+          "purpose": "Python Worker 호출 시 파라미터 형식 확인",
+          "code": "import { describe, it, expect } from '@jest/globals';\n\ndescribe('Python Worker 파라미터', () => {\n  it('파라미터가 올바른 형식이어야 함', () => {\n    const params = {\n      data_values: [10, 12, 14, 16],\n      factor1_values: ['A', 'A', 'B', 'B'],\n      factor2_values: ['Low', 'High', 'Low', 'High']\n    };\n    \n    // 검증: 필수 키 존재\n    expect(params).toHaveProperty('data_values');\n    expect(params).toHaveProperty('factor1_values');\n    expect(params).toHaveProperty('factor2_values');\n    \n    // 검증: snake_case 사용 (Python 규약)\n    expect(Object.keys(params)).toEqual([\n      'data_values',\n      'factor1_values',\n      'factor2_values'\n    ]);\n  });\n});",
+          "keywords": ["parameters", "snake_case", "validation"]
+        },
+        {
+          "name": "Python Worker 반환값 검증",
+          "purpose": "Python Worker 반환값이 TypeScript 타입과 일치하는지 확인",
+          "code": "import { describe, it, expect } from '@jest/globals';\n\ndescribe('Python Worker 반환값', () => {\n  it('반환 타입이 TwoWayANOVAResult와 일치해야 함', () => {\n    // Python Worker 반환 예상 구조\n    const mockResult = {\n      factor1: {\n        fStatistic: 5.2,\n        pValue: 0.032,\n        df: 1\n      },\n      factor2: {\n        fStatistic: 3.8,\n        pValue: 0.067,\n        df: 1\n      },\n      interaction: {\n        fStatistic: 2.1,\n        pValue: 0.165,\n        df: 1\n      },\n      residual: {\n        df: 8\n      }\n    };\n    \n    // 검증: 필수 필드 존재\n    expect(mockResult).toHaveProperty('factor1');\n    expect(mockResult).toHaveProperty('factor2');\n    expect(mockResult).toHaveProperty('interaction');\n    expect(mockResult).toHaveProperty('residual');\n    \n    // 검증: 숫자 타입\n    expect(typeof mockResult.factor1.fStatistic).toBe('number');\n    expect(typeof mockResult.factor1.pValue).toBe('number');\n  });\n});",
+          "keywords": ["return type", "validation", "TypeScript"]
+        }
+      ]
+    },
+    {
+      "name": "Mock Patterns",
+      "description": "모킹 패턴 (외부 의존성 격리)",
+      "patterns": [
+        {
+          "name": "함수 모킹",
+          "purpose": "외부 함수를 모킹하여 테스트 격리",
+          "code": "import { myFunction } from '@/lib/utils';\n\njest.mock('@/lib/utils');\nconst mockMyFunction = myFunction as jest.MockedFunction<typeof myFunction>;\n\ndescribe('함수 모킹', () => {\n  beforeEach(() => {\n    jest.clearAllMocks();\n  });\n  \n  it('함수가 호출되어야 함', () => {\n    mockMyFunction.mockReturnValue(42);\n    \n    const result = mockMyFunction(10);\n    \n    expect(mockMyFunction).toHaveBeenCalledWith(10);\n    expect(result).toBe(42);\n  });\n  \n  it('비동기 함수 모킹', async () => {\n    mockMyFunction.mockResolvedValue({ data: 'success' });\n    \n    const result = await mockMyFunction();\n    \n    expect(result).toEqual({ data: 'success' });\n  });\n});",
+          "keywords": ["jest.mock", "mockReturnValue", "mockResolvedValue"]
+        },
+        {
+          "name": "모듈 모킹",
+          "purpose": "전체 모듈을 모킹하여 복잡한 의존성 제거",
+          "code": "// Mock markdown dependencies (ESM modules)\njest.mock('remark-gfm', () => ({}));\njest.mock('remark-breaks', () => ({}));\njest.mock('react-markdown', () => ({\n  __esModule: true,\n  default: ({ children }: { children: string }) => <div>{children}</div>\n}));\n\n// Mock 컴포넌트\njest.mock('@/components/rag/chat-sources-display', () => ({\n  ChatSourcesDisplay: () => <div data-testid=\"chat-sources\">Sources</div>\n}));\n\ndescribe('모듈 모킹', () => {\n  it('모킹된 컴포넌트가 렌더링되어야 함', () => {\n    render(<MyComponent />);\n    \n    expect(screen.getByTestId('chat-sources')).toBeInTheDocument();\n  });\n});",
+          "keywords": ["jest.mock", "__esModule", "module mocking"]
+        },
+        {
+          "name": "window 객체 모킹",
+          "purpose": "브라우저 API (window.open, localStorage 등) 모킹",
+          "code": "const mockWindowOpen = jest.fn();\nconst mockLocalStorage = {\n  getItem: jest.fn(),\n  setItem: jest.fn(),\n  removeItem: jest.fn(),\n  clear: jest.fn()\n};\n\ndescribe('window 객체 모킹', () => {\n  beforeEach(() => {\n    window.open = mockWindowOpen;\n    Object.defineProperty(window, 'localStorage', {\n      value: mockLocalStorage,\n      writable: true\n    });\n  });\n  \n  it('window.open이 호출되어야 함', () => {\n    render(<MyComponent />);\n    \n    fireEvent.click(screen.getByText('새 창 열기'));\n    \n    expect(mockWindowOpen).toHaveBeenCalledWith('/chatbot', '_blank');\n  });\n  \n  it('localStorage가 호출되어야 함', () => {\n    mockLocalStorage.getItem.mockReturnValue('saved-value');\n    \n    render(<MyComponent />);\n    \n    expect(mockLocalStorage.getItem).toHaveBeenCalledWith('key');\n  });\n});",
+          "keywords": ["window.open", "localStorage", "browser API"]
+        }
+      ]
+    },
+    {
+      "name": "Test Setup & Teardown",
+      "description": "테스트 설정 및 정리 패턴",
+      "patterns": [
+        {
+          "name": "beforeEach / afterEach",
+          "purpose": "각 테스트 전/후 설정 및 정리",
+          "code": "describe('MyComponent', () => {\n  beforeEach(() => {\n    // 각 테스트 전에 실행\n    jest.clearAllMocks();\n    localStorage.clear();\n  });\n  \n  afterEach(() => {\n    // 각 테스트 후에 실행\n    jest.restoreAllMocks();\n  });\n  \n  it('테스트 1', () => {\n    // ...\n  });\n  \n  it('테스트 2', () => {\n    // ...\n  });\n});",
+          "keywords": ["beforeEach", "afterEach", "setup", "teardown"]
+        },
+        {
+          "name": "beforeAll / afterAll",
+          "purpose": "모든 테스트 전/후 한 번만 실행",
+          "code": "describe('MyComponent', () => {\n  beforeAll(() => {\n    // 모든 테스트 전에 한 번만 실행\n    console.log('테스트 시작');\n  });\n  \n  afterAll(() => {\n    // 모든 테스트 후에 한 번만 실행\n    console.log('테스트 종료');\n  });\n  \n  it('테스트 1', () => {\n    // ...\n  });\n  \n  it('테스트 2', () => {\n    // ...\n  });\n});",
+          "keywords": ["beforeAll", "afterAll", "global setup"]
+        },
+        {
+          "name": "테스트 격리 (Isolation)",
+          "purpose": "각 테스트가 독립적으로 실행되도록 보장",
+          "code": "describe('격리된 테스트', () => {\n  let mockData: any;\n  \n  beforeEach(() => {\n    // 각 테스트마다 새로운 데이터 생성\n    mockData = {\n      id: Math.random(),\n      name: 'Test',\n      items: []\n    };\n  });\n  \n  it('테스트 1이 mockData를 수정해도', () => {\n    mockData.name = 'Modified';\n    expect(mockData.name).toBe('Modified');\n  });\n  \n  it('테스트 2는 원본 mockData를 받음', () => {\n    // beforeEach로 새로 생성됨\n    expect(mockData.name).toBe('Test');\n  });\n});",
+          "keywords": ["isolation", "independent tests", "fresh data"]
+        }
+      ]
+    }
+  ],
+  "bestPractices": [
+    {
+      "title": "AAA 패턴 (Arrange-Act-Assert)",
+      "description": "테스트를 3단계로 구조화하여 가독성 향상",
+      "example": "it('버튼 클릭 시 카운터가 증가해야 함', () => {\n  // Arrange (준비)\n  const handleClick = jest.fn();\n  render(<Counter onClick={handleClick} />);\n  \n  // Act (실행)\n  fireEvent.click(screen.getByRole('button'));\n  \n  // Assert (검증)\n  expect(handleClick).toHaveBeenCalledTimes(1);\n  expect(screen.getByText('Count: 1')).toBeInTheDocument();\n});"
+    },
+    {
+      "title": "테스트 이름 작성 규칙",
+      "description": "명확하고 설명적인 테스트 이름 사용",
+      "example": "// ❌ Bad\nit('works', () => { ... });\nit('test1', () => { ... });\n\n// ✅ Good\nit('버튼 클릭 시 모달이 열려야 함', () => { ... });\nit('잘못된 이메일 입력 시 에러 메시지가 표시되어야 함', () => { ... });\nit('로딩 중에는 스피너가 표시되고 버튼이 비활성화되어야 함', () => { ... });"
+    },
+    {
+      "title": "단일 책임 원칙 (Single Responsibility)",
+      "description": "하나의 테스트는 하나의 동작만 검증",
+      "example": "// ❌ Bad: 여러 동작을 한 테스트에서 검증\nit('폼이 정상 동작해야 함', () => {\n  // 렌더링 검증\n  // 입력 검증\n  // 제출 검증\n  // 에러 검증\n});\n\n// ✅ Good: 각 동작을 별도 테스트로 분리\nit('폼이 정상 렌더링되어야 함', () => { ... });\nit('입력 필드가 정상 동작해야 함', () => { ... });\nit('제출 시 데이터가 전송되어야 함', () => { ... });\nit('검증 실패 시 에러 메시지가 표시되어야 함', () => { ... });"
+    },
+    {
+      "title": "비동기 테스트 처리",
+      "description": "waitFor, findBy를 사용하여 비동기 동작 대기",
+      "example": "// ❌ Bad: 비동기 대기 없이 즉시 검증\nit('데이터 로딩 후 표시', () => {\n  render(<MyComponent />);\n  expect(screen.getByText('Data')).toBeInTheDocument();  // 실패!\n});\n\n// ✅ Good: waitFor로 비동기 대기\nit('데이터 로딩 후 표시', async () => {\n  render(<MyComponent />);\n  \n  await waitFor(() => {\n    expect(screen.getByText('Data')).toBeInTheDocument();\n  });\n});\n\n// ✅ Better: findBy 사용 (자동 대기)\nit('데이터 로딩 후 표시', async () => {\n  render(<MyComponent />);\n  \n  const data = await screen.findByText('Data');\n  expect(data).toBeInTheDocument();\n});"
+    }
+  ],
+  "commonErrors": [
+    {
+      "error": "\"not wrapped in act(...)\" 경고",
+      "cause": "React 상태 업데이트가 테스트 외부에서 발생",
+      "solution": "waitFor를 사용하여 상태 업데이트 대기:\n\nawait waitFor(() => {\n  expect(screen.getByText('Updated')).toBeInTheDocument();\n});"
+    },
+    {
+      "error": "\"Unable to find element\" 에러",
+      "cause": "요소가 렌더링되지 않았거나 잘못된 쿼리 사용",
+      "solution": "1. screen.debug()로 현재 DOM 확인\n2. getByRole, getByText 등 올바른 쿼리 사용\n3. 비동기인 경우 findBy 또는 waitFor 사용"
+    },
+    {
+      "error": "\"Cannot read property of undefined\" 에러",
+      "cause": "모킹되지 않은 의존성 호출",
+      "solution": "jest.mock()으로 의존성 모킹:\n\njest.mock('@/lib/api');\nconst mockFetchData = fetchData as jest.MockedFunction<typeof fetchData>;\nmockFetchData.mockResolvedValue([]);"
+    }
+  ]
+}
