@@ -357,6 +357,19 @@ export class DataValidationService {
       try {
         const pyodide = PyodideCoreService.getInstance()
 
+        // Pyodide 초기화 여부 확인
+        if (!pyodide.isInitialized()) {
+          console.warn('[DataValidationService] Pyodide가 초기화되지 않아 가정 검정을 스킵합니다.')
+          // 가정 검정 없이 기본 검증만 반환
+          return {
+            ...basicValidation,
+            totalRows: originalRowCount,
+            columnStats,
+            columns: columnStats,
+            assumptionTests: undefined
+          }
+        }
+
         // Shapiro-Wilk 정규성 검정 (각 수치형 변수별)
         const normalityResults: Array<{
           variable: string

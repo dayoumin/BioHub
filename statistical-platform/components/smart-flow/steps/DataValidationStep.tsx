@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
+import { Histogram } from '@/components/charts/histogram'
+import { SimpleBoxPlot } from '@/components/charts/simple-boxplot'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
@@ -445,6 +448,82 @@ export const DataValidationStep = memo(function DataValidationStep({
             <p className="text-xs text-muted-foreground mt-3">
               💡 다음 단계에서 분석 목적을 선택하면 AI가 최적의 방법을 추천합니다.
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+
+      {/* 데이터 시각화 카드 */}
+      {!hasErrors && hasColumnStats(validationResults) && (
+        <Card className="border-cyan-200 bg-cyan-50/50 dark:bg-cyan-950/20">
+          <CardHeader>
+            <CardTitle className="text-base">📊 데이터 분포 시각화</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              변수를 선택하기 전에 데이터 분포를 확인하세요
+            </p>
+          </CardHeader>
+          <CardContent>
+            {validationResults.columnStats && validationResults.columnStats.filter(col => col.type === 'numeric').length > 0 ? (
+              <Tabs defaultValue={validationResults.columnStats.filter(col => col.type === 'numeric')[0]?.name} className="w-full">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {validationResults.columnStats
+                    .filter(col => col.type === 'numeric')
+                    .slice(0, 3)
+                    .map(col => (
+                      <TabsTrigger key={col.name} value={col.name}>
+                        {col.name}
+                      </TabsTrigger>
+                    ))}
+                </TabsList>
+
+                {validationResults.columnStats
+                  .filter(col => col.type === 'numeric')
+                  .slice(0, 3)
+                  .map(col => {
+                    const colData = data
+                      .map(row => row[col.name])
+                      .filter(v => v !== null && v !== undefined && v !== '')
+                      .map(Number)
+                      .filter(v => !isNaN(v))
+
+                    return (
+                      <TabsContent key={col.name} value={col.name} className="space-y-4 mt-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          {/* Histogram */}
+                          <div>
+                            <Histogram
+                              data={colData}
+                              title={`${col.name} 분포`}
+                              xAxisLabel={col.name}
+                              yAxisLabel="빈도"
+                              bins={10}
+                            />
+                          </div>
+
+                          {/* Box Plot */}
+                          <div>
+                            <SimpleBoxPlot
+                              data={colData}
+                              title={`${col.name} 박스 플롯`}
+                              variable={col.name}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-muted-foreground bg-background p-3 rounded-lg border">
+                          <p className="font-medium mb-1">해석 가이드:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            <li><strong>히스토그램</strong>: 데이터의 분포 형태 (정규분포, 왜도, 첨도)</li>
+                            <li><strong>박스 플롯</strong>: 중앙값, 사분위수, 이상치 확인</li>
+                          </ul>
+                        </div>
+                      </TabsContent>
+                    )
+                  })}
+              </Tabs>
+            ) : (
+              <p className="text-sm text-muted-foreground">수치형 변수가 없습니다.</p>
+            )}
           </CardContent>
         </Card>
       )}

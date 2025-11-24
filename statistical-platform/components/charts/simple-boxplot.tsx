@@ -89,9 +89,9 @@ export function SimpleBoxPlot({
               y={scale(stats.q3)}
               width={60}
               height={scale(stats.q1) - scale(stats.q3)}
-              fill="#8884d8"
+              fill="hsl(var(--info))"
               fillOpacity="0.3"
-              stroke="#8884d8"
+              stroke="hsl(var(--info))"
               strokeWidth="2"
             />
 
@@ -101,7 +101,7 @@ export function SimpleBoxPlot({
               y1={scale(stats.median)}
               x2={width / 2 + 30}
               y2={scale(stats.median)}
-              stroke="#ff7300"
+              stroke="hsl(var(--warning))"
               strokeWidth="3"
             />
 
@@ -111,7 +111,7 @@ export function SimpleBoxPlot({
               y1={scale(stats.q3)}
               x2={width / 2}
               y2={scale(stats.max)}
-              stroke="#8884d8"
+              stroke="hsl(var(--info))"
               strokeWidth="1.5"
               strokeDasharray="4"
             />
@@ -120,7 +120,7 @@ export function SimpleBoxPlot({
               y1={scale(stats.max)}
               x2={width / 2 + 15}
               y2={scale(stats.max)}
-              stroke="#8884d8"
+              stroke="hsl(var(--info))"
               strokeWidth="2"
             />
 
@@ -130,7 +130,7 @@ export function SimpleBoxPlot({
               y1={scale(stats.q1)}
               x2={width / 2}
               y2={scale(stats.min)}
-              stroke="#8884d8"
+              stroke="hsl(var(--info))"
               strokeWidth="1.5"
               strokeDasharray="4"
             />
@@ -139,7 +139,7 @@ export function SimpleBoxPlot({
               y1={scale(stats.min)}
               x2={width / 2 + 15}
               y2={scale(stats.min)}
-              stroke="#8884d8"
+              stroke="hsl(var(--info))"
               strokeWidth="2"
             />
 
@@ -150,31 +150,31 @@ export function SimpleBoxPlot({
                 cx={width / 2}
                 cy={scale(outlier)}
                 r="3"
-                fill="#ff4444"
-                stroke="#cc0000"
+                fill="hsl(var(--error))"
+                stroke="hsl(var(--error))"
                 strokeWidth="1"
               />
             ))}
 
             {/* Labels */}
-            <text x={padding - 10} y={scale(stats.max)} fontSize="10" textAnchor="end" fill="#666">
+            <text x={padding - 10} y={scale(stats.max)} fontSize="10" textAnchor="end" fill="hsl(var(--muted-foreground))">
               {stats.max.toFixed(1)}
             </text>
-            <text x={padding - 10} y={scale(stats.q3)} fontSize="10" textAnchor="end" fill="#666">
+            <text x={padding - 10} y={scale(stats.q3)} fontSize="10" textAnchor="end" fill="hsl(var(--muted-foreground))">
               {stats.q3.toFixed(1)}
             </text>
-            <text x={padding - 10} y={scale(stats.median)} fontSize="10" textAnchor="end" fill="#ff7300" fontWeight="bold">
+            <text x={padding - 10} y={scale(stats.median)} fontSize="10" textAnchor="end" fill="hsl(var(--warning))" fontWeight="bold">
               {stats.median.toFixed(1)}
             </text>
-            <text x={padding - 10} y={scale(stats.q1)} fontSize="10" textAnchor="end" fill="#666">
+            <text x={padding - 10} y={scale(stats.q1)} fontSize="10" textAnchor="end" fill="hsl(var(--muted-foreground))">
               {stats.q1.toFixed(1)}
             </text>
-            <text x={padding - 10} y={scale(stats.min)} fontSize="10" textAnchor="end" fill="#666">
+            <text x={padding - 10} y={scale(stats.min)} fontSize="10" textAnchor="end" fill="hsl(var(--muted-foreground))">
               {stats.min.toFixed(1)}
             </text>
 
             {/* Variable name */}
-            <text x={width / 2} y={height - 10} fontSize="12" textAnchor="middle" fill="#333" fontWeight="500">
+            <text x={width / 2} y={height - 10} fontSize="12" textAnchor="middle" fill="hsl(var(--foreground))" fontWeight="500">
               {variable}
             </text>
           </svg>
