@@ -7,7 +7,13 @@ import { pyodideStats } from './pyodide-statistics'
 import { StatisticalMethod } from '../statistics/method-mapping'
 import { logger } from '../utils/logger'
 
-export interface AnalysisResult {
+/**
+ * StatisticalExecutor 전용 분석 결과 인터페이스
+ * (레거시 - 향후 ExecutorAnalysisResult로 통합 예정)
+ *
+ * 주의: types/smart-flow.ts의 AnalysisResult와는 다른 구조
+ */
+export interface StatisticalExecutorResult {
   // 메타 정보
   metadata: {
     method: string
@@ -58,6 +64,12 @@ export interface AnalysisResult {
   // 원시 결과 (디버깅용)
   rawResults?: any
 }
+
+/**
+ * 호환성 별칭 (기존 코드 호환)
+ * @deprecated StatisticalExecutorResult 사용 권장
+ */
+export type AnalysisResult = StatisticalExecutorResult
 
 export class StatisticalExecutor {
   private static instance: StatisticalExecutor

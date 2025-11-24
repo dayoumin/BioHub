@@ -15,7 +15,11 @@ export interface Dataset {
   data?: Record<string, unknown>[]
 }
 
-export interface AnalysisResult {
+/**
+ * 분석 히스토리 저장용 인터페이스
+ * (Smart Flow의 AnalysisResult와는 다른 구조)
+ */
+export interface AnalysisHistoryRecord {
   id: string
   datasetId: string
   datasetName: string
@@ -72,7 +76,7 @@ interface AppState {
   // Data
   datasets: Dataset[]
   projects: Project[]
-  results: AnalysisResult[]
+  results: AnalysisHistoryRecord[]
   
   // UI State
   isLoading: boolean
@@ -90,8 +94,8 @@ interface AppState {
   addProject: (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void
   updateProject: (id: string, updates: Partial<Project>) => void
   
-  addAnalysisResult: (result: Omit<AnalysisResult, 'id' | 'createdAt'>) => string
-  updateAnalysisResult: (id: string, updates: Partial<AnalysisResult>) => void
+  addAnalysisResult: (result: Omit<AnalysisHistoryRecord, 'id' | 'createdAt'>) => string
+  updateAnalysisResult: (id: string, updates: Partial<AnalysisHistoryRecord>) => void
   
   setLoading: (loading: boolean) => void
   setCurrentPage: (page: string) => void
@@ -102,12 +106,12 @@ interface AppState {
   // Computed
   getDatasetById: (id: string) => Dataset | undefined
   getProjectById: (id: string) => Project | undefined
-  getAnalysisResultById: (id: string) => AnalysisResult | undefined
-  getAnalysisResult: (id: string) => AnalysisResult | undefined
+  getAnalysisResultById: (id: string) => AnalysisHistoryRecord | undefined
+  getAnalysisResult: (id: string) => AnalysisHistoryRecord | undefined
   getActiveDatasets: () => Dataset[]
-  getRecentAnalyses: (limit?: number) => AnalysisResult[]
-  getAnalysesByDataset: (datasetId: string) => AnalysisResult[]
-  getCompletedAnalyses: () => AnalysisResult[]
+  getRecentAnalyses: (limit?: number) => AnalysisHistoryRecord[]
+  getAnalysesByDataset: (datasetId: string) => AnalysisHistoryRecord[]
+  getCompletedAnalyses: () => AnalysisHistoryRecord[]
 }
 
 export const useAppStore = create<AppState>()(

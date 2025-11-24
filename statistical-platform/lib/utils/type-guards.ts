@@ -7,6 +7,8 @@
  *       안전한 타입 체크 함수들을 제공합니다.
  */
 
+import { AnalysisResult } from '@/types/smart-flow'
+
 /**
  * Record<string, unknown> 타입 가드
  *
@@ -311,4 +313,95 @@ export function hasValue(value: unknown): boolean {
   if (isNullish(value)) return false
   if (isString(value) && value.trim() === '') return false
   return true
+}
+
+// ==========================================
+// AnalysisResult 타입 가드 (2025-11-24 추가)
+// ==========================================
+
+/**
+ * Power Analysis 필드 존재 여부 확인
+ *
+ * @example
+ * if (hasPowerAnalysis(results.additional)) {
+ *   // results.additional.power는 이제 안전하게 사용 가능
+ *   console.log(results.additional.power) // ✅ OK
+ * }
+ */
+export function hasPowerAnalysis(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { power: number } {
+  return additional?.power !== undefined
+}
+
+/**
+ * Required Sample Size 필드 존재 여부 확인
+ */
+export function hasRequiredSampleSize(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { requiredSampleSize: number } {
+  return additional?.requiredSampleSize !== undefined
+}
+
+/**
+ * R-squared 필드 존재 여부 확인 (회귀분석)
+ */
+export function hasRSquared(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { rSquared: number } {
+  return additional?.rSquared !== undefined
+}
+
+/**
+ * Adjusted R-squared 필드 존재 여부 확인 (회귀분석)
+ */
+export function hasAdjustedRSquared(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { adjustedRSquared: number } {
+  return additional?.adjustedRSquared !== undefined
+}
+
+/**
+ * VIF (분산팽창지수) 필드 존재 여부 확인
+ */
+export function hasVIF(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { vif: number[] } {
+  return additional?.vif !== undefined && additional.vif.length > 0
+}
+
+/**
+ * Accuracy 필드 존재 여부 확인 (분류 모델)
+ */
+export function hasAccuracy(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { accuracy: number } {
+  return additional?.accuracy !== undefined
+}
+
+/**
+ * Silhouette Score 필드 존재 여부 확인 (군집 분석)
+ */
+export function hasSilhouetteScore(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { silhouetteScore: number } {
+  return additional?.silhouetteScore !== undefined
+}
+
+/**
+ * Explained Variance Ratio 필드 존재 여부 확인 (PCA)
+ */
+export function hasExplainedVarianceRatio(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { explainedVarianceRatio: number[] } {
+  return additional?.explainedVarianceRatio !== undefined && additional.explainedVarianceRatio.length > 0
+}
+
+/**
+ * Cronbach's Alpha 필드 존재 여부 확인 (신뢰도 분석)
+ */
+export function hasAlpha(
+  additional?: AnalysisResult['additional']
+): additional is NonNullable<AnalysisResult['additional']> & { alpha: number } {
+  return additional?.alpha !== undefined
 }

@@ -271,7 +271,8 @@ export function DataUploadStep({
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
     },
     maxFiles: 1,
-    maxSize: 100 * 1024 * 1024 // 100MB
+    maxSize: 100 * 1024 * 1024, // 100MB
+    disabled: isUploading // 업로드 중에는 드롭존 비활성화
   })
 
   return (

@@ -13,8 +13,8 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, X, TrendingUp, ChartScatter } from 'lucide-react'
-import { ValidationResults, DataRow } from '@/types/smart-flow'
+import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered } from 'lucide-react'
+import { ValidationResults, DataRow, ColumnStatistics } from '@/types/smart-flow'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -68,6 +68,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // Scatterplot 구성 목록
   const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>([])
+
+  // 로딩 상태 (상관계수 행렬 계산용)
+  const [isCalculating, setIsCalculating] = useState(false)
 
   // 비동기 데이터 로딩 대응: numericVariables 업데이트 시 기본 산점도 추가
   useEffect(() => {
@@ -168,9 +171,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     ))
   }, [])
 
-  // 상관계수 행렬 계산
+  // 상관계수 행렬 계산 (순수 함수 - 부작용 제거)
   const correlationMatrix = useMemo(() => {
-    if (numericVariables.length < 2) return []
+    if (numericVariables.length < 2) {
+      return []
+    }
 
     const matrix: Array<{
       var1: string
@@ -210,6 +215,18 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     // 상관계수 절대값 내림차순 정렬
     return matrix.sort((a, b) => Math.abs(b.r) - Math.abs(a.r))
   }, [numericVariables, getPairedData])
+
+  // 로딩 상태 관리 (useEffect로 부작용 분리)
+  useEffect(() => {
+    if (numericVariables.length >= 2) {
+      setIsCalculating(true)
+      // 동기 계산이므로 즉시 완료
+      const timer = setTimeout(() => setIsCalculating(false), 0)
+      return () => clearTimeout(timer)
+    } else {
+      setIsCalculating(false)
+    }
+  }, [numericVariables.length])
 
   // 빈 상태 처리
   if (!validationResults || numericVariables.length < 2) {
@@ -274,6 +291,53 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </Button>
       </div>
 
+      {/* 기초 통계량 (상단 카드) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ListOrdered className="h-5 w-5" />
+            기초 통계량
+          </CardTitle>
+          <CardDescription>
+            수치형 변수들의 기술통계 요약
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2 font-semibold">변수명</th>
+                  <th className="text-right p-2 font-semibold">평균</th>
+                  <th className="text-right p-2 font-semibold">표준편차</th>
+                  <th className="text-right p-2 font-semibold">중앙값</th>
+                  <th className="text-right p-2 font-semibold">최소값</th>
+                  <th className="text-right p-2 font-semibold">최대값</th>
+                  <th className="text-right p-2 font-semibold">Q1</th>
+                  <th className="text-right p-2 font-semibold">Q3</th>
+                </tr>
+              </thead>
+              <tbody>
+                {validationResults?.columnStats
+                  ?.filter(col => col.type === 'numeric')
+                  .map((col: ColumnStatistics) => (
+                    <tr key={col.name} className="border-b hover:bg-muted/50">
+                      <td className="p-2 font-medium">{col.name}</td>
+                      <td className="p-2 text-right">{col.mean?.toFixed(2) ?? 'N/A'}</td>
+                      <td className="p-2 text-right">{col.std?.toFixed(2) ?? 'N/A'}</td>
+                      <td className="p-2 text-right">{col.median?.toFixed(2) ?? 'N/A'}</td>
+                      <td className="p-2 text-right">{col.min?.toFixed(2) ?? 'N/A'}</td>
+                      <td className="p-2 text-right">{col.max?.toFixed(2) ?? 'N/A'}</td>
+                      <td className="p-2 text-right">{col.q1?.toFixed(2) ?? 'N/A'}</td>
+                      <td className="p-2 text-right">{col.q3?.toFixed(2) ?? 'N/A'}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tabs: 산점도 vs 상관계수 행렬 */}
       <Tabs defaultValue="scatterplots" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -294,7 +358,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">
-                    산점도 #{config.id}
+                    산점도
                   </CardTitle>
                   {scatterplots.length > 1 && (
                     <Button
@@ -308,47 +372,35 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* X축 선택 */}
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium w-20">X축:</label>
-                  <Select
-                    value={config.xVariable}
-                    onValueChange={(value) => updateXVariable(config.id, value)}
-                  >
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {numericVariables.map(v => (
-                        <SelectItem key={v} value={v}>
-                          {v}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* X/Y축 좌우 배치 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* X축 선택 */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">X축</label>
+                    <Select
+                      value={config.xVariable}
+                      onValueChange={(value) => updateXVariable(config.id, value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {numericVariables.map(v => (
+                          <SelectItem key={v} value={v}>
+                            {v}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {/* Y축 선택 (다중) */}
-                <div className="flex items-start gap-4">
-                  <label className="text-sm font-medium w-20 pt-2">Y축:</label>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      {config.yVariables.map(y => (
-                        <Badge key={y} variant="secondary" className="flex items-center gap-1">
-                          {y}
-                          <button
-                            onClick={() => removeYVariable(config.id, y)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
+                  {/* Y축 선택 (다중) */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Y축</label>
                     <Select
                       onValueChange={(value) => addYVariable(config.id, value)}
                     >
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger>
                         <SelectValue placeholder="Y축 변수 추가..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -363,6 +415,23 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                     </Select>
                   </div>
                 </div>
+
+                {/* 선택된 Y축 변수들 (바로 아래 배치) */}
+                {config.yVariables.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {config.yVariables.map(y => (
+                      <Badge key={y} variant="secondary" className="flex items-center gap-1">
+                        {y}
+                        <button
+                          onClick={() => removeYVariable(config.id, y)}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
 
                 {/* Scatterplot 렌더링 (Y축마다) */}
                 <div className="space-y-4">
@@ -425,44 +494,58 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {correlationMatrix.map(({ var1, var2, r, r2, strength, color }) => (
-                  <div
-                    key={`${var1}-${var2}`}
-                    className={`p-3 rounded-lg border ${color}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{var1}</span>
-                        <span className="text-muted-foreground">↔</span>
-                        <span className="font-medium">{var2}</span>
-                      </div>
-                      <Badge variant={Math.abs(r) >= 0.5 ? 'default' : 'secondary'}>
-                        {strength} 상관
-                      </Badge>
-                    </div>
-                    <div className="mt-2 text-sm text-muted-foreground grid grid-cols-3 gap-2">
-                      <div>r = {r.toFixed(3)}</div>
-                      <div>r² = {r2.toFixed(3)}</div>
-                      <div>
-                        {r > 0 ? '양의 상관' : r < 0 ? '음의 상관' : '무상관'}
-                      </div>
-                    </div>
+              {isCalculating ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="text-center">
+                    <p className="text-sm font-medium">상관계수 계산 중...</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {numericVariables.length}개 변수 분석
+                    </p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {correlationMatrix.map(({ var1, var2, r, r2, strength, color }) => (
+                      <div
+                        key={`${var1}-${var2}`}
+                        className={`p-3 rounded-lg border ${color}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{var1}</span>
+                            <span className="text-muted-foreground">↔</span>
+                            <span className="font-medium">{var2}</span>
+                          </div>
+                          <Badge variant={Math.abs(r) >= 0.5 ? 'default' : 'secondary'}>
+                            {strength} 상관
+                          </Badge>
+                        </div>
+                        <div className="mt-2 text-sm text-muted-foreground grid grid-cols-3 gap-2">
+                          <div>r = {r.toFixed(3)}</div>
+                          <div>r² = {r2.toFixed(3)}</div>
+                          <div>
+                            {r > 0 ? '양의 상관' : r < 0 ? '음의 상관' : '무상관'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-              <div className="mt-4 text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="font-medium mb-1">💡 상관계수 해석:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li><strong>|r| ≥ 0.7</strong>: 매우 강한 상관</li>
-                  <li><strong>0.5 ≤ |r| &lt; 0.7</strong>: 강한 상관</li>
-                  <li><strong>0.3 ≤ |r| &lt; 0.5</strong>: 중간 상관</li>
-                  <li><strong>|r| &lt; 0.3</strong>: 약한 상관</li>
-                  <li><strong>r &gt; 0</strong>: 양의 상관 (같이 증가)</li>
-                  <li><strong>r &lt; 0</strong>: 음의 상관 (반대로 변화)</li>
-                </ul>
-              </div>
+                  <div className="mt-4 text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="font-medium mb-1">💡 상관계수 해석:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li><strong>|r| ≥ 0.7</strong>: 매우 강한 상관</li>
+                      <li><strong>0.5 ≤ |r| &lt; 0.7</strong>: 강한 상관</li>
+                      <li><strong>0.3 ≤ |r| &lt; 0.5</strong>: 중간 상관</li>
+                      <li><strong>|r| &lt; 0.3</strong>: 약한 상관</li>
+                      <li><strong>r &gt; 0</strong>: 양의 상관 (같이 증가)</li>
+                      <li><strong>r &lt; 0</strong>: 음의 상관 (반대로 변화)</li>
+                    </ul>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

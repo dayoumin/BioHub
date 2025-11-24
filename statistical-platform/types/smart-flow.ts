@@ -350,6 +350,7 @@ export interface AnalysisResult {
     icc?: number
     analysisType?: 'a-priori' | 'post-hoc' | 'compromise'
     sampleSize?: number
+    requiredSampleSize?: number  // Required sample size (Power Analysis)
     power?: number
     alpha?: number
     ec50?: number

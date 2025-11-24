@@ -1,7 +1,11 @@
 /**
- * 통계 분석 결과 표준 인터페이스
+ * Executor 표준 분석 결과 인터페이스
+ * (Smart Flow의 AnalysisResult와는 다른 구조)
+ *
+ * 주의: 이 타입은 PyodideCore → Executor 간 통신용이며,
+ * UI에서 사용하는 types/smart-flow.ts의 AnalysisResult와 변환이 필요합니다.
  */
-export interface AnalysisResult {
+export interface ExecutorAnalysisResult {
   metadata: {
     method: string
     timestamp: string
@@ -80,3 +84,9 @@ export interface AnalysisResult {
     options?: any
   }
 }
+
+/**
+ * 호환성 별칭
+ * @deprecated ExecutorAnalysisResult 사용 권장
+ */
+export type AnalysisResult = ExecutorAnalysisResult

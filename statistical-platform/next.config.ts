@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Static HTML export 설정 (서버 불필요)
-  output: 'export',
-
-  // Trailing slash for static hosting compatibility
-  trailingSlash: true,
+  // Static HTML export 설정 (프로덕션에서만 활성화)
+  ...(process.env.NODE_ENV === 'production' && {
+    output: 'export',
+    trailingSlash: true,
+  }),
 
   // Image optimization disabled for static export
   images: {

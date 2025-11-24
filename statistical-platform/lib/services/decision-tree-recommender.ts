@@ -580,7 +580,8 @@ export class DecisionTreeRecommender {
       reasoning: [
         '⚠ 보통 신뢰도 (60%)로 기술통계를 추천합니다.',
         '그룹 변수를 찾을 수 없습니다.',
-        `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`
+        `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 통계적 추론 시 주의 필요' : '개'}`,
+        '💡 힌트: 범주형 변수의 고유값이 2~10개 범위를 벗어납니다. Step 2에서 데이터를 확인해주세요.'
       ],
       assumptions: [],
       alternatives: []
@@ -942,13 +943,34 @@ export class DecisionTreeRecommender {
       c => c.type === 'categorical'
     ) || []
 
+    // 🔍 디버깅: 범주형 변수 정보 출력
+    logger.info('[DecisionTree] Categorical columns:', {
+      count: categoricalCols.length,
+      names: categoricalCols.map(c => c.name)
+    })
+
     for (const col of categoricalCols) {
       const uniqueValues = new Set(data.map(row => row[col.name]))
+
+      // 🔍 디버깅: 각 변수의 고유값 개수 출력
+      logger.info(`[DecisionTree] ${col.name}: ${uniqueValues.size} unique values`, {
+        values: Array.from(uniqueValues).slice(0, 5), // 처음 5개만 표시
+        eligible: uniqueValues.size >= 2 && uniqueValues.size <= 10
+      })
+
       if (uniqueValues.size >= 2 && uniqueValues.size <= 10) {
+        logger.info(`[DecisionTree] ✅ Group variable found: ${col.name}`)
         return col.name
       }
     }
 
+    // 🔍 디버깅: 그룹 변수를 찾지 못한 이유
+    logger.warn('[DecisionTree] ⚠️ No group variable found!', {
+      categoricalCount: categoricalCols.length,
+      reason: categoricalCols.length === 0
+        ? 'No categorical variables'
+        : 'All categorical variables have < 2 or > 10 unique values'
+    })
     return null
   }
 

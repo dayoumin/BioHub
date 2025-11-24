@@ -63,6 +63,10 @@ export function extractNumericData(data: DataRow[], columnName: string): number[
  *
  * @param values - 숫자 배열
  * @returns 평균, 표준편차, 최솟값, 최댓값
+ *
+ * @description
+ * Q-Q Plot 등 차트 생성 시 필요한 기본 통계량 계산
+ * 전체 통계량이 필요한 경우 validationResults.columnStats 사용 권장
  */
 export function calculateBasicStats(values: number[]): {
   mean: number

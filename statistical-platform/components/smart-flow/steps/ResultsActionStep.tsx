@@ -1,16 +1,15 @@
 'use client'
 
-import { ChevronRight, Download, BarChart3, FileText, Save, History, FileDown, Copy, AlertCircle } from 'lucide-react'
+import { Save, FileDown, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AnalysisResult, EffectSizeInfo } from '@/types/smart-flow'
 import { ResultsVisualization } from '../ResultsVisualization'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { getEffectSizeInfo } from '@/lib/utils/result-transformer'
 import { getInterpretation } from '@/lib/interpretation/engine'
 
 
@@ -339,25 +338,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }
 
-  const handleNextAction = (action: string) => {
-    // 추후 구현: 각 액션에 따른 다음 분석 실행
-    const actionMessages: Record<string, string> = {
-      'post-hoc': '사후검정',
-      'effect-size': '효과크기 계산',
-      'regression': '회귀분석',
-      'non-parametric': '비모수 검정',
-      'power-analysis': '검정력 분석',
-      'visualization': '추가 시각화'
-    }
-
-    const message = actionMessages[action]
-    if (message) {
-      toast.info(`${message} 기능을 준비 중입니다`, {
-        description: '곧 개발 예정입니다'
-      })
-    }
-  }
-  
   if (!results) {
     return (
       <div className="text-center py-12">
@@ -365,8 +345,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       </div>
     )
   }
-
-  // 다음 단계 추천 기능 제거됨\n  const nextActions = getNextActions()
 
   return (
     <div className="space-y-6">
@@ -769,17 +747,19 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               )}
 
               {/* 검정력 분석 결과 */}
-              {results.additional.power !== undefined && (
+              {(results.additional?.power !== undefined || results.additional?.requiredSampleSize !== undefined) && (
                 <div className="pt-4 border-t">
                   <p className="font-medium mb-2">⚡ 검정력 분석</p>
                   <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="bg-muted/50 rounded p-2">
-                      <p className="text-xs text-muted-foreground">검정력</p>
-                      <p className={`font-medium ${results.additional.power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
-                        {(results.additional.power * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                    {results.additional.requiredSampleSize !== undefined && (
+                    {results.additional?.power !== undefined && (
+                      <div className="bg-muted/50 rounded p-2">
+                        <p className="text-xs text-muted-foreground">검정력</p>
+                        <p className={`font-medium ${results.additional.power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
+                          {(results.additional.power * 100).toFixed(1)}%
+                        </p>
+                      </div>
+                    )}
+                    {results.additional?.requiredSampleSize !== undefined && (
                       <div className="bg-muted/50 rounded p-2">
                         <p className="text-xs text-muted-foreground">필요 표본 크기</p>
                         <p className="font-medium">{results.additional.requiredSampleSize}</p>
@@ -849,32 +829,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <h4 className="font-medium">다음 단계 추천</h4>
-        
-        <div className="grid gap-3">
-          {nextActions.map((action, index) => {
-            const Icon = action.icon
-            return (
-              <button
-                key={index}
-                onClick={() => handleNextAction(action.action)}
-                className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className="w-5 h-5 text-primary" />
-                  <div className="text-left">
-                    <p className="font-medium">{action.title}</p>
-                    <p className="text-sm text-muted-foreground">{action.description}</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            )
-          })}
         </div>
       </div>
 

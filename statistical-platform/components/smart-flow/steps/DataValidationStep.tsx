@@ -1,8 +1,9 @@
 'use client'
 
-import { memo, useMemo, useEffect, useState, useCallback } from 'react'
+import { memo, useMemo, useEffect, useState, useCallback, useRef } from 'react'
 import { CheckCircle, AlertTriangle, XCircle, Sparkles, ExternalLink } from 'lucide-react'
-import { ValidationResults, ColumnStatistics } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics, StatisticalAssumptions } from '@/types/smart-flow'
+import { usePyodide } from '@/components/providers/PyodideProvider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
@@ -46,6 +47,13 @@ export const DataValidationStep = memo(function DataValidationStep({
     setDataCharacteristics,
     setAssumptionResults
   } = useSmartFlowStore()
+
+  // PyodideProvider에서 상태 가져오기
+  const { isLoaded: pyodideLoaded, isLoading: pyodideLoading, service: pyodideService, error: pyodideError } = usePyodide()
+
+  // 가정 검정 로딩 상태
+  const [isAssumptionLoading, setIsAssumptionLoading] = useState(false)
+  const assumptionRunId = useRef(0)
 
   // 중복 클릭 방지
   const [isNavigating, setIsNavigating] = useState(false)
@@ -272,7 +280,7 @@ export const DataValidationStep = memo(function DataValidationStep({
     return analyses
   }, [numericColumns, categoricalColumns, validationResults?.totalRows])
 
-  // 기본 데이터 특성 저장 (가정 검정은 Step 5에서 수행)
+  // 기본 데이터 특성 저장
   useEffect(() => {
     if (!data || !validationResults) {
       return
@@ -292,11 +300,78 @@ export const DataValidationStep = memo(function DataValidationStep({
     }
     setDataCharacteristics(characteristics)
 
-    // 가정 검정은 Step 5 (AnalysisExecutionStep)에서 수행
-    setAssumptionResults(null)
-
     logger.info('Basic data characteristics saved (fast validation)', { characteristics })
-  }, [data, validationResults, categoricalColumns, setDataCharacteristics, setAssumptionResults])
+  }, [data, validationResults, categoricalColumns, setDataCharacteristics])
+
+  // 가정 검정 자동 실행 (Step 2에서 수행)
+  useEffect(() => {
+    if (!pyodideLoaded || !pyodideService) return
+    if (!data || !validationResults) return
+    if (numericColumns.length === 0) return
+
+    // 중복 실행 방지
+    assumptionRunId.current++
+    const currentRunId = assumptionRunId.current
+
+    const timer = setTimeout(async () => {
+      let isActive = true
+      try {
+        setIsAssumptionLoading(true)
+        const testData: any = {}
+
+        // 첫 번째 수치형 컬럼으로 정규성 검정
+        const firstNumericCol = numericColumns[0]
+        const values = data.map(row => parseFloat(String(row[firstNumericCol.name])))
+          .filter(v => !isNaN(v))
+
+        if (values.length >= 3) {
+          testData.values = values
+        }
+
+        // 그룹이 여러 개 있으면 등분산성 검정
+        if (categoricalColumns.length > 0) {
+          const groupCol = categoricalColumns[0]
+          const groups: number[][] = []
+
+          const uniqueGroups = [...new Set(data.map(row => row[groupCol.name]))]
+          for (const group of uniqueGroups) {
+            const groupData = data
+              .filter(row => row[groupCol.name] === group)
+              .map(row => parseFloat(String(row[firstNumericCol.name])))
+              .filter(v => !isNaN(v))
+
+            if (groupData.length > 0) groups.push(groupData)
+          }
+
+          if (groups.length >= 2) {
+            testData.groups = groups
+          }
+        }
+
+        // 통계 가정 검정 실행
+        const assumptions = await pyodideService.checkAllAssumptions({
+          ...testData,
+          alpha: 0.05,
+          normalityRule: 'any'
+        }) as StatisticalAssumptions
+
+        if (isActive && currentRunId === assumptionRunId.current) {
+          setAssumptionResults(assumptions)
+          logger.info('[DataValidation] 통계 가정 검정 완료', { summary: assumptions.summary })
+        }
+      } catch (error) {
+        logger.error('[DataValidation] 가정 검정 실패', { error })
+      } finally {
+        if (isActive && currentRunId === assumptionRunId.current) {
+          setIsAssumptionLoading(false)
+        }
+      }
+
+      return () => { isActive = false }
+    }, 200)
+
+    return () => { clearTimeout(timer) }
+  }, [data, validationResults, pyodideLoaded, pyodideService, numericColumns, categoricalColumns, setAssumptionResults])
 
   // 다음 단계로 이동 (중복 클릭 방지 + 에러 복구)
   const handleNext = useCallback(() => {

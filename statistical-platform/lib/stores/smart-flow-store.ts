@@ -240,8 +240,8 @@ export const useSmartFlowStore = create<SmartFlowState>()(
             results: migratedResults,
             uploadedFileName: record.dataFileName,
             currentHistoryId: historyId,
-            currentStep: 6, // 결과 단계로 이동
-            completedSteps: [1, 2, 3, 4, 5, 6],
+            currentStep: MAX_STEPS, // 결과 단계로 이동
+            completedSteps: Array.from({ length: MAX_STEPS }, (_, index) => index + 1),
             // ⚠️ 원본 데이터는 복원 안 됨 (재분석 불가)
             uploadedData: null,
             validationResults: null,
@@ -418,13 +418,11 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       canProceedToNext: () => {
         const state = get()
         switch (state.currentStep) {
-          case 1: return state.uploadedFile !== null && state.uploadedData !== null
-          case 2: return state.validationResults?.isValid === true
-          case 3: return true // 데이터 탐색 (선택 사항, 항상 진행 가능)
-          case 4: return state.selectedMethod !== null
-          case 5: return state.variableMapping !== null // 변수 선택 완료
-          case 6: return false // 자동 진행
-          case 7: return false // 마지막 단계
+          case 1: return state.uploadedFile !== null && state.uploadedData !== null && state.validationResults?.isValid === true
+          case 2: return true // 데이터 탐색 (선택 사항, 항상 진행 가능)
+          case 3: return state.selectedMethod !== null
+          case 4: return state.variableMapping !== null // 변수 선택 완료
+          case 5: return false // 마지막 단계
           default: return false
         }
       },

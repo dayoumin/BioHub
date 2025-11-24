@@ -114,7 +114,21 @@ export function PurposeInputStep({
       categoricalVars,
       missingValues,
       totalCells,
-      recommendedType: data.length >= 30 ? ('parametric' as const) : ('nonparametric' as const)
+      recommendedType: (() => {
+        const n = data.length
+
+        // 1. 소표본 (n < 30) → 무조건 비모수
+        if (n < 30) return 'nonparametric' as const
+
+        // 2. 대표본이지만 가정 검정 결과가 있으면 그것 우선
+        if (assumptionResults?.summary?.canUseParametric !== undefined) {
+          return assumptionResults.summary.canUseParametric ? 'parametric' as const : 'nonparametric' as const
+        }
+
+        // 3. 가정 검정 없음 → 보수적 접근 (비모수 권장)
+        // 이유: n≥30이어도 데이터가 심하게 비대칭이거나 이상치가 많을 수 있음
+        return 'nonparametric' as const
+      })()
     }
   }, [validationResults, data])
 

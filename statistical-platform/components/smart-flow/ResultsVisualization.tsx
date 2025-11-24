@@ -432,36 +432,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
     )
   }
 
-  // 기술통계 - 히스토그램/분포
-  if (results.method?.includes('기술통계') || results.method?.includes('EDA')) {
-    return (
-      <Card className="p-6 bg-gradient-to-br from-gray-50/50 to-slate-50/50 dark:from-gray-950/20 dark:to-slate-950/20">
-        <h4 className="text-lg font-semibold mb-4">📊 기술통계 요약</h4>
-
-        {chartData.distributionData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={chartData.distributionData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="x" />
-              <YAxis />
-              <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="normal1" stroke={CHART_COLORS.primary()} name="분포" />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>분포 데이터를 표시할 수 없습니다.</p>
-          </div>
-        )}
-
-        <div className="mt-4 text-sm">
-          <p className="text-muted-foreground">
-            기술통계량이 결과 섹션에 표시됩니다.
-          </p>
-        </div>
-      </Card>
-    )
-  }
+  // 기술통계는 데이터 탐색 단계에서 표시됨 (제거됨)
 
   // PCA/요인분석 - 분산 설명률 바 차트
   if (results.method?.includes('주성분') ||
@@ -624,14 +595,17 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
         </ResponsiveContainer>
 
         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-          {results.additional?.power !== undefined && (
-            <div className="bg-muted/50 rounded p-3">
-              <p className="text-muted-foreground">현재 검정력</p>
-              <p className={`text-lg font-bold ${results.additional.power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
-                {(results.additional.power * 100).toFixed(1)}%
-              </p>
-            </div>
-          )}
+          {results.additional?.power !== undefined && (() => {
+            const power = results.additional.power
+            return (
+              <div className="bg-muted/50 rounded p-3">
+                <p className="text-muted-foreground">현재 검정력</p>
+                <p className={`text-lg font-bold ${power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
+                  {(power * 100).toFixed(1)}%
+                </p>
+              </div>
+            )
+          })()}
           {results.additional?.requiredSampleSize !== undefined && (
             <div className="bg-muted/50 rounded p-3">
               <p className="text-muted-foreground">필요 표본 크기</p>

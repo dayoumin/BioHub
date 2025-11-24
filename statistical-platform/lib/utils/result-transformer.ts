@@ -10,10 +10,10 @@ import {
   GroupStats,
   StatisticalAssumptions
 } from '@/types/smart-flow'
-import { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
+import { ExecutorAnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
 
 /**
- * Executor의 AnalysisResult를 Smart Flow UI의 AnalysisResult로 변환
+ * Executor의 ExecutorAnalysisResult를 Smart Flow UI의 AnalysisResult로 변환
  */
 export function transformExecutorResult(executorResult: ExecutorResult): SmartFlowResult {
   // 효과크기 변환 (eta-squared)

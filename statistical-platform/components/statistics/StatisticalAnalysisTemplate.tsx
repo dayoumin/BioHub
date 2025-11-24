@@ -42,7 +42,11 @@ interface AnalysisParameters {
   [key: string]: any
 }
 
-interface AnalysisResult {
+/**
+ * 레거시 UI용 분석 결과 (StatisticalAnalysisTemplate 전용)
+ * 주의: types/smart-flow.ts의 AnalysisResult와는 다른 구조
+ */
+interface LegacyAnalysisResult {
   tables?: { name: string; data: any[] }[]
   charts?: { type: string; data: any }[]
   metrics?: { name: string; value: number | string }[]
@@ -56,7 +60,7 @@ export function StatisticalAnalysisTemplate({ method, testDataPath }: Statistica
   const [columns, setColumns] = useState<string[]>([])
   const [parameters, setParameters] = useState<AnalysisParameters>({})
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [results, setResults] = useState<AnalysisResult | null>(null)
+  const [results, setResults] = useState<LegacyAnalysisResult | null>(null)
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null)
 
   // 알림 표시 함수
