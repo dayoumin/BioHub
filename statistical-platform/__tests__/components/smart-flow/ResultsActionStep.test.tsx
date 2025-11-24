@@ -9,11 +9,7 @@
 
 import { render, screen } from '@testing-library/react'
 import { ResultsActionStep } from '@/components/smart-flow/steps/ResultsActionStep'
-import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { AnalysisResult } from '@/types/smart-flow'
-
-// Mock Zustand store
-jest.mock('@/lib/stores/smart-flow-store')
 
 // Mock PDF service
 jest.mock('@/lib/services/pdf-report-service', () => ({
@@ -30,24 +26,19 @@ jest.mock('sonner', () => ({
   }
 }))
 
-describe('ResultsActionStep - Type Safety & Rendering', () => {
-  const mockUseSmartFlowStore = useSmartFlowStore as jest.MockedFunction<typeof useSmartFlowStore>
+// Mock ResultsVisualization to avoid chart rendering issues
+jest.mock('@/components/smart-flow/ResultsVisualization', () => ({
+  ResultsVisualization: () => <div data-testid="results-visualization">Chart</div>
+}))
 
+describe('ResultsActionStep - Type Safety & Rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
   describe('1. nextActions 제거 검증', () => {
     it('results가 없을 때 에러 없이 렌더링되어야 함', () => {
-      mockUseSmartFlowStore.mockReturnValue({
-        results: null,
-        uploadedData: null,
-        validationResults: null,
-        analysisConfig: null,
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      const { container } = render(<ResultsActionStep />)
+      const { container } = render(<ResultsActionStep results={null} />)
 
       expect(screen.getByText('분석을 먼저 실행해주세요.')).toBeInTheDocument()
       expect(container.querySelector('[data-testid="next-actions"]')).not.toBeInTheDocument()
@@ -62,15 +53,7 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         interpretation: '두 그룹 간 유의한 차이가 있습니다.'
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      const { container } = render(<ResultsActionStep />)
+      const { container } = render(<ResultsActionStep results={mockResults} />)
 
       // nextActions UI가 없어야 함
       expect(container.querySelector('[data-testid="next-actions"]')).not.toBeInTheDocument()
@@ -90,15 +73,7 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         }
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      render(<ResultsActionStep />)
+      render(<ResultsActionStep results={mockResults} />)
 
       expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
       expect(screen.getByText('검정력')).toBeInTheDocument()
@@ -117,15 +92,7 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         }
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      render(<ResultsActionStep />)
+      render(<ResultsActionStep results={mockResults} />)
 
       expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
       expect(screen.getByText('필요 표본 크기')).toBeInTheDocument()
@@ -145,15 +112,7 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         }
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      render(<ResultsActionStep />)
+      render(<ResultsActionStep results={mockResults} />)
 
       expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
       expect(screen.getByText('검정력')).toBeInTheDocument()
@@ -171,15 +130,7 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         additional: {}
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      render(<ResultsActionStep />)
+      render(<ResultsActionStep results={mockResults} />)
 
       expect(screen.queryByText('⚡ 검정력 분석')).not.toBeInTheDocument()
     })
@@ -195,15 +146,7 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         // additional: undefined (명시적으로 없음)
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      expect(() => render(<ResultsActionStep />)).not.toThrow()
+      expect(() => render(<ResultsActionStep results={mockResults} />)).not.toThrow()
       expect(screen.queryByText('⚡ 검정력 분석')).not.toBeInTheDocument()
     })
 
@@ -218,15 +161,7 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         }
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      render(<ResultsActionStep />)
+      render(<ResultsActionStep results={mockResults} />)
 
       expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
       expect(screen.getByText('0.0%')).toBeInTheDocument()
@@ -243,15 +178,7 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         }
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      render(<ResultsActionStep />)
+      render(<ResultsActionStep results={mockResults} />)
 
       expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
       expect(screen.getByText('0')).toBeInTheDocument()
@@ -268,19 +195,13 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
         interpretation: '두 그룹 간 유의한 차이가 있습니다.'
       }
 
-      mockUseSmartFlowStore.mockReturnValue({
-        results: mockResults,
-        uploadedData: [],
-        validationResults: { isValid: true, totalRows: 50, columnCount: 3, missingValues: 0, dataType: 'numeric', variables: [], errors: [], warnings: [] },
-        analysisConfig: { purpose: 'compare', selectedMethod: null },
-        addAnalysisToHistory: jest.fn()
-      } as any)
-
-      render(<ResultsActionStep />)
+      render(<ResultsActionStep results={mockResults} />)
 
       expect(screen.getByText('Independent T-Test')).toBeInTheDocument()
       expect(screen.getByText(/2\.456/)).toBeInTheDocument()
-      expect(screen.getByText(/0\.015/)).toBeInTheDocument()
+      // p-value는 여러 곳에 표시되므로 getAllByText 사용
+      const pValueElements = screen.getAllByText(/0\.015/)
+      expect(pValueElements.length).toBeGreaterThan(0)
       expect(screen.getByText(/48/)).toBeInTheDocument()
       expect(screen.getByText('두 그룹 간 유의한 차이가 있습니다.')).toBeInTheDocument()
     })

@@ -20,7 +20,6 @@ module.exports = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '^absurd-sql$': '<rootDir>/lib/rag/__mocks__/absurd-sql.ts',
     '^absurd-sql/dist/indexeddb-backend$': '<rootDir>/lib/rag/__mocks__/absurd-sql-backend.ts',
-    '^@/components/providers/PyodideProvider$': '<rootDir>/components/providers/__mocks__/PyodideProvider.tsx',
   },
   transformIgnorePatterns: [
     'node_modules/(?!(react-markdown|remark-gfm|remark-breaks|remark-math|rehype-katex|micromark|mdast-util-|ccount|escape-string-regexp|markdown-table|character-entities|unified|unist-util-|hast-util-|hastscript|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|html-void-elements|rehype-raw|vfile|vfile-message|trim-lines)/)',
