@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle, AlertTriangle, LucideIcon } from 'lucide-react'
+import { CheckCircle, AlertTriangle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
@@ -10,8 +10,8 @@ export interface GuidanceCardProps {
   title: string
   /** 부제목 또는 설명 (선택) */
   description?: string | React.ReactNode
-  /** 다음 단계 리스트 */
-  steps: Array<{
+  /** 다음 단계 리스트 (v3부터 사용 안 함, 하위 호환성 유지) */
+  steps?: Array<{
     emoji: string
     text: string
   }>
@@ -32,23 +32,22 @@ export interface GuidanceCardProps {
 }
 
 /**
- * Smart Flow 가이드 카드
+ * Smart Flow 가이드 카드 (v3 - Vercel 스타일)
  *
  * 사용처:
  * - Step 2 (DataValidationStep): 데이터 준비 완료
  * - Step 3 (PurposeInputStep): 분석 방법 결정
  *
- * 특징:
- * - 일관된 디자인 (border-dashed, bg-primary/5)
- * - 3단계 프로세스 리스트
- * - CTA 버튼 + 아이콘
- * - 경고 메시지 지원
- * - prefers-reduced-motion 지원
+ * 개선 사항 (v3 - 2025-11-24):
+ * - 🎨 Vercel 스타일: 그라데이션 배경 + 단색 테두리
+ * - 🗑️ 단계 배지 제거: 불필요한 정보 제거 (최소주의)
+ * - ✨ 부드러운 음영: shadow-sm + hover:shadow-md
+ * - 📐 간결한 레이아웃: 아이콘 + 메시지 + CTA만 표시
+ * - 🎯 단일 행동 유도: 명확한 CTA 버튼
  */
 export function GuidanceCard({
   title,
   description,
-  steps,
   ctaText,
   ctaIcon,
   onCtaClick,
@@ -61,59 +60,53 @@ export function GuidanceCard({
 
   return (
     <Card
-      className={`border-2 border-dashed border-primary/50 bg-primary/5 ${
-        prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4'
-      }`}
+      className={`
+        border border-blue-200 dark:border-blue-800
+        bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50
+        dark:from-blue-950/30 dark:via-indigo-950/30 dark:to-purple-950/30
+        shadow-sm hover:shadow-md transition-shadow duration-200
+        ${prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4'}
+      `}
       style={prefersReducedMotion ? undefined : {
         animationDuration: `${animationDelay}ms`,
         animationFillMode: 'backwards'
       }}
       data-testid={testId}
     >
-      <CardContent className="pt-6">
-        <div className="text-center space-y-4">
-          {/* 성공 아이콘 */}
-          <CheckCircle className="w-16 h-16 text-success mx-auto" />
-
-          {/* 제목 */}
-          <h3 className="text-xl font-semibold">{title}</h3>
-
-          {/* 설명 */}
-          {description && (
-            <div className="text-muted-foreground">
-              {typeof description === 'string' ? <p>{description}</p> : description}
+      <CardContent className="p-4">
+        {/* 경고 메시지 (최상단) */}
+        {warningMessage && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5 mb-3">
+            <div className="flex items-center gap-2 text-xs text-amber-900 dark:text-amber-100">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="font-medium">{warningMessage}</span>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* 경고 메시지 */}
-          {warningMessage && (
-            <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mx-auto max-w-md">
-              <div className="flex items-center gap-2 text-sm text-warning-foreground">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="font-medium">{warningMessage}</span>
-              </div>
+        {/* 메인 컨텐츠: 수평 레이아웃 (모바일에서 수직) */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* 좌측: 아이콘 + 제목 + 설명 */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+            <div className="text-left min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
+                {title}
+              </h3>
+              {description && (
+                <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                  {typeof description === 'string' ? <p>{description}</p> : description}
+                </div>
+              )}
             </div>
-          )}
-
-          {/* 다음 단계 리스트 */}
-          <div className="bg-muted p-4 rounded-lg space-y-3 max-w-md mx-auto">
-            <p className="text-sm font-medium">다음 단계:</p>
-            <ol className="text-sm text-muted-foreground text-left space-y-2">
-              {steps.map((step, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <span className="font-bold text-primary">{step.emoji}</span>
-                  <span>{step.text}</span>
-                </li>
-              ))}
-            </ol>
           </div>
 
-          {/* CTA 버튼 */}
+          {/* 우측: CTA 버튼 */}
           <Button
-            size="lg"
+            size="default"
             onClick={onCtaClick}
             disabled={ctaDisabled}
-            className="mt-4"
+            className="flex-shrink-0 shadow-sm"
           >
             {ctaText}
             {ctaIcon && <span className="ml-2">{ctaIcon}</span>}
