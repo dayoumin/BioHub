@@ -449,6 +449,72 @@ export const DataValidationStep = memo(function DataValidationStep({
         </Card>
       )}
 
+      {/* 가정 검증 결과 카드 */}
+      {!hasErrors && validationResults.assumptionTests && (
+        <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardHeader>
+            <CardTitle className="text-base">🔍 통계적 가정 검증</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* 정규성 검정 결과 */}
+              {validationResults.assumptionTests.normality?.shapiroWilk && (
+                <div className="p-3 bg-white dark:bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">📊 Shapiro-Wilk 정규성 검정</span>
+                    <Badge variant={validationResults.assumptionTests.normality.shapiroWilk.isNormal ? "default" : "secondary"}>
+                      {validationResults.assumptionTests.normality.shapiroWilk.isNormal ? '정규분포' : '비정규분포'}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">통계량: </span>
+                      <span className="font-mono">{validationResults.assumptionTests.normality.shapiroWilk.statistic.toFixed(4)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">p-value: </span>
+                      <span className="font-mono">{validationResults.assumptionTests.normality.shapiroWilk.pValue.toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {validationResults.assumptionTests.normality.shapiroWilk.isNormal
+                      ? '✓ 정규분포 가정을 만족합니다 (p ≥ 0.05). 모수 검정 사용 가능합니다.'
+                      : '⚠ 정규분포 가정을 만족하지 않습니다 (p < 0.05). 비모수 검정 고려가 필요합니다.'}
+                  </p>
+                </div>
+              )}
+
+              {/* 등분산성 검정 결과 (있을 경우) */}
+              {validationResults.assumptionTests.homogeneity?.levene && (
+                <div className="p-3 bg-white dark:bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">📏 Levene 등분산성 검정</span>
+                    <Badge variant={validationResults.assumptionTests.homogeneity.levene.equalVariance ? "default" : "secondary"}>
+                      {validationResults.assumptionTests.homogeneity.levene.equalVariance ? '등분산' : '이분산'}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">통계량: </span>
+                      <span className="font-mono">{validationResults.assumptionTests.homogeneity.levene.statistic.toFixed(4)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">p-value: </span>
+                      <span className="font-mono">{validationResults.assumptionTests.homogeneity.levene.pValue.toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {validationResults.assumptionTests.homogeneity.levene.equalVariance
+                      ? '✓ 등분산 가정을 만족합니다 (p ≥ 0.05).'
+                      : '⚠ 등분산 가정을 만족하지 않습니다 (p < 0.05). Welch 검정 고려가 필요합니다.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 다음 단계 안내 메시지 */}
       {!hasErrors && onNext && (
         <GuidanceCard

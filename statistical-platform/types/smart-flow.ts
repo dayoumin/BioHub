@@ -20,6 +20,21 @@ export interface ValidationResults {
   warnings: string[]
   columns?: ColumnStatistics[] // Alias for columnStats (backward compatibility)
   columnStats?: ColumnStatistics[]
+  // 가정 검정 결과 (Step 2에서 표시)
+  assumptionTests?: StatisticalAssumptions
+  // 시각화 데이터 (Step 2에서 표시)
+  visualizationData?: {
+    histograms?: Array<{
+      variable: string
+      data: number[]
+      bins: number
+    }>
+    boxPlots?: Array<{
+      variable: string
+      data: number[]
+      outliers?: number[]
+    }>
+  }
 }
 
 export interface ColumnStatistics {

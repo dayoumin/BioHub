@@ -216,7 +216,7 @@ export class RAGService {
       throw new Error('RAG Provider가 초기화되지 않았습니다. initialize()를 먼저 호출하세요.')
     }
     // LangGraphOllamaProvider는 OllamaRAGProvider를 상속하므로 둘 다 허용
-    if (this.providerType !== 'ollama' && this.providerType !== 'langgraph') {
+    if (this.providerType !== 'ollama') {
       throw new Error('현재 Provider는 OllamaRAGProvider가 아닙니다')
     }
     return this.provider as OllamaRAGProvider

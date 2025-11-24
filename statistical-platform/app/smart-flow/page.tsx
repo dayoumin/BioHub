@@ -88,8 +88,8 @@ export default function SmartFlowPage() {
   }, [completedSteps])
 
   // 데이터 검증 수행 (상세 검증 포함)
-  const performDataValidation = useCallback((data: DataRow[]): ValidationResults => {
-    return DataValidationService.performDetailedValidation(data)
+  const performDataValidation = useCallback(async (data: DataRow[]): Promise<ValidationResults> => {
+    return await DataValidationService.performDetailedValidation(data)
   }, [])
 
   const handleStepClick = useCallback((stepId: number) => {
@@ -115,8 +115,8 @@ export default function SmartFlowPage() {
         goToNextStep()
 
         // 3단계: 백그라운드에서 상세 검증 수행 (비동기)
-        setTimeout(() => {
-          const detailedValidation = performDataValidation(data)
+        setTimeout(async () => {
+          const detailedValidation = await performDataValidation(data)
           setValidationResults(detailedValidation)
         }, 100) // 100ms 지연: Step 2 렌더링 완료 대기
       }

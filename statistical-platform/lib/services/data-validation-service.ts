@@ -1,4 +1,5 @@
-import { ValidationResults, ColumnStatistics, DataRow } from '@/types/smart-flow'
+import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
+import { PyodideCore } from '@/lib/services/pyodide-core'
 
 export const DATA_LIMITS = {
   MAX_ROWS: 100000,
@@ -307,7 +308,7 @@ export class DataValidationService {
    * - 대용량 데이터: 스마트 샘플링 적용
    * - 병렬 처리 가능한 구조로 변경
    */
-  static performDetailedValidation(data: DataRow[]): ValidationResults {
+  static async performDetailedValidation(data: DataRow[]): Promise<ValidationResults> {
     const basicValidation = this.performValidation(data)
 
     if (!basicValidation.isValid || !data || data.length === 0) {
@@ -348,11 +349,75 @@ export class DataValidationService {
       }
     })
 
+    // ===== 가정 검정 수행 (수치형 변수만) =====
+    const numericColumnStats = columnStats.filter(s => s.type === 'numeric')
+    let assumptionTests: StatisticalAssumptions | undefined
+
+    if (numericColumnStats.length > 0) {
+      try {
+        const pyodide = PyodideCore.getInstance()
+
+        // Shapiro-Wilk 정규성 검정 (각 수치형 변수별)
+        const normalityResults: Array<{
+          variable: string
+          statistic: number
+          pValue: number
+          isNormal: boolean
+        }> = []
+
+        for (const colStat of numericColumnStats.slice(0, 3)) { // 최대 3개만 (성능)
+          const colData = sampleData.map(row => row[colStat.name]).filter(v => v !== null && v !== undefined && v !== '').map(Number)
+
+          if (colData.length >= 3) {
+            try {
+              const result = await pyodide.callWorkerMethod<{
+                statistic: number
+                p_value: number
+              }>('worker3', 'shapiro_wilk_test', { data: colData })
+
+              normalityResults.push({
+                variable: colStat.name,
+                statistic: result.statistic,
+                pValue: result.p_value,
+                isNormal: result.p_value >= 0.05
+              })
+            } catch (err) {
+              console.warn(`Shapiro-Wilk 검정 실패 (${colStat.name})`, err)
+            }
+          }
+        }
+
+        // 정규성 검정 결과가 있으면 추가
+        if (normalityResults.length > 0) {
+          assumptionTests = {
+            normality: {
+              shapiroWilk: {
+                statistic: normalityResults[0].statistic,
+                pValue: normalityResults[0].pValue,
+                isNormal: normalityResults[0].isNormal
+              }
+            }
+          }
+
+          // 경고 메시지 추가
+          const nonNormalVars = normalityResults.filter(r => !r.isNormal)
+          if (nonNormalVars.length > 0) {
+            basicValidation.warnings.push(
+              `⚠️ 정규성 검정: '${nonNormalVars.map(r => r.variable).join(', ')}' 변수가 정규분포를 따르지 않을 수 있습니다 (p < 0.05).`
+            )
+          }
+        }
+      } catch (error) {
+        console.warn('가정 검정 실패:', error)
+      }
+    }
+
     return {
       ...basicValidation,
-      totalRows: originalRowCount, // 원본 행 수 유지
+      totalRows: originalRowCount,
       columnStats,
-      columns: columnStats // ✅ Fix: columns 별칭 추가 (DecisionTreeRecommender 호환)
+      columns: columnStats,
+      assumptionTests
     }
   }
 
