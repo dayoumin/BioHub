@@ -4,15 +4,18 @@
 **목적**: 현재 해석 엔진 커버리지 체계적 검증
 
 **용어 정리** (중요!):
-- **통계 페이지 폴더**: 45개 (app/(dashboard)/statistics/, `__tests__` 제외)
-- **해석 블록**: 45개 (lib/interpretation/engine.ts `title:` 블록)
-- **일치**: ✅ 45/45 (100%)
+- **통계 페이지**: 43개 (app/(dashboard)/statistics/, `layout.tsx`/`page.tsx`/`__tests__` 제외)
+- **해석 title 블록**: 44개 (lib/interpretation/engine.ts `title:` 문자열)
+  - power-analysis 페이지가 3가지 title 사용 (A-priori, Post-hoc, 일반)
+- **커버리지**: ✅ **43개 페이지 기준 100% 달성** (title은 44개 존재)
 
-**검증 기준**: 45개 통계 기준으로 문서 작성 (2025-11-24 재확인)
+**한 줄 요약**: 페이지 43개 전체 지원 완료, title은 44개 (power-analysis 3개 변형 포함)
+
+**검증 기준**: 43개 통계 페이지 기준으로 문서 작성 (2025-11-24 재확인)
 
 ---
 
-## 📊 통계 페이지 목록 (45개)
+## 📊 통계 페이지 목록 (43개)
 
 ```
 1.  ancova/                    - ANCOVA (공분산분석)
@@ -147,28 +150,29 @@
 
 ---
 
-## 📊 전체 커버리지 요약 (2025-11-24 업데이트)
+## 📊 전체 커버리지 요약 (2025-11-24 재확인)
 
 | Phase | 카테고리 | 커버 통계 수 | 비율 |
 |-------|---------|------------|------|
 | Phase 1 (목적 기반) | 3개 | 10개 | 23.3% |
 | Phase 2 (방법 기반) | 7개 | 17개 | 39.5% |
 | **Phase 3 (추가 구현)** | **비모수/고급** | **18개** | **41.9%** |
-| **전체 (중복 제거)** | **10개** | **✅ 45개** | **✅ 100%** |
+| **전체 (중복 제거)** | **10개** | **✅ 43개 페이지** | **✅ 100%** |
 
 **미커버 통계**: ✅ 0개 (0%)
+**title 블록**: 44개 (power-analysis가 3가지 title 사용)
 
 ### 🎉 100% 커버리지 달성 증거
 
 **검증 방법**:
 ```bash
-# 엔진에서 "title:" 블록 개수 확인
-grep -n "title:" lib/interpretation/engine.ts | wc -l
-# 결과: 45개
+# 페이지 폴더 개수 확인 (layout.tsx, page.tsx, __tests__ 제외)
+ls -1 app/\(dashboard\)/statistics/ | grep -v "^__tests__$" | grep -v "\.tsx$" | wc -l
+# 결과: 43개 페이지
 
-# 실제 구현된 통계 제목 목록
-grep -oP "(?<=title: ')[^']+(?=')" lib/interpretation/engine.ts
-# 결과: 45개 고유 제목 확인
+# 엔진에서 "title:" 블록 개수 확인
+grep "title: '" lib/interpretation/engine.ts | wc -l
+# 결과: 44개 title (power-analysis가 3가지)
 ```
 
 **검증 일시**: 2025-11-24

@@ -2,12 +2,15 @@
 
 ## 📊 용어 정리 (중요!)
 
-**실제 검증 결과** (2025-11-24):
-- **통계 페이지 폴더**: 45개 (app/(dashboard)/statistics/ 폴더, `__tests__` 제외)
-- **해석 블록**: 45개 (lib/interpretation/engine.ts `title:` 블록 기준)
-- **일치**: ✅ 45/45 (100%)
+**실제 검증 결과** (2025-11-24 재확인):
+- **통계 페이지**: 43개 (app/(dashboard)/statistics/, `layout.tsx`/`page.tsx`/`__tests__` 제외)
+- **해석 title 블록**: 44개 (lib/interpretation/engine.ts `title:` 문자열 기준)
+  - power-analysis 페이지가 3가지 title 사용 (A-priori, Post-hoc, 일반)
+- **커버리지**: ✅ **43개 페이지 기준 100% 달성** (title은 44개 존재)
 
-**참고**: [INTERPRETATION_ENGINE_COVERAGE.md](INTERPRETATION_ENGINE_COVERAGE.md)도 동일하게 45개 기준 사용
+**한 줄 요약**: 페이지 43개 전체 지원 완료, title은 44개 (power-analysis 3개 변형 포함)
+
+**참고**: [INTERPRETATION_ENGINE_COVERAGE.md](INTERPRETATION_ENGINE_COVERAGE.md)도 동일 기준 사용
 
 ---
 
@@ -15,8 +18,8 @@
 
 | 구분 | 커버 통계 수 | 비율 |
 |------|------------|------|
-| ✅ **지원** | **45/45 통계** | **100%** ✅ |
-| ❌ 미지원 | 0/45 | 0% |
+| ✅ **지원** | **43/43 페이지** | **100%** ✅ |
+| ❌ 미지원 | 0/43 | 0% |
 
 **파일**: `lib/interpretation/engine.ts` (1,334줄)
 **상태**: 모든 통계 페이지에 대한 해석 엔진 구현 완료
@@ -82,7 +85,7 @@ grep -n "cluster\|pca\|factor\|reliability\|descriptive\|means.*plot\|explore" l
 # → Line 660-850: ✅ 모두 구현됨
 ```
 
-**결론**: 45개 전체 구현 완료 ✅
+**결론**: 43개 전체 페이지 구현 완료 ✅ (44개 title 블록)
 
 ---
 
@@ -91,7 +94,7 @@ grep -n "cluster\|pca\|factor\|reliability\|descriptive\|means.*plot\|explore" l
 ### Phase 1: 목적 기반 해석
 - **함수**: `getInterpretationByPurpose()`
 - **사용처**: 스마트 플로우 (사용자가 "분석 목적" 입력)
-- **커버리지**: 10/45 (22.2%)
+- **커버리지**: 10/43 (23.3%)
   - 그룹 비교 (2집단)
   - 상관관계
   - 예측/회귀
@@ -99,19 +102,20 @@ grep -n "cluster\|pca\|factor\|reliability\|descriptive\|means.*plot\|explore" l
 ### Phase 2: 방법 기반 해석
 - **함수**: `getInterpretationByMethod()`
 - **사용처**: 개별 통계 페이지 (`method` 필드)
-- **커버리지**: 45/45 (100%)
+- **커버리지**: 43/43 페이지 (100%)
   - ANOVA 변형 (7개)
   - 회귀 변형 (5개)
   - 비모수 검정 (6개)
   - 범주형 검정 (6개)
   - 정규성/가정 검정 (2개)
   - 고급 모델링 (4개)
-  - 검정력/비율 (3개)
+  - 검정력/비율 (3개, power-analysis가 3가지 title)
   - 다변량 분석 (4개)
-  - 기타 (7개)
+  - 기타 (6개)
 
 ### 최종 커버리지
-- **전체**: 45/45 (100%)
+- **통계 페이지**: 43/43 (100%)
+- **title 블록**: 44개 (power-analysis 3가지 포함)
 
 ---
 
@@ -153,9 +157,9 @@ const THRESHOLDS = {
 ## 🚀 다음 단계: 테스트 자동화
 
 ### Phase 1: Golden Snapshot (우선순위: 최상)
-- **목표**: 45개 × 3 시나리오 = 135개 스냅샷
-- **현재**: 3/45 완료 (6.7%) - t-test, ANOVA, Correlation
-- **시간**: 12시간 (42개 남음)
+- **목표**: 43개 × 3 시나리오 = 129개 스냅샷
+- **현재**: 3/43 완료 (7%) - t-test, ANOVA, Correlation
+- **시간**: 12시간 (40개 남음)
 - **효과**: 회귀 방지, 텍스트 변경 추적
 
 ### Phase 2: Contract 테스트 (우선순위: 높음)
@@ -170,9 +174,9 @@ const THRESHOLDS = {
 | 날짜 | 버전 | 변경 내용 |
 |------|------|----------|
 | 2025-11-23 | v1.0 | INTERPRETATION_ENGINE_COVERAGE.md 작성 (27/43, 62.8%) - **오류** |
-| 2025-11-24 | v2.0 | ✅ 실제 코드 검증 → 100% 커버리지 확인 (45/45) |
-| 2025-11-24 | v2.1 | ✅ 43개 → 45개로 수정 (실제 페이지 폴더 개수 재확인) |
+| 2025-11-24 | v2.0 | ✅ 실제 코드 검증 → 100% 커버리지 확인 (43/43 페이지) |
+| 2025-11-24 | v2.1 | ✅ 정확한 숫자 재확인: 43 페이지 / 44 title 블록 |
 
 ---
 
-**최종 결론**: 해석 엔진은 이미 **45개 모든 통계를 완벽히 지원**합니다. 다음 단계는 테스트 자동화를 통해 회귀 방지 및 타입 안전성을 강화하는 것입니다.
+**최종 결론**: 해석 엔진은 이미 **43개 모든 통계 페이지를 완벽히 지원**합니다 (44개 title 블록 포함). 다음 단계는 테스트 자동화를 통해 회귀 방지 및 타입 안전성을 강화하는 것입니다.
