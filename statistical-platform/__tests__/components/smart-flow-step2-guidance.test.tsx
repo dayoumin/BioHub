@@ -226,10 +226,10 @@ describe('Smart Flow Step 2 Guidance Card Tests', () => {
         />
       )
 
-      // border-dashed, bg-primary/5 클래스 확인
-      const guidanceCard = container.querySelector('.border-dashed')
+      // Vercel 스타일: border-blue-200, bg-gradient-to-r 클래스 확인
+      const guidanceCard = container.querySelector('.border-blue-200')
       expect(guidanceCard).toBeInTheDocument()
-      expect(guidanceCard).toHaveClass('border-primary/50')
+      expect(guidanceCard).toHaveClass('bg-gradient-to-r')
     })
   })
 })

@@ -181,14 +181,12 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
         expect(screen.queryByTestId('ai-progress')).not.toBeInTheDocument()
       })
 
-      // 가이드 카드 표시 확인
+      // 가이드 카드 표시 확인 (Vercel 스타일 - steps 미사용)
       expect(screen.getByText('분석 방법이 결정되었습니다!')).toBeInTheDocument()
       expect(screen.getByText('독립표본 t-검정')).toBeInTheDocument()
 
-      // 3단계 프로세스 확인
-      expect(screen.getByText(/분석에 사용할 변수 선택/)).toBeInTheDocument()
-      expect(screen.getByText(/자동 분석 실행 \+ 가정 검정/)).toBeInTheDocument()
-      expect(screen.getByText(/결과 확인 및 해석/)).toBeInTheDocument()
+      // description 확인 (GuidanceCard)
+      expect(screen.getByText(/방법으로 분석합니다/)).toBeInTheDocument()
 
       // CTA 버튼 확인
       expect(screen.getByRole('button', { name: /변수 선택하기/ })).toBeInTheDocument()
@@ -302,10 +300,10 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
         expect(screen.getByText('분석 방법이 결정되었습니다!')).toBeInTheDocument()
       })
 
-      // border-dashed, bg-primary/5 클래스 확인
-      const guidanceCard = container.querySelector('.border-dashed')
+      // Vercel 스타일: border-blue-200, bg-gradient-to-r 클래스 확인
+      const guidanceCard = container.querySelector('.border-blue-200')
       expect(guidanceCard).toBeInTheDocument()
-      expect(guidanceCard).toHaveClass('border-primary/50')
+      expect(guidanceCard).toHaveClass('bg-gradient-to-r')
     })
   })
 

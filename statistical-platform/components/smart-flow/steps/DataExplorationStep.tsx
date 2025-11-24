@@ -34,14 +34,19 @@ interface ScatterplotConfig {
  * 상관계수 계산 (Pearson correlation coefficient)
  */
 function calculateCorrelation(x: number[], y: number[]): { r: number; r2: number; n: number } {
+  // Pairwise deletion: x와 y 길이 맞추기
   const n = Math.min(x.length, y.length)
   if (n < 2) return { r: 0, r2: 0, n: 0 }
 
-  const sumX = x.reduce((sum, val) => sum + val, 0)
-  const sumY = y.reduce((sum, val) => sum + val, 0)
-  const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0)
-  const sumXX = x.reduce((sum, val) => sum + val * val, 0)
-  const sumYY = y.reduce((sum, val) => sum + val * val, 0)
+  // x와 y를 같은 길이로 슬라이스
+  const xPaired = x.slice(0, n)
+  const yPaired = y.slice(0, n)
+
+  const sumX = xPaired.reduce((sum, val) => sum + val, 0)
+  const sumY = yPaired.reduce((sum, val) => sum + val, 0)
+  const sumXY = xPaired.reduce((sum, val, i) => sum + val * yPaired[i], 0)
+  const sumXX = xPaired.reduce((sum, val) => sum + val * val, 0)
+  const sumYY = yPaired.reduce((sum, val) => sum + val * val, 0)
 
   const numerator = n * sumXY - sumX * sumY
   const denominator = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY))
@@ -97,10 +102,16 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       !scatterplots.some(s => s.xVariable === v)
     )
 
+    const xVar = availableVars[0] || numericVariables[0]
+    const yOptions = numericVariables.filter(v => v !== xVar) // X ≠ Y 보장
+    const yVar = availableVars[1] && availableVars[1] !== xVar
+      ? availableVars[1]
+      : yOptions[0]
+
     const newConfig: ScatterplotConfig = {
       id: newId,
-      xVariable: availableVars[0] || numericVariables[0],
-      yVariables: availableVars[1] ? [availableVars[1]] : [numericVariables[1]]
+      xVariable: xVar,
+      yVariables: yVar ? [yVar] : []
     }
 
     setScatterplots(prev => [...prev, newConfig])
@@ -114,7 +125,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   // X축 변수 변경
   const updateXVariable = useCallback((id: string, newX: string) => {
     setScatterplots(prev => prev.map(s =>
-      s.id === id ? { ...s, xVariable: newX } : s
+      s.id === id
+        ? {
+            ...s,
+            xVariable: newX,
+            yVariables: s.yVariables.filter(y => y !== newX) // X=Y 방지
+          }
+        : s
     ))
   }, [])
 
