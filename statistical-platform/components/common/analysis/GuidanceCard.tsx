@@ -10,7 +10,7 @@ export interface GuidanceCardProps {
   title: string
   /** 부제목 또는 설명 (선택) */
   description?: string | React.ReactNode
-  /** 다음 단계 리스트 (v3부터 사용 안 함, 하위 호환성 유지) */
+  /** 다음 단계 리스트 (현재 사용하지 않음, 하위 호환성 유지) */
   steps?: Array<{
     emoji: string
     text: string
@@ -32,18 +32,18 @@ export interface GuidanceCardProps {
 }
 
 /**
- * Smart Flow 가이드 카드 (v3 - Vercel 스타일)
+ * Smart Flow 가이드 카드
  *
  * 사용처:
  * - Step 2 (DataValidationStep): 데이터 준비 완료
  * - Step 3 (PurposeInputStep): 분석 방법 결정
  *
- * 개선 사항 (v3 - 2025-11-24):
- * - 🎨 Vercel 스타일: 그라데이션 배경 + 단색 테두리
- * - 🗑️ 단계 배지 제거: 불필요한 정보 제거 (최소주의)
- * - ✨ 부드러운 음영: shadow-sm + hover:shadow-md
- * - 📐 간결한 레이아웃: 아이콘 + 메시지 + CTA만 표시
- * - 🎯 단일 행동 유도: 명확한 CTA 버튼
+ * 디자인 특징:
+ * - 🎨 그라데이션 배경 (blue → indigo → purple)
+ * - 🗑️ 최소주의: 핵심 메시지 + CTA만 표시
+ * - ✨ 부드러운 음영 + hover 효과
+ * - 📐 반응형: 모바일(수직) / 데스크탑(수평)
+ * - 🎯 단일 행동 유도
  */
 export function GuidanceCard({
   title,

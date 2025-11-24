@@ -30,28 +30,28 @@ export function Histogram({
   
   const histogramData = useMemo(() => {
     if (data.length === 0) return []
-    
+
     const min = Math.min(...data)
     const max = Math.max(...data)
     const binWidth = (max - min) / bins
-    
+
     // Create bins
     const binCounts = new Array(bins).fill(0)
     const binRanges: string[] = []
-    
+
     // Calculate bin ranges
     for (let i = 0; i < bins; i++) {
       const start = min + i * binWidth
       const end = min + (i + 1) * binWidth
       binRanges.push(`${start.toFixed(1)}-${end.toFixed(1)}`)
     }
-    
+
     // Count data points in each bin
     data.forEach(value => {
       const binIndex = Math.min(Math.floor((value - min) / binWidth), bins - 1)
       binCounts[binIndex]++
     })
-    
+
     // Create chart data
     return binCounts.map((count, index) => ({
       bin: `${index + 1}`,
@@ -59,9 +59,23 @@ export function Histogram({
       range: binRanges[index]
     }))
   }, [data, bins])
-  
-  const maxCount = Math.max(...histogramData.map(d => d.count))
-  
+
+  const maxCount = histogramData.length > 0 ? Math.max(...histogramData.map(d => d.count)) : 0
+
+  // 빈 데이터 처리
+  if (data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">표시할 데이터가 없습니다.</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>

@@ -13,6 +13,7 @@ import {
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { DataValidationStep } from '@/components/smart-flow/steps/DataValidationStep'
+import { DataExplorationStep } from '@/components/smart-flow/steps/DataExplorationStep'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import { VariableSelectionStep } from '@/components/smart-flow/steps/VariableSelectionStep'
 import { AnalysisExecutionStep } from '@/components/smart-flow/steps/AnalysisExecutionStep'
@@ -77,10 +78,11 @@ export default function SmartFlowPage() {
     return [
       { id: 1, label: '데이터 업로드' },
       { id: 2, label: '데이터 요약' },
-      { id: 3, label: '분석 목적' },
-      { id: 4, label: '변수 선택' },
-      { id: 5, label: '통계 분석' },
-      { id: 6, label: '결과 확인' }
+      { id: 3, label: '데이터 탐색' },
+      { id: 4, label: '분석 목적' },
+      { id: 5, label: '변수 선택' },
+      { id: 6, label: '통계 분석' },
+      { id: 7, label: '결과 확인' }
     ].map((step) => ({
       ...step,
       completed: completedSteps.includes(step.id)
@@ -182,8 +184,22 @@ export default function SmartFlowPage() {
         </div>
       )}
 
-      {/* Step 3: 분석 목적 입력 */}
+      {/* Step 3: 데이터 탐색 */}
       {currentStep === 3 && (
+        <div className="animate-fade-in">
+          <ErrorBoundary>
+            <DataExplorationStep
+              validationResults={validationResults}
+              data={uploadedData || []}
+              onNext={goToNextStep}
+              onPrevious={goToPreviousStep}
+            />
+          </ErrorBoundary>
+        </div>
+      )}
+
+      {/* Step 4: 분석 목적 입력 */}
+      {currentStep === 7 && (
         <div className="animate-fade-in">
           <PurposeInputStep
             onPurposeSubmit={handlePurposeSubmit}
@@ -193,15 +209,15 @@ export default function SmartFlowPage() {
         </div>
       )}
 
-      {/* Step 4: 변수 선택 */}
-      {currentStep === 4 && (
+      {/* Step 5: 변수 선택 */}
+      {currentStep === 7 && (
         <div className="animate-fade-in">
           <VariableSelectionStep />
         </div>
       )}
 
-      {/* Step 5: 분석 실행 */}
-      {currentStep === 5 && (
+      {/* Step 6: 분석 실행 */}
+      {currentStep === 7 && (
         <div className="animate-fade-in">
           <AnalysisExecutionStep
             selectedMethod={selectedMethod}
@@ -215,8 +231,8 @@ export default function SmartFlowPage() {
         </div>
       )}
 
-      {/* Step 6: 결과 확인 */}
-      {currentStep === 6 && (
+      {/* Step 7: 결과 확인 */}
+      {currentStep === 7 && (
         <div className="animate-fade-in">
           <ResultsActionStep results={results} />
         </div>
