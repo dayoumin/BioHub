@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Golden Snapshot Tests (Purpose-based) 그룹 비교 (purpose: "비교") t-test significant with purpose 1`] = `
+{
+  "practical": "실질적 효과 크기는 큰 효과입니다.",
+  "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.001).",
+  "summary": "Control 평균(50.00)이 Treatment 평균(58.00)보다 8.00점 낮습니다.",
+  "title": "그룹 비교 결과",
+}
+`;
+
+exports[`Golden Snapshot Tests (Purpose-based) 상관관계 (purpose: "상관") Correlation strong positive with purpose 1`] = `
+{
+  "practical": "상관계수 r=0.850 → X 변동의 약 72.2%가 Y 변동과 관련됩니다.",
+  "statistical": "강한 양의 상관관계가 통계적으로 유의합니다 (p=< 0.001).",
+  "summary": "X가 증가할 때 Y는 함께 증가하는 경향이 있습니다 (r=0.850).",
+  "title": "변수 간 관계 분석",
+}
+`;
+
+exports[`Golden Snapshot Tests (Purpose-based) 예측/회귀 (purpose: "예측") Regression with purpose 1`] = `
+{
+  "practical": "이 모델로 종속변수 변동의 75.0%를 예측할 수 있습니다.",
+  "statistical": "모델 설명력(R²) = 75.0% - 높은 설명력",
+  "summary": "독립변수가 1단위 증가할 때 종속변수는 2.300만큼 변합니다.",
+  "title": "예측 모델 결과",
+}
+`;

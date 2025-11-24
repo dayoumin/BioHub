@@ -1,0 +1,125 @@
+{
+  "method": "One-way ANOVA",
+  "scenarios": [
+    {
+      "name": "significant-large-effect",
+      "description": "유의한 결과 + 큰 효과 크기 (Eta-squared = 0.15)",
+      "input": {
+        "method": "One-way ANOVA",
+        "statistic": 15.3,
+        "pValue": 0.0001,
+        "df": [2, 87],
+        "effectSize": {
+          "value": 0.15,
+          "type": "Eta-squared"
+        },
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 45,
+            "std": 8,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 52,
+            "std": 9,
+            "n": 30
+          },
+          {
+            "name": "Group C",
+            "mean": 58,
+            "std": 10,
+            "n": 30
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "일원배치 분산분석 결과",
+        "summary": "3개 이상의 집단 간 평균 차이를 검정했습니다.",
+        "statistical": "집단 간 통계적으로 유의한 차이가 있습니다 (F=15.30, p=< 0.001, df=[2, 87]).",
+        "practical": "효과 크기(η²=0.15)는 큰 효과입니다. 사후 검정(예: Tukey HSD)을 통해 어느 집단이 다른지 확인하세요."
+      }
+    },
+    {
+      "name": "nonsignificant-small-effect",
+      "description": "유의하지 않은 결과 + 작은 효과 크기 (Eta-squared = 0.02)",
+      "input": {
+        "method": "One-way ANOVA",
+        "statistic": 1.8,
+        "pValue": 0.172,
+        "df": [2, 87],
+        "effectSize": {
+          "value": 0.02,
+          "type": "Eta-squared"
+        },
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 50,
+            "std": 10,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 52,
+            "std": 11,
+            "n": 30
+          },
+          {
+            "name": "Group C",
+            "mean": 51,
+            "std": 9,
+            "n": 30
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "일원배치 분산분석 결과",
+        "summary": "3개 이상의 집단 간 평균 차이를 검정했습니다.",
+        "statistical": "집단 간 통계적으로 유의한 차이가 없습니다 (F=1.80, p=0.172, df=[2, 87]).",
+        "practical": "모든 집단의 평균이 유사합니다. 사후 검정이 필요하지 않습니다."
+      }
+    },
+    {
+      "name": "boundary-case-p-near-0.05",
+      "description": "경계값 (p ≈ 0.05) + 중간 효과 크기 (Eta-squared = 0.07)",
+      "input": {
+        "method": "One-way ANOVA",
+        "statistic": 3.15,
+        "pValue": 0.047,
+        "df": [2, 87],
+        "effectSize": {
+          "value": 0.07,
+          "type": "Eta-squared"
+        },
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 48,
+            "std": 10,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 53,
+            "std": 11,
+            "n": 30
+          },
+          {
+            "name": "Group C",
+            "mean": 51,
+            "std": 9,
+            "n": 30
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "일원배치 분산분석 결과",
+        "summary": "3개 이상의 집단 간 평균 차이를 검정했습니다.",
+        "statistical": "집단 간 통계적으로 유의한 차이가 있습니다 (F=3.15, p=0.047, df=[2, 87]).",
+        "practical": "효과 크기(η²=0.07)는 중간 효과입니다. 사후 검정(예: Tukey HSD)을 통해 어느 집단이 다른지 확인하세요."
+      }
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "method": "Pearson Correlation",
+  "scenarios": [
+    {
+      "name": "strong-positive-correlation",
+      "description": "강한 양의 상관관계 (r = 0.85)",
+      "input": {
+        "method": "Pearson Correlation",
+        "statistic": 0.85,
+        "pValue": 0.0001,
+        "additional": {
+          "rSquared": 0.7225
+        }
+      },
+      "expectedOutput": {
+        "title": "변수 간 관계 분석",
+        "summary": "X가 증가할 때 Y는 함께 증가하는 경향이 있습니다 (r=0.850).",
+        "statistical": "강한 양의 상관관계가 통계적으로 유의합니다 (p=< 0.001).",
+        "practical": "상관계수 r=0.850 → X 변동의 약 72.3%가 Y 변동과 관련됩니다."
+      }
+    },
+    {
+      "name": "weak-negative-correlation",
+      "description": "약한 음의 상관관계 (r = -0.25)",
+      "input": {
+        "method": "Pearson Correlation",
+        "statistic": -0.25,
+        "pValue": 0.089,
+        "additional": {
+          "rSquared": 0.0625
+        }
+      },
+      "expectedOutput": {
+        "title": "변수 간 관계 분석",
+        "summary": "X가 증가할 때 Y는 반대로 감소하는 경향이 있습니다 (r=-0.250).",
+        "statistical": "상관관계가 통계적으로 유의하지 않습니다 (p=0.089).",
+        "practical": "상관계수 r=-0.250 → X 변동의 약 6.3%가 Y 변동과 관련됩니다."
+      }
+    },
+    {
+      "name": "moderate-positive-correlation-boundary",
+      "description": "중간 양의 상관관계 (r = 0.45) + 경계값 (p ≈ 0.05)",
+      "input": {
+        "method": "Pearson Correlation",
+        "statistic": 0.45,
+        "pValue": 0.048,
+        "additional": {
+          "rSquared": 0.2025
+        }
+      },
+      "expectedOutput": {
+        "title": "변수 간 관계 분석",
+        "summary": "X가 증가할 때 Y는 함께 증가하는 경향이 있습니다 (r=0.450).",
+        "statistical": "중간 양의 상관관계가 통계적으로 유의합니다 (p=0.048).",
+        "practical": "상관계수 r=0.450 → X 변동의 약 20.2%가 Y 변동과 관련됩니다."
+      }
+    }
+  ]
+}

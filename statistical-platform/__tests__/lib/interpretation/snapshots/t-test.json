@@ -1,0 +1,107 @@
+{
+  "method": "Independent t-test",
+  "scenarios": [
+    {
+      "name": "significant-large-effect",
+      "description": "유의한 결과 + 큰 효과 크기 (Cohen's d = 0.8)",
+      "input": {
+        "method": "Independent t-test",
+        "statistic": 3.45,
+        "pValue": 0.001,
+        "df": 98,
+        "effectSize": {
+          "value": 0.8,
+          "type": "Cohen's d"
+        },
+        "groupStats": [
+          {
+            "name": "Control",
+            "mean": 50,
+            "std": 10,
+            "n": 50
+          },
+          {
+            "name": "Treatment",
+            "mean": 58,
+            "std": 12,
+            "n": 50
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "그룹 비교 결과",
+        "summary": "Control 평균(50.00)이 Treatment 평균(58.00)보다 8.00점 낮습니다.",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=< 0.001).",
+        "practical": "실질적 효과 크기는 큰 효과입니다."
+      }
+    },
+    {
+      "name": "nonsignificant-small-effect",
+      "description": "유의하지 않은 결과 + 작은 효과 크기 (Cohen's d = 0.2)",
+      "input": {
+        "method": "Independent t-test",
+        "statistic": 1.2,
+        "pValue": 0.234,
+        "df": 98,
+        "effectSize": {
+          "value": 0.2,
+          "type": "Cohen's d"
+        },
+        "groupStats": [
+          {
+            "name": "Control",
+            "mean": 50,
+            "std": 10,
+            "n": 50
+          },
+          {
+            "name": "Treatment",
+            "mean": 52,
+            "std": 11,
+            "n": 50
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "그룹 비교 결과",
+        "summary": "Control 평균(50.00)이 Treatment 평균(52.00)보다 2.00점 낮습니다.",
+        "statistical": "통계적으로 유의한 차이가 없습니다 (p=0.234).",
+        "practical": "실질적 효과 크기는 작은 효과입니다."
+      }
+    },
+    {
+      "name": "boundary-case-p-equals-0.05",
+      "description": "경계값 (p ≈ 0.05) + 중간 효과 크기 (Cohen's d = 0.5)",
+      "input": {
+        "method": "Independent t-test",
+        "statistic": 1.96,
+        "pValue": 0.048,
+        "df": 98,
+        "effectSize": {
+          "value": 0.5,
+          "type": "Cohen's d"
+        },
+        "groupStats": [
+          {
+            "name": "Control",
+            "mean": 50,
+            "std": 10,
+            "n": 50
+          },
+          {
+            "name": "Treatment",
+            "mean": 55,
+            "std": 11,
+            "n": 50
+          }
+        ]
+      },
+      "expectedOutput": {
+        "title": "그룹 비교 결과",
+        "summary": "Control 평균(50.00)이 Treatment 평균(55.00)보다 5.00점 낮습니다.",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.048).",
+        "practical": "실질적 효과 크기는 중간 효과입니다."
+      }
+    }
+  ]
+}
