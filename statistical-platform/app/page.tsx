@@ -47,15 +47,15 @@ export default function HomePage() {
   const favoriteItems = allItems.filter((item) => favorites.includes(item.id))
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto pt-12 pb-8">
+    <div className="space-y-8 max-w-5xl mx-auto pt-16 pb-8">
       {/* 1. 스마트 분석 버튼 */}
       <Link href="/smart-flow" className="block max-w-xl mx-auto">
         <Button
           size="lg"
-          className="w-full h-24 text-2xl font-bold gap-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-xl hover:shadow-2xl transition-all"
+          className="w-full h-28 text-2xl font-bold gap-4 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 hover:scale-[1.02] shadow-xl hover:shadow-2xl transition-all duration-200"
         >
           <Star className="h-8 w-8" />
-          스마트 분석 시작하기
+          스마트 분석
         </Button>
       </Link>
 
