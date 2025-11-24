@@ -138,14 +138,30 @@ def wilcoxon_test(values1, values2):
 
 
 def kruskal_wallis_test(groups):
+    # 입력 검증: 빈 그룹이 있는지 확인 (정제 전)
+    group_sizes = [len(g) for g in groups]
+    if any(size == 0 for size in group_sizes):
+        empty_groups = [i for i, size in enumerate(group_sizes) if size == 0]
+        raise ValueError(
+            f"Empty groups detected (before cleaning): groups {empty_groups}. "
+            f"All group sizes: {group_sizes}. "
+            f"Please check variable mapping and data filtering."
+        )
+
     clean_groups = clean_groups_helper(groups)
 
-    for i, group in enumerate(clean_groups):
-        if len(group) == 0:
-            raise ValueError(f"Group {i} has no valid observations")
+    # 입력 검증: 정제 후 빈 그룹이 있는지 확인
+    clean_sizes = [len(g) for g in clean_groups]
+    if any(size == 0 for size in clean_sizes):
+        empty_groups = [i for i, size in enumerate(clean_sizes) if size == 0]
+        raise ValueError(
+            f"Empty groups detected (after cleaning NaN/Inf): groups {empty_groups}. "
+            f"Original sizes: {group_sizes}, Clean sizes: {clean_sizes}. "
+            f"This means all values in those groups were NaN, Inf, or None."
+        )
 
     statistic, p_value = stats.kruskal(*clean_groups)
-    
+
     return {
         'statistic': float(statistic),
         'pValue': float(p_value),

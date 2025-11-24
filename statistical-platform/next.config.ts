@@ -50,6 +50,14 @@ const nextConfig: NextConfig = {
       )
     }
 
+    // langgraph-ollama-provider 모듈 무시 (존재하지 않지만 동적 import로 처리)
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^\.\/providers\/langgraph-ollama-provider$/,
+        contextRegExp: /lib\/rag$/,
+      })
+    )
+
     // 서버 사이드에서 Pyodide 완전히 배제
     if (isServer) {
       config.externals = config.externals || []
