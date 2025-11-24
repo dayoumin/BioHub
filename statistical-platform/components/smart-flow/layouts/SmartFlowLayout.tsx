@@ -2,10 +2,9 @@
 
 import React, { ReactNode } from 'react'
 import { TwoPanelLayout, Step, BreadcrumbItem } from '@/components/statistics/layouts/TwoPanelLayout'
-import { Sparkles, Clock, HelpCircle } from 'lucide-react'
+import { Sparkles, Clock, HelpCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { X } from 'lucide-react'
 
 export interface SmartFlowLayoutProps {
   // TwoPanelLayout 기본 Props

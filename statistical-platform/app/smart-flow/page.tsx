@@ -70,7 +70,8 @@ export default function SmartFlowPage() {
   // IndexedDB에서 히스토리 불러오기 (초기화)
   useEffect(() => {
     loadHistoryFromDB().catch(console.error)
-  }, [loadHistoryFromDB])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // loadHistoryFromDB는 Zustand store의 안정적인 함수
 
   // Steps configuration (useMemo로 최적화)
   const steps = useMemo(() => {
@@ -136,6 +137,15 @@ export default function SmartFlowPage() {
     goToNextStep()
   }, [setresults, goToNextStep])
 
+  // 히스토리/도움말 토글 핸들러 (메모이제이션)
+  const handleHistoryToggle = useCallback(() => {
+    setShowHistory(prev => !prev)
+  }, [])
+
+  const handleHelpToggle = useCallback(() => {
+    setShowHelp(prev => !prev)
+  }, [])
+
   // 하단 데이터 미리보기 Props
   const bottomPreview = uploadedData && uploadedData.length > 0 ? {
     data: uploadedData,
@@ -153,8 +163,8 @@ export default function SmartFlowPage() {
       analyzingMessage="분석 중입니다..."
       showHistory={showHistory}
       showHelp={showHelp}
-      onHistoryToggle={() => setShowHistory(!showHistory)}
-      onHelpToggle={() => setShowHelp(!showHelp)}
+      onHistoryToggle={handleHistoryToggle}
+      onHelpToggle={handleHelpToggle}
       systemMemory={systemMemory}
       historyPanel={<AnalysisHistoryPanel />}
     >

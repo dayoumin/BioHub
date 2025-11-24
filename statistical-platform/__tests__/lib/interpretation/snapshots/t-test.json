@@ -32,7 +32,7 @@
       "expectedOutput": {
         "title": "그룹 비교 결과",
         "summary": "Control 평균(50.00)이 Treatment 평균(58.00)보다 8.00점 낮습니다.",
-        "statistical": "통계적으로 유의한 차이가 있습니다 (p=< 0.001).",
+        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.001).",
         "practical": "실질적 효과 크기는 큰 효과입니다."
       }
     },

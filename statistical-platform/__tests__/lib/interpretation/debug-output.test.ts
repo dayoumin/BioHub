@@ -215,7 +215,11 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Linear Regression',
       statistic: 10.5,
       pValue: 0.001,
-      additional: { rSquared: 0.75 }
+      additional: { rSquared: 0.75 },
+      coefficients: [
+        { name: 'Intercept', value: 10.0, pValue: 0.001 },
+        { name: 'X', value: 2.5, pValue: 0.001 }
+      ]
     } as AnalysisResult, '예측')
 
     console.log('=== Linear Regression (purpose="예측") ===')
