@@ -30,7 +30,8 @@
     "verify:rag": "node scripts/rag/verify-stores.js",
     "rag:semantic-rechunk": "tsx scripts/rag/semantic-rechunk.ts",
     "setup:sql-wasm": "node scripts/build/download-sql-wasm.js",
-    "setup:pyodide": "node scripts/build/download-pyodide.js"
+    "setup:pyodide": "node scripts/build/download-pyodide.js",
+    "prepare": "husky"
   },
   "overrides": {
     "@langchain/community": {
@@ -139,6 +140,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "fake-indexeddb": "^6.2.4",
+    "husky": "^9.1.7",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.1.3",
     "jest-environment-jsdom": "^30.1.2",
