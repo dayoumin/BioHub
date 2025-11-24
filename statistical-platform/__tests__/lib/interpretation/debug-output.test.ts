@@ -132,4 +132,133 @@ describe('Debug: 실제 출력 확인', () => {
     console.log('=== Wilcoxon Scenario 3 (boundary) ===')
     console.log(JSON.stringify(result, null, 2))
   })
+
+  it('Kruskal-Wallis 실제 출력 - Scenario 1 (significant)', () => {
+    const result = getInterpretation({
+      method: 'Kruskal-Wallis Test',
+      statistic: 10.5,
+      pValue: 0.003
+    } as AnalysisResult)
+
+    console.log('=== Kruskal-Wallis Scenario 1 (significant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Linear Regression 실제 출력 - Scenario 1 (significant)', () => {
+    const result = getInterpretation({
+      method: 'Linear Regression',
+      statistic: 10.5,
+      pValue: 0.001,
+      additional: { rSquared: 0.75 }
+    } as AnalysisResult)
+
+    console.log('=== Linear Regression Scenario 1 (significant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Logistic Regression 실제 출력 - Scenario 1 (significant)', () => {
+    const result = getInterpretation({
+      method: 'Logistic Regression',
+      statistic: 8.5,
+      pValue: 0.002,
+      additional: { pseudoRSquared: 0.42 }
+    } as AnalysisResult)
+
+    console.log('=== Logistic Regression Scenario 1 (significant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Chi-Square 실제 출력 - Scenario 1 (significant)', () => {
+    const result = getInterpretation({
+      method: 'Chi-Square Test',
+      statistic: 25.3,
+      pValue: 0.0001,
+      df: 4,
+      effectSize: { value: 0.35, type: "Cramer's V" }
+    } as AnalysisResult)
+
+    console.log('=== Chi-Square Scenario 1 (significant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Friedman 실제 출력 - Scenario 1 (significant)', () => {
+    const result = getInterpretation({
+      method: 'Friedman Test',
+      statistic: 12.8,
+      pValue: 0.002
+    } as AnalysisResult)
+
+    console.log('=== Friedman Scenario 1 (significant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('ANOVA 실제 출력 - Scenario 2 (nonsignificant)', () => {
+    const result = getInterpretation({
+      method: 'One-way ANOVA',
+      statistic: 1.8,
+      pValue: 0.172,
+      df: [2, 87],
+      effectSize: { value: 0.02, type: 'Eta-squared' },
+      groupStats: [
+        { name: 'Group A', mean: 50, std: 10, n: 30 },
+        { name: 'Group B', mean: 52, std: 11, n: 30 },
+        { name: 'Group C', mean: 51, std: 9, n: 30 }
+      ]
+    } as AnalysisResult)
+
+    console.log('=== ANOVA Scenario 2 (nonsignificant) ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Linear Regression 실제 출력 (purpose="예측")', () => {
+    const result = getInterpretation({
+      method: 'Linear Regression',
+      statistic: 10.5,
+      pValue: 0.001,
+      additional: { rSquared: 0.75 }
+    } as AnalysisResult, '예측')
+
+    console.log('=== Linear Regression (purpose="예측") ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('McNemar 실제 출력 - Scenario 1', () => {
+    const result = getInterpretation({
+      method: 'McNemar Test',
+      statistic: 8.5,
+      pValue: 0.005,
+      df: 1
+    } as AnalysisResult)
+
+    console.log('=== McNemar Scenario 1 ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('Shapiro-Wilk 실제 출력 - Scenario 1', () => {
+    const result = getInterpretation({
+      method: 'Shapiro-Wilk Test',
+      statistic: 0.92,
+      pValue: 0.003
+    } as AnalysisResult)
+
+    console.log('=== Shapiro-Wilk Scenario 1 ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
+
+  it('t-test 실제 출력 (purpose="비교") - Scenario 1', () => {
+    const result = getInterpretation({
+      method: 'Independent t-test',
+      statistic: 3.45,
+      pValue: 0.001,
+      df: 98,
+      effectSize: { value: 0.8, type: "Cohen's d" },
+      groupStats: [
+        { name: 'Control', mean: 50, std: 10, n: 50 },
+        { name: 'Treatment', mean: 58, std: 12, n: 50 }
+      ]
+    } as AnalysisResult, '비교')
+
+    console.log('=== t-test (purpose="비교") Scenario 1 ===')
+    console.log(JSON.stringify(result, null, 2))
+  })
 })

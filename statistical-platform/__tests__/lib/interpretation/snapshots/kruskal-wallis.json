@@ -7,12 +7,32 @@
       "input": {
         "method": "Kruskal-Wallis Test",
         "statistic": 10.5,
-        "pValue": 0.003
+        "pValue": 0.003,
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 45,
+            "std": 10,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 52,
+            "std": 11,
+            "n": 30
+          },
+          {
+            "name": "Group C",
+            "mean": 58,
+            "std": 12,
+            "n": 30
+          }
+        ]
       },
       "expectedOutput": {
         "title": "다집단 비교 결과",
-        "summary": "3개 이상 그룹의 중앙값 차이를 검정했습니다.",
-        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.003).",
+        "summary": "3개 그룹의 평균 범위는 45.00 ~ 58.00 (차이: 13.00)입니다.",
+        "statistical": "적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p=0.003).",
         "practical": "사후 검정을 수행하여 어느 그룹이 다른지 확인하세요."
       }
     },
@@ -22,13 +42,33 @@
       "input": {
         "method": "Kruskal-Wallis Test",
         "statistic": 1.8,
-        "pValue": 0.312
+        "pValue": 0.312,
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 50,
+            "std": 10,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 51,
+            "std": 11,
+            "n": 30
+          },
+          {
+            "name": "Group C",
+            "mean": 52,
+            "std": 9,
+            "n": 30
+          }
+        ]
       },
       "expectedOutput": {
         "title": "다집단 비교 결과",
-        "summary": "3개 이상 그룹의 중앙값 차이를 검정했습니다.",
-        "statistical": "통계적으로 유의한 차이가 없습니다 (p=0.312).",
-        "practical": "모든 그룹의 중앙값이 유사합니다."
+        "summary": "3개 그룹의 평균 범위는 50.00 ~ 52.00 (차이: 2.00)입니다.",
+        "statistical": "모든 그룹 평균이 통계적으로 유사합니다 (p=0.312).",
+        "practical": "모든 그룹의 평균이 유사합니다."
       }
     },
     {
@@ -37,14 +77,35 @@
       "input": {
         "method": "Kruskal-Wallis Test",
         "statistic": 4.2,
-        "pValue": 0.047
+        "pValue": 0.047,
+        "groupStats": [
+          {
+            "name": "Group A",
+            "mean": 48,
+            "std": 10,
+            "n": 30
+          },
+          {
+            "name": "Group B",
+            "mean": 52,
+            "std": 11,
+            "n": 30
+          },
+          {
+            "name": "Group C",
+            "mean": 54,
+            "std": 9,
+            "n": 30
+          }
+        ]
       },
       "expectedOutput": {
         "title": "다집단 비교 결과",
-        "summary": "3개 이상 그룹의 중앙값 차이를 검정했습니다.",
-        "statistical": "통계적으로 유의한 차이가 있습니다 (p=0.047).",
+        "summary": "3개 그룹의 평균 범위는 48.00 ~ 54.00 (차이: 6.00)입니다.",
+        "statistical": "적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p=0.047).",
         "practical": "사후 검정을 수행하여 어느 그룹이 다른지 확인하세요."
       }
     }
-  ]
+  ],
+  "purpose": "비교"
 }

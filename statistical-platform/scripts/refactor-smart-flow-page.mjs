@@ -1,4 +1,12 @@
-'use client'
+import { readFileSync, writeFileSync } from 'fs';
+
+const filePath = 'd:/Projects/Statics/statistical-platform/app/smart-flow/page.tsx';
+
+// UTF-8로 읽기
+const content = readFileSync(filePath, 'utf8');
+
+// 새로운 파일 내용 작성
+const newContent = `'use client'
 
 import { useCallback, useEffect, useState, useTransition, useMemo } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -44,7 +52,6 @@ export default function SmartFlowPage() {
     currentStep,
     completedSteps,
     uploadedData,
-    uploadedFileName,
     validationResults,
     selectedMethod,
     variableMapping,
@@ -137,9 +144,9 @@ export default function SmartFlowPage() {
   }, [setresults, goToNextStep])
 
   // 하단 데이터 미리보기 Props
-  const bottomPreview = uploadedData && uploadedData.length > 0 ? {
-    data: uploadedData,
-    fileName: uploadedFileName || 'uploaded_data.csv',
+  const bottomPreview = uploadedData && uploadedData.data.length > 0 ? {
+    data: uploadedData.data,
+    fileName: uploadedData.fileName || 'uploaded_data.csv',
     maxRows: 100
   } : undefined
 
@@ -230,3 +237,9 @@ export default function SmartFlowPage() {
     </SmartFlowLayout>
   )
 }
+`;
+
+// UTF-8로 쓰기
+writeFileSync(filePath, newContent, 'utf8');
+
+console.log('✅ smart-flow/page.tsx 리팩토링 완료');

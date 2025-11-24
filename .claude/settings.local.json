@@ -16,7 +16,9 @@
       "Bash(taskkill:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
