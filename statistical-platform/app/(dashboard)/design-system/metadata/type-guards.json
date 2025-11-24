@@ -1,6 +1,6 @@
 {
   "id": "type-guards",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "lastUpdated": "2025-11-24",
   "sources": [
     "statistical-platform/lib/utils/type-guards.ts",

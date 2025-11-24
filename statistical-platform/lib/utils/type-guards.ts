@@ -5,6 +5,8 @@
  *
  * 목적: 모든 컴포넌트와 통계 페이지에서 재사용 가능한
  *       안전한 타입 체크 함수들을 제공합니다.
+ *
+ * 테스트: Pre-commit hook validation
  */
 
 import { AnalysisResult } from '@/types/smart-flow'
