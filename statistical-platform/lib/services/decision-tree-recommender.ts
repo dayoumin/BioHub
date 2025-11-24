@@ -434,7 +434,9 @@ export class DecisionTreeRecommender {
           detectedVariables: groupVariable ? {
             groupVariable: {
               name: groupVariable,
-              uniqueValues: Array.from(new Set(data.map(row => row[groupVariable]))),
+              uniqueValues: Array.from(new Set(data.map(row => row[groupVariable]))).filter(
+                (v): v is string | number => v !== null && v !== undefined
+              ),
               count: groups
             }
           } : undefined,
