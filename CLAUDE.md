@@ -377,7 +377,167 @@ npm test:coverage     # 커버리지
 
 ---
 
-### 6. 코드 스타일
+### 6. 테스트 자동화 철학 (CRITICAL)
+
+**핵심 원칙**: "정직한 테스트 > 이상적인 테스트"
+
+#### 규칙 1: 테스트는 현실을 반영해야 한다
+
+**❌ 잘못된 접근**:
+```typescript
+// 목표: 45개 스냅샷 파일이 필요함
+it('Meta: 정확히 45개의 스냅샷 파일이 있어야 함', () => {
+  expect(snapshots.size).toBe(45)  // ❌ 실제 3개만 존재 (거짓 주장)
+})
+```
+
+**✅ 올바른 접근**:
+```typescript
+// 현재 상태: 3개 완료, 42개 대기
+it('Meta: 현재 스냅샷 파일 개수 확인 (Phase 1-B 완료 기준)', () => {
+  // 현재 실제 상태: 3개 (t-test, anova, correlation)
+  // 최종 목표: 45개 (전체 통계 방법)
+  // 진행률: 3/45 = 6.7%
+  expect(snapshots.size).toBe(3)  // ✅ 현실 반영
+})
+
+// Phase 1-C에서 작성할 테스트는 .skip()으로 명시
+describe.skip('Golden Snapshot Tests (JSON-based - Phase 1-C 대기)', () => {
+  // 42개 스냅샷 추가 시 활성화
+})
+```
+
+**교훈**:
+- 테스트는 코드의 **실제 상태**를 검증해야 함 (이상 상태 X)
+- 미완성 작업은 `.skip()` + 주석으로 명시
+- 거짓 통과 테스트는 신뢰성을 파괴함
+
+---
+
+#### 규칙 2: Zod 스키마의 Trade-off 이해하기
+
+**문제**: `passthrough() + optional()`로 인한 검증 우회
+
+```typescript
+// ❌ 느슨한 검증 (Union + fallback)
+export const AdditionalFieldsSchema = z.union([
+  AdditionalRegressionSchema,  // passthrough() 허용
+  z.record(z.string(), z.unknown())  // fallback: 모든 것 허용
+]).optional()
+
+// 결과: NaN/Infinity 값도 통과 가능 (Union의 fallback이 먼저 매칭)
+const result = AnalysisResultSchema.parse({
+  method: 'Linear Regression',
+  statistic: 5.2,
+  pValue: 0.03,
+  additional: { rSquared: NaN }  // ✅ 통과! (fallback으로 매칭)
+})
+```
+
+**해결책 1**: 개별 스키마 직접 테스트
+```typescript
+// contracts.test.ts
+it('rSquared가 NaN이면 에러', () => {
+  expect(() => {
+    AdditionalRegressionSchema.parse({ rSquared: NaN })  // 직접 테스트
+  }).toThrow()  // ✅ 에러 발생
+})
+```
+
+**해결책 2**: Discriminated Union (향후 개선)
+```typescript
+// 이상적: method 필드 기준 엄격 검증
+export const AnalysisResultSchema = z.discriminatedUnion('method', [
+  z.object({
+    method: z.literal('Linear Regression'),
+    additional: AdditionalRegressionSchema.required()  // 엄격
+  }),
+  z.object({
+    method: z.literal('One-way ANOVA'),
+    additional: AdditionalANOVASchema.required()
+  })
+  // ... (43개 통계)
+])
+```
+
+**Trade-off 문서화**:
+```typescript
+/**
+ * 🚨 알려진 한계 (Trade-off):
+ *
+ * 1. **passthrough() 효과**: 정의되지 않은 필드도 허용
+ *    - 장점: 유연성 (새 통계 필드 추가 시 스키마 수정 불필요)
+ *    - 단점: 엄격한 검증 불가
+ *
+ * 2. **optional() 효과**: Union의 fallback이 먼저 매칭
+ *    - 결과: 특정 스키마 범위 검증이 완벽히 강제되지 않음
+ *
+ * 3. **개선 방향**: discriminated union (method 필드 기준)
+ */
+```
+
+**교훈**:
+- Zod의 `passthrough() + optional()`은 유연성과 엄격성의 trade-off
+- Union 스키마는 fallback으로 인해 범위 검증이 우회될 수 있음
+- 한계를 명시적으로 문서화하고, 개별 스키마 직접 테스트로 보완
+
+---
+
+#### 규칙 3: 문서 일관성 유지하기
+
+**문제**: 43개 vs 45개 혼재
+
+**원인**:
+- **통계 페이지**: 43개 (app/(dashboard)/statistics/)
+- **해석 블록**: 45개 (lib/interpretation/engine.ts `title:` 블록)
+- **고유 title**: 40개 (중복 title 존재)
+
+**해결**:
+```markdown
+# 해석 엔진 커버리지 분석
+
+**용어 정리** (중요!):
+- **통계 페이지**: 43개 (폴더 기준)
+- **해석 블록**: 45개 (engine.ts 블록 기준)
+- **고유 title**: 40개 (중복 제외)
+
+**검증 기준**: 해석 블록 45개 기준으로 문서 작성
+```
+
+**교훈**:
+- 문서 작성 시 "무엇을 기준으로 센 숫자인지" 명시
+- 혼란을 방지하려면 용어 정의 섹션 필수
+- 여러 문서에서 동일한 용어 사용 시 일관성 체크
+
+---
+
+#### 규칙 4: 테스트 자동화 단계별 접근
+
+**Phase 1-A**: 인프라 구축
+- [x] 디렉토리 생성
+- [x] 테스트 러너 작성
+- [x] 3개 대표 통계 선정
+
+**Phase 1-B**: 소규모 검증
+- [x] 3개 통계 × 3 시나리오 = 9개 테스트
+- [x] 실제 출력 vs 기대값 비교
+- [x] 텍스트 미세 조정 (p-value 포맷, r² 계산)
+
+**Phase 1-C**: 대규모 확장 (대기)
+- [ ] 42개 통계 × 3 시나리오 = 126개 테스트
+- [ ] `describe.skip()` 제거
+- [ ] CI/CD 통합
+
+**교훈**:
+- 소규모 검증(3개)으로 프로세스 확립 후 확장
+- "작성됨" ≠ "완료" (실패한 테스트는 완료로 카운트 X)
+- Phase를 명확히 구분하여 진행률 투명하게 관리
+
+**출처**: [RECONCILIATION_REPORT.md](statistical-platform/docs/RECONCILIATION_REPORT.md) - 문서 불일치 조정 작업 (2025-11-24)
+
+---
+
+### 7. 코드 스타일
 
 - ❌ 식별자에 이모지 절대 금지 (변수명, 함수명, 클래스명)
 - ✅ Next.js 15 App Router 사용 (Pages Router 금지)

@@ -14,7 +14,12 @@ import {
   validateAnalysisResult,
   validateInterpretationResult,
   isSafeAnalysisResult,
-  isSafeInterpretationResult
+  isSafeInterpretationResult,
+  AdditionalRegressionSchema,
+  AdditionalANOVASchema,
+  AdditionalPowerSchema,
+  AdditionalClusterSchema,
+  AdditionalReliabilitySchema
 } from '@/lib/interpretation/schemas'
 import type { AnalysisResult } from '@/types/smart-flow'
 
@@ -429,6 +434,200 @@ describe('Contract Tests: Helper Functions', () => {
       }
 
       expect(isSafeAnalysisResult(data)).toBe(false)
+    })
+  })
+
+  describe('isSafeInterpretationResult (Helper 함수)', () => {
+    it('유효한 출력은 true 반환', () => {
+      const result = {
+        title: 'Test Title Here',
+        summary: 'This is a test summary with sufficient length.',
+        statistical: 'Statistical significance test result here.',
+        practical: 'Practical implications of the result.'
+      }
+
+      expect(isSafeInterpretationResult(result)).toBe(true)
+    })
+
+    it('practical이 null이어도 true 반환', () => {
+      const result = {
+        title: 'Test Title',
+        summary: 'This is summary',
+        statistical: 'Statistical text',
+        practical: null  // ✅ nullable
+      }
+
+      expect(isSafeInterpretationResult(result)).toBe(true)
+    })
+
+    it('title이 너무 짧으면 false 반환', () => {
+      const result = {
+        title: 'Hi',  // ❌ < 5자
+        summary: 'This is summary',
+        statistical: 'Statistical text',
+        practical: null
+      }
+
+      expect(isSafeInterpretationResult(result)).toBe(false)
+    })
+  })
+})
+
+describe('Contract Tests: Additional Fields Validation', () => {
+  describe('회귀 분석 additional 필드', () => {
+    it('rSquared가 0~1 범위면 통과', () => {
+      expect(() => {
+        AnalysisResultSchema.parse({
+          method: 'Linear Regression',
+          statistic: 15.3,
+          pValue: 0.001,
+          additional: { rSquared: 0.75 }  // ✅
+        })
+      }).not.toThrow()
+    })
+
+    it('rSquared가 1보다 크면 에러', () => {
+      expect(() => {
+        AdditionalRegressionSchema.parse({ rSquared: 1.5 })  // ❌ 직접 테스트
+      }).toThrow()
+    })
+
+    it('rSquared가 NaN이면 에러', () => {
+      expect(() => {
+        AdditionalRegressionSchema.parse({ rSquared: NaN })  // ❌ 직접 테스트
+      }).toThrow()
+    })
+
+    it('fStatistic이 음수면 에러', () => {
+      expect(() => {
+        AdditionalRegressionSchema.parse({ fStatistic: -5 })  // ❌ 직접 테스트
+      }).toThrow()
+    })
+  })
+
+  describe('ANOVA additional 필드', () => {
+    it('etaSquared가 0~1 범위면 통과', () => {
+      expect(() => {
+        AnalysisResultSchema.parse({
+          method: 'One-way ANOVA',
+          statistic: 5.3,
+          pValue: 0.01,
+          additional: { etaSquared: 0.15 }  // ✅
+        })
+      }).not.toThrow()
+    })
+
+    it('omegaSquared가 음수면 에러 (passthrough로 인해 Skip)', () => {
+      // Note: passthrough()로 인해 이 테스트는 실제로 통과함
+      // 유연성(다양한 통계 지원) vs 엄격성(완벽한 검증) 트레이드오프
+      expect(() => {
+        AdditionalANOVASchema.parse({ omegaSquared: -0.1 })  // ❌ 직접 스키마 테스트
+      }).toThrow()
+    })
+  })
+
+  describe('검정력 분석 additional 필드', () => {
+    it('power가 0~1 범위면 통과', () => {
+      expect(() => {
+        AnalysisResultSchema.parse({
+          method: 'Power Analysis',
+          statistic: 0,
+          pValue: 1,
+          additional: { power: 0.8, sampleSize: 100 }  // ✅
+        })
+      }).not.toThrow()
+    })
+
+    it('power가 1보다 크면 에러', () => {
+      expect(() => {
+        AdditionalPowerSchema.parse({ power: 1.2 })  // ❌ 직접 테스트
+      }).toThrow()
+    })
+
+    it('sampleSize가 소수면 에러 (정수여야 함)', () => {
+      expect(() => {
+        AdditionalPowerSchema.parse({ sampleSize: 100.5 })  // ❌ 직접 테스트
+      }).toThrow()
+    })
+  })
+
+  describe('군집 분석 additional 필드', () => {
+    it('silhouetteScore가 -1~1 범위면 통과', () => {
+      expect(() => {
+        AnalysisResultSchema.parse({
+          method: 'K-Means Clustering',
+          statistic: 0,
+          pValue: 1,
+          additional: { silhouetteScore: 0.65, nClusters: 3 }  // ✅
+        })
+      }).not.toThrow()
+    })
+
+    it('silhouetteScore가 1보다 크면 에러', () => {
+      expect(() => {
+        AdditionalClusterSchema.parse({ silhouetteScore: 1.5 })  // ❌ 직접 테스트
+      }).toThrow()
+    })
+
+    it('nClusters가 0이면 에러 (양수여야 함)', () => {
+      expect(() => {
+        AdditionalClusterSchema.parse({ nClusters: 0 })  // ❌ 직접 테스트
+      }).toThrow()
+    })
+  })
+
+  describe('신뢰도 분석 additional 필드', () => {
+    it('alpha가 0~1 범위면 통과', () => {
+      expect(() => {
+        AnalysisResultSchema.parse({
+          method: "Cronbach's Alpha",
+          statistic: 0.85,
+          pValue: 0.001,
+          additional: { alpha: 0.85, nItems: 10 }  // ✅
+        })
+      }).not.toThrow()
+    })
+
+    it('alpha가 1보다 크면 에러', () => {
+      expect(() => {
+        AdditionalReliabilitySchema.parse({ alpha: 1.2 })  // ❌ 직접 테스트
+      }).toThrow()
+    })
+  })
+
+  describe('fallback 제거 검증 (v2.0 - 2025-11-24)', () => {
+    it('정의된 스키마 (Regression, ANOVA 등) 내 필드는 passthrough로 허용', () => {
+      expect(() => {
+        AnalysisResultSchema.parse({
+          method: 'Linear Regression',
+          statistic: 5.0,
+          pValue: 0.05,
+          additional: {
+            rSquared: 0.75,       // ✅ AdditionalRegressionSchema
+            customField: 'value'  // ✅ passthrough 허용
+          }
+        })
+      }).not.toThrow()
+    })
+
+    it('정의되지 않은 스키마의 필드는 Union 매칭 실패 (optional이므로 통과)', () => {
+      // additional이 optional이므로, Union 매칭 실패 시 undefined로 처리
+      expect(() => {
+        AnalysisResultSchema.parse({
+          method: 'Custom Unknown Test',
+          statistic: 5.0,
+          pValue: 0.05,
+          additional: {
+            unknownField: 999  // 🟡 Union 매칭 실패, optional로 통과
+          }
+        })
+      }).not.toThrow()
+    })
+
+    it('rSquared가 NaN이면 개별 스키마에서 에러 (passthrough 무관)', () => {
+      expect(() => {
+        AdditionalRegressionSchema.parse({ rSquared: NaN })
+      }).toThrow()
     })
   })
 })

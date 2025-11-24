@@ -78,7 +78,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         multiple: true,
         minCount: 1,
         description: '기술통계를 계산할 변수들',
-        example: '키, 몸무게, 나이'
+        example: '체중_g, 체장_cm, 비만도'
       },
       {
         role: 'factor',
@@ -87,7 +87,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         required: false,
         multiple: false,
         description: '그룹별 기술통계를 계산할 경우',
-        example: '성별, 지역'
+        example: '성별, 양식장'
       }
     ]
   },
@@ -107,7 +107,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         multiple: true,
         minCount: 1,
         description: '빈도를 계산할 범주형 변수들',
-        example: '학력, 직업, 선호도'
+        example: '품질등급, 사료종류, 선도'
       }
     ]
   },
@@ -126,7 +126,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         required: true,
         multiple: false,
         description: '교차표의 행에 표시될 변수',
-        example: '성별'
+        example: '성별_암수'
       },
       {
         role: 'dependent',
@@ -135,7 +135,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         required: true,
         multiple: false,
         description: '교차표의 열에 표시될 변수',
-        example: '흡연 여부'
+        example: '생존여부'
       },
       {
         role: 'factor',
@@ -164,7 +164,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         multiple: true,
         minCount: 1,
         description: '탐색할 연속형 변수들',
-        example: '매출, 온도, 점수'
+        example: '생산량_kg, 수온_C, 염분도_ppt'
       },
       {
         role: 'factor',
@@ -195,7 +195,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         multiple: true,
         minCount: 2,
         description: '같은 개념을 측정하는 문항들',
-        example: '만족도1, 만족도2, 만족도3'
+        example: '품질평가1, 품질평가2, 품질평가3'
       }
     ],
     notes: ['최소 2개 이상의 항목 필요', '일반적으로 3개 이상 권장']
@@ -248,7 +248,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         required: true,
         multiple: false,
         description: '두 그룹을 구분하는 변수',
-        example: '성별 (남/여)'
+        example: '성별_암수'
       }
     ],
     notes: ['그룹 변수는 정확히 2개 수준만 가져야 함']
@@ -270,7 +270,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         minCount: 2,
         maxCount: 2,
         description: '전후 측정값 (순서 중요)',
-        example: '사전점수, 사후점수'
+        example: '사전체중_g, 사후체중_g'
       }
     ],
     notes: ['첫 번째 변수 - 두 번째 변수 = 차이값으로 계산']
@@ -639,7 +639,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         multiple: true,
         minCount: 2,
         description: '상관관계를 분석할 연속형 변수들',
-        example: '키, 몸무게, 나이'
+        example: '체중_g, 체장_cm, 비만도'
       }
     ],
     notes: ['상관행렬 생성', 'p-value는 양측검정']
@@ -1287,7 +1287,7 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
         required: true,
         multiple: false,
         description: '첫 번째 이진 변수',
-        example: '성별 (남/여)'
+        example: '성별_암수'
       },
       {
         role: 'dependent',

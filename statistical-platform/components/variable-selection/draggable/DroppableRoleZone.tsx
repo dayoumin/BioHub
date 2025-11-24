@@ -16,9 +16,26 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { Badge } from '@/components/ui/badge'
-import { X } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { X, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { VariableRequirement } from '@/lib/statistics/variable-requirements'
+
+
+// 변수 역할별 도움말 텍스트
+const ROLE_TOOLTIPS: Record<string, string> = {
+  'dependent': '설명하려는 대상 (결과, Y). 예: 체중, 점수, 수확량',
+  'independent': '설명에 사용하는 변수 (원인, X). 예: 사료량, 온도, 비료',
+  'factor': '그룹을 구분하는 범주형 변수. 예: 사료 종류 (A, B, C), 성별',
+  'covariate': '통제하려는 공변량. 예: 초기 체중, 나이',
+  'within': '개체 내 반복 측정 요인. 예: 시점 (1일, 7일, 14일)',
+  'blocking': '블록 변수 (무선 효과). 예: 수조 번호, 실험 구역'
+}
 
 // Props 인터페이스
 export interface DroppableRoleZoneProps {
@@ -67,13 +84,13 @@ export function DroppableRoleZone({
       variable => !prevVariablesRef.current.includes(variable)
     )
     if (added) {
-      // ���� Ÿ�̸Ӱ� ������ ��� (�ߺ� ���� ����)
+      // 기존 타이머가 있으면 제거 (중복 애니메이션 방지)
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
 
       setNewlyAdded(added)
-      // �� Ÿ�̸� ����
+      // 새 타이머 설정
       timeoutRef.current = setTimeout(() => {
         setNewlyAdded(null)
         timeoutRef.current = null
@@ -81,7 +98,7 @@ export function DroppableRoleZone({
     }
     prevVariablesRef.current = assignedVariables
 
-    // cleanup: ������Ʈ unmount �� Ÿ�̸� ��� (�޸� ���� ����)
+    // cleanup: 컴포넌트 unmount 시 타이머 제거 (메모리 누수 방지)
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
@@ -95,10 +112,30 @@ export function DroppableRoleZone({
     <div className={cn('space-y-2', className)}>
       {/* 라벨 */}
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">
-          {label}
-          {required && <span className="text-error ml-1">*</span>}
-        </label>
+        <div className="flex items-center gap-1.5">
+          <label className="text-sm font-medium">
+            {label}
+            {required && <span className="text-error ml-1">*</span>}
+          </label>
+          {ROLE_TOOLTIPS[role] && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  <p className="text-sm">{ROLE_TOOLTIPS[role]}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         {assignedVariables.length > 0 && (
           <span className="text-xs text-muted-foreground">
             {assignedVariables.length}개 선택됨

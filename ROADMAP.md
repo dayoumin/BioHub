@@ -1085,6 +1085,145 @@ async function copyTableToClipboard(data: any[]) {
 
 ---
 
+
+---
+
+## 🐟 Phase 12: 수산과학 도메인 전환 (완료, 2025-11-24)
+
+**목표**: 통계 예시를 수산과학 도메인으로 통일하여 전문성 강화
+
+### 완료 현황 (Phase 1: 핵심 파일) ✅
+
+**작업 범위**:
+- ✅ **도메인 예시 중앙화**: `lib/constants/domain-examples.ts` 생성 (310줄)
+- ✅ **변수 선택 가이드**: `VARIABLE_SELECTION_GUIDE.md` 수정 (11개 예시)
+- ✅ **변수 요구사항**: `variable-requirements.ts` 수정 (68개 예시)
+- ✅ **테스트 데이터**: 24개 CSV 파일 수정 (15개 파일명 + 7개 내용)
+- ✅ **TypeScript 검증**: 수정 파일 컴파일 통과 (0 errors)
+
+**수산과학 도메인 체계**:
+
+```typescript
+// lib/constants/domain-examples.ts
+DOMAIN_EXAMPLES.fisheries = {
+  continuous: {
+    physical: ['체중_g', '체장_cm', '전장_cm', '비만도'],
+    environment: ['수온_C', '염분도_ppt', 'pH', '용존산소_mg_L'],
+    nutrition: ['사료섭취량_g', '단백질함량_%', '지질함량_%'],
+    production: ['생산량_kg', '생존율_%', '사료효율_FCR'],
+    biochemical: ['간중량지수_HSI', '생식소중량지수_GSI'],
+  },
+  categorical: {
+    species: ['넙치', '조피볼락', '전복', '참돔', '방어'],
+    treatment: ['사료종류_A', '사료종류_B', '대조구'],
+    location: ['양식장_1', '수조_A', '해역_동해'],
+    quality: ['품질등급_상', '선도_A'],
+    bio: ['성별_암', '성별_수', '연령_1년생'],
+  }
+}
+
+// 헬퍼 함수
+getExample('continuous', 'physical', 2) // → "체중_g, 체장_cm"
+getExamplesArray('categorical', 'treatment', 3) // → ["사료종류_A", "사료종류_B", "사료종류_C"]
+
+// 통계 방법별 프리셋 (43개)
+STATISTICS_EXAMPLES.oneWayAnova = {
+  dependent: "체중_g",
+  factor: "사료종류_A",
+  description: "사료 종류(A, B, C)가 넙치 체중에 미치는 영향을 분석합니다."
+}
+```
+
+**주요 용어 매핑**:
+
+| 기존 (혼재) | 수산과학 (표준) | 영문 | 단위 |
+|-------------|----------------|------|------|
+| 키, 신장 | 체장 (또는 전장) | Body_Length | cm |
+| 몸무게, 체중 | 체중 | Body_Weight | g, kg |
+| 온도 | 수온 | Water_Temperature | °C |
+| 농도 | 염분도 | Salinity | ppt, psu |
+| 치료법 | 사료 종류 | Feed_Type | A, B, C |
+| 환자ID | 개체 번호 | Fish_ID | - |
+| 실험군 | 처리구 | Treatment_Group | - |
+| 대조군 | 대조구 | Control_Group | - |
+
+**CSV 파일 변환** (15개):
+- 일원분산분석_**치료법**비교.csv → 일원분산분석_**사료종류**비교.csv
+- 독립표본t검정_성별차이.csv → 독립표본t검정_**암수**차이.csv
+- 로지스틱회귀_**합격여부**.csv → 로지스틱회귀_**생존여부**.csv
+- 상관분석_**키와몸무게**.csv → 상관분석_**체중체장**.csv
+- 클러스터링_**고객세분화**.csv → 클러스터링_**개체군집**.csv
+
+**달성 효과**:
+- ✅ **일관성 100% 확보**: 단일 소스 관리 (`domain-examples.ts`)
+- ✅ **전문성 강화**: "수산과학 전문 통계 플랫폼" 포지셔닝 명확화
+- ✅ **유지보수 효율화**: 예시 변경 시 1개 파일만 수정
+- ✅ **확장 가능**: 다른 도메인 추가 용이 (medical, education 이미 정의됨)
+
+---
+
+### Phase 12-2: 통계 페이지 UI 업데이트 (예정)
+
+**목표**: 43개 통계 페이지의 placeholder, helpText를 수산과학 예시로 통일
+
+**대상 파일**: `app/(dashboard)/statistics/**/*.tsx` (43개)
+
+**수정 내용**:
+- placeholder 텍스트 (예: "예: 남녀 간 키 차이..." → "예: 암수 간 체중 차이...")
+- helpText 설명 (변수 설명, 예시)
+- 변수 선택 화면 설명 문구
+
+**예상 시간**: 5일
+
+**예상 효과**:
+- 사용자 경험 일관성 100% 확보
+- 통계 페이지 도메인 예시 통일
+
+---
+
+### Phase 12-3: 다중 도메인 지원 UI (예정)
+
+**목표**: 사용자가 도메인을 선택하여 맞춤형 예시 제공
+
+**기능**:
+- 스마트 플로우 Step 0에 도메인 선택 추가
+- Context 기반 예시 동적 전환
+- 4가지 도메인 지원:
+  - 🐟 수산과학 (기본) - 넙치, 수온, 사료 등
+  - 🏥 의료/보건 - 환자, 치료법, 혈압 등
+  - 📚 교육 - 학생, 점수, 학습시간 등
+  - 🌐 일반 - 추상적 변수명
+
+**구현 예시**:
+```tsx
+<RadioGroup value={domain} onValueChange={setDomain}>
+  <RadioGroupItem value="fisheries" id="fisheries" />
+  <Label htmlFor="fisheries">
+    🐟 수산과학 (넙치, 수온, 사료 등)
+  </Label>
+  {/* 기타 도메인 옵션... */}
+</RadioGroup>
+```
+
+**예상 시간**: 3일
+
+**예상 효과**:
+- 범용성 확보 (타 분야 연구자도 사용 가능)
+- 맞춤형 사용자 경험 제공
+- "수산과학 특화" + "다목적 활용" 동시 달성
+
+---
+
+**참고 문서**:
+- [lib/constants/domain-examples.ts](statistical-platform/lib/constants/domain-examples.ts) - 도메인 예시 중앙 관리
+- [docs/guides/VARIABLE_SELECTION_GUIDE.md](statistical-platform/docs/guides/VARIABLE_SELECTION_GUIDE.md) - 변수 선택 가이드
+
+**Git Commits**:
+- `[commit-hash]` - feat(domain): 수산과학 도메인 전환 (Phase 12-1 완료)
+
+**우선순위**: Medium (Phase 2-3은 향후 필요 시 진행)
+
+
 ## 🔮 장기 비전
 
 ### 기술적 목표
@@ -1099,7 +1238,7 @@ async function copyTableToClipboard(data: any[]) {
 
 ---
 
-**최종 업데이트**: 2025-10-15
+**최종 업데이트**: 2025-11-24
 **현재 Phase**: 5-2 (구현 검증 및 TypeScript 래퍼 추가)
 **현재 진행률**: 43/55 (78%) → 목표 55/55 (100%)
 **다음 마일스톤**: Phase 5-3 (Worker Pool Lazy Loading)

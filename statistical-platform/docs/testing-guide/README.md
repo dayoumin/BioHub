@@ -1,6 +1,10 @@
-# 자동화 테스트 가이드 (Testing Guide)
+# 자동화 테스트 가이드 (Automated Testing Guide)
 
-**AI 시대에 필수적인 자동화 검증 전략**
+**AI 시대에 필수적인 자동화 검증 전략 (문서 모음)**
+
+⚠️ **주의**: 이 폴더는 **테스트 가이드 문서**입니다. 실제 테스트 코드는 `__tests__/` 폴더에 있습니다.
+
+---
 
 이 폴더는 통계 플랫폼의 자동화 테스트 시스템을 설명합니다.
 43개 통계 분석 메서드의 신뢰성을 보장하는 핵심 문서들입니다.
@@ -159,7 +163,7 @@ test('T-Test 결과 일관성', () => {
 - [ ] E2E 테스트 (0/43)
 - [ ] CI/CD 통합 (대기)
 
-**상세**: [AUTOMATED_TESTING_ROADMAP.md](../AUTOMATED_TESTING_ROADMAP.md)
+**상세**: [AUTOMATED_TESTING_ROADMAP.md](./AUTOMATED_TESTING_ROADMAP.md)
 
 ---
 
@@ -169,9 +173,36 @@ test('T-Test 결과 일관성', () => {
 - [CLAUDE.md](../../CLAUDE.md) - AI 코딩 규칙
 - [STATISTICS_CODING_STANDARDS.md](../STATISTICS_CODING_STANDARDS.md) - 코딩 표준
 
-### 테스트 관련
-- [AUTOMATED_TESTING_ROADMAP.md](../AUTOMATED_TESTING_ROADMAP.md) - 전체 로드맵
-- [TEST_AUTOMATION_ANALYSIS.md](../TEST_AUTOMATION_ANALYSIS.md) - 기술 분석
+### 테스트 기획/분석 (상세)
+- [AUTOMATED_TESTING_ROADMAP.md](./AUTOMATED_TESTING_ROADMAP.md) - 전체 로드맵 (68시간)
+- [TEST_AUTOMATION_ANALYSIS.md](./TEST_AUTOMATION_ANALYSIS.md) - 기술 분석 (도구 비교)
+- [TEST_AUTOMATION_FAQ.md](./TEST_AUTOMATION_FAQ.md) - 자주 묻는 질문
+- [E2E_TESTING_PLAN.md](./E2E_TESTING_PLAN.md) - E2E 테스트 계획
+- [INTERPRETATION_TEST_PLAN.md](./INTERPRETATION_TEST_PLAN.md) - 해석 엔진 테스트
+- [GOLDEN_SNAPSHOT_GUIDE.md](./GOLDEN_SNAPSHOT_GUIDE.md) - 구버전 (참고용)
+
+---
+
+## 📂 폴더 구조
+
+```
+testing-guide/
+├── README.md                          (이 파일, 전체 개요)
+│
+├── 01-WHY-TESTING-MATTERS.md         (왜 필요한가?)
+├── 02-CONTRACT-EXPLAINED.md          (Contract 개념)
+├── 03-ZOD-RUNTIME-VALIDATION.md      (Zod 사용법)
+├── 04-GOLDEN-SNAPSHOT.md             (스냅샷 테스트)
+├── 05-AI-ERA-TESTING.md              (AI 시대 전략)
+│
+└── [기획/분석 문서들]                 (상세 계획)
+    ├── AUTOMATED_TESTING_ROADMAP.md
+    ├── TEST_AUTOMATION_ANALYSIS.md
+    ├── TEST_AUTOMATION_FAQ.md
+    ├── E2E_TESTING_PLAN.md
+    ├── INTERPRETATION_TEST_PLAN.md
+    └── GOLDEN_SNAPSHOT_GUIDE.md (구버전)
+```
 
 ---
 

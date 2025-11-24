@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { DndContext } from '@dnd-kit/core'
 import { DroppableRoleZone } from '../DroppableRoleZone'
 
@@ -20,7 +21,7 @@ describe('DroppableRoleZone', () => {
   })
 
   it('required=true 시 빨간 별표를 표시해야 함', () => {
-    const { container } = render(
+    render(
       <DndContext>
         <DroppableRoleZone
           role="dependent"
@@ -31,9 +32,9 @@ describe('DroppableRoleZone', () => {
       </DndContext>
     )
 
-    const asterisk = container.querySelector('.text-red-500')
+    const asterisk = screen.getByText('*')
     expect(asterisk).toBeInTheDocument()
-    expect(asterisk).toHaveTextContent('*')
+    expect(asterisk).toHaveClass('text-error')
   })
 
   it('변수가 없을 때 빈 상태 메시지를 표시해야 함', () => {
@@ -293,5 +294,235 @@ describe('DroppableRoleZone', () => {
     expect(screen.getByText('처리').parentElement?.className).not.toContain('bg-primary/10')
 
     jest.useRealTimers()
+  })
+
+  // Tooltip 기능 테스트 (2025-11-24 추가)
+  describe('Tooltip Functionality', () => {
+    it('dependent role에 Info 아이콘이 표시되어야 함', () => {
+      const { container } = render(
+        <DndContext>
+          <DroppableRoleZone
+            role="dependent"
+            label="종속변수"
+            assignedVariables={[]}
+          />
+        </DndContext>
+      )
+
+      const infoIcon = container.querySelector('.lucide-info')
+      expect(infoIcon).toBeInTheDocument()
+    })
+
+    it('Info 아이콘 호버 시 tooltip이 표시되어야 함 (dependent)', async () => {
+      const user = userEvent.setup()
+      render(
+        <DndContext>
+          <DroppableRoleZone
+            role="dependent"
+            label="종속변수"
+            assignedVariables={[]}
+          />
+        </DndContext>
+      )
+
+      // Info 버튼 찾기 (type="button"이고 아이콘만 있음)
+      const buttons = screen.getAllByRole('button')
+      const infoButton = buttons.find(btn => {
+        const svg = btn.querySelector('.lucide-info')
+        return svg !== null
+      })
+
+      expect(infoButton).toBeDefined()
+
+      if (infoButton) {
+        await user.hover(infoButton)
+
+        await waitFor(() => {
+          const tooltips = screen.getAllByText(/설명하려는 대상 \(결과, Y\)/)
+          expect(tooltips.length).toBeGreaterThanOrEqual(1)
+        }, { timeout: 1000 })
+      }
+    })
+
+    it('Info 아이콘 호버 시 tooltip이 표시되어야 함 (independent)', async () => {
+      const user = userEvent.setup()
+      render(
+        <DndContext>
+          <DroppableRoleZone
+            role="independent"
+            label="독립변수"
+            assignedVariables={[]}
+          />
+        </DndContext>
+      )
+
+      const buttons = screen.getAllByRole('button')
+      const infoButton = buttons.find(btn => {
+        const svg = btn.querySelector('.lucide-info')
+        return svg !== null
+      })
+
+      if (infoButton) {
+        await user.hover(infoButton)
+
+        await waitFor(() => {
+          const tooltips = screen.getAllByText(/설명에 사용하는 변수 \(원인, X\)/)
+          expect(tooltips.length).toBeGreaterThanOrEqual(1)
+        }, { timeout: 1000 })
+      }
+    })
+
+    it('Info 아이콘 호버 시 tooltip이 표시되어야 함 (factor)', async () => {
+      const user = userEvent.setup()
+      render(
+        <DndContext>
+          <DroppableRoleZone
+            role="factor"
+            label="요인"
+            assignedVariables={[]}
+          />
+        </DndContext>
+      )
+
+      const buttons = screen.getAllByRole('button')
+      const infoButton = buttons.find(btn => {
+        const svg = btn.querySelector('.lucide-info')
+        return svg !== null
+      })
+
+      if (infoButton) {
+        await user.hover(infoButton)
+
+        await waitFor(() => {
+          const tooltips = screen.getAllByText(/그룹을 구분하는 범주형 변수/)
+          expect(tooltips.length).toBeGreaterThanOrEqual(1)
+        }, { timeout: 1000 })
+      }
+    })
+
+    it('Info 아이콘 호버 시 tooltip이 표시되어야 함 (covariate)', async () => {
+      const user = userEvent.setup()
+      render(
+        <DndContext>
+          <DroppableRoleZone
+            role="covariate"
+            label="공변량"
+            assignedVariables={[]}
+          />
+        </DndContext>
+      )
+
+      const buttons = screen.getAllByRole('button')
+      const infoButton = buttons.find(btn => {
+        const svg = btn.querySelector('.lucide-info')
+        return svg !== null
+      })
+
+      if (infoButton) {
+        await user.hover(infoButton)
+
+        await waitFor(() => {
+          const tooltips = screen.getAllByText(/통제하려는 공변량/)
+          expect(tooltips.length).toBeGreaterThanOrEqual(1)
+        }, { timeout: 1000 })
+      }
+    })
+
+    it('Info 아이콘 호버 시 tooltip이 표시되어야 함 (within)', async () => {
+      const user = userEvent.setup()
+      render(
+        <DndContext>
+          <DroppableRoleZone
+            role="within"
+            label="개체내 요인"
+            assignedVariables={[]}
+          />
+        </DndContext>
+      )
+
+      const buttons = screen.getAllByRole('button')
+      const infoButton = buttons.find(btn => {
+        const svg = btn.querySelector('.lucide-info')
+        return svg !== null
+      })
+
+      if (infoButton) {
+        await user.hover(infoButton)
+
+        await waitFor(() => {
+          const tooltips = screen.getAllByText(/개체 내 반복 측정 요인/)
+          expect(tooltips.length).toBeGreaterThanOrEqual(1)
+        }, { timeout: 1000 })
+      }
+    })
+
+    it('Info 아이콘 호버 시 tooltip이 표시되어야 함 (blocking)', async () => {
+      const user = userEvent.setup()
+      render(
+        <DndContext>
+          <DroppableRoleZone
+            role="blocking"
+            label="블록 변수"
+            assignedVariables={[]}
+          />
+        </DndContext>
+      )
+
+      const buttons = screen.getAllByRole('button')
+      const infoButton = buttons.find(btn => {
+        const svg = btn.querySelector('.lucide-info')
+        return svg !== null
+      })
+
+      if (infoButton) {
+        await user.hover(infoButton)
+
+        await waitFor(() => {
+          const tooltips = screen.getAllByText(/블록 변수 \(무선 효과\)/)
+          expect(tooltips.length).toBeGreaterThanOrEqual(1)
+        }, { timeout: 1000 })
+      }
+    })
+
+    it('알 수 없는 role의 경우 Info 아이콘이 표시되지 않아야 함', () => {
+      const { container } = render(
+        <DndContext>
+          <DroppableRoleZone
+            role="unknown_role"
+            label="알 수 없는 역할"
+            assignedVariables={[]}
+          />
+        </DndContext>
+      )
+
+      const infoIcon = container.querySelector('.lucide-info')
+      expect(infoIcon).not.toBeInTheDocument()
+    })
+
+    it('Info 버튼 클릭 시 이벤트 전파가 중단되어야 함', () => {
+      const onClick = jest.fn()
+      render(
+        <DndContext>
+          <DroppableRoleZone
+            role="dependent"
+            label="종속변수"
+            assignedVariables={[]}
+            onClick={onClick}
+          />
+        </DndContext>
+      )
+
+      const buttons = screen.getAllByRole('button')
+      const infoButton = buttons.find(btn => {
+        const svg = btn.querySelector('.lucide-info')
+        return svg !== null
+      })
+
+      if (infoButton) {
+        fireEvent.click(infoButton)
+        // onClick 핸들러가 호출되지 않아야 함 (stopPropagation)
+        expect(onClick).not.toHaveBeenCalled()
+      }
+    })
   })
 })

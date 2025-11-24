@@ -10,7 +10,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { BookOpen, HelpCircle, Keyboard } from 'lucide-react'
+import { BookOpen, HelpCircle, Keyboard, Database, FileText } from 'lucide-react'
 
 interface HelpModalProps {
   open: boolean
@@ -20,7 +20,7 @@ interface HelpModalProps {
 export function HelpModal({ open, onOpenChange }: HelpModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[80vh]">
+      <DialogContent className="sm:max-w-3xl max-h-[80vh] w-[95vw]">
         <DialogHeader>
           <DialogTitle>도움말</DialogTitle>
           <DialogDescription>
@@ -29,7 +29,7 @@ export function HelpModal({ open, onOpenChange }: HelpModalProps) {
         </DialogHeader>
 
         <Tabs defaultValue="guide" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
             <TabsTrigger value="guide" className="gap-2">
               <BookOpen className="h-4 w-4" />
               사용 가이드
@@ -38,13 +38,21 @@ export function HelpModal({ open, onOpenChange }: HelpModalProps) {
               <HelpCircle className="h-4 w-4" />
               FAQ
             </TabsTrigger>
-            <TabsTrigger value="shortcuts" className="gap-2">
+                        <TabsTrigger value="shortcuts" className="gap-2">
               <Keyboard className="h-4 w-4" />
               단축키
             </TabsTrigger>
+            <TabsTrigger value="variables" className="gap-2">
+              <FileText className="h-4 w-4" />
+              변수 선택
+            </TabsTrigger>
+            <TabsTrigger value="data-format" className="gap-2">
+              <Database className="h-4 w-4" />
+              데이터 형식
+            </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="h-[500px] mt-4">
+          <ScrollArea className="h-[60vh] max-h-[500px] mt-4">
             {/* 사용 가이드 */}
             <TabsContent value="guide" className="space-y-4">
               <Card>
@@ -220,6 +228,199 @@ export function HelpModal({ open, onOpenChange }: HelpModalProps) {
                       Ctrl + Enter
                     </kbd>
                   </div>
+                </CardContent>
+              </Card>
+                        </TabsContent>
+
+            {/* 변수 선택 가이드 */}
+            <TabsContent value="variables" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">변수 역할 이해하기</CardTitle>
+                  <CardDescription>
+                    통계 분석에서 변수는 역할에 따라 구분됩니다
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">종속변수 (Dependent Variable)</h4>
+                    <p className="text-sm text-muted-foreground">
+                      <strong>설명하려는 대상</strong> (결과, Y)
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      예: 넙치 체중, 시험 점수, 수확량
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">독립변수 (Independent Variable)</h4>
+                    <p className="text-sm text-muted-foreground">
+                      <strong>설명에 사용하는 변수</strong> (원인, X)
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      예: 사료 종류, 학습 시간, 비료량
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">요인 (Factor)</h4>
+                    <p className="text-sm text-muted-foreground">
+                      그룹을 구분하는 범주형 변수 (ANOVA, t-검정)
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      예: 사료 종류 (A, B, C), 성별 (남/여)
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">변수 타입 구분</CardTitle>
+                  <CardDescription>
+                    데이터의 성질에 따른 분류
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-sm font-semibold">연속형 (Continuous)</span>
+                      <p className="text-xs text-muted-foreground">실수값 (예: 체중 150.5g)</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-sm font-semibold">범주형 (Categorical)</span>
+                      <p className="text-xs text-muted-foreground">문자열 (예: 사료 종류 A, B, C)</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-sm font-semibold">이진형 (Binary)</span>
+                      <p className="text-xs text-muted-foreground">2개 값 (예: 성별 남/여)</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">📚 전체 가이드 보기</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    통계 방법별 상세 변수 선택 가이드는 다음 문서를 참조하세요:
+                  </p>
+                  <a
+                    href="/guides/VARIABLE_SELECTION_GUIDE.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    변수 선택 가이드 (전체 문서) →
+                  </a>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* 데이터 형식 가이드 */}
+            <TabsContent value="data-format" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">지원 파일 형식</CardTitle>
+                  <CardDescription>
+                    업로드 가능한 데이터 형식
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">CSV (.csv)</span>
+                    <span className="text-xs text-muted-foreground">⭐⭐⭐⭐⭐ 가장 권장</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Excel (.xlsx, .xls)</span>
+                    <span className="text-xs text-muted-foreground">⭐⭐⭐⭐</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">SPSS (.sav)</span>
+                    <span className="text-xs text-muted-foreground">⭐⭐⭐</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">TSV (.tsv)</span>
+                    <span className="text-xs text-muted-foreground">⭐⭐⭐</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">데이터 구조: Wide vs Long</CardTitle>
+                  <CardDescription>
+                    통계 방법에 따라 다른 형식 필요
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">Wide Format (넓은 형식)</h4>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      각 개체가 1개 행, 반복 측정은 여러 열
+                    </p>
+                    <code className="text-xs bg-muted px-2 py-1 rounded block">
+                      id, pre_score, post_score
+                    </code>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      사용: 대응표본 t-검정, MANOVA
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">Long Format (긴 형식)</h4>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      각 측정값이 1개 행, 개체가 여러 행으로 반복
+                    </p>
+                    <code className="text-xs bg-muted px-2 py-1 rounded block">
+                      id, time_point, score
+                    </code>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      사용: 반복측정 ANOVA, 혼합모형
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">CSV 파일 작성 규칙</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div>
+                    <span className="text-sm">✅ 첫 번째 행은 변수명 (필수)</span>
+                  </div>
+                  <div>
+                    <span className="text-sm">✅ 인코딩은 UTF-8 (한글 사용 시)</span>
+                  </div>
+                  <div>
+                    <span className="text-sm">✅ 변수명에 공백 사용 금지 → 언더스코어(_) 사용</span>
+                  </div>
+                  <div>
+                    <span className="text-sm">✅ 결측치는 빈칸 또는 NA로 표시</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">📚 전체 가이드 보기</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    데이터 형식, 결측치 처리, CSV 템플릿 등 상세 가이드:
+                  </p>
+                  <a
+                    href="/guides/DATA_FORMAT_GUIDE.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    데이터 형식 가이드 (전체 문서) →
+                  </a>
                 </CardContent>
               </Card>
             </TabsContent>

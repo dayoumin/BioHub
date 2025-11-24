@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { ClientProviders } from "@/components/providers/ClientProviders"
 import { UIProvider } from "@/contexts/ui-context"
 import { LayoutContent } from "@/components/layout/layout-content"
+import { MobileWarning } from "@/components/layout/mobile-warning"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -53,6 +54,10 @@ export default function RootLayout({
               {/* 우측 챗봇 패널 (조건부 렌더링) */}
               <LayoutContent />
             </div>
+
+            {/* 모바일 경고 */}
+            <MobileWarning />
+
             <Toaster
               position="top-center"
               richColors
