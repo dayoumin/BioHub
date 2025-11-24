@@ -3,7 +3,7 @@
   "scenarios": [
     {
       "name": "significant-strong-effect",
-      "description": "유의한 결과 (p=0.002)",
+      "description": "유의한 결과 (p = 0.002)",
       "input": {
         "method": "Logistic Regression",
         "statistic": 10.5,
@@ -21,7 +21,7 @@
     },
     {
       "name": "nonsignificant-weak-effect",
-      "description": "유의하지 않은 결과 (p=0.321)",
+      "description": "유의하지 않은 결과 (p = 0.321)",
       "input": {
         "method": "Logistic Regression",
         "statistic": 1.8,
@@ -39,7 +39,7 @@
     },
     {
       "name": "boundary-case-p-near-0.05",
-      "description": "경계값 (p=0.049)",
+      "description": "경계값 (p = 0.049)",
       "input": {
         "method": "Logistic Regression",
         "statistic": 4.2,

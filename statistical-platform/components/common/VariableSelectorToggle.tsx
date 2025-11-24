@@ -119,38 +119,6 @@ export function VariableSelectorToggle({
 
       {/* 변수 선택 영역 (좌우 분할) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 종속변수 선택 */}
-        <Card className="h-fit">
-          <CardHeader className="pb-3 bg-primary/5">
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-lg">종속변수</CardTitle>
-              <span className="text-destructive">*</span>
-              {dependentVar && (
-                <Badge variant="default" className="ml-auto">
-                  선택됨
-                </Badge>
-              )}
-            </div>
-            <CardDescription className="text-xs">
-              예측/설명 대상 (예: 몸무게, 점수)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="space-y-2">
-              {analysis.columns.map(col => (
-                <VariableToggleButton
-                  key={col.name}
-                  column={col}
-                  selected={col.name === dependentVar}
-                  onClick={() => toggleDependent(col.name)}
-                  disabled={col.name === independentVar}
-                  variant="dependent"
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* 독립변수 선택 */}
         <Card className="h-fit">
           <CardHeader className="pb-3 bg-secondary/5">
@@ -182,6 +150,38 @@ export function VariableSelectorToggle({
             </div>
           </CardContent>
         </Card>
+
+        {/* 종속변수 선택 */}
+        <Card className="h-fit">
+          <CardHeader className="pb-3 bg-primary/5">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg">종속변수</CardTitle>
+              <span className="text-destructive">*</span>
+              {dependentVar && (
+                <Badge variant="default" className="ml-auto">
+                  선택됨
+                </Badge>
+              )}
+            </div>
+            <CardDescription className="text-xs">
+              예측/설명 대상 (예: 몸무게, 점수)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-2">
+              {analysis.columns.map(col => (
+                <VariableToggleButton
+                  key={col.name}
+                  column={col}
+                  selected={col.name === dependentVar}
+                  onClick={() => toggleDependent(col.name)}
+                  disabled={col.name === independentVar}
+                  variant="dependent"
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* 선택 요약 */}
@@ -190,18 +190,18 @@ export function VariableSelectorToggle({
           <CardContent className="pt-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">종속변수:</span>
-                {dependentVar ? (
-                  <Badge variant="default">{dependentVar}</Badge>
+                <span className="text-sm text-muted-foreground">독립변수:</span>
+                {independentVar ? (
+                  <Badge variant="secondary">{independentVar}</Badge>
                 ) : (
                   <span className="text-sm text-muted-foreground italic">선택 안됨</span>
                 )}
               </div>
               <ArrowRight className="hidden sm:block h-4 w-4 text-muted-foreground" />
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">독립변수:</span>
-                {independentVar ? (
-                  <Badge variant="secondary">{independentVar}</Badge>
+                <span className="text-sm text-muted-foreground">종속변수:</span>
+                {dependentVar ? (
+                  <Badge variant="default">{dependentVar}</Badge>
                 ) : (
                   <span className="text-sm text-muted-foreground italic">선택 안됨</span>
                 )}
