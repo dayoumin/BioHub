@@ -109,6 +109,22 @@ export type AnalysisPurpose =
   | 'timeseries'    // 시계열 분석
 
 /**
+ * 변수 선택 정보 (Step 3에서 사용)
+ */
+export interface VariableSelection {
+  /** 분석 목적 */
+  purpose: AnalysisPurpose
+  /** 그룹 변수 (독립 변수) - 그룹 간 차이 비교용 */
+  groupVariable?: string
+  /** 종속 변수 - 비교할 값 */
+  dependentVariable?: string
+  /** 변수 목록 - 상관분석용 (2개 이상) */
+  variables?: string[]
+  /** 공변량 - ANCOVA 등에서 사용 */
+  covariates?: string[]
+}
+
+/**
  * AI 추천 결과
  */
 export interface AIRecommendation {
@@ -128,6 +144,15 @@ export interface AIRecommendation {
   }[]
   /** 대안 방법 목록 (옵션) */
   alternatives?: StatisticalMethod[]
+  /** 감지된 변수 정보 (옵션) */
+  detectedVariables?: {
+    groupVariable?: {
+      name: string
+      uniqueValues: (string | number)[]
+      count: number
+    }
+    dependentVariables?: string[]
+  }
 }
 
 /**

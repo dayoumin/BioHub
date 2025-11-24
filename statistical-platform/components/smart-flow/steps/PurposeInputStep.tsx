@@ -16,7 +16,9 @@ import { DataProfileSummary } from '@/components/common/analysis/DataProfileSumm
 import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
-import type { AnalysisPurpose, AIRecommendation } from '@/types/smart-flow'
+import type { AnalysisPurpose, AIRecommendation, VariableSelection, ColumnStatistics } from '@/types/smart-flow'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
@@ -80,6 +82,9 @@ export function PurposeInputStep({
   data
 }: PurposeInputStepProps) {
   const [selectedPurpose, setSelectedPurpose] = useState<AnalysisPurpose | null>(null)
+  const [selectedGroupVariable, setSelectedGroupVariable] = useState<string | null>(null)
+  const [selectedDependentVariable, setSelectedDependentVariable] = useState<string | null>(null)
+  const [selectedVariables, setSelectedVariables] = useState<string[]>([])
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [aiProgress, setAiProgress] = useState(0)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
@@ -132,7 +137,69 @@ export function PurposeInputStep({
     }
   }, [validationResults, data])
 
-  // Phase 4-B: 하이브리드 AI 추천 (Ollama → DecisionTree 폴백)
+  // 변수 목록 계산
+  const numericColumns = useMemo(() => {
+    return validationResults?.columns?.filter(
+      (col): col is ColumnStatistics => col.type === 'numeric'
+    ) || []
+  }, [validationResults])
+
+  const categoricalColumns = useMemo(() => {
+    return validationResults?.columns?.filter(
+      (col): col is ColumnStatistics => col.type === 'categorical'
+    ) || []
+  }, [validationResults])
+
+  // 변수 선택 완료 여부
+  const isVariableSelectionComplete = useMemo(() => {
+    if (!selectedPurpose) return false
+
+    switch (selectedPurpose) {
+      case 'compare':
+        return !!selectedGroupVariable && !!selectedDependentVariable
+      case 'relationship':
+        return selectedVariables.length >= 2
+      case 'distribution':
+        return true // 변수 선택 불필요
+      case 'prediction':
+        return selectedVariables.length >= 2
+      case 'timeseries':
+        return selectedVariables.length >= 1
+      default:
+        return false
+    }
+  }, [selectedPurpose, selectedGroupVariable, selectedDependentVariable, selectedVariables])
+
+  // 변수 선택 핸들러
+  const handleGroupVariableChange = useCallback((value: string) => {
+    setSelectedGroupVariable(value)
+    setRecommendation(null) // 추천 초기화
+  }, [])
+
+  const handleDependentVariableChange = useCallback((value: string) => {
+    setSelectedDependentVariable(value)
+    setRecommendation(null) // 추천 초기화
+  }, [])
+
+  const handleVariablesChange = useCallback((variable: string, checked: boolean) => {
+    setSelectedVariables(prev =>
+      checked ? [...prev, variable] : prev.filter(v => v !== variable)
+    )
+    setRecommendation(null) // 추천 초기화
+  }, [])
+
+  // 변수 선택 완료 시 자동 AI 추천
+  useEffect(() => {
+    if (isVariableSelectionComplete && selectedPurpose && !isAnalyzing && !recommendation) {
+      // 변수 선택 완료되면 자동으로 AI 추천 실행
+      const timer = setTimeout(() => {
+        analyzeAndRecommend(selectedPurpose)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [isVariableSelectionComplete, selectedPurpose, isAnalyzing, recommendation])
+
+    // Phase 4-B: 하이브리드 AI 추천 (Ollama → DecisionTree 폴백)
   const analyzeAndRecommend = useCallback(async (purpose: AnalysisPurpose): Promise<AIRecommendation | null> => {
     try {
       setIsAnalyzing(true)
@@ -226,19 +293,26 @@ export function PurposeInputStep({
     setRecommendation(null)
     setAnalysisError(false)
 
+    // 변수 선택 초기화
+    setSelectedGroupVariable(null)
+    setSelectedDependentVariable(null)
+    setSelectedVariables([])
+
     logger.info('Analysis purpose selected', { purpose })
 
-    // AI 분석 시작
-    const result = await analyzeAndRecommend(purpose)
+    // 분포 분석은 변수 선택 불필요 → 즉시 AI 추천
+    if (purpose === 'distribution') {
+      const result = await analyzeAndRecommend(purpose)
 
-    if (result === null) {
-      // 에러 발생 시 사용자에게 알림
-      logger.error('AI 추천 실패', { purpose })
-      setAnalysisError(true)
-    } else {
-      setRecommendation(result)
-      setAnalysisError(false)
+      if (result === null) {
+        logger.error('AI 추천 실패', { purpose })
+        setAnalysisError(true)
+      } else {
+        setRecommendation(result)
+        setAnalysisError(false)
+      }
     }
+    // 다른 목적은 변수 선택 후 AI 추천 (useEffect에서 처리)
   }, [analyzeAndRecommend])
 
   // "이 방법으로 분석하기" 버튼 (중복 클릭 방지 + 에러 복구)

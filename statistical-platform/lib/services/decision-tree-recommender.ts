@@ -19,7 +19,8 @@ import type {
   StatisticalMethod,
   ValidationResults,
   DataRow,
-  StatisticalAssumptions
+  StatisticalAssumptions,
+  VariableSelection
 } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { KeywordBasedRecommender } from './keyword-based-recommender'
@@ -32,17 +33,18 @@ export class DecisionTreeRecommender {
     purpose: AnalysisPurpose,
     assumptionResults: StatisticalAssumptions,
     validationResults: ValidationResults,
-    data: DataRow[]
+    data: DataRow[],
+    variableSelection?: VariableSelection
   ): AIRecommendation {
     logger.info('DecisionTree: Starting recommendation', { purpose })
 
     try {
       switch (purpose) {
         case 'compare':
-          return this.recommendForCompare(assumptionResults, validationResults, data)
+          return this.recommendForCompare(assumptionResults, validationResults, data, variableSelection)
 
         case 'relationship':
-          return this.recommendForRelationship(assumptionResults, validationResults, data)
+          return this.recommendForRelationship(assumptionResults, validationResults, data, variableSelection)
 
         case 'distribution':
           return this.recommendForDistribution(validationResults, data)
@@ -253,7 +255,8 @@ export class DecisionTreeRecommender {
   private static recommendForCompare(
     assumptionResults: StatisticalAssumptions,
     validationResults: ValidationResults,
-    data: DataRow[]
+    data: DataRow[],
+    variableSelection?: VariableSelection
   ): AIRecommendation {
     const { normality, homogeneity } = assumptionResults
 
@@ -269,10 +272,17 @@ export class DecisionTreeRecommender {
     // ✅ Multi-factor 감지 (AI 리뷰 반영)
     const factors = this.detectFactors(data, validationResults)
 
-    // 그룹 개수 파악
-    const groupVariable = this.findGroupVariable(validationResults, data)
+    // 그룹 개수 파악 (사용자 선택 변수 우선)
+    const groupVariable = variableSelection?.groupVariable || this.findGroupVariable(validationResults, data)
     const groups = groupVariable ?
       new Set(data.map(row => row[groupVariable])).size : 0
+
+    logger.info('[DecisionTree] recommendForCompare', {
+      userSelectedGroup: variableSelection?.groupVariable,
+      autoDetectedGroup: this.findGroupVariable(validationResults, data),
+      finalGroupVariable: groupVariable,
+      groups
+    })
 
     const n = data.length
 
@@ -421,6 +431,13 @@ export class DecisionTreeRecommender {
             }
           },
           confidence: 0.92,
+          detectedVariables: groupVariable ? {
+            groupVariable: {
+              name: groupVariable,
+              uniqueValues: Array.from(new Set(data.map(row => row[groupVariable]))),
+              count: groups
+            }
+          } : undefined,
           reasoning: [
             '✓ 매우 높은 신뢰도 (92%)로 독립표본 t-검정을 추천합니다.',
             '두 독립 그룹 간 평균 비교에 적합합니다.',
@@ -594,7 +611,8 @@ export class DecisionTreeRecommender {
   private static recommendForRelationship(
     assumptionResults: StatisticalAssumptions,
     validationResults: ValidationResults,
-    data: DataRow[]
+    data: DataRow[],
+    variableSelection?: VariableSelection
   ): AIRecommendation {
     const { normality } = assumptionResults
     const n = data.length
