@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useMemo, useCallback } from 'react'
+import { memo, useState, useMemo, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,7 +15,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, X, TrendingUp, ChartScatter } from 'lucide-react'
 import { ValidationResults, DataRow } from '@/types/smart-flow'
-import { logger } from '@/lib/utils/logger'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -68,17 +67,18 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   }, [validationResults])
 
   // Scatterplot 구성 목록
-  const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>(() => {
-    // 초기값: 첫 2개 변수 자동 추가
-    if (numericVariables.length >= 2) {
-      return [{
+  const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>([])
+
+  // 비동기 데이터 로딩 대응: numericVariables 업데이트 시 기본 산점도 추가
+  useEffect(() => {
+    if (numericVariables.length >= 2 && scatterplots.length === 0) {
+      setScatterplots([{
         id: '1',
         xVariable: numericVariables[0],
         yVariables: [numericVariables[1]]
-      }]
+      }])
     }
-    return []
-  })
+  }, [numericVariables, scatterplots.length])
 
   // 변수 데이터 추출 (Raw - 필터링 없음, row index 유지)
   const getVariableDataRaw = useCallback((variableName: string): Array<number | null> => {
