@@ -36,6 +36,7 @@ import { AIProgressDemo } from './components/AIProgressDemo'
 import { DataPreviewDemo } from './components/DataPreviewDemo'
 import { GuidanceCardDemo } from './components/GuidanceCardDemo'
 import { VariableSelectorDemo } from './components/VariableSelectorDemo'
+import { VisualizationDemo } from './components/VisualizationDemo'
 import { COMPONENT_LIST } from './constants'
 
 // 네비게이션 섹션 정의
@@ -45,6 +46,7 @@ const NAV_SECTIONS = [
   { id: 'typography', label: 'Typography', icon: Type },
   { id: 'animations', label: 'Animations', icon: Zap },
   { id: 'components', label: 'Components', icon: GitCompare },
+  { id: 'visualizations', label: 'Visualizations', icon: SquareStack },
   { id: 'data-utils', label: 'Data Utilities', icon: Table },
 ]
 
@@ -662,7 +664,25 @@ animation: {
             </div>
           )}
 
-          {/* Data Utilities 섹션 */}
+          {/* ========================================
+              6. 시각화 컴포넌트
+          ======================================== */}
+          {activeSection === 'visualizations' && (
+            <div className="space-y-6 animate-in fade-in duration-500">
+              <div>
+                <h1 className="text-4xl font-bold mb-2">데이터 시각화</h1>
+                <p className="text-muted-foreground">
+                  통계 분석용 차트 컴포넌트 (Histogram, BoxPlot, Scatterplot)
+                </p>
+              </div>
+
+              <VisualizationDemo />
+            </div>
+          )}
+
+          {/* ========================================
+              7. Data Utilities
+          ======================================== */}
           {activeSection === 'data-utils' && (
             <div className="space-y-8">
               <div>
