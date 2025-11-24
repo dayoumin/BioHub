@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState, useMemo, useCallback, useEffect } from 'react'
+import { memo, useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,7 +14,10 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered } from 'lucide-react'
-import { ValidationResults, DataRow, ColumnStatistics } from '@/types/smart-flow'
+import { ValidationResults, DataRow, ColumnStatistics, StatisticalAssumptions } from '@/types/smart-flow'
+import { usePyodide } from '@/components/providers/PyodideProvider'
+import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { logger } from '@/lib/utils/logger'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -58,11 +61,27 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   onNext,
   onPrevious
 }: DataExplorationStepProps) {
-  // 수치형 변수 목록
+  // Pyodide 및 Store
+  const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
+  const { setAssumptionResults } = useSmartFlowStore()
+
+  // 가정 검정 상태
+  const [isAssumptionLoading, setIsAssumptionLoading] = useState(false)
+  const [assumptionResults, setLocalAssumptionResults] = useState<StatisticalAssumptions | null>(null)
+  const assumptionRunId = useRef(0)
+
+  // 수치형/범주형 변수 목록
   const numericVariables = useMemo(() => {
     if (!validationResults?.columnStats) return []
     return validationResults.columnStats
       .filter(col => col.type === 'numeric')
+      .map(col => col.name)
+  }, [validationResults])
+
+  const categoricalVariables = useMemo(() => {
+    if (!validationResults?.columnStats) return []
+    return validationResults.columnStats
+      .filter(col => col.type === 'categorical')
       .map(col => col.name)
   }, [validationResults])
 
@@ -71,6 +90,77 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // 로딩 상태 (상관계수 행렬 계산용)
   const [isCalculating, setIsCalculating] = useState(false)
+
+  // 가정 검정 자동 실행 (Step 2: 데이터 탐색)
+  useEffect(() => {
+    if (!pyodideLoaded || !pyodideService) return
+    if (!data || !validationResults) return
+    if (numericVariables.length === 0) return
+
+    // 중복 실행 방지
+    assumptionRunId.current++
+    const currentRunId = assumptionRunId.current
+
+    const timer = setTimeout(async () => {
+      let isActive = true
+      try {
+        setIsAssumptionLoading(true)
+        const testData: any = {}
+
+        // 첫 번째 수치형 컬럼으로 정규성 검정
+        const firstNumericCol = numericVariables[0]
+        const values = data.map(row => parseFloat(String(row[firstNumericCol])))
+          .filter(v => !isNaN(v))
+
+        if (values.length >= 3) {
+          testData.values = values
+        }
+
+        // 그룹이 여러 개 있으면 등분산성 검정
+        if (categoricalVariables.length > 0) {
+          const groupCol = categoricalVariables[0]
+          const groups: number[][] = []
+
+          const uniqueGroups = [...new Set(data.map(row => row[groupCol]))]
+          for (const group of uniqueGroups) {
+            const groupData = data
+              .filter(row => row[groupCol] === group)
+              .map(row => parseFloat(String(row[firstNumericCol])))
+              .filter(v => !isNaN(v))
+
+            if (groupData.length > 0) groups.push(groupData)
+          }
+
+          if (groups.length >= 2) {
+            testData.groups = groups
+          }
+        }
+
+        // 통계 가정 검정 실행
+        const assumptions = await pyodideService.checkAllAssumptions({
+          ...testData,
+          alpha: 0.05,
+          normalityRule: 'any'
+        }) as StatisticalAssumptions
+
+        if (isActive && currentRunId === assumptionRunId.current) {
+          setLocalAssumptionResults(assumptions)
+          setAssumptionResults(assumptions)
+          logger.info('[DataExploration] 통계 가정 검정 완료', { summary: assumptions.summary })
+        }
+      } catch (error) {
+        logger.error('[DataExploration] 가정 검정 실패', { error })
+      } finally {
+        if (isActive && currentRunId === assumptionRunId.current) {
+          setIsAssumptionLoading(false)
+        }
+      }
+
+      return () => { isActive = false }
+    }, 200)
+
+    return () => { clearTimeout(timer) }
+  }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables, setAssumptionResults])
 
   // 비동기 데이터 로딩 대응: numericVariables 업데이트 시 기본 산점도 추가
   useEffect(() => {
@@ -337,6 +427,91 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </div>
         </CardContent>
       </Card>
+
+      {/* 가정 검정 결과 카드 */}
+      {isAssumptionLoading && (
+        <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              통계적 가정 검증 중...
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              정규성, 등분산성 검정을 수행하고 있습니다. 잠시만 기다려주세요.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isAssumptionLoading && assumptionResults && (
+        <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardHeader>
+            <CardTitle className="text-base">🔍 통계적 가정 검증</CardTitle>
+            <CardDescription>
+              이 결과를 바탕으로 적절한 통계 검정 방법을 선택하세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* 정규성 검정 결과 */}
+              {assumptionResults.normality?.shapiroWilk && (
+                <div className="p-3 bg-white dark:bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">📊 정규성 검정 (Shapiro-Wilk)</span>
+                    <Badge variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "secondary"}>
+                      {assumptionResults.normality.shapiroWilk.isNormal ? '정규분포' : '비정규분포'}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">통계량: </span>
+                      <span className="font-mono">{assumptionResults.normality.shapiroWilk.statistic.toFixed(4)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">p-value: </span>
+                      <span className="font-mono">{assumptionResults.normality.shapiroWilk.pValue.toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {assumptionResults.normality.shapiroWilk.isNormal
+                      ? '✓ 정규분포 가정을 만족합니다 (p ≥ 0.05). 모수 검정 사용 가능합니다.'
+                      : '⚠ 정규분포 가정을 만족하지 않습니다 (p < 0.05). 비모수 검정 고려가 필요합니다.'}
+                  </p>
+                </div>
+              )}
+
+              {/* 등분산성 검정 결과 */}
+              {assumptionResults.homogeneity?.levene && (
+                <div className="p-3 bg-white dark:bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">📏 등분산성 검정 (Levene)</span>
+                    <Badge variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "secondary"}>
+                      {assumptionResults.homogeneity.levene.equalVariance ? '등분산' : '이분산'}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">통계량: </span>
+                      <span className="font-mono">{assumptionResults.homogeneity.levene.statistic.toFixed(4)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">p-value: </span>
+                      <span className="font-mono">{assumptionResults.homogeneity.levene.pValue.toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {assumptionResults.homogeneity.levene.equalVariance
+                      ? '✓ 등분산 가정을 만족합니다 (p ≥ 0.05).'
+                      : '⚠ 등분산 가정을 만족하지 않습니다 (p < 0.05). Welch 검정 고려가 필요합니다.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tabs: 산점도 vs 상관계수 행렬 */}
       <Tabs defaultValue="scatterplots" className="w-full">

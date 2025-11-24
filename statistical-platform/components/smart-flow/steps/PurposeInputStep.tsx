@@ -138,16 +138,16 @@ export function PurposeInputStep({
   }, [validationResults, data])
 
   // 변수 목록 계산
-  const numericColumns = useMemo(() => {
-    return validationResults?.columns?.filter(
-      (col): col is ColumnStatistics => col.type === 'numeric'
-    ) || []
+  const numericColumns = useMemo((): ColumnStatistics[] => {
+    const cols = validationResults?.columns
+    if (!cols) return []
+    return cols.filter((col: ColumnStatistics) => col.type === 'numeric')
   }, [validationResults])
 
-  const categoricalColumns = useMemo(() => {
-    return validationResults?.columns?.filter(
-      (col): col is ColumnStatistics => col.type === 'categorical'
-    ) || []
+  const categoricalColumns = useMemo((): ColumnStatistics[] => {
+    const cols = validationResults?.columns
+    if (!cols) return []
+    return cols.filter((col: ColumnStatistics) => col.type === 'categorical')
   }, [validationResults])
 
   // 변수 선택 완료 여부
