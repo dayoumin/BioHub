@@ -57,7 +57,7 @@ function loadSnapshotFiles(): Map<string, SnapshotFile> {
  * Golden Snapshot Tests
  */
 // Phase 1-B: snapshots-simple.test.ts가 같은 역할 수행
-// 이 자동 JSON 로더는 Phase 1-C (45개 완성)에서 활성화 예정
+// 이 자동 JSON 로더는 Phase 1-C (43개 완성)에서 활성화 예정
 describe.skip('Golden Snapshot Tests (JSON-based - Phase 1-C 대기)', () => {
   const snapshots = loadSnapshotFiles()
 
@@ -93,8 +93,8 @@ describe.skip('Golden Snapshot Tests (JSON-based - Phase 1-C 대기)', () => {
   // 메타 테스트: 현재 작성된 스냅샷 파일 개수 확인
   it('Meta: 현재 스냅샷 파일 개수 확인 (Phase 1-B 완료 기준)', () => {
     // 현재 실제 상태: 3개 (t-test, anova, correlation)
-    // 최종 목표: 45개 (전체 통계 방법)
-    // 진행률: 3/45 = 6.7%
+    // 최종 목표: 43개 (전체 통계 페이지)
+    // 진행률: 3/43 = 7%
     expect(snapshots.size).toBe(3)  // ✅ 현실 반영
   })
 
@@ -116,9 +116,9 @@ describe.skip('Golden Snapshot Tests (JSON-based - Phase 1-C 대기)', () => {
     expect(snapshots.size).toBe(completedMethods.length)
   })
 
-  // TODO: Phase 1-C에서 추가할 42개 스냅샷 목록
-  it.skip('Meta: [Phase 1-C] 나머지 42개 스냅샷 추가 예정', () => {
-    // 최종 목표: 45개 전체
+  // TODO: Phase 1-C에서 추가할 40개 스냅샷 목록
+  it.skip('Meta: [Phase 1-C] 나머지 40개 스냅샷 추가 예정', () => {
+    // 최종 목표: 43개 전체
     const remainingMethods = [
       'regression', 'chi-square', 'mann-whitney', 'wilcoxon',
       'kruskal-wallis', 'friedman', 'mcnemar', 'shapiro-wilk',
@@ -136,7 +136,7 @@ describe.skip('Golden Snapshot Tests (JSON-based - Phase 1-C 대기)', () => {
 
     // Phase 1-C 완료 후 이 테스트 활성화
     const allMethods = ['t-test', 'anova', 'correlation', ...remainingMethods]
-    expect(snapshots.size).toBe(45)
+    expect(snapshots.size).toBe(43)
 
     allMethods.forEach(method => {
       expect(snapshots.has(method)).toBe(true)

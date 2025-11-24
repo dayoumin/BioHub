@@ -1,23 +1,36 @@
-# Phase 1-C: 42개 스냅샷 작성 가이드
+# Phase 1-C: 40개 스냅샷 작성 가이드
 
 **작성일**: 2025-11-24
-**예상 소요 시간**: 12시간
-**현재 상태**: 3/45 완료 (t-test, ANOVA, Correlation)
-**목표**: 42/45 스냅샷 JSON 파일 작성 + 테스트 통과
+**예상 소요 시간**: 9시간 (12시간 - 3시간 완료)
+**현재 상태**: 13/43 완료 (3개 활성 + 10개 스킵 상태)
+**목표**: 30/43 스냅샷 JSON 파일 작성 + 테스트 활성화
 
 ---
 
 ## 📋 작업 개요
 
 ### 목표
-- **42개 통계 방법**에 대한 스냅샷 JSON 파일 작성
+- **30개 통계 방법**에 대한 스냅샷 JSON 파일 작성 (나머지)
 - 각 통계당 **3개 시나리오** (significant, nonsignificant, boundary)
-- 총 **126개 테스트 케이스** 추가
+- 총 **90개 테스트 케이스** 추가
 
-### 현재 완성된 3개
+### 현재 완성된 13개
+**활성 테스트** (3개 - snapshots-simple.test.ts):
 1. ✅ **t-test** (Independent t-test) - Purpose 기반
 2. ✅ **ANOVA** (One-way ANOVA) - Method 기반
 3. ✅ **Correlation** (Pearson Correlation) - Purpose 기반
+
+**JSON 파일 준비** (10개 - snapshots.test.ts, 스킵 상태):
+4. ✅ **Mann-Whitney** U Test
+5. ✅ **Wilcoxon** Signed-Rank Test
+6. ✅ **Kruskal-Wallis** Test
+7. ✅ **Friedman** Test
+8. ✅ **Chi-Square** Test
+9. ✅ **McNemar** Test
+10. ✅ **Linear Regression**
+11. ✅ **Logistic Regression**
+12. ✅ **Shapiro-Wilk** Test
+13. ✅ **Levene** Test
 
 ---
 
@@ -25,18 +38,20 @@
 
 ### Step 1: 통계 방법 분류 및 우선순위 설정
 
-#### 우선순위 높음 (10개, 3시간)
+#### 우선순위 높음 (✅ 10개 완료 - 스킵 상태)
 비모수 검정 + 기본 검정:
-1. **Mann-Whitney U Test** (비모수 2집단 비교)
-2. **Wilcoxon Signed-Rank Test** (비모수 대응표본)
-3. **Kruskal-Wallis Test** (비모수 다집단 비교)
-4. **Friedman Test** (비모수 반복측정)
-5. **Chi-Square Test** (범주형 독립성 검정)
-6. **McNemar Test** (대응표본 범주형)
-7. **Linear Regression** (선형 회귀)
-8. **Logistic Regression** (로지스틱 회귀)
-9. **Shapiro-Wilk Test** (정규성 검정)
-10. **Levene Test** (등분산성 검정)
+1. ✅ **Mann-Whitney U Test** (비모수 2집단 비교)
+2. ✅ **Wilcoxon Signed-Rank Test** (비모수 대응표본)
+3. ✅ **Kruskal-Wallis Test** (비모수 다집단 비교)
+4. ✅ **Friedman Test** (비모수 반복측정)
+5. ✅ **Chi-Square Test** (범주형 독립성 검정)
+6. ✅ **McNemar Test** (대응표본 범주형)
+7. ✅ **Linear Regression** (선형 회귀)
+8. ✅ **Logistic Regression** (로지스틱 회귀)
+9. ✅ **Shapiro-Wilk Test** (정규성 검정)
+10. ✅ **Levene Test** (등분산성 검정)
+
+**상태**: JSON 파일 작성 완료, `snapshots.test.ts`에서 `describe.skip()` 처리
 
 #### 우선순위 중간 (20개, 6시간)
 고급 ANOVA + 특수 검정:
@@ -264,27 +279,27 @@ const result = getInterpretation(
 
 ## 📊 진행 상황 추적
 
-### Checklist (42개)
+### Checklist (30개 남음)
 ```markdown
-### 비모수 검정 (6개)
-- [ ] Mann-Whitney U Test
-- [ ] Wilcoxon Signed-Rank Test
-- [ ] Kruskal-Wallis Test
-- [ ] Friedman Test
+### 비모수 검정 (2개)
+- [x] Mann-Whitney U Test ✅
+- [x] Wilcoxon Signed-Rank Test ✅
+- [x] Kruskal-Wallis Test ✅
+- [x] Friedman Test ✅
 - [ ] Sign Test
 - [ ] Mood's Median Test
 
-### 범주형 검정 (6개)
-- [ ] Chi-Square Test
-- [ ] McNemar Test
+### 범주형 검정 (4개)
+- [x] Chi-Square Test ✅
+- [x] McNemar Test ✅
 - [ ] Binomial Test
 - [ ] Cochran Q Test
 - [ ] Fisher's Exact Test
 - [ ] Proportion Test
 
-### 회귀 분석 (5개)
-- [ ] Linear Regression
-- [ ] Logistic Regression
+### 회귀 분석 (3개)
+- [x] Linear Regression ✅
+- [x] Logistic Regression ✅
 - [ ] Poisson Regression
 - [ ] Ordinal Regression
 - [ ] Stepwise Regression
@@ -300,9 +315,9 @@ const result = getInterpretation(
 - [ ] One-sample t-test
 - [ ] Paired t-test
 
-### 정규성/가정 검정 (5개)
-- [ ] Shapiro-Wilk Test
-- [ ] Levene Test
+### 정규성/가정 검정 (3개)
+- [x] Shapiro-Wilk Test ✅
+- [x] Levene Test ✅
 - [ ] K-S Test
 - [ ] Anderson-Darling Test
 - [ ] Bartlett Test
@@ -333,11 +348,10 @@ const result = getInterpretation(
 
 ## 🎯 완료 기준
 
-1. ✅ 42개 JSON 파일 작성 완료
-2. ✅ snapshots-simple.test.ts에 126개 테스트 추가
-3. ✅ `npm test -- snapshots-simple.test.ts` 전체 통과
-4. ✅ `describe.skip()` 제거 (snapshots.test.ts)
-5. ✅ 135/135 테스트 통과 (9개 기존 + 126개 신규)
+1. ✅ 30개 JSON 파일 작성 완료 (13개 완료 + 30개 남음)
+2. ✅ `describe.skip()` 제거 (snapshots.test.ts)
+3. ✅ `npm test -- snapshots.test.ts` 전체 통과
+4. ✅ 129/129 테스트 통과 (43개 통계 × 3 시나리오)
 
 ---
 

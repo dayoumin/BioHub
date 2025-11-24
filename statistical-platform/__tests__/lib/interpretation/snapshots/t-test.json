@@ -1,5 +1,6 @@
 {
   "method": "Independent t-test",
+  "purpose": "비교",
   "scenarios": [
     {
       "name": "significant-large-effect",

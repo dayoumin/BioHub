@@ -47,7 +47,7 @@ export const AnalysisResultSchema = z.discriminatedUnion('method', [
     // ...
     additional: AdditionalANOVASchema.required()
   }),
-  // ... (45개 통계)
+  // ... (43개 통계)
 ])
 ```
 
@@ -62,7 +62,7 @@ export const AnalysisResultSchema = z.discriminatedUnion('method', [
 
 ### Step 1: 통계 방법 분류 (1시간)
 
-#### 1-1. engine.ts에서 45개 통계 method명 추출
+#### 1-1. engine.ts에서 43개 통계 method명 추출
 ```bash
 grep -oP "(?<=method: ')[^']+(?=')" lib/interpretation/engine.ts | sort | uniq > methods.txt
 ```
@@ -176,7 +176,7 @@ export const AnalysisResultSchema = z.discriminatedUnion('method', [
     ...BaseAnalysisFields,
     additional: AdditionalCorrelationSchema.required()
   }),
-  // ... (45개 통계 모두 작성)
+  // ... (43개 통계 페이지 모두 작성)
 ])
 
 export type AnalysisResultInput = z.infer<typeof AnalysisResultSchema>
@@ -323,11 +323,11 @@ grep -oP "(?<=case ')[^']+(?=':)" lib/interpretation/engine.ts
 
 ---
 
-### 3. 45개 통계 vs 43개 페이지
+### 3. 44개 title vs 43개 페이지
 
-**참고**: engine.ts에는 **45개 해석 블록**이 있음
-- 일부 통계는 여러 변형 (예: t-test → Independent/Paired)
-- discriminated union은 **45개 블록 모두** 포함
+**참고**: engine.ts에는 **44개 title 블록**이 있음
+- power-analysis 페이지가 3가지 title 사용 (A-priori, Post-hoc, 일반)
+- discriminated union은 **43개 통계 페이지** 기준
 
 ---
 
@@ -348,7 +348,7 @@ but required in type '{ method: "Linear Regression"; additional: { rSquared: num
 ## 📊 진행 상황 추적
 
 ### Phase 1: 분석 및 설계 (1시간)
-- [ ] 45개 통계 method명 추출
+- [ ] 43개 통계 method명 추출
 - [ ] method별 additional 매핑 테이블 작성
 - [ ] 파일 구조 설계
 
@@ -356,7 +356,7 @@ but required in type '{ method: "Linear Regression"; additional: { rSquared: num
 - [ ] schemas/ 디렉토리 생성
 - [ ] common.ts 분리
 - [ ] additional/ 스키마 7개 작성
-- [ ] discriminated-analysis-result.ts 작성 (45개 union)
+- [ ] discriminated-analysis-result.ts 작성 (43개 union)
 
 ### Phase 3: 마이그레이션 (1시간)
 - [ ] 기존 schemas.ts 백업
@@ -371,11 +371,11 @@ but required in type '{ method: "Linear Regression"; additional: { rSquared: num
 
 ## 🎯 완료 기준
 
-1. ✅ 45개 통계 discriminated union 작성 완료
+1. ✅ 43개 통계 discriminated union 작성 완료
 2. ✅ TypeScript 컴파일 에러 0개
 3. ✅ `npm test -- interpretation` 전체 통과
 4. ✅ method와 additional 타입 불일치 시 **컴파일 에러** 발생 확인
-5. ✅ 기존 테스트 351개 모두 통과 + 신규 10개 추가 (361개)
+5. ✅ 기존 테스트 334개 모두 통과 + 신규 10개 추가 (344개)
 
 ---
 
