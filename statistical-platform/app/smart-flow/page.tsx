@@ -145,19 +145,14 @@ export default function SmartFlowPage() {
     setShowHelp(prev => !prev)
   }, [])
 
-  // 하단 데이터 미리보기 Props
-  const bottomPreview = uploadedData && uploadedData.length > 0 ? {
-    data: uploadedData,
-    fileName: uploadedFileName || 'uploaded_data.csv',
-    maxRows: 100
-  } : undefined
+  // 하단 데이터 미리보기 제거됨 (Step 2에서 이미 표시)
 
   return (
     <SmartFlowLayout
       currentStep={currentStep}
       steps={steps}
       onStepChange={handleStepClick}
-      bottomPreview={bottomPreview}
+
       isAnalyzing={isLoading}
       analyzingMessage="분석 중입니다..."
       showHistory={showHistory}

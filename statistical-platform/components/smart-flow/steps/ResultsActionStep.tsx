@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight, Download, BarChart3, FileText, Save, History, FileDown, Copy, AlertCircle, ShieldCheck } from 'lucide-react'
+import { ChevronRight, Download, BarChart3, FileText, Save, History, FileDown, Copy, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -366,79 +366,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     )
   }
 
-  // 분석 결과에 따른 동적 추천 생성
-  const getNextActions = () => {
-    const actions: Array<{
-      title: string
-      description: string
-      icon: typeof BarChart3
-      action: string
-    }> = []
-
-    // ANOVA 후 사후검정 추천
-    if (results.method?.includes('ANOVA') && results.pValue < 0.05) {
-      actions.push({
-        title: 'Tukey HSD 사후검정',
-        description: '어느 그룹 간 차이가 있는지 확인',
-        icon: BarChart3,
-        action: 'post-hoc'
-      })
-    }
-
-    // t-test 후 효과크기 계산 추천 (한글 + 영어)
-    const methodLower = results.method?.toLowerCase() || '';
-    const isTTest = methodLower.includes('t-test') || methodLower.includes('t-검정') || methodLower.includes('t검정');
-    if (isTTest && !results.effectSize) {
-      actions.push({
-        title: "Cohen's d 계산",
-        description: '실질적 차이의 크기 평가',
-        icon: BarChart3,
-        action: 'effect-size'
-      })
-    }
-
-    // 상관분석 후 회귀분석 추천
-    if (results.method?.includes('상관') && Math.abs(results.statistic) > 0.3) {
-      actions.push({
-        title: '회귀분석 수행',
-        description: '예측 모델 구축',
-        icon: BarChart3,
-        action: 'regression'
-      })
-    }
-
-    // 가정 위반 시 비모수 검정 추천
-    if (results.assumptions?.normality) {
-      const norm = results.assumptions.normality
-      if ((norm.group1 && !norm.group1.isNormal) || (norm.group2 && !norm.group2.isNormal)) {
-        actions.push({
-          title: '비모수 검정 수행',
-          description: 'Mann-Whitney U 또는 Wilcoxon 검정',
-          icon: BarChart3,
-          action: 'non-parametric'
-        })
-      }
-    }
-
-    // 항상 포함되는 기본 액션
-    actions.push({
-      title: '검정력 분석',
-      description: '적절한 표본 크기 계산',
-      icon: BarChart3,
-      action: 'power-analysis'
-    })
-
-    actions.push({
-      title: '추가 시각화',
-      description: '박스플롯, 히스토그램 생성',
-      icon: BarChart3,
-      action: 'visualization'
-    })
-
-    return actions.slice(0, 3) // 최대 3개까지만 표시
-  }
-
-  const nextActions = getNextActions()
+  // 다음 단계 추천 기능 제거됨\n  const nextActions = getNextActions()
 
   return (
     <div className="space-y-6">
@@ -448,15 +376,6 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
       </div>
       
       
-      {/* 데이터 보안 안내 */}
-      <Alert>
-        <ShieldCheck className="h-4 w-4" />
-        <AlertTitle>데이터 보안 안내</AlertTitle>
-        <AlertDescription>
-          업로드하신 데이터는 브라우저에만 저장되며, 서버로 전송되지 않습니다.
-          분석 결과만 화면에 표시되며, 원본 데이터는 외부로 유출되지 않습니다.
-        </AlertDescription>
-      </Alert>
 
       <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">📊 분석 결과</h3>
