@@ -63,16 +63,16 @@ export interface InterpretationResult {
  */
 
 /**
- * p-value 포맷팅 (DRY 원칙)
+ * p-value 포맷팅 (APA 표준 형식)
  * @example formatPValue(0.0001) → "< 0.001"
- * @example formatPValue(0.0234) → "0.023"
+ * @example formatPValue(0.0234) → "= 0.023"
  */
 function formatPValue(p: number): string {
   // Edge case 방어: NaN, Infinity, 범위 벗어남
   if (!isFinite(p) || p < 0 || p > 1) return 'N/A'
 
   if (p < THRESHOLDS.P_VALUE.VERY_STRONG) return '< 0.001'
-  return p.toFixed(3)
+  return `= ${p.toFixed(3)}`
 }
 
 /**
@@ -141,8 +141,8 @@ function getInterpretationByPurpose(
         title: '그룹 비교 결과',
         summary: `${group1.name || '그룹 1'} 평균(${group1.mean.toFixed(2)})이 ${group2.name || '그룹 2'} 평균(${group2.mean.toFixed(2)})보다 ${Math.abs(diff).toFixed(2)}점 ${diff > 0 ? '높습니다' : '낮습니다'}.`,
         statistical: isSignificant(results.pValue)
-          ? `통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-          : `통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+          ? `통계적으로 유의한 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+          : `통계적으로 유의한 차이가 없습니다 (p ${formatPValue(results.pValue)}).`,
         practical: results.effectSize
           ? `실질적 효과 크기는 ${interpretEffectSize(results.effectSize)}입니다.`
           : null
@@ -174,8 +174,8 @@ function getInterpretationByPurpose(
       title: '변수 간 관계 분석',
       summary: `X가 증가할 때 Y는 ${r > 0 ? '함께 증가' : '반대로 감소'}하는 경향이 있습니다 (r=${r.toFixed(3)}).`,
       statistical: isSignificant(results.pValue)
-        ? `${strength} ${direction} 상관관계가 통계적으로 유의합니다 (p=${formatPValue(results.pValue)}).`
-        : `상관관계가 통계적으로 유의하지 않습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `${strength} ${direction} 상관관계가 통계적으로 유의합니다 (p ${formatPValue(results.pValue)}).`
+        : `상관관계가 통계적으로 유의하지 않습니다 (p ${formatPValue(results.pValue)}).`,
       practical: `상관계수 r=${r.toFixed(3)} → X 변동의 약 ${formatPercent(r * r)}가 Y 변동과 관련됩니다.`
     }
   }
@@ -234,8 +234,8 @@ function getInterpretationByMethod(
       title: '이원분산분석 결과',
       summary: `두 독립변수(요인)가 종속변수에 미치는 주효과와 상호작용 효과를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통계적으로 유의한 효과가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `통계적으로 유의한 효과가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통계적으로 유의한 효과가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 효과가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '주효과 또는 상호작용 효과를 해석하고, 필요 시 사후 검정을 수행하세요.'
         : '두 요인 모두 종속변수에 영향을 주지 않습니다.'
@@ -251,8 +251,8 @@ function getInterpretationByMethod(
       title: '반복측정 분산분석 결과',
       summary: `동일 개체에서 3회 이상 측정한 값의 평균 차이를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `시점 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `시점 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `시점 간 통계적으로 유의한 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `시점 간 통계적으로 유의한 차이가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '사후 검정(예: Bonferroni)을 통해 어느 시점이 다른지 확인하세요.'
         : '측정 시점에 따른 유의한 변화가 없습니다.'
@@ -268,8 +268,8 @@ function getInterpretationByMethod(
       title: '공분산분석 결과',
       summary: `공변량(covariate)을 통제한 후 집단 간 평균 차이를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `공변량 보정 후 집단 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `공변량 보정 후 집단 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `공변량 보정 후 집단 간 통계적으로 유의한 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `공변량 보정 후 집단 간 통계적으로 유의한 차이가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '공변량의 영향을 제거한 순수한 집단 효과가 존재합니다.'
         : '공변량을 통제해도 집단 간 차이가 없습니다.'
@@ -285,8 +285,8 @@ function getInterpretationByMethod(
       title: '다변량 분산분석 결과',
       summary: `여러 종속변수를 동시에 고려하여 집단 간 차이를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `다변량 차원에서 통계적으로 유의한 집단 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `다변량 차원에서 통계적으로 유의한 집단 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `다변량 차원에서 통계적으로 유의한 집단 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `다변량 차원에서 통계적으로 유의한 집단 차이가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '개별 종속변수에 대한 일원분산분석(follow-up ANOVA)을 수행하세요.'
         : '모든 종속변수에서 집단 간 차이가 없습니다.'
@@ -449,8 +449,8 @@ function getInterpretationByMethod(
       title: '편상관 분석 결과',
       summary: `통제변수의 영향을 제거한 후 두 변수 간의 순수한 관계를 분석했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통제변수를 고려한 편상관계수는 ${clampedR.toFixed(3)}으로, 통계적으로 유의합니다 (p=${formatPValue(results.pValue)}).`
-        : `통제변수를 고려한 편상관계수는 ${clampedR.toFixed(3)}으로, 통계적으로 유의하지 않습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통제변수를 고려한 편상관계수는 ${clampedR.toFixed(3)}으로, 통계적으로 유의합니다 (p ${formatPValue(results.pValue)}).`
+        : `통제변수를 고려한 편상관계수는 ${clampedR.toFixed(3)}으로, 통계적으로 유의하지 않습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? `${strength} ${direction} 관계가 있습니다 (r² = ${formatPercent(rSquared)}). 이는 통제변수의 영향을 제거했을 때의 순수한 관계입니다.`
         : '통제변수의 영향을 제거하면 두 변수 간 유의한 관계가 없습니다.'
@@ -642,8 +642,8 @@ function getInterpretationByMethod(
         : `판별분석을 통해 그룹 분류 모형을 적합했습니다.`,
       statistical: wilksLambda?.pValue !== undefined
         ? wilksSignificant
-          ? `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수가 그룹을 효과적으로 구분합니다.${boxMSignificant ? ' 단, Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
-          : `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 없습니다 (p=${formatPValue(wilksLambda.pValue)}). 판별함수의 유효성이 낮습니다.${boxMSignificant ? ' 또한 Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`
+          ? `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 있습니다 (p ${formatPValue(wilksLambda.pValue)}). 판별함수가 그룹을 효과적으로 구분합니다.${boxMSignificant ? ' 단, Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
+          : `Wilks' Lambda 검정 결과 그룹 간 통계적으로 유의한 차이가 없습니다 (p ${formatPValue(wilksLambda.pValue)}). 판별함수의 유효성이 낮습니다.${boxMSignificant ? ' 또한 Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`
         : accuracy !== undefined
           ? `분류 정확도는 ${(accuracy * 100).toFixed(1)}%입니다.${boxMSignificant ? ' Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었을 수 있습니다.' : ''}`
           : `판별분석이 완료되었습니다.${boxMSignificant ? ' Box\'s M 검정이 유의하여 공분산 행렬 동질성 가정이 위배되었습니다.' : ''}`,
@@ -737,8 +737,8 @@ function getInterpretationByMethod(
         title: '비율 검정 결과',
         summary: `관찰 비율 ${(sampleProp * 100).toFixed(1)}% vs 귀무 비율 ${(nullProp * 100).toFixed(1)}% (차이: ${propDiffAbs.toFixed(1)}%p)`,
         statistical: isSignificant(pValue)
-          ? `관찰 비율이 귀무 비율과 통계적으로 다릅니다 (p=${formatPValue(pValue)}).`
-          : `관찰 비율이 귀무 비율과 통계적으로 유사합니다 (p=${formatPValue(pValue)}).`,
+          ? `관찰 비율이 귀무 비율과 통계적으로 다릅니다 (p ${formatPValue(pValue)}).`
+          : `관찰 비율이 귀무 비율과 통계적으로 유사합니다 (p ${formatPValue(pValue)}).`,
         practical: propDiffAbs < 5
           ? '실질적 차이가 매우 작습니다.'
           : propDiffAbs < 10
@@ -780,8 +780,8 @@ function getInterpretationByMethod(
         title: '일표본 t검정 결과',
         summary: `표본 평균 ${mean.toFixed(2)} vs 검정값 ${testValue.toFixed(2)} (차이: ${diffAbs.toFixed(2)}) ${effectSizeInfo}`,
         statistical: isSignificant(pValue)
-          ? `표본 평균이 검정값과 통계적으로 다릅니다 (p=${formatPValue(pValue)}).`
-          : `표본 평균이 검정값과 통계적으로 유사합니다 (p=${formatPValue(pValue)}).`,
+          ? `표본 평균이 검정값과 통계적으로 다릅니다 (p ${formatPValue(pValue)}).`
+          : `표본 평균이 검정값과 통계적으로 유사합니다 (p ${formatPValue(pValue)}).`,
         practical: effectSizeInfo || (diffAbs < 0.5 ? '실질적 차이가 작습니다.' : '실질적 차이가 있습니다.')
       }
     }
@@ -948,8 +948,8 @@ function getInterpretationByMethod(
         title: '다집단 비교 결과',
         summary: `${groupCount}개 그룹의 평균 범위는 ${minMean.toFixed(2)} ~ ${maxMean.toFixed(2)} (차이: ${range.toFixed(2)})입니다.`,
         statistical: isSignificant(results.pValue)
-          ? `적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p=${formatPValue(results.pValue)}).`
-          : `모든 그룹 평균이 통계적으로 유사합니다 (p=${formatPValue(results.pValue)}).`,
+          ? `적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p ${formatPValue(results.pValue)}).`
+          : `모든 그룹 평균이 통계적으로 유사합니다 (p ${formatPValue(results.pValue)}).`,
         practical: postHocSummary
       }
     }
@@ -961,8 +961,8 @@ function getInterpretationByMethod(
       title: '범주형 변수 연관성 검정',
       summary: `두 범주형 변수 간 독립성을 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통계적으로 유의한 연관성이 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `통계적으로 유의한 연관성이 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통계적으로 유의한 연관성이 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 연관성이 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '두 변수는 서로 독립적이지 않습니다 (관련성 있음).'
         : '두 변수는 독립적입니다 (관련성 없음).'
@@ -975,8 +975,8 @@ function getInterpretationByMethod(
       title: '정규성 검정 결과',
       summary: `데이터가 정규분포를 따르는지 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `정규분포를 따르지 않습니다 (p=${formatPValue(results.pValue)}).`
-        : `정규분포를 따릅니다 (p=${formatPValue(results.pValue)}).`,
+        ? `정규분포를 따르지 않습니다 (p ${formatPValue(results.pValue)}).`
+        : `정규분포를 따릅니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '비모수 검정(Mann-Whitney, Kruskal-Wallis 등) 사용을 권장합니다.'
         : '모수 검정(t-test, ANOVA 등) 사용이 적절합니다.'
@@ -989,8 +989,8 @@ function getInterpretationByMethod(
       title: '등분산성 검정 결과',
       summary: `그룹 간 분산이 동일한지 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `등분산 가정을 만족하지 않습니다 (p=${formatPValue(results.pValue)}).`
-        : `등분산 가정을 만족합니다 (p=${formatPValue(results.pValue)}).`,
+        ? `등분산 가정을 만족하지 않습니다 (p ${formatPValue(results.pValue)}).`
+        : `등분산 가정을 만족합니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? "Welch's t-test 또는 비모수 검정 사용을 권장합니다."
         : '일반 t-test 또는 ANOVA 사용이 적절합니다.'
@@ -1079,8 +1079,8 @@ function getInterpretationByMethod(
       title: '독립표본 비모수 검정',
       summary: `두 독립 그룹의 중앙값 차이를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통계적으로 유의한 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 차이가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '두 그룹의 중앙값이 실질적으로 다릅니다.'
         : '두 그룹의 중앙값이 유사합니다.'
@@ -1093,8 +1093,8 @@ function getInterpretationByMethod(
       title: '대응표본 비모수 검정',
       summary: `두 대응 측정값의 중앙값 차이를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통계적으로 유의한 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 차이가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '두 측정 시점 간 중앙값이 실질적으로 다릅니다.'
         : '두 측정 시점 간 중앙값이 유사합니다.'
@@ -1107,8 +1107,8 @@ function getInterpretationByMethod(
       title: '부호 검정 결과',
       summary: `대응 데이터의 증가/감소 방향을 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통계적으로 유의한 변화가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `통계적으로 유의한 변화가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통계적으로 유의한 변화가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 변화가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '대부분의 관측치가 일관된 방향으로 변화했습니다.'
         : '증가와 감소가 비슷한 비율로 나타났습니다.'
@@ -1121,8 +1121,8 @@ function getInterpretationByMethod(
       title: '반복측정 비모수 검정',
       summary: `3개 이상 반복측정값의 중앙값 차이를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `적어도 하나의 시점에서 통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `모든 시점의 중앙값이 통계적으로 유사합니다 (p=${formatPValue(results.pValue)}).`,
+        ? `적어도 하나의 시점에서 통계적으로 유의한 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `모든 시점의 중앙값이 통계적으로 유사합니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '사후 검정(Nemenyi, Wilcoxon)을 수행하여 어느 시점이 다른지 확인하세요.'
         : '시간에 따른 유의한 변화가 없습니다.'
@@ -1135,8 +1135,8 @@ function getInterpretationByMethod(
       title: '다중 이분형 변수 검정',
       summary: `3개 이상 이분형 반복측정값의 비율 차이를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `적어도 하나의 시점에서 통계적으로 유의한 비율 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `모든 시점의 비율이 통계적으로 유사합니다 (p=${formatPValue(results.pValue)}).`,
+        ? `적어도 하나의 시점에서 통계적으로 유의한 비율 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `모든 시점의 비율이 통계적으로 유사합니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? 'McNemar 사후 검정을 수행하여 어느 시점 쌍이 다른지 확인하세요.'
         : '시간에 따른 비율 변화가 없습니다.'
@@ -1151,8 +1151,8 @@ function getInterpretationByMethod(
       title: '중앙값 검정 결과',
       summary: `각 그룹의 중앙값이 같은지 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통계적으로 유의한 중앙값 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `통계적으로 유의한 중앙값 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통계적으로 유의한 중앙값 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 중앙값 차이가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '그룹 간 중심 경향이 다릅니다.'
         : '그룹 간 중심 경향이 유사합니다.'
@@ -1165,8 +1165,8 @@ function getInterpretationByMethod(
       title: '무작위성 검정 결과',
       summary: `데이터의 무작위성을 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `무작위성 가정을 만족하지 않습니다 (p=${formatPValue(results.pValue)}).`
-        : `무작위성 가정을 만족합니다 (p=${formatPValue(results.pValue)}).`,
+        ? `무작위성 가정을 만족하지 않습니다 (p ${formatPValue(results.pValue)}).`
+        : `무작위성 가정을 만족합니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '데이터에 패턴 또는 추세가 있습니다.'
         : '데이터가 무작위로 분포되어 있습니다.'
@@ -1195,8 +1195,8 @@ function getInterpretationByMethod(
       title: '추세 검정 결과',
       summary: `시계열 데이터의 단조 추세를 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통계적으로 유의한 추세가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `통계적으로 유의한 추세가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통계적으로 유의한 추세가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 추세가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: practicalMsg
     }
   }
@@ -1207,8 +1207,8 @@ function getInterpretationByMethod(
       title: '이항 검정 결과',
       summary: `성공 확률이 기대값과 같은지 검정했습니다.`,
       statistical: isSignificant(results.pValue)
-        ? `통계적으로 유의한 차이가 있습니다 (p=${formatPValue(results.pValue)}).`
-        : `통계적으로 유의한 차이가 없습니다 (p=${formatPValue(results.pValue)}).`,
+        ? `통계적으로 유의한 차이가 있습니다 (p ${formatPValue(results.pValue)}).`
+        : `통계적으로 유의한 차이가 없습니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
         ? '관측된 비율이 기대 비율과 다릅니다.'
         : '관측된 비율이 기대 비율과 일치합니다.'

@@ -7,7 +7,7 @@
       "input": {
         "method": "Linear Regression",
         "statistic": 10.5,
-        "pValue": 0.001,
+        "pValue": 0.0001,
         "additional": {
           "rSquared": 0.75
         },
@@ -15,12 +15,12 @@
           {
             "name": "Intercept",
             "value": 10,
-            "pValue": 0.001
+            "pValue": 0.0001
           },
           {
             "name": "X",
             "value": 2.5,
-            "pValue": 0.001
+            "pValue": 0.0001
           }
         ]
       },

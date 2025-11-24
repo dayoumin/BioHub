@@ -3,7 +3,7 @@
   "scenarios": [
     {
       "name": "significant-strong-effect",
-      "description": "유의한 결과 (p=0.003)",
+      "description": "유의한 결과 (p = 0.003)",
       "input": {
         "method": "Kruskal-Wallis Test",
         "statistic": 10.5,
@@ -32,13 +32,13 @@
       "expectedOutput": {
         "title": "다집단 비교 결과",
         "summary": "3개 그룹의 평균 범위는 45.00 ~ 58.00 (차이: 13.00)입니다.",
-        "statistical": "적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p=0.003).",
+        "statistical": "적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p = 0.003).",
         "practical": "사후 검정을 수행하여 어느 그룹이 다른지 확인하세요."
       }
     },
     {
       "name": "nonsignificant-weak-effect",
-      "description": "유의하지 않은 결과 (p=0.312)",
+      "description": "유의하지 않은 결과 (p = 0.312)",
       "input": {
         "method": "Kruskal-Wallis Test",
         "statistic": 1.8,
@@ -67,13 +67,13 @@
       "expectedOutput": {
         "title": "다집단 비교 결과",
         "summary": "3개 그룹의 평균 범위는 50.00 ~ 52.00 (차이: 2.00)입니다.",
-        "statistical": "모든 그룹 평균이 통계적으로 유사합니다 (p=0.312).",
+        "statistical": "모든 그룹 평균이 통계적으로 유사합니다 (p = 0.312).",
         "practical": null
       }
     },
     {
       "name": "boundary-case-p-near-0.05",
-      "description": "경계값 (p=0.047)",
+      "description": "경계값 (p = 0.047)",
       "input": {
         "method": "Kruskal-Wallis Test",
         "statistic": 4.2,
@@ -102,7 +102,7 @@
       "expectedOutput": {
         "title": "다집단 비교 결과",
         "summary": "3개 그룹의 평균 범위는 48.00 ~ 54.00 (차이: 6.00)입니다.",
-        "statistical": "적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p=0.047).",
+        "statistical": "적어도 하나의 그룹 평균이 통계적으로 다릅니다 (p = 0.047).",
         "practical": "사후 검정을 수행하여 어느 그룹이 다른지 확인하세요."
       }
     }

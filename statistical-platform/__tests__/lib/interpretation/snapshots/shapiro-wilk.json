@@ -3,7 +3,7 @@
   "scenarios": [
     {
       "name": "significant-strong-effect",
-      "description": "유의한 결과 (p=0.001)",
+      "description": "유의한 결과 (p = 0.001)",
       "input": {
         "method": "Shapiro-Wilk Test",
         "statistic": 10.5,
@@ -12,13 +12,13 @@
       "expectedOutput": {
         "title": "정규성 검정 결과",
         "summary": "데이터가 정규분포를 따르는지 검정했습니다.",
-        "statistical": "정규분포를 따르지 않습니다 (p=< 0.001).",
+        "statistical": "정규분포를 따르지 않습니다 (p < 0.001).",
         "practical": "비모수 검정(Mann-Whitney, Kruskal-Wallis 등) 사용을 권장합니다."
       }
     },
     {
       "name": "nonsignificant-weak-effect",
-      "description": "유의하지 않은 결과 (p=0.421)",
+      "description": "유의하지 않은 결과 (p = 0.421)",
       "input": {
         "method": "Shapiro-Wilk Test",
         "statistic": 1.8,
@@ -27,13 +27,13 @@
       "expectedOutput": {
         "title": "정규성 검정 결과",
         "summary": "데이터가 정규분포를 따르는지 검정했습니다.",
-        "statistical": "정규분포를 따릅니다 (p=0.421).",
+        "statistical": "정규분포를 따릅니다 (p = 0.421).",
         "practical": "모수 검정(t-test, ANOVA 등) 사용이 적절합니다."
       }
     },
     {
       "name": "boundary-case-p-near-0.05",
-      "description": "경계값 (p=0.048)",
+      "description": "경계값 (p = 0.048)",
       "input": {
         "method": "Shapiro-Wilk Test",
         "statistic": 4.2,
@@ -42,7 +42,7 @@
       "expectedOutput": {
         "title": "정규성 검정 결과",
         "summary": "데이터가 정규분포를 따르는지 검정했습니다.",
-        "statistical": "정규분포를 따르지 않습니다 (p=0.048).",
+        "statistical": "정규분포를 따르지 않습니다 (p = 0.048).",
         "practical": "비모수 검정(Mann-Whitney, Kruskal-Wallis 등) 사용을 권장합니다."
       }
     }

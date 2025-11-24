@@ -70,8 +70,7 @@ export default function SmartFlowPage() {
   // IndexedDB에서 히스토리 불러오기 (초기화)
   useEffect(() => {
     loadHistoryFromDB().catch(console.error)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // loadHistoryFromDB는 Zustand store의 안정적인 함수
+  }, [loadHistoryFromDB])
 
   // Steps configuration (useMemo로 최적화)
   const steps = useMemo(() => {
