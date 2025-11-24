@@ -276,26 +276,42 @@ export function DataUploadStep({
 
   return (
     <div className="space-y-6">
-      <div
-        {...getRootProps()}
-        className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-          isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50",
-          isUploading && "pointer-events-none opacity-50"
-        )}
-      >
-        <input {...getInputProps()} />
-        <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-        <h3 className="text-base font-semibold mb-2">
-          {isDragActive ? '파일을 놓으세요' : '파일을 드래그하거나 클릭하여 업로드'}
-        </h3>
-        <div className="space-y-0.5 text-xs text-muted-foreground mb-3">
-          <p>최대 100,000행 | 지원 형식: CSV, Excel</p>
+      {/* 조건부 렌더링: 업로드 전/후 */}
+      {!uploadedFileName ? (
+        <div
+          {...getRootProps()}
+          className={cn(
+            "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+            isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50",
+            isUploading && "pointer-events-none opacity-50"
+          )}
+        >
+          <input {...getInputProps()} />
+          <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+          <h3 className="text-base font-semibold mb-2">
+            {isDragActive ? '파일을 놓으세요' : '파일을 드래그하거나 클릭하여 업로드'}
+          </h3>
+          <div className="space-y-0.5 text-xs text-muted-foreground mb-3">
+            <p>최대 100,000행 | 지원 형식: CSV, Excel</p>
+          </div>
+          <Button variant="outline" size="sm" disabled={isUploading}>
+            {isUploading ? '업로드 중...' : '파일 선택'}
+          </Button>
         </div>
-        <Button variant="outline" size="sm" disabled={isUploading}>
-          {isUploading ? '업로드 중...' : '파일 선택'}
-        </Button>
-      </div>
+      ) : (
+        <div className="border rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-success font-medium">✓</span>
+            <span className="text-sm">업로드 완료: <strong>{uploadedFileName}</strong></span>
+          </div>
+          <div {...getRootProps()}>
+            <input {...getInputProps()} />
+            <Button variant="outline" size="sm" disabled={isUploading}>
+              파일 변경
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Excel 시트 선택 UI */}
       {excelSheets && excelSheets.length > 1 && (
@@ -393,23 +409,21 @@ export function DataUploadStep({
         </div>
       )}
 
-      {/* 도움말 */}
-      <div className="bg-muted/50 rounded-lg p-4">
-        <h4 className="font-medium mb-2">💡 도움말</h4>
-        <ul className="text-sm text-muted-foreground space-y-1">
-          <li>• 첫 번째 행은 변수명(헤더)이어야 합니다</li>
-          <li>• Excel 파일의 경우 여러 시트가 있으면 선택할 수 있습니다</li>
-          <li>• 결측값은 빈 셀로 표시해주세요</li>
-        </ul>
-      </div>
+      {/* 도움말 (업로드 전에만 표시) */}
+      {!uploadedFileName && (
+        <div className="bg-muted/50 rounded-lg p-4">
+          <h4 className="font-medium mb-2">💡 도움말</h4>
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• 첫 번째 행은 변수명(헤더)이어야 합니다</li>
+            <li>• Excel 파일의 경우 여러 시트가 있으면 선택할 수 있습니다</li>
+            <li>• 결측값은 빈 셀로 표시해주세요</li>
+          </ul>
+        </div>
+      )}
 
       {/* 업로드 완료 후 다음 버튼 */}
       {uploadedFileName && canGoNext && onNext && (
-        <div className="flex justify-between items-center pt-4 border-t">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="text-success font-medium">✓</span>
-            업로드 완료: {uploadedFileName}
-          </div>
+        <div className="flex justify-end pt-4 border-t">
           <Button onClick={onNext} className="gap-2">
             다음 단계로
             <ChevronRight className="h-4 w-4" />

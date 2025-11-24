@@ -213,14 +213,6 @@ export const DataValidationStep = memo(function DataValidationStep({
       return uniqueRatio >= 0.05 // 5% 미만이면 코드형/ID형으로 간주
     })
 
-    // 기본: 기술통계 (숫자형 컬럼이 있을 때만)
-    if (numericColumns.length > 0) {
-      analyses.push({
-        emoji: '📊',
-        text: '기술통계 (평균, 표준편차, 분포)'
-      })
-    }
-
     // 그룹 비교 (범주형 1개 + 연속형 1개)
     // 범주형 컬럼 중 실제 그룹이 2개 이상인 것만 검사
     if (categoricalColumns.length >= 1 && numericColumns.length >= 1) {
@@ -345,6 +337,24 @@ export const DataValidationStep = memo(function DataValidationStep({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* 파일명 최상단 표시 */}
+      {uploadedFile || uploadedFileName ? (
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b pb-3 mb-6">
+          <div className="flex items-center gap-2 text-sm">
+            <Badge variant="outline" className="font-normal">
+              현재 파일
+            </Badge>
+            <span className="font-medium truncate" title={uploadedFile?.name || uploadedFileName || ''}>
+              {uploadedFile?.name || uploadedFileName}
+            </span>
+            <span className="text-muted-foreground">
+              ({validationResults.totalRows.toLocaleString()}행 × {validationResults.columnCount}열)
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+
       {/* 검증 요약 카드 */}
       <Card className={`border-2 ${
         hasErrors ? 'border-error-border bg-error-bg' :
@@ -373,8 +383,8 @@ export const DataValidationStep = memo(function DataValidationStep({
             <div className="p-3 bg-white dark:bg-background rounded-lg border">
               <p className="text-xs text-muted-foreground mb-1">표본 크기</p>
               <p className="text-2xl font-bold">{validationResults.totalRows}</p>
-              <Badge variant={validationResults.totalRows >= 30 ? "default" : "secondary"} className="mt-1">
-                {validationResults.totalRows >= 30 ? '충분' : '소표본'}
+              <Badge variant="outline" className="mt-1">
+                {validationResults.totalRows >= 30 ? '대표본' : '소표본'}
               </Badge>
             </div>
 
@@ -430,27 +440,26 @@ export const DataValidationStep = memo(function DataValidationStep({
         </CardContent>
       </Card>
 
-      {/* 다음 단계 안내 메시지 */}
+      {/* 다음 단계 버튼 */}
       {!hasErrors && onNext && (
-        <GuidanceCard
-          title="데이터 준비 완료!"
-          description={
-            <>
-              총 <strong>{validationResults.totalRows.toLocaleString()}개</strong> 데이터, <strong>{validationResults.columnCount}개</strong> 변수가 분석 준비되었습니다.
-            </>
-          }
-          steps={[
-            { emoji: '1️⃣', text: '분석 목적 선택 (그룹 비교, 관계 분석 등)' },
-            { emoji: '2️⃣', text: 'AI가 데이터를 분석하여 최적의 통계 방법 추천' },
-            { emoji: '3️⃣', text: '변수 선택 후 자동 분석 실행' }
-          ]}
-          ctaText="분석 목적 선택하기"
-          ctaIcon={<Sparkles className="w-4 h-4" />}
-          onCtaClick={handleNext}
-          ctaDisabled={isNavigating}
-          warningMessage={hasWarnings ? '경고 사항이 있지만 분석을 계속할 수 있습니다' : undefined}
-          data-testid="step2-guidance-card"
-        />
+        <Card>
+          <CardContent className="pt-6">
+            <Button
+              onClick={handleNext}
+              disabled={isNavigating}
+              className="w-full"
+              size="lg"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              데이터 탐색하기
+            </Button>
+            {hasWarnings && (
+              <p className="text-xs text-warning mt-2 text-center">
+                ⚠ 경고 사항이 있지만 분석을 계속할 수 있습니다
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* 분석 추천 카드 */}

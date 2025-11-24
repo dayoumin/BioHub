@@ -74,15 +74,14 @@ export default function SmartFlowPage() {
   }, [loadHistoryFromDB])
 
   // Steps configuration (useMemo로 최적화)
+  // 2025-11-24: 7단계 → 5단계 축소 (Step 1+2 통합, Step 6+7 통합)
   const steps = useMemo(() => {
     return [
-      { id: 1, label: '데이터 업로드' },
-      { id: 2, label: '데이터 요약' },
-      { id: 3, label: '데이터 탐색' },
-      { id: 4, label: '분석 목적' },
-      { id: 5, label: '변수 선택' },
-      { id: 6, label: '통계 분석' },
-      { id: 7, label: '결과 확인' }
+      { id: 1, label: '데이터 업로드 및 검증' },
+      { id: 2, label: '데이터 탐색' },
+      { id: 3, label: '분석 목적 선택' },
+      { id: 4, label: '변수 선택' },
+      { id: 5, label: '분석 실행 및 결과' }
     ].map((step) => ({
       ...step,
       completed: completedSteps.includes(step.id)
@@ -164,28 +163,28 @@ export default function SmartFlowPage() {
       systemMemory={systemMemory}
       historyPanel={<AnalysisHistoryPanel />}
     >
-      {/* Step 1: 데이터 업로드 */}
+      {/* Step 1: 데이터 업로드 및 검증 (기존 Step 1 + Step 2 임시 통합) */}
       {currentStep === 1 && (
         <div className="animate-fade-in">
           <DataUploadStep onUploadComplete={handleUploadComplete} />
+
+          {/* 업로드 완료 시 즉시 검증 결과 표시 */}
+          {validationResults && uploadedData && (
+            <div className="mt-6">
+              <ErrorBoundary>
+                <DataValidationStep
+                  validationResults={validationResults}
+                  data={uploadedData}
+                  onNext={goToNextStep}
+                />
+              </ErrorBoundary>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Step 2: 데이터 검증 */}
+      {/* Step 2: 데이터 탐색 (기존 Step 3) */}
       {currentStep === 2 && (
-        <div className="animate-fade-in">
-          <ErrorBoundary>
-            <DataValidationStep
-              validationResults={validationResults}
-              data={uploadedData}
-              onNext={goToNextStep}
-            />
-          </ErrorBoundary>
-        </div>
-      )}
-
-      {/* Step 3: 데이터 탐색 */}
-      {currentStep === 3 && (
         <div className="animate-fade-in">
           <ErrorBoundary>
             <DataExplorationStep
@@ -198,8 +197,8 @@ export default function SmartFlowPage() {
         </div>
       )}
 
-      {/* Step 4: 분석 목적 입력 */}
-      {currentStep === 4 && (
+      {/* Step 3: 분석 목적 선택 (기존 Step 4) */}
+      {currentStep === 3 && (
         <div className="animate-fade-in">
           <PurposeInputStep
             onPurposeSubmit={handlePurposeSubmit}
@@ -209,15 +208,15 @@ export default function SmartFlowPage() {
         </div>
       )}
 
-      {/* Step 5: 변수 선택 */}
-      {currentStep === 5 && (
+      {/* Step 4: 변수 선택 (기존 Step 5) */}
+      {currentStep === 4 && (
         <div className="animate-fade-in">
           <VariableSelectionStep />
         </div>
       )}
 
-      {/* Step 6: 분석 실행 */}
-      {currentStep === 6 && (
+      {/* Step 5: 분석 실행 및 결과 (기존 Step 6 + Step 7) */}
+      {currentStep === 5 && (
         <div className="animate-fade-in">
           <AnalysisExecutionStep
             selectedMethod={selectedMethod}
@@ -228,13 +227,13 @@ export default function SmartFlowPage() {
             canGoNext={canProceedToNext()}
             canGoPrevious={currentStep > 1}
           />
-        </div>
-      )}
 
-      {/* Step 7: 결과 확인 */}
-      {currentStep === 7 && (
-        <div className="animate-fade-in">
-          <ResultsActionStep results={results} />
+          {/* 분석 완료 시 즉시 결과 표시 */}
+          {results && (
+            <div className="mt-6">
+              <ResultsActionStep results={results} />
+            </div>
+          )}
         </div>
       )}
 
