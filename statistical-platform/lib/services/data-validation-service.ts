@@ -1,5 +1,5 @@
 import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
-import { PyodideCore } from '@/lib/services/pyodide-core'
+import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 export const DATA_LIMITS = {
   MAX_ROWS: 100000,
@@ -355,7 +355,7 @@ export class DataValidationService {
 
     if (numericColumnStats.length > 0) {
       try {
-        const pyodide = PyodideCore.getInstance()
+        const pyodide = PyodideCoreService.getInstance()
 
         // Shapiro-Wilk 정규성 검정 (각 수치형 변수별)
         const normalityResults: Array<{
@@ -373,7 +373,7 @@ export class DataValidationService {
               const result = await pyodide.callWorkerMethod<{
                 statistic: number
                 p_value: number
-              }>('worker3', 'shapiro_wilk_test', { data: colData })
+              }>(3, 'shapiro_wilk_test', { data: colData })
 
               normalityResults.push({
                 variable: colStat.name,

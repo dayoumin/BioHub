@@ -237,7 +237,9 @@ export function TwoPanelLayout({
           "flex-1 overflow-y-auto px-8 pt-6 pb-8 custom-scrollbar",
           bottomPreview && isPreviewExpanded && "pb-4"
         )}>
-          {children}
+          <div className="max-w-[1400px] mx-auto">
+            {children}
+          </div>
         </div>
 
         {/* 하단 데이터 미리보기 */}

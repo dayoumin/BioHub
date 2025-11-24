@@ -373,7 +373,6 @@ export interface AnalysisResult {
       pValue?: number
       significant?: boolean
     }
-    accuracy?: number
     // Dose-Response Analysis
     hill_slope?: number
     // Response Surface Methodology

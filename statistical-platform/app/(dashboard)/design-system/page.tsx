@@ -665,6 +665,14 @@ animation: {
           {/* Data Utilities 섹션 */}
           {activeSection === 'data-utils' && (
             <div className="space-y-8">
+              <div>
+                <h1 className="text-4xl font-bold mb-2">Data Utilities</h1>
+                <p className="text-muted-foreground">
+                  데이터 처리를 위한 유틸리티 모음. 각 유틸리티의 공식 이름으로 의사소통하세요.
+                </p>
+              </div>
+
+              {/* 1. 새 창으로 데이터 보기 */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -672,7 +680,11 @@ animation: {
                     새 창으로 데이터 보기
                     <Badge variant="default" className="text-xs">NEW</Badge>
                   </CardTitle>
-                  <CardDescription>대용량 데이터를 별도 창에서 확인하는 유틸리티</CardDescription>
+                  <CardDescription>
+                    <strong className="text-foreground">공식 이름:</strong> <code className="text-sm bg-muted px-2 py-0.5 rounded">handleOpenDataInNewWindow</code>
+                    <br />
+                    대용량 데이터를 별도 창에서 확인하는 유틸리티
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* 라이브 데모 */}

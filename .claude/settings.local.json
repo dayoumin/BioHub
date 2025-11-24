@@ -19,7 +19,8 @@
       "Bash(mkdir:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(cut:*)"
     ],
     "deny": [],
     "ask": []
