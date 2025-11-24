@@ -150,7 +150,7 @@ describe('SmartFlowPage Integration Tests', () => {
 
       render(<SmartFlowPage />)
 
-      expect(screen.getByText('데이터 탐색')).toBeInTheDocument()
+      expect(screen.getByText(/데이터 탐색/)).toBeInTheDocument()
     })
 
     it('Step 4에서 PurposeInputStep이 표시되어야 함', () => {

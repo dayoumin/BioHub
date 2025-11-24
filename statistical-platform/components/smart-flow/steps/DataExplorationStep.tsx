@@ -34,19 +34,15 @@ interface ScatterplotConfig {
  * 상관계수 계산 (Pearson correlation coefficient)
  */
 function calculateCorrelation(x: number[], y: number[]): { r: number; r2: number; n: number } {
-  // Pairwise deletion: x와 y 길이 맞추기
-  const n = Math.min(x.length, y.length)
-  if (n < 2) return { r: 0, r2: 0, n: 0 }
+  // x와 y는 이미 row-wise paired (길이 동일 보장)
+  const n = x.length
+  if (n < 2 || x.length !== y.length) return { r: 0, r2: 0, n: 0 }
 
-  // x와 y를 같은 길이로 슬라이스
-  const xPaired = x.slice(0, n)
-  const yPaired = y.slice(0, n)
-
-  const sumX = xPaired.reduce((sum, val) => sum + val, 0)
-  const sumY = yPaired.reduce((sum, val) => sum + val, 0)
-  const sumXY = xPaired.reduce((sum, val, i) => sum + val * yPaired[i], 0)
-  const sumXX = xPaired.reduce((sum, val) => sum + val * val, 0)
-  const sumYY = yPaired.reduce((sum, val) => sum + val * val, 0)
+  const sumX = x.reduce((sum, val) => sum + val, 0)
+  const sumY = y.reduce((sum, val) => sum + val, 0)
+  const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0)
+  const sumXX = x.reduce((sum, val) => sum + val * val, 0)
+  const sumYY = y.reduce((sum, val) => sum + val * val, 0)
 
   const numerator = n * sumXY - sumX * sumY
   const denominator = Math.sqrt((n * sumXX - sumX * sumX) * (n * sumYY - sumY * sumY))
@@ -84,14 +80,33 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     return []
   })
 
-  // 변수 데이터 추출 (Null/NaN 필터링)
-  const getVariableData = useCallback((variableName: string): number[] => {
-    return data
-      .map(row => row[variableName])
-      .filter(v => v !== null && v !== undefined && v !== '')
-      .map(Number)
-      .filter(v => !isNaN(v))
+  // 변수 데이터 추출 (Raw - 필터링 없음, row index 유지)
+  const getVariableDataRaw = useCallback((variableName: string): Array<number | null> => {
+    return data.map(row => {
+      const val = row[variableName]
+      if (val === null || val === undefined || val === '') return null
+      const num = Number(val)
+      return isNaN(num) ? null : num
+    })
   }, [data])
+
+  // Row-wise pairwise deletion: X와 Y 모두 valid한 행만 유지
+  const getPairedData = useCallback((var1: string, var2: string): { x: number[]; y: number[] } => {
+    const raw1 = getVariableDataRaw(var1)
+    const raw2 = getVariableDataRaw(var2)
+
+    const paired: { x: number; y: number }[] = []
+    for (let i = 0; i < Math.min(raw1.length, raw2.length); i++) {
+      if (raw1[i] !== null && raw2[i] !== null) {
+        paired.push({ x: raw1[i]!, y: raw2[i]! })
+      }
+    }
+
+    return {
+      x: paired.map(p => p.x),
+      y: paired.map(p => p.y)
+    }
+  }, [getVariableDataRaw])
 
   // 새 Scatterplot 추가
   const addScatterplot = useCallback(() => {
@@ -170,8 +185,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       for (let j = i + 1; j < numericVariables.length; j++) {
         const var1 = numericVariables[i]
         const var2 = numericVariables[j]
-        const data1 = getVariableData(var1)
-        const data2 = getVariableData(var2)
+        const { x: data1, y: data2 } = getPairedData(var1, var2)
         const { r, r2 } = calculateCorrelation(data1, data2)
 
         const absR = Math.abs(r)
@@ -195,7 +209,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
     // 상관계수 절대값 내림차순 정렬
     return matrix.sort((a, b) => Math.abs(b.r) - Math.abs(a.r))
-  }, [numericVariables, getVariableData])
+  }, [numericVariables, getPairedData])
 
   // 빈 상태 처리
   if (!validationResults || numericVariables.length < 2) {
@@ -353,13 +367,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 {/* Scatterplot 렌더링 (Y축마다) */}
                 <div className="space-y-4">
                   {config.yVariables.map(yVar => {
-                    const xData = getVariableData(config.xVariable)
-                    const yData = getVariableData(yVar)
-                    const minLength = Math.min(xData.length, yData.length)
-                    const scatterData = Array.from({ length: minLength }, (_, i) => ({
-                      x: xData[i],
-                      y: yData[i]
-                    }))
+                    const { x: xData, y: yData } = getPairedData(config.xVariable, yVar)
+                    const scatterData = xData.map((x, i) => ({ x, y: yData[i] }))
                     const { r, r2 } = calculateCorrelation(xData, yData)
 
                     return (
@@ -382,7 +391,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                               <span className="font-medium">결정계수 (r²):</span> {r2.toFixed(3)}
                             </div>
                             <div>
-                              <span className="font-medium">표본 크기 (n):</span> {minLength}
+                              <span className="font-medium">표본 크기 (n):</span> {xData.length}
                             </div>
                           </div>
                         </div>
