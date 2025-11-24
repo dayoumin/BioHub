@@ -417,17 +417,18 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         switch (state.currentStep) {
           case 1: return state.uploadedFile !== null && state.uploadedData !== null
           case 2: return state.validationResults?.isValid === true
-          case 3: return state.selectedMethod !== null
-          case 4: return state.variableMapping !== null // 변수 선택 완료
-          case 5: return false // 자동 진행
-          case 6: return false // 마지막 단계
+          case 3: return true // 데이터 탐색 (선택 사항, 항상 진행 가능)
+          case 4: return state.selectedMethod !== null
+          case 5: return state.variableMapping !== null // 변수 선택 완료
+          case 6: return false // 자동 진행
+          case 7: return false // 마지막 단계
           default: return false
         }
       },
 
       goToNextStep: () => {
         const state = get()
-        if (state.currentStep < 6) {
+        if (state.currentStep < 7) {
           set({
             completedSteps: [...new Set([...state.completedSteps, state.currentStep])],
             currentStep: state.currentStep + 1

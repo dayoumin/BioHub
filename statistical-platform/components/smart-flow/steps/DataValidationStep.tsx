@@ -430,6 +430,29 @@ export const DataValidationStep = memo(function DataValidationStep({
         </CardContent>
       </Card>
 
+      {/* 다음 단계 안내 메시지 */}
+      {!hasErrors && onNext && (
+        <GuidanceCard
+          title="데이터 준비 완료!"
+          description={
+            <>
+              총 <strong>{validationResults.totalRows.toLocaleString()}개</strong> 데이터, <strong>{validationResults.columnCount}개</strong> 변수가 분석 준비되었습니다.
+            </>
+          }
+          steps={[
+            { emoji: '1️⃣', text: '분석 목적 선택 (그룹 비교, 관계 분석 등)' },
+            { emoji: '2️⃣', text: 'AI가 데이터를 분석하여 최적의 통계 방법 추천' },
+            { emoji: '3️⃣', text: '변수 선택 후 자동 분석 실행' }
+          ]}
+          ctaText="분석 목적 선택하기"
+          ctaIcon={<Sparkles className="w-4 h-4" />}
+          onCtaClick={handleNext}
+          ctaDisabled={isNavigating}
+          warningMessage={hasWarnings ? '경고 사항이 있지만 분석을 계속할 수 있습니다' : undefined}
+          data-testid="step2-guidance-card"
+        />
+      )}
+
       {/* 분석 추천 카드 */}
       {!hasErrors && recommendedAnalyses.length > 0 && (
         <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
@@ -653,29 +676,6 @@ export const DataValidationStep = memo(function DataValidationStep({
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* 다음 단계 안내 메시지 */}
-      {!hasErrors && onNext && (
-        <GuidanceCard
-          title="데이터 준비 완료!"
-          description={
-            <>
-              총 <strong>{validationResults.totalRows.toLocaleString()}개</strong> 데이터, <strong>{validationResults.columnCount}개</strong> 변수가 분석 준비되었습니다.
-            </>
-          }
-          steps={[
-            { emoji: '1️⃣', text: '분석 목적 선택 (그룹 비교, 관계 분석 등)' },
-            { emoji: '2️⃣', text: 'AI가 데이터를 분석하여 최적의 통계 방법 추천' },
-            { emoji: '3️⃣', text: '변수 선택 후 자동 분석 실행' }
-          ]}
-          ctaText="분석 목적 선택하기"
-          ctaIcon={<Sparkles className="w-4 h-4" />}
-          onCtaClick={handleNext}
-          ctaDisabled={isNavigating}
-          warningMessage={hasWarnings ? '경고 사항이 있지만 분석을 계속할 수 있습니다' : undefined}
-          data-testid="step2-guidance-card"
-        />
       )}
 
       {/* 전체 데이터 확인 - 스크롤 가능 */}

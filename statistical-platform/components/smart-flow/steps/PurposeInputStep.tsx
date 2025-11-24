@@ -332,27 +332,49 @@ export function PurposeInputStep({
 
       {/* AI 추천 결과 - 상세 정보 */}
       {recommendation && !isAnalyzing && (
-        <Card className={`border-2 border-primary bg-primary/5 ${prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4 duration-500'}`}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Check className="w-5 h-5 text-primary" />
-                  추천: {recommendation.method.name}
-                  {/* 출처 배지: Ollama 사용 여부 표시 */}
-                  {recommendation.confidence >= 0.95 ? (
-                    <Badge variant="default" className="text-xs">LLM</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-xs">Rule-based</Badge>
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  신뢰도: {(recommendation.confidence * 100).toFixed(0)}%
-                </CardDescription>
+        <>
+          {/* 다음 단계 안내 카드 (최상단 배치) */}
+          <GuidanceCard
+            title="분석 방법이 결정되었습니다!"
+            description={
+              <>
+                <strong>{recommendation.method.name}</strong> 방법으로 분석합니다.
+              </>
+            }
+            steps={[
+              { emoji: '1️⃣', text: '분석에 사용할 변수 선택' },
+              { emoji: '2️⃣', text: '자동 분석 실행 + 가정 검정' },
+              { emoji: '3️⃣', text: '결과 확인 및 해석' }
+            ]}
+            ctaText="변수 선택하기"
+            ctaIcon={<ArrowRight className="w-4 h-4" />}
+            onCtaClick={handleConfirmMethod}
+            ctaDisabled={isNavigating || isAnalyzing}
+            animationDelay={500}
+            data-testid="step3-guidance-card"
+          />
+
+          <Card className={`border-2 border-primary bg-primary/5 ${prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4 duration-700'}`}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-primary" />
+                    추천: {recommendation.method.name}
+                    {/* 출처 배지: Ollama 사용 여부 표시 */}
+                    {recommendation.confidence >= 0.95 ? (
+                      <Badge variant="default" className="text-xs">LLM</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">Rule-based</Badge>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    신뢰도: {(recommendation.confidence * 100).toFixed(0)}%
+                  </CardDescription>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </CardHeader>
+            <CardContent className="space-y-4">
             {/* 추천 이유 */}
             <div>
               <h4 className="font-medium mb-2">추천 이유:</h4>
@@ -448,29 +470,7 @@ export function PurposeInputStep({
             </Accordion>
           </CardContent>
         </Card>
-      )}
-
-      {/* 다음 단계 안내 카드 (Step 2 스타일 일관성) */}
-      {recommendation && !isAnalyzing && (
-        <GuidanceCard
-          title="분석 방법이 결정되었습니다!"
-          description={
-            <>
-              <strong>{recommendation.method.name}</strong> 방법으로 분석합니다.
-            </>
-          }
-          steps={[
-            { emoji: '1️⃣', text: '분석에 사용할 변수 선택' },
-            { emoji: '2️⃣', text: '자동 분석 실행 + 가정 검정' },
-            { emoji: '3️⃣', text: '결과 확인 및 해석' }
-          ]}
-          ctaText="변수 선택하기"
-          ctaIcon={<ArrowRight className="w-4 h-4" />}
-          onCtaClick={handleConfirmMethod}
-          ctaDisabled={isNavigating || isAnalyzing}
-          animationDelay={700}
-          data-testid="step3-guidance-card"
-        />
+        </>
       )}
 
       {/* AI 분석 에러 메시지 */}

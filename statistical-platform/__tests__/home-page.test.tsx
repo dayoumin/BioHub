@@ -32,6 +32,44 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
     localStorageMock.clear()
   })
 
+  describe('0. 홈페이지 레이아웃 및 UI 테스트 (2025-11-24 추가)', () => {
+    it('스마트 분석 버튼이 표시되어야 함', () => {
+      render(<HomePage />)
+
+      // 변경된 버튼 텍스트 확인: "스마트 분석 시작하기" → "스마트 분석"
+      const smartAnalysisButton = screen.getByText('스마트 분석')
+      expect(smartAnalysisButton).toBeInTheDocument()
+    })
+
+    it('통계 분석 카테고리가 표시되어야 함', () => {
+      render(<HomePage />)
+
+      const categoryHeading = screen.getByText('통계 분석 카테고리')
+      expect(categoryHeading).toBeInTheDocument()
+    })
+
+    it('내 통계 도구 섹션이 표시되어야 함', () => {
+      render(<HomePage />)
+
+      const myToolsHeading = screen.getByText('내 통계 도구')
+      expect(myToolsHeading).toBeInTheDocument()
+    })
+
+    it('하단 안내 메시지가 표시되어야 함', () => {
+      render(<HomePage />)
+
+      const footerText = screen.getByText(/모든 통계 분석은 검증된 Python 과학 라이브러리/)
+      expect(footerText).toBeInTheDocument()
+    })
+
+    it('스마트 분석 버튼 클릭 시 /smart-flow로 이동해야 함', () => {
+      render(<HomePage />)
+
+      const smartAnalysisLink = screen.getByText('스마트 분석').closest('a')
+      expect(smartAnalysisLink).toHaveAttribute('href', '/smart-flow')
+    })
+  })
+
   describe('1. localStorage 영구 저장 테스트', () => {
     it('즐겨찾기 추가 시 localStorage에 저장되어야 함', async () => {
       render(<HomePage />)

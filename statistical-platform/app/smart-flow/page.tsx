@@ -199,7 +199,7 @@ export default function SmartFlowPage() {
       )}
 
       {/* Step 4: 분석 목적 입력 */}
-      {currentStep === 7 && (
+      {currentStep === 4 && (
         <div className="animate-fade-in">
           <PurposeInputStep
             onPurposeSubmit={handlePurposeSubmit}
@@ -210,14 +210,14 @@ export default function SmartFlowPage() {
       )}
 
       {/* Step 5: 변수 선택 */}
-      {currentStep === 7 && (
+      {currentStep === 5 && (
         <div className="animate-fade-in">
           <VariableSelectionStep />
         </div>
       )}
 
       {/* Step 6: 분석 실행 */}
-      {currentStep === 7 && (
+      {currentStep === 6 && (
         <div className="animate-fade-in">
           <AnalysisExecutionStep
             selectedMethod={selectedMethod}

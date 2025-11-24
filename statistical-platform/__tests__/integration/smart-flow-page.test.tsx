@@ -142,7 +142,7 @@ describe('SmartFlowPage Integration Tests', () => {
       expect(screen.queryByTestId('data-upload-step')).not.toBeInTheDocument()
     })
 
-    it('Step 3에서 PurposeInputStep이 표시되어야 함', () => {
+    it('Step 3에서 DataExplorationStep이 표시되어야 함', () => {
       (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
         ...mockStore,
         currentStep: 3
@@ -150,10 +150,10 @@ describe('SmartFlowPage Integration Tests', () => {
 
       render(<SmartFlowPage />)
 
-      expect(screen.getByTestId('purpose-input-step')).toBeInTheDocument()
+      expect(screen.getByText('데이터 탐색')).toBeInTheDocument()
     })
 
-    it('Step 4에서 VariableSelectionStep이 표시되어야 함', () => {
+    it('Step 4에서 PurposeInputStep이 표시되어야 함', () => {
       (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
         ...mockStore,
         currentStep: 4
@@ -161,10 +161,10 @@ describe('SmartFlowPage Integration Tests', () => {
 
       render(<SmartFlowPage />)
 
-      expect(screen.getByTestId('variable-selection-step')).toBeInTheDocument()
+      expect(screen.getByTestId('purpose-input-step')).toBeInTheDocument()
     })
 
-    it('Step 5에서 AnalysisExecutionStep이 표시되어야 함', () => {
+    it('Step 5에서 VariableSelectionStep이 표시되어야 함', () => {
       (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
         ...mockStore,
         currentStep: 5
@@ -172,13 +172,24 @@ describe('SmartFlowPage Integration Tests', () => {
 
       render(<SmartFlowPage />)
 
-      expect(screen.getByTestId('analysis-execution-step')).toBeInTheDocument()
+      expect(screen.getByTestId('variable-selection-step')).toBeInTheDocument()
     })
 
-    it('Step 6에서 ResultsActionStep이 표시되어야 함', () => {
+    it('Step 6에서 AnalysisExecutionStep이 표시되어야 함', () => {
       (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
         ...mockStore,
         currentStep: 6
+      })
+
+      render(<SmartFlowPage />)
+
+      expect(screen.getByTestId('analysis-execution-step')).toBeInTheDocument()
+    })
+
+    it('Step 7에서 ResultsActionStep이 표시되어야 함', () => {
+      (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+        ...mockStore,
+        currentStep: 7
       })
 
       render(<SmartFlowPage />)

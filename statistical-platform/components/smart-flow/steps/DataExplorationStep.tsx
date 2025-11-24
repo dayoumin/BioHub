@@ -233,6 +233,16 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </CardContent>
       </Card>
 
+      {/* 네비게이션 버튼 */}
+      <div className="flex justify-between">
+        <Button onClick={onPrevious} variant="outline">
+          ← 이전
+        </Button>
+        <Button onClick={onNext}>
+          다음 단계로 →
+        </Button>
+      </div>
+
       {/* Tabs: 산점도 vs 상관계수 행렬 */}
       <Tabs defaultValue="scatterplots" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -431,16 +441,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* 네비게이션 버튼 */}
-      <div className="flex justify-between">
-        <Button onClick={onPrevious} variant="outline">
-          ← 이전
-        </Button>
-        <Button onClick={onNext}>
-          다음 단계로 →
-        </Button>
-      </div>
     </div>
   )
 })
