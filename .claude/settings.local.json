@@ -23,7 +23,8 @@
       "Bash(cut:*)",
       "Bash(xargs ls:*)",
       "Bash(awk:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(git restore:*)"
     ],
     "deny": [],
     "ask": []

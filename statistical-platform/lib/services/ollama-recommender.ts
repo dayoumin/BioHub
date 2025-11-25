@@ -300,11 +300,11 @@ Categories:
 
     // 가정 검정 결과 요약
     const normalityInfo = assumptionResults.normality?.shapiroWilk
-      ? `Shapiro-Wilk: p=${assumptionResults.normality.shapiroWilk.pValue.toFixed(3)} (${assumptionResults.normality.shapiroWilk.isNormal ? '정규성 충족' : '정규성 미충족'})`
+      ? `Shapiro-Wilk: p=${assumptionResults.normality.shapiroWilk.pValue !== undefined ? assumptionResults.normality.shapiroWilk.pValue.toFixed(3) : 'N/A'} (${assumptionResults.normality.shapiroWilk.isNormal ? '정규성 충족' : '정규성 미충족'})`
       : '정규성 검정 미실시'
 
     const homogeneityInfo = assumptionResults.homogeneity?.levene
-      ? `Levene: p=${assumptionResults.homogeneity.levene.pValue.toFixed(3)} (${assumptionResults.homogeneity.levene.equalVariance ? '등분산성 충족' : '등분산성 미충족'})`
+      ? `Levene: p=${assumptionResults.homogeneity.levene.pValue !== undefined ? assumptionResults.homogeneity.levene.pValue.toFixed(3) : 'N/A'} (${assumptionResults.homogeneity.levene.equalVariance ? '등분산성 충족' : '등분산성 미충족'})`
       : '등분산성 검정 미실시'
 
     return `

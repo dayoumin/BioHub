@@ -30,6 +30,7 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
+import { openDataWindow } from '@/lib/utils/open-data-window'
 interface StepwiseResults {
   final_model: {
     variables: string[]
@@ -325,51 +326,11 @@ export default function StepwiseRegressionPage() {
   // "새 창으로 보기" 핸들러
   const handleOpenNewWindow = useCallback(() => {
     if (!uploadedData) return
-
-    const dataWindow = window.open('', '_blank', 'width=1200,height=800')
-    if (dataWindow) {
-      const columns = uploadedData.columns
-      const html = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>데이터 미리보기 - ${escapeHtml(uploadedData.fileName)}</title>
-          <style>
-            body { font-family: system-ui, -apple-system, sans-serif; margin: 20px; }
-            table { border-collapse: collapse; width: 100%; font-size: 12px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f0f0f0; font-weight: 600; position: sticky; top: 0; }
-            tr:nth-child(even) { background-color: #f9f9f9; }
-            .header { margin-bottom: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h2>${escapeHtml(uploadedData.fileName)}</h2>
-            <p>${uploadedData.data.length.toLocaleString()}행 × ${columns.length}열</p>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                ${columns.map(col => `<th>${escapeHtml(col)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${uploadedData.data.map((row, idx) => `
-                <tr>
-                  <td>${idx + 1}</td>
-                  ${columns.map(col => `<td>${escapeHtml(String(row[col] ?? ''))}</td>`).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </body>
-        </html>
-      `
-      dataWindow.document.write(html)
-      dataWindow.document.close()
-    }
+    openDataWindow({
+      fileName: uploadedData.fileName,
+      columns: uploadedData.columns,
+      data: uploadedData.data
+    })
   }, [uploadedData])
 
   // Render functions (useCallback)

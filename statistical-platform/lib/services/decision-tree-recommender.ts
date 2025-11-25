@@ -305,10 +305,10 @@ export class DecisionTreeRecommender {
             '✓ 높은 신뢰도 (91%)로 대응표본 t-검정을 추천합니다.',
             '대응표본 설계가 감지되었습니다 (ID/Subject 컬럼 존재).',
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
-            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk?.pValue !== undefined ? normality.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''}`
           ],
           assumptions: hasShapiroWilk ? [
-            { name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }
+            { name: '정규성', passed: true, pValue: normality.shapiroWilk?.pValue ?? NaN }
           ] : [],
           alternatives: [
             {
@@ -331,11 +331,11 @@ export class DecisionTreeRecommender {
           reasoning: [
             '✓ 높은 신뢰도 (93%)로 Wilcoxon 검정을 추천합니다.',
             '대응표본 설계가 감지되었으나 정규성이 충족되지 않았습니다.',
-            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''} → 비모수 검정 권장`,
+            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk?.pValue !== undefined ? normality.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''} → 비모수 검정 권장`,
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: hasShapiroWilk ? [
-            { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
+            { name: '정규성', passed: false, pValue: normality.shapiroWilk?.pValue ?? NaN }
           ] : [],
           alternatives: [
             {
@@ -368,12 +368,12 @@ export class DecisionTreeRecommender {
             '✓ 높은 신뢰도 (87%)로 이원분산분석을 추천합니다.',
             `${factors.length}개의 요인(factor)이 감지되었습니다: ${factors.join(', ')}`,
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
-            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
-            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''}`
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk?.pValue !== undefined ? normality.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''}`,
+            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity.levene?.pValue !== undefined ? homogeneity.levene?.pValue.toFixed(3) : 'N/A'})` : ''}`
           ],
           assumptions: [
-            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }] : []),
-            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity.levene!.pValue }] : [])
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk?.pValue ?? NaN }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
             {
@@ -400,8 +400,8 @@ export class DecisionTreeRecommender {
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: [
-            ...(hasShapiroWilk ? [{ name: '정규성', passed: isNormal, pValue: normality.shapiroWilk!.pValue }] : []),
-            ...(hasLevene ? [{ name: '등분산성', passed: equalVariance, pValue: homogeneity.levene!.pValue }] : [])
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: isNormal, pValue: normality.shapiroWilk?.pValue ?? NaN }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: equalVariance, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
             {
@@ -444,12 +444,12 @@ export class DecisionTreeRecommender {
             '✓ 매우 높은 신뢰도 (92%)로 독립표본 t-검정을 추천합니다.',
             '두 독립 그룹 간 평균 비교에 적합합니다.',
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
-            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
-            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''}`
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk?.pValue !== undefined ? normality.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''}`,
+            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity.levene?.pValue !== undefined ? homogeneity.levene?.pValue.toFixed(3) : 'N/A'})` : ''}`
           ],
           assumptions: [
-            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }] : []),
-            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity.levene!.pValue }] : [])
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk?.pValue ?? NaN }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
             {
@@ -473,11 +473,11 @@ export class DecisionTreeRecommender {
           reasoning: [
             '✓ 매우 높은 신뢰도 (95%)로 Mann-Whitney U 검정을 추천합니다.',
             '두 그룹 비교에서 정규성이 충족되지 않았습니다.',
-            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''} → 비모수 검정 권장`,
+            `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk?.pValue !== undefined ? normality.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''} → 비모수 검정 권장`,
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: hasShapiroWilk ? [
-            { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
+            { name: '정규성', passed: false, pValue: normality.shapiroWilk?.pValue ?? NaN }
           ] : [],
           alternatives: [
             {
@@ -501,13 +501,13 @@ export class DecisionTreeRecommender {
           reasoning: [
             "✓ 높은 신뢰도 (90%)로 Welch's t-검정을 추천합니다.",
             '두 그룹 비교에서 등분산성이 충족되지 않았습니다.',
-            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`,
-            `✗ 등분산성 미충족${hasLevene ? ` (p=${homogeneity.levene!.pValue.toFixed(3)})` : ''} → Welch's t-검정 권장`,
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk?.pValue !== undefined ? normality.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''}`,
+            `✗ 등분산성 미충족${hasLevene ? ` (p=${homogeneity.levene?.pValue !== undefined ? homogeneity.levene?.pValue.toFixed(3) : 'N/A'})` : ''} → Welch's t-검정 권장`,
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: [
-            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }] : []),
-            ...(hasLevene ? [{ name: '등분산성', passed: false, pValue: homogeneity.levene!.pValue }] : [])
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality.shapiroWilk?.pValue ?? NaN }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: false, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
             {
@@ -540,12 +540,12 @@ export class DecisionTreeRecommender {
             '✓ 높은 신뢰도 (90%)로 일원분산분석을 추천합니다.',
             `${groups}개 그룹 간 평균 비교에 적합합니다.`,
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
-            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality?.shapiroWilk?.pValue.toFixed(3)})` : ''}`,
-            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity?.levene?.pValue.toFixed(3)})` : ''}`
+            `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality?.shapiroWilk?.pValue !== undefined ? normality?.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''}`,
+            `✓ 등분산성 충족${hasLevene ? ` (p=${homogeneity?.levene?.pValue !== undefined ? homogeneity?.levene?.pValue.toFixed(3) : 'N/A'})` : ''}`
           ],
           assumptions: [
-            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality?.shapiroWilk?.pValue ?? 0 }] : []),
-            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity?.levene?.pValue ?? 0 }] : [])
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: true, pValue: normality?.shapiroWilk?.pValue ?? NaN }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity?.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
             {
@@ -572,8 +572,8 @@ export class DecisionTreeRecommender {
             `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
           ],
           assumptions: [
-            ...(hasShapiroWilk ? [{ name: '정규성', passed: isNormal, pValue: normality.shapiroWilk!.pValue }] : []),
-            ...(hasLevene ? [{ name: '등분산성', passed: equalVariance, pValue: homogeneity.levene!.pValue }] : [])
+            ...(hasShapiroWilk ? [{ name: '정규성', passed: isNormal, pValue: normality.shapiroWilk?.pValue ?? NaN }] : []),
+            ...(hasLevene ? [{ name: '등분산성', passed: equalVariance, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
             {
@@ -663,10 +663,10 @@ export class DecisionTreeRecommender {
           '✓ 높은 신뢰도 (90%)로 Pearson 상관분석을 추천합니다.',
           `${numericVars}개의 수치형 변수 간 선형 상관관계 분석에 적합합니다.`,
           `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : ' (충분)'}`,
-          `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''}`
+          `✓ 정규성 충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk?.pValue !== undefined ? normality.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''}`
         ],
         assumptions: hasShapiroWilk ? [
-          { name: '정규성', passed: true, pValue: normality.shapiroWilk!.pValue }
+          { name: '정규성', passed: true, pValue: normality.shapiroWilk?.pValue ?? NaN }
         ] : [],
         alternatives: [
           {
@@ -689,11 +689,11 @@ export class DecisionTreeRecommender {
         reasoning: [
           '✓ 매우 높은 신뢰도 (92%)로 Spearman 상관분석을 추천합니다.',
           `${numericVars}개의 수치형 변수 간 상관관계 분석에서 정규성이 충족되지 않았습니다.`,
-          `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk!.pValue.toFixed(3)})` : ''} → 비모수 상관분석 권장`,
+          `✗ 정규성 미충족${hasShapiroWilk ? ` (p=${normality.shapiroWilk?.pValue !== undefined ? normality.shapiroWilk?.pValue.toFixed(3) : 'N/A'})` : ''} → 비모수 상관분석 권장`,
           `표본 크기: ${n}${n < 30 ? ' ⚠ 소표본 (n<30) - 결과 해석 시 주의 필요' : '개'}`
         ],
         assumptions: hasShapiroWilk ? [
-          { name: '정규성', passed: false, pValue: normality.shapiroWilk!.pValue }
+          { name: '정규성', passed: false, pValue: normality.shapiroWilk?.pValue ?? NaN }
         ] : [],
         alternatives: [
           {

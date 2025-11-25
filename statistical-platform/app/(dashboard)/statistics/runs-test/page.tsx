@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { openDataWindow } from '@/lib/utils/open-data-window'
 
 // 런 검정 관련 타입 정의
 type RunValue = string | number | boolean
@@ -257,11 +258,11 @@ export default function RunsTestPage() {
   // Open new window handler
   const handleOpenNewWindow = useCallback(() => {
     if (!uploadedData) return
-    // Open data in new window for detailed view
-    const newWindow = window.open('', '_blank')
-    if (newWindow) {
-      newWindow.document.write(`<h1>${uploadedData.fileName}</h1>`)
-    }
+    openDataWindow({
+      fileName: uploadedData.fileName,
+      columns: uploadedData.columns,
+      data: uploadedData.data
+    })
   }, [uploadedData])
 
   // Render methods

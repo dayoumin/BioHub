@@ -1,6 +1,44 @@
 import Papa from 'papaparse'
 import { Dataset } from './store'
 
+
+/**
+ * 결측값으로 인식할 패턴들 (소문자 정규화)
+ * 다양한 소프트웨어에서 사용되는 결측값 표기 자동 지원
+ * - R, pandas: NA
+ * - Excel: N/A, #N/A, #NA
+ * - SAS, SPSS: .
+ * - Database: NULL
+ * - JavaScript, Python: NaN
+ * - 일반: -, missing, 빈 문자열
+ */
+const MISSING_VALUE_SET = new Set([
+  '',        // 빈 문자열
+  'na',      // R, pandas (NA, na)
+  'n/a',     // Excel (N/A, n/a)
+  '-',       // 일반적인 표기
+  '.',       // SAS, SPSS
+  'null',    // 데이터베이스 (NULL, null)
+  'nan',     // JavaScript, Python (NaN, nan)
+  '#n/a',    // Excel 오류 (#N/A)
+  '#na',     // Excel 오류 (#NA)
+  'missing', // 일반 (missing, MISSING)
+]);
+
+/**
+ * 값이 결측값인지 판별
+ * O(1) 검색 + 대소문자 무시
+ */
+function isMissingValue(value: unknown): boolean {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'number' && isNaN(value)) return true;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return MISSING_VALUE_SET.has(normalized);
+  }
+  return false;
+}
+
 export interface DataColumn {
   name: string
   type: 'numeric' | 'categorical' | 'text' | 'date'
@@ -91,7 +129,7 @@ export function analyzeColumnDataTypes(values: unknown[]): {
   emptyCount: number
   mixedExamples: { value: unknown; type: string }[]
 } {
-  const nonNullValues = values.filter(v => v !== null && v !== undefined && v !== '')
+  const nonNullValues = values.filter(v => !isMissingValue(v))
   const emptyCount = values.length - nonNullValues.length
   
   if (nonNullValues.length === 0) {
@@ -363,8 +401,8 @@ export function validateData(headers: string[], rows: Record<string, unknown>[])
   // Analyze each column
   const columns: DataColumn[] = headers.map((header, colIndex) => {
     const values = rows.map(row => row[header])
-    const missingCount = values.filter(v => v === null || v === undefined || v === '').length
-    const uniqueValues = new Set(values.filter(v => v !== null && v !== undefined && v !== ''))
+    const missingCount = values.filter(v => isMissingValue(v)).length
+    const uniqueValues = new Set(values.filter(v => !isMissingValue(v)))
     
     // 상세 타입 분석 (혼재 검사 포함)
     const typeAnalysis = analyzeColumnDataTypes(values)

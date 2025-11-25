@@ -100,12 +100,16 @@ export class PDFReportService {
 
         const norm = data.analysisResult.assumptions.normality
         if (norm.group1) {
-          pdf.text(`  - Group 1: W=${norm.group1.statistic.toFixed(4)}, p=${norm.group1.pValue.toFixed(4)} ${norm.group1.isNormal ? '(Normal)' : '(Not Normal)'}`,
+          const statistic = norm.group1.statistic !== undefined ? norm.group1.statistic.toFixed(4) : 'N/A'
+          const pValue = norm.group1.pValue !== undefined ? norm.group1.pValue.toFixed(4) : 'N/A'
+          pdf.text(`  - Group 1: W=${statistic}, p=${pValue} ${norm.group1.isNormal ? '(Normal)' : '(Not Normal)'}`,
             margin + 10, yPosition)
           yPosition += lineHeight * 0.8
         }
         if (norm.group2) {
-          pdf.text(`  - Group 2: W=${norm.group2.statistic.toFixed(4)}, p=${norm.group2.pValue.toFixed(4)} ${norm.group2.isNormal ? '(Normal)' : '(Not Normal)'}`,
+          const statistic = norm.group2.statistic !== undefined ? norm.group2.statistic.toFixed(4) : 'N/A'
+          const pValue = norm.group2.pValue !== undefined ? norm.group2.pValue.toFixed(4) : 'N/A'
+          pdf.text(`  - Group 2: W=${statistic}, p=${pValue} ${norm.group2.isNormal ? '(Normal)' : '(Not Normal)'}`,
             margin + 10, yPosition)
           yPosition += lineHeight * 0.8
         }
@@ -344,16 +348,17 @@ export class PDFReportService {
       if (result.assumptions.normality) {
         const norm = result.assumptions.normality
         if (norm.group1) {
-          summary += `- Normality (Group 1): ${norm.group1.isNormal ? 'Met' : 'Violated'} (p=${norm.group1.pValue.toFixed(4)})\n`
+          summary += `- Normality (Group 1): ${norm.group1.isNormal ? 'Met' : 'Violated'} (p=${norm.group1?.pValue !== undefined ? norm.group1?.pValue.toFixed(4) : 'N/A'})\n`
         }
         if (norm.group2) {
-          summary += `- Normality (Group 2): ${norm.group2.isNormal ? 'Met' : 'Violated'} (p=${norm.group2.pValue.toFixed(4)})\n`
+          summary += `- Normality (Group 2): ${norm.group2.isNormal ? 'Met' : 'Violated'} (p=${norm.group2?.pValue !== undefined ? norm.group2?.pValue.toFixed(4) : 'N/A'})\n`
         }
       }
       if (result.assumptions.homogeneity) {
         const equalVariance = result.assumptions.homogeneity.levene?.equalVariance ?? result.assumptions.homogeneity.bartlett?.equalVariance ?? false
-        const pValue = result.assumptions.homogeneity.levene?.pValue ?? result.assumptions.homogeneity.bartlett?.pValue ?? 0
-        summary += `- Equal Variance: ${equalVariance ? 'Met' : 'Violated'} (p=${pValue.toFixed(4)})\n`
+        const pValue = result.assumptions.homogeneity.levene?.pValue ?? result.assumptions.homogeneity.bartlett?.pValue
+        const pValueStr = pValue !== undefined ? pValue.toFixed(4) : 'N/A'
+        summary += `- Equal Variance: ${equalVariance ? 'Met' : 'Violated'} (p=${pValueStr})\n`
       }
     }
 

@@ -21,6 +21,7 @@ import {
 } from 'recharts'
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { openDataWindow } from '@/lib/utils/open-data-window'
 import {
   Calculator,
   CheckCircle2,
@@ -263,11 +264,11 @@ export default function SignTestPage() {
   // Open new window handler
   const handleOpenNewWindow = useCallback(() => {
     if (!uploadedData) return
-    // Open data in new window for detailed view
-    const newWindow = window.open('', '_blank')
-    if (newWindow) {
-      newWindow.document.write(`<h1>${uploadedData.fileName}</h1>`)
-    }
+    openDataWindow({
+      fileName: uploadedData.fileName,
+      columns: uploadedData.columns,
+      data: uploadedData.data
+    })
   }, [uploadedData])
 
   // Render methods

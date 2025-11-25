@@ -26,6 +26,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideWorker } from "@/lib/services/pyodide/core/pyodide-worker.enum"
 import { StatisticsTable, TableColumn } from "@/components/statistics/common/StatisticsTable"
+import { openDataWindow } from '@/lib/utils/open-data-window'
 
 // ============================================================================
 // 타입 정의
@@ -306,11 +307,11 @@ export default function MoodMedianTestPage() {
   // Open new window handler
   const handleOpenNewWindow = useCallback(() => {
     if (!uploadedData) return
-    // Open data in new window for detailed view
-    const newWindow = window.open('', '_blank')
-    if (newWindow) {
-      newWindow.document.write(`<h1>${uploadedData.fileName}</h1>`)
-    }
+    openDataWindow({
+      fileName: uploadedData.fileName,
+      columns: uploadedData.columns,
+      data: uploadedData.data
+    })
   }, [uploadedData])
 
   // Render methods

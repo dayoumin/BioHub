@@ -441,7 +441,7 @@ export const BoxPlot = memo(function BoxPlot({
   const renderTable = () => {
     return (
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead>
             <tr className="border-b">
               <th className="text-left py-2 px-3">그룹</th>
@@ -688,7 +688,7 @@ export const BoxPlot = memo(function BoxPlot({
           {/* Info tooltip */}
           <div className="flex items-start gap-2 mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
             <Info className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
-            <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+            <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1.5">
               <p className="font-medium">박스플롯 해석 가이드</p>
               <p>• 박스: 데이터의 50%가 포함된 범위 (Q1~Q3, IQR)</p>
               <p>• 중앙선: 데이터를 반으로 나누는 중앙값</p>

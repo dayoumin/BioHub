@@ -467,7 +467,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 ) : (
                   <div>
                     <p className="text-lg font-medium">{results.effectSize.value.toFixed(3)}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {results.effectSize.type}
                     </p>
                     <p className="text-xs text-primary/80 mt-1">
@@ -566,25 +566,25 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                   {results.additional.rSquared !== undefined && (
                     <div className="bg-muted/50 rounded p-2">
-                      <p className="text-xs text-muted-foreground">R²</p>
+                      <p className="text-sm text-muted-foreground">R²</p>
                       <p className="font-medium">{results.additional.rSquared.toFixed(4)}</p>
                     </div>
                   )}
                   {results.additional.adjustedRSquared !== undefined && (
                     <div className="bg-muted/50 rounded p-2">
-                      <p className="text-xs text-muted-foreground">Adj. R²</p>
+                      <p className="text-sm text-muted-foreground">Adj. R²</p>
                       <p className="font-medium">{results.additional.adjustedRSquared.toFixed(4)}</p>
                     </div>
                   )}
                   {results.additional.rmse !== undefined && (
                     <div className="bg-muted/50 rounded p-2">
-                      <p className="text-xs text-muted-foreground">RMSE</p>
+                      <p className="text-sm text-muted-foreground">RMSE</p>
                       <p className="font-medium">{results.additional.rmse.toFixed(4)}</p>
                     </div>
                   )}
                   {results.additional.vif && results.additional.vif.length > 0 && (
                     <div className="bg-muted/50 rounded p-2">
-                      <p className="text-xs text-muted-foreground">VIF (max)</p>
+                      <p className="text-sm text-muted-foreground">VIF (max)</p>
                       <p className={`font-medium ${Math.max(...results.additional.vif) > 10 ? 'text-red-600' : ''}`}>
                         {Math.max(...results.additional.vif).toFixed(2)}
                         {Math.max(...results.additional.vif) > 10 && ' ⚠'}
@@ -656,30 +656,30 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   <p className="font-medium mb-2">🎯 분류 성능</p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     <div className="bg-muted/50 rounded p-2">
-                      <p className="text-xs text-muted-foreground">정확도</p>
+                      <p className="text-sm text-muted-foreground">정확도</p>
                       <p className="font-medium">{(results.additional.accuracy * 100).toFixed(1)}%</p>
                     </div>
                     {results.additional.precision !== undefined && (
                       <div className="bg-muted/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">정밀도</p>
+                        <p className="text-sm text-muted-foreground">정밀도</p>
                         <p className="font-medium">{(results.additional.precision * 100).toFixed(1)}%</p>
                       </div>
                     )}
                     {results.additional.recall !== undefined && (
                       <div className="bg-muted/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">재현율</p>
+                        <p className="text-sm text-muted-foreground">재현율</p>
                         <p className="font-medium">{(results.additional.recall * 100).toFixed(1)}%</p>
                       </div>
                     )}
                     {results.additional.f1Score !== undefined && (
                       <div className="bg-muted/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">F1 Score</p>
+                        <p className="text-sm text-muted-foreground">F1 Score</p>
                         <p className="font-medium">{results.additional.f1Score.toFixed(3)}</p>
                       </div>
                     )}
                     {results.additional.rocAuc !== undefined && (
                       <div className="bg-muted/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">ROC AUC</p>
+                        <p className="text-sm text-muted-foreground">ROC AUC</p>
                         <p className="font-medium">{results.additional.rocAuc.toFixed(3)}</p>
                       </div>
                     )}
@@ -693,12 +693,12 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   <p className="font-medium mb-2">🎯 군집 분석</p>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="bg-muted/50 rounded p-2">
-                      <p className="text-xs text-muted-foreground">Silhouette Score</p>
+                      <p className="text-sm text-muted-foreground">Silhouette Score</p>
                       <p className="font-medium">{results.additional.silhouetteScore.toFixed(3)}</p>
                     </div>
                     {results.additional.clusters && (
                       <div className="bg-muted/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">군집 수</p>
+                        <p className="text-sm text-muted-foreground">군집 수</p>
                         <p className="font-medium">{new Set(results.additional.clusters).size}</p>
                       </div>
                     )}
@@ -723,7 +723,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                         <span className="w-16 text-right">{(ratio * 100).toFixed(1)}%</span>
                       </div>
                     ))}
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       누적: {(results.additional.explainedVarianceRatio.reduce((a, b) => a + b, 0) * 100).toFixed(1)}%
                     </p>
                   </div>
@@ -753,7 +753,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {results.additional?.power !== undefined && (
                       <div className="bg-muted/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">검정력</p>
+                        <p className="text-sm text-muted-foreground">검정력</p>
                         <p className={`font-medium ${results.additional.power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
                           {(results.additional.power * 100).toFixed(1)}%
                         </p>
@@ -761,7 +761,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     )}
                     {results.additional?.requiredSampleSize !== undefined && (
                       <div className="bg-muted/50 rounded p-2">
-                        <p className="text-xs text-muted-foreground">필요 표본 크기</p>
+                        <p className="text-sm text-muted-foreground">필요 표본 크기</p>
                         <p className="font-medium">{results.additional.requiredSampleSize}</p>
                       </div>
                     )}
@@ -781,7 +781,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
               <p className="text-sm">
                 <strong>통계적 유의성:</strong> {interpretPValue(results.pValue)}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {results.pValue < 0.05
                   ? `두 집단 간 유의한 차이가 있습니다 (p=${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
                   : `통계적으로 유의한 차이가 발견되지 않았습니다 (p=${results.pValue.toFixed(3)}).`
@@ -802,7 +802,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                         <span>정규성 (그룹 1):</span>
                         <span className={results.assumptions.normality.group1.isNormal ? 'text-green-600' : 'text-yellow-600'}>
                           {results.assumptions.normality.group1.isNormal ? '✓ 만족' : '⚠ 위반'}
-                          (p={results.assumptions.normality.group1.pValue.toFixed(3)})
+                          {results.assumptions.normality.group1.pValue !== undefined && (
+                            <> (p={results.assumptions.normality.group1.pValue.toFixed(3)})</>
+                          )}
                         </span>
                       </div>
                     )}
@@ -811,7 +813,9 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                         <span>정규성 (그룹 2):</span>
                         <span className={results.assumptions.normality.group2.isNormal ? 'text-green-600' : 'text-yellow-600'}>
                           {results.assumptions.normality.group2.isNormal ? '✓ 만족' : '⚠ 위반'}
-                          (p={results.assumptions.normality.group2.pValue.toFixed(3)})
+                          {results.assumptions.normality.group2.pValue !== undefined && (
+                            <> (p={results.assumptions.normality.group2.pValue.toFixed(3)})</>
+                          )}
                         </span>
                       </div>
                     )}
@@ -822,7 +826,10 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     <span>등분산성:</span>
                     <span className={(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? 'text-green-600' : 'text-yellow-600'}>
                       {(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? '✓ 만족' : '⚠ 위반'}
-                      (p={(results.assumptions.homogeneity.levene?.pValue ?? results.assumptions.homogeneity.bartlett?.pValue ?? 0).toFixed(3)})
+                      {(() => {
+                        const pValue = results.assumptions.homogeneity.levene?.pValue ?? results.assumptions.homogeneity.bartlett?.pValue
+                        return pValue !== undefined ? ` (p=${pValue.toFixed(3)})` : ''
+                      })()}
                     </span>
                   </div>
                 )}

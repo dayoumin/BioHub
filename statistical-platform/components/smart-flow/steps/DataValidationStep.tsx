@@ -15,20 +15,7 @@ import { Button } from '@/components/ui/button'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
-
-// HTML escape 함수 - XSS 공격 방지
-function escapeHtml(text: string | number | null | undefined): string {
-  if (text == null) return ''
-  const str = String(text)
-  const map: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  }
-  return str.replace(/[&<>"']/g, m => map[m])
-}
+import { openDataWindow } from '@/lib/utils/open-data-window'
 
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
@@ -53,135 +40,17 @@ export const DataValidationStep = memo(function DataValidationStep({
   // 중복 클릭 방지
   const [isNavigating, setIsNavigating] = useState(false)
 
-  // 새 창으로 데이터 보기
+  // 새 창으로 데이터 보기 (공유 유틸리티 사용)
   const handleOpenDataInNewWindow = useCallback(() => {
     if (!data || data.length === 0) return
 
-    // 데이터를 HTML 테이블로 변환
     const columns = Object.keys(data[0])
-    const htmlContent = `
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>전체 데이터 - ${uploadedFile?.name || uploadedFileName || '데이터'}</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    .container {
-      max-width: 100%;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-    .header {
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #e5e5e5;
-    }
-    h1 {
-      font-size: 24px;
-      color: #333;
-      margin-bottom: 8px;
-    }
-    .info {
-      color: #666;
-      font-size: 14px;
-    }
-    .table-wrapper {
-      overflow: auto;
-      max-height: calc(100vh - 140px);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    th {
-      position: sticky;
-      top: 0;
-      background: #f8f9fa;
-      color: #333;
-      font-weight: 600;
-      padding: 12px 8px;
-      text-align: left;
-      border-bottom: 2px solid #dee2e6;
-      z-index: 10;
-    }
-    td {
-      padding: 10px 8px;
-      border-bottom: 1px solid #e9ecef;
-      color: #495057;
-    }
-    tr:hover {
-      background-color: #f8f9fa;
-    }
-    .row-number {
-      background: #f1f3f5;
-      font-weight: 500;
-      color: #868e96;
-      text-align: center;
-      width: 60px;
-    }
-    @media print {
-      body {
-        background: white;
-        padding: 0;
-      }
-      .container {
-        box-shadow: none;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>${escapeHtml(uploadedFile?.name || uploadedFileName || '업로드된 데이터')}</h1>
-      <div class="info">
-        총 ${validationResults.totalRows.toLocaleString()}행 × ${validationResults.columnCount}개 변수
-      </div>
-    </div>
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th class="row-number">#</th>
-            ${columns.map(col => `<th>${escapeHtml(col)}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${data.map((row, idx) => `
-            <tr>
-              <td class="row-number">${idx + 1}</td>
-              ${columns.map(col => `<td>${escapeHtml(row[col])}</td>`).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</body>
-</html>
-    `
-
-    // 새 창 열기
-    const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
-    if (newWindow) {
-      newWindow.document.write(htmlContent)
-      newWindow.document.close()
-    }
-  }, [data, uploadedFile, uploadedFileName, validationResults?.totalRows, validationResults?.columnCount])
+    openDataWindow({
+      fileName: uploadedFile?.name || uploadedFileName || '업로드된 데이터',
+      columns,
+      data
+    })
+  }, [data, uploadedFile, uploadedFileName])
 
   // Type-safe column stats extraction
   const columnStats = useMemo(() =>
@@ -429,7 +298,7 @@ export const DataValidationStep = memo(function DataValidationStep({
           {(hasErrors || hasWarnings) && (
             <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
               <p className="text-sm font-medium mb-2">확인 필요 사항</p>
-              <ul className="text-xs space-y-1">
+              <ul className="text-sm space-y-1">
                 {validationResults.errors?.map((error: string, idx: number) => (
                   <li key={`error-${idx}`} className="text-error">• {error}</li>
                 ))}

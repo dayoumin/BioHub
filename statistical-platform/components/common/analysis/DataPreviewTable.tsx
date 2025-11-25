@@ -82,7 +82,7 @@ export function DataPreviewTable({
             <CardTitle className="text-base font-medium">
               {title}
             </CardTitle>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               ({displayData.length.toLocaleString()}행 × {columns.length}열
               {data.length > maxRows && ` / 전체 ${data.length.toLocaleString()}행`})
             </span>

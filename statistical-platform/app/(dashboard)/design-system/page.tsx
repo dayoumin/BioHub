@@ -760,9 +760,9 @@ animation: {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
                       <div>
-                        <h4 className="font-medium">샘플 데이터 (5행 × 5열)</h4>
+                        <h4 className="font-medium">샘플 데이터 (30행 × 5열)</h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          group, value, age, score, time 변수
+                          group, value, age, score, time 변수 (스크롤 테스트용)
                         </p>
                       </div>
                       <Button
@@ -770,15 +770,17 @@ animation: {
                         size="sm"
                         className="gap-2"
                         onClick={() => {
-                          const sampleData = [
-                            { group: 'A', value: 10, age: 25, score: 85, time: '10:30' },
-                            { group: 'B', value: 20, age: 30, score: 90, time: '11:00' },
-                            { group: 'A', value: 15, age: 28, score: 88, time: '10:45' },
-                            { group: 'B', value: 25, age: 32, score: 92, time: '11:15' },
-                            { group: 'A', value: 12, age: 26, score: 86, time: '10:35' }
-                          ]
+                          // 30 rows of sample data for scroll demonstration
+                          const sampleData = Array.from({ length: 30 }, (_, i) => ({
+                            group: i % 3 === 0 ? 'A' : i % 3 === 1 ? 'B' : 'C',
+                            value: Math.round(10 + Math.random() * 90),
+                            age: Math.round(20 + Math.random() * 40),
+                            score: Math.round(60 + Math.random() * 40),
+                            time: `${String(9 + Math.floor(i / 6)).padStart(2, '0')}:${String((i * 10) % 60).padStart(2, '0')}`
+                          }))
 
                           const columns = Object.keys(sampleData[0])
+                          // 2024 Modern Pattern: Monochrome Design System
                           const htmlContent = `
 <!DOCTYPE html>
 <html lang="ko">
@@ -792,74 +794,131 @@ animation: {
       padding: 0;
       box-sizing: border-box;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 20px;
-      background: #f5f5f5;
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      background: hsl(0 0% 96%);
     }
     .container {
-      max-width: 100%;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      padding: 20px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 16px;
     }
     .header {
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 2px solid #e5e5e5;
+      flex-shrink: 0;
+      background: hsl(0 0% 100%);
+      border: 1px solid hsl(0 0% 90%);
+      border-radius: 12px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     h1 {
-      font-size: 24px;
-      color: #333;
-      margin-bottom: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      color: hsl(0 0% 10%);
+      margin-bottom: 4px;
+      letter-spacing: -0.01em;
     }
     .info {
-      color: #666;
+      color: hsl(0 0% 45%);
       font-size: 14px;
+      font-weight: 400;
+    }
+    .info strong {
+      color: hsl(0 0% 20%);
+      font-weight: 600;
+    }
+    .table-container {
+      flex: 1;
+      min-height: 0;
+      background: hsl(0 0% 100%);
+      border: 1px solid hsl(0 0% 90%);
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     .table-wrapper {
+      flex: 1;
       overflow: auto;
-      max-height: calc(100vh - 140px);
+      min-height: 0;
+    }
+    .table-wrapper::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .table-wrapper::-webkit-scrollbar-track {
+      background: hsl(0 0% 96%);
+    }
+    .table-wrapper::-webkit-scrollbar-thumb {
+      background: hsl(0 0% 80%);
+      border-radius: 4px;
+    }
+    .table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: hsl(0 0% 65%);
     }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
     }
-    th {
+    thead {
       position: sticky;
       top: 0;
-      background: #f8f9fa;
-      color: #333;
-      font-weight: 600;
-      padding: 12px 8px;
-      text-align: left;
-      border-bottom: 2px solid #dee2e6;
       z-index: 10;
     }
-    td {
-      padding: 10px 8px;
-      border-bottom: 1px solid #e9ecef;
-      color: #495057;
+    th {
+      background: hsl(0 0% 98%);
+      color: hsl(0 0% 25%);
+      font-weight: 600;
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid hsl(0 0% 90%);
+      white-space: nowrap;
     }
-    tr:hover {
-      background-color: #f8f9fa;
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid hsl(0 0% 95%);
+      color: hsl(0 0% 30%);
+      transition: background-color 0.1s ease;
+    }
+    tr:hover td {
+      background-color: hsl(0 0% 98%);
+    }
+    tr:last-child td {
+      border-bottom: none;
     }
     .row-number {
-      background: #f1f3f5;
+      background: hsl(0 0% 98%);
       font-weight: 500;
-      color: #868e96;
+      color: hsl(0 0% 55%);
       text-align: center;
-      width: 60px;
+      width: 50px;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    tr:hover .row-number {
+      background: hsl(0 0% 95%);
+      color: hsl(0 0% 25%);
     }
     @media print {
-      body {
+      html, body {
+        height: auto;
+        overflow: visible;
         background: white;
-        padding: 0;
       }
       .container {
+        height: auto;
+        padding: 0;
+      }
+      .header, .table-container {
         box-shadow: none;
+        border: none;
+        border-radius: 0;
       }
     }
   </style>
@@ -869,33 +928,36 @@ animation: {
     <div class="header">
       <h1>샘플 데이터 (디자인 시스템)</h1>
       <div class="info">
-        총 5행 × 5개 변수
+        총 <strong>${sampleData.length}</strong>행 × <strong>${columns.length}</strong>개 변수
       </div>
     </div>
-    <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th class="row-number">#</th>
-            ${columns.map(col => `<th>${col}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${sampleData.map((row, idx) => `
+    <div class="table-container">
+      <div class="table-wrapper">
+        <table>
+          <thead>
             <tr>
-              <td class="row-number">${idx + 1}</td>
-              ${columns.map(col => `<td>${row[col as keyof typeof row] ?? ''}</td>`).join('')}
+              <th class="row-number">#</th>
+              ${columns.map(col => `<th>${col}</th>`).join('')}
             </tr>
-          `).join('')}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${sampleData.map((row, idx) => `
+              <tr>
+                <td class="row-number">${idx + 1}</td>
+                ${columns.map(col => `<td>${row[col as keyof typeof row] ?? ''}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </body>
 </html>
                           `
 
-                          const newWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')
+                          // scrollbars=yes removed for single scrollbar
+                          const newWindow = window.open('', '_blank', 'width=1200,height=800,resizable=yes')
                           if (newWindow) {
                             newWindow.document.write(htmlContent)
                             newWindow.document.close()
@@ -909,17 +971,86 @@ animation: {
                     </div>
                   </div>
 
-                  {/* 기능 설명 */}
-                  <div className="bg-primary/5 rounded-lg p-4 space-y-2">
-                    <h4 className="font-medium text-sm">✨ 주요 기능:</h4>
-                    <ul className="text-xs text-muted-foreground space-y-1">
-                      <li>• ✅ Sticky Header (스크롤 시 헤더 고정)</li>
-                      <li>• ✅ 행 번호 표시 (#1, #2, #3...)</li>
-                      <li>• ✅ Hover 효과 (마우스 오버 시 배경 변경)</li>
-                      <li>• ✅ 인쇄 지원 (@media print)</li>
-                      <li>• ✅ 반응형 디자인 (모바일/태블릿 대응)</li>
-                      <li>• ✅ 대용량 데이터 최적화 (가상 스크롤 가능)</li>
-                    </ul>
+                  {/* 2024 Modern Pattern 특징 */}
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-3 border border-border">
+                    <h4 className="font-medium text-sm flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-foreground"></span>
+                      2024 Modern Pattern
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">Layout</p>
+                        <ul className="text-muted-foreground space-y-0.5">
+                          <li>• Flex-based Full Viewport</li>
+                          <li>• Single scrollbar (no double)</li>
+                          <li>• min-height: 0 (flex bug fix)</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">Visual</p>
+                        <ul className="text-muted-foreground space-y-0.5">
+                          <li>• Glassmorphism header</li>
+                          <li>• Gradient background</li>
+                          <li>• Custom scrollbar</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">Typography</p>
+                        <ul className="text-muted-foreground space-y-0.5">
+                          <li>• Tailwind color system</li>
+                          <li>• tabular-nums for numbers</li>
+                          <li>• letter-spacing: -0.02em</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">UX</p>
+                        <ul className="text-muted-foreground space-y-0.5">
+                          <li>• Smooth hover transitions</li>
+                          <li>• Sticky thead</li>
+                          <li>• Print-friendly</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modern Pattern 핵심 규칙 */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="text-left p-3 font-medium border-b">항목</th>
+                          <th className="text-left p-3 font-medium border-b border-l">권장 패턴</th>
+                          <th className="text-left p-3 font-medium border-b border-l">설명</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        <tr>
+                          <td className="p-2.5 text-muted-foreground">레이아웃</td>
+                          <td className="p-2.5 border-l"><code className="text-[10px]">flex + height: 100vh</code></td>
+                          <td className="p-2.5 border-l text-muted-foreground">전체 화면 활용</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 text-muted-foreground">배경</td>
+                          <td className="p-2.5 border-l"><code className="text-[10px]">hsl(0 0% 96%)</code></td>
+                          <td className="p-2.5 border-l text-muted-foreground">모노크롬 시스템</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 text-muted-foreground">카드</td>
+                          <td className="p-2.5 border-l"><code className="text-[10px]">border + box-shadow</code></td>
+                          <td className="p-2.5 border-l text-muted-foreground">깊이감 표현</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 text-muted-foreground">스크롤</td>
+                          <td className="p-2.5 border-l"><code className="text-[10px]">단일 + 커스텀</code></td>
+                          <td className="p-2.5 border-l text-muted-foreground">이중 스크롤 방지</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 text-muted-foreground">높이</td>
+                          <td className="p-2.5 border-l"><code className="text-[10px]">flex: 1; min-height: 0</code></td>
+                          <td className="p-2.5 border-l text-muted-foreground">Flex 버그 방지</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
                   {/* 사용 시나리오 */}
@@ -936,13 +1067,17 @@ animation: {
 
                   {/* Props 테이블 */}
                   <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                    <h4 className="font-medium text-sm">함수 시그니처:</h4>
-                    <pre className="text-xs"><code>{`const handleOpenDataInNewWindow = (
-  data: DataRow[],
-  fileName?: string,
-  totalRows: number,
-  columnCount: number
-) => void`}</code></pre>
+                    <h4 className="font-medium text-sm">공유 유틸리티 인터페이스:</h4>
+                    <pre className="text-xs"><code>{`// lib/utils/open-data-window.ts
+interface OpenDataWindowOptions {
+  fileName: string
+  columns: string[]
+  data: Record<string, unknown>[]
+  width?: number   // default: 1200
+  height?: number  // default: 800
+}
+
+function openDataWindow(options: OpenDataWindowOptions): void`}</code></pre>
                   </div>
 
                   {/* 사용 예제 */}
@@ -952,52 +1087,20 @@ animation: {
                       variant="ghost"
                       className="absolute top-2 right-2"
                       onClick={() => {
-                        const code = `// DataValidationStep.tsx에서 사용 예제
-const handleOpenDataInNewWindow = useCallback(() => {
-  if (!data || data.length === 0) return
+                        const code = `// 공유 유틸리티 사용 (권장)
+import { openDataWindow } from '@/lib/utils/open-data-window'
 
-  const columns = Object.keys(data[0])
-  const htmlContent = \`
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>전체 데이터 - \${fileName}</title>
-  <style>
-    /* Sticky header, 행 번호, hover 효과 등 */
-    th { position: sticky; top: 0; background: #f8f9fa; }
-  </style>
-</head>
-<body>
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        \${columns.map(col => \`<th>\${col}</th>\`).join('')}
-      </tr>
-    </thead>
-    <tbody>
-      \${data.map((row, idx) => \`
-        <tr>
-          <td>\${idx + 1}</td>
-          \${columns.map(col => \`<td>\${row[col] ?? ''}</td>\`).join('')}
-        </tr>
-      \`).join('')}
-    </tbody>
-  </table>
-</body>
-</html>
-  \`
-
-  const newWindow = window.open('', '_blank', 'width=1200,height=800')
-  if (newWindow) {
-    newWindow.document.write(htmlContent)
-    newWindow.document.close()
-  }
-}, [data, fileName])
+const handleOpenNewWindow = useCallback(() => {
+  if (!uploadedData) return
+  openDataWindow({
+    fileName: uploadedData.fileName,
+    columns: uploadedData.columns,
+    data: uploadedData.data
+  })
+}, [uploadedData])
 
 // 사용
-<Button onClick={handleOpenDataInNewWindow}>
+<Button onClick={handleOpenNewWindow}>
   <ExternalLink className="w-4 h-4" />
   새 창으로 보기
 </Button>`
@@ -1007,52 +1110,20 @@ const handleOpenDataInNewWindow = useCallback(() => {
                       {copiedCode === '새 창 열기 코드' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
                     <pre className="text-xs bg-muted p-4 rounded-lg overflow-x-auto">
-                      <code>{`// DataValidationStep.tsx에서 사용 예제
-const handleOpenDataInNewWindow = useCallback(() => {
-  if (!data || data.length === 0) return
+                      <code>{`// 공유 유틸리티 사용 (권장)
+import { openDataWindow } from '@/lib/utils/open-data-window'
 
-  const columns = Object.keys(data[0])
-  const htmlContent = \`
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>전체 데이터 - \${fileName}</title>
-  <style>
-    /* Sticky header, 행 번호, hover 효과 등 */
-    th { position: sticky; top: 0; background: #f8f9fa; }
-  </style>
-</head>
-<body>
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        \${columns.map(col => \`<th>\${col}</th>\`).join('')}
-      </tr>
-    </thead>
-    <tbody>
-      \${data.map((row, idx) => \`
-        <tr>
-          <td>\${idx + 1}</td>
-          \${columns.map(col => \`<td>\${row[col] ?? ''}</td>\`).join('')}
-        </tr>
-      \`).join('')}
-    </tbody>
-  </table>
-</body>
-</html>
-  \`
-
-  const newWindow = window.open('', '_blank', 'width=1200,height=800')
-  if (newWindow) {
-    newWindow.document.write(htmlContent)
-    newWindow.document.close()
-  }
-}, [data, fileName])
+const handleOpenNewWindow = useCallback(() => {
+  if (!uploadedData) return
+  openDataWindow({
+    fileName: uploadedData.fileName,
+    columns: uploadedData.columns,
+    data: uploadedData.data
+  })
+}, [uploadedData])
 
 // 사용
-<Button onClick={handleOpenDataInNewWindow}>
+<Button onClick={handleOpenNewWindow}>
   <ExternalLink className="w-4 h-4" />
   새 창으로 보기
 </Button>`}</code>

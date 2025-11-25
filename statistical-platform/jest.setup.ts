@@ -16,25 +16,32 @@ if (typeof global.structuredClone !== 'function') {
       return copy;
     }
 
-    // Handle TypedArray
+    // Handle TypedArray and DataView
     if (ArrayBuffer.isView(obj)) {
-      return obj.slice();
+      // DataView doesn't have slice(), need special handling
+      if (obj instanceof DataView) {
+        const buffer = obj.buffer.slice(obj.byteOffset, obj.byteOffset + obj.byteLength);
+        return new DataView(buffer);
+      }
+      // TypedArray: use constructor to preserve type (Float64Array, Int32Array, etc.)
+      // @ts-expect-error - TypedArray constructor exists
+      return new obj.constructor(obj);
     }
 
     // Handle objects with ArrayBuffer properties
     if (typeof obj === 'object' && obj !== null) {
-      const clone: Record<string, unknown> = Array.isArray(obj) ? [] : {};
+      const clone: Record<string, unknown> | unknown[] = Array.isArray(obj) ? [] : {};
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
           const value = (obj as Record<string, unknown>)[key];
           if (value instanceof ArrayBuffer) {
             const copy = new ArrayBuffer(value.byteLength);
             new Uint8Array(copy).set(new Uint8Array(value));
-            clone[key] = copy;
+            (clone as Record<string, unknown>)[key] = copy;
           } else if (typeof value === 'object') {
-            clone[key] = global.structuredClone(value);
+            (clone as Record<string, unknown>)[key] = global.structuredClone(value);
           } else {
-            clone[key] = value;
+            (clone as Record<string, unknown>)[key] = value;
           }
         }
       }
@@ -59,6 +66,7 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 }));
 
 // 테스트 환경 변수 설정
+// @ts-expect-error - Jest 환경에서 NODE_ENV 설정
 process.env.NODE_ENV = 'test';
 
 // PyodideStatisticsService mock

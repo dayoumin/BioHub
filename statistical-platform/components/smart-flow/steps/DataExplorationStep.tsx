@@ -464,7 +464,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       {assumptionResults.normality.shapiroWilk.isNormal ? '정규분포' : '비정규분포'}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-muted-foreground">통계량: </span>
                       <span className="font-mono">{(assumptionResults.normality.shapiroWilk.statistic ?? 0).toFixed(4)}</span>
@@ -474,7 +474,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       <span className="font-mono">{(assumptionResults.normality.shapiroWilk.pValue ?? 0).toFixed(4)}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-sm text-muted-foreground mt-2">
                     {assumptionResults.normality.shapiroWilk.isNormal
                       ? '✓ 정규분포 가정을 만족합니다 (p ≥ 0.05). 모수 검정 사용 가능합니다.'
                       : '⚠ 정규분포 가정을 만족하지 않습니다 (p < 0.05). 비모수 검정 고려가 필요합니다.'}
@@ -491,7 +491,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       {assumptionResults.homogeneity.levene.equalVariance ? '등분산' : '이분산'}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-muted-foreground">통계량: </span>
                       <span className="font-mono">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</span>
@@ -501,7 +501,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       <span className="font-mono">{(assumptionResults.homogeneity.levene.pValue ?? 0).toFixed(4)}</span>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-sm text-muted-foreground mt-2">
                     {assumptionResults.homogeneity.levene.equalVariance
                       ? '✓ 등분산 가정을 만족합니다 (p ≥ 0.05).'
                       : '⚠ 등분산 가정을 만족하지 않습니다 (p < 0.05). Welch 검정 고려가 필요합니다.'}
@@ -625,7 +625,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                           showTrendLine={true}
                           correlationCoefficient={r}
                         />
-                        <div className="mt-2 text-xs text-muted-foreground bg-background p-3 rounded-lg border">
+                        <div className="mt-2 text-sm text-muted-foreground bg-background p-3 rounded-lg border">
                           <p className="font-medium mb-1">📊 통계 요약:</p>
                           <div className="grid grid-cols-3 gap-2">
                             <div>
@@ -674,7 +674,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <div className="text-center">
                     <p className="text-sm font-medium">상관계수 계산 중...</p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {numericVariables.length}개 변수 분석
                     </p>
                   </div>
@@ -708,7 +708,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                     ))}
                   </div>
 
-                  <div className="mt-4 text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="mt-4 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="font-medium mb-1">💡 상관계수 해석:</p>
                     <ul className="list-disc list-inside space-y-1">
                       <li><strong>|r| ≥ 0.7</strong>: 매우 강한 상관</li>
