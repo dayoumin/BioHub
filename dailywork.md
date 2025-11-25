@@ -53,11 +53,29 @@
 
 ---
 
-#### 4. 미완료 작업 (내일 진행)
+#### 4. 분석 히스토리 기능 점검
+
+**점검 결과**: 전반적으로 정상 작동
+
+| 기능 | 상태 |
+|-----|------|
+| 히스토리 패널 토글 | ✅ |
+| IndexedDB 영구 저장 | ✅ |
+| 검색/필터 (null 안전) | ✅ |
+| 삭제 확인 다이얼로그 | ✅ |
+
+**개선 필요 사항** (다음 작업):
+- [ ] "새 분석 시작" 버튼 onClick 핸들러 추가 ([AnalysisHistoryPanel.tsx:101-103](statistical-platform/components/smart-flow/AnalysisHistoryPanel.tsx#L101-L103))
+- [ ] 전체 삭제 시 확인 다이얼로그 추가 ([AnalysisHistoryPanel.tsx:152](statistical-platform/components/smart-flow/AnalysisHistoryPanel.tsx#L152))
+- [ ] 필터 드롭다운에 method.name 표시로 변경 ([AnalysisHistoryPanel.tsx:143](statistical-platform/components/smart-flow/AnalysisHistoryPanel.tsx#L143))
+- [ ] "현재 분석 저장" prompt() → 모달 다이얼로그로 개선
+
+---
+
+#### 5. 미완료 작업 (내일 진행)
 
 - [ ] Step 2, 3, 4 헤더 UI 일관성 적용
-  - Sticky 헤더 vs 일반 헤더 중 적절한 방식 선택
-  - 파일 정보 + 이전/다음 네비게이션 버튼 배치
+- [ ] 분석 히스토리 UX 개선 (위 4개 항목)
 
 ---
 
@@ -241,5 +259,3 @@ npm test __tests__/lib/interpretation/engine-advanced.test.ts
 ---
 
 **작업 완료**: 2025-11-23 ✅
-
-
