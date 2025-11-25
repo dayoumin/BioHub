@@ -1,3 +1,66 @@
+## 2025-11-25 (월)
+
+### 🔧 스마트 분석 흐름 개선: Step 1-2 UX 재설계
+
+**총 작업 시간**: 약 2시간
+**주요 성과**: 데이터 업로드 후 사용자 확인 단계 추가 + 콘텐츠 재배치
+
+---
+
+#### 1. Step 1 자동 네비게이션 제거
+
+**문제**: 파일 업로드 후 자동으로 Step 2로 이동하여 사용자가 검증 결과를 확인할 시간이 없음
+
+**해결**:
+- **파일 수정**: [page.tsx](statistical-platform/app/smart-flow/page.tsx)
+- `handleUploadComplete`에서 `goToNextStep()` 호출 제거
+- 사용자가 "데이터 탐색하기" 버튼을 클릭해야 다음 단계로 이동
+
+---
+
+#### 2. Step 1 헤더 UI 개선
+
+**변경 사항**:
+- **파일 수정**: [DataValidationStep.tsx](statistical-platform/components/smart-flow/steps/DataValidationStep.tsx)
+- "데이터 탐색하기" 버튼을 파일 정보 줄 우측에 배치
+- Sticky 헤더로 스크롤 시에도 버튼 접근 가능
+
+**새 레이아웃**:
+```
+[현재 파일] 파일명.csv (30행 × 5열)     [데이터 탐색하기]
+```
+
+---
+
+#### 3. Step 1-2 콘텐츠 재배치
+
+**Step 1 (데이터 업로드 및 검증)**:
+- ✅ 파일 업로드 영역
+- ✅ 데이터 요약 카드 (표본 크기, 변수 개수, 결측치, 품질)
+- ✅ 분석 추천 카드 ("이 데이터로 할 수 있는 분석")
+- ✅ 변수 요약 테이블 (변수명, 유형, 고유값, 결측)
+- ❌ 히스토그램/박스플롯 → Step 2로 이동
+- ❌ 전체 데이터 스크롤 테이블 → Step 2로 이동
+
+**Step 2 (데이터 탐색)**:
+- ✅ 기초 통계량 테이블
+- ✅ 통계적 가정 검증 (정규성, 등분산성)
+- ✅ 데이터 분포 시각화 (히스토그램, 박스플롯) - **NEW**
+- ✅ 산점도 / 상관계수 행렬
+- ✅ 전체 데이터 테이블 - **NEW**
+
+**파일 수정**: [DataExplorationStep.tsx](statistical-platform/components/smart-flow/steps/DataExplorationStep.tsx)
+
+---
+
+#### 4. 미완료 작업 (내일 진행)
+
+- [ ] Step 2, 3, 4 헤더 UI 일관성 적용
+  - Sticky 헤더 vs 일반 헤더 중 적절한 방식 선택
+  - 파일 정보 + 이전/다음 네비게이션 버튼 배치
+
+---
+
 ## 2025-11-23 (토)
 
 ### 🔍 Phase 4 완료: Discriminant Analysis 해석 엔진 + 가드 테스트
