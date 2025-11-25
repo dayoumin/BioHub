@@ -467,11 +467,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <span className="text-muted-foreground">통계량: </span>
-                      <span className="font-mono">{assumptionResults.normality.shapiroWilk.statistic.toFixed(4)}</span>
+                      <span className="font-mono">{(assumptionResults.normality.shapiroWilk.statistic ?? 0).toFixed(4)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">p-value: </span>
-                      <span className="font-mono">{assumptionResults.normality.shapiroWilk.pValue.toFixed(4)}</span>
+                      <span className="font-mono">{(assumptionResults.normality.shapiroWilk.pValue ?? 0).toFixed(4)}</span>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
@@ -494,11 +494,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <span className="text-muted-foreground">통계량: </span>
-                      <span className="font-mono">{assumptionResults.homogeneity.levene.statistic.toFixed(4)}</span>
+                      <span className="font-mono">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">p-value: </span>
-                      <span className="font-mono">{assumptionResults.homogeneity.levene.pValue.toFixed(4)}</span>
+                      <span className="font-mono">{(assumptionResults.homogeneity.levene.pValue ?? 0).toFixed(4)}</span>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">

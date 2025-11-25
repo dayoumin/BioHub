@@ -220,7 +220,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               dataKey="mean"
               fill={CHART_COLORS.primary()}
               name="평균"
-              label={{ position: 'top', formatter: (value: number) => value.toFixed(2) }}
+              label={{ position: 'top', formatter: (label) => typeof label === 'number' ? label.toFixed(2) : String(label) }}
               radius={[8, 8, 0, 0]}
             >
               {chartData.groupData.map((entry, index) => (
@@ -400,7 +400,7 @@ export function ResultsVisualization({ results }: ResultsVisualizationProps) {
               dataKey="mean"
               fill={CHART_COLORS.accent()}
               name="중위수/평균"
-              label={{ position: 'top', formatter: (value: number) => value.toFixed(2) }}
+              label={{ position: 'top', formatter: (label) => typeof label === 'number' ? label.toFixed(2) : String(label) }}
               radius={[8, 8, 0, 0]}
             >
               {chartData.groupData.map((_, index) => (

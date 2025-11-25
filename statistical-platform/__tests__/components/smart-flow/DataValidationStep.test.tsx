@@ -12,10 +12,22 @@ describe('DataValidationStep Bug Fixes', () => {
   describe('Bug #2: categoricalColumns 필터링', () => {
     it('숫자형 열을 categoricalColumns에 포함 (uniqueValues <= 20인 경우)', () => {
       const columnStats = [
-        { name: 'age', type: 'numeric', uniqueValues: 5 },  // uniqueValues <= 20 → 포함
-        { name: 'gender', type: 'categorical', uniqueValues: 2 },
-        { name: 'income', type: 'numeric', uniqueValues: 100 },  // uniqueValues > 20 → 제외
-        { name: 'status', type: 'categorical', uniqueValues: 3 }
+        { name: 'age', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 5 },  // uniqueValues <= 20 → 포함
+        { name: 'gender', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 },
+        { name: 'income', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 100 },  // uniqueValues > 20 → 제외
+        { name: 'status', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 3 }
       ]
 
       const { result } = renderHook(() =>
@@ -39,9 +51,18 @@ describe('DataValidationStep Bug Fixes', () => {
 
     it('uniqueValues <= 20인 숫자형 열이 categoricalColumns에 포함되어야 함 (Revised)', () => {
       const columnStats = [
-        { name: 'score', type: 'numeric', uniqueValues: 10 },  // uniqueValues <= 20
-        { name: 'rating', type: 'numeric', uniqueValues: 5 },   // uniqueValues <= 20
-        { name: 'category', type: 'categorical', uniqueValues: 3 }
+        { name: 'score', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 10 },  // uniqueValues <= 20
+        { name: 'rating', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 5 },   // uniqueValues <= 20
+        { name: 'category', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 3 }
       ]
 
       const { result } = renderHook(() =>
@@ -63,8 +84,14 @@ describe('DataValidationStep Bug Fixes', () => {
     it('Levene 검정 시나리오: 그룹 변수와 측정 변수가 동일하면 스킵되어야 함', () => {
       // 시나리오: age가 uniqueValues=5로 categoricalColumns에 포함됨 (숫자 인코딩된 범주형)
       const columnStats = [
-        { name: 'age', type: 'numeric', uniqueValues: 5 },  // categoricalColumns와 numericColumns 모두에 포함
-        { name: 'height', type: 'numeric', uniqueValues: 50 }
+        { name: 'age', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 5 },  // categoricalColumns와 numericColumns 모두에 포함
+        { name: 'height', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 }
       ]
 
       const numericColumns = columnStats.filter(s => s.type === 'numeric')
@@ -148,9 +175,18 @@ describe('DataValidationStep Bug Fixes', () => {
       ]
 
       const columnStats = [
-        { name: 'age', type: 'numeric', uniqueValues: 3 },      // 25, 30, 35
-        { name: 'gender', type: 'categorical', uniqueValues: 2 }, // M, F
-        { name: 'height', type: 'numeric', uniqueValues: 5 }
+        { name: 'age', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 3 },      // 25, 30, 35
+        { name: 'gender', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 }, // M, F
+        { name: 'height', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 5 }
       ]
 
       const categoricalColumns = columnStats.filter(s => s.type === 'categorical')

@@ -32,16 +32,21 @@ describe('DataValidationStep UX Improvements', () => {
   }))
 
   const mockValidationResults: ValidationResults = {
+    isValid: true,
     totalRows: 50,
     columnCount: 4,
     missingValues: 0,
+    dataType: 'csv',
+    variables: ['age', 'weight', 'score', 'group'],
     errors: [],
     warnings: [],
     columnStats: [
       {
         name: 'age',
         type: 'numeric',
-        uniqueValues: 50,
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50,
         missingCount: 0,
         mean: 44.5,
         std: 14.43,
@@ -51,7 +56,9 @@ describe('DataValidationStep UX Improvements', () => {
       {
         name: 'score',
         type: 'numeric',
-        uniqueValues: 50,
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50,
         missingCount: 0,
         mean: 75,
         std: 14.43,
@@ -61,7 +68,9 @@ describe('DataValidationStep UX Improvements', () => {
       {
         name: 'group',
         type: 'categorical',
-        uniqueValues: 2,
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2,
         missingCount: 0
       }
     ]

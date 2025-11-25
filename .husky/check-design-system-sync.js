@@ -8,23 +8,23 @@ const path = require('path');
 const TRIGGERS = {
   // 1. Type Guards
   'statistical-platform/lib/utils/type-guards.ts':
-    'statistical-platform/app/(dashboard)/design-system/metadata/type-guards.json',
+    'statistical-platform/app/(dashboard)/design-system/coding-patterns/type-guards.json',
 
   // 2. RAG Components
   'statistical-platform/components/rag/':
-    'statistical-platform/app/(dashboard)/design-system/metadata/rag-components.json',
+    'statistical-platform/app/(dashboard)/design-system/coding-patterns/rag-components.json',
   'statistical-platform/lib/rag/':
-    'statistical-platform/app/(dashboard)/design-system/metadata/rag-components.json',
+    'statistical-platform/app/(dashboard)/design-system/coding-patterns/rag-components.json',
 
   // 3. Statistics Page Pattern
   'statistical-platform/docs/STATISTICS_CODING_STANDARDS.md':
-    'statistical-platform/app/(dashboard)/design-system/metadata/statistics-page-pattern.json',
+    'statistical-platform/app/(dashboard)/design-system/coding-patterns/statistics-page-pattern.json',
   'statistical-platform/hooks/use-statistics-page.ts':
-    'statistical-platform/app/(dashboard)/design-system/metadata/statistics-page-pattern.json',
+    'statistical-platform/app/(dashboard)/design-system/coding-patterns/statistics-page-pattern.json',
 
   // 4. Test Snippets (새 패턴 발견 시만 - 자주 체크 안 됨)
   'statistical-platform/__tests__/':
-    'statistical-platform/app/(dashboard)/design-system/metadata/test-snippets.json',
+    'statistical-platform/app/(dashboard)/design-system/coding-patterns/test-snippets.json',
 };
 
 // 스테이징된 파일 확인

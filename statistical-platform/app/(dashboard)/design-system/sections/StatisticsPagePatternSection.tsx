@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { STATISTICS_PAGE_TEMPLATE, CODE_EXAMPLES } from '../constants-dev';
 
 // AI 메타데이터 임포트 (개발 환경에서만)
-import statsMetadata from '../metadata/statistics-page-pattern.json';
+import statsMetadata from '../coding-patterns/statistics-page-pattern.json';
 
 export function StatisticsPagePatternSection() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);

@@ -69,8 +69,10 @@ describe('Interpretation Engine Helper Functions', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 2.5, std: 0.5, pValue: 0.001 },
-          { variable: 'X', value: 1.2, std: 0.3, pValue: 0.001 }
+          { variable: 'Intercept', value: 2.5, std: 0.5, pValue: 0.001,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 1.2, std: 0.3, pValue: 0.001,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: 0.456
@@ -89,8 +91,10 @@ describe('Interpretation Engine Helper Functions', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 2.5, std: 0.5, pValue: 0.001 },
-          { variable: 'X', value: 1.2, std: 0.3, pValue: 0.001 }
+          { variable: 'Intercept', value: 2.5, std: 0.5, pValue: 0.001,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 1.2, std: 0.3, pValue: 0.001,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: 0.789
@@ -109,8 +113,8 @@ describe('Interpretation Engine Helper Functions', () => {
       const results: AnalysisResult = {
         method: 'Pearson 상관분석',
         statistic: 0.8,  // r = 0.8
-        pValue: 0.001
-      }
+        pValue: 0.001,
+      interpretation: 'Test interpretation'}
 
       const interpretation = getInterpretation(results, '관계')
 
@@ -188,8 +192,8 @@ describe('Interpretation Engine Helper Functions', () => {
       const results: AnalysisResult = {
         method: 'Pearson 상관분석',
         statistic: 0.6,  // r = 0.6
-        pValue: 0.012
-      }
+        pValue: 0.012,
+      interpretation: 'Test interpretation'}
 
       const interpretation = getInterpretation(results, '관계')
 
@@ -232,8 +236,10 @@ describe('Interpretation Engine Helper Functions', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 5, std: 0.5, pValue: 0.001 },
-          { variable: 'X', value: 0, std: 0.3, pValue: 0.5 }
+          { variable: 'Intercept', value: 5, std: 0.5, pValue: 0.001,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 0, std: 0.3, pValue: 0.5,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: 0
@@ -252,8 +258,10 @@ describe('Interpretation Engine Helper Functions', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0 },
-          { variable: 'X', value: 1, std: 0, pValue: 0 }
+          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 1, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: 1

@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, Shield, Code2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import typeGuardsMetadata from '../metadata/type-guards.json';
+import typeGuardsMetadata from '../coding-patterns/type-guards.json';
 
 export function TypeGuardsSection() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);

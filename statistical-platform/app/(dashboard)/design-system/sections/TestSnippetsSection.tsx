@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, FlaskConical, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import testSnippets from '../metadata/test-snippets.json';
+import testSnippets from '../coding-patterns/test-snippets.json';
 
 export function TestSnippetsSection() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);

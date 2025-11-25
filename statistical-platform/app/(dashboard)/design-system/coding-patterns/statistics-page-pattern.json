@@ -1,7 +1,7 @@
 {
   "id": "statistics-page-pattern",
-  "version": "1.0.0",
-  "lastUpdated": "2025-11-24",
+  "version": "1.1.0",
+  "lastUpdated": "2025-11-25",
   "sources": [
     "statistical-platform/docs/STATISTICS_CODING_STANDARDS.md",
     "statistical-platform/docs/AI-CODING-RULES.md",
@@ -47,6 +47,14 @@
       "forbidden": "actions.setResults(result);",
       "reason": "isAnalyzing 상태 자동 리셋",
       "severity": "critical"
+    },
+    {
+      "id": "nullish-coalescing-toFixed",
+      "rule": "Nullish coalescing 패턴 (.toFixed() 호출 전)",
+      "correct": "{(value ?? 0).toFixed(4)}",
+      "forbidden": "{value.toFixed(4)}",
+      "reason": "optional 타입 필드가 undefined일 때 TypeError 방지",
+      "severity": "error"
     }
   ],
   "criticalBugs": [
@@ -65,6 +73,14 @@
       "fix": "try-catch 모두에서 상태 정리 필수 (completeAnalysis 또는 setError)",
       "severity": "critical",
       "reference": "TROUBLESHOOTING_ISANALYZING_BUG.md"
+    },
+    {
+      "name": "toFixed() TypeError",
+      "symptom": "Cannot read properties of undefined (reading 'toFixed')",
+      "cause": "optional 타입 필드에 직접 .toFixed() 호출",
+      "fix": "Nullish coalescing 사용: (value ?? 0).toFixed(4)",
+      "severity": "error",
+      "reference": "DataExplorationStep.tsx:497"
     }
   ],
   "template": "'use client';\nimport { useStatisticsPage } from '@/hooks/use-statistics-page';\nimport { useCallback } from 'react';\nimport { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service';\n\nexport default function NewStatisticsPage() {\n  const { state, actions } = useStatisticsPage<ResultType, VariableType>({\n    withUploadedData: true,\n    withError: true\n  });\n\n  const { uploadedData, isAnalyzing, results, error } = state;\n\n  const runAnalysis = useCallback(async (variables: Variables) => {\n    if (!uploadedData) return;\n    \n    // 1. 분석 시작 (isAnalyzing = true)\n    actions.startAnalysis();\n    \n    try {\n      // 2. PyodideCore 초기화\n      const pyodideCore = PyodideCoreService.getInstance();\n      await pyodideCore.initialize();\n      \n      // 3. Worker 호출\n      const result = await pyodideCore.callWorkerMethod<ResultType>(\n        1, // worker1-descriptive.py\n        'method-name',\n        {\n          data: uploadedData.data,\n          variables\n        }\n      );\n      \n      // 4. 분석 완료 (isAnalyzing = false + 결과 저장)\n      actions.completeAnalysis(result, 3);\n    } catch (err) {\n      const message = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.';\n      // 5. 에러 처리 (isAnalyzing = false)\n      actions.setError(message);\n    }\n  }, [uploadedData, actions]);\n\n  return (\n    <StatisticsPageLayout>\n      {/* Your code here */}\n    </StatisticsPageLayout>\n  );\n}",

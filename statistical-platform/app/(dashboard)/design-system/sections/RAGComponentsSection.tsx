@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, MessageCircle, Settings, Database, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import ragMetadata from '../metadata/rag-components.json';
+import ragMetadata from '../coding-patterns/rag-components.json';
 
 export function RAGComponentsSection() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);

@@ -32,7 +32,7 @@ module.exports = {
     '!**/node_modules/**',
     '!**/test-data/**',
   ],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testTimeout: 30000,
   maxWorkers: 2,
   workerIdleMemoryLimit: '512MB',

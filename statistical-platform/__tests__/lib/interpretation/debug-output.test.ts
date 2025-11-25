@@ -12,6 +12,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'One-way ANOVA',
       statistic: 15.3,
       pValue: 0.0001,
+      interpretation: 'Test interpretation',
       df: [2, 87],
       effectSize: { value: 0.15, type: 'Eta-squared' },
       groupStats: [
@@ -30,6 +31,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Pearson Correlation',
       statistic: 0.85,
       pValue: 0.0001,
+      interpretation: 'Test interpretation',
       additional: { rSquared: 0.7225 }
     } as AnalysisResult)
 
@@ -42,6 +44,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Independent t-test',
       statistic: 3.45,
       pValue: 0.001,
+      interpretation: 'Test interpretation',
       df: 98,
       effectSize: { value: 0.8, type: "Cohen's d" },
       groupStats: [
@@ -59,6 +62,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Mann-Whitney U Test',
       statistic: 350,
       pValue: 0.012,
+      interpretation: 'Test interpretation',
       groupStats: [
         { name: 'Group A', mean: 50, std: 10, n: 30 },
         { name: 'Group B', mean: 58, std: 12, n: 30 }
@@ -74,6 +78,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Mann-Whitney U Test',
       statistic: 420,
       pValue: 0.234,
+      interpretation: 'Test interpretation',
       groupStats: [
         { name: 'Group A', mean: 50, std: 10, n: 30 },
         { name: 'Group B', mean: 52, std: 11, n: 30 }
@@ -89,6 +94,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Mann-Whitney U Test',
       statistic: 380,
       pValue: 0.048,
+      interpretation: 'Test interpretation',
       groupStats: [
         { name: 'Group A', mean: 50, std: 10, n: 30 },
         { name: 'Group B', mean: 55, std: 11, n: 30 }
@@ -104,8 +110,8 @@ describe('Debug: 실제 출력 확인', () => {
     const result = getInterpretation({
       method: 'Wilcoxon Signed-Rank Test',
       statistic: 120,
-      pValue: 0.008
-    } as AnalysisResult)
+      pValue: 0.008,
+      interpretation: 'Test interpretation'} as AnalysisResult)
 
     console.log('=== Wilcoxon Scenario 1 (significant) ===')
     console.log(JSON.stringify(result, null, 2))
@@ -115,8 +121,8 @@ describe('Debug: 실제 출력 확인', () => {
     const result = getInterpretation({
       method: 'Wilcoxon Signed-Rank Test',
       statistic: 180,
-      pValue: 0.421
-    } as AnalysisResult)
+      pValue: 0.421,
+      interpretation: 'Test interpretation'} as AnalysisResult)
 
     console.log('=== Wilcoxon Scenario 2 (nonsignificant) ===')
     console.log(JSON.stringify(result, null, 2))
@@ -126,8 +132,8 @@ describe('Debug: 실제 출력 확인', () => {
     const result = getInterpretation({
       method: 'Wilcoxon Signed-Rank Test',
       statistic: 145,
-      pValue: 0.049
-    } as AnalysisResult)
+      pValue: 0.049,
+      interpretation: 'Test interpretation'} as AnalysisResult)
 
     console.log('=== Wilcoxon Scenario 3 (boundary) ===')
     console.log(JSON.stringify(result, null, 2))
@@ -137,8 +143,8 @@ describe('Debug: 실제 출력 확인', () => {
     const result = getInterpretation({
       method: 'Kruskal-Wallis Test',
       statistic: 10.5,
-      pValue: 0.003
-    } as AnalysisResult)
+      pValue: 0.003,
+      interpretation: 'Test interpretation'} as AnalysisResult)
 
     console.log('=== Kruskal-Wallis Scenario 1 (significant) ===')
     console.log(JSON.stringify(result, null, 2))
@@ -149,6 +155,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Linear Regression',
       statistic: 10.5,
       pValue: 0.001,
+      interpretation: 'Test interpretation',
       additional: { rSquared: 0.75 }
     } as AnalysisResult)
 
@@ -161,6 +168,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Logistic Regression',
       statistic: 8.5,
       pValue: 0.002,
+      interpretation: 'Test interpretation',
       additional: { pseudoRSquared: 0.42 }
     } as AnalysisResult)
 
@@ -173,6 +181,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Chi-Square Test',
       statistic: 25.3,
       pValue: 0.0001,
+      interpretation: 'Test interpretation',
       df: 4,
       effectSize: { value: 0.35, type: "Cramer's V" }
     } as AnalysisResult)
@@ -185,8 +194,8 @@ describe('Debug: 실제 출력 확인', () => {
     const result = getInterpretation({
       method: 'Friedman Test',
       statistic: 12.8,
-      pValue: 0.002
-    } as AnalysisResult)
+      pValue: 0.002,
+      interpretation: 'Test interpretation'} as AnalysisResult)
 
     console.log('=== Friedman Scenario 1 (significant) ===')
     console.log(JSON.stringify(result, null, 2))
@@ -197,6 +206,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'One-way ANOVA',
       statistic: 1.8,
       pValue: 0.172,
+      interpretation: 'Test interpretation',
       df: [2, 87],
       effectSize: { value: 0.02, type: 'Eta-squared' },
       groupStats: [
@@ -215,10 +225,13 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Linear Regression',
       statistic: 10.5,
       pValue: 0.001,
+      interpretation: 'Test interpretation',
       additional: { rSquared: 0.75 },
       coefficients: [
-        { name: 'Intercept', value: 10.0, pValue: 0.001 },
-        { name: 'X', value: 2.5, pValue: 0.001 }
+        { name: 'Intercept', value: 10.0, pValue: 0.001,
+      interpretation: 'Test interpretation'},
+        { name: 'X', value: 2.5, pValue: 0.001,
+      interpretation: 'Test interpretation'}
       ]
     } as AnalysisResult, '예측')
 
@@ -231,6 +244,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'McNemar Test',
       statistic: 8.5,
       pValue: 0.005,
+      interpretation: 'Test interpretation',
       df: 1
     } as AnalysisResult)
 
@@ -242,8 +256,8 @@ describe('Debug: 실제 출력 확인', () => {
     const result = getInterpretation({
       method: 'Shapiro-Wilk Test',
       statistic: 0.92,
-      pValue: 0.003
-    } as AnalysisResult)
+      pValue: 0.003,
+      interpretation: 'Test interpretation'} as AnalysisResult)
 
     console.log('=== Shapiro-Wilk Scenario 1 ===')
     console.log(JSON.stringify(result, null, 2))
@@ -254,6 +268,7 @@ describe('Debug: 실제 출력 확인', () => {
       method: 'Independent t-test',
       statistic: 3.45,
       pValue: 0.001,
+      interpretation: 'Test interpretation',
       df: 98,
       effectSize: { value: 0.8, type: "Cohen's d" },
       groupStats: [

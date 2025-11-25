@@ -93,8 +93,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0 },
-          { variable: 'X', value: 0, std: 0, pValue: 1 }
+          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 0, std: 0, pValue: 1,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: NaN
@@ -113,8 +115,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0 },
-          { variable: 'X', value: 1, std: 0, pValue: 0 }
+          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 1, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: Infinity
@@ -133,8 +137,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0 },
-          { variable: 'X', value: 0, std: 0, pValue: 1 }
+          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 0, std: 0, pValue: 1,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: -0.5
@@ -154,8 +160,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0 },
-          { variable: 'X', value: 1, std: 0, pValue: 0 }
+          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 1, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: 1.5
@@ -175,8 +183,8 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: 'Pearson 상관분석',
         statistic: 1.2,  // 비정상: r > 1
-        pValue: 0.001
-      }
+        pValue: 0.001,
+      interpretation: 'Test interpretation'}
 
       const interpretation = getInterpretation(results, '관계')
 
@@ -190,8 +198,8 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: 'Pearson 상관분석',
         statistic: -1.5,  // 비정상: r < -1
-        pValue: 0.001
-      }
+        pValue: 0.001,
+      interpretation: 'Test interpretation'}
 
       const interpretation = getInterpretation(results, '관계')
 
@@ -300,8 +308,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 5, std: 0.5, pValue: 0.001 },
-          { variable: 'X', value: 0.001, std: 0.3, pValue: 0.5 }
+          { variable: 'Intercept', value: 5, std: 0.5, pValue: 0.001,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 0.001, std: 0.3, pValue: 0.5,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: 0.0000001
@@ -320,8 +330,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0 },
-          { variable: 'X', value: 1, std: 0, pValue: 0 }
+          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'},
+          { variable: 'X', value: 1, std: 0, pValue: 0,
+      interpretation: 'Test interpretation'}
         ],
         additional: {
           rSquared: 0.9999999

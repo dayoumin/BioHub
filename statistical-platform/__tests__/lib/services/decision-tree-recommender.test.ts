@@ -75,9 +75,18 @@ describe('DecisionTreeRecommender', () => {
     errors: [],
     warnings: [],
     columns: [
-      { name: 'group', type: 'categorical', uniqueValues: 2 },
-      { name: 'score', type: 'numeric', uniqueValues: 50 },
-      { name: 'age', type: 'numeric', uniqueValues: 30 }
+      { name: 'group', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 },
+      { name: 'score', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 },
+      { name: 'age', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 30 }
     ] as any,
     missingValues: 0
   }
@@ -91,10 +100,22 @@ describe('DecisionTreeRecommender', () => {
     errors: [],
     warnings: [],
     columns: [
-      { name: 'gender', type: 'categorical', uniqueValues: 2 },
-      { name: 'treatment', type: 'categorical', uniqueValues: 3 },
-      { name: 'score', type: 'numeric', uniqueValues: 50 },
-      { name: 'age', type: 'numeric', uniqueValues: 30 }
+      { name: 'gender', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 },
+      { name: 'treatment', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 3 },
+      { name: 'score', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 },
+      { name: 'age', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 30 }
     ] as any,
     missingValues: 0
   }
@@ -108,9 +129,18 @@ describe('DecisionTreeRecommender', () => {
     errors: [],
     warnings: [],
     columns: [
-      { name: 'subject_id', type: 'categorical', uniqueValues: 10 },
-      { name: 'condition', type: 'categorical', uniqueValues: 2 },
-      { name: 'score', type: 'numeric', uniqueValues: 50 }
+      { name: 'subject_id', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 10 },
+      { name: 'condition', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 },
+      { name: 'score', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 }
     ] as any,
     missingValues: 0
   }
@@ -157,9 +187,18 @@ describe('DecisionTreeRecommender', () => {
     errors: [],
     warnings: [],
     columns: [
-      { name: 'group', type: 'categorical', uniqueValues: 3 },
-      { name: 'score', type: 'numeric', uniqueValues: 50 },
-      { name: 'age', type: 'numeric', uniqueValues: 30 }
+      { name: 'group', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 3 },
+      { name: 'score', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 },
+      { name: 'age', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 30 }
     ] as any,
     missingValues: 0
   }
@@ -368,9 +407,18 @@ describe('DecisionTreeRecommender', () => {
       errors: [],
       warnings: [],
       columns: [
-        { name: 'height', type: 'numeric', uniqueValues: 50 },
-        { name: 'weight', type: 'numeric', uniqueValues: 50 },
-        { name: 'age', type: 'numeric', uniqueValues: 30 }
+        { name: 'height', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 },
+        { name: 'weight', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 },
+        { name: 'age', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 30 }
       ] as any,
       missingValues: 0
     }
@@ -447,8 +495,14 @@ describe('DecisionTreeRecommender', () => {
         errors: [],
         warnings: [],
         columns: [
-          { name: 'gender', type: 'categorical', uniqueValues: 2 },
-          { name: 'smoker', type: 'categorical', uniqueValues: 2 }
+          { name: 'gender', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 },
+          { name: 'smoker', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 }
         ] as any,
         missingValues: 0
       }
@@ -531,9 +585,18 @@ describe('DecisionTreeRecommender', () => {
         errors: [],
         warnings: [],
         columns: [
-          { name: 'x1', type: 'numeric', uniqueValues: 50 },
-          { name: 'x2', type: 'numeric', uniqueValues: 50 },
-          { name: 'y', type: 'numeric', uniqueValues: 50 }
+          { name: 'x1', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 },
+          { name: 'x2', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 },
+          { name: 'y', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 }
         ] as any,
         missingValues: 0
       }
@@ -569,9 +632,18 @@ describe('DecisionTreeRecommender', () => {
         errors: [],
         warnings: [],
         columns: [
-          { name: 'age', type: 'numeric', uniqueValues: 30 },
-          { name: 'income', type: 'numeric', uniqueValues: 50 },
-          { name: 'bought', type: 'categorical', uniqueValues: 2 }
+          { name: 'age', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 30 },
+          { name: 'income', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 },
+          { name: 'bought', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 }
         ] as any,
         missingValues: 0
       }
@@ -615,9 +687,18 @@ describe('DecisionTreeRecommender', () => {
         errors: [],
         warnings: [],
         columns: [
-          { name: 'subject', type: 'categorical', uniqueValues: 2 },
-          { name: 'time', type: 'categorical', uniqueValues: 3 },
-          { name: 'score', type: 'numeric', uniqueValues: 50 }
+          { name: 'subject', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 2 },
+          { name: 'time', type: 'categorical',
+      numericCount: 0,
+      textCount: 100,
+      uniqueValues: 3 },
+          { name: 'score', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 }
         ] as any,
         missingValues: 0
       }
@@ -656,7 +737,10 @@ describe('DecisionTreeRecommender', () => {
         warnings: [],
         columns: [
           { name: 'date', type: 'datetime', uniqueValues: 3 },
-          { name: 'score', type: 'numeric', uniqueValues: 50 }
+          { name: 'score', type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
+      uniqueValues: 50 }
         ] as any,
         missingValues: 0
       }

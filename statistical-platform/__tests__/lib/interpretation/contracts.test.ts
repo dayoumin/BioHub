@@ -66,8 +66,8 @@ describe('Contract Tests: Input Validation', () => {
         AnalysisResultSchema.parse({
           method: 't-test',
           statistic: NaN,  // ❌ NaN
-          pValue: 0.05
-        })
+          pValue: 0.05,
+      interpretation: 'Test interpretation'})
       }).toThrow()
     })
 
@@ -76,8 +76,8 @@ describe('Contract Tests: Input Validation', () => {
         AnalysisResultSchema.parse({
           method: 't-test',
           statistic: Infinity,  // ❌ Infinity
-          pValue: 0.05
-        })
+          pValue: 0.05,
+      interpretation: 'Test interpretation'})
       }).toThrow()
     })
 
@@ -87,7 +87,8 @@ describe('Contract Tests: Input Validation', () => {
           method: 't-test',
           statistic: 2.5,
           pValue: 0.05,
-          effectSize: { value: NaN, type: "Cohen's d" }  // ❌ NaN
+      interpretation: 'Test interpretation',
+      effectSize: { value: NaN, type: "Cohen's d" }  // ❌ NaN
         })
       }).toThrow()
     })
@@ -98,7 +99,8 @@ describe('Contract Tests: Input Validation', () => {
           method: 't-test',
           statistic: 2.5,
           pValue: 0.05,
-          groupStats: [
+      interpretation: 'Test interpretation',
+      groupStats: [
             { mean: Infinity, std: 10, n: 30 }  // ❌ Infinity
           ]
         })
@@ -111,7 +113,8 @@ describe('Contract Tests: Input Validation', () => {
           method: 't-test',
           statistic: 2.5,
           pValue: 0.05,
-          groupStats: [
+      interpretation: 'Test interpretation',
+      groupStats: [
             { mean: 50, std: -10, n: 30 }  // ❌ 음수
           ]
         })
@@ -124,7 +127,8 @@ describe('Contract Tests: Input Validation', () => {
           method: 't-test',
           statistic: 2.5,
           pValue: 0.05,
-          groupStats: [
+      interpretation: 'Test interpretation',
+      groupStats: [
             { mean: 50, std: 10, n: 0 }  // ❌ 0
           ]
         })
@@ -135,7 +139,8 @@ describe('Contract Tests: Input Validation', () => {
           method: 't-test',
           statistic: 2.5,
           pValue: 0.05,
-          groupStats: [
+      interpretation: 'Test interpretation',
+      groupStats: [
             { mean: 50, std: 10, n: -5 }  // ❌ 음수
           ]
         })
@@ -148,7 +153,8 @@ describe('Contract Tests: Input Validation', () => {
           method: 't-test',
           statistic: 2.5,
           pValue: 0.05,
-          groupStats: [
+      interpretation: 'Test interpretation',
+      groupStats: [
             { mean: 50, std: 10, n: 30.5 }  // ❌ 소수
           ]
         })
@@ -160,8 +166,8 @@ describe('Contract Tests: Input Validation', () => {
         AnalysisResultSchema.parse({
           method: '',  // ❌ 빈 문자열
           statistic: 2.5,
-          pValue: 0.05
-        })
+          pValue: 0.05,
+      interpretation: 'Test interpretation'})
       }).toThrow()
     })
   })
@@ -172,8 +178,8 @@ describe('Contract Tests: Input Validation', () => {
         AnalysisResultSchema.parse({
           method: 't-test',
           statistic: 2.5,
-          pValue: 0.05
-        })
+          pValue: 0.05,
+      interpretation: 'Test interpretation'})
       }).not.toThrow()
     })
 
@@ -183,7 +189,8 @@ describe('Contract Tests: Input Validation', () => {
           method: 'Independent t-test',
           statistic: 2.5,
           pValue: 0.05,
-          df: 98,
+      interpretation: 'Test interpretation',
+      df: 98,
           effectSize: { value: 0.5, type: "Cohen's d", interpretation: 'medium' },
           groupStats: [
             { name: 'Control', mean: 50, std: 10, n: 50, median: 48 },
@@ -204,7 +211,8 @@ describe('Contract Tests: Input Validation', () => {
           method: 'ANOVA',
           statistic: 5.3,
           pValue: 0.01,
-          df: [2, 57]  // ✅ ANOVA의 df
+      interpretation: 'Test interpretation',
+      df: [2, 57]  // ✅ ANOVA의 df
         })
       }).not.toThrow()
     })
@@ -290,7 +298,8 @@ describe('Contract Tests: Integration with getInterpretation', () => {
         method: 'Independent t-test',
         statistic: 2.5,
         pValue: 0.05,
-        effectSize: { value: 0.5, type: "Cohen's d" },
+      interpretation: 'Test interpretation',
+      effectSize: { value: 0.5, type: "Cohen's d" },
         groupStats: [
           { mean: 50, std: 10, n: 50 },
           { mean: 55, std: 12, n: 50 }
@@ -316,7 +325,8 @@ describe('Contract Tests: Integration with getInterpretation', () => {
         method: 'One-way ANOVA',
         statistic: 5.3,
         pValue: 0.01,
-        df: [2, 57],
+      interpretation: 'Test interpretation',
+      df: [2, 57],
         effectSize: { value: 0.15, type: 'Eta-squared' },
         groupStats: [
           { mean: 50, std: 10, n: 20 },
@@ -336,7 +346,8 @@ describe('Contract Tests: Integration with getInterpretation', () => {
         method: 'Pearson Correlation',
         statistic: 0.75,  // correlation coefficient
         pValue: 0.001,
-        additional: { rSquared: 0.56 }
+      interpretation: 'Test interpretation',
+      additional: { rSquared: 0.56 }
       } as AnalysisResult, '상관')
 
       expect(result).not.toBeNull()
@@ -350,7 +361,8 @@ describe('Contract Tests: Integration with getInterpretation', () => {
         method: 'Linear Regression',
         statistic: 15.3,  // F-statistic
         pValue: 0.001,
-        coefficients: [
+      interpretation: 'Test interpretation',
+      coefficients: [
           { variable: 'Intercept', value: 10.5 },
           { variable: 'X1', value: 2.3 }
         ],
@@ -369,8 +381,8 @@ describe('Contract Tests: Integration with getInterpretation', () => {
       const result = getInterpretation({
         method: 'Unknown Method',
         statistic: 2.5,
-        pValue: 0.05
-      } as AnalysisResult)
+        pValue: 0.05,
+      interpretation: 'Test interpretation'} as AnalysisResult)
 
       // null은 허용됨 (해석 불가)
       expect(result).toBeNull()
@@ -395,8 +407,8 @@ describe('Contract Tests: Helper Functions', () => {
       const data = {
         method: 't-test',
         statistic: 2.5,
-        pValue: 0.05
-      }
+        pValue: 0.05,
+      interpretation: 'Test interpretation'}
 
       const validated = validateAnalysisResult(data)
       expect(validated.method).toBe('t-test')
@@ -409,8 +421,8 @@ describe('Contract Tests: Helper Functions', () => {
         validateAnalysisResult({
           method: 't-test',
           statistic: NaN,  // ❌
-          pValue: 0.05
-        })
+          pValue: 0.05,
+      interpretation: 'Test interpretation'})
       }).toThrow()
     })
   })
@@ -420,8 +432,8 @@ describe('Contract Tests: Helper Functions', () => {
       const data = {
         method: 't-test',
         statistic: 2.5,
-        pValue: 0.05
-      }
+        pValue: 0.05,
+      interpretation: 'Test interpretation'}
 
       expect(isSafeAnalysisResult(data)).toBe(true)
     })
@@ -430,8 +442,8 @@ describe('Contract Tests: Helper Functions', () => {
       const data = {
         method: 't-test',
         statistic: NaN,  // ❌
-        pValue: 0.05
-      }
+        pValue: 0.05,
+      interpretation: 'Test interpretation'}
 
       expect(isSafeAnalysisResult(data)).toBe(false)
     })
@@ -481,7 +493,8 @@ describe('Contract Tests: Additional Fields Validation', () => {
           method: 'Linear Regression',
           statistic: 15.3,
           pValue: 0.001,
-          additional: { rSquared: 0.75 }  // ✅
+      interpretation: 'Test interpretation',
+      additional: { rSquared: 0.75 }  // ✅
         })
       }).not.toThrow()
     })
@@ -512,7 +525,8 @@ describe('Contract Tests: Additional Fields Validation', () => {
           method: 'One-way ANOVA',
           statistic: 5.3,
           pValue: 0.01,
-          additional: { etaSquared: 0.15 }  // ✅
+      interpretation: 'Test interpretation',
+      additional: { etaSquared: 0.15 }  // ✅
         })
       }).not.toThrow()
     })
@@ -533,7 +547,8 @@ describe('Contract Tests: Additional Fields Validation', () => {
           method: 'Power Analysis',
           statistic: 0,
           pValue: 1,
-          additional: { power: 0.8, sampleSize: 100 }  // ✅
+      interpretation: 'Test interpretation',
+      additional: { power: 0.8, sampleSize: 100 }  // ✅
         })
       }).not.toThrow()
     })
@@ -558,7 +573,8 @@ describe('Contract Tests: Additional Fields Validation', () => {
           method: 'K-Means Clustering',
           statistic: 0,
           pValue: 1,
-          additional: { silhouetteScore: 0.65, nClusters: 3 }  // ✅
+      interpretation: 'Test interpretation',
+      additional: { silhouetteScore: 0.65, nClusters: 3 }  // ✅
         })
       }).not.toThrow()
     })
@@ -583,7 +599,8 @@ describe('Contract Tests: Additional Fields Validation', () => {
           method: "Cronbach's Alpha",
           statistic: 0.85,
           pValue: 0.001,
-          additional: { alpha: 0.85, nItems: 10 }  // ✅
+      interpretation: 'Test interpretation',
+      additional: { alpha: 0.85, nItems: 10 }  // ✅
         })
       }).not.toThrow()
     })
@@ -602,7 +619,8 @@ describe('Contract Tests: Additional Fields Validation', () => {
           method: 'Linear Regression',
           statistic: 5.0,
           pValue: 0.05,
-          additional: {
+      interpretation: 'Test interpretation',
+      additional: {
             rSquared: 0.75,       // ✅ AdditionalRegressionSchema
             customField: 'value'  // ✅ passthrough 허용
           }
@@ -617,7 +635,8 @@ describe('Contract Tests: Additional Fields Validation', () => {
           method: 'Custom Unknown Test',
           statistic: 5.0,
           pValue: 0.05,
-          additional: {
+      interpretation: 'Test interpretation',
+      additional: {
             unknownField: 999  // 🟡 Union 매칭 실패, optional로 통과
           }
         })

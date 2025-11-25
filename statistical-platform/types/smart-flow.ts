@@ -174,45 +174,45 @@ export interface StatisticalAssumptions {
   normality?: {
     // 그룹별 정규성 검정 (t-test, ANOVA 등)
     group1?: {
-      statistic: number
-      pValue: number
+      statistic?: number
+      pValue?: number
       isNormal: boolean
       interpretation?: string
     }
     group2?: {
-      statistic: number
-      pValue: number
+      statistic?: number
+      pValue?: number
       isNormal: boolean
       interpretation?: string
     }
     // 검정 방법별 상세 결과
     shapiroWilk?: {
-      statistic: number
-      pValue: number
+      statistic?: number
+      pValue?: number
       isNormal: boolean
     }
     kolmogorovSmirnov?: {
-      statistic: number
-      pValue: number
+      statistic?: number
+      pValue?: number
       isNormal: boolean
     }
   }
   homogeneity?: {
     levene?: {
-      statistic: number
-      pValue: number
+      statistic?: number
+      pValue?: number
       equalVariance: boolean
     }
     bartlett?: {
-      statistic: number
-      pValue: number
+      statistic?: number
+      pValue?: number
       equalVariance: boolean
     }
   }
   independence?: {
     durbin?: {
-      statistic: number
-      pValue: number
+      statistic?: number
+      pValue?: number
       isIndependent: boolean
     }
   }
