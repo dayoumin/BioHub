@@ -43,10 +43,45 @@ export default {
           border: 'var(--warning-border)',
           muted: 'var(--warning-muted)',
         },
+      highlight: {
+          DEFAULT: 'var(--highlight)',
+          foreground: 'var(--highlight-foreground)',
+          bg: 'var(--highlight-bg)',
+          border: 'var(--highlight-border)',
+        },
+        correlation: {
+          'strong-pos': 'var(--correlation-strong-pos)',
+          'medium-pos': 'var(--correlation-medium-pos)',
+          'weak': 'var(--correlation-weak)',
+          'medium-neg': 'var(--correlation-medium-neg)',
+          'strong-neg': 'var(--correlation-strong-neg)',
+        },
+        info: {
+          DEFAULT: 'var(--info)',
+          foreground: 'var(--info-foreground)',
+          bg: 'var(--info-bg)',
+          border: 'var(--info-border)',
+          muted: 'var(--info-muted)',
+        },
       },
     },
   },
   safelist: [
+    // highlight colors
+    "bg-highlight-bg",
+    "border-highlight-border",
+    "text-highlight",
+    // correlation colors
+    "bg-correlation-strong-pos",
+    "bg-correlation-medium-pos",
+    "bg-correlation-weak",
+    "bg-correlation-medium-neg",
+    "bg-correlation-strong-neg",
+    // info colors
+    "bg-info-bg",
+    "border-info-border",
+    "text-info",
+    "text-info-muted",
     // text-*-600
     "text-blue-600",
     "text-green-600",

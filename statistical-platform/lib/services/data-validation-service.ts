@@ -152,6 +152,16 @@ export class DataValidationService {
       validation.isValid = false
     }
 
+    // UX 개선: 빠른 검증에서도 columnStats 생성 (Step 2 초기 빈 화면 해소)
+    try {
+      const sampledForStats = this.smartSample(data, 2000)
+      const columnStats = columns.map(col => this.analyzeColumn(sampledForStats, col))
+      validation.columnStats = columnStats
+      validation.columns = columnStats
+    } catch (error) {
+      console.warn('[DataValidationService] 빠른 검증 columnStats 생성 실패', error)
+    }
+
     return validation
   }
 

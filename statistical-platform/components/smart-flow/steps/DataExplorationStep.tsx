@@ -13,11 +13,15 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered } from 'lucide-react'
+import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered, ArrowRight, ArrowLeft, Sparkles, ExternalLink, BarChart3 } from 'lucide-react'
 import { ValidationResults, DataRow, ColumnStatistics, StatisticalAssumptions } from '@/types/smart-flow'
 import { usePyodide } from '@/components/providers/PyodideProvider'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
+import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
+import { Histogram } from '@/components/charts/histogram'
+import { BoxPlot } from '@/components/charts/boxplot'
+import { openDataWindow } from '@/lib/utils/open-data-window'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -29,7 +33,19 @@ interface DataExplorationStepProps {
 interface ScatterplotConfig {
   id: string
   xVariable: string
-  yVariables: string[]
+  yVariable: string  // 단일 Y축 (심플 UI)
+}
+
+/**
+ * 통계 가정 검정 페이로드 타입
+ * - values: 정규성 검정용 단일 수치형 배열
+ * - groups: 등분산성 검정용 그룹별 수치형 배열
+ */
+interface AssumptionPayload {
+  values?: number[]
+  groups?: number[][]
+  alpha: number
+  normalityRule: 'any' | 'all' | 'majority'
 }
 
 /**
@@ -63,7 +79,18 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 }: DataExplorationStepProps) {
   // Pyodide 및 Store
   const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
-  const { setAssumptionResults } = useSmartFlowStore()
+  const { setAssumptionResults, uploadedFile, uploadedFileName } = useSmartFlowStore()
+
+  // 새 창으로 데이터 보기
+  const handleOpenDataInNewWindow = useCallback(() => {
+    if (!data || data.length === 0) return
+    const columns = Object.keys(data[0])
+    openDataWindow({
+      fileName: uploadedFile?.name || uploadedFileName || '업로드된 데이터',
+      columns,
+      data
+    })
+  }, [data, uploadedFile, uploadedFileName])
 
   // 가정 검정 상태
   const [isAssumptionLoading, setIsAssumptionLoading] = useState(false)
@@ -101,11 +128,18 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     assumptionRunId.current++
     const currentRunId = assumptionRunId.current
 
+    // isActive 플래그를 effect 스코프에 선언 (cleanup에서 접근 가능)
+    let isActive = true
+
     const timer = setTimeout(async () => {
-      let isActive = true
       try {
         setIsAssumptionLoading(true)
-        const testData: any = {}
+
+        // 타입 안전한 페이로드 구성
+        const payload: AssumptionPayload = {
+          alpha: 0.05,
+          normalityRule: 'any'
+        }
 
         // 첫 번째 수치형 컬럼으로 정규성 검정
         const firstNumericCol = numericVariables[0]
@@ -113,7 +147,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           .filter(v => !isNaN(v))
 
         if (values.length >= 3) {
-          testData.values = values
+          payload.values = values
         }
 
         // 그룹이 여러 개 있으면 등분산성 검정
@@ -132,34 +166,45 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           }
 
           if (groups.length >= 2) {
-            testData.groups = groups
+            payload.groups = groups
           }
         }
 
-        // 통계 가정 검정 실행
-        const assumptions = await pyodideService.checkAllAssumptions({
-          ...testData,
-          alpha: 0.05,
-          normalityRule: 'any'
-        }) as StatisticalAssumptions
+        // 데이터가 없으면 호출 스킵
+        if (!payload.values && !payload.groups) {
+          logger.info('[DataExploration] 가정 검정 스킵: 유효한 데이터 없음')
+          if (isActive && currentRunId === assumptionRunId.current) {
+            setIsAssumptionLoading(false)
+          }
+          return
+        }
 
+        // 통계 가정 검정 실행
+        const assumptions = await pyodideService.checkAllAssumptions(payload) as StatisticalAssumptions
+
+        // 언마운트 체크: isActive가 false면 상태 업데이트 스킵
         if (isActive && currentRunId === assumptionRunId.current) {
           setLocalAssumptionResults(assumptions)
           setAssumptionResults(assumptions)
           logger.info('[DataExploration] 통계 가정 검정 완료', { summary: assumptions.summary })
         }
       } catch (error) {
-        logger.error('[DataExploration] 가정 검정 실패', { error })
+        if (isActive) {
+          logger.error('[DataExploration] 가정 검정 실패', { error })
+        }
       } finally {
+        // 언마운트 체크 후 로딩 상태 해제
         if (isActive && currentRunId === assumptionRunId.current) {
           setIsAssumptionLoading(false)
         }
       }
-
-      return () => { isActive = false }
     }, 200)
 
-    return () => { clearTimeout(timer) }
+    // Cleanup: 타이머 취소 + isActive 플래그 해제
+    return () => {
+      isActive = false
+      clearTimeout(timer)
+    }
   }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables, setAssumptionResults])
 
   // 비동기 데이터 로딩 대응: numericVariables 업데이트 시 기본 산점도 추가
@@ -168,7 +213,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       setScatterplots([{
         id: '1',
         xVariable: numericVariables[0],
-        yVariables: [numericVariables[1]]
+        yVariable: numericVariables[1]  // 단일 Y축
       }])
     }
   }, [numericVariables, scatterplots.length])
@@ -206,20 +251,26 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     if (numericVariables.length < 2) return
 
     const newId = String(scatterplots.length + 1)
-    const availableVars = numericVariables.filter(v =>
-      !scatterplots.some(s => s.xVariable === v)
-    )
+    const usedPairs = scatterplots.map(s => `${s.xVariable}-${s.yVariable}`)
 
-    const xVar = availableVars[0] || numericVariables[0]
-    const yOptions = numericVariables.filter(v => v !== xVar) // X ≠ Y 보장
-    const yVar = availableVars[1] && availableVars[1] !== xVar
-      ? availableVars[1]
-      : yOptions[0]
+    // 사용되지 않은 변수 조합 찾기
+    let xVar = numericVariables[0]
+    let yVar = numericVariables[1]
+
+    for (const x of numericVariables) {
+      for (const y of numericVariables) {
+        if (x !== y && !usedPairs.includes(`${x}-${y}`)) {
+          xVar = x
+          yVar = y
+          break
+        }
+      }
+    }
 
     const newConfig: ScatterplotConfig = {
       id: newId,
       xVariable: xVar,
-      yVariables: yVar ? [yVar] : []
+      yVariable: yVar
     }
 
     setScatterplots(prev => [...prev, newConfig])
@@ -232,34 +283,25 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // X축 변수 변경
   const updateXVariable = useCallback((id: string, newX: string) => {
+    setScatterplots(prev => prev.map(s => {
+      if (s.id !== id) return s
+      // X=Y 방지: X가 현재 Y와 같으면 Y를 다른 변수로 변경
+      const needNewY = s.yVariable === newX
+      const newY = needNewY
+        ? numericVariables.find(v => v !== newX) || s.yVariable
+        : s.yVariable
+      return { ...s, xVariable: newX, yVariable: newY }
+    }))
+  }, [numericVariables])
+
+  // Y축 변수 변경 (단일 선택)
+  const updateYVariable = useCallback((id: string, newY: string) => {
     setScatterplots(prev => prev.map(s =>
-      s.id === id
-        ? {
-            ...s,
-            xVariable: newX,
-            yVariables: s.yVariables.filter(y => y !== newX) // X=Y 방지
-          }
-        : s
+      s.id === id ? { ...s, yVariable: newY } : s
     ))
   }, [])
 
-  // Y축 변수 추가
-  const addYVariable = useCallback((id: string, newY: string) => {
-    setScatterplots(prev => prev.map(s =>
-      s.id === id && !s.yVariables.includes(newY)
-        ? { ...s, yVariables: [...s.yVariables, newY] }
-        : s
-    ))
-  }, [])
-
-  // Y축 변수 제거
-  const removeYVariable = useCallback((id: string, yToRemove: string) => {
-    setScatterplots(prev => prev.map(s =>
-      s.id === id
-        ? { ...s, yVariables: s.yVariables.filter(y => y !== yToRemove) }
-        : s
-    ))
-  }, [])
+  
 
   // 상관계수 행렬 계산 (순수 함수 - 부작용 제거)
   const correlationMatrix = useMemo(() => {
@@ -285,17 +327,17 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         const absR = Math.abs(r)
         let strength = '약한'
-        let color = 'bg-gray-100'
+        let color = 'bg-correlation-weak'
 
         if (absR >= 0.7) {
           strength = '매우 강한'
-          color = 'bg-red-100 dark:bg-red-950'
+          color = 'bg-correlation-medium-neg'
         } else if (absR >= 0.5) {
           strength = '강한'
-          color = 'bg-orange-100 dark:bg-orange-950'
+          color = 'bg-correlation-medium-neg dark:bg-orange-950'
         } else if (absR >= 0.3) {
           strength = '중간'
-          color = 'bg-yellow-100 dark:bg-yellow-950'
+          color = 'bg-correlation-weak dark:bg-yellow-950'
         }
 
         matrix.push({ var1, var2, r, r2, strength, color })
@@ -352,7 +394,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   return (
     <div className="space-y-6">
       {/* 헤더 */}
-      <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+      <Card className="border-highlight-border bg-highlight-bg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ChartScatter className="h-5 w-5" />
@@ -430,7 +472,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
       {/* 가정 검정 결과 카드 */}
       {isAssumptionLoading && (
-        <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+        <Card className="border-highlight-border bg-highlight-bg">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -446,7 +488,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       )}
 
       {!isAssumptionLoading && assumptionResults && (
-        <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+        <Card className="border-highlight-border bg-highlight-bg">
           <CardHeader>
             <CardTitle className="text-base">🔍 통계적 가정 검증</CardTitle>
             <CardDescription>
@@ -513,7 +555,88 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </Card>
       )}
 
-      {/* Tabs: 산점도 vs 상관계수 행렬 */}
+      {/* 데이터 분포 시각화 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            데이터 분포 시각화
+          </CardTitle>
+          <CardDescription>
+            수치형 변수들의 분포를 히스토그램과 박스플롯으로 확인합니다
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue={numericVariables[0]} className="w-full">
+            <TabsList className="flex flex-wrap gap-1 h-auto">
+              {numericVariables.slice(0, 6).map(varName => (
+                <TabsTrigger key={varName} value={varName} className="text-xs">
+                  {varName}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {numericVariables.slice(0, 6).map(varName => {
+              const colData = data
+                .map(row => row[varName])
+                .filter(v => v !== null && v !== undefined && v !== '')
+                .map(Number)
+                .filter(v => !isNaN(v))
+
+              if (colData.length === 0) return null
+
+              const sortedData = [...colData].sort((a, b) => a - b)
+              const q1Index = Math.floor(sortedData.length * 0.25)
+              const q3Index = Math.floor(sortedData.length * 0.75)
+              const medianIndex = Math.floor(sortedData.length * 0.5)
+              const q1 = sortedData[q1Index] || 0
+              const q3 = sortedData[q3Index] || 0
+              const median = sortedData[medianIndex] || 0
+              const iqr = q3 - q1
+              const mean = colData.reduce((a, b) => a + b, 0) / colData.length
+              const std = Math.sqrt(colData.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / colData.length)
+
+              const lowerBound = q1 - 1.5 * iqr
+              const upperBound = q3 + 1.5 * iqr
+              const outliers = colData.filter(v => v < lowerBound || v > upperBound)
+
+              return (
+                <TabsContent key={varName} value={varName} className="space-y-4 mt-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <Histogram
+                      data={colData}
+                      title={`${varName} 분포`}
+                      xAxisLabel={varName}
+                      yAxisLabel="빈도"
+                      bins={10}
+                    />
+                    <BoxPlot
+                      data={[{
+                        name: varName,
+                        min: Math.min(...colData),
+                        q1, median, q3,
+                        max: Math.max(...colData),
+                        mean, std,
+                        outliers
+                      }]}
+                      title={`${varName} 박스플롯`}
+                      showMean={true}
+                      showOutliers={true}
+                      height={250}
+                    />
+                  </div>
+                  {outliers.length > 0 && (
+                    <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
+                      <span className="font-medium">⚠️ 이상치:</span> {outliers.length}개 발견 (범위: &lt;{lowerBound.toFixed(2)} 또는 &gt;{upperBound.toFixed(2)})
+                    </div>
+                  )}
+                </TabsContent>
+              )
+            })}
+          </Tabs>
+        </CardContent>
+      </Card>
+
+            {/* Tabs: 산점도 vs 상관계수 행렬 */}
       <Tabs defaultValue="scatterplots" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="scatterplots">
@@ -528,135 +651,137 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
         {/* 산점도 Tab */}
         <TabsContent value="scatterplots" className="space-y-4">
-          {scatterplots.map(config => (
-            <Card key={config.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">
-                    산점도
-                  </CardTitle>
-                  {scatterplots.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeScatterplot(config.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* X/Y축 좌우 배치 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* X축 선택 */}
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">X축</label>
-                    <Select
-                      value={config.xVariable}
-                      onValueChange={(value) => updateXVariable(config.id, value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {numericVariables.map(v => (
-                          <SelectItem key={v} value={v}>
-                            {v}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+          {scatterplots.map(config => {
+            const { x: xData, y: yData } = getPairedData(config.xVariable, config.yVariable)
+            const scatterData = xData.map((x, i) => ({ x, y: yData[i] }))
+            const { r, r2 } = calculateCorrelation(xData, yData)
+
+            return (
+              <Card key={config.id} className="overflow-hidden border-0 shadow-sm bg-card">
+                {/* 모던 헤더 - 변수 선택 영역 */}
+                <div className="px-5 py-4 border-b bg-muted/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-md bg-primary/10">
+                        <ChartScatter className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="font-medium text-sm">변수 관계 분석</span>
+                    </div>
+                    {scatterplots.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeScatterplot(config.id)}
+                        className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
-                  {/* Y축 선택 (다중) */}
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Y축</label>
-                    <Select
-                      onValueChange={(value) => addYVariable(config.id, value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Y축 변수 추가..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {numericVariables
-                          .filter(v => v !== config.xVariable && !config.yVariables.includes(v))
-                          .map(v => (
-                            <SelectItem key={v} value={v}>
+                  {/* 현대적 X → Y 변수 선택 UI */}
+                  <div className="flex items-center gap-3">
+                    {/* X축 선택 */}
+                    <div className="flex-1">
+                      <label className="text-xs text-muted-foreground mb-1.5 block">X축 (독립변수)</label>
+                      <Select
+                        value={config.xVariable}
+                        onValueChange={(value) => updateXVariable(config.id, value)}
+                      >
+                        <SelectTrigger className="h-9 bg-background border-border/50 hover:border-primary/50 transition-colors">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {numericVariables.map(v => (
+                            <SelectItem key={v} value={v} disabled={v === config.yVariable}>
                               {v}
                             </SelectItem>
                           ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                {/* 선택된 Y축 변수들 (바로 아래 배치) */}
-                {config.yVariables.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {config.yVariables.map(y => (
-                      <Badge key={y} variant="secondary" className="flex items-center gap-1">
-                        {y}
-                        <button
-                          onClick={() => removeYVariable(config.id, y)}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-                {/* Scatterplot 렌더링 (Y축마다) */}
-                <div className="space-y-4">
-                  {config.yVariables.map(yVar => {
-                    const { x: xData, y: yData } = getPairedData(config.xVariable, yVar)
-                    const scatterData = xData.map((x, i) => ({ x, y: yData[i] }))
-                    const { r, r2 } = calculateCorrelation(xData, yData)
-
-                    return (
-                      <div key={yVar}>
-                        <Scatterplot
-                          data={scatterData}
-                          title={`${config.xVariable} vs ${yVar}`}
-                          xAxisLabel={config.xVariable}
-                          yAxisLabel={yVar}
-                          showTrendLine={true}
-                          correlationCoefficient={r}
-                        />
-                        <div className="mt-2 text-sm text-muted-foreground bg-background p-3 rounded-lg border">
-                          <p className="font-medium mb-1">📊 통계 요약:</p>
-                          <div className="grid grid-cols-3 gap-2">
-                            <div>
-                              <span className="font-medium">상관계수 (r):</span> {r.toFixed(3)}
-                            </div>
-                            <div>
-                              <span className="font-medium">결정계수 (r²):</span> {r2.toFixed(3)}
-                            </div>
-                            <div>
-                              <span className="font-medium">표본 크기 (n):</span> {xData.length}
-                            </div>
-                          </div>
-                        </div>
+                    {/* 화살표 */}
+                    <div className="flex items-end pb-0.5">
+                      <div className="p-2 rounded-full bg-primary/5">
+                        <ArrowRight className="h-4 w-4 text-primary/70" />
                       </div>
-                    )
-                  })}
+                    </div>
+
+                    {/* Y축 선택 */}
+                    <div className="flex-1">
+                      <label className="text-xs text-muted-foreground mb-1.5 block">Y축 (종속변수)</label>
+                      <Select
+                        value={config.yVariable}
+                        onValueChange={(value) => updateYVariable(config.id, value)}
+                      >
+                        <SelectTrigger className="h-9 bg-background border-border/50 hover:border-primary/50 transition-colors">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {numericVariables.map(v => (
+                            <SelectItem key={v} value={v} disabled={v === config.xVariable}>
+                              {v}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                {/* 상관계수 뱃지 바 */}
+                <div className="px-5 py-2.5 border-b bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">상관계수</span>
+                      <Badge
+                        variant={Math.abs(r) >= 0.7 ? "default" : Math.abs(r) >= 0.4 ? "secondary" : "outline"}
+                        className="font-mono text-xs"
+                      >
+                        r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">결정계수</span>
+                      <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
+                        R² = {r2.toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      n = {xData.length}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    {Math.abs(r) >= 0.7 ? '강한 상관' : Math.abs(r) >= 0.4 ? '중간 상관' : '약한 상관'}
+                  </Badge>
+                </div>
+
+                {/* 그래프 영역 */}
+                <CardContent className="p-5">
+                  <Scatterplot
+                    data={scatterData}
+                    title={`${config.xVariable} vs ${config.yVariable}`}
+                    xAxisLabel={config.xVariable}
+                    yAxisLabel={config.yVariable}
+                    showTrendLine={true}
+                    correlationCoefficient={r}
+                  />
+                </CardContent>
+              </Card>
+            )
+          })}
 
           {/* 산점도 추가 버튼 */}
-          <Button
+          <button
             onClick={addScatterplot}
-            variant="outline"
-            className="w-full"
             disabled={scatterplots.length >= numericVariables.length}
+            className="w-full py-3 border-2 border-dashed border-muted-foreground/20 rounded-lg text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            산점도 추가
-          </Button>
+            <Plus className="h-4 w-4" />
+            <span className="text-sm font-medium">새 산점도 추가</span>
+          </button>
         </TabsContent>
 
         {/* 상관계수 행렬 Tab */}
@@ -725,6 +850,39 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 전체 데이터 확인 */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ListOrdered className="h-5 w-5" />
+              전체 데이터
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenDataInNewWindow}
+              className="gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              새 창으로 보기
+            </Button>
+          </div>
+          <CardDescription>
+            업로드된 원본 데이터를 확인합니다 ({data.length}행)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataPreviewTable
+            data={data}
+            maxRows={data.length}
+            defaultOpen={true}
+            title=""
+            height="400px"
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 })

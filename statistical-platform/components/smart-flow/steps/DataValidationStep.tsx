@@ -1,21 +1,16 @@
 'use client'
 
-import { memo, useMemo, useEffect, useState, useCallback, useRef } from 'react'
-import { CheckCircle, AlertTriangle, XCircle, Sparkles, ExternalLink } from 'lucide-react'
-import { ValidationResults, ColumnStatistics, StatisticalAssumptions } from '@/types/smart-flow'
-import { usePyodide } from '@/components/providers/PyodideProvider'
+import { memo, useMemo, useEffect, useState, useCallback } from 'react'
+import { CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react'
+import { ValidationResults, ColumnStatistics } from '@/types/smart-flow'
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
-import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
-import { Histogram } from '@/components/charts/histogram'
-import { BoxPlot } from '@/components/charts/boxplot'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { Button } from '@/components/ui/button'
 import type { DataValidationStepProps } from '@/types/smart-flow-navigation'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
-import { openDataWindow } from '@/lib/utils/open-data-window'
 
 // Type guard for ValidationResults with columnStats
 function hasColumnStats(results: ValidationResults | null): results is ValidationResults & { columnStats: ColumnStatistics[] } {
@@ -39,18 +34,6 @@ export const DataValidationStep = memo(function DataValidationStep({
 
   // 중복 클릭 방지
   const [isNavigating, setIsNavigating] = useState(false)
-
-  // 새 창으로 데이터 보기 (공유 유틸리티 사용)
-  const handleOpenDataInNewWindow = useCallback(() => {
-    if (!data || data.length === 0) return
-
-    const columns = Object.keys(data[0])
-    openDataWindow({
-      fileName: uploadedFile?.name || uploadedFileName || '업로드된 데이터',
-      columns,
-      data
-    })
-  }, [data, uploadedFile, uploadedFileName])
 
   // Type-safe column stats extraction
   const columnStats = useMemo(() =>
@@ -208,23 +191,36 @@ export const DataValidationStep = memo(function DataValidationStep({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* 파일명 최상단 표시 */}
+      {/* 파일명 + 데이터 탐색 버튼 (우측) */}
       {uploadedFile || uploadedFileName ? (
         <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b pb-3 mb-6">
-          <div className="flex items-center gap-2 text-sm">
-            <Badge variant="outline" className="font-normal">
-              현재 파일
-            </Badge>
-            <span className="font-medium truncate" title={uploadedFile?.name || uploadedFileName || ''}>
-              {uploadedFile?.name || uploadedFileName}
-            </span>
-            <span className="text-muted-foreground">
-              ({validationResults.totalRows.toLocaleString()}행 × {validationResults.columnCount}열)
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="outline" className="font-normal">
+                현재 파일
+              </Badge>
+              <span className="font-medium truncate" title={uploadedFile?.name || uploadedFileName || ''}>
+                {uploadedFile?.name || uploadedFileName}
+              </span>
+              <span className="text-muted-foreground">
+                ({validationResults.totalRows.toLocaleString()}행 × {validationResults.columnCount}열)
+              </span>
+            </div>
+            {/* 데이터 탐색 버튼 (우측) */}
+            {!hasErrors && onNext && (
+              <Button
+                onClick={handleNext}
+                disabled={isNavigating}
+                size="sm"
+                className="gap-1.5"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                데이터 탐색하기
+              </Button>
+            )}
           </div>
         </div>
       ) : null}
-
 
       {/* 검증 요약 카드 */}
       <Card className={`border-2 ${
@@ -311,26 +307,11 @@ export const DataValidationStep = memo(function DataValidationStep({
         </CardContent>
       </Card>
 
-      {/* 다음 단계 버튼 */}
-      {!hasErrors && onNext && (
-        <Card>
-          <CardContent className="pt-6">
-            <Button
-              onClick={handleNext}
-              disabled={isNavigating}
-              className="w-full"
-              size="lg"
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              데이터 탐색하기
-            </Button>
-            {hasWarnings && (
-              <p className="text-xs text-warning mt-2 text-center">
-                ⚠ 경고 사항이 있지만 분석을 계속할 수 있습니다
-              </p>
-            )}
-          </CardContent>
-        </Card>
+      {/* 경고 메시지 (버튼은 상단으로 이동) */}
+      {hasWarnings && !hasErrors && (
+        <div className="text-xs text-warning text-center bg-warning-bg border border-warning-border rounded-lg p-2">
+          ⚠ 경고 사항이 있지만 분석을 계속할 수 있습니다
+        </div>
       )}
 
       {/* 분석 추천 카드 */}
@@ -355,171 +336,49 @@ export const DataValidationStep = memo(function DataValidationStep({
         </Card>
       )}
 
+      {/* 데이터 분포 시각화 및 가정 검증은 Step 2 (데이터 탐색)에서 수행됨 */}
 
-      {/* 데이터 시각화 카드 */}
+      {/* 변수 요약 테이블 */}
       {!hasErrors && hasColumnStats(validationResults) && (
-        <Card className="border-cyan-200 bg-cyan-50/50 dark:bg-cyan-950/20">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-base">📊 데이터 분포 시각화</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              변수를 선택하기 전에 데이터 분포를 확인하세요
-            </p>
+            <CardTitle className="text-base">📋 변수 요약</CardTitle>
           </CardHeader>
           <CardContent>
-            {validationResults.columnStats && validationResults.columnStats.filter(col => col.type === 'numeric').length > 0 ? (
-              <Tabs defaultValue={validationResults.columnStats.filter(col => col.type === 'numeric')[0]?.name} className="w-full">
-                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                  {validationResults.columnStats
-                    .filter(col => col.type === 'numeric')
-                    .slice(0, 3)
-                    .map(col => (
-                      <TabsTrigger key={col.name} value={col.name}>
-                        {col.name}
-                      </TabsTrigger>
-                    ))}
-                </TabsList>
-
-                {validationResults.columnStats
-                  .filter(col => col.type === 'numeric')
-                  .slice(0, 3)
-                  .map(col => {
-                    const colData = data
-                      .map(row => row[col.name])
-                      .filter(v => v !== null && v !== undefined && v !== '')
-                      .map(Number)
-                      .filter(v => !isNaN(v))
-
-                    // 사분위수 계산
-                    const sortedData = [...colData].sort((a, b) => a - b)
-                    const q1Index = Math.floor(sortedData.length * 0.25)
-                    const q3Index = Math.floor(sortedData.length * 0.75)
-                    const medianIndex = Math.floor(sortedData.length * 0.5)
-                    const q1 = sortedData[q1Index] || 0
-                    const q3 = sortedData[q3Index] || 0
-                    const median = sortedData[medianIndex] || 0
-                    const iqr = q3 - q1
-
-                    // 이상치 계산
-                    const lowerBound = q1 - 1.5 * iqr
-                    const upperBound = q3 + 1.5 * iqr
-                    const outliers = colData.filter(v => v < lowerBound || v > upperBound)
-
-                    return (
-                      <TabsContent key={col.name} value={col.name} className="space-y-4 mt-4">
-                        {/* Histogram - 분포 확인 */}
-                        <Histogram
-                          data={colData}
-                          title={`${col.name} 분포`}
-                          xAxisLabel={col.name}
-                          yAxisLabel="빈도"
-                          bins={10}
-                        />
-
-                        {/* BoxPlot - 사분위수 시각화 */}
-                        <BoxPlot
-                          data={[
-                            {
-                              name: col.name,
-                              min: Math.min(...colData),
-                              q1: q1,
-                              median: median,
-                              q3: q3,
-                              max: Math.max(...colData),
-                              mean: col.mean || 0,
-                              std: col.std || 0,
-                              outliers: outliers
-                            }
-                          ]}
-                          title={`${col.name} 박스플롯`}
-                          showMean={true}
-                          showOutliers={true}
-                          showStatistics={false}
-                          height={300}
-                        />
-
-                        {/* 사분위수 & 이상치 정보 */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="text-xs bg-info-bg border border-info-border p-3 rounded-lg">
-                            <p className="font-medium mb-2">📊 사분위수</p>
-                            <div className="space-y-1">
-                              <div><span className="font-medium">Q1 (25%):</span> {q1.toFixed(2)}</div>
-                              <div><span className="font-medium">중앙값 (50%):</span> {median.toFixed(2)}</div>
-                              <div><span className="font-medium">Q3 (75%):</span> {q3.toFixed(2)}</div>
-                              <div><span className="font-medium">IQR:</span> {iqr.toFixed(2)}</div>
-                            </div>
-                          </div>
-
-                          <div className="text-xs bg-background border p-3 rounded-lg">
-                            <p className="font-medium mb-2">📈 통계량</p>
-                            <div className="space-y-1">
-                              <div><span className="font-medium">평균:</span> {col.mean?.toFixed(2)}</div>
-                              <div><span className="font-medium">표준편차:</span> {col.std?.toFixed(2)}</div>
-                              <div><span className="font-medium">최소값:</span> {col.min?.toFixed(2)}</div>
-                              <div><span className="font-medium">최대값:</span> {col.max?.toFixed(2)}</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 이상치 정보 */}
-                        {outliers.length > 0 && (
-                          <div className="text-xs bg-warning-bg border border-warning-border p-3 rounded-lg">
-                            <p className="font-medium mb-1">⚠️ 이상치 감지</p>
-                            <p className="text-muted-foreground">
-                              {outliers.length}개의 이상치 발견 (1.5 × IQR 기준)
-                              <br />
-                              범위: &lt; {lowerBound.toFixed(2)} 또는 &gt; {upperBound.toFixed(2)}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="text-xs text-muted-foreground bg-background p-3 rounded-lg border">
-                          <p className="font-medium mb-1">💡 해석 가이드:</p>
-                          <ul className="list-disc list-inside space-y-1">
-                            <li><strong>히스토그램</strong>: 데이터의 분포 형태 확인 (정규분포, 왜도, 첨도)</li>
-                            <li><strong>사분위수</strong>: 데이터를 4등분한 값 (Q1, 중앙값, Q3)</li>
-                            <li><strong>IQR</strong>: Q3 - Q1, 데이터의 중간 50% 범위</li>
-                            <li><strong>이상치</strong>: Q1 - 1.5×IQR 미만 또는 Q3 + 1.5×IQR 초과</li>
-                          </ul>
-                        </div>
-                      </TabsContent>
-                    )
-                  })}
-              </Tabs>
-            ) : (
-              <p className="text-sm text-muted-foreground">수치형 변수가 없습니다.</p>
-            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="border-b bg-muted/50">
+                    <th className="text-left p-2 font-medium">변수명</th>
+                    <th className="text-center p-2 font-medium">유형</th>
+                    <th className="text-center p-2 font-medium">고유값</th>
+                    <th className="text-center p-2 font-medium">결측</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {validationResults.columnStats?.slice(0, 10).map((col: ColumnStatistics) => (
+                    <tr key={col.name} className="border-b hover:bg-muted/30">
+                      <td className="p-2 font-medium">{col.name}</td>
+                      <td className="p-2 text-center">
+                        <Badge variant={col.type === 'numeric' ? 'default' : 'secondary'}>
+                          {col.type === 'numeric' ? '수치형' : '범주형'}
+                        </Badge>
+                      </td>
+                      <td className="p-2 text-center text-muted-foreground">{col.uniqueValues}</td>
+                      <td className="p-2 text-center text-muted-foreground">{col.missingCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {validationResults.columnStats && validationResults.columnStats.length > 10 && (
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  외 {validationResults.columnStats.length - 10}개 변수... (다음 단계에서 전체 확인)
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
-
-      {/* 가정 검증은 Step 2 (데이터 탐색)에서 수행됨 */}
-
-      {/* 전체 데이터 확인 - 스크롤 가능 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>업로드된 전체 데이터</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleOpenDataInNewWindow}
-              className="gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              새 창으로 보기
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataPreviewTable
-            data={data}
-            maxRows={validationResults.totalRows}
-            defaultOpen={true}
-            title=""
-            height="500px"
-          />
-        </CardContent>
-      </Card>
     </div>
   )
 })

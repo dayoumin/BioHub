@@ -207,7 +207,7 @@ function ResultInterpretationPanel({ results, purpose }: ResultInterpretationPan
   if (!interpretation) return null
 
   return (
-    <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-200">
+    <Alert className="bg-highlight-bg border-highlight-border">
       <AlertDescription>
         <h4 className="font-semibold mb-2">{interpretation.title}</h4>
         <div className="space-y-1 text-sm">
@@ -416,16 +416,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             if (!hypothesis) return null;
 
             return (
-              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">📝 검정 가설</p>
+              <div className="mb-4 p-4 bg-highlight-bg rounded-lg border border-highlight-border dark:border-blue-800">
+                <p className="text-sm font-semibold text-foreground mb-2">📝 검정 가설</p>
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300 min-w-[60px]">귀무가설:</span>
-                    <span className="text-xs text-blue-800 dark:text-blue-200">{hypothesis.null}</span>
+                    <span className="text-xs font-medium text-highlight min-w-[60px]">귀무가설:</span>
+                    <span className="text-xs text-foreground/90">{hypothesis.null}</span>
                   </div>
                   <div className="flex gap-2">
-                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300 min-w-[60px]">대립가설:</span>
-                    <span className="text-xs text-blue-800 dark:text-blue-200">{hypothesis.alternative}</span>
+                    <span className="text-xs font-medium text-highlight min-w-[60px]">대립가설:</span>
+                    <span className="text-xs text-foreground/90">{hypothesis.alternative}</span>
                   </div>
                 </div>
               </div>
@@ -441,7 +441,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             <div>
               <p className="text-sm text-muted-foreground">p-value</p>
               <p className={`text-lg font-medium ${
-                results.pValue < 0.05 ? 'text-green-600 dark:text-green-400' : 'text-gray-600'
+                results.pValue < 0.05 ? 'text-success' : 'text-gray-600'
               }`}>
                 {results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}
               </p>
@@ -552,7 +552,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                         <td className="text-right py-2 px-2">{coef.value.toFixed(4)}</td>
                         <td className="text-right py-2 px-2">{coef.stdError.toFixed(4)}</td>
                         <td className="text-right py-2 px-2">{coef.tValue.toFixed(3)}</td>
-                        <td className={`text-right py-2 px-2 ${coef.pvalue < 0.05 ? 'font-medium text-green-600 dark:text-green-400' : ''}`}>
+                        <td className={`text-right py-2 px-2 ${coef.pvalue < 0.05 ? 'font-medium text-success' : ''}`}>
                           {coef.pvalue < 0.001 ? '< 0.001' : coef.pvalue.toFixed(3)}
                           {coef.pvalue < 0.05 && ' *'}
                         </td>
@@ -585,7 +585,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   {results.additional.vif && results.additional.vif.length > 0 && (
                     <div className="bg-muted/50 rounded p-2">
                       <p className="text-sm text-muted-foreground">VIF (max)</p>
-                      <p className={`font-medium ${Math.max(...results.additional.vif) > 10 ? 'text-red-600' : ''}`}>
+                      <p className={`font-medium ${Math.max(...results.additional.vif) > 10 ? 'text-error' : ''}`}>
                         {Math.max(...results.additional.vif).toFixed(2)}
                         {Math.max(...results.additional.vif) > 10 && ' ⚠'}
                       </p>
@@ -620,7 +620,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                   </thead>
                   <tbody>
                     {results.postHoc.map((item, idx) => (
-                      <tr key={idx} className={`border-b border-gray-200 dark:border-gray-700 ${item.significant ? 'bg-green-50 dark:bg-green-900/20' : ''}`}>
+                      <tr key={idx} className={`border-b border-gray-200 dark:border-gray-700 ${item.significant ? 'bg-success-bg' : ''}`}>
                         <td className="py-2 px-2">{item.group1} vs {item.group2}</td>
                         {item.meanDiff !== undefined && (
                           <td className="text-right py-2 px-2">{item.meanDiff.toFixed(3)}</td>
@@ -716,7 +716,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                         <span className="w-20">PC{idx + 1}</span>
                         <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div
-                            className="bg-blue-500 h-2 rounded-full"
+                            className="bg-primary h-2 rounded-full"
                             style={{ width: `${ratio * 100}%` }}
                           />
                         </div>
@@ -754,7 +754,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     {results.additional?.power !== undefined && (
                       <div className="bg-muted/50 rounded p-2">
                         <p className="text-sm text-muted-foreground">검정력</p>
-                        <p className={`font-medium ${results.additional.power >= 0.8 ? 'text-green-600' : 'text-yellow-600'}`}>
+                        <p className={`font-medium ${results.additional.power >= 0.8 ? 'text-success' : 'text-warning'}`}>
                           {(results.additional.power * 100).toFixed(1)}%
                         </p>
                       </div>
@@ -800,7 +800,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     {results.assumptions.normality.group1 && (
                       <div className="flex justify-between">
                         <span>정규성 (그룹 1):</span>
-                        <span className={results.assumptions.normality.group1.isNormal ? 'text-green-600' : 'text-yellow-600'}>
+                        <span className={results.assumptions.normality.group1.isNormal ? 'text-success' : 'text-warning'}>
                           {results.assumptions.normality.group1.isNormal ? '✓ 만족' : '⚠ 위반'}
                           {results.assumptions.normality.group1.pValue !== undefined && (
                             <> (p={results.assumptions.normality.group1.pValue.toFixed(3)})</>
@@ -811,7 +811,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                     {results.assumptions.normality.group2 && (
                       <div className="flex justify-between">
                         <span>정규성 (그룹 2):</span>
-                        <span className={results.assumptions.normality.group2.isNormal ? 'text-green-600' : 'text-yellow-600'}>
+                        <span className={results.assumptions.normality.group2.isNormal ? 'text-success' : 'text-warning'}>
                           {results.assumptions.normality.group2.isNormal ? '✓ 만족' : '⚠ 위반'}
                           {results.assumptions.normality.group2.pValue !== undefined && (
                             <> (p={results.assumptions.normality.group2.pValue.toFixed(3)})</>
@@ -824,7 +824,7 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
                 {results.assumptions.homogeneity && (
                   <div className="flex justify-between">
                     <span>등분산성:</span>
-                    <span className={(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? 'text-green-600' : 'text-yellow-600'}>
+                    <span className={(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? 'text-success' : 'text-warning'}>
                       {(results.assumptions.homogeneity.levene?.equalVariance ?? results.assumptions.homogeneity.bartlett?.equalVariance ?? false) ? '✓ 만족' : '⚠ 위반'}
                       {(() => {
                         const pValue = results.assumptions.homogeneity.levene?.pValue ?? results.assumptions.homogeneity.bartlett?.pValue
