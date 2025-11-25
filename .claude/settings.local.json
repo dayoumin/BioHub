@@ -21,7 +21,9 @@
       "Bash(find:*)",
       "Bash(npm run dev:*)",
       "Bash(cut:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(awk:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []
