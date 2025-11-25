@@ -30,7 +30,7 @@ export interface HelpSection {
 export interface HelpSearchResult {
   item: HelpItem
   score: number  // 검색 점수 (높을수록 관련성 높음)
-  matchedIn: ('title' | 'content' | 'keywords')[]
+  matchedIn: ('title' | 'description' | 'content' | 'keywords')[]
 }
 
 export interface HelpData {

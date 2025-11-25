@@ -57,7 +57,7 @@ export function searchHelp(query: string, limit = 10): HelpSearchResult[] {
 
   for (const item of allItems) {
     let totalScore = 0
-    const matchedIn: ('title' | 'content' | 'keywords')[] = []
+    const matchedIn: ('title' | 'description' | 'content' | 'keywords')[] = []
 
     // 제목 검색 (가중치 3x)
     const titleScore = calculateMatchScore(item.title, query)
@@ -76,7 +76,10 @@ export function searchHelp(query: string, limit = 10): HelpSearchResult[] {
     // 설명 검색 (가중치 1.5x)
     if (item.description) {
       const descScore = calculateMatchScore(item.description, query)
-      totalScore += descScore * 1.5
+      if (descScore > 0) {
+        totalScore += descScore * 1.5
+        matchedIn.push('description')
+      }
     }
 
     // 키워드 검색 (가중치 2x, 각 키워드)
