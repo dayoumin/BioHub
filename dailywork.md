@@ -1,3 +1,173 @@
+## 2025-11-27 (수)
+
+### 🔄 ResultContextHeader 43개 통계 페이지 적용 완료
+
+**총 작업 시간**: 약 3시간
+**주요 성과**: 모든 통계 페이지에 분석 맥락 표시 컴포넌트 적용
+
+---
+
+#### 1. 작업 개요
+
+**목표**: 43개 통계 페이지에 ResultContextHeader 컴포넌트 적용
+
+**ResultContextHeader 기능**:
+- 분석 유형 및 서브타이틀 표시
+- 데이터 파일명 표시
+- 사용된 변수 목록 표시
+- 표본 크기 표시
+- 분석 실행 시간 표시 (timestamp)
+
+---
+
+#### 2. 적용 패턴
+
+```typescript
+// 1. Import 추가
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+
+// 2. State 추가
+const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+
+// 3. 분석 완료 시 timestamp 설정
+const handleAnalysis = useCallback(async () => {
+  // ... 분석 로직
+  setAnalysisTimestamp(new Date())
+  actions.completeAnalysis?.(result, stepNumber)
+}, [dependencies, analysisTimestamp])
+
+// 4. 결과 섹션에 컴포넌트 추가
+<ResultContextHeader
+  analysisType="분석 유형"
+  analysisSubtitle="Analysis Subtitle"
+  fileName={uploadedData?.fileName}
+  variables={usedVariables}
+  sampleSize={uploadedData?.data?.length}
+  timestamp={analysisTimestamp ?? undefined}
+/>
+```
+
+---
+
+#### 3. 적용된 페이지 목록 (43개)
+
+**비교 검정 (13개)**:
+- t-test, one-sample-t, welch-t, paired-t-test
+- anova, ancova, manova, repeated-measures-anova
+- mann-whitney, wilcoxon, kruskal-wallis, friedman
+- mcnemar
+
+**상관/회귀 (9개)**:
+- correlation, partial-correlation
+- regression, stepwise, poisson, ordinal-regression
+- response-surface, dose-response
+- mann-kendall
+
+**카이제곱 (4개)**:
+- chi-square, chi-square-independence, chi-square-goodness
+- binomial-test
+
+**다변량 (5개)**:
+- pca, factor-analysis
+- cluster, discriminant
+- reliability
+
+**비모수/기타 (10개)**:
+- sign-test, runs-test, mood-median, cochran-q
+- ks-test, normality-test
+- descriptive, proportion-test, power-analysis
+- non-parametric
+
+**데이터 도구 (2개)**:
+- mixed-model
+- explore-data, means-plot
+
+---
+
+#### 4. 발생한 이슈 및 해결
+
+| 이슈 | 파일 | 해결 |
+|------|------|------|
+| useState import 누락 | means-plot | React import에 useState 추가 |
+| useState import 누락 | partial-correlation | React import에 useState 추가 |
+| useState import 누락 | mann-kendall | React import에 useState 추가 |
+
+---
+
+#### 5. 커밋 내역
+
+| 커밋 | 설명 | 파일 수 |
+|------|------|--------|
+| e1afc89 | feat: apply ResultContextHeader to 13 statistics pages | 13개 |
+| 0f3c7f7 | feat: apply ResultContextHeader to dose-response and explore-data pages | 2개 |
+
+---
+
+#### 6. 관련 문서
+
+- [RESULTS_COMPONENTS_DESIGN.md](statistical-platform/docs/RESULTS_COMPONENTS_DESIGN.md) - 결과 컴포넌트 설계 (2025-11-26 작성)
+- [RESULTS_PAGE_REFACTORING_PLAN.md](statistical-platform/docs/RESULTS_PAGE_REFACTORING_PLAN.md) - 리팩토링 계획서 (2025-11-26 작성)
+
+---
+
+## 2025-11-26 (화)
+
+### 🎨 결과 페이지 리팩토링 설계 및 ResultContextHeader 생성
+
+**총 작업 시간**: 약 4시간
+**주요 성과**: 결과 페이지 컴포넌트 설계 + ResultContextHeader 컴포넌트 신규 개발
+
+---
+
+#### 1. 결과 페이지 컴포넌트 설계
+
+**문서 작성**:
+- [RESULTS_COMPONENTS_DESIGN.md](statistical-platform/docs/RESULTS_COMPONENTS_DESIGN.md)
+- [RESULTS_PAGE_REFACTORING_PLAN.md](statistical-platform/docs/RESULTS_PAGE_REFACTORING_PLAN.md)
+
+**핵심 전략**: 기존 컴포넌트 활용 극대화
+- ✅ `StatisticalResultCard` (507줄) - 이미 완벽한 통합 컴포넌트
+- ✅ `AssumptionTestCard` (346줄) - 이미 완벽한 가정검정 컴포넌트
+- ❌ 신규 컴포넌트 대량 개발 불필요
+
+**발견사항**:
+- 대부분의 통계 페이지가 이미 잘 구조화됨
+- StatisticalResultCard 사용률 0% → 점진적 적용 필요
+- ResultContextHeader만 신규 개발 (분석 맥락 표시)
+
+---
+
+#### 2. ResultContextHeader 컴포넌트 생성
+
+**파일**: [ResultContextHeader.tsx](statistical-platform/components/statistics/common/ResultContextHeader.tsx)
+
+**기능**:
+- 분석 유형 및 서브타이틀 표시
+- 데이터 파일명 표시
+- 사용된 변수 목록 (dependent, independent, grouping 등)
+- 표본 크기 (N)
+- 분석 실행 시간 (timestamp)
+
+**Props 인터페이스**:
+```typescript
+interface ResultContextHeaderProps {
+  analysisType: string        // "독립표본 t-검정"
+  analysisSubtitle?: string   // "Two-sample t-test"
+  fileName?: string           // "data.csv"
+  variables?: VariableInfo    // 사용된 변수 정보
+  sampleSize?: number         // 표본 크기
+  timestamp?: Date            // 분석 실행 시간
+}
+```
+
+---
+
+#### 3. 초기 적용 (28개 페이지)
+
+첫 번째 배치로 28개 통계 페이지에 ResultContextHeader 적용 완료
+
+---
+
 ## 2025-11-25 (월)
 
 ### 🔧 스마트 분석 흐름 개선: Step 1-2 UX 재설계
@@ -72,8 +242,9 @@
 
 ---
 
-#### 5. 미완료 작업 (내일 진행)
+#### 5. 미완료 작업 (다음 진행)
 
+- [x] ResultContextHeader 43개 페이지 적용 (**2025-11-27 완료**)
 - [ ] Step 2, 3, 4 헤더 UI 일관성 적용
 - [ ] 분석 히스토리 UX 개선 (위 4개 항목)
 

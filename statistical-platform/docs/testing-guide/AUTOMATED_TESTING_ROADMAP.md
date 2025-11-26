@@ -2,10 +2,10 @@
 
 **목표**: 43개 통계 앱의 해석 엔진을 인간 개입 없이 완벽하게 검증
 
-**최종 상태**: 2025-11-26
+**최종 상태**: 2025-11-27
 - ✅ Phase 0 완료: 버그 수정 + 기본 테스트 (32개 테스트, 100% 통과)
 - ✅ Phase 0.5 완료: Executor 데이터 추출 테스트 (31개 테스트, 100% 통과)
-- 🔜 Phase 1: Golden Snapshot 테스트 (129 시나리오)
+- 🟡 Phase 1 진행 중: Golden Snapshot 테스트 (39/129 시나리오, 30% 완료)
 - 🔜 Phase 2: Contract 테스트 (경계값 + Edge Cases)
 - 🔜 Phase 3: E2E 테스트 (실제 결과 페이지 검증)
 - 🔜 Phase 4: CI/CD 통합 (GitHub Actions)
@@ -98,6 +98,29 @@ npm test -- __tests__/services/executors/executor-data-extraction.test.ts
 ## 🎯 Phase 1: Golden Snapshot 테스트 (우선순위: 최상)
 
 **목표**: 43개 통계 × 3 시나리오 = 129개 스냅샷 생성
+
+### 현재 상태 (2025-11-27)
+- ✅ **완료**: 13개 통계 × 3 시나리오 = 39 시나리오
+- ⬜ **남음**: 30개 통계 × 3 시나리오 = 90 시나리오
+- 📁 **위치**: `__tests__/lib/interpretation/snapshots/`
+- 🧪 **테스트**: `__tests__/lib/interpretation/validate-snapshots.test.ts`
+
+### 완료된 스냅샷 (13개)
+| 통계 | 파일명 | 상태 |
+|------|--------|------|
+| Independent t-test | t-test.json | ✅ |
+| ANOVA | anova.json | ✅ |
+| Chi-square | chi-square.json | ✅ |
+| Correlation | correlation.json | ✅ |
+| Linear Regression | linear-regression.json | ✅ |
+| Logistic Regression | logistic-regression.json | ✅ |
+| Mann-Whitney U | mann-whitney.json | ✅ |
+| Wilcoxon | wilcoxon.json | ✅ |
+| Kruskal-Wallis | kruskal-wallis.json | ✅ |
+| Friedman | friedman.json | ✅ |
+| McNemar | mcnemar.json | ✅ |
+| Shapiro-Wilk | shapiro-wilk.json | ✅ |
+| Levene | levene.json | ✅ |
 
 ### 전략
 
@@ -483,7 +506,7 @@ jobs:
 |-------|----------|----------|---------|
 | ✅ Phase 0 | 버그 수정 + 기본 테스트 | 완료 | 최상 |
 | ✅ Phase 0.5 | Executor 데이터 추출 테스트 | 완료 | 최상 |
-| Phase 1 | Golden Snapshot (129 시나리오) | 14시간 | 최상 |
+| 🟡 Phase 1 | Golden Snapshot (39/129 완료) | 남은 5시간 | 최상 |
 | Phase 2 | Contract 테스트 (Zod) | 9시간 | 높음 |
 | Phase 3 | E2E 테스트 (Playwright) | 40시간 | 중간 |
 | Phase 4 | CI/CD 통합 (GitHub Actions) | 5시간 | 중간 |
@@ -565,9 +588,10 @@ describe('Property-Based Tests', () => {
 - [x] Smart Flow Integration 테스트 (3개)
 
 ### Phase 1: Golden Snapshot
-- [ ] 43개 JSON 스냅샷 파일 생성
-- [ ] 각 통계당 3 시나리오 정의
-- [ ] 스냅샷 테스트 코드 작성
+- [x] 13개 JSON 스냅샷 파일 생성 (완료)
+- [x] 각 통계당 3 시나리오 정의 (13개 완료)
+- [x] 스냅샷 테스트 코드 작성 (validate-snapshots.test.ts)
+- [ ] 남은 30개 JSON 스냅샷 파일 생성
 - [ ] 전체 테스트 실행 (129개)
 - [ ] CI에 통합
 
@@ -592,6 +616,6 @@ describe('Property-Based Tests', () => {
 
 ---
 
-**최종 업데이트**: 2025-11-26
-**상태**: Phase 0.5 완료 (31 tests passing) → Phase 1 준비 중
-**다음 작업**: Golden Snapshot 테스트 구현 (우선순위 최상)
+**최종 업데이트**: 2025-11-27
+**상태**: Phase 1 진행 중 (39/129 시나리오, 30% 완료)
+**다음 작업**: 남은 30개 통계 스냅샷 생성 (90 시나리오)

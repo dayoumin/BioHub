@@ -12,7 +12,7 @@ cd statistical-platform
 npm run dev
 
 # 브라우저에서 접속
-http://localhost:3000/test-statistics
+(페이지 미구현 - Jest 테스트 사용: npm test)
 ```
 
 **특징:**

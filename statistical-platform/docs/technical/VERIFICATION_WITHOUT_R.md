@@ -12,7 +12,7 @@ cd statistical-platform
 npm run dev
 
 # 브라우저에서
-http://localhost:3000/test-statistics
+(페이지 미구현 - Jest 테스트 사용)
 
 # 버튼 클릭
 "전체 테스트" → 결과 확인

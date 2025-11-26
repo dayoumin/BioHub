@@ -64,7 +64,7 @@
 ### 1. NIST 데이터셋 검증 (권장)
 ```bash
 # 브라우저에서 실행
-http://localhost:3000/nist-test
+(페이지 미구현)
 ```
 
 **특징:**
@@ -77,7 +77,7 @@ http://localhost:3000/nist-test
 ### 2. 온라인 계산기 비교
 ```bash
 # 브라우저에서 실행
-http://localhost:3000/test-statistics
+(페이지 미구현)
 ```
 
 **비교 대상:**
@@ -143,5 +143,5 @@ npm test -- __tests__/statistics/
 ---
 
 **작성자**: Statistical Platform 개발팀
-**최종 업데이트**: 2025-01-18
+**최종 업데이트**: 2025-11-27
 **상태**: Production Ready ✅
