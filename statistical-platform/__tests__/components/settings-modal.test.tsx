@@ -6,7 +6,8 @@
  * 2. localStorage 로드/저장
  * 3. 플로팅 버튼 토글
  * 4. 알림 설정 변경
- * 5. 로컬 저장 토글
+ *
+ * Note: 로컬 저장 토글은 StorageService가 항상 저장을 허용하도록 변경되어 제거됨
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -80,7 +81,8 @@ describe('SettingsModal', () => {
       expect(screen.getByText('테마')).toBeInTheDocument()
       expect(screen.getByText('플로팅 챗봇 버튼')).toBeInTheDocument()
       expect(screen.getByText('알림')).toBeInTheDocument()
-      expect(screen.getByText('데이터')).toBeInTheDocument()
+      // 로컬 저장 토글은 제거됨 (StorageService가 항상 저장 허용)
+      expect(screen.queryByText('데이터')).not.toBeInTheDocument()
       expect(screen.getByText('상세 설정 보기')).toBeInTheDocument()
       expect(screen.getByText('전용 챗봇 페이지 열기 (새 창)')).toBeInTheDocument()
     })
@@ -101,20 +103,12 @@ describe('SettingsModal', () => {
       render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
 
       const switches = screen.getAllByRole('switch')
-      // 플로팅 버튼 (false) + 알림 완료 (false) + 알림 에러 (false) + 로컬 저장 (true)
+      // 플로팅 버튼 (false) + 알림 완료 (false) + 알림 에러 (false)
+      // 로컬 저장 토글은 제거됨
+      expect(switches).toHaveLength(3)
       expect(switches[0]).not.toBeChecked() // 플로팅 버튼
       expect(switches[1]).not.toBeChecked() // 알림 완료
       expect(switches[2]).not.toBeChecked() // 알림 에러
-      expect(switches[3]).toBeChecked() // 로컬 저장 (기본값 true)
-    })
-
-    it('저장된 로컬 저장 설정을 로드해야 함', () => {
-      localStorageMock['statPlatform_localStorageEnabled'] = 'false'
-
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
-
-      const switches = screen.getAllByRole('switch')
-      expect(switches[3]).not.toBeChecked() // 로컬 저장
     })
 
     it('ChatStorage에서 플로팅 버튼 설정을 로드해야 함', () => {
@@ -127,6 +121,14 @@ describe('SettingsModal', () => {
 
       const switches = screen.getAllByRole('switch')
       expect(switches[0]).toBeChecked() // 플로팅 버튼
+    })
+
+    it('로컬 저장 토글이 제거되었음을 확인', () => {
+      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+
+      // 로컬 저장 관련 UI가 없어야 함
+      expect(screen.queryByText('로컬 저장 허용')).not.toBeInTheDocument()
+      expect(screen.queryByText('분석 기록 및 설정을 브라우저에 저장합니다')).not.toBeInTheDocument()
     })
   })
 
@@ -188,23 +190,6 @@ describe('SettingsModal', () => {
 
       await waitFor(() => {
         expect(window.localStorage.setItem).toHaveBeenCalledWith('statPlatform_notifyError', 'false')
-      })
-    })
-  })
-
-  describe('로컬 저장 토글', () => {
-    it('로컬 저장을 토글하면 localStorage에 저장되어야 함', async () => {
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
-
-      const localStorageSwitch = screen.getAllByRole('switch')[3]
-
-      fireEvent.click(localStorageSwitch)
-
-      await waitFor(() => {
-        expect(window.localStorage.setItem).toHaveBeenCalledWith(
-          'statPlatform_localStorageEnabled',
-          'false'
-        )
       })
     })
   })

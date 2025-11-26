@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
-  "version": "1.0.0",
-  "lastUpdated": "2025-11-24",
+  "version": "1.1.0",
+  "lastUpdated": "2025-11-26",
   "sources": [
     "statistical-platform/__tests__/",
     "statistical-platform/jest.config.js"
@@ -76,6 +76,12 @@
           "purpose": "브라우저 API (window.open, localStorage 등) 모킹",
           "code": "const mockWindowOpen = jest.fn();\nconst mockLocalStorage = {\n  getItem: jest.fn(),\n  setItem: jest.fn(),\n  removeItem: jest.fn(),\n  clear: jest.fn()\n};\n\ndescribe('window 객체 모킹', () => {\n  beforeEach(() => {\n    window.open = mockWindowOpen;\n    Object.defineProperty(window, 'localStorage', {\n      value: mockLocalStorage,\n      writable: true\n    });\n  });\n  \n  it('window.open이 호출되어야 함', () => {\n    render(<MyComponent />);\n    \n    fireEvent.click(screen.getByText('새 창 열기'));\n    \n    expect(mockWindowOpen).toHaveBeenCalledWith('/chatbot', '_blank');\n  });\n  \n  it('localStorage가 호출되어야 함', () => {\n    mockLocalStorage.getItem.mockReturnValue('saved-value');\n    \n    render(<MyComponent />);\n    \n    expect(mockLocalStorage.getItem).toHaveBeenCalledWith('key');\n  });\n});",
           "keywords": ["window.open", "localStorage", "browser API"]
+        },
+        {
+          "name": "IndexedDB graceful degradation",
+          "purpose": "브라우저 호환성 (Safari/Firefox에서 미지원 API 처리)",
+          "code": "describe('IndexedDB cleanup graceful degradation', () => {\n  it('indexedDB.databases가 undefined일 때도 에러 없이 처리되어야 함', async () => {\n    // Safari/Firefox 시뮬레이션: databases 메서드가 없음\n    const mockIndexedDB = {\n      deleteDatabase: jest.fn(),\n      // databases 메서드 없음 (undefined)\n    };\n\n    Object.defineProperty(window, 'indexedDB', {\n      value: mockIndexedDB,\n      writable: true,\n    });\n\n    const cleanupIndexedDB = async () => {\n      try {\n        if (typeof window.indexedDB.databases === 'function') {\n          const databases = await window.indexedDB.databases();\n          for (const db of databases) {\n            if (db.name) {\n              window.indexedDB.deleteDatabase(db.name);\n            }\n          }\n        }\n      } catch (e) {\n        console.warn('[Settings] IndexedDB cleanup failed:', e);\n      }\n    };\n\n    await expect(cleanupIndexedDB()).resolves.not.toThrow();\n    expect(mockIndexedDB.deleteDatabase).not.toHaveBeenCalled();\n  });\n\n  it('indexedDB.databases가 에러를 던져도 graceful하게 처리되어야 함', async () => {\n    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();\n    const mockIndexedDB = {\n      databases: jest.fn().mockRejectedValue(new Error('Not supported')),\n      deleteDatabase: jest.fn(),\n    };\n\n    Object.defineProperty(window, 'indexedDB', {\n      value: mockIndexedDB,\n      writable: true,\n    });\n\n    // ... cleanup 로직 ...\n    await expect(cleanupIndexedDB()).resolves.not.toThrow();\n    expect(consoleWarnSpy).toHaveBeenCalled();\n    consoleWarnSpy.mockRestore();\n  });\n});",
+          "keywords": ["indexedDB", "browser compatibility", "feature detection", "graceful degradation", "Safari", "Firefox"]
         }
       ]
     },

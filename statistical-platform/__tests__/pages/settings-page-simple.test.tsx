@@ -114,3 +114,124 @@ describe('SettingsPage - Simple Tests', () => {
     expect(screen.getByText('즐겨찾기')).toBeInTheDocument()
   })
 })
+
+/**
+ * IndexedDB cleanup graceful degradation 테스트
+ *
+ * Safari/Firefox에서 window.indexedDB.databases()가 지원되지 않을 때
+ * 에러 없이 graceful하게 처리되는지 확인
+ */
+describe('IndexedDB cleanup graceful degradation', () => {
+  it('indexedDB.databases가 undefined일 때도 에러 없이 처리되어야 함', async () => {
+    // Safari/Firefox 시뮬레이션: databases 메서드가 없음
+    const mockIndexedDB = {
+      deleteDatabase: jest.fn(),
+      // databases 메서드 없음 (undefined)
+    }
+
+    Object.defineProperty(window, 'indexedDB', {
+      value: mockIndexedDB,
+      writable: true,
+    })
+
+    // 테스트할 cleanup 로직
+    const cleanupIndexedDB = async () => {
+      try {
+        if (typeof window.indexedDB.databases === 'function') {
+          const databases = await window.indexedDB.databases()
+          for (const db of databases) {
+            if (db.name) {
+              window.indexedDB.deleteDatabase(db.name)
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Settings] IndexedDB cleanup failed:', e)
+      }
+    }
+
+    // 에러 없이 실행되어야 함
+    await expect(cleanupIndexedDB()).resolves.not.toThrow()
+
+    // deleteDatabase가 호출되지 않아야 함 (databases 메서드가 없으므로)
+    expect(mockIndexedDB.deleteDatabase).not.toHaveBeenCalled()
+  })
+
+  it('indexedDB.databases가 존재할 때 정상 동작해야 함', async () => {
+    // Chrome 시뮬레이션: databases 메서드 있음
+    const mockDatabases = [{ name: 'testDB1' }, { name: 'testDB2' }, { name: null }]
+    const mockIndexedDB = {
+      databases: jest.fn().mockResolvedValue(mockDatabases),
+      deleteDatabase: jest.fn(),
+    }
+
+    Object.defineProperty(window, 'indexedDB', {
+      value: mockIndexedDB,
+      writable: true,
+    })
+
+    const cleanupIndexedDB = async () => {
+      try {
+        if (typeof window.indexedDB.databases === 'function') {
+          const databases = await window.indexedDB.databases()
+          for (const db of databases) {
+            if (db.name) {
+              window.indexedDB.deleteDatabase(db.name)
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Settings] IndexedDB cleanup failed:', e)
+      }
+    }
+
+    await cleanupIndexedDB()
+
+    // databases가 호출되어야 함
+    expect(mockIndexedDB.databases).toHaveBeenCalled()
+    // name이 있는 DB만 삭제되어야 함 (2개)
+    expect(mockIndexedDB.deleteDatabase).toHaveBeenCalledTimes(2)
+    expect(mockIndexedDB.deleteDatabase).toHaveBeenCalledWith('testDB1')
+    expect(mockIndexedDB.deleteDatabase).toHaveBeenCalledWith('testDB2')
+  })
+
+  it('indexedDB.databases가 에러를 던져도 graceful하게 처리되어야 함', async () => {
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
+
+    const mockIndexedDB = {
+      databases: jest.fn().mockRejectedValue(new Error('Not supported')),
+      deleteDatabase: jest.fn(),
+    }
+
+    Object.defineProperty(window, 'indexedDB', {
+      value: mockIndexedDB,
+      writable: true,
+    })
+
+    const cleanupIndexedDB = async () => {
+      try {
+        if (typeof window.indexedDB.databases === 'function') {
+          const databases = await window.indexedDB.databases()
+          for (const db of databases) {
+            if (db.name) {
+              window.indexedDB.deleteDatabase(db.name)
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[Settings] IndexedDB cleanup failed:', e)
+      }
+    }
+
+    // 에러 없이 실행되어야 함
+    await expect(cleanupIndexedDB()).resolves.not.toThrow()
+
+    // console.warn이 호출되어야 함
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Settings] IndexedDB cleanup failed:',
+      expect.any(Error)
+    )
+
+    consoleWarnSpy.mockRestore()
+  })
+})

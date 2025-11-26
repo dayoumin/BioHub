@@ -33,9 +33,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const [notifyAnalysisComplete, setNotifyAnalysisComplete] = useState<boolean>(true)
   const [notifyError, setNotifyError] = useState<boolean>(true)
 
-  // 로컬 저장 허용
-  const [localStorageEnabled, setLocalStorageEnabled] = useState<boolean>(true)
-
   // 설정 로드
   useEffect(() => {
     // 플로팅 버튼 설정
@@ -51,12 +48,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     const savedNotifyError = StorageService.getItem('statPlatform_notifyError')
     if (savedNotifyError !== null) {
       setNotifyError(savedNotifyError === 'true')
-    }
-
-    // 로컬 저장 설정
-    const savedLocalStorage = StorageService.getItem('statPlatform_localStorageEnabled')
-    if (savedLocalStorage !== null) {
-      setLocalStorageEnabled(savedLocalStorage === 'true')
     }
   }, [])
 
@@ -78,12 +69,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   const handleNotifyError = (checked: boolean) => {
     setNotifyError(checked)
     StorageService.setItem('statPlatform_notifyError', String(checked))
-  }
-
-  // 로컬 저장 설정 변경
-  const handleLocalStorageToggle = (checked: boolean) => {
-    setLocalStorageEnabled(checked)
-    StorageService.setItem('statPlatform_localStorageEnabled', String(checked))
   }
 
   return (
@@ -196,28 +181,6 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   onCheckedChange={handleNotifyError}
                 />
               </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* 데이터 설정 */}
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">데이터</Label>
-            <div className="flex items-center justify-between">
-              <div className="space-y-1 flex-1">
-                <Label htmlFor="local-storage" className="text-sm font-normal cursor-pointer">
-                  로컬 저장 허용
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  분석 기록 및 설정을 브라우저에 저장합니다
-                </p>
-              </div>
-              <Switch
-                id="local-storage"
-                checked={localStorageEnabled}
-                onCheckedChange={handleLocalStorageToggle}
-              />
             </div>
           </div>
 

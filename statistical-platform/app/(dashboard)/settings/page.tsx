@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { ChatStorage } from '@/lib/services/chat-storage'
 import { clearRecentStatistics, getRecentStatistics } from '@/lib/utils/recent-statistics'
 import { StorageService } from '@/lib/services/storage-service'
+import { useSettingsStore } from '@/lib/stores/settings-store'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
@@ -23,6 +24,9 @@ export default function SettingsPage() {
   const [chatbotModel, setChatbotModel] = useState<string>('llama3.2')
   const [vectorDb, setVectorDb] = useState<string>('chromadb')
   const [floatingButtonEnabled, setFloatingButtonEnabled] = useState<boolean>(true)
+
+  // Ollama 추천 설정 (Zustand store 사용)
+  const { useOllamaForRecommendation, setUseOllamaForRecommendation } = useSettingsStore()
 
   // RAG 설정
   const [ollamaEndpoint, setOllamaEndpoint] = useState<string>('http://localhost:11434')
@@ -34,8 +38,7 @@ export default function SettingsPage() {
   const [notifyAnalysisComplete, setNotifyAnalysisComplete] = useState<boolean>(true)
   const [notifyError, setNotifyError] = useState<boolean>(true)
 
-  // 로컬 저장 허용
-  const [localStorageEnabled, setLocalStorageEnabled] = useState<boolean>(true)
+
 
   // localStorage에서 설정 로드
   useEffect(() => {
@@ -95,12 +98,6 @@ export default function SettingsPage() {
     const savedNotifyError = StorageService.getItem('statPlatform_notifyError')
     if (savedNotifyError !== null) {
       setNotifyError(savedNotifyError === 'true')
-    }
-
-    // 로컬 저장 설정 로드
-    const savedLocalStorage = StorageService.getItem('statPlatform_localStorageEnabled')
-    if (savedLocalStorage !== null) {
-      setLocalStorageEnabled(savedLocalStorage === 'true')
     }
 
     // 최근 사용 목록 개수 로드
@@ -173,12 +170,6 @@ export default function SettingsPage() {
   const handleNotifyError = (checked: boolean) => {
     setNotifyError(checked)
     StorageService.setItem('statPlatform_notifyError', String(checked))
-  }
-
-  // 로컬 저장 설정 변경 핸들러
-  const handleLocalStorageToggle = (checked: boolean) => {
-    setLocalStorageEnabled(checked)
-    StorageService.setItem('statPlatform_localStorageEnabled', String(checked))
   }
 
   return (
@@ -375,6 +366,42 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader>
+              <CardTitle>AI 분석 방법 추천</CardTitle>
+              <CardDescription>
+                Smart Flow에서 통계 분석 방법 추천 시 Ollama LLM 사용 여부를 설정하세요
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="space-y-1">
+                  <Label htmlFor="ollama-recommendation" className="text-base font-medium">
+                    Ollama LLM 추천 사용
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {useOllamaForRecommendation
+                      ? 'Ollama LLM으로 분석 방법을 추천합니다 (더 정확하지만 느림)'
+                      : 'DecisionTree로 분석 방법을 추천합니다 (빠르고 안정적)'}
+                  </p>
+                </div>
+                <Switch
+                  id="ollama-recommendation"
+                  checked={useOllamaForRecommendation}
+                  onCheckedChange={setUseOllamaForRecommendation}
+                />
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm">
+                  <strong>비교:</strong><br />
+                  • <strong>DecisionTree (기본)</strong>: 빠르고 안정적, 85-89% 정확도<br />
+                  • <strong>Ollama LLM</strong>: 더 정확하지만 Ollama 서버 필요, 95% 정확도
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>임베딩 모델</CardTitle>
               <CardDescription>
                 문서 검색에 사용할 임베딩 모델을 선택하세요
@@ -475,31 +502,53 @@ export default function SettingsPage() {
         <TabsContent value="data" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>로컬 저장 설정</CardTitle>
+              <CardTitle>데이터 관리</CardTitle>
               <CardDescription>
-                브라우저에 데이터를 저장할지 선택하세요
+                브라우저에 저장된 앱 데이터를 관리하세요
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="space-y-1">
-                  <Label htmlFor="local-storage-page" className="text-base font-medium">
-                    로컬 저장 허용
-                  </Label>
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div>
+                  <p className="font-medium">저장된 데이터</p>
                   <p className="text-sm text-muted-foreground">
-                    분석 기록, 설정, 즐겨찾기 등을 브라우저에 저장합니다
+                    설정, 분석 캐시, Smart Flow 상태 등
                   </p>
                 </div>
-                <Switch
-                  id="local-storage-page"
-                  checked={localStorageEnabled}
-                  onCheckedChange={handleLocalStorageToggle}
-                />
               </div>
 
-              <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={async () => {
+                  if (confirm('모든 저장된 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                    // localStorage 삭제
+                    localStorage.clear()
+                    // sessionStorage 삭제
+                    sessionStorage.clear()
+                    // IndexedDB 삭제 (지원하는 브라우저만)
+                    try {
+                      if (typeof window.indexedDB.databases === 'function') {
+                        const databases = await window.indexedDB.databases()
+                        for (const db of databases) {
+                          if (db.name) {
+                            window.indexedDB.deleteDatabase(db.name)
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      console.warn('[Settings] IndexedDB cleanup failed:', e)
+                    }
+                    window.location.reload()
+                  }
+                }}
+              >
+                모든 데이터 삭제
+              </Button>
+
+              <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
                 <p className="text-sm">
-                  <strong>참고:</strong> 로컬 저장을 비활성화하면 브라우저를 닫을 때 모든 설정과 기록이 삭제됩니다.
+                  <strong>주의:</strong> 삭제 시 모든 설정이 기본값으로 초기화되고, 분석 캐시와 즐겨찾기가 삭제됩니다.
                 </p>
               </div>
             </CardContent>
