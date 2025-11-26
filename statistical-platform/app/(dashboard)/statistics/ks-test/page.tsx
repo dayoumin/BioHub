@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { KSTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +25,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
@@ -67,6 +68,7 @@ export default function KolmogorovSmirnovTestPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   const steps = useMemo(() => {
     const baseSteps = [
@@ -189,6 +191,7 @@ export default function KolmogorovSmirnovTestPage() {
       const variable2 = variables.variables.length > 1 ? variables.variables[1] : undefined
       const result = await calculateKSTest(uploadedData.data, variables.variables[0], variable2)
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('K-S 검정 분석 중 오류:', error)
@@ -459,12 +462,18 @@ export default function KolmogorovSmirnovTestPage() {
       distributionInfo
     } = results
 
+    const usedVariables = selectedVariables?.variables || []
+
     return (
       <div className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">K-S 검정 결과</h2>
-          <p className="text-gray-600">{testType === 'one-sample' ? '일표본' : '이표본'} 분포 검정 결과</p>
-        </div>
+        <ResultContextHeader
+          analysisType={testType === 'one-sample' ? '일표본 K-S 검정' : '이표본 K-S 검정'}
+          analysisSubtitle="Kolmogorov-Smirnov Test"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={sampleSizes.n1 + (sampleSizes.n2 || 0)}
+          timestamp={analysisTimestamp ?? undefined}
+        />
 
         {/* 주요 결과 요약 */}
         <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
@@ -644,7 +653,7 @@ export default function KolmogorovSmirnovTestPage() {
         </div>
       </div>
     )
-  }, [isAnalyzing, error, results])
+  }, [isAnalyzing, error, results, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

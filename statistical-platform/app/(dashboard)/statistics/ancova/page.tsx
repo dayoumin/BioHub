@@ -36,6 +36,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -131,6 +132,7 @@ export default function ANCOVAPage() {
 
   // PyodideCore state
   const [pyodideReady, setPyodideReady] = useState(false)
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Initialize PyodideCore
   useEffect(() => {
@@ -207,6 +209,7 @@ export default function ANCOVAPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(workerResult, 3)
     } catch (err) {
       console.error('ANCOVA 분석 실패:', err)
@@ -398,6 +401,18 @@ export default function ANCOVAPage() {
       {/* Step 3: 결과 */}
       {currentStep === 3 && analysisResult && (
         <div className="space-y-6">
+          <ResultContextHeader
+            analysisType="공분산분석"
+            analysisSubtitle="Analysis of Covariance (ANCOVA)"
+            fileName={uploadedData?.fileName}
+            variables={[
+              ...(typeof _selectedVariables?.dependent === 'string' ? [_selectedVariables.dependent] : []),
+              ...(Array.isArray(_selectedVariables?.factor) ? _selectedVariables.factor : []),
+              ...(Array.isArray(_selectedVariables?.covariate) ? _selectedVariables.covariate : [])
+            ]}
+            sampleSize={uploadedData?.data?.length}
+            timestamp={analysisTimestamp ?? undefined}
+          />
           {/* 주요 결과 카드 */}
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="border-2">

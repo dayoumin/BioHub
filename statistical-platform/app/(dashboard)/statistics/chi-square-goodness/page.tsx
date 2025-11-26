@@ -37,6 +37,7 @@ import { StatisticsTable, type TableColumn } from '@/components/statistics/commo
 
 // Hooks & Utils
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -92,6 +93,7 @@ export default function ChiSquareGoodnessPage() {
   // Page-specific state
   const [expectedProportions, setExpectedProportions] = useState<Record<string, number>>({})
   const [useUniformDistribution, setUseUniformDistribution] = useState(true)
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -319,6 +321,7 @@ export default function ChiSquareGoodnessPage() {
         }
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(mockResult, 3)
     } catch (err: unknown) {
       console.error('카이제곱 적합도 검정 실패:', err)
@@ -520,6 +523,14 @@ export default function ChiSquareGoodnessPage() {
       {/* Step 3: 결과 */}
       {currentStep === 3 && results && (
         <div className="space-y-6">
+          <ResultContextHeader
+            analysisType="카이제곱 적합도 검정"
+            analysisSubtitle="Chi-Square Goodness-of-Fit Test"
+            fileName={uploadedData?.fileName}
+            variables={selectedVariables?.dependent || []}
+            sampleSize={results.totalN}
+            timestamp={analysisTimestamp ?? undefined}
+          />
           {/* 주요 결과 카드 */}
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="border-2">

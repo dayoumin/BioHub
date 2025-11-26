@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { ChiSquareIndependenceVariables } from '@/types/statistics'
 import { toChiSquareIndependenceVariables, type VariableAssignment } from '@/types/statistics-converters'
@@ -35,6 +35,7 @@ import { StatisticsTable, type TableColumn, type TableRow as StatTableRow } from
 
 // Services & Types
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -102,6 +103,7 @@ export default function ChiSquareIndependencePage() {
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs - useMemo로 최적화
   const breadcrumbs = useMemo(() => [
@@ -270,6 +272,7 @@ export default function ChiSquareIndependencePage() {
         }
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(transformedResult, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
@@ -456,6 +459,14 @@ export default function ChiSquareIndependencePage() {
       {/* Step 3: 결과 */}
       {currentStep === 3 && analysisResult && (
         <div className="space-y-6">
+          <ResultContextHeader
+            analysisType="카이제곱 독립성 검정"
+            analysisSubtitle="Chi-Square Test of Independence"
+            fileName={uploadedData?.fileName}
+            variables={[selectedVariables?.row, selectedVariables?.column].filter(Boolean) as string[]}
+            sampleSize={analysisResult.marginals.total}
+            timestamp={analysisTimestamp ?? undefined}
+          />
           {/* 주요 결과 카드 */}
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="border-2">
