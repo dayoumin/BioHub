@@ -102,6 +102,7 @@ export default function WelchTPage() {
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
   const [activeTab, setActiveTab] = useState('summary')
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [confidenceLevel, setConfidenceLevel] = useState('95')
   const [alternative, setAlternative] = useState('two-sided')
 
@@ -270,6 +271,7 @@ export default function WelchTPage() {
         }
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(results, 3)
       setActiveTab('summary')
     } catch (err) {
@@ -575,8 +577,8 @@ export default function WelchTPage() {
           analysisSubtitle="Welch's t-test"
           fileName={uploadedData?.fileName}
           variables={usedVariables}
-          sampleSize={uploadedData?.data?.length}
-          timestamp={new Date()}
+          sampleSize={results ? results.group1.n + results.group2.n : undefined}
+          timestamp={analysisTimestamp ?? undefined}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

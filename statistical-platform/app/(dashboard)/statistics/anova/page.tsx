@@ -1100,7 +1100,7 @@ export default function ANOVAPage() {
               ...(selectedVariables?.dependent ? [selectedVariables.dependent] : []),
               ...(Array.isArray(selectedVariables?.factor) ? selectedVariables.factor : selectedVariables?.factor ? [selectedVariables.factor] : [])
             ]}
-            sampleSize={uploadedData?.data?.length}
+            sampleSize={results?.groups?.reduce((sum: number, g: { n: number }) => sum + g.n, 0)}
             timestamp={analysisTimestamp ?? undefined}
           />
 
