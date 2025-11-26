@@ -15,12 +15,12 @@ export interface GuidanceCardProps {
     emoji: string
     text: string
   }>
-  /** CTA 버튼 텍스트 */
-  ctaText: string
+  /** CTA 버튼 텍스트 (선택, 없으면 버튼 숨김) */
+  ctaText?: string
   /** CTA 버튼 아이콘 (선택) */
   ctaIcon?: React.ReactNode
-  /** CTA 버튼 클릭 핸들러 */
-  onCtaClick: () => void
+  /** CTA 버튼 클릭 핸들러 (선택, 없으면 버튼 숨김) */
+  onCtaClick?: () => void
   /** CTA 버튼 비활성화 여부 (선택) */
   ctaDisabled?: boolean
   /** 경고 메시지 (선택, 경고가 있을 때만 표시) */
@@ -101,16 +101,18 @@ export function GuidanceCard({
             </div>
           </div>
 
-          {/* 우측: CTA 버튼 */}
-          <Button
-            size="default"
-            onClick={onCtaClick}
-            disabled={ctaDisabled}
-            className="flex-shrink-0 shadow-sm"
-          >
-            {ctaText}
-            {ctaIcon && <span className="ml-2">{ctaIcon}</span>}
-          </Button>
+          {/* 우측: CTA 버튼 (ctaText와 onCtaClick이 있을 때만 표시) */}
+          {ctaText && onCtaClick && (
+            <Button
+              size="default"
+              onClick={onCtaClick}
+              disabled={ctaDisabled}
+              className="flex-shrink-0 shadow-sm"
+            >
+              {ctaText}
+              {ctaIcon && <span className="ml-2">{ctaIcon}</span>}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

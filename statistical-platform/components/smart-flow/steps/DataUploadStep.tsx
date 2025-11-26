@@ -31,13 +31,14 @@ export function DataUploadStep({
   onNext,
   canGoNext,
   currentStep,
-  totalSteps
-}: DataUploadStepProps) {
+  totalSteps,
+  existingFileName
+}: DataUploadStepProps & { existingFileName?: string }) {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<ProcessingProgress | null>(null)
   const [memoryWarning, setMemoryWarning] = useState(false)
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(existingFileName || null)
   const [excelSheets, setExcelSheets] = useState<SheetInfo[] | null>(null)
   const [selectedSheet, setSelectedSheet] = useState<number>(0)
   const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null)
@@ -277,6 +278,7 @@ export function DataUploadStep({
 
   return (
     <div className="space-y-6">
+
       {/* 조건부 렌더링: 업로드 전/후 */}
       {!uploadedFileName ? (
         <div
@@ -423,16 +425,6 @@ export function DataUploadStep({
               </span>
             </li>
           </ul>
-        </div>
-      )}
-
-      {/* 업로드 완료 후 다음 버튼 */}
-      {uploadedFileName && canGoNext && onNext && (
-        <div className="flex justify-end pt-4 border-t">
-          <Button onClick={onNext} className="gap-2">
-            다음 단계로
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
       )}
     </div>

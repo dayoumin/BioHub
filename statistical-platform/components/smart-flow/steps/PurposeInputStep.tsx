@@ -434,10 +434,7 @@ export function PurposeInputStep({
               { emoji: '2️⃣', text: '자동 분석 실행 + 가정 검정' },
               { emoji: '3️⃣', text: '결과 확인 및 해석' }
             ]}
-            ctaText="변수 선택하기"
-            ctaIcon={<ArrowRight className="w-4 h-4" />}
-            onCtaClick={handleConfirmMethod}
-            ctaDisabled={isNavigating || isAnalyzing}
+            
             animationDelay={500}
             data-testid="step3-guidance-card"
           />

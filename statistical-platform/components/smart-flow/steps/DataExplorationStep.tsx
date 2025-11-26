@@ -364,63 +364,51 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   if (!validationResults || numericVariables.length < 2) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>📊 데이터 탐색</CardTitle>
-            <CardDescription>
+        {/* 헤더 + 네비게이션 */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1 flex-1">
+            <div className="flex items-center gap-2">
+              <ChartScatter className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-semibold">데이터 탐색</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
               변수 간 상관관계를 시각화하고 분석합니다
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
+            </p>
+          </div>
+          
+        </div>
+
+        <Card className="border-warning-border bg-warning-bg">
+          <CardContent className="py-8">
+            <div className="text-center text-muted-foreground">
               <p>수치형 변수가 2개 이상 필요합니다.</p>
               <p className="text-sm mt-2">현재: {numericVariables.length}개</p>
             </div>
           </CardContent>
         </Card>
-
-        <div className="flex justify-between">
-          <Button onClick={onPrevious} variant="outline">
-            ← 이전
-          </Button>
-          <Button onClick={onNext}>
-            다음 단계로 →
-          </Button>
-        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* 헤더 */}
-      <Card className="border-highlight-border bg-highlight-bg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ChartScatter className="h-5 w-5" />
-            데이터 탐색
-          </CardTitle>
-          <CardDescription>
+      {/* 헤더 + 네비게이션 */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1 flex-1">
+          <div className="flex items-center gap-2">
+            <ChartScatter className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">데이터 탐색</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
             변수 간 상관관계를 자유롭게 탐색하세요
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2 text-sm">
+          </p>
+          <div className="flex items-center gap-2 text-sm pt-1">
             <Badge variant="outline">{numericVariables.length}개 수치형 변수</Badge>
             <Badge variant="outline">{scatterplots.length}개 산점도</Badge>
             <Badge variant="outline">{correlationMatrix.length}개 상관관계</Badge>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* 네비게이션 버튼 */}
-      <div className="flex justify-between">
-        <Button onClick={onPrevious} variant="outline">
-          ← 이전
-        </Button>
-        <Button onClick={onNext}>
-          다음 단계로 →
-        </Button>
+        </div>
+        
       </div>
 
       {/* 기초 통계량 (상단 카드) */}
