@@ -1,5 +1,4 @@
 {
   "installCommand": "cd statistical-platform && npm install --legacy-peer-deps",
-  "buildCommand": "cd statistical-platform && npm run build",
-  "outputDirectory": "statistical-platform/.next"
+  "buildCommand": "cd statistical-platform && npm run build"
 }
