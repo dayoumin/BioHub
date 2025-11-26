@@ -1,5 +1,7 @@
 {
-  "framework": "nextjs",
-  "installCommand": "npm install --legacy-peer-deps",
-  "buildCommand": "npm run build"
+  "version": 2,
+  "installCommand": "cd statistical-platform && npm install --legacy-peer-deps",
+  "buildCommand": "cd statistical-platform && npm run build",
+  "outputDirectory": "statistical-platform/out",
+  "framework": null
 }
