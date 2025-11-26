@@ -99,6 +99,7 @@ export default function MannWhitneyPage() {
   // PyodideCore instance
   const [pyodideCore] = useState(() => PyodideCoreService.getInstance())
   const [isInitialized, setIsInitialized] = useState(false)
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Initialize PyodideCore
   useEffect(() => {
@@ -343,6 +344,7 @@ export default function MannWhitneyPage() {
       }
 
       // completeAnalysis로 결과 저장 + isAnalyzing 리셋 (Step 이동은 이미 완료)
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(formattedResult)
     } catch (err) {
       console.error('Mann-Whitney U 검정 실패:', err)
@@ -575,7 +577,7 @@ export default function MannWhitneyPage() {
           fileName={uploadedData?.fileName}
           variables={usedVariables}
           sampleSize={uploadedData?.data?.length}
-          timestamp={new Date()}
+          timestamp={analysisTimestamp ?? undefined}
         />
 
         {/* 주요 결과 카드 */}

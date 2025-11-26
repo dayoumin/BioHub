@@ -81,6 +81,7 @@ export default function TTestPage() {
 
   const [testType, setTestType] = useState<'one-sample' | 'two-sample' | 'paired' | ''>('')
   const [testValue, setTestValue] = useState<string>('0')
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // testValue 유효성 검사
   const parsedTestValue = parseFloat(testValue)
@@ -298,6 +299,7 @@ export default function TTestPage() {
         }
       })()
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(finalResult, 4)
     } catch (err) {
       actions.setError?.(err instanceof Error ? err.message : '분석 실패')
@@ -679,7 +681,7 @@ export default function TTestPage() {
                 : [selectedVariables?.before as string, selectedVariables?.after as string].filter(Boolean)
             }
             sampleSize={uploadedData?.data?.length}
-            timestamp={new Date()}
+            timestamp={analysisTimestamp ?? undefined}
           />
           <StatisticalResultCard
             result={convertToStatisticalResult(results)}

@@ -101,6 +101,7 @@ export default function FriedmanPage() {
   // PyodideCore instance
   const [pyodideCore] = useState(() => PyodideCoreService.getInstance())
   const [isInitialized, setIsInitialized] = useState(false)
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Initialize PyodideCore
   useEffect(() => {
@@ -334,6 +335,7 @@ export default function FriedmanPage() {
       }
 
       // completeAnalysis로 결과 저장 + isAnalyzing 리셋
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(fullResult)
     } catch (err) {
       console.error('Friedman 검정 실패:', err)
@@ -549,7 +551,7 @@ export default function FriedmanPage() {
           fileName={uploadedData?.fileName}
           variables={measureVars}
           sampleSize={uploadedData?.data?.length}
-          timestamp={new Date()}
+          timestamp={analysisTimestamp ?? undefined}
         />
 
         {/* 주요 결과 카드 */}

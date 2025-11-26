@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { WilcoxonVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,6 +99,8 @@ export default function WilcoxonPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+
   const steps = useMemo(() => {
     const baseSteps = [
       { id: 1, label: '방법 소개' },
@@ -157,6 +159,7 @@ export default function WilcoxonPage() {
         { values1, values2 }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(result, 3)
     } catch (err) {
       console.error('Wilcoxon 부호순위 검정 실패:', err)
@@ -418,7 +421,7 @@ export default function WilcoxonPage() {
           fileName={uploadedData?.fileName}
           variables={usedVariables}
           sampleSize={uploadedData?.data?.length}
-          timestamp={new Date()}
+          timestamp={analysisTimestamp ?? undefined}
         />
 
         <div className="text-center">
