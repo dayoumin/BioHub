@@ -631,11 +631,18 @@ npm error peer zod@"^3.23.8" from @browserbasehq/stagehand@1.13.0
 
 ```json
 {
+  "version": 2,
   "installCommand": "cd statistical-platform && npm install --legacy-peer-deps",
   "buildCommand": "cd statistical-platform && npm run build",
-  "outputDirectory": "statistical-platform/.next"
+  "outputDirectory": "statistical-platform/out",
+  "framework": null
 }
 ```
+
+> ⚠️ **중요사항**:
+> - `outputDirectory`: `statistical-platform/out` (Static Export 모드 사용)
+> - `framework`: `null` (Vercel 자동 감지 비활성화)
+> - `npm ci` 대신 `npm install --legacy-peer-deps` 사용
 
 > ⚠️ **중요**: `vercel.json`은 **저장소 루트**에 위치해야 합니다. `statistical-platform/vercel.json`은 무시될 수 있습니다.
 
@@ -661,6 +668,45 @@ legacy-peer-deps=true
 **검증**:
 - Vercel 빌드 로그에서 `npm install --legacy-peer-deps` 실행 확인
 - `npm ci` 대신 `npm install` 사용되는지 확인
+
+---
+
+### 문제: 404 NOT_FOUND (빌드 성공 후)
+
+**증상**:
+- Vercel 빌드는 성공하지만 배포된 사이트에서 404 오류 발생
+- 미리보기에서 "404: NOT_FOUND" 표시
+
+**원인**:
+- `outputDirectory` 설정이 잘못됨
+- `framework` 설정이 `nextjs`로 되어 있어 Static Export와 충돌
+- 루트에 불필요한 `package-lock.json` 존재
+
+**해결책**:
+
+1. **`vercel.json` 확인**:
+   ```json
+   {
+     "outputDirectory": "statistical-platform/out",  // ✅ out (Static Export)
+     "framework": null  // ✅ null (자동 감지 비활성화)
+   }
+   ```
+
+2. **루트 `package-lock.json` 삭제** (있다면):
+   ```bash
+   # 저장소 루트에 package-lock.json이 있으면 삭제
+   rm package-lock.json  # 루트
+   # statistical-platform/package-lock.json은 유지
+   ```
+
+3. **`next.config.ts` 확인**:
+   ```typescript
+   // output: 'export' 설정이 production에서 활성화되는지 확인
+   ...(process.env.NODE_ENV === 'production' && {
+     output: 'export',
+     trailingSlash: true,
+   }),
+   ```
 
 ---
 
