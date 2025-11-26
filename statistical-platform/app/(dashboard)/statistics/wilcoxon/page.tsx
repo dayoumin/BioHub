@@ -28,6 +28,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -404,8 +405,22 @@ export default function WilcoxonPage() {
 
     if (!analysisResult) return null
 
+    // Get variable names for context header (WilcoxonVariables uses dependent: string[])
+    const usedVariables = Array.isArray(selectedVariables?.dependent)
+      ? selectedVariables.dependent
+      : selectedVariables?.dependent ? [selectedVariables.dependent] : []
+
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="Wilcoxon 부호순위 검정"
+          analysisSubtitle="Wilcoxon Signed-Rank Test"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={new Date()}
+        />
+
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Wilcoxon 부호순위 검정 결과</h2>
           <p className="text-gray-600">대응표본 비모수 검정 결과</p>
@@ -648,7 +663,7 @@ export default function WilcoxonPage() {
         </div>
       </div>
     )
-  }, [isAnalyzing, error, analysisResult, actions])
+  }, [isAnalyzing, error, analysisResult, actions, uploadedData, selectedVariables])
 
   return (
     <TwoPanelLayout

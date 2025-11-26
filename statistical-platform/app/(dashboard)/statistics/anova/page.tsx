@@ -140,6 +140,7 @@ export default function ANOVAPage() {
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
   const [anovaType, setAnovaType] = useState<'oneWay' | 'twoWay' | 'threeWay' | 'repeated' | ''>('')
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   const anovaTypeInfo = {
     oneWay: {
@@ -457,6 +458,7 @@ export default function ANOVAPage() {
           anovaTable
         }
 
+        setAnalysisTimestamp(new Date())
         actions.completeAnalysis?.(finalResult, 4)
       } else if (factors.length === 2) {
         // Two-way ANOVA
@@ -613,6 +615,7 @@ export default function ANOVAPage() {
           multiFactorResults
         }
 
+        setAnalysisTimestamp(new Date())
         actions.completeAnalysis?.(twoWayFinalResult, 4)
       } else if (factors.length === 3) {
         // Three-way ANOVA
@@ -846,6 +849,7 @@ export default function ANOVAPage() {
           multiFactorResults: multiFactorResults3
         }
 
+        setAnalysisTimestamp(new Date())
         actions.completeAnalysis?.(threeWayFinalResult, 4)
       } else {
         // Repeated Measures는 향후 구현
@@ -1097,7 +1101,7 @@ export default function ANOVAPage() {
               ...(Array.isArray(selectedVariables?.factor) ? selectedVariables.factor : selectedVariables?.factor ? [selectedVariables.factor] : [])
             ]}
             sampleSize={uploadedData?.data?.length}
-            timestamp={new Date()}
+            timestamp={analysisTimestamp ?? undefined}
           />
 
           {/* 주요 결과 요약 */}

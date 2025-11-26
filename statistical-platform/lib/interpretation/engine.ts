@@ -955,9 +955,12 @@ function getInterpretationByMethod(
   }
 
   // ===== Independent Samples t-test (독립표본 t검정) =====
-  if ((methodLower.includes('independent') && methodLower.includes('t')) ||
-      (methodLower.includes('ttest') && !methodLower.includes('one') && !methodLower.includes('paired')) ||
-      (methodLower.includes('독립') && methodLower.includes('t'))) {
+  // Note: 'independent'에 이미 't'가 포함되어 있으므로 명시적 패턴 매칭 필요
+  if (methodLower.includes('independentttest') ||
+      methodLower.includes('independentsamplesttest') ||
+      methodLower.includes('independentsamplettest') ||
+      (methodLower.includes('ttest') && !methodLower.includes('one') && !methodLower.includes('paired') && !methodLower.includes('welch')) ||
+      (methodLower.includes('독립') && methodLower.includes('검정'))) {
     return {
       title: '독립표본 t검정 결과',
       summary: `두 독립 집단의 평균 차이를 검정했습니다.`,

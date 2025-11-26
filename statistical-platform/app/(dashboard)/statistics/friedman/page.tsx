@@ -31,6 +31,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
@@ -532,8 +533,25 @@ export default function FriedmanPage() {
       return null
     }
 
+    // Get variable names for context header (FriedmanVariables uses dependent + within)
+    const withinVars = Array.isArray(selectedVariables?.within)
+      ? selectedVariables.within
+      : selectedVariables?.within ? [selectedVariables.within] : []
+    const measureVars = selectedVariables?.dependent
+      ? [selectedVariables.dependent, ...withinVars]
+      : withinVars
+
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="Friedman 검정"
+          analysisSubtitle="Friedman Test"
+          fileName={uploadedData?.fileName}
+          variables={measureVars}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={new Date()}
+        />
+
         {/* 주요 결과 카드 */}
         <div className="grid md:grid-cols-3 gap-4">
           <Card className="border-2">
@@ -750,7 +768,7 @@ export default function FriedmanPage() {
         </div>
       </div>
     )
-  }, [analysisResult, actions, getKendallWInterpretation])
+  }, [analysisResult, actions, getKendallWInterpretation, uploadedData, selectedVariables])
 
   return (
     <TwoPanelLayout

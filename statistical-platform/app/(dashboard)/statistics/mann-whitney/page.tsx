@@ -29,6 +29,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 // Services & Types
@@ -559,8 +560,24 @@ export default function MannWhitneyPage() {
       return null
     }
 
+    // Get variable names for context header
+    const dependentVar = selectedVariables?.dependent || ''
+    const factorVar = Array.isArray(selectedVariables?.factor)
+      ? selectedVariables.factor[0] || ''
+      : selectedVariables?.factor || ''
+    const usedVariables = [dependentVar, factorVar].filter(Boolean)
+
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="Mann-Whitney U 검정"
+          analysisSubtitle="Wilcoxon Rank-Sum Test"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={new Date()}
+        />
+
         {/* 주요 결과 카드 */}
         <div className="grid md:grid-cols-3 gap-4">
           <Card className="border-2">
@@ -772,7 +789,7 @@ export default function MannWhitneyPage() {
         </div>
       </div>
     )
-  }, [analysisResult, actions])
+  }, [analysisResult, actions, uploadedData, selectedVariables])
 
   return (
     <TwoPanelLayout

@@ -70,6 +70,7 @@ export default function OneSampleTPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [testValue, setTestValue] = useState('0')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
   const [alternative, setAlternative] = useState('two-sided')
@@ -193,6 +194,7 @@ export default function OneSampleTPage() {
         }
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(mockResults, 4)
       setActiveTab('summary')
     } catch (error) {
@@ -645,8 +647,8 @@ export default function OneSampleTPage() {
           analysisSubtitle="One-Sample t-test"
           fileName={uploadedData?.fileName}
           variables={variableName ? [variableName] : []}
-          sampleSize={uploadedData?.data?.length}
-          timestamp={new Date()}
+          sampleSize={results?.sampleSize}
+          timestamp={analysisTimestamp ?? undefined}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
