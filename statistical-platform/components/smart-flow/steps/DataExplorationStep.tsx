@@ -855,37 +855,40 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             {/* 데이터 미리보기 탭 (상위 5개 + 생략 + 하위 5개를 하나의 테이블로) */}
             <TabsContent value="preview" className="mt-0">
               <div className="space-y-4">
-                {/* 상위 5행 + 하위 5행을 하나의 테이블로 표시 */}
-                {(() => {
-                  const topRows = data.slice(0, 5)
-                  const bottomRows = data.length > 10 ? data.slice(-5) : []
-                  const omittedCount = data.length > 10 ? data.length - 10 : 0
+                {/* 10행 이하: 전체 표시 / 10행 초과: 상위 5 + 생략 + 하위 5 */}
+                {data.length <= 10 ? (
+                  <DataPreviewTable
+                    data={data}
+                    maxRows={10}
+                    defaultOpen={true}
+                    title=""
+                    height="auto"
+                  />
+                ) : (
+                  (() => {
+                    const topRows = data.slice(0, 5)
+                    const bottomRows = data.slice(-5)
+                    const omittedCount = data.length - 10
 
-                  // 상위 5행 + 하위 5행 합치기
-                  const combinedData = omittedCount > 0
-                    ? [...topRows, ...bottomRows]
-                    : topRows
+                    // 행 번호 배열: 상위 1-5, 하위 (n-4)~n
+                    const indices = [1, 2, 3, 4, 5].concat(
+                      [...Array(5).keys()].map(i => data.length - 4 + i)
+                    )
 
-                  // 행 번호 배열 생성: 상위 5행은 1-5, 하위 5행은 실제 행 번호
-                  const indices = omittedCount > 0
-                    ? [...Array(5).keys()].map(i => i + 1).concat(
-                        [...Array(5).keys()].map(i => data.length - 4 + i)
-                      )
-                    : [...Array(topRows.length).keys()].map(i => i + 1)
-
-                  return (
-                    <DataPreviewTable
-                      data={combinedData}
-                      maxRows={10}
-                      defaultOpen={true}
-                      title=""
-                      height="auto"
-                      omittedRows={omittedCount}
-                      omitAfterIndex={4}
-                      rowIndices={indices}
-                    />
-                  )
-                })()}
+                    return (
+                      <DataPreviewTable
+                        data={[...topRows, ...bottomRows]}
+                        maxRows={10}
+                        defaultOpen={true}
+                        title=""
+                        height="auto"
+                        omittedRows={omittedCount}
+                        omitAfterIndex={4}
+                        rowIndices={indices}
+                      />
+                    )
+                  })()
+                )}
 
                 {/* 전체 보기 안내 */}
                 <div className="text-center text-sm text-muted-foreground py-2">
@@ -1059,6 +1062,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                       xAxisLabel={selectedHistogramVar}
                       yAxisLabel="빈도"
                       bins={10}
+                      showCard={false}
                     />
                     {outliers.length > 0 && (
                       <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
