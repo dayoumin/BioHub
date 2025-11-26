@@ -262,19 +262,16 @@ export function PurposeInputStep({
 
     logger.info('Analysis purpose selected', { purpose })
 
-    // 분포 분석은 변수 선택 불필요 → 즉시 AI 추천
-    if (purpose === 'distribution') {
-      const result = await analyzeAndRecommend(purpose)
+    // 모든 목적에서 즉시 AI 추천 실행 (DecisionTreeRecommender가 변수 자동 감지)
+    const result = await analyzeAndRecommend(purpose)
 
-      if (result === null) {
-        logger.error('AI 추천 실패', { purpose })
-        setAnalysisError(true)
-      } else {
-        setRecommendation(result)
-        setAnalysisError(false)
-      }
+    if (result === null) {
+      logger.error('AI 추천 실패', { purpose })
+      setAnalysisError(true)
+    } else {
+      setRecommendation(result)
+      setAnalysisError(false)
     }
-    // 다른 목적은 변수 선택 후 AI 추천 (useEffect에서 처리)
   }, [analyzeAndRecommend])
 
   // "이 방법으로 분석하기" 버튼 (중복 클릭 방지 + 에러 복구)

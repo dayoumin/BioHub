@@ -13,8 +13,8 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered, ArrowRight, ArrowLeft, Sparkles, ExternalLink, BarChart3 } from 'lucide-react'
-import { ValidationResults, DataRow, ColumnStatistics, StatisticalAssumptions } from '@/types/smart-flow'
+import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3 } from 'lucide-react'
+import { ValidationResults, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { usePyodide } from '@/components/providers/PyodideProvider'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
@@ -24,6 +24,7 @@ import { BoxPlot } from '@/components/charts/boxplot'
 import { openDataWindow } from '@/lib/utils/open-data-window'
 import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { StepNavigation } from '@/components/smart-flow/StepNavigation'
 import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
 
 interface DataExplorationStepProps {
@@ -80,10 +81,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   validationResults,
   data,
   onNext,
-  onPrevious,
+  onPrevious: _onPrevious, // Reserved for future use
   onUploadComplete,
   existingFileName
 }: DataExplorationStepProps) {
+  void _onPrevious // Suppress unused warning
   // Pyodide 및 Store
   const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
   const { setAssumptionResults, uploadedFile, uploadedFileName } = useSmartFlowStore()
@@ -120,6 +122,94 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       .filter(col => col.type === 'categorical' && !col.idDetection?.isId)
       .map(col => col.name)
   }, [validationResults])
+
+  // ID ���� �÷��� ���� ����
+  const numericColumnStats = useMemo(() => {
+    if (!validationResults?.columnStats) return []
+    return validationResults.columnStats.filter(col => col.type === 'numeric' && !col.idDetection?.isId)
+  }, [validationResults])
+
+  const getNumericValues = useCallback((columnName: string): number[] => {
+    return data
+      .map(row => row[columnName])
+      .filter(value => value !== null && value !== undefined && value !== '')
+      .map(Number)
+      .filter(value => !isNaN(value))
+  }, [data])
+
+  const getPercentile = useCallback((sorted: number[], percentile: number): number | undefined => {
+    if (sorted.length === 0) return undefined
+    const index = (sorted.length - 1) * percentile
+    const lower = Math.floor(index)
+    const upper = Math.ceil(index)
+    if (lower === upper) return sorted[lower]
+    const weight = index - lower
+    return sorted[lower] * (1 - weight) + sorted[upper] * weight
+  }, [])
+
+  const numericDistributions = useMemo(() => {
+    return numericColumnStats.map(col => {
+      const values = getNumericValues(col.name)
+      const n = values.length
+      const sorted = [...values].sort((a, b) => a - b)
+
+      const mean = col.mean ?? (n > 0 ? values.reduce((sum, v) => sum + v, 0) / n : undefined)
+      const std = col.std ?? (n > 1 && mean !== undefined
+        ? Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / n)
+        : undefined)
+
+      const q1 = col.q1 ?? col.q25 ?? getPercentile(sorted, 0.25)
+      const q3 = col.q3 ?? col.q75 ?? getPercentile(sorted, 0.75)
+      const median = col.median ?? getPercentile(sorted, 0.5)
+      const min = col.min ?? (n > 0 ? sorted[0] : undefined)
+      const max = col.max ?? (n > 0 ? sorted[sorted.length - 1] : undefined)
+
+      const iqr = q1 !== undefined && q3 !== undefined ? q3 - q1 : undefined
+      const lowerBound = iqr !== undefined ? q1! - 1.5 * iqr : undefined
+      const upperBound = iqr !== undefined ? q3! + 1.5 * iqr : undefined
+      const outlierCount = lowerBound !== undefined && upperBound !== undefined
+        ? values.filter(v => v < lowerBound || v > upperBound).length
+        : 0
+
+      let skewness = col.skewness
+      if (skewness === undefined && n >= 3 && std && std > 0 && mean !== undefined) {
+        skewness = values.reduce((sum, v) => sum + Math.pow((v - mean) / std, 3), 0) / n
+      }
+
+      let kurtosis = col.kurtosis
+      if (kurtosis === undefined && n >= 4 && std && std > 0 && mean !== undefined) {
+        kurtosis = values.reduce((sum, v) => sum + Math.pow((v - mean) / std, 4), 0) / n - 3
+      }
+
+      return {
+        ...col,
+        n,
+        mean,
+        median,
+        std,
+        min,
+        max,
+        q1,
+        q3,
+        skewness,
+        kurtosis,
+        outlierCount
+      }
+    })
+  }, [getNumericValues, getPercentile, numericColumnStats])
+
+  const formatStat = useCallback((value?: number, digits = 2) => {
+    return value !== undefined && !Number.isNaN(value) ? value.toFixed(digits) : 'N/A'
+  }, [])
+
+  // 다음 단계 진행 가능 여부 (데이터 검증 통과 필수)
+  const canProceedToNext = useMemo(() => {
+    // validationResults가 없거나 isValid가 false면 진행 불가
+    if (!validationResults?.isValid) return false
+    // 데이터가 없으면 진행 불가
+    if (!data || data.length === 0) return false
+    return true
+  }, [validationResults, data])
 
   // Scatterplot 구성 목록
   const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>([])
@@ -310,7 +400,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     ))
   }, [])
 
-  
+
 
   // 상관계수 행렬 계산 (순수 함수 - 부작용 제거)
   const correlationMatrix = useMemo(() => {
@@ -392,9 +482,19 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   if (numericVariables.length < 2) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <ChartScatter className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold">데이터 탐색</h2>
+        {/* 헤더 + 다음 단계 버튼 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ChartScatter className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">데이터 탐색</h2>
+          </div>
+          <StepNavigation
+            showNext={true}
+            onNext={onNext}
+            nextLabel="다음 단계로"
+            disableNext={!canProceedToNext}
+            className="mt-0 pt-0 border-t-0"
+          />
         </div>
 
         <DataProfileSummary
@@ -436,22 +536,25 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={onNext} className="gap-2">
-            다음 단계로
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center gap-2">
-        <ChartScatter className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">데이터 탐색</h2>
+      {/* 헤더 + 다음 단계 버튼 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <ChartScatter className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">데이터 탐색</h2>
+        </div>
+        <StepNavigation
+          showNext={true}
+          onNext={onNext}
+          nextLabel="다음 단계로"
+          disableNext={!canProceedToNext}
+          className="mt-0 pt-0 border-t-0"
+        />
       </div>
 
       {/* 데이터 요약 (공통 컴포넌트) */}
@@ -468,16 +571,14 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         />
       )}
 
-      {/* 데이터 미리보기 (상위 20행) */}
+      {/* 기초 통계량 / 데이터 미리보기 탭 */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base">데이터 미리보기</CardTitle>
-              <CardDescription>
-                업로드된 데이터의 상위 {Math.min(20, data.length)}행
-              </CardDescription>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <ListOrdered className="h-5 w-5" />
+              데이터 요약
+            </CardTitle>
             <Button
               variant="outline"
               size="sm"
@@ -485,65 +586,218 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               className="gap-2"
             >
               <ExternalLink className="w-4 h-4" />
-              전체 보기 ({data.length}행)
+              전체 데이터 보기 ({data.length}행)
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <DataPreviewTable
-            data={data}
-            maxRows={20}
-            defaultOpen={true}
-            title=""
-            height="300px"
-          />
-        </CardContent>
-      </Card>
+          <Tabs defaultValue="statistics" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="statistics">
+                <ListOrdered className="h-4 w-4 mr-2" />
+                기초 통계량
+              </TabsTrigger>
+              <TabsTrigger value="preview">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                데이터 미리보기
+              </TabsTrigger>
+            </TabsList>
 
-      {/* 기초 통계량 (상단 카드) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ListOrdered className="h-5 w-5" />
-            기초 통계량
-          </CardTitle>
-          <CardDescription>
-            수치형 변수들의 기술통계 요약
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2 font-semibold">변수명</th>
-                  <th className="text-right p-2 font-semibold">평균</th>
-                  <th className="text-right p-2 font-semibold">표준편차</th>
-                  <th className="text-right p-2 font-semibold">중앙값</th>
-                  <th className="text-right p-2 font-semibold">최소값</th>
-                  <th className="text-right p-2 font-semibold">최대값</th>
-                  <th className="text-right p-2 font-semibold">Q1</th>
-                  <th className="text-right p-2 font-semibold">Q3</th>
-                </tr>
-              </thead>
-              <tbody>
-                {validationResults?.columnStats
-                  ?.filter(col => col.type === 'numeric' && !col.idDetection?.isId)
-                  .map((col: ColumnStatistics) => (
-                    <tr key={col.name} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-medium">{col.name}</td>
-                      <td className="p-2 text-right">{col.mean?.toFixed(2) ?? 'N/A'}</td>
-                      <td className="p-2 text-right">{col.std?.toFixed(2) ?? 'N/A'}</td>
-                      <td className="p-2 text-right">{col.median?.toFixed(2) ?? 'N/A'}</td>
-                      <td className="p-2 text-right">{col.min?.toFixed(2) ?? 'N/A'}</td>
-                      <td className="p-2 text-right">{col.max?.toFixed(2) ?? 'N/A'}</td>
-                      <td className="p-2 text-right">{col.q1?.toFixed(2) ?? 'N/A'}</td>
-                      <td className="p-2 text-right">{col.q3?.toFixed(2) ?? 'N/A'}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+            {/* 기초 통계량 탭 */}
+            <TabsContent value="statistics" className="mt-0">
+              <div className="space-y-4">
+                {/* 이상치 요약 배너 */}
+
+                {(() => {
+
+                  const varsWithOutliers = numericDistributions
+
+                    .filter(v => v.outlierCount > 0)
+
+                    .sort((a, b) => b.outlierCount - a.outlierCount)
+
+                  const totalOutliers = numericDistributions.reduce((sum, v) => sum + v.outlierCount, 0)
+
+
+
+                  if (totalOutliers === 0) return null
+
+
+
+                  return (
+
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+
+                      <div className="flex items-start gap-2">
+
+                        <span className="text-yellow-600 dark:text-yellow-400">⚠️</span>
+
+                        <div className="text-sm leading-5">
+
+                          <div className="font-medium text-yellow-800 dark:text-yellow-200">
+
+                            ⚠️ 이상치 감지: {varsWithOutliers.length}개 변수에서 총 {totalOutliers}개
+
+                          </div>
+
+                          {varsWithOutliers.length > 0 && (
+
+                            <div className="mt-1 text-yellow-700 dark:text-yellow-300 text-xs">
+
+                              {varsWithOutliers.slice(0, 5).map(v => `${v.name}(${v.outlierCount}개)`).join(', ')}
+
+                              {varsWithOutliers.length > 5 && ` 외 ${varsWithOutliers.length - 5}개 변수`}
+
+                            </div>
+
+                          )}
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  )
+
+                })()}
+
+                <div className="overflow-x-auto max-h-[400px] border rounded-lg">
+                  <table className="w-full text-sm border-collapse">
+                    <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
+
+                      <tr className="border-b">
+
+                        <th className="text-left p-2 font-semibold whitespace-nowrap">변수명</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">N</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">평균</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">표준편차</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">중앙값</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">최소</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">최대</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">Q1</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">Q3</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">왜도</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">첨도</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">이상치</th>
+
+                      </tr>
+
+                    </thead>
+
+
+                    <tbody>
+                      {numericDistributions.map(col => {
+                        const skewWarning = col.skewness !== undefined && Math.abs(col.skewness) > 2
+                        const kurtWarning = col.kurtosis !== undefined && Math.abs(col.kurtosis) > 7
+
+                        return (
+                          <tr key={col.name} className="border-b hover:bg-muted/50">
+                            <td className="p-2 font-medium whitespace-nowrap">{col.name}</td>
+                            <td className="p-2 text-right">{col.n}</td>
+                            <td className="p-2 text-right">{formatStat(col.mean)}</td>
+                            <td className="p-2 text-right">{formatStat(col.std)}</td>
+                            <td className="p-2 text-right">{formatStat(col.median)}</td>
+                            <td className="p-2 text-right">{formatStat(col.min)}</td>
+                            <td className="p-2 text-right">{formatStat(col.max)}</td>
+                            <td className="p-2 text-right">{formatStat(col.q1)}</td>
+                            <td className="p-2 text-right">{formatStat(col.q3)}</td>
+                            <td className={`p-2 text-right ${skewWarning ? 'text-yellow-600 dark:text-yellow-400 font-medium' : ''}`}>
+                              {formatStat(col.skewness)}
+                              {skewWarning && ' ⚠'}
+                            </td>
+                            <td className={`p-2 text-right ${kurtWarning ? 'text-yellow-600 dark:text-yellow-400 font-medium' : ''}`}>
+                              {formatStat(col.kurtosis)}
+                              {kurtWarning && ' ⚠'}
+                            </td>
+                            <td className="p-2 text-right">
+                              {col.outlierCount > 0 ? (
+                                <Badge variant="secondary" className="text-xs">
+                                  {col.outlierCount}개
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+
+
+
+                  </table>
+                </div>
+
+                {/* 해석 가이드 */}
+                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="font-medium mb-1">💡 해석 기준:</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <div><strong>왜도</strong>: |값| &gt; 2 → 심한 비대칭 (⚠ 표시)</div>
+                    <div><strong>첨도</strong>: |값| &gt; 7 → 극단값 많음 (⚠ 표시)</div>
+                    <div><strong>이상치</strong>: IQR × 1.5 범위 벗어난 값</div>
+                    <div><strong>N</strong>: 유효한 값의 개수 (결측 제외)</div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* 데이터 미리보기 탭 (상위 5개 + 하위 5개) */}
+            <TabsContent value="preview" className="mt-0">
+              <div className="space-y-4">
+                {/* 상위 5개 */}
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">▲ 상위 5행</h4>
+                  <DataPreviewTable
+                    data={data.slice(0, 5)}
+                    maxRows={5}
+                    defaultOpen={true}
+                    title=""
+                    height="auto"
+                  />
+                </div>
+
+                {/* 중간 생략 표시 */}
+                {data.length > 10 && (
+                  <div className="flex items-center justify-center py-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="h-px w-12 bg-border" />
+                      <span>... {data.length - 10}행 생략 ...</span>
+                      <div className="h-px w-12 bg-border" />
+                    </div>
+                  </div>
+                )}
+
+                {/* 하위 5개 */}
+                <div>
+                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">▼ 하위 5행</h4>
+                  <DataPreviewTable
+                    data={data.slice(-5)}
+                    maxRows={5}
+                    defaultOpen={true}
+                    title=""
+                    height="auto"
+                  />
+                </div>
+
+                {/* 전체 보기 안내 */}
+                <div className="text-center text-sm text-muted-foreground py-2">
+                  전체 데이터({data.length}행)를 보려면 상단의 &quot;전체 데이터 보기&quot; 버튼을 클릭하세요.
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -729,7 +983,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </CardContent>
       </Card>
 
-            {/* Tabs: 산점도 vs 상관계수 행렬 */}
+      {/* Tabs: 산점도 vs 상관계수 행렬 */}
       <Tabs defaultValue="scatterplots" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="scatterplots">
@@ -911,7 +1165,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                           for (let j = i + 1; j < n; j++) {
                             const corr = correlationMatrix.find(
                               c => (c.var1 === numericVariables[i] && c.var2 === numericVariables[j]) ||
-                                   (c.var1 === numericVariables[j] && c.var2 === numericVariables[i])
+                                (c.var1 === numericVariables[j] && c.var2 === numericVariables[i])
                             )
                             const r = corr?.r ?? 0
                             matrix[i][j] = r
@@ -944,7 +1198,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                         {correlationMatrix
                           .filter(c => Math.abs(c.r) >= 0.5)
                           .slice(0, 5)
-                          .map(({ var1, var2, r, strength }) => (
+                          .map(({ var1, var2, r }) => (
                             <div key={`${var1}-${var2}`} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
                               <span>{var1} ↔ {var2}</span>
                               <Badge variant={Math.abs(r) >= 0.7 ? 'default' : 'secondary'}>
@@ -962,7 +1216,6 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </TabsContent>
       </Tabs>
 
-      
     </div>
   )
 })
