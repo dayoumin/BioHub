@@ -11,7 +11,6 @@ import {
   DataRow
 } from '@/types/smart-flow'
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
-import { DataValidationStep } from '@/components/smart-flow/steps/DataValidationStep'
 import { DataExplorationStep } from '@/components/smart-flow/steps/DataExplorationStep'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import { VariableSelectionStep } from '@/components/smart-flow/steps/VariableSelectionStep'
