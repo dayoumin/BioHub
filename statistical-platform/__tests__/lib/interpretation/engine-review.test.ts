@@ -20,10 +20,13 @@ describe('해석 엔진 코드 리뷰 검증', () => {
         // groupStats: undefined (의도적 누락)
       }
 
-      // undefined 접근 시 null 반환 (에러 발생 안 함)
+      // undefined 접근 시 에러 발생 안 함
       expect(() => getInterpretation(input, '비교')).not.toThrow()
       const result = getInterpretation(input, '비교')
-      expect(result).toBeNull()
+      // purpose 기반에서 groupStats 없으면 null → method 기반 fallback으로 해석 제공
+      // 독립표본 t검정은 groupStats 없이도 기본 해석 가능
+      expect(result).not.toBeNull()
+      expect(result?.title).toContain('t')
     })
 
     it('Bug#2: group2.mean.toFixed(2) - 타이포 수정 확인', () => {

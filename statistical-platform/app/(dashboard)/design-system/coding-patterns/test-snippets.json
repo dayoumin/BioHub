@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "lastUpdated": "2025-11-26",
   "sources": [
     "statistical-platform/__tests__/",
@@ -106,6 +106,18 @@
           "purpose": "브라우저 호환성 (Safari/Firefox에서 미지원 API 처리)",
           "code": "describe('IndexedDB cleanup graceful degradation', () => {\n  it('indexedDB.databases가 undefined일 때도 에러 없이 처리되어야 함', async () => {\n    // Safari/Firefox 시뮬레이션: databases 메서드가 없음\n    const mockIndexedDB = {\n      deleteDatabase: jest.fn(),\n      // databases 메서드 없음 (undefined)\n    };\n\n    Object.defineProperty(window, 'indexedDB', {\n      value: mockIndexedDB,\n      writable: true,\n    });\n\n    const cleanupIndexedDB = async () => {\n      try {\n        if (typeof window.indexedDB.databases === 'function') {\n          const databases = await window.indexedDB.databases();\n          for (const db of databases) {\n            if (db.name) {\n              window.indexedDB.deleteDatabase(db.name);\n            }\n          }\n        }\n      } catch (e) {\n        console.warn('[Settings] IndexedDB cleanup failed:', e);\n      }\n    };\n\n    await expect(cleanupIndexedDB()).resolves.not.toThrow();\n    expect(mockIndexedDB.deleteDatabase).not.toHaveBeenCalled();\n  });\n\n  it('indexedDB.databases가 에러를 던져도 graceful하게 처리되어야 함', async () => {\n    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();\n    const mockIndexedDB = {\n      databases: jest.fn().mockRejectedValue(new Error('Not supported')),\n      deleteDatabase: jest.fn(),\n    };\n\n    Object.defineProperty(window, 'indexedDB', {\n      value: mockIndexedDB,\n      writable: true,\n    });\n\n    // ... cleanup 로직 ...\n    await expect(cleanupIndexedDB()).resolves.not.toThrow();\n    expect(consoleWarnSpy).toHaveBeenCalled();\n    consoleWarnSpy.mockRestore();\n  });\n});",
           "keywords": ["indexedDB", "browser compatibility", "feature detection", "graceful degradation", "Safari", "Firefox"]
+        }
+      ]
+    },
+    {
+      "name": "Regression Tests",
+      "description": "회귀 테스트 패턴 (버그 재발 방지)",
+      "patterns": [
+        {
+          "name": "Method Matching Regression",
+          "purpose": "메서드명 매칭 로직의 버그 수정 검증",
+          "code": "import { getInterpretation } from '@/lib/interpretation/engine';\nimport type { AnalysisResult } from '@/types/smart-flow';\n\ndescribe('T-Test Method Matching Regression Tests', () => {\n  describe('Independent Samples t-test - should match', () => {\n    it('Independent t-test (basic)', () => {\n      const results: AnalysisResult = {\n        method: 'Independent t-test',\n        pValue: 0.03,\n        statistic: 2.5,\n        interpretation: ''\n      };\n\n      const interpretation = getInterpretation(results);\n\n      expect(interpretation).not.toBeNull();\n      expect(interpretation?.title).toContain('t');\n    });\n  });\n\n  describe('Non-t-test methods with \"independent\" - should NOT match t-test', () => {\n    it('Independent KS Test should NOT match t-test', () => {\n      const results: AnalysisResult = {\n        method: 'Independent KS Test',\n        pValue: 0.02,\n        statistic: 0.35,\n        interpretation: ''\n      };\n\n      const interpretation = getInterpretation(results);\n\n      // Should return null or match a different interpretation (not t-test)\n      if (interpretation !== null) {\n        expect(interpretation.title).not.toContain('t');\n      }\n    });\n  });\n});",
+          "keywords": ["regression", "method matching", "interpretation engine", "pattern matching"]
         }
       ]
     },
