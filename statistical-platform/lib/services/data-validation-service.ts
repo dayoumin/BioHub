@@ -1,4 +1,5 @@
 import { ValidationResults, ColumnStatistics, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
+import { detectIdColumn } from '@/lib/services/variable-type-detector'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 export const DATA_LIMITS = {
@@ -287,6 +288,12 @@ export class DataValidationService {
         .map(([value, count]) => ({ value, count }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 10) // 상위 10개 카테고리만
+    }
+
+    // ID/일련번호 감지 (이미 추출된 values 재사용)
+    const idResult = detectIdColumn(columnName, values)
+    if (idResult.isId) {
+      stats.idDetection = idResult
     }
 
     return stats

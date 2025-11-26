@@ -42,18 +42,23 @@ export const DataValidationStep = memo(function DataValidationStep({
   )
 
   // Memoize numeric/categorical columns
+  // ID로 감지된 열은 분석 추천에서 제외
   const numericColumns = useMemo(() =>
-    columnStats?.filter(s => s.type === 'numeric') || [],
+    columnStats?.filter(s => s.type === 'numeric' && !s.idDetection?.isId) || [],
     [columnStats]
   )
 
+  // ID로 감지된 열은 분석 추천에서 제외
   const categoricalColumns = useMemo(() =>
     // Bug #2 Fix (Revised): 범주형 또는 고유값이 적은 숫자형 열 포함
     // - 명시적 categorical 타입
     // - 또는 고유값 <= 20인 numeric 타입 (숫자 인코딩된 범주형: 0/1, 1/2/3 등)
+    // - ID로 감지된 열은 제외
     columnStats?.filter(s =>
-      s.type === 'categorical' ||
-      (s.type === 'numeric' && s.uniqueValues <= 20)
+      !s.idDetection?.isId && (
+        s.type === 'categorical' ||
+        (s.type === 'numeric' && s.uniqueValues <= 20)
+      )
     ) || [],
     [columnStats]
   )
@@ -191,36 +196,6 @@ export const DataValidationStep = memo(function DataValidationStep({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* 파일명 + 데이터 탐색 버튼 (우측) */}
-      {uploadedFile || uploadedFileName ? (
-        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b pb-3 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              <Badge variant="outline" className="font-normal">
-                현재 파일
-              </Badge>
-              <span className="font-medium truncate" title={uploadedFile?.name || uploadedFileName || ''}>
-                {uploadedFile?.name || uploadedFileName}
-              </span>
-              <span className="text-muted-foreground">
-                ({validationResults.totalRows.toLocaleString()}행 × {validationResults.columnCount}열)
-              </span>
-            </div>
-            {/* 데이터 탐색 버튼 (우측) */}
-            {!hasErrors && onNext && (
-              <Button
-                onClick={handleNext}
-                disabled={isNavigating}
-                size="sm"
-                className="gap-1.5"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                데이터 탐색하기
-              </Button>
-            )}
-          </div>
-        </div>
-      ) : null}
 
       {/* 검증 요약 카드 */}
       <Card className={`border-2 ${
@@ -264,6 +239,11 @@ export const DataValidationStep = memo(function DataValidationStep({
               <p className="text-sm text-muted-foreground">
                 범주형 {categoricalColumns.length}개
               </p>
+              {columnStats?.some(s => s.idDetection?.isId) && (
+                <p className="text-xs text-amber-600 mt-1">
+                  🔑 ID 제외: {columnStats.filter(s => s.idDetection?.isId).length}개
+                </p>
+              )}
             </div>
 
             {/* 데이터 품질 */}
@@ -353,12 +333,20 @@ export const DataValidationStep = memo(function DataValidationStep({
                     <th className="text-center p-2 font-medium">유형</th>
                     <th className="text-center p-2 font-medium">고유값</th>
                     <th className="text-center p-2 font-medium">결측</th>
+                    <th className="text-center p-2 font-medium">분석 제외</th>
                   </tr>
                 </thead>
                 <tbody>
                   {validationResults.columnStats?.slice(0, 10).map((col: ColumnStatistics) => (
-                    <tr key={col.name} className="border-b hover:bg-muted/30">
-                      <td className="p-2 font-medium">{col.name}</td>
+                    <tr key={col.name} className={`border-b hover:bg-muted/30 ${col.idDetection?.isId ? 'bg-amber-50 dark:bg-amber-950/20' : ''}`}>
+                      <td className="p-2 font-medium">
+                        {col.name}
+                        {col.idDetection?.isId && (
+                          <span className="ml-2 text-xs text-amber-600" title={col.idDetection.reason}>
+                            🔑
+                          </span>
+                        )}
+                      </td>
                       <td className="p-2 text-center">
                         <Badge variant={col.type === 'numeric' ? 'default' : 'secondary'}>
                           {col.type === 'numeric' ? '수치형' : '범주형'}
@@ -366,6 +354,15 @@ export const DataValidationStep = memo(function DataValidationStep({
                       </td>
                       <td className="p-2 text-center text-muted-foreground">{col.uniqueValues}</td>
                       <td className="p-2 text-center text-muted-foreground">{col.missingCount}</td>
+                      <td className="p-2 text-center">
+                        {col.idDetection?.isId ? (
+                          <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
+                            ID/일련번호
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -374,6 +371,15 @@ export const DataValidationStep = memo(function DataValidationStep({
                 <p className="text-xs text-muted-foreground mt-2 text-center">
                   외 {validationResults.columnStats.length - 10}개 변수... (다음 단계에서 전체 확인)
                 </p>
+              )}
+              {/* ID/일련번호 감지 안내 */}
+              {validationResults.columnStats?.some(col => col.idDetection?.isId) && (
+                <div className="mt-3 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded text-xs">
+                  <span className="font-medium text-amber-700 dark:text-amber-400">🔑 ID/일련번호 감지:</span>
+                  <span className="text-amber-600 dark:text-amber-500 ml-1">
+                    표시된 변수는 자동 생성된 식별자로 보입니다. 통계 분석에서 자동으로 제외됩니다.
+                  </span>
+                </div>
               )}
             </div>
           </CardContent>

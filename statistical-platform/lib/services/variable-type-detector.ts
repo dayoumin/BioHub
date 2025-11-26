@@ -25,6 +25,13 @@ export interface ColumnAnalysis {
   missingCount: number
   missingRate: number
   samples: unknown[]
+  // ID/일련번호 감지 결과
+  idDetection?: {
+    isId: boolean
+    reason: string
+    confidence: number
+    source: 'name' | 'value' | 'none'
+  }
   statistics?: {
     min?: number
     max?: number
@@ -101,7 +108,31 @@ const THRESHOLDS = {
     /^\d{2}:\d{2}$/, // HH:MM
   ],
 
-  // ID 패턴 (제외할 변수)
+  // ID 패턴 (제외할 변수) - 이름 기반 (모두 대소문자 무시)
+  ID_NAME_PATTERNS: [
+    /^(id|_id|.*_id|.*Id)$/i,               // id, ID, _id, user_id, userId 등
+    /^(index|idx|key|.*_key|.*_idx)$/i,     // index, INDEX, Index, primary_key 등
+    /^(uuid|guid|.*_uuid|.*_guid)$/i,       // uuid, UUID, user_uuid 등
+    // 한글 패턴
+    /^(번호|일련번호|순번|연번|No|seq|sequence|rownum)$/i,
+    /^(표본번호|개체번호|시료번호|샘플번호|자원번호|어체번호)$/,
+    /^(.*_no|.*_번호|.*번호)$/i,
+    /^(row|행번호|행|record|레코드)$/i,
+  ],
+
+  // ID 값 패턴 - 코드/UUID 형식
+  ID_VALUE_PATTERNS: [
+    /^[A-Z]{1,3}[-_]?\d{3,}$/i,      // S001, A-001, AB_0001
+    /^\d{3,}[-_][A-Z]{1,3}$/i,       // 001-S, 0001_AB
+    /^[0-9a-f]{8}-[0-9a-f]{4}-/i,     // UUID
+    /^[A-Z]{2,}\d{4,}$/i,            // FISH0001, SAMPLE0001
+  ],
+
+  // ID 감지 임계값
+  ID_UNIQUE_RATIO_THRESHOLD: 0.95,    // 고유값 비율 95% 이상
+  ID_SEQUENTIAL_TOLERANCE: 0.9,       // 연속 정수 허용 비율 90%
+
+  // 기존 호환성 유지
   ID_PATTERNS: [
     /^(id|ID|Id|_id|.*_id|.*Id|.*ID)$/,
     /^(index|idx|key|.*_key)$/,
@@ -469,6 +500,9 @@ export function analyzeColumn(
     columnName
   )
 
+  // ID 컬럼 감지
+  const idDetection = detectIdColumn(columnName, values)
+
   return {
     name: columnName,
     type: variableType,
@@ -478,6 +512,7 @@ export function analyzeColumn(
     missingCount,
     missingRate: missingCount / totalCount,
     samples,
+    idDetection,
     statistics,
     metadata
   }
@@ -610,9 +645,14 @@ function generateMetadata(
       break
   }
 
-  // 추가 경고
+  // 추가 경고: ID 컬럼 감지 강화
   if (uniqueCount === totalCount && totalCount > 100) {
-    warnings.push('모든 값이 고유함 - ID 컬럼일 가능성')
+    warnings.push('⚠️ 모든 값이 고유함 - ID/일련번호 컬럼일 가능성이 높습니다. 분석에서 제외를 권장합니다.')
+  }
+
+  // 고유값 비율이 95% 이상인 경우도 경고
+  if (uniqueCount / totalCount >= 0.95 && totalCount > 50) {
+    warnings.push('⚠️ 고유값 비율이 매우 높음 - ID/식별자 컬럼일 수 있습니다.')
   }
 
   if (uniqueCount === 1) {
@@ -628,15 +668,194 @@ function generateMetadata(
 }
 
 /**
- * ID 컬럼 감지
+ * ID 컬럼 감지 (이름 기반)
  */
-function isIdColumn(columnName: string): boolean {
-  for (const pattern of THRESHOLDS.ID_PATTERNS) {
+function isIdColumnByName(columnName: string): boolean {
+  for (const pattern of THRESHOLDS.ID_NAME_PATTERNS) {
     if (pattern.test(columnName)) {
       return true
     }
   }
   return false
+}
+
+/**
+ * ID 컬럼 감지 (값 기반) - 연속 정수, 고유값 비율, 코드 패턴
+ *
+ * 감지 우선순위:
+ * 1. 연속 정수 패턴 (정수만, 시작값 0~10, 고유값 비율과 무관)
+ * 2. 코드/UUID 패턴 (문자열 패턴 80% 이상)
+ * 3. 고유값 비율 99% 이상 (단, 정수 + 적절한 범위만)
+ *
+ * False Positive 방지:
+ * - 소수점 데이터는 측정값이므로 ID가 아님
+ * - 시작값이 큰 정수 (>10)는 측정값일 수 있음
+ * - 샘플 크기가 작으면 (< 30) 고유값 비율 체크 안 함
+ */
+export function isIdColumnByValue(values: unknown[], columnName: string = ''): {
+  isId: boolean
+  reason: string
+  confidence: number
+} {
+  // 유효한 값만 필터링
+  const validValues = values.filter((v): v is string | number =>
+    v !== null && v !== undefined && v !== ''
+  )
+
+  if (validValues.length < 10) {
+    return { isId: false, reason: '샘플 수 부족', confidence: 0 }
+  }
+
+  const uniqueCount = new Set(validValues).size
+  const uniqueRatio = uniqueCount / validValues.length
+
+  // 숫자형 값 추출
+  const numericValues = validValues.map(v => Number(v)).filter(n => !isNaN(n))
+  const allNumeric = numericValues.length === validValues.length
+
+  // 정수 여부 확인 (소수점 데이터는 ID가 아님)
+  const allIntegers = allNumeric && numericValues.every(n => Number.isInteger(n))
+
+  // ============================================
+  // 1. 연속 정수 패턴 체크 (고유값 비율과 무관하게 먼저!)
+  // - [1,2,3...90] + 중복 몇 개 있어도 감지해야 함
+  // - 반드시 정수여야 함 (소수점은 측정값)
+  // ============================================
+  if (allIntegers && numericValues.length >= 10) {
+    const sorted = [...numericValues].sort((a, b) => a - b)
+    let sequentialCount = 0
+
+    for (let i = 1; i < sorted.length; i++) {
+      const diff = sorted[i] - sorted[i - 1]
+      if (diff === 1 || diff === 0) {
+        sequentialCount++
+      }
+    }
+
+    const sequentialRatio = sequentialCount / (sorted.length - 1)
+
+    // 90% 이상 연속이면 ID 후보
+    if (sequentialRatio >= THRESHOLDS.ID_SEQUENTIAL_TOLERANCE) {
+      const min = sorted[0]
+      const max = sorted[sorted.length - 1]
+      const range = max - min + 1
+
+      // 추가 조건:
+      // 1. 시작값이 작은 정수 (0~10)
+      // 2. 범위가 데이터 길이의 1.5배 이내
+      // 3. 범위가 데이터 길이의 50% 이상 (Likert 척도 1-5 오탐 방지)
+      //    예: 100개 데이터인데 범위가 5이면 Likert 척도일 가능성 높음
+      const rangeRatio = range / validValues.length
+
+      if (min >= 0 && min <= 10 &&
+          range <= validValues.length * 1.5 &&
+          rangeRatio >= 0.5) {
+        return {
+          isId: true,
+          reason: '연속 정수 패턴 (1, 2, 3...)',
+          confidence: 0.95
+        }
+      }
+    }
+  }
+
+  // ============================================
+  // 2. 코드/UUID 패턴 체크 (고유값 비율 80% 이상일 때)
+  // - 문자열 패턴만 체크 (S001, A-001, UUID 등)
+  // ============================================
+  if (uniqueRatio >= 0.8) {
+    const stringValues = validValues.map(String)
+    let codePatternCount = 0
+
+    for (const pattern of THRESHOLDS.ID_VALUE_PATTERNS) {
+      const matches = stringValues.filter(v => pattern.test(v))
+      if (matches.length > codePatternCount) {
+        codePatternCount = matches.length
+      }
+    }
+
+    if (codePatternCount / validValues.length >= 0.8) {
+      return {
+        isId: true,
+        reason: '코드/UUID 패턴',
+        confidence: 0.9
+      }
+    }
+  }
+
+  // ============================================
+  // 3. 고유값 비율 기반 ID 의심 (매우 엄격한 조건)
+  // - 99% 이상 고유 + 정수 + 충분한 샘플 크기 (50 이상)
+  // - 시작값이 작아야 함 (0~10)
+  // - 소수점/측정값 False Positive 방지
+  // ============================================
+  if (uniqueRatio >= 0.99 && validValues.length >= 50) {
+    // 정수인 경우: 시작값 체크
+    if (allIntegers) {
+      const sorted = [...numericValues].sort((a, b) => a - b)
+      const min = sorted[0]
+      // 시작값이 작은 경우만 ID로 간주
+      if (min >= 0 && min <= 10) {
+        return {
+          isId: true,
+          reason: '모든 값이 고유한 정수',
+          confidence: 0.7
+        }
+      }
+    }
+    // 문자열인 경우: 코드 패턴이 아니어도 ID일 수 있음 (예: 이름)
+    // 하지만 False Positive 위험이 높아 감지하지 않음
+  }
+
+  return { isId: false, reason: '', confidence: 0 }
+}
+
+/**
+ * ID 컬럼 감지 (통합) - 이름 + 값 기반
+ */
+export function detectIdColumn(
+  columnName: string,
+  values: unknown[]
+): {
+  isId: boolean
+  reason: string
+  confidence: number
+  source: 'name' | 'value' | 'none'
+} {
+  // 1. 이름 기반 감지 (높은 우선순위)
+  if (isIdColumnByName(columnName)) {
+    return {
+      isId: true,
+      reason: '열 이름이 ID 패턴과 일치',
+      confidence: 0.95,
+      source: 'name'
+    }
+  }
+
+  // 2. 값 기반 감지
+  const valueResult = isIdColumnByValue(values, columnName)
+  if (valueResult.isId) {
+    return {
+      isId: true,
+      reason: valueResult.reason,
+      confidence: valueResult.confidence,
+      source: 'value'
+    }
+  }
+
+  return {
+    isId: false,
+    reason: '',
+    confidence: 0,
+    source: 'none'
+  }
+}
+
+/**
+ * ID 컬럼 감지 (기존 호환성 유지)
+ */
+function isIdColumn(columnName: string): boolean {
+  return isIdColumnByName(columnName)
 }
 
 /**

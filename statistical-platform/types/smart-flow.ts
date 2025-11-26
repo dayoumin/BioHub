@@ -45,6 +45,13 @@ export interface ColumnStatistics {
   missingCount: number
   uniqueValues: number
   count?: number  // Total count of values
+  // ID/일련번호 감지 결과
+  idDetection?: {
+    isId: boolean
+    reason: string
+    confidence: number
+    source: 'name' | 'value' | 'none'
+  }
   // 수치형 변수일 경우
   mean?: number
   median?: number
