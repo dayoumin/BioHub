@@ -52,6 +52,8 @@ interface BoxPlotProps {
   isLoading?: boolean
   error?: Error | null
   onDataPointClick?: (data: BoxPlotData, point: string) => void
+  /** Whether to wrap content in a Card component (default: true) */
+  showCard?: boolean
 }
 
 /**
@@ -87,7 +89,8 @@ export const BoxPlot = memo(function BoxPlot({
   className,
   isLoading = false,
   error = null,
-  onDataPointClick
+  onDataPointClick,
+  showCard = true
 }: BoxPlotProps) {
   const [selectedBox, setSelectedBox] = useState<number | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -96,11 +99,21 @@ export const BoxPlot = memo(function BoxPlot({
 
   // 로딩 상태 처리
   if (isLoading) {
-    return <ChartSkeleton height={height} title={!!title} description={!!description} />
+    return <ChartSkeleton height={height} title={!!title} description={!!description} showCard={showCard} />
   }
 
   // 에러 상태 처리
   if (error) {
+    if (!showCard) {
+      return (
+        <Alert variant="destructive" className={className}>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            차트를 불러오는 중 오류가 발생했습니다: {error.message}
+          </AlertDescription>
+        </Alert>
+      )
+    }
     return (
       <Card className={cn('w-full', className)}>
         <CardHeader>
@@ -498,6 +511,219 @@ export const BoxPlot = memo(function BoxPlot({
     )
   }
   
+  // Header controls (reusable)
+  const headerControls = (
+    <div className="flex items-center gap-2">
+      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'chart' | 'table')}>
+        <TabsList className="h-9">
+          <TabsTrigger value="chart" className="h-7">
+            <ChartBar className="h-4 w-4 mr-1" />
+            차트
+          </TabsTrigger>
+          <TabsTrigger value="table" className="h-7">
+            <TableIcon className="h-4 w-4 mr-1" />
+            테이블
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {interactive && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                aria-label={isFullscreen ? '원래 크기로' : '전체 화면'}
+              >
+                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isFullscreen ? '원래 크기로' : '전체 화면'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={downloadCSV}
+              aria-label="CSV 다운로드"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>CSV 다운로드</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  )
+
+  // Main content (reusable)
+  const mainContent = (
+    <div className="space-y-4">
+      {viewMode === 'chart' ? (
+        <>
+          {/* SVG Plot */}
+          <div className="relative">
+            <svg
+              width="100%"
+              height={height}
+              viewBox={`0 0 680 ${height}`}
+              className="overflow-visible"
+              role="img"
+              aria-label={`${title || 'BoxPlot'} 차트`}
+            >
+              {renderAxis()}
+              {data.map((d, i) => renderBox(d, i))}
+            </svg>
+          </div>
+
+          {/* Statistics Panel */}
+          {showStatistics && selectedBox !== null && (
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-2 animate-in slide-in-from-bottom-2 duration-200">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                {data[selectedBox].name} 상세 통계
+              </h4>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">최소값</div>
+                  <div className="font-medium">{data[selectedBox].min.toFixed(2)}{unit}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Q1 (25%)</div>
+                  <div className="font-medium">{data[selectedBox].q1.toFixed(2)}{unit}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">중앙값</div>
+                  <div className="font-medium text-primary">{data[selectedBox].median.toFixed(2)}{unit}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Q3 (75%)</div>
+                  <div className="font-medium">{data[selectedBox].q3.toFixed(2)}{unit}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">최대값</div>
+                  <div className="font-medium">{data[selectedBox].max.toFixed(2)}{unit}</div>
+                </div>
+                {data[selectedBox].mean && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">평균</div>
+                    <div className="font-medium text-blue-600">{data[selectedBox].mean.toFixed(2)}{unit}</div>
+                  </div>
+                )}
+                {data[selectedBox].std && (
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground">표준편차</div>
+                    <div className="font-medium">{data[selectedBox].std.toFixed(2)}{unit}</div>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">IQR</div>
+                  <div className="font-medium">
+                    {(data[selectedBox].q3 - data[selectedBox].q1).toFixed(2)}{unit}
+                  </div>
+                </div>
+              </div>
+
+              {/* 분포 해석 */}
+              <div className="mt-3 pt-3 border-t space-y-2">
+                {data[selectedBox].mean && data[selectedBox].median && (
+                  <div className="flex items-center gap-2 text-sm">
+                    {data[selectedBox].median > data[selectedBox].mean! ? (
+                      <>
+                        <TrendingDown className="h-4 w-4 text-blue-600" />
+                        <span>왼쪽 꼬리 분포 (negative skew) - 중앙값이 평균보다 큼</span>
+                      </>
+                    ) : data[selectedBox].median < data[selectedBox].mean! ? (
+                      <>
+                        <TrendingUp className="h-4 w-4 text-orange-600" />
+                        <span>오른쪽 꼬리 분포 (positive skew) - 평균이 중앙값보다 큼</span>
+                      </>
+                    ) : (
+                      <>
+                        <Activity className="h-4 w-4 text-success" />
+                        <span>대칭 분포 - 평균과 중앙값이 유사</span>
+                      </>
+                    )}
+                  </div>
+                )}
+                {data[selectedBox].outliers && data[selectedBox].outliers!.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-amber-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>이상치가 {data[selectedBox].outliers!.length}개 발견되었습니다.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        renderTable()
+      )}
+
+      {/* Legend */}
+      {showLegend && data.length > 1 && (
+        <div className="flex flex-wrap gap-2 mt-4">
+          {data.map((d, i) => (
+            <Badge
+              key={d.name}
+              variant={selectedBox === i ? 'default' : 'outline'}
+              className="cursor-pointer transition-all duration-200"
+              onClick={() => setSelectedBox(i === selectedBox ? null : i)}
+              style={{
+                borderColor: getBoxColor(i, d.color),
+                backgroundColor: selectedBox === i ? getBoxColor(i, d.color) : 'transparent',
+                color: selectedBox === i ? 'white' : getBoxColor(i, d.color)
+              }}
+            >
+              {d.name}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Info tooltip */}
+      <div className="flex items-start gap-2 mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+        <Info className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
+        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1.5">
+          <p className="font-medium">박스플롯 해석 가이드</p>
+          <p>• 박스: 데이터의 50%가 포함된 범위 (Q1~Q3, IQR)</p>
+          <p>• 중앙선: 데이터를 반으로 나누는 중앙값</p>
+          <p>• 수염: 이상치를 제외한 데이터의 범위</p>
+          {showMean && <p>• 흰색 점: 데이터의 평균값</p>}
+          {showOutliers && <p>• 빈 원: 극단적인 값 (이상치)</p>}
+          <p className="pt-1 font-medium">💡 박스가 작을수록 데이터가 밀집되어 있고, 클수록 분산되어 있습니다.</p>
+        </div>
+      </div>
+    </div>
+  )
+
+  // Render without Card wrapper
+  if (!showCard) {
+    return (
+      <div className={cn('w-full', className, isFullscreen && 'fixed inset-4 z-50 bg-background p-6 rounded-lg shadow-lg')}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            {title && <h3 className="font-semibold">{title}</h3>}
+            {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          </div>
+          {headerControls}
+        </div>
+        {mainContent}
+      </div>
+    )
+  }
+
+  // Render with Card wrapper
   return (
     <Card className={cn('w-full', className, isFullscreen && 'fixed inset-4 z-50')}>
       <CardHeader>
@@ -506,199 +732,11 @@ export const BoxPlot = memo(function BoxPlot({
             {title && <CardTitle>{title}</CardTitle>}
             {description && <CardDescription className="mt-1">{description}</CardDescription>}
           </div>
-
-          <div className="flex items-center gap-2">
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'chart' | 'table')}>
-              <TabsList className="h-9">
-                <TabsTrigger value="chart" className="h-7">
-                  <ChartBar className="h-4 w-4 mr-1" />
-                  차트
-                </TabsTrigger>
-                <TabsTrigger value="table" className="h-7">
-                  <TableIcon className="h-4 w-4 mr-1" />
-                  테이블
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {interactive && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setIsFullscreen(!isFullscreen)}
-                      aria-label={isFullscreen ? '원래 크기로' : '전체 화면'}
-                    >
-                      {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {isFullscreen ? '원래 크기로' : '전체 화면'}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={downloadCSV}
-                    aria-label="CSV 다운로드"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>CSV 다운로드</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          {headerControls}
         </div>
       </CardHeader>
-
       <CardContent>
-        <div className="space-y-4">
-          {viewMode === 'chart' ? (
-            <>
-              {/* SVG Plot */}
-              <div className="relative">
-                <svg
-                  width="100%"
-                  height={height}
-                  viewBox={`0 0 680 ${height}`}
-                  className="overflow-visible"
-                  role="img"
-                  aria-label={`${title || 'BoxPlot'} 차트`}
-                >
-                  {renderAxis()}
-                  {data.map((d, i) => renderBox(d, i))}
-                </svg>
-              </div>
-
-              {/* Statistics Panel */}
-              {showStatistics && selectedBox !== null && (
-                <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-2 animate-in slide-in-from-bottom-2 duration-200">
-                  <h4 className="font-semibold flex items-center gap-2">
-                    <Activity className="h-4 w-4" />
-                    {data[selectedBox].name} 상세 통계
-                  </h4>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">최소값</div>
-                      <div className="font-medium">{data[selectedBox].min.toFixed(2)}{unit}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">Q1 (25%)</div>
-                      <div className="font-medium">{data[selectedBox].q1.toFixed(2)}{unit}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">중앙값</div>
-                      <div className="font-medium text-primary">{data[selectedBox].median.toFixed(2)}{unit}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">Q3 (75%)</div>
-                      <div className="font-medium">{data[selectedBox].q3.toFixed(2)}{unit}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">최대값</div>
-                      <div className="font-medium">{data[selectedBox].max.toFixed(2)}{unit}</div>
-                    </div>
-                    {data[selectedBox].mean && (
-                      <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">평균</div>
-                        <div className="font-medium text-blue-600">{data[selectedBox].mean.toFixed(2)}{unit}</div>
-                      </div>
-                    )}
-                    {data[selectedBox].std && (
-                      <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">표준편차</div>
-                        <div className="font-medium">{data[selectedBox].std.toFixed(2)}{unit}</div>
-                      </div>
-                    )}
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">IQR</div>
-                      <div className="font-medium">
-                        {(data[selectedBox].q3 - data[selectedBox].q1).toFixed(2)}{unit}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 분포 해석 */}
-                  <div className="mt-3 pt-3 border-t space-y-2">
-                    {data[selectedBox].mean && data[selectedBox].median && (
-                      <div className="flex items-center gap-2 text-sm">
-                        {data[selectedBox].median > data[selectedBox].mean! ? (
-                          <>
-                            <TrendingDown className="h-4 w-4 text-blue-600" />
-                            <span>왼쪽 꼬리 분포 (negative skew) - 중앙값이 평균보다 큼</span>
-                          </>
-                        ) : data[selectedBox].median < data[selectedBox].mean! ? (
-                          <>
-                            <TrendingUp className="h-4 w-4 text-orange-600" />
-                            <span>오른쪽 꼬리 분포 (positive skew) - 평균이 중앙값보다 큼</span>
-                          </>
-                        ) : (
-                          <>
-                            <Activity className="h-4 w-4 text-success" />
-                            <span>대칭 분포 - 평균과 중앙값이 유사</span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    {data[selectedBox].outliers && data[selectedBox].outliers!.length > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-amber-600">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>이상치가 {data[selectedBox].outliers!.length}개 발견되었습니다.</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            renderTable()
-          )}
-
-          {/* Legend */}
-          {showLegend && data.length > 1 && (
-            <div className="flex flex-wrap gap-2 mt-4">
-              {data.map((d, i) => (
-                <Badge
-                  key={d.name}
-                  variant={selectedBox === i ? 'default' : 'outline'}
-                  className="cursor-pointer transition-all duration-200"
-                  onClick={() => setSelectedBox(i === selectedBox ? null : i)}
-                  style={{
-                    borderColor: getBoxColor(i, d.color),
-                    backgroundColor: selectedBox === i ? getBoxColor(i, d.color) : 'transparent',
-                    color: selectedBox === i ? 'white' : getBoxColor(i, d.color)
-                  }}
-                >
-                  {d.name}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Info tooltip */}
-          <div className="flex items-start gap-2 mt-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-            <Info className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
-            <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1.5">
-              <p className="font-medium">박스플롯 해석 가이드</p>
-              <p>• 박스: 데이터의 50%가 포함된 범위 (Q1~Q3, IQR)</p>
-              <p>• 중앙선: 데이터를 반으로 나누는 중앙값</p>
-              <p>• 수염: 이상치를 제외한 데이터의 범위</p>
-              {showMean && <p>• 흰색 점: 데이터의 평균값</p>}
-              {showOutliers && <p>• 빈 원: 극단적인 값 (이상치)</p>}
-              <p className="pt-1 font-medium">💡 박스가 작을수록 데이터가 밀집되어 있고, 클수록 분산되어 있습니다.</p>
-            </div>
-          </div>
-        </div>
+        {mainContent}
       </CardContent>
     </Card>
   )
