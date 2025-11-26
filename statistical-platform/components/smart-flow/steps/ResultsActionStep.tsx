@@ -1,6 +1,6 @@
 'use client'
 
-import { Save, FileDown, Copy } from 'lucide-react'
+import { Save, FileDown, Copy, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -272,10 +272,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }
 
   const handleNewAnalysis = () => {
-    if (confirm('현재 분석을 종료하고 새 분석을 시작하시겠습니까?')) {
-      reset()
-      toast.info('새 분석을 시작합니다')
-    }
+    reset()
+    toast.info('새 분석을 시작합니다')
   }
 
   const handleGeneratePDF = async () => {
@@ -880,10 +878,11 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
             {isCopied ? '복사됨!' : '결과 복사'}
           </Button>
           <Button
-            variant="outline"
+            variant="default"
             className="flex-1"
             onClick={handleNewAnalysis}
           >
+            <RotateCcw className="w-4 h-4 mr-2" />
             새 분석 시작
           </Button>
         </div>

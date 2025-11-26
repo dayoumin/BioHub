@@ -73,15 +73,22 @@ export default function SmartFlowPage() {
     loadHistoryFromDB().catch(console.error)
   }, [loadHistoryFromDB])
 
+  // 페이지 이탈 시 세션 상태 초기화 (분석 히스토리는 IndexedDB에 유지)
+  useEffect(() => {
+    return () => {
+      reset()
+    }
+  }, [reset])
+
   // Steps configuration (useMemo로 최적화)
-  // 2025-11-24: 7단계 → 5단계 축소 (Step 1+2 통합, Step 6+7 통합)
+  // 2025-11-26: SmartFlowLayout STEPS와 동기화
   const steps = useMemo(() => {
     return [
-      { id: 1, label: '데이터 업로드 및 검증' },
-      { id: 2, label: '데이터 탐색' },
-      { id: 3, label: '분석 목적 선택' },
-      { id: 4, label: '변수 선택' },
-      { id: 5, label: '분석 실행 및 결과' }
+      { id: 1, label: '업로드' },
+      { id: 2, label: '탐색' },
+      { id: 3, label: '방법' },
+      { id: 4, label: '변수' },
+      { id: 5, label: '분석' }
     ].map((step) => ({
       ...step,
       completed: completedSteps.includes(step.id)
@@ -145,7 +152,6 @@ export default function SmartFlowPage() {
       currentStep={currentStep}
       steps={steps}
       onStepChange={handleStepClick}
-
       isAnalyzing={isLoading}
       analyzingMessage="분석 중입니다..."
       showHistory={showHistory}
@@ -158,7 +164,10 @@ export default function SmartFlowPage() {
       {/* Step 1: 데이터 업로드 및 검증 (기존 Step 1 + Step 2 임시 통합) */}
       {currentStep === 1 && (
         <div className="animate-fade-in">
-          <DataUploadStep onUploadComplete={handleUploadComplete} />
+          <DataUploadStep
+            onUploadComplete={handleUploadComplete}
+            existingFileName={uploadedFileName || undefined}
+          />
 
           {/* 업로드 완료 시 즉시 검증 결과 표시 */}
           {validationResults && uploadedData && (
