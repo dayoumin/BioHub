@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { SignTestVariables } from '@/types/statistics'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import {
   Tooltip,
@@ -63,6 +64,7 @@ export default function SignTestPage() {
     // initialStep: 0 (기본값)
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -231,6 +233,7 @@ export default function SignTestPage() {
         testType: 'two-tailed'
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (error) {
       console.error('부호 검정 분석 중 오류:', error)
@@ -528,8 +531,21 @@ export default function SignTestPage() {
       { name: '차이 없음', value: results.nTies, color: '#6b7280' }
     ]
 
+    const usedVariables = [
+      ...(selectedVariables?.before ? [selectedVariables.before] : []),
+      ...(selectedVariables?.after ? [selectedVariables.after] : [])
+    ]
+
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="부호 검정"
+          analysisSubtitle="Sign Test"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={results.nTotal + results.nTies}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         {/* 주요 결과 요약 */}
         <Alert className={results.significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
           {results.significant ? (
@@ -674,7 +690,7 @@ export default function SignTestPage() {
         </div>
       </div>
     )
-  }, [results, actions])
+  }, [results, actions, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

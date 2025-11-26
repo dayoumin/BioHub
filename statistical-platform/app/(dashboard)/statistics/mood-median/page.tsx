@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import type { MoodMedianVariables } from '@/types/statistics'
 import {
@@ -79,6 +80,7 @@ export default function MoodMedianTestPage() {
     // initialStep: 0 (기본값)
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -279,6 +281,7 @@ export default function MoodMedianTestPage() {
         groupStats
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (error) {
       console.error('Mood Median Test 분석 중 오류:', error)
@@ -548,8 +551,21 @@ export default function MoodMedianTestPage() {
         }, {} as Record<string, number>)
       }
     ]
+    const usedVariables = [
+      ...(selectedVariables?.dependent ? [selectedVariables.dependent] : []),
+      ...(selectedVariables?.factor ? [selectedVariables.factor] : [])
+    ]
+
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="Mood Median Test"
+          analysisSubtitle="Mood's Median Test"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={results.nTotal}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         {/* 검정 통계량 */}
         <Card>
           <CardHeader>
@@ -679,7 +695,7 @@ export default function MoodMedianTestPage() {
         </div>
       </div>
     )
-  }, [results, actions])
+  }, [results, actions, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

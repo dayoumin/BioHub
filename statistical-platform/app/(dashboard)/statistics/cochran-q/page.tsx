@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -63,6 +64,7 @@ export default function CochranQTestPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs (useMemo)
   const breadcrumbs = useMemo(() => [
@@ -231,6 +233,7 @@ export default function CochranQTestPage() {
         contingencyTable: dataMatrix
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Cochran Q 검정 분석 중 오류가 발생했습니다.'
@@ -523,6 +526,15 @@ export default function CochranQTestPage() {
   const renderResults = useCallback(() => {
     if (!results) return null
 
+    // Build variable list for context header
+    const dependentVars = Array.isArray(selectedVariables?.dependent)
+      ? selectedVariables.dependent
+      : selectedVariables?.dependent ? [selectedVariables.dependent] : []
+    const usedVariables = [
+      ...(selectedVariables?.independent ? [selectedVariables.independent] : []),
+      ...dependentVars
+    ]
+
     const {
       qStatistic,
       pValue,
@@ -536,6 +548,14 @@ export default function CochranQTestPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="Cochran Q 검정"
+          analysisSubtitle="Cochran Q Test"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={results.nSubjects}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         {/* 주요 결과 요약 */}
         <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
           <AlertCircle className="h-4 w-4" />
@@ -686,7 +706,7 @@ export default function CochranQTestPage() {
         </div>
       </div>
     )
-  }, [results])
+  }, [results, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

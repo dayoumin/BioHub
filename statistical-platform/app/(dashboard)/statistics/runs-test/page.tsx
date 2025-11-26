@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RunsTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import {
   Shuffle,
@@ -69,6 +70,7 @@ export default function RunsTestPage() {
     // initialStep: 0 (기본값)
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -230,6 +232,7 @@ export default function RunsTestPage() {
         }
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (error) {
       console.error('런 검정 분석 중 오류:', error)
@@ -441,6 +444,14 @@ export default function RunsTestPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="런 검정"
+          analysisSubtitle="Runs Test"
+          fileName={uploadedData?.fileName}
+          variables={selectedVariables?.dependent ? [selectedVariables.dependent] : []}
+          sampleSize={statistics.totalN}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         {/* 주요 결과 요약 */}
         <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
           <AlertCircle className="h-4 w-4" />
@@ -602,7 +613,7 @@ export default function RunsTestPage() {
         </div>
       </div>
     )
-  }, [results, actions])
+  }, [results, actions, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout
