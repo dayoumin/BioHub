@@ -18,7 +18,6 @@ import {
   Sparkles,
   Check,
   ChevronRight,
-  Upload,
   BarChart3,
   Target,
   Settings,
@@ -27,13 +26,12 @@ import {
   ArrowRight
 } from 'lucide-react'
 
-// 스텝 정의
+// 스텝 정의 (2025-11-26: 5단계 → 4단계로 축소)
 const STEPS = [
-  { id: 1, label: '업로드', icon: Upload, shortLabel: '1' },
-  { id: 2, label: '탐색', icon: BarChart3, shortLabel: '2' },
-  { id: 3, label: '방법', icon: Target, shortLabel: '3' },
-  { id: 4, label: '변수', icon: Settings, shortLabel: '4' },
-  { id: 5, label: '분석', icon: Play, shortLabel: '5' },
+  { id: 1, label: '탐색', icon: BarChart3, shortLabel: '1' },
+  { id: 2, label: '방법', icon: Target, shortLabel: '2' },
+  { id: 3, label: '변수', icon: Settings, shortLabel: '3' },
+  { id: 4, label: '분석', icon: Play, shortLabel: '4' },
 ]
 
 export function LayoutPrototypeSection() {
@@ -168,11 +166,10 @@ export function LayoutPrototypeSection() {
                       {STEPS[currentStep - 1]?.label}
                     </h2>
                     <p className="text-muted-foreground">
-                      {currentStep === 1 && "데이터 파일을 업로드하세요"}
-                      {currentStep === 2 && "변수 간 상관관계를 자유롭게 탐색하세요"}
-                      {currentStep === 3 && "분석 방법을 선택하세요 (AI 추천)"}
-                      {currentStep === 4 && "분석에 사용할 변수를 선택하세요"}
-                      {currentStep === 5 && "분석을 실행하고 결과를 확인하세요"}
+                      {currentStep === 1 && "데이터를 업로드하고 탐색하세요"}
+                      {currentStep === 2 && "분석 방법을 선택하세요 (AI 추천)"}
+                      {currentStep === 3 && "분석에 사용할 변수를 선택하세요"}
+                      {currentStep === 4 && "분석을 실행하고 결과를 확인하세요"}
                     </p>
                   </div>
 
@@ -190,8 +187,8 @@ export function LayoutPrototypeSection() {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => setCurrentStep(Math.min(5, currentStep + 1))}
-                      disabled={currentStep === 5}
+                      onClick={() => setCurrentStep(Math.min(4, currentStep + 1))}
+                      disabled={currentStep === 4}
                       className="gap-1"
                     >
                       다음

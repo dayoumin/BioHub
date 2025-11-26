@@ -144,7 +144,7 @@ export default function HelpPage() {
                 통계 분석 플랫폼 사용법
               </CardTitle>
               <CardDescription>
-                5단계로 완료되는 체계적인 분석 과정
+                4단계로 완료되는 체계적인 분석 과정
               </CardDescription>
             </CardHeader>
             <CardContent>
