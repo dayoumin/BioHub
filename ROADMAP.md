@@ -1238,7 +1238,9 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 
 ---
 
-**최종 업데이트**: 2025-11-24
+**최종 업데이트**: 2025-11-27
 **현재 Phase**: 5-2 (구현 검증 및 TypeScript 래퍼 추가)
 **현재 진행률**: 43/55 (78%) → 목표 55/55 (100%)
 **다음 마일스톤**: Phase 5-3 (Worker Pool Lazy Loading)
+
+**최근 완료**: ResultContextHeader 43개 통계 페이지 적용 (2025-11-27)
