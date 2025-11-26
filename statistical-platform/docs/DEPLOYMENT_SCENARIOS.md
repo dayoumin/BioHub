@@ -607,7 +607,137 @@ npm run tauri build
 
 ---
 
+## 🔧 Vercel 빌드 트러블슈팅
+
+### 문제: zod peer dependency 충돌 (2025-11-26)
+
+**증상**:
+```
+npm error ERESOLVE could not resolve
+npm error While resolving: @browserbasehq/stagehand@1.13.0
+npm error Found: zod@4.1.12
+npm error Could not resolve dependency:
+npm error peer zod@"^3.23.8" from @browserbasehq/stagehand@1.13.0
+```
+
+**원인**:
+- 프로젝트에서 `zod@^4.1.12` 사용
+- `@langchain/community` → `@browserbasehq/stagehand` → `zod@^3.23.8` 필요
+- `npm ci`가 peer dependency 충돌 시 실패
+
+**해결책**:
+
+#### 1. 루트 `vercel.json` 설정 (핵심)
+
+```json
+{
+  "installCommand": "cd statistical-platform && npm install --legacy-peer-deps",
+  "buildCommand": "cd statistical-platform && npm run build",
+  "outputDirectory": "statistical-platform/.next"
+}
+```
+
+> ⚠️ **중요**: `vercel.json`은 **저장소 루트**에 위치해야 합니다. `statistical-platform/vercel.json`은 무시될 수 있습니다.
+
+#### 2. `.npmrc` 설정 (보조)
+
+```
+# statistical-platform/.npmrc
+legacy-peer-deps=true
+```
+
+#### 3. `package.json` overrides (보조)
+
+```json
+{
+  "overrides": {
+    "@browserbasehq/stagehand": {
+      "zod": "$zod"
+    }
+  }
+}
+```
+
+**검증**:
+- Vercel 빌드 로그에서 `npm install --legacy-peer-deps` 실행 확인
+- `npm ci` 대신 `npm install` 사용되는지 확인
+
+---
+
+### 문제: Tailwind v4 + lightningcss 네이티브 바이너리
+
+**증상**:
+```
+Error: Cannot find module '../lightningcss.linux-x64-gnu.node'
+```
+
+**원인**:
+- Tailwind CSS v4는 `@tailwindcss/postcss` 사용
+- `lightningcss`가 네이티브 바이너리 필요
+- Vercel 빌드 환경에서 바이너리 없음
+
+**해결책**: ✅ **현재 정상 작동** (2025-11-26 기준)
+
+Tailwind v4가 Vercel에서 정상 작동합니다. 만약 이 오류가 발생하면:
+
+1. `package.json`에서 `tailwindcss`와 `@tailwindcss/postcss`가 `devDependencies`에 있는지 확인
+2. `postcss.config.mjs`가 올바른 형식인지 확인:
+   ```javascript
+   const config = {
+     plugins: ["@tailwindcss/postcss"],
+   };
+   export default config;
+   ```
+
+**대안 (Tailwind v3로 다운그레이드)**:
+```json
+// package.json dependencies
+"autoprefixer": "^10.4.20",
+"tailwindcss": "^3.4.17"
+
+// postcss.config.mjs
+const config = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+};
+```
+
+> ⚠️ Tailwind v3로 다운그레이드 시 `globals.css`도 v3 문법으로 변환 필요 (`@import "tailwindcss"` → `@tailwind base/components/utilities`)
+
+---
+
+### Vercel 빌드 설정 체크리스트
+
+```bash
+# ☑️ 1. 루트 vercel.json 확인
+cat vercel.json
+# installCommand에 --legacy-peer-deps 포함 확인
+
+# ☑️ 2. .npmrc 확인
+cat statistical-platform/.npmrc
+# legacy-peer-deps=true 포함 확인
+
+# ☑️ 3. package.json overrides 확인
+grep -A5 "overrides" statistical-platform/package.json
+
+# ☑️ 4. Tailwind 버전 확인
+grep "tailwindcss" statistical-platform/package.json
+# devDependencies에 있어야 함
+```
+
+---
+
+## 📚 관련 문서
+
+- **[OFFLINE_DEPLOYMENT_CHECKLIST.md](OFFLINE_DEPLOYMENT_CHECKLIST.md)**: 오프라인 배포 수동 검증 가이드
+- **[OLLAMA_MODEL_SETUP.md](../../deployment-package/OLLAMA_MODEL_SETUP.md)**: Ollama 모델 복원 가이드
+- **[AI-CODING-RULES.md](AI-CODING-RULES.md)**: AI 코딩 규칙 (개발자용)
+
+---
+
 **작성일**: 2025-01-10
-**업데이트**: 2025-11-18 (임베디드 앱 섹션 추가)
-**버전**: 1.1
-**관련 작업**: RAG 시스템 배포 개선 + Worker JSON 직렬화 수정
+**업데이트**: 2025-11-26 (Vercel 빌드 트러블슈팅 추가)
+**버전**: 1.2
+**관련 작업**: RAG 시스템 배포 개선 + Worker JSON 직렬화 수정 + zod peer dependency 해결
