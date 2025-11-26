@@ -1,33 +1,50 @@
 'use client'
 
 import React, { ReactNode } from 'react'
-import { TwoPanelLayout, Step, BreadcrumbItem } from '@/components/statistics/layouts/TwoPanelLayout'
-import { Sparkles, Clock, HelpCircle, X } from 'lucide-react'
+import Link from 'next/link'
+import { cn } from '@/lib/utils'
+import { useUI } from '@/contexts/ui-context'
+import { SettingsModal } from '@/components/layout/settings-modal'
+import { HelpModal } from '@/components/layout/help-modal'
+import {
+  Clock,
+  HelpCircle,
+  X,
+  Check,
+  Upload,
+  BarChart3,
+  Target,
+  Settings,
+  Play,
+  MessageCircle
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-export interface SmartFlowLayoutProps {
-  // TwoPanelLayout 기본 Props
-  currentStep: number
-  steps: Step[]
-  onStepChange?: (step: number) => void
+// 5단계 스텝 정의
+const STEPS = [
+  { id: 1, label: '업로드', icon: Upload },
+  { id: 2, label: '탐색', icon: BarChart3 },
+  { id: 3, label: '방법', icon: Target },
+  { id: 4, label: '변수', icon: Settings },
+  { id: 5, label: '분석', icon: Play },
+]
 
-  // 메인 콘텐츠
+const STEP_DESCRIPTIONS: Record<number, string> = {
+  1: '데이터 파일을 업로드하세요',
+  2: '변수 간 상관관계를 자유롭게 탐색하세요',
+  3: '분석 방법을 선택하세요 (AI 추천)',
+  4: '분석에 사용할 변수를 선택하세요',
+  5: '분석을 실행하고 결과를 확인하세요',
+}
+
+export interface SmartFlowLayoutProps {
+  currentStep: number
+  steps: Array<{ id: number; label: string; completed?: boolean }>
+  onStepChange?: (step: number) => void
   children: ReactNode
 
-  // 하단 데이터 미리보기 (선택)
-  bottomPreview?: {
-    data: Array<Record<string, unknown>>
-    fileName?: string
-    maxRows?: number
-    onOpenNewWindow?: () => void
-  }
-
-  // 분석 중 오버레이
-  isAnalyzing?: boolean
-  analyzingMessage?: string
-
-  // 스마트 분석 전용 Props
+  // 히스토리/도움말 (SmartFlow 전용)
   showHistory?: boolean
   showHelp?: boolean
   onHistoryToggle?: () => void
@@ -35,78 +52,173 @@ export interface SmartFlowLayoutProps {
   systemMemory?: number | null
   historyPanel?: ReactNode
 
-  // 옵셔널
+  // 분석 상태
+  isAnalyzing?: boolean
+  analyzingMessage?: string
+
   className?: string
 }
 
 /**
- * 스마트 통계 분석 전용 레이아웃
+ * 스마트 통계 분석 레이아웃 (v7 - Clean Stepper)
  *
- * TwoPanelLayout을 기반으로 하되, 스마트 분석 특화 기능 추가:
- * - Blue-Purple 그라데이션 색상 (개별 통계와 차별화)
- * - 분석 히스토리 패널
- * - 데이터 제한 안내 도움말
- * - AI 아이콘 강조
+ * 변경사항 (2025-11-26):
+ * - h-screen 제거 → 부모 레이아웃 스크롤 사용
+ * - 이중 스크롤 제거 → Single Page
+ * - 헤더(sticky) + 스테퍼(sticky) + 콘텐츠
+ * - 좌우 버튼 제거 → 스텝 클릭으로 이동
  */
 export function SmartFlowLayout({
   currentStep,
   steps,
   onStepChange,
   children,
-  bottomPreview,
-  isAnalyzing = false,
-  analyzingMessage,
   showHistory = false,
   showHelp = false,
   onHistoryToggle,
   onHelpToggle,
   systemMemory,
   historyPanel,
+  isAnalyzing = false,
+  analyzingMessage,
   className
 }: SmartFlowLayoutProps) {
-  return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-b from-background to-muted/20">
-      {/* 상단 헤더 영역 (히스토리/도움말 토글만) */}
-      <div className="bg-background border-b px-6 py-3 flex items-center justify-end">
+  // 완료된 단계 확인
+  const completedSteps = steps.filter(s => s.completed).map(s => s.id)
 
-        <div className="flex items-center gap-2">
-          {onHistoryToggle && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onHistoryToggle}
-              className="h-8"
-            >
-              <Clock className="w-4 h-4 mr-2" />
-              분석 히스토리
-            </Button>
-          )}
-          {onHelpToggle && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onHelpToggle}
-              className="h-8"
-            >
-              <HelpCircle className="w-4 h-4 mr-2" />
-              데이터 제한 안내
-            </Button>
-          )}
+  // 전역 UI 컨텍스트 (채팅, 설정, 도움말 모달)
+  const {
+    openChatPanel,
+    openSettings,
+    openHelp: openGlobalHelp,
+    isSettingsOpen,
+    isHelpOpen,
+    closeSettings,
+    closeHelp: closeGlobalHelp,
+  } = useUI()
+
+  return (
+    <div className={cn("min-h-full bg-background", className)}>
+      {/* ===== 헤더 (Sticky) ===== */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b shadow-sm">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-center justify-between h-14">
+            {/* 좌측: 로고 + 히스토리 버튼 */}
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="text-lg font-bold text-foreground hover:text-primary transition-colors"
+              >
+                NIFS 통계 분석
+              </Link>
+              {onHistoryToggle && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onHistoryToggle}
+                  className={cn(
+                    "h-8 px-2 gap-1.5",
+                    showHistory && "bg-muted"
+                  )}
+                  title="분석 히스토리"
+                >
+                  <Clock className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+
+            {/* 우측: 앱 아이콘 (채팅, 도움말, 설정) */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                onClick={openChatPanel}
+                title="AI 챗봇"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                onClick={openGlobalHelp}
+                title="도움말"
+              >
+                <HelpCircle className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                onClick={openSettings}
+                title="설정"
+              >
+                <Settings className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ===== 스테퍼 (Sticky, 헤더 아래) ===== */}
+      <div className="sticky top-14 z-40 pointer-events-none">
+        <div className="max-w-6xl mx-auto px-6 pt-4 pb-2">
+          <div className="flex items-center justify-center">
+            {/* 스테퍼 (Floating Pill) */}
+            <nav className="pointer-events-auto inline-flex items-center bg-background/80 backdrop-blur-md border shadow-sm rounded-full px-6 py-2">
+              {STEPS.map((step, idx) => {
+                const isActive = step.id === currentStep
+                const isCompleted = completedSteps.includes(step.id)
+                const canClick = onStepChange && (isCompleted || step.id <= Math.max(...completedSteps, currentStep))
+
+                return (
+                  <div key={step.id} className="flex items-center">
+                    <button
+                      onClick={() => canClick && onStepChange?.(step.id)}
+                      disabled={!canClick}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-sm",
+                        canClick && "hover:bg-muted cursor-pointer",
+                        !canClick && "cursor-default opacity-50",
+                        isActive && "bg-primary text-primary-foreground hover:bg-primary shadow-sm",
+                        isCompleted && !isActive && "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold",
+                        isCompleted && !isActive && "bg-primary/10 text-primary",
+                        isActive && "bg-background text-primary",
+                        !isActive && !isCompleted && "bg-muted text-muted-foreground"
+                      )}>
+                        {isCompleted && !isActive ? (
+                          <Check className="w-3 h-3" />
+                        ) : (
+                          <span>{step.id}</span>
+                        )}
+                      </div>
+                      <span className={cn("font-medium", isActive ? "text-primary-foreground" : "")}>{step.label}</span>
+                    </button>
+                    {idx < STEPS.length - 1 && (
+                      <div className="w-4 h-px bg-border mx-1" />
+                    )}
+                  </div>
+                )
+              })}
+            </nav>
+          </div>
         </div>
       </div>
 
-      {/* 도움말 패널 */}
-      {showHelp && onHelpToggle && (
-        <div className="px-6 pt-4">
+      {/* ===== 메인 콘텐츠 ===== */}
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+        {/* SmartFlow 전용 도움말 패널 */}
+        {showHelp && onHelpToggle && (
           <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/30">
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">💾 데이터 크기 가이드</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onHelpToggle}
-                >
+                <Button variant="ghost" size="sm" onClick={onHelpToggle}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -135,30 +247,17 @@ export function SmartFlowLayout({
                   </ul>
                 </div>
               </div>
-
-              <div className="bg-blue-100 dark:bg-blue-900 rounded-lg p-3">
-                <p className="text-sm">
-                  <strong>💡 팁:</strong> 브라우저는 시스템 메모리의 25-50%만 사용 가능합니다.
-                  대용량 데이터는 샘플링하거나 필요한 컬럼만 선택하세요.
-                </p>
-              </div>
             </CardContent>
           </Card>
-        </div>
-      )}
+        )}
 
-      {/* 분석 히스토리 패널 */}
-      {showHistory && historyPanel && onHistoryToggle && (
-        <div className="px-6 pt-4">
+        {/* 히스토리 패널 */}
+        {showHistory && historyPanel && onHistoryToggle && (
           <Card>
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">📊 분석 히스토리</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onHistoryToggle}
-                >
+                <Button variant="ghost" size="sm" onClick={onHistoryToggle}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -167,30 +266,34 @@ export function SmartFlowLayout({
               {historyPanel}
             </CardContent>
           </Card>
+        )}
+
+        {/* 현재 단계 설명 */}
+        <p className="text-muted-foreground">
+          {STEP_DESCRIPTIONS[currentStep]}
+        </p>
+
+        {/* 메인 콘텐츠 */}
+        {children}
+      </main>
+
+      {/* 분석 중 오버레이 */}
+      {isAnalyzing && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Card className="w-80">
+            <CardContent className="pt-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground">
+                {analyzingMessage || '분석 중...'}
+              </p>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      {/* TwoPanelLayout으로 메인 레이아웃 위임 */}
-      <div className="flex-1 overflow-hidden">
-        <TwoPanelLayout
-          currentStep={currentStep}
-          steps={steps}
-          onStepChange={onStepChange}
-          analysisTitle="스마트 통계 분석"
-          analysisSubtitle="AI-powered Statistical Analysis"
-          analysisIcon={<Sparkles className="w-5 h-5 text-blue-500" />}
-          breadcrumbs={[
-            { label: '홈', href: '/' },
-            { label: '스마트 분석', href: '/smart-flow' }
-          ]}
-          bottomPreview={bottomPreview}
-          isAnalyzing={isAnalyzing}
-          analyzingMessage={analyzingMessage}
-          className={className}
-        >
-          {children}
-        </TwoPanelLayout>
-      </div>
+      {/* 전역 모달들 */}
+      <SettingsModal open={isSettingsOpen} onOpenChange={closeSettings} />
+      <HelpModal open={isHelpOpen} onOpenChange={closeGlobalHelp} />
     </div>
   )
 }
