@@ -6,6 +6,7 @@ import type { PoissonVariables } from '@/types/statistics'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { Button } from '@/components/ui/button'
@@ -132,6 +133,7 @@ export default function PoissonRegressionPage() {
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -182,6 +184,7 @@ export default function PoissonRegressionPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(workerResult)
     } catch (error) {
       console.error('분석 중 오류:', error)
@@ -444,6 +447,14 @@ export default function PoissonRegressionPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="포아송 회귀분석"
+          analysisSubtitle="Poisson Regression"
+          fileName={uploadedData?.fileName}
+          variables={[selectedVariables?.dependent || '', ...(selectedVariables?.independent || [])].filter(Boolean)}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <Card>
           <CardHeader>
             <CardTitle>포아송 회귀분석 결과</CardTitle>
@@ -779,7 +790,7 @@ export default function PoissonRegressionPage() {
         </Card>
       </div>
     )
-  }, [results])
+  }, [results, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

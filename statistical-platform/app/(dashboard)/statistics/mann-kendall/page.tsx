@@ -7,7 +7,7 @@
  * TwoPanelLayout으로 마이그레이션
  */
 
-import { useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { MannKendallVariables } from '@/types/statistics'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { extractRowValue } from '@/lib/utils/data-extraction'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -68,6 +69,7 @@ export default function MannKendallPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, error, isAnalyzing } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -168,6 +170,7 @@ export default function MannKendallPage() {
         intercept: result.intercept
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(typedResult, 3)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
@@ -428,6 +431,14 @@ export default function MannKendallPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="Mann-Kendall 추세 검정"
+          analysisSubtitle="Trend Test"
+          fileName={uploadedData?.fileName}
+          variables={selectedVariables?.data ? [selectedVariables.data] : []}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <div>
           <h2 className="text-xl font-semibold mb-2">분석 완료</h2>
           <p className="text-sm text-muted-foreground">
@@ -684,7 +695,7 @@ export default function MannKendallPage() {
         </Tabs>
       </div>
     )
-  }, [results])
+  }, [results, uploadedData, selectedVariables, analysisTimestamp])
 
   // Type annotation for onStepChange
   const handleStepChange = useCallback((step: number) => {

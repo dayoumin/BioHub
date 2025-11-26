@@ -37,6 +37,7 @@ import { StatisticalResultCard } from '@/components/statistics/common/Statistica
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import type { StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
@@ -199,6 +200,7 @@ export default function NonParametricTestPage() {
     withError: true
   })
   const { uploadedData, selectedVariables, results: result, isAnalyzing, error, currentStep } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [selectedTest, setSelectedTest] = useState<NonParametricTest>('mann-whitney')
   const [alpha, setAlpha] = useState('0.05')
 
@@ -576,6 +578,7 @@ export default function NonParametricTestPage() {
         sampleSize
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(statisticalResult, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
@@ -822,6 +825,14 @@ export default function NonParametricTestPage() {
     <div className="space-y-6">
       {result ? (
         <>
+          <ResultContextHeader
+            analysisType="비모수 검정"
+            analysisSubtitle="Non-Parametric Tests"
+            fileName={uploadedData?.fileName}
+            variables={selectedVariables?.factor || []}
+            sampleSize={uploadedData?.data?.length}
+            timestamp={analysisTimestamp ?? undefined}
+          />
           <StatisticalResultCard
             result={result}
             showAssumptions={true}

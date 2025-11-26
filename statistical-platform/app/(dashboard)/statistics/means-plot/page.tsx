@@ -2,11 +2,12 @@
 
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { MeansPlotVariables } from '@/types/statistics'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -62,6 +63,7 @@ export default function MeansPlotPage() {
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   const steps = useMemo(() => {
     const baseSteps = [
@@ -157,6 +159,7 @@ export default function MeansPlotPage() {
         interpretation: result.interpretation
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(analysisResults, 4)
       } catch (err) {
         actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
@@ -288,6 +291,14 @@ export default function MeansPlotPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="평균 도표"
+          analysisSubtitle="Means Plot"
+          fileName={uploadedData?.fileName}
+          variables={[...(selectedVariables?.dependent || []), ...(selectedVariables?.factor || [])]}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">평균 도표 분석 결과</h2>
           <p className="text-gray-600">집단별 평균값과 오차막대를 확인하세요</p>

@@ -14,6 +14,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { StepwiseVariables } from '@/types/statistics'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,6 +100,7 @@ export default function StepwiseRegressionPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -299,6 +301,7 @@ export default function StepwiseRegressionPage() {
         interpretation: result.interpretation
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(results, 3)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
@@ -446,6 +449,14 @@ export default function StepwiseRegressionPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="단계적 회귀분석"
+          analysisSubtitle="Stepwise Regression"
+          fileName={uploadedData?.fileName}
+          variables={[...(selectedVariables?.dependent || []), ...(selectedVariables?.factor || [])]}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">단계적 회귀분석 결과</h2>
           <p className="text-gray-600">단계별 선택 과정과 최종 회귀모델을 확인하세요</p>
@@ -812,7 +823,7 @@ export default function StepwiseRegressionPage() {
         </Tabs>
       </div>
     )
-  }, [isAnalyzing, error, results, getModelFitInterpretation])
+  }, [isAnalyzing, error, results, getModelFitInterpretation, uploadedData, selectedVariables, analysisTimestamp])
 
   // Type-safe onStepChange handler
   const handleStepChange = useCallback((step: number) => {

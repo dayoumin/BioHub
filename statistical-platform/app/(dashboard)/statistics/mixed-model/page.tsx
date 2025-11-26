@@ -35,6 +35,7 @@ import { StatisticsTable, type TableColumn, type TableRow } from '@/components/s
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -130,6 +131,8 @@ export default function MixedModelPage() {
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
+
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Pyodide ready state
   const [pyodideReady, setPyodideReady] = useState(false)
@@ -244,6 +247,7 @@ export default function MixedModelPage() {
       )
 
       if (actions?.completeAnalysis) {
+        setAnalysisTimestamp(new Date())
         actions.completeAnalysis(workerResult, 3)  // Move to step 3 (results)
       }
     } catch (err) {
@@ -444,6 +448,14 @@ export default function MixedModelPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="선형 혼합 모형"
+          analysisSubtitle="Linear Mixed Model"
+          fileName={uploadedData?.fileName}
+          variables={[selectedVariables?.dependent || '', ...(selectedVariables?.factor || [])].filter(Boolean)}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <Tabs defaultValue="fixed" className="w-full">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="fixed">고정효과</TabsTrigger>
@@ -1005,7 +1017,7 @@ export default function MixedModelPage() {
         </div>
       </div>
     )
-  }, [analysisResult, getSignificanceColor, actions])
+  }, [analysisResult, getSignificanceColor, actions, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

@@ -17,6 +17,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -76,6 +77,7 @@ export default function ClusterAnalysisPage() {
   const [autoOptimalK, setAutoOptimalK] = useState<boolean>(true)
   const [linkageMethod, setLinkageMethod] = useState<'ward' | 'complete' | 'average' | 'single'>('ward')
   const [distanceMetric, setDistanceMetric] = useState<'euclidean' | 'manhattan' | 'cosine'>('euclidean')
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // STEPS 정의 (Batch 3 표준)
   const STEPS: TwoPanelStep[] = useMemo(() => [
@@ -162,6 +164,7 @@ export default function ClusterAnalysisPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
@@ -301,6 +304,14 @@ export default function ClusterAnalysisPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="군집분석"
+          analysisSubtitle="Cluster Analysis"
+          fileName={uploadedData?.fileName}
+          variables={selectedVariables?.all || []}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <div>
           <h3 className="text-lg font-semibold mb-2">군집분석 결과</h3>
           <div className="flex flex-wrap gap-2">
@@ -579,7 +590,7 @@ export default function ClusterAnalysisPage() {
         </div>
       </div>
     )
-  }, [results, uploadedData?.data.length, selectedVariables, actions])
+  }, [results, uploadedData, selectedVariables, actions, analysisTimestamp])
 
   // Render 함수들
   const renderMethodIntroduction = useCallback(() => (

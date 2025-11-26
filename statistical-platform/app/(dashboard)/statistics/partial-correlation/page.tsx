@@ -2,7 +2,7 @@
 
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 
-import React, { useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { PartialCorrelationVariables } from '@/types/statistics'
 import type { VariableAssignment } from '@/types/statistics-converters'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -11,6 +11,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -106,6 +107,7 @@ export default function PartialCorrelationPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   const steps = useMemo(() => {
     const baseSteps = [
@@ -193,6 +195,7 @@ export default function PartialCorrelationPage() {
         assumptions: result.assumptions
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(parsedResults, 3)
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
@@ -495,6 +498,14 @@ export default function PartialCorrelationPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="편상관분석"
+          analysisSubtitle="Partial Correlation"
+          fileName={uploadedData?.fileName}
+          variables={[...(selectedVariables?.dependent || []), ...(selectedVariables?.covariate || [])]}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">편상관분석 결과</h2>
           <p className="text-gray-600">편상관계수와 통계적 유의성을 확인하세요</p>
@@ -814,7 +825,7 @@ export default function PartialCorrelationPage() {
         </Tabs>
       </div>
     )
-  }, [isAnalyzing, error, results, selectedVariables, getCorrelationStrength])
+  }, [isAnalyzing, error, results, selectedVariables, getCorrelationStrength, uploadedData, analysisTimestamp])
 
   const breadcrumbs = useMemo(() => [
     { label: '홈', href: '/' },

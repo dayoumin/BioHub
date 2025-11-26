@@ -38,6 +38,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -88,6 +89,7 @@ export default function ReliabilityAnalysisPage() {
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [analysisOptions, setAnalysisOptions] = useState({
     model: 'alpha' as 'alpha' | 'split-half' | 'parallel',
     scaleIfDeleted: true,
@@ -287,6 +289,7 @@ export default function ReliabilityAnalysisPage() {
         }
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (err) {
       console.error('신뢰도 분석 실패:', err)
@@ -502,6 +505,14 @@ export default function ReliabilityAnalysisPage() {
 
     return (
         <div className="space-y-6">
+          <ResultContextHeader
+            analysisType="신뢰도 분석"
+            analysisSubtitle="Reliability Analysis"
+            fileName={uploadedData?.fileName}
+            variables={selectedVariables?.items || []}
+            sampleSize={uploadedData?.data?.length}
+            timestamp={analysisTimestamp ?? undefined}
+          />
           {/* 주요 결과 카드 */}
           <div className="grid md:grid-cols-3 gap-4">
             <Card className="border-2">
@@ -673,7 +684,7 @@ export default function ReliabilityAnalysisPage() {
           </div>
         </div>
     )
-  }, [analysisResult, actions])
+  }, [analysisResult, actions, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

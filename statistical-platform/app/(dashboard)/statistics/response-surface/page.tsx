@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Activity, CheckCircle2, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
+import { Activity, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
 
 // Components
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -23,6 +23,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 
 import type { VariableAssignment } from '@/types/statistics-converters'
 import { useStatisticsPage , type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -262,6 +263,13 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
 
       {result && (
         <div className="space-y-6">
+          <ResultContextHeader
+            analysisType="반응표면 분석"
+            analysisSubtitle="Response Surface Methodology"
+            fileName={uploadedData?.fileName}
+            variables={[]}
+            sampleSize={uploadedData?.data?.length}
+          />
           {/* 주요 결과 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
@@ -494,6 +502,7 @@ export default function ResponseSurfacePage() {
     withError: true
   })
   const { currentStep, uploadedData, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   const [selectedModel, setSelectedModel] = useState('second_order')
   const [includeInteraction, setIncludeInteraction] = useState(true)
@@ -691,7 +700,10 @@ export default function ResponseSurfacePage() {
           actions={{
             setError: actions.setError || null,
             startAnalysis: actions.startAnalysis || null,
-            completeAnalysis: actions.completeAnalysis || null
+            completeAnalysis: (result, step) => {
+              setAnalysisTimestamp(new Date())
+              actions.completeAnalysis?.(result, step)
+            }
           }}
         />
       )}

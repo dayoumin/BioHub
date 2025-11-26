@@ -6,6 +6,7 @@ import type { OrdinalRegressionVariables } from '@/types/statistics'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { Button } from '@/components/ui/button'
@@ -126,6 +127,7 @@ export default function OrdinalRegressionPage() {
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
   // Page-specific state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [selectedDependent, setSelectedDependent] = useState<string>('')
   const [selectedIndependent, setSelectedIndependent] = useState<string[]>([])
   const [pyodideReady, setPyodideReady] = useState(false)
@@ -211,6 +213,7 @@ export default function OrdinalRegressionPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(workerResult, 3)
     } catch (error) {
       console.error('분석 중 오류:', error)
@@ -487,6 +490,14 @@ export default function OrdinalRegressionPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="서열 회귀분석"
+          analysisSubtitle="Ordinal Regression"
+          fileName={uploadedData?.fileName}
+          variables={[selectedDependent, ...selectedIndependent]}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <Card>
           <CardHeader>
             <CardTitle>서열 회귀분석 결과</CardTitle>
@@ -923,7 +934,7 @@ export default function OrdinalRegressionPage() {
         </Card>
       </div>
     )
-  }, [results, isAnalyzing, pyodideReady, runOrdinalRegression])
+  }, [results, isAnalyzing, pyodideReady, runOrdinalRegression, uploadedData, selectedDependent, selectedIndependent, analysisTimestamp])
 
   return (
     <TwoPanelLayout

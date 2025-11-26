@@ -27,6 +27,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -76,6 +77,7 @@ export default function PowerAnalysisPage() {
     initialStep: 0
   })
   const { currentStep, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -143,6 +145,7 @@ export default function PowerAnalysisPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(result, 2)
       actions.setCurrentStep?.(2)
       setActiveTab('summary')
@@ -587,6 +590,13 @@ export default function PowerAnalysisPage() {
 
         {/* 4단계: 결과 확인 */}
         {results && currentStep === 3 && (
+          <>
+          <ResultContextHeader
+            analysisType="검정력 분석"
+            analysisSubtitle="Power Analysis"
+            variables={[config.testType]}
+            timestamp={analysisTimestamp ?? undefined}
+          />
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="summary">요약</TabsTrigger>
@@ -628,6 +638,7 @@ export default function PowerAnalysisPage() {
               {renderEffectSizeGuide()}
             </TabsContent>
           </Tabs>
+          </>
         )}
       </div>
     </TwoPanelLayout>

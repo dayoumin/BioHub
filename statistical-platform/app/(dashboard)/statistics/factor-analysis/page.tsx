@@ -22,6 +22,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 
 // Services & Hooks
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -79,6 +80,7 @@ export default function FactorAnalysisPage() {
   const [rotationMethod, setRotationMethod] = useState<'none' | 'varimax' | 'promax' | 'oblimin'>('varimax')
   const [numFactors, setNumFactors] = useState<number>(0)
   const [autoFactorSelection, setAutoFactorSelection] = useState<boolean>(true)
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
