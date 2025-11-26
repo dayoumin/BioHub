@@ -14,7 +14,7 @@
  * - 모든 통계 페이지 (데이터 확인용)
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { ChevronDown, ChevronUp, Table as TableIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -39,6 +39,18 @@ export interface DataPreviewTableProps {
 
   /** 추가 CSS 클래스 */
   className?: string
+
+  /** 시작 행 번호 (기본: 1) - 행 번호 표시용 */
+  startIndex?: number
+
+  /** 생략된 행 수 (표시용) - 테이블 중간에 생략 행 표시 */
+  omittedRows?: number
+
+  /** 생략 행을 삽입할 위치 (0-indexed). omittedRows와 함께 사용 */
+  omitAfterIndex?: number
+
+  /** 각 행의 실제 행 번호 배열 (순서대로). 미지정 시 startIndex부터 순차 증가 */
+  rowIndices?: number[]
 }
 
 export function DataPreviewTable({
@@ -47,7 +59,11 @@ export function DataPreviewTable({
   defaultOpen = false,
   title = '데이터 미리보기',
   height = '400px',
-  className
+  className,
+  startIndex = 1,
+  omittedRows,
+  omitAfterIndex,
+  rowIndices
 }: DataPreviewTableProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
@@ -134,40 +150,62 @@ export function DataPreviewTable({
                 </tr>
               </thead>
               <tbody>
-                {displayData.map((row, rowIndex) => (
-                  <tr
-                    key={rowIndex}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
-                    {/* 행 번호 */}
-                    <td className="px-3 py-2 text-muted-foreground border-b font-mono text-xs">
-                      {rowIndex + 1}
-                    </td>
-                    {/* 데이터 셀 */}
-                    {columns.map((col) => {
-                      const value = row[col]
-                      const displayValue =
-                        value === null || value === undefined || value === ''
-                          ? '—'
-                          : String(value)
+                {displayData.map((row, rowIndex) => {
+                  // 생략 행 삽입 위치 결정: omitAfterIndex가 지정되면 해당 위치, 아니면 중간 지점
+                  const omitPosition = omitAfterIndex !== undefined ? omitAfterIndex : Math.floor(displayData.length / 2) - 1
+                  const isOmitPoint = omittedRows && omittedRows > 0 && rowIndex === omitPosition + 1
 
-                      const isNumber = typeof value === 'number' || (!isNaN(Number(value)) && value !== '')
+                  // 행 번호: rowIndices가 있으면 해당 값 사용, 없으면 startIndex + rowIndex
+                  const displayRowNumber = rowIndices?.[rowIndex] ?? (startIndex + rowIndex)
 
-                      return (
-                        <td
-                          key={col}
-                          className={cn(
-                            'px-3 py-2 border-b',
-                            isNumber && 'text-right font-mono',
-                            (value === null || value === undefined || value === '') && 'text-muted-foreground'
-                          )}
-                        >
-                          {displayValue}
+                  return (
+                    <Fragment key={rowIndex}>
+                      {isOmitPoint && (
+                        <tr className="bg-muted/20">
+                          <td
+                            colSpan={columns.length + 1}
+                            className="px-3 py-2 text-center text-muted-foreground border-b text-sm"
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              <span className="text-xs">...</span>
+                              <span>{omittedRows}행 생략</span>
+                              <span className="text-xs">...</span>
+                            </span>
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="hover:bg-muted/30 transition-colors">
+                        {/* 행 번호 */}
+                        <td className="px-3 py-2 text-muted-foreground border-b font-mono text-xs">
+                          {displayRowNumber}
                         </td>
-                      )
-                    })}
-                  </tr>
-                ))}
+                        {/* 데이터 셀 */}
+                        {columns.map((col) => {
+                          const value = row[col]
+                          const displayValue =
+                            value === null || value === undefined || value === ''
+                              ? '—'
+                              : String(value)
+
+                          const isNumber = typeof value === 'number' || (!isNaN(Number(value)) && value !== '')
+
+                          return (
+                            <td
+                              key={col}
+                              className={cn(
+                                'px-3 py-2 border-b',
+                                isNumber && 'text-right font-mono',
+                                (value === null || value === undefined || value === '') && 'text-muted-foreground'
+                              )}
+                            >
+                              {displayValue}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    </Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>

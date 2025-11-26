@@ -25,7 +25,8 @@
       "Bash(awk:*)",
       "Bash(mv:*)",
       "Bash(git restore:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

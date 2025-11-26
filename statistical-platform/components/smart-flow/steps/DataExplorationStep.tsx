@@ -106,6 +106,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const [assumptionResults, setLocalAssumptionResults] = useState<StatisticalAssumptions | null>(null)
   const assumptionRunId = useRef(0)
 
+  // 차트 타입 상태 (변수 전환 시에도 유지)
+  const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram')
+  // 박스플롯 다중 변수 선택 상태
+  const [selectedBoxplotVars, setSelectedBoxplotVars] = useState<string[]>([])
+  // 히스토그램용 단일 변수 선택
+  const [selectedHistogramVar, setSelectedHistogramVar] = useState<string>('')
+
   // 수치형/범주형 변수 목록
   // ID로 감지된 컬럼은 시각화/분석에서 제외
   const numericVariables = useMemo(() => {
@@ -128,6 +135,69 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     if (!validationResults?.columnStats) return []
     return validationResults.columnStats.filter(col => col.type === 'numeric' && !col.idDetection?.isId)
   }, [validationResults])
+
+  // 초기 변수 설정 (numericVariables 선언 이후)
+  useEffect(() => {
+    if (numericVariables.length > 0 && selectedHistogramVar === '') {
+      setSelectedHistogramVar(numericVariables[0])
+    }
+    if (numericVariables.length > 0 && selectedBoxplotVars.length === 0) {
+      setSelectedBoxplotVars(numericVariables.slice(0, Math.min(3, numericVariables.length)))
+    }
+  }, [numericVariables, selectedHistogramVar, selectedBoxplotVars.length])
+
+  // 박스플롯 변수 토글
+  const toggleBoxplotVar = useCallback((varName: string) => {
+    setSelectedBoxplotVars(prev => {
+      if (prev.includes(varName)) {
+        if (prev.length <= 1) return prev
+        return prev.filter(v => v !== varName)
+      } else {
+        if (prev.length >= 8) return prev
+        return [...prev, varName]
+      }
+    })
+  }, [])
+
+  // 박스플롯 다중 변수 데이터 계산
+  const boxplotMultiData = useMemo(() => {
+    return selectedBoxplotVars.map(varName => {
+      const colData = data
+        .map(row => row[varName])
+        .filter(v => v !== null && v !== undefined && v !== '')
+        .map(Number)
+        .filter(v => !isNaN(v))
+
+      if (colData.length === 0) return null
+
+      const sortedData = [...colData].sort((a, b) => a - b)
+      const q1Index = Math.floor(sortedData.length * 0.25)
+      const q3Index = Math.floor(sortedData.length * 0.75)
+      const medianIndex = Math.floor(sortedData.length * 0.5)
+      const q1 = sortedData[q1Index] || 0
+      const q3 = sortedData[q3Index] || 0
+      const median = sortedData[medianIndex] || 0
+      const iqr = q3 - q1
+      const mean = colData.reduce((a, b) => a + b, 0) / colData.length
+      const std = Math.sqrt(colData.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / colData.length)
+
+      const lowerBound = q1 - 1.5 * iqr
+      const upperBound = q3 + 1.5 * iqr
+      const outliers = colData.filter(v => v < lowerBound || v > upperBound)
+
+      return {
+        name: varName,
+        min: Math.min(...colData),
+        q1,
+        median,
+        q3,
+        max: Math.max(...colData),
+        mean,
+        std,
+        outliers
+      }
+    }).filter(Boolean)
+  }, [data, selectedBoxplotVars])
 
   const getNumericValues = useCallback((columnName: string): number[] => {
     return data
@@ -384,7 +454,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const updateXVariable = useCallback((id: string, newX: string) => {
     setScatterplots(prev => prev.map(s => {
       if (s.id !== id) return s
-      // X=Y 방지: X가 현재 Y와 같으면 Y를 다른 변수로 변경
+      // X=Y ��지: X가 현재 Y와 같으면 Y를 다른 변수로 변경
       const needNewY = s.yVariable === newX
       const newY = needNewY
         ? numericVariables.find(v => v !== newX) || s.yVariable
@@ -503,9 +573,20 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           categoricalVars={categoricalVariables.length}
           missingValues={validationResults.missingValues}
           totalCells={data.length * validationResults.columnCount}
-          recommendedType={data.length >= 30 ? 'parametric' : 'nonparametric'}
-          title="데이터 준비 완료"
-          className="border-success-border bg-success-bg"
+          recommendedType={
+            assumptionResults?.normality?.shapiroWilk?.isNormal === false
+              ? 'nonparametric'
+              : data.length >= 30
+                ? 'parametric'
+                : 'nonparametric'
+          }
+          status="warning"
+          warnings={['수치형 변수가 2개 미만입니다. 상관분석이 제한됩니다.']}
+          assumptionSummary={{
+            normality: assumptionResults?.normality?.shapiroWilk?.isNormal ?? null,
+            homogeneity: assumptionResults?.homogeneity?.levene?.equalVariance ?? null,
+            isLoading: isAssumptionLoading
+          }}
         />
 
         <Card>
@@ -565,9 +646,27 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           categoricalVars={categoricalVariables.length}
           missingValues={validationResults.missingValues}
           totalCells={data.length * validationResults.columnCount}
-          recommendedType={data.length >= 30 ? 'parametric' : 'nonparametric'}
-          title="데이터 준비 완료"
-          className="border-success-border bg-success-bg"
+          recommendedType={
+            assumptionResults?.normality?.shapiroWilk?.isNormal === false
+              ? 'nonparametric'
+              : data.length >= 30
+                ? 'parametric'
+                : 'nonparametric'
+          }
+          status={
+            !validationResults.isValid
+              ? 'error'
+              : (validationResults.warnings?.length || 0) > 0
+                ? 'warning'
+                : 'success'
+          }
+          errors={validationResults.errors}
+          warnings={validationResults.warnings}
+          assumptionSummary={{
+            normality: assumptionResults?.normality?.shapiroWilk?.isNormal ?? null,
+            homogeneity: assumptionResults?.homogeneity?.levene?.equalVariance ?? null,
+            isLoading: isAssumptionLoading
+          }}
         />
       )}
 
@@ -753,43 +852,40 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               </div>
             </TabsContent>
 
-            {/* 데이터 미리보기 탭 (상위 5개 + 하위 5개) */}
+            {/* 데이터 미리보기 탭 (상위 5개 + 생략 + 하위 5개를 하나의 테이블로) */}
             <TabsContent value="preview" className="mt-0">
               <div className="space-y-4">
-                {/* 상위 5개 */}
-                <div>
-                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">▲ 상위 5행</h4>
-                  <DataPreviewTable
-                    data={data.slice(0, 5)}
-                    maxRows={5}
-                    defaultOpen={true}
-                    title=""
-                    height="auto"
-                  />
-                </div>
+                {/* 상위 5행 + 하위 5행을 하나의 테이블로 표시 */}
+                {(() => {
+                  const topRows = data.slice(0, 5)
+                  const bottomRows = data.length > 10 ? data.slice(-5) : []
+                  const omittedCount = data.length > 10 ? data.length - 10 : 0
 
-                {/* 중간 생략 표시 */}
-                {data.length > 10 && (
-                  <div className="flex items-center justify-center py-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <div className="h-px w-12 bg-border" />
-                      <span>... {data.length - 10}행 생략 ...</span>
-                      <div className="h-px w-12 bg-border" />
-                    </div>
-                  </div>
-                )}
+                  // 상위 5행 + 하위 5행 합치기
+                  const combinedData = omittedCount > 0
+                    ? [...topRows, ...bottomRows]
+                    : topRows
 
-                {/* 하위 5개 */}
-                <div>
-                  <h4 className="text-sm font-medium mb-2 text-muted-foreground">▼ 하위 5행</h4>
-                  <DataPreviewTable
-                    data={data.slice(-5)}
-                    maxRows={5}
-                    defaultOpen={true}
-                    title=""
-                    height="auto"
-                  />
-                </div>
+                  // 행 번호 배열 생성: 상위 5행은 1-5, 하위 5행은 실제 행 번호
+                  const indices = omittedCount > 0
+                    ? [...Array(5).keys()].map(i => i + 1).concat(
+                        [...Array(5).keys()].map(i => data.length - 4 + i)
+                      )
+                    : [...Array(topRows.length).keys()].map(i => i + 1)
+
+                  return (
+                    <DataPreviewTable
+                      data={combinedData}
+                      maxRows={10}
+                      defaultOpen={true}
+                      title=""
+                      height="auto"
+                      omittedRows={omittedCount}
+                      omitAfterIndex={4}
+                      rowIndices={indices}
+                    />
+                  )
+                })()}
 
                 {/* 전체 보기 안내 */}
                 <div className="text-center text-sm text-muted-foreground py-2">
@@ -897,89 +993,117 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             수치형 변수들의 분포를 히스토그램 또는 박스플롯으로 확인합니다
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          {/* 변수 선택 탭 */}
-          <Tabs defaultValue={numericVariables[0]} className="w-full">
-            <TabsList className="flex flex-wrap gap-1 h-auto mb-4">
-              {numericVariables.slice(0, 8).map(varName => (
-                <TabsTrigger key={varName} value={varName} className="text-xs">
-                  {varName}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {numericVariables.slice(0, 8).map(varName => {
-              const colData = data
-                .map(row => row[varName])
-                .filter(v => v !== null && v !== undefined && v !== '')
-                .map(Number)
-                .filter(v => !isNaN(v))
+        <CardContent className="space-y-4">
+          {/* 차트 타입 선택 (외부 상태로 관리) */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant={chartType === 'histogram' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setChartType('histogram')}
+              className="text-xs"
+            >
+              <BarChart3 className="h-3 w-3 mr-1" />
+              히스토그램
+            </Button>
+            <Button
+              variant={chartType === 'boxplot' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setChartType('boxplot')}
+              className="text-xs"
+            >
+              <ListOrdered className="h-3 w-3 mr-1" />
+              박스플롯
+            </Button>
+          </div>
 
-              if (colData.length === 0) return null
+          {/* 히스토그램 모드: 단일 변수 선택 */}
+          {chartType === 'histogram' && (
+            <>
+              <div className="flex flex-wrap gap-1">
+                {numericVariables.slice(0, 8).map(varName => (
+                  <Button
+                    key={varName}
+                    variant={selectedHistogramVar === varName ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedHistogramVar(varName)}
+                    className="text-xs"
+                  >
+                    {varName}
+                  </Button>
+                ))}
+              </div>
+              {selectedHistogramVar && (() => {
+                const colData = data
+                  .map(row => row[selectedHistogramVar])
+                  .filter(v => v !== null && v !== undefined && v !== '')
+                  .map(Number)
+                  .filter(v => !isNaN(v))
 
-              const sortedData = [...colData].sort((a, b) => a - b)
-              const q1Index = Math.floor(sortedData.length * 0.25)
-              const q3Index = Math.floor(sortedData.length * 0.75)
-              const medianIndex = Math.floor(sortedData.length * 0.5)
-              const q1 = sortedData[q1Index] || 0
-              const q3 = sortedData[q3Index] || 0
-              const median = sortedData[medianIndex] || 0
-              const iqr = q3 - q1
-              const mean = colData.reduce((a, b) => a + b, 0) / colData.length
-              const std = Math.sqrt(colData.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / colData.length)
+                if (colData.length === 0) return null
 
-              const lowerBound = q1 - 1.5 * iqr
-              const upperBound = q3 + 1.5 * iqr
-              const outliers = colData.filter(v => v < lowerBound || v > upperBound)
+                const sortedData = [...colData].sort((a, b) => a - b)
+                const q1Index = Math.floor(sortedData.length * 0.25)
+                const q3Index = Math.floor(sortedData.length * 0.75)
+                const q1 = sortedData[q1Index] || 0
+                const q3 = sortedData[q3Index] || 0
+                const iqr = q3 - q1
+                const lowerBound = q1 - 1.5 * iqr
+                const upperBound = q3 + 1.5 * iqr
+                const outliers = colData.filter(v => v < lowerBound || v > upperBound)
 
-              return (
-                <TabsContent key={varName} value={varName} className="space-y-4 mt-0">
-                  {/* 차트 타입 선택 탭 */}
-                  <Tabs defaultValue="histogram" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 max-w-xs">
-                      <TabsTrigger value="histogram" className="text-xs">
-                        <BarChart3 className="h-3 w-3 mr-1" />
-                        히스토그램
-                      </TabsTrigger>
-                      <TabsTrigger value="boxplot" className="text-xs">
-                        <ListOrdered className="h-3 w-3 mr-1" />
-                        박스플롯
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="histogram" className="mt-4">
-                      <Histogram
-                        data={colData}
-                        title={`${varName} 분포`}
-                        xAxisLabel={varName}
-                        yAxisLabel="빈도"
-                        bins={10}
-                      />
-                    </TabsContent>
-                    <TabsContent value="boxplot" className="mt-4">
-                      <BoxPlot
-                        data={[{
-                          name: varName,
-                          min: Math.min(...colData),
-                          q1, median, q3,
-                          max: Math.max(...colData),
-                          mean, std,
-                          outliers
-                        }]}
-                        title={`${varName} 박스플롯`}
-                        showMean={true}
-                        showOutliers={true}
-                        height={300}
-                      />
-                    </TabsContent>
-                  </Tabs>
-                  {outliers.length > 0 && (
-                    <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
-                      <span className="font-medium">⚠️ 이상치:</span> {outliers.length}개 발견 (범위: &lt;{lowerBound.toFixed(2)} 또는 &gt;{upperBound.toFixed(2)})
-                    </div>
-                  )}
-                </TabsContent>
-              )
-            })}
-          </Tabs>
+                return (
+                  <div className="space-y-4">
+                    <Histogram
+                      data={colData}
+                      title={`${selectedHistogramVar} 분포`}
+                      xAxisLabel={selectedHistogramVar}
+                      yAxisLabel="빈도"
+                      bins={10}
+                    />
+                    {outliers.length > 0 && (
+                      <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
+                        <span className="font-medium">이상치:</span> {outliers.length}개 발견 (범위: &lt;{lowerBound.toFixed(2)} 또는 &gt;{upperBound.toFixed(2)})
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </>
+          )}
+
+          {/* 박스플롯 모드: 다중 변수 선택 */}
+          {chartType === 'boxplot' && (
+            <>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">변수를 클릭하여 비교할 변수를 선택하세요 (최대 8개)</p>
+                <div className="flex flex-wrap gap-1">
+                  {numericVariables.slice(0, 8).map(varName => (
+                    <Button
+                      key={varName}
+                      variant={selectedBoxplotVars.includes(varName) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleBoxplotVar(varName)}
+                      className="text-xs"
+                    >
+                      {selectedBoxplotVars.includes(varName) && <span className="mr-1">✓</span>}
+                      {varName}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {boxplotMultiData.length > 0 && (
+                <BoxPlot
+                  data={boxplotMultiData as Array<{name: string; min: number; q1: number; median: number; q3: number; max: number; mean: number; std: number; outliers: number[]}>}
+                  title={selectedBoxplotVars.length === 1
+                    ? `${selectedBoxplotVars[0]} 박스플롯`
+                    : `변수 분포 비교 (${selectedBoxplotVars.length}개)`}
+                  showMean={true}
+                  showOutliers={true}
+                  height={350}
+                />
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 

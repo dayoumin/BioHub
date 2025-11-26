@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, ArrowRight, AlertTriangle, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Accordion,
@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
@@ -23,6 +24,8 @@ import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 import { ollamaRecommender } from '@/lib/services/ollama-recommender'
+import { ConfidenceGauge } from '@/components/smart-flow/visualization/ConfidenceGauge'
+import { AssumptionResultChart } from '@/components/smart-flow/visualization/AssumptionResultChart'
 
 /**
  * Phase 4-B: PurposeInputStep 하이브리드 추천 시스템
@@ -93,11 +96,12 @@ export function PurposeInputStep({
   // WCAG 2.3.3: prefers-reduced-motion 감지
   const prefersReducedMotion = useReducedMotion()
 
-  // Zustand store - assumptionResults 및 setSelectedMethod 사용
+  // Zustand store - assumptionResults, setSelectedMethod, setDetectedVariables 사용
   const assumptionResults = useSmartFlowStore(state => state.assumptionResults)
   const setSelectedMethod = useSmartFlowStore(state => state.setSelectedMethod)
+  const setDetectedVariables = useSmartFlowStore(state => state.setDetectedVariables)
 
-  
+
 
   // 변수 목록 계산
   const numericColumns = useMemo((): ColumnStatistics[] => {
@@ -161,7 +165,7 @@ export function PurposeInputStep({
     }
   }, [isVariableSelectionComplete, selectedPurpose, isAnalyzing, recommendation])
 
-    // Phase 4-B: 하이브리드 AI 추천 (Ollama → DecisionTree 폴백)
+  // Phase 4-B: 하이브리드 AI 추천 (Ollama → DecisionTree 폴백)
   const analyzeAndRecommend = useCallback(async (purpose: AnalysisPurpose): Promise<AIRecommendation | null> => {
     try {
       setIsAnalyzing(true)
@@ -274,6 +278,26 @@ export function PurposeInputStep({
     }
   }, [analyzeAndRecommend])
 
+  // 대안 방법 선택 핸들러
+  const handleSelectAlternative = useCallback((alternativeId: string, alternativeName: string) => {
+    if (!recommendation || isNavigating || isAnalyzing) return
+
+    logger.info('Alternative method selected', { alternativeId, alternativeName })
+
+    // 대안 방법을 메인 추천으로 업데이트
+    const updatedRecommendation: AIRecommendation = {
+      ...recommendation,
+      method: {
+        ...recommendation.method,
+        id: alternativeId,
+        name: alternativeName
+      }
+    }
+
+    setRecommendation(updatedRecommendation)
+    setSelectedMethod(updatedRecommendation.method)
+  }, [recommendation, isNavigating, isAnalyzing, setSelectedMethod])
+
   // "이 방법으로 분석하기" 버튼 (중복 클릭 방지 + 에러 복구)
   const handleConfirmMethod = useCallback(() => {
     if (!recommendation || !selectedPurpose || isNavigating || isAnalyzing) return
@@ -283,6 +307,65 @@ export function PurposeInputStep({
     try {
       // Step 4로 넘어가기 전 스토어에 저장
       setSelectedMethod(recommendation.method)
+
+      // ✅ AI가 감지한 변수 정보를 Store에 저장 (Step 3 초기값으로 사용)
+      // recommendation.detectedVariables + validationResults에서 추출
+      const detected = recommendation.detectedVariables
+      const methodId = recommendation.method.id
+
+      // validationResults에서 변수 목록 추출
+      const numericCols = validationResults?.columns
+        ?.filter((col: ColumnStatistics) => col.type === 'numeric')
+        ?.map((col: ColumnStatistics) => col.name) || []
+      const categoricalCols = validationResults?.columns
+        ?.filter((col: ColumnStatistics) => col.type === 'categorical')
+        ?.map((col: ColumnStatistics) => col.name) || []
+
+      // 방법에 따라 적절한 detectedVariables 구성
+      const detectedVars: {
+        groupVariable?: string
+        dependentCandidate?: string
+        numericVars?: string[]
+        factors?: string[]
+        pairedVars?: [string, string]
+      } = {}
+
+      // Group variable (from AI or first categorical)
+      if (detected?.groupVariable?.name) {
+        detectedVars.groupVariable = detected.groupVariable.name
+      } else if (categoricalCols.length > 0) {
+        detectedVars.groupVariable = categoricalCols[0]
+      }
+
+      // Dependent candidate (from AI or first numeric)
+      if (detected?.dependentVariables?.[0]) {
+        detectedVars.dependentCandidate = detected.dependentVariables[0]
+      } else if (numericCols.length > 0) {
+        detectedVars.dependentCandidate = numericCols[0]
+      }
+
+      // Method-specific detection
+      if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
+        // Two-way ANOVA: need 2 factors
+        detectedVars.factors = categoricalCols.slice(0, 2)
+      } else if (methodId === 'paired-t-test' || methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
+        // Paired tests: need 2 numeric variables
+        if (numericCols.length >= 2) {
+          detectedVars.pairedVars = [numericCols[0], numericCols[1]]
+        }
+      } else if (methodId === 'pearson-correlation' || methodId === 'spearman-correlation' || methodId === 'correlation') {
+        // Correlation: all numeric variables
+        detectedVars.numericVars = numericCols
+      } else {
+        // Default: pass numeric vars
+        detectedVars.numericVars = numericCols
+      }
+
+      setDetectedVariables(detectedVars)
+      logger.info('Detected variables saved to store', {
+        methodId,
+        detectedVars
+      })
 
       // 부모 콜백 호출 (onPurposeSubmit 내부에서 goToNextStep() 호출됨)
       if (onPurposeSubmit) {
@@ -304,7 +387,7 @@ export function PurposeInputStep({
       logger.error('Navigation failed', { error })
       setIsNavigating(false)
     }
-  }, [recommendation, selectedPurpose, isNavigating, isAnalyzing, setSelectedMethod, onPurposeSubmit])
+  }, [recommendation, selectedPurpose, isNavigating, isAnalyzing, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
 
   // ✅ Cleanup: 컴포넌트 언마운트 시 상태 리셋 (추가 안전장치)
   useEffect(() => {
@@ -317,7 +400,7 @@ export function PurposeInputStep({
 
   return (
     <div className="w-full h-full flex flex-col space-y-6">
-      
+
 
       {/* 분석 목적 선택 (Decision Tree) */}
       <div>
@@ -382,18 +465,19 @@ export function PurposeInputStep({
               { emoji: '2️⃣', text: '자동 분석 실행 + 가정 검정' },
               { emoji: '3️⃣', text: '결과 확인 및 해석' }
             ]}
-            
+
             animationDelay={500}
             data-testid="step3-guidance-card"
           />
 
           <Card className={`border-2 border-primary bg-primary/5 ${prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4 duration-700'}`}>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Check className="w-5 h-5 text-primary" />
-                    추천: {recommendation.method.name}
+              <div className="flex items-start justify-between gap-4">
+                {/* Left: Method info */}
+                <div className="flex-1">
+                  <CardTitle className="flex items-center gap-2 flex-wrap">
+                    <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                    <span>추천: {recommendation.method.name}</span>
                     {/* 출처 배지: Ollama 사용 여부 표시 */}
                     {recommendation.confidence >= 0.95 ? (
                       <Badge variant="default" className="text-xs">LLM</Badge>
@@ -401,108 +485,143 @@ export function PurposeInputStep({
                       <Badge variant="secondary" className="text-xs">Rule-based</Badge>
                     )}
                   </CardTitle>
-                  <CardDescription>
-                    신뢰도: {(recommendation.confidence * 100).toFixed(0)}%
+                  <CardDescription className="mt-2">
+                    데이터 분석 결과를 바탕으로 최적의 통계 방법을 선택했습니다
                   </CardDescription>
                 </div>
+
+                {/* Right: Confidence Gauge */}
+                <ConfidenceGauge
+                  value={recommendation.confidence * 100}
+                  size="md"
+                />
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-            {/* 추천 이유 */}
-            <div>
-              <h4 className="font-medium mb-2">추천 이유:</h4>
-              <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                {recommendation.reasoning.map((reason, idx) => (
-                  <li
-                    key={idx}
-                    className={prefersReducedMotion ? '' : 'animate-slide-in'}
-                    style={prefersReducedMotion ? undefined : {
-                      animationDelay: `${idx * 150}ms`,
-                      animationFillMode: 'backwards'
-                    }}
-                  >
-                    {reason}
-                  </li>
-                ))}
-              </ul>
-            </div>
+              {/* 추천 이유 */}
+              <div>
+                <h4 className="font-medium mb-2">추천 이유:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                  {recommendation.reasoning.map((reason, idx) => (
+                    <li
+                      key={idx}
+                      className={prefersReducedMotion ? '' : 'animate-slide-in'}
+                      style={prefersReducedMotion ? undefined : {
+                        animationDelay: `${idx * 150}ms`,
+                        animationFillMode: 'backwards'
+                      }}
+                    >
+                      {reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-            {/* Accordion으로 상세 정보 */}
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="assumptions">
-                <AccordionTrigger>통계적 가정 검정 결과</AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-2">
-                    {recommendation.assumptions.map((assumption, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2 bg-background rounded">
-                        <span className="text-sm">{assumption.name}</span>
-                        <div className="flex items-center gap-2">
-                          {assumption.pValue && (
-                            <span className="text-xs text-muted-foreground">
-                              p = {assumption.pValue.toFixed(3)}
-                            </span>
-                          )}
-                          {assumption.passed ? (
-                            <Check className="w-4 h-4 text-success" />
-                          ) : (
-                            <span className="text-xs text-destructive">불충족</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {recommendation.alternatives && recommendation.alternatives.length > 0 && (
-                <AccordionItem value="alternatives">
-                  <AccordionTrigger>대안 방법</AccordionTrigger>
+              {/* Accordion으로 상세 정보 */}
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="assumptions">
+                  <AccordionTrigger>통계적 가정 검정 결과</AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-2">
-                      {recommendation.alternatives.map((alt, idx) => (
-                        <div key={idx} className="p-3 bg-background rounded border">
-                          <h5 className="font-medium text-sm">{alt.name}</h5>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {alt.description}
-                          </p>
-                        </div>
-                      ))}
+                    <AssumptionResultChart assumptions={recommendation.assumptions} />
+                  </AccordionContent>
+                </AccordionItem>
+
+                {recommendation.alternatives && recommendation.alternatives.length > 0 && (
+                  <AccordionItem value="alternatives">
+                    <AccordionTrigger>
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>다른 방법도 검토해보세요</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {recommendation.alternatives.map((alt, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleSelectAlternative(alt.id, alt.name)}
+                            disabled={isNavigating || isAnalyzing}
+                            className={cn(
+                              "p-4 border-2 rounded-lg text-left transition-all",
+                              "hover:border-primary hover:shadow-lg hover:scale-[1.02]",
+                              "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                              "disabled:opacity-50 disabled:cursor-not-allowed",
+                              "group relative overflow-hidden"
+                            )}
+                            aria-label={`${alt.name} 방법 선택`}
+                          >
+                            {/* Hover gradient effect */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                            <div className="relative z-10">
+                              <div className="flex justify-between items-start mb-2">
+                                <h5 className="font-semibold text-sm">{alt.name}</h5>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-3">
+                                {alt.description}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-primary">
+                                <span>이 방법 사용하기</span>
+                                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+
+                <AccordionItem value="method-details">
+                  <AccordionTrigger>방법 상세 정보</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>설명:</strong> {recommendation.method.description}</p>
+                      {recommendation.method.requirements && (
+                        <>
+                          {recommendation.method.requirements.minSampleSize && (
+                            <p>
+                              <strong>최소 표본 크기:</strong>{' '}
+                              {recommendation.method.requirements.minSampleSize}
+                            </p>
+                          )}
+                          {recommendation.method.requirements.assumptions && (
+                            <div>
+                              <strong>요구사항:</strong>
+                              <ul className="list-disc list-inside ml-4 mt-1">
+                                {recommendation.method.requirements.assumptions.map((assumption, idx) => (
+                                  <li key={idx}>{assumption}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
-              )}
+              </Accordion>
+            </CardContent>
+          </Card>
 
-              <AccordionItem value="method-details">
-                <AccordionTrigger>방법 상세 정보</AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-2 text-sm">
-                    <p><strong>설명:</strong> {recommendation.method.description}</p>
-                    {recommendation.method.requirements && (
-                      <>
-                        {recommendation.method.requirements.minSampleSize && (
-                          <p>
-                            <strong>최소 표본 크기:</strong>{' '}
-                            {recommendation.method.requirements.minSampleSize}
-                          </p>
-                        )}
-                        {recommendation.method.requirements.assumptions && (
-                          <div>
-                            <strong>요구사항:</strong>
-                            <ul className="list-disc list-inside ml-4 mt-1">
-                              {recommendation.method.requirements.assumptions.map((assumption, idx) => (
-                                <li key={idx}>{assumption}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </CardContent>
-        </Card>
+          {/* Primary Action Button */}
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handleConfirmMethod}
+              disabled={isNavigating || isAnalyzing}
+              className={cn(
+                "flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-base",
+                "bg-primary text-primary-foreground",
+                "hover:bg-primary/90 hover:shadow-lg hover:scale-105",
+                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100",
+                "transition-all duration-200",
+                "shadow-md"
+              )}
+            >
+              <span>{recommendation.method.name}(으)로 분석하기</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
         </>
       )}
 

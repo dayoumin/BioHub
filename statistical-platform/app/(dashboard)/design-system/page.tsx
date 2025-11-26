@@ -35,6 +35,7 @@ import {
 import { PurposeCardDemo } from './components/PurposeCardDemo'
 import { AIProgressDemo } from './components/AIProgressDemo'
 import { DataPreviewDemo } from './components/DataPreviewDemo'
+import { DataProfileSummaryDemo } from './components/DataProfileSummaryDemo'
 import { GuidanceCardDemo } from './components/GuidanceCardDemo'
 import { VariableSelectorDemo } from './components/VariableSelectorDemo'
 import { VisualizationDemo } from './components/VisualizationDemo'
@@ -710,6 +711,10 @@ animation: {
 
               {selectedComponent === 'data-preview' && (
                 <DataPreviewDemo />
+              )}
+
+              {selectedComponent === 'data-profile' && (
+                <DataProfileSummaryDemo />
               )}
 
               {selectedComponent === 'guidance-card' && (

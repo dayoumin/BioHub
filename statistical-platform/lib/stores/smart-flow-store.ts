@@ -22,6 +22,23 @@ import { transformExecutorResult } from '@/lib/utils/result-transformer'
 import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
 
 /**
+ * AI가 Step 2에서 감지한 변수 정보
+ * Step 3 변수 선택의 초기값으로 사용
+ */
+export interface DetectedVariables {
+  /** Factor variables for ANOVA (e.g., ['gender', 'treatment']) */
+  factors?: string[]
+  /** Group variable for t-test/one-way ANOVA */
+  groupVariable?: string
+  /** Suggested dependent variable */
+  dependentCandidate?: string
+  /** Numeric variables for correlation */
+  numericVars?: string[]
+  /** Paired variables for paired tests */
+  pairedVars?: [string, string]
+}
+
+/**
  * 스토어(Store)란?
  * - 전역 상태 저장소입니다. 이 프로젝트는 Zustand를 사용해 화면(컴포넌트) 전반에서 공유되는 상태를 한 곳에서 관리합니다.
  * - 목적: 단계(currentStep), 업로드 데이터(uploadedData), 검증 결과(validationResults), 선택한 방법(selectedMethod) 등
@@ -74,6 +91,9 @@ interface SmartFlowState {
   selectedMethod: StatisticalMethod | null
   variableMapping: VariableMapping | null
 
+  // AI 감지 변수 (Step 2 -> Step 3 전달용)
+  detectedVariables: DetectedVariables | null
+
   // 분석 결과
   results: AnalysisResult | null
 
@@ -97,6 +117,7 @@ interface SmartFlowState {
   setAnalysisPurpose: (purpose: string) => void
   setSelectedMethod: (method: StatisticalMethod | null) => void
   setVariableMapping: (mapping: VariableMapping | null) => void
+  setDetectedVariables: (vars: DetectedVariables | null) => void
   setresults: (results: AnalysisResult | null) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
@@ -132,6 +153,7 @@ const initialState = {
   analysisPurpose: '',
   selectedMethod: null,
   variableMapping: null,
+  detectedVariables: null,
   results: null,
   analysisHistory: [],
   currentHistoryId: null,
@@ -160,6 +182,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setAnalysisPurpose: (purpose) => set({ analysisPurpose: purpose }),
       setSelectedMethod: (method) => set({ selectedMethod: method }),
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),
+      setDetectedVariables: (vars) => set({ detectedVariables: vars }),
       setresults: (results) => set({ results: results }),
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error: error }),
@@ -473,6 +496,7 @@ export const useSmartFlowStore = create<SmartFlowState>()(
         validationResults: state.validationResults,
         selectedMethod: state.selectedMethod,
         variableMapping: state.variableMapping,
+        detectedVariables: state.detectedVariables,
         results: state.results,
         uploadedFileName: state.uploadedFileName,
         // ❌ analysisHistory 제외 (IndexedDB에서 관리)
