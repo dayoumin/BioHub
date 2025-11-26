@@ -200,11 +200,10 @@ function getInterpretationByPurpose(
     return {
       title: '예측 모델 결과',
       summary: `독립변수가 1단위 증가할 때 종속변수는 ${coef.toFixed(3)}만큼 변합니다.`,
-      statistical: `모델 설명력(R²) = ${formatPercent(rSquared)} - ${
-        clampedR2 >= THRESHOLDS.R_SQUARED.HIGH ? '높은 설명력' :
+      statistical: `모델 설명력(R²) = ${formatPercent(rSquared)} - ${clampedR2 >= THRESHOLDS.R_SQUARED.HIGH ? '높은 설명력' :
         clampedR2 >= THRESHOLDS.R_SQUARED.LOW ? '중간 설명력' :
-        '낮은 설명력'
-      }`,
+          '낮은 설명력'
+        }`,
       practical: `이 모델로 종속변수 변동의 ${formatPercent(rSquared)}를 예측할 수 있습니다.`
     }
   }
@@ -227,9 +226,9 @@ function getInterpretationByMethod(
   // Two-way ANOVA (이원분산분석)
   // 정규화 후: 'twowayanova', '2wayanova', '이원분산분석', '2원분산분석' 모두 매칭
   if (methodLower.includes('twoway') ||
-      methodLower.includes('2way') ||
-      methodLower.includes('이원분산분석') ||
-      methodLower.includes('2원분산분석')) {
+    methodLower.includes('2way') ||
+    methodLower.includes('이원분산분석') ||
+    methodLower.includes('2원분산분석')) {
     return {
       title: '이원분산분석 결과',
       summary: `두 독립변수(요인)가 종속변수에 미치는 주효과와 상호작용 효과를 검정했습니다.`,
@@ -245,8 +244,8 @@ function getInterpretationByMethod(
   // Repeated Measures ANOVA (반복측정 분산분석)
   // 정규화 후: 'repeatedmeasures', '반복측정', 'within' 모두 매칭
   if (methodLower.includes('repeatedmeasures') ||
-      methodLower.includes('반복측정') ||
-      methodLower.includes('within')) {
+    methodLower.includes('반복측정') ||
+    methodLower.includes('within')) {
     return {
       title: '반복측정 분산분석 결과',
       summary: `동일 개체에서 3회 이상 측정한 값의 평균 차이를 검정했습니다.`,
@@ -262,8 +261,8 @@ function getInterpretationByMethod(
   // ANCOVA (공분산분석)
   // 정규화 후: 'ancova', '공분산분석', 'analysisofcovariance' 모두 매칭
   if (methodLower.includes('ancova') ||
-      methodLower.includes('공분산분석') ||
-      methodLower.includes('analysisofcovariance')) {
+    methodLower.includes('공분산분석') ||
+    methodLower.includes('analysisofcovariance')) {
     return {
       title: '공분산분석 결과',
       summary: `공변량(covariate)을 통제한 후 집단 간 평균 차이를 검정했습니다.`,
@@ -279,8 +278,8 @@ function getInterpretationByMethod(
   // MANOVA (다변량 분산분석)
   // 정규화 후: 'manova', '다변량', 'multivariateanova' 모두 매칭
   if (methodLower.includes('manova') ||
-      methodLower.includes('다변량') ||
-      methodLower.includes('multivariateanova')) {
+    methodLower.includes('다변량') ||
+    methodLower.includes('multivariateanova')) {
     return {
       title: '다변량 분산분석 결과',
       summary: `여러 종속변수를 동시에 고려하여 집단 간 차이를 검정했습니다.`,
@@ -307,9 +306,9 @@ function getInterpretationByMethod(
     // 예측변수 필터링 (intercept/const 제외, case-insensitive)
     const predictors = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name.toLowerCase() !== 'intercept' &&
-          c.name.toLowerCase() !== 'const'
-        )
+        c.name.toLowerCase() !== 'intercept' &&
+        c.name.toLowerCase() !== 'const'
+      )
       : []
 
     // 유의한 예측변수 개수 카운트
@@ -339,9 +338,9 @@ function getInterpretationByMethod(
     // 예측변수 필터링 (intercept/const 제외, case-insensitive)
     const predictors = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name.toLowerCase() !== 'intercept' &&
-          c.name.toLowerCase() !== 'const'
-        )
+        c.name.toLowerCase() !== 'intercept' &&
+        c.name.toLowerCase() !== 'const'
+      )
       : []
 
     // 유의한 예측변수 개수 카운트
@@ -372,9 +371,9 @@ function getInterpretationByMethod(
     // 예측변수 필터링 (intercept/const 제외, case-insensitive)
     const predictors = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name.toLowerCase() !== 'intercept' &&
-          c.name.toLowerCase() !== 'const'
-        )
+        c.name.toLowerCase() !== 'intercept' &&
+        c.name.toLowerCase() !== 'const'
+      )
       : []
 
     // 유의한 예측변수 개수 카운트
@@ -407,9 +406,9 @@ function getInterpretationByMethod(
     // 예측변수 필터링 (intercept/const 제외, case-insensitive)
     const predictors = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name.toLowerCase() !== 'intercept' &&
-          c.name.toLowerCase() !== 'const'
-        )
+        c.name.toLowerCase() !== 'intercept' &&
+        c.name.toLowerCase() !== 'const'
+      )
       : []
 
     // 최종 선택된 유의한 예측변수 개수
@@ -460,7 +459,7 @@ function getInterpretationByMethod(
   // ===== Phase 4: Advanced Analytics (고급 분석) =====
 
   // Response Surface Analysis (반응표면 분석) - 먼저 체크 (Dose-Response와 'response' 중복 방지)
-  if (methodLower.includes('response surface') || methodLower.includes('반응표면') || methodLower.includes('rsm')) {
+  if (methodLower.includes('responsesurface') || methodLower.includes('반응표면') || methodLower.includes('rsm')) {
     const modelInfo = results.additional as {
       rSquared?: number
       adjRSquared?: number
@@ -533,9 +532,9 @@ function getInterpretationByMethod(
     // 유의한 고정효과 개수 (Intercept 제외)
     const fixedEffects = hasCoefficients
       ? results.coefficients!.filter(c =>
-          c.name.toLowerCase() !== 'intercept' &&
-          c.name.toLowerCase() !== 'const'
-        )
+        c.name.toLowerCase() !== 'intercept' &&
+        c.name.toLowerCase() !== 'const'
+      )
       : []
 
     const significantEffects = fixedEffects.filter(c =>
@@ -750,7 +749,7 @@ function getInterpretationByMethod(
 
   // 3. One-sample t-test (일표본 t검정) - Proportion Test보다 뒤에 체크
   if ((methodLower.includes('one') && methodLower.includes('sample') && !methodLower.includes('proportion'))
-      || methodLower.includes('일표본')) {
+    || methodLower.includes('일표본')) {
     const mean = results.additional?.mean
     const testValue = results.additional?.testValue ?? results.additional?.mu
     const pValue = results.pValue
@@ -955,6 +954,71 @@ function getInterpretationByMethod(
     }
   }
 
+  // ===== Independent Samples t-test (독립표본 t검정) =====
+  if ((methodLower.includes('independent') && methodLower.includes('t')) ||
+      (methodLower.includes('ttest') && !methodLower.includes('one') && !methodLower.includes('paired')) ||
+      (methodLower.includes('독립') && methodLower.includes('t'))) {
+    return {
+      title: '독립표본 t검정 결과',
+      summary: `두 독립 집단의 평균 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `두 집단 간 평균이 통계적으로 유의하게 다릅니다 (p ${formatPValue(results.pValue)}).`
+        : `두 집단 간 평균이 통계적으로 유의하게 다르지 않습니다 (p ${formatPValue(results.pValue)}).`,
+      practical: results.effectSize
+        ? `실질적 효과 크기는 ${interpretEffectSize(results.effectSize)}입니다.`
+        : isSignificant(results.pValue)
+          ? '실질적 차이 여부는 효과크기(Cohen\'s d)를 확인하세요.'
+          : '두 집단은 유사한 평균을 가집니다.'
+    }
+  }
+
+  // ===== Welch's t-test (웰치 t검정) =====
+  if (methodLower.includes('welch')) {
+    return {
+      title: 'Welch t검정 결과',
+      summary: `등분산 가정 없이 두 독립 집단의 평균 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `두 집단 간 평균이 통계적으로 유의하게 다릅니다 (p ${formatPValue(results.pValue)}).`
+        : `두 집단 간 평균이 통계적으로 유의하게 다르지 않습니다 (p ${formatPValue(results.pValue)}).`,
+      practical: results.effectSize
+        ? `실질적 효과 크기는 ${interpretEffectSize(results.effectSize)}입니다.`
+        : isSignificant(results.pValue)
+          ? 'Welch 검정은 등분산 가정이 위배될 때 더 강건합니다.'
+          : '두 집단은 유사한 평균을 가집니다.'
+    }
+  }
+
+  // ===== Paired t-test (대응표본 t검정) =====
+  if ((methodLower.includes('paired') && methodLower.includes('t')) ||
+      (methodLower.includes('대응') && methodLower.includes('t'))) {
+    return {
+      title: '대응표본 t검정 결과',
+      summary: `동일 대상의 두 측정값 평균 차이를 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `사전-사후 평균이 통계적으로 유의하게 다릅니다 (p ${formatPValue(results.pValue)}).`
+        : `사전-사후 평균이 통계적으로 유의하게 다르지 않습니다 (p ${formatPValue(results.pValue)}).`,
+      practical: results.effectSize
+        ? `실질적 효과 크기는 ${interpretEffectSize(results.effectSize)}입니다.`
+        : isSignificant(results.pValue)
+          ? '처치/개입의 효과가 있습니다.'
+          : '처치/개입의 효과가 없습니다.'
+    }
+  }
+
+  // ===== Two-sample KS Test (두 표본 KS 검정) =====
+  if (methodLower.includes('ks') && (methodLower.includes('two') || methodLower.includes('2') || methodLower.includes('sample'))) {
+    return {
+      title: '두 표본 분포 비교',
+      summary: `두 표본의 분포가 동일한지 검정했습니다.`,
+      statistical: isSignificant(results.pValue)
+        ? `두 표본의 분포가 통계적으로 유의하게 다릅니다 (p ${formatPValue(results.pValue)}).`
+        : `두 표본의 분포가 통계적으로 유의하게 다르지 않습니다 (p ${formatPValue(results.pValue)}).`,
+      practical: isSignificant(results.pValue)
+        ? '두 집단의 데이터는 서로 다른 분포에서 추출되었을 가능성이 높습니다.'
+        : '두 집단의 데이터는 동일한 분포에서 추출되었을 가능성이 높습니다.'
+    }
+  }
+
   // ===== 2. 범주형 연관성 (Chi-Square, Fisher, McNemar) =====
   if (methodLower.includes('chi') || methodLower.includes('카이') || methodLower.includes('fisher') || methodLower.includes('mcnemar')) {
     return {
@@ -1005,21 +1069,21 @@ function getInterpretationByMethod(
     const alphaValue = alpha
 
     let interpretation = ''
-      if (alphaValue >= THRESHOLDS.ALPHA.GOOD) interpretation = '우수한 신뢰도'
-      else if (alphaValue >= THRESHOLDS.ALPHA.ACCEPTABLE) interpretation = '좋은 신뢰도'
-      else if (alphaValue >= THRESHOLDS.ALPHA.QUESTIONABLE) interpretation = '수용 가능한 신뢰도'
-      else if (alphaValue >= THRESHOLDS.ALPHA.POOR) interpretation = '의문스러운 신뢰도'
-      else interpretation = '낮은 신뢰도'
+    if (alphaValue >= THRESHOLDS.ALPHA.GOOD) interpretation = '우수한 신뢰도'
+    else if (alphaValue >= THRESHOLDS.ALPHA.ACCEPTABLE) interpretation = '좋은 신뢰도'
+    else if (alphaValue >= THRESHOLDS.ALPHA.QUESTIONABLE) interpretation = '수용 가능한 신뢰도'
+    else if (alphaValue >= THRESHOLDS.ALPHA.POOR) interpretation = '의문스러운 신뢰도'
+    else interpretation = '낮은 신뢰도'
 
-      return {
-        title: '신뢰도 분석 결과',
-        summary: `Cronbach's Alpha = ${alphaValue.toFixed(3)} (${interpretation})`,
-        statistical: `α ≥ 0.7 기준: ${alphaValue >= THRESHOLDS.ALPHA.QUESTIONABLE ? '만족' : '불만족'}`,
-        practical: alphaValue < THRESHOLDS.ALPHA.QUESTIONABLE
-          ? '문항 수정 또는 제거를 고려하세요.'
-          : alphaValue >= THRESHOLDS.ALPHA.GOOD
-            ? '매우 신뢰할 수 있는 척도입니다.'
-            : '신뢰할 수 있는 척도입니다.'
+    return {
+      title: '신뢰도 분석 결과',
+      summary: `Cronbach's Alpha = ${alphaValue.toFixed(3)} (${interpretation})`,
+      statistical: `α ≥ 0.7 기준: ${alphaValue >= THRESHOLDS.ALPHA.QUESTIONABLE ? '만족' : '불만족'}`,
+      practical: alphaValue < THRESHOLDS.ALPHA.QUESTIONABLE
+        ? '문항 수정 또는 제거를 고려하세요.'
+        : alphaValue >= THRESHOLDS.ALPHA.GOOD
+          ? '매우 신뢰할 수 있는 척도입니다.'
+          : '신뢰할 수 있는 척도입니다.'
     }
   }
 
@@ -1033,21 +1097,21 @@ function getInterpretationByMethod(
     const silhouetteValue = silhouette
     const clusterCount = clusters && Array.isArray(clusters) ? new Set(clusters).size : 0
 
-      let quality = ''
-      if (silhouetteValue >= THRESHOLDS.SILHOUETTE.STRONG) quality = '강한 구조'
-      else if (silhouetteValue >= THRESHOLDS.SILHOUETTE.FAIR) quality = '합리적 구조'
-      else if (silhouetteValue >= THRESHOLDS.SILHOUETTE.WEAK) quality = '약한 구조'
-      else quality = '인위적 구조'
+    let quality = ''
+    if (silhouetteValue >= THRESHOLDS.SILHOUETTE.STRONG) quality = '강한 구조'
+    else if (silhouetteValue >= THRESHOLDS.SILHOUETTE.FAIR) quality = '합리적 구조'
+    else if (silhouetteValue >= THRESHOLDS.SILHOUETTE.WEAK) quality = '약한 구조'
+    else quality = '인위적 구조'
 
-      return {
-        title: '군집 분석 결과',
-        summary: clusterCount > 0
-          ? `${clusterCount}개 군집으로 분류되었습니다.`
-          : '군집 분석이 완료되었습니다.',
-        statistical: `Silhouette Score = ${silhouetteValue.toFixed(3)} (${quality})`,
-        practical: silhouetteValue < THRESHOLDS.SILHOUETTE.FAIR
-          ? '군집 수(K)를 조정하거나 다른 알고리즘을 시도하세요.'
-          : '군집이 잘 분리되었습니다.'
+    return {
+      title: '군집 분석 결과',
+      summary: clusterCount > 0
+        ? `${clusterCount}개 군집으로 분류되었습니다.`
+        : '군집 분석이 완료되었습니다.',
+      statistical: `Silhouette Score = ${silhouetteValue.toFixed(3)} (${quality})`,
+      practical: silhouetteValue < THRESHOLDS.SILHOUETTE.FAIR
+        ? '군집 수(K)를 조정하거나 다른 알고리즘을 시도하세요.'
+        : '군집이 잘 분리되었습니다.'
     }
   }
 
@@ -1159,17 +1223,24 @@ function getInterpretationByMethod(
     }
   }
 
-  // Runs Test (연속성 검정)
-  if (methodLower.includes('runs') && methodLower.includes('test')) {
+  // Runs Test (연속성 검정) - 'run test' or 'runs test'
+  if ((methodLower.includes('run') || methodLower.includes('runs')) && methodLower.includes('test')) {
+    const runsInfo = results.additional as { runs?: number; expectedRuns?: number; n1?: number; n2?: number; zScore?: number }
+    const runs = runsInfo?.runs
+    const expectedRuns = runsInfo?.expectedRuns
+    const zScore = runsInfo?.zScore
+
     return {
       title: '무작위성 검정 결과',
-      summary: `데이터의 무작위성을 검정했습니다.`,
+      summary: runs !== undefined && expectedRuns !== undefined
+        ? `관찰된 연속 횟수: ${runs}회, 기대값: ${expectedRuns.toFixed(1)}회`
+        : `데이터의 무작위성을 검정했습니다.`,
       statistical: isSignificant(results.pValue)
         ? `무작위성 가정을 만족하지 않습니다 (p ${formatPValue(results.pValue)}).`
         : `무작위성 가정을 만족합니다 (p ${formatPValue(results.pValue)}).`,
       practical: isSignificant(results.pValue)
-        ? '데이터에 패턴 또는 추세가 있습니다.'
-        : '데이터가 무작위로 분포되어 있습니다.'
+        ? '데이터에 패턴 또는 추세가 있습니다. 시계열 분석이나 추세 검정을 고려하세요.'
+        : '데이터가 무작위로 분포되어 있습니다. 독립성 가정이 만족됩니다.'
     }
   }
 

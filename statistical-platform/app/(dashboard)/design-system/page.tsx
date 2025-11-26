@@ -39,6 +39,8 @@ import { DataProfileSummaryDemo } from './components/DataProfileSummaryDemo'
 import { GuidanceCardDemo } from './components/GuidanceCardDemo'
 import { VariableSelectorDemo } from './components/VariableSelectorDemo'
 import { VisualizationDemo } from './components/VisualizationDemo'
+import { ResultContextDemo } from './components/ResultContextDemo'
+import { StatisticalResultDemo } from './components/StatisticalResultDemo'
 import { COMPONENT_LIST } from './constants'
 
 // 로딩 스피너 (dynamic import용)
@@ -723,6 +725,14 @@ animation: {
 
               {selectedComponent === 'variable-selector' && (
                 <VariableSelectorDemo />
+              )}
+
+              {selectedComponent === 'result-context' && (
+                <ResultContextDemo />
+              )}
+
+              {selectedComponent === 'statistical-result' && (
+                <StatisticalResultDemo />
               )}
             </div>
           )}

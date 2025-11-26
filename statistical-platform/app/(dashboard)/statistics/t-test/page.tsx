@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useEffect } from 'react'
+
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,23 +14,23 @@ import {
   AlertCircle,
   CheckCircle,
   ArrowUpDown,
-  Users,
   Activity
 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { StatisticalResultCard, StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts'
+
+// 효과크기 해석 함수 (컴포넌트 외부에 정의하여 재사용)
+const interpretEffectSize = (d: number): string => {
+  const abs = Math.abs(d)
+  if (abs >= 0.8) return '큰 효과'
+  if (abs >= 0.5) return '중간 효과'
+  if (abs >= 0.2) return '작은 효과'
+  return '효과 없음'
+}
 
 interface TTestResult {
   type: 'one-sample' | 'two-sample' | 'paired'
@@ -79,7 +80,11 @@ export default function TTestPage() {
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
   const [testType, setTestType] = useState<'one-sample' | 'two-sample' | 'paired' | ''>('')
-  const [testValue, setTestValue] = useState<number>(0)
+  const [testValue, setTestValue] = useState<string>('0')
+
+  // testValue 유효성 검사
+  const parsedTestValue = parseFloat(testValue)
+  const isTestValueValid = !isNaN(parsedTestValue) && testValue.trim() !== ''
 
   const testTypeInfo = {
     'one-sample': {
@@ -139,18 +144,19 @@ export default function TTestPage() {
       await pyodideCore.initialize()
 
       let workerResult: unknown
-      let resultType: 'one-sample' | 'two-sample' | 'paired' = testType as 'one-sample' | 'two-sample' | 'paired'
 
       if (testType === 'one-sample') {
         // 일표본 t-검정
         const valueCol = selectedVariables.value as string
-        const values = uploadedData.data.map((row: Record<string, unknown>) => row[valueCol] as number)
+        const values = uploadedData.data
+          .map((row: Record<string, unknown>) => Number(row[valueCol]))
+          .filter((v): v is number => !isNaN(v))
 
         workerResult = await pyodideCore.callWorkerMethod<{
           statistic: number
           pValue: number
           sampleMean: number
-        }>(PyodideWorker.Hypothesis, 't_test_one_sample', { data: values, popmean: testValue })
+        }>(PyodideWorker.Hypothesis, 't_test_one_sample', { data: values, popmean: parsedTestValue })
 
       } else if (testType === 'two-sample') {
         // 독립표본 t-검정
@@ -164,10 +170,12 @@ export default function TTestPage() {
 
         const group1Data = uploadedData.data
           .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[0])
-          .map((row: Record<string, unknown>) => row[valueCol] as number)
+          .map((row: Record<string, unknown>) => Number(row[valueCol]))
+          .filter((v): v is number => !isNaN(v))
         const group2Data = uploadedData.data
           .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[1])
-          .map((row: Record<string, unknown>) => row[valueCol] as number)
+          .map((row: Record<string, unknown>) => Number(row[valueCol]))
+          .filter((v): v is number => !isNaN(v))
 
         workerResult = await pyodideCore.callWorkerMethod<{
           statistic: number
@@ -186,8 +194,15 @@ export default function TTestPage() {
         const beforeCol = selectedVariables.before as string
         const afterCol = selectedVariables.after as string
 
-        const values1 = uploadedData.data.map((row: Record<string, unknown>) => row[beforeCol] as number)
-        const values2 = uploadedData.data.map((row: Record<string, unknown>) => row[afterCol] as number)
+        // paired는 쌍으로 유효해야 하므로 둘 다 숫자인 행만 사용
+        const validPairs = uploadedData.data
+          .map((row: Record<string, unknown>) => ({
+            before: Number(row[beforeCol]),
+            after: Number(row[afterCol])
+          }))
+          .filter(pair => !isNaN(pair.before) && !isNaN(pair.after))
+        const values1 = validPairs.map(p => p.before)
+        const values2 = validPairs.map(p => p.after)
 
         workerResult = await pyodideCore.callWorkerMethod<{
           statistic: number
@@ -203,14 +218,27 @@ export default function TTestPage() {
       // Worker 결과를 TTestResult 타입으로 변환
       const finalResult: TTestResult = (() => {
         if (testType === 'one-sample') {
-          const res = workerResult as { statistic: number; pValue: number; sampleMean: number }
+          const res = workerResult as { statistic: number; pValue: number; sampleMean: number; sampleStd?: number }
+          // one-sample Cohen's d = (sample mean - test value) / sample std
+          const valueCol = selectedVariables.value as string
+          const values = uploadedData.data
+            .map((row: Record<string, unknown>) => Number(row[valueCol]))
+            .filter((v): v is number => !isNaN(v))
+          const sampleMean = values.reduce((a, b) => a + b, 0) / values.length
+          const sampleStd = Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - sampleMean, 2), 0) / (values.length - 1))
+          const cohensD = sampleStd > 0 ? (sampleMean - parsedTestValue) / sampleStd : 0
+
           return {
             type: 'one-sample',
             statistic: res.statistic,
             pvalue: res.pValue,
-            df: uploadedData.data.length - 1,
+            df: values.length - 1,
             ci_lower: undefined,
-            ci_upper: undefined
+            ci_upper: undefined,
+            effect_size: {
+              cohens_d: cohensD,
+              interpretation: interpretEffectSize(cohensD)
+            }
           }
         } else if (testType === 'two-sample') {
           const res = workerResult as {
@@ -242,12 +270,30 @@ export default function TTestPage() {
         } else {
           // paired
           const res = workerResult as { statistic: number; pValue: number; meanDiff: number; nPairs: number }
+          // paired Cohen's d = mean difference / std of differences
+          const beforeCol = selectedVariables.before as string
+          const afterCol = selectedVariables.after as string
+          const differences = uploadedData.data
+            .map((row: Record<string, unknown>) => {
+              const before = Number(row[beforeCol])
+              const after = Number(row[afterCol])
+              return after - before
+            })
+            .filter((v): v is number => !isNaN(v))
+          const meanDiff = differences.reduce((a, b) => a + b, 0) / differences.length
+          const stdDiff = Math.sqrt(differences.reduce((sum, v) => sum + Math.pow(v - meanDiff, 2), 0) / (differences.length - 1))
+          const cohensD = stdDiff > 0 ? meanDiff / stdDiff : 0
+
           return {
             type: 'paired',
             statistic: res.statistic,
             pvalue: res.pValue,
             df: res.nPairs - 1,
-            mean_diff: res.meanDiff
+            mean_diff: res.meanDiff,
+            effect_size: {
+              cohens_d: cohensD,
+              interpretation: interpretEffectSize(cohensD)
+            }
           }
         }
       })()
@@ -271,13 +317,85 @@ export default function TTestPage() {
     { label: 't-검정' }
   ]
 
-  const interpretEffectSize = (d: number) => {
-    const abs = Math.abs(d)
-    if (abs >= 0.8) return '큰 효과'
-    if (abs >= 0.5) return '중간 효과'
-    if (abs >= 0.2) return '작은 효과'
-    return '효과 없음'
-  }
+  // TTestResult -> StatisticalResult 변환
+  const convertToStatisticalResult = useCallback((testResult: TTestResult): StatisticalResult => {
+    const testTypeLabels: Record<string, string> = {
+      'one-sample': '일표본 t-검정',
+      'two-sample': '독립표본 t-검정',
+      'paired': '대응표본 t-검정'
+    }
+
+    const testTypeSubtitles: Record<string, string> = {
+      'one-sample': 'One-Sample t-test',
+      'two-sample': 'Independent Samples t-test',
+      'paired': 'Paired Samples t-test'
+    }
+
+    const testTypeDescriptions: Record<string, string> = {
+      'one-sample': '하나의 표본 평균이 특정 값과 같은지 검정',
+      'two-sample': '두 독립 집단의 평균이 같은지 검정',
+      'paired': '동일 대상의 전후 측정값 평균 차이 검정'
+    }
+
+    const assumptions = testResult.assumptions ? [
+      {
+        name: '정규성',
+        description: 'Shapiro-Wilk 검정',
+        pValue: testResult.assumptions.normality.pvalue,
+        passed: testResult.assumptions.normality.passed,
+        recommendation: !testResult.assumptions.normality.passed
+          ? '비모수 검정(Mann-Whitney U 또는 Wilcoxon)을 고려하세요'
+          : undefined
+      },
+      ...(testResult.assumptions.equal_variance ? [{
+        name: '등분산성',
+        description: "Levene's 검정",
+        pValue: testResult.assumptions.equal_variance.pvalue,
+        passed: testResult.assumptions.equal_variance.passed,
+        recommendation: !testResult.assumptions.equal_variance.passed
+          ? 'Welch t-검정을 사용하세요'
+          : undefined
+      }] : [])
+    ] : undefined
+
+    return {
+      testName: testTypeLabels[testResult.type] || 't-검정',
+      testType: testTypeSubtitles[testResult.type],
+      description: testTypeDescriptions[testResult.type],
+      statistic: testResult.statistic,
+      statisticName: 't',
+      df: testResult.df,
+      pValue: testResult.pvalue,
+      alpha: 0.05,
+      effectSize: testResult.effect_size ? {
+        value: testResult.effect_size.cohens_d,
+        type: 'cohen_d'
+      } : undefined,
+      confidenceInterval: testResult.ci_lower !== undefined && testResult.ci_upper !== undefined && testResult.mean_diff !== undefined ? {
+        estimate: testResult.mean_diff,
+        lower: testResult.ci_lower,
+        upper: testResult.ci_upper,
+        level: 0.95
+      } : undefined,
+      assumptions,
+      interpretation: testResult.pvalue < 0.05
+        ? `검정 결과 p-value(${testResult.pvalue.toFixed(4)})가 유의수준 0.05보다 작아 귀무가설을 기각합니다. 두 집단(또는 조건) 간에 통계적으로 유의한 차이가 있습니다.${testResult.effect_size ? ` Cohen's d = ${testResult.effect_size.cohens_d.toFixed(3)}로 ${testResult.effect_size.interpretation}를 나타냅니다.` : ''}`
+        : `검정 결과 p-value(${testResult.pvalue.toFixed(4)})가 유의수준 0.05보다 커서 귀무가설을 기각할 수 없습니다. 두 집단(또는 조건) 간에 통계적으로 유의한 차이가 없습니다.`,
+      recommendations: testResult.pvalue < 0.05 ? [
+        '효과크기를 함께 보고하여 실질적 유의성을 평가하세요',
+        '신뢰구간을 확인하여 추정치의 정밀도를 파악하세요'
+      ] : [
+        '표본 크기가 충분한지 검토하세요 (통계적 검정력 분석)',
+        '효과크기가 작은 경우 더 큰 표본이 필요할 수 있습니다'
+      ],
+      sampleSize: testResult.sample_stats
+        ? (testResult.sample_stats.group1?.n || 0) + (testResult.sample_stats.group2?.n || 0)
+        : uploadedData?.data.length,
+      groups: testResult.type === 'two-sample' ? 2 : undefined,
+      variables: selectedVariables ? Object.values(selectedVariables).filter(Boolean) as string[] : undefined,
+      timestamp: new Date()
+    }
+  }, [uploadedData, selectedVariables])
 
   return (
     <TwoPanelLayout
@@ -349,7 +467,7 @@ export default function TTestPage() {
                   id="testValue"
                   type="number"
                   value={testValue}
-                  onChange={(e) => setTestValue(parseFloat(e.target.value))}
+                  onChange={(e) => setTestValue(e.target.value)}
                   placeholder="예: 500"
                   className="mt-2"
                 />
@@ -535,7 +653,7 @@ export default function TTestPage() {
               onClick={handleAnalysis}
               disabled={
                 isAnalyzing ||
-                (testType === 'one-sample' && !selectedVariables?.value) ||
+                (testType === 'one-sample' && (!selectedVariables?.value || !isTestValueValid)) ||
                 (testType === 'two-sample' && (!selectedVariables?.group || !selectedVariables?.value)) ||
                 (testType === 'paired' && (!selectedVariables?.before || !selectedVariables?.after))
               }
@@ -550,150 +668,29 @@ export default function TTestPage() {
       {/* Step 4: 결과 확인 */}
       {currentStep === 4 && results && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">t-검정 결과</h2>
-            <p className="text-sm text-muted-foreground">
-              {testTypeInfo[results.type]?.title} 분석이 완료되었습니다
-            </p>
-          </div>
-
-          {/* 주요 결과 요약 */}
-          <Alert className="border-blue-500 bg-muted">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <div className="mt-2 space-y-2">
-                <p className="text-sm">
-                  t({results.df}) = <strong>{results.statistic.toFixed(3)}</strong>,
-                  p = <strong>{results.pvalue < 0.001 ? '< 0.001' : results.pvalue.toFixed(3)}</strong>
-                </p>
-                {results.mean_diff !== undefined && (
-                  <p className="text-sm">
-                    평균 차이 = <strong>{results.mean_diff.toFixed(2)}</strong>
-                    {results.ci_lower !== undefined && results.ci_upper !== undefined && (
-                      <>, 95% CI [{results.ci_lower.toFixed(2)}, {results.ci_upper.toFixed(2)}]</>
-                    )}
-                  </p>
-                )}
-                <p className="text-sm">
-                  {results.pvalue < 0.05
-                    ? '✅ 두 집단 간 평균 차이가 통계적으로 유의합니다.'
-                    : '❌ 두 집단 간 평균 차이가 유의하지 않습니다.'}
-                </p>
-              </div>
-            </AlertDescription>
-          </Alert>
-
-          {/* 집단별 기술통계 */}
-          {results.sample_stats && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">집단별 기술통계</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  {results.sample_stats.group1 && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="font-medium mb-2">집단 1</p>
-                      <div className="space-y-1 text-sm">
-                        <p>N = {results.sample_stats.group1.n}</p>
-                        <p>평균 = {results.sample_stats.group1.mean.toFixed(2)}</p>
-                        <p>표준편차 = {results.sample_stats.group1.std.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  )}
-                  {results.sample_stats.group2 && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="font-medium mb-2">집단 2</p>
-                      <div className="space-y-1 text-sm">
-                        <p>N = {results.sample_stats.group2.n}</p>
-                        <p>평균 = {results.sample_stats.group2.mean.toFixed(2)}</p>
-                        <p>표준편차 = {results.sample_stats.group2.std.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 막대 그래프 */}
-                {results.sample_stats.group1 && results.sample_stats.group2 && (
-                  <div className="mt-6">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={[
-                        { name: '집단 1', mean: results.sample_stats.group1.mean },
-                        { name: '집단 2', mean: results.sample_stats.group2.mean }
-                      ]}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="mean" fill="#3b82f6" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 효과 크기 */}
-          {results.effect_size && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">효과 크기</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Cohen's d</p>
-                    <p className="text-lg font-semibold">{results.effect_size.cohens_d.toFixed(3)}</p>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">해석</p>
-                    <p className="text-lg font-semibold">{interpretEffectSize(results.effect_size.cohens_d)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* 가정 검정 */}
-          {results.assumptions && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">가정 검정</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* 정규성 */}
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">정규성 검정 (Shapiro-Wilk)</span>
-                      <Badge variant={results.assumptions.normality.passed ? 'default' : 'destructive'}>
-                        {results.assumptions.normality.passed ? '만족' : '위반'}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      p = {results.assumptions.normality.pvalue.toFixed(3)}
-                    </p>
-                  </div>
-
-                  {/* 등분산성 */}
-                  {results.assumptions.equal_variance && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium">등분산성 검정 (Levene)</span>
-                        <Badge variant={results.assumptions.equal_variance.passed ? 'default' : 'destructive'}>
-                          {results.assumptions.equal_variance.passed ? '만족' : '위반'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        p = {results.assumptions.equal_variance.pvalue.toFixed(3)}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <ResultContextHeader
+            analysisType={testType === 'one-sample' ? '일표본 t-검정' : testType === 'two-sample' ? '독립표본 t-검정' : '대응표본 t-검정'}
+            analysisSubtitle={testType === 'one-sample' ? 'One-Sample t-test' : testType === 'two-sample' ? 'Independent Samples t-test' : 'Paired Samples t-test'}
+            fileName={uploadedData?.fileName}
+            variables={testType === 'one-sample'
+              ? [selectedVariables?.value as string].filter(Boolean)
+              : testType === 'two-sample'
+                ? [selectedVariables?.group as string, selectedVariables?.value as string].filter(Boolean)
+                : [selectedVariables?.before as string, selectedVariables?.after as string].filter(Boolean)
+            }
+            sampleSize={uploadedData?.data?.length}
+            timestamp={new Date()}
+          />
+          <StatisticalResultCard
+            result={convertToStatisticalResult(results)}
+            showAssumptions={!!results.assumptions}
+            showEffectSize={!!results.effect_size}
+            showConfidenceInterval={results.ci_lower !== undefined && results.ci_upper !== undefined}
+            showInterpretation={true}
+            showActions={true}
+            expandable={false}
+            onRerun={() => actions.setCurrentStep(3)}
+          />
         </div>
       )}
     </TwoPanelLayout>

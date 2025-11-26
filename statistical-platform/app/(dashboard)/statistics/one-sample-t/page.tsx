@@ -30,6 +30,7 @@ import {
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -632,8 +633,23 @@ export default function OneSampleTPage() {
 
     if (!results) return null
 
+    // Get variable name for context header
+    const variableName = Array.isArray(selectedVariables?.dependent)
+      ? selectedVariables.dependent[0]
+      : selectedVariables?.dependent
+
     return (
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="일표본 t-검정"
+          analysisSubtitle="One-Sample t-test"
+          fileName={uploadedData?.fileName}
+          variables={variableName ? [variableName] : []}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={new Date()}
+        />
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="summary">요약</TabsTrigger>
           <TabsTrigger value="results">검정결과</TabsTrigger>
@@ -665,6 +681,7 @@ export default function OneSampleTPage() {
           {renderAssumptions()}
         </TabsContent>
       </Tabs>
+      </div>
     )
   }
 

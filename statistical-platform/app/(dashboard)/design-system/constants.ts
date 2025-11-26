@@ -7,9 +7,11 @@ export const COMPONENT_LIST = [
   { id: 'purpose-card', label: 'PurposeCard', badge: null },
   { id: 'ai-progress', label: 'AIProgress', badge: null },
   { id: 'data-preview', label: 'DataPreview', badge: null },
-  { id: 'data-profile', label: 'DataProfile', badge: 'NEW' },
+  { id: 'data-profile', label: 'DataProfile', badge: null },
   { id: 'guidance-card', label: 'GuidanceCard', badge: null },
   { id: 'variable-selector', label: 'VarSelector', badge: null },
+  { id: 'result-context', label: 'ResultContext', badge: 'NEW' },
+  { id: 'statistical-result', label: 'StatResult', badge: 'NEW' },
 ] as const
 
 // 샘플 데이터 (기본)

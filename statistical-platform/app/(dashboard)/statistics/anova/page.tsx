@@ -22,6 +22,7 @@ import {
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -1087,12 +1088,17 @@ export default function ANOVAPage() {
       {/* Step 4: 결과 확인 */}
       {currentStep === 4 && results && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">분산분석 결과</h2>
-            <p className="text-sm text-muted-foreground">
-              {anovaTypeInfo[anovaType as keyof typeof anovaTypeInfo]?.title} 분석이 완료되었습니다
-            </p>
-          </div>
+          <ResultContextHeader
+            analysisType={anovaTypeInfo[anovaType as keyof typeof anovaTypeInfo]?.title || '분산분석'}
+            analysisSubtitle={anovaTypeInfo[anovaType as keyof typeof anovaTypeInfo]?.subtitle || 'ANOVA'}
+            fileName={uploadedData?.fileName}
+            variables={[
+              ...(selectedVariables?.dependent ? [selectedVariables.dependent] : []),
+              ...(Array.isArray(selectedVariables?.factor) ? selectedVariables.factor : selectedVariables?.factor ? [selectedVariables.factor] : [])
+            ]}
+            sampleSize={uploadedData?.data?.length}
+            timestamp={new Date()}
+          />
 
           {/* 주요 결과 요약 */}
           {results.multiFactorResults ? (

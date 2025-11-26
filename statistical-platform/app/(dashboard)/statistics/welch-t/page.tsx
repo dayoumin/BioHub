@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { escapeHtml } from '@/lib/utils/html-escape'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { openDataWindow } from '@/lib/utils/open-data-window'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
@@ -558,12 +559,25 @@ export default function WelchTPage() {
     const significanceLevel = (100 - results.confidenceLevel) / 100
     const isSignificant = results.pValue < significanceLevel
 
+    // Get variable names for context header
+    const groupVar = selectedVariables?.factor
+      ? (Array.isArray(selectedVariables.factor) ? selectedVariables.factor[0] : selectedVariables.factor)
+      : ''
+    const valueVar = selectedVariables?.dependent
+      ? (Array.isArray(selectedVariables.dependent) ? selectedVariables.dependent[0] : selectedVariables.dependent)
+      : ''
+    const usedVariables = [groupVar, valueVar].filter(Boolean)
+
     return (
       <div className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welch t-검정 결과</h2>
-          <p className="text-gray-600">등분산 가정 없이 두 그룹의 평균을 비교한 결과입니다</p>
-        </div>
+        <ResultContextHeader
+          analysisType="Welch t-검정"
+          analysisSubtitle="Welch's t-test"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={new Date()}
+        />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -789,7 +803,7 @@ export default function WelchTPage() {
         </Tabs>
       </div>
     )
-  }, [isAnalyzing, error, results, activeTab])
+  }, [isAnalyzing, error, results, activeTab, uploadedData, selectedVariables])
 
   // Type-safe onStepChange handler
   const handleStepChange = useCallback((step: number) => {
