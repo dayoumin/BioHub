@@ -350,8 +350,9 @@ export function AnalysisExecutionStep({
               </div>
             </div>
 
-            {/* 단계별 진행 상황 */}
-            <div className="max-w-md mx-auto text-left space-y-3">
+            {/* 단계별 진행 상황 - 완료 시 숨김 */}
+            {progress < 100 && (
+              <div className="max-w-md mx-auto text-left space-y-3">
               {EXECUTION_STAGES.map((stage) => {
                 const isCompleted = completedStages.includes(stage.id)
                 const isCurrent = currentStage.id === stage.id && !isCompleted
@@ -379,6 +380,7 @@ export function AnalysisExecutionStep({
                 )
               })}
             </div>
+            )}
 
             {/* 컨트롤 버튼 */}
             {progress < 100 && !error && (

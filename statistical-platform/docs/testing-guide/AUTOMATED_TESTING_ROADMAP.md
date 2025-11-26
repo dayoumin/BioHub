@@ -2,8 +2,9 @@
 
 **목표**: 43개 통계 앱의 해석 엔진을 인간 개입 없이 완벽하게 검증
 
-**최종 상태**: 2025-11-23
+**최종 상태**: 2025-11-26
 - ✅ Phase 0 완료: 버그 수정 + 기본 테스트 (32개 테스트, 100% 통과)
+- ✅ Phase 0.5 완료: Executor 데이터 추출 테스트 (31개 테스트, 100% 통과)
 - 🔜 Phase 1: Golden Snapshot 테스트 (129 시나리오)
 - 🔜 Phase 2: Contract 테스트 (경계값 + Edge Cases)
 - 🔜 Phase 3: E2E 테스트 (실제 결과 페이지 검증)
@@ -53,6 +54,43 @@
 9fa5287 refactor(smart-flow): 해석 엔진 DRY 개선 (Helper 함수 + p-value 상수화)
 e4d3f32 refactor(smart-flow): 해석 엔진 코드 품질 개선 (타입 안전성 + 상수화)
 257c50e feat(smart-flow): 중앙 해석 엔진 구현 (Phase 1 완료)
+```
+
+---
+
+## ✅ Phase 0.5: Executor Data Extraction Tests (완료)
+
+**목표**: Executor의 groupVar/dependentVar/independentVar 데이터 추출 검증
+**완료일**: 2025-11-26
+**테스트 파일**: `__tests__/services/executors/executor-data-extraction.test.ts`
+
+### 배경
+- **발견된 버그**: Mann-Whitney U 검정에서 `group1 undefined` 오류
+- **원인**: Smart Flow의 VariableMapping(groupVar/dependentVar)을 Executor가 처리하지 못함
+- **수정**: NonparametricExecutor, TTestExecutor, RegressionExecutor에 데이터 추출 로직 추가
+
+### 테스트 커버리지 (31개 테스트)
+
+| Executor | 테스트 항목 | 개수 |
+|----------|-----------|------|
+| NonparametricExecutor | Mann-Whitney U, Kruskal-Wallis | 6 |
+| TTestExecutor | Independent, Paired, Welch, One-sample | 11 |
+| RegressionExecutor | Simple, Multiple | 7 |
+| AnovaExecutor | One-way ANOVA | 1 |
+| Edge Cases | Empty data, Missing values, Invalid columns | 4 |
+| Smart Flow Integration | Selector output format matching | 3 |
+
+### 검증된 기능
+- ✅ `groupVar` + `dependentVar` → 그룹별 데이터 분리
+- ✅ `variables: [var1, var2]` → 대응표본 데이터 추출
+- ✅ `dependentVar` + `independentVar` → 회귀 데이터 추출
+- ✅ Backward compatibility (기존 group1/group2, before/after 형식)
+- ✅ Method alias 지원 (independent-t-test, paired-t-test 등)
+- ✅ 에러 처리 (그룹 부족, 변수 누락, 빈 데이터)
+
+### 실행 명령
+```bash
+npm test -- __tests__/services/executors/executor-data-extraction.test.ts
 ```
 
 ---
@@ -444,6 +482,7 @@ jobs:
 | Phase | 작업 내용 | 예상 시간 | 우선순위 |
 |-------|----------|----------|---------|
 | ✅ Phase 0 | 버그 수정 + 기본 테스트 | 완료 | 최상 |
+| ✅ Phase 0.5 | Executor 데이터 추출 테스트 | 완료 | 최상 |
 | Phase 1 | Golden Snapshot (129 시나리오) | 14시간 | 최상 |
 | Phase 2 | Contract 테스트 (Zod) | 9시간 | 높음 |
 | Phase 3 | E2E 테스트 (Playwright) | 40시간 | 중간 |
@@ -517,6 +556,14 @@ describe('Property-Based Tests', () => {
 
 ## 📝 체크리스트
 
+### Phase 0.5: Executor Data Extraction ✅
+- [x] NonparametricExecutor 테스트 (6개)
+- [x] TTestExecutor 테스트 (11개)
+- [x] RegressionExecutor 테스트 (7개)
+- [x] AnovaExecutor 테스트 (1개)
+- [x] Edge Cases 테스트 (4개)
+- [x] Smart Flow Integration 테스트 (3개)
+
 ### Phase 1: Golden Snapshot
 - [ ] 43개 JSON 스냅샷 파일 생성
 - [ ] 각 통계당 3 시나리오 정의
@@ -545,6 +592,6 @@ describe('Property-Based Tests', () => {
 
 ---
 
-**최종 업데이트**: 2025-11-23
-**상태**: Phase 0 완료 (32 tests passing) → Phase 1 준비 중
+**최종 업데이트**: 2025-11-26
+**상태**: Phase 0.5 완료 (31 tests passing) → Phase 1 준비 중
 **다음 작업**: Golden Snapshot 테스트 구현 (우선순위 최상)

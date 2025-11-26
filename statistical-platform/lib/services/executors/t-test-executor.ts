@@ -308,6 +308,72 @@ export class TTestExecutor extends BaseExecutor {
   }
 
   /**
+   * Extract groups from data using groupVar and dependentVar
+   */
+  private extractGroupsFromData(
+    data: unknown[],
+    groupVar: string,
+    dependentVar: string
+  ): { group1: number[]; group2: number[]; groupNames: string[] } {
+    const groupMap = new Map<string, number[]>()
+
+    for (const row of data) {
+      if (typeof row !== 'object' || row === null) continue
+      const record = row as Record<string, unknown>
+
+      const groupValue = String(record[groupVar] ?? '')
+      const numericValue = record[dependentVar]
+
+      if (typeof numericValue === 'number' && !isNaN(numericValue)) {
+        if (!groupMap.has(groupValue)) {
+          groupMap.set(groupValue, [])
+        }
+        groupMap.get(groupValue)!.push(numericValue)
+      }
+    }
+
+    const groupNames = Array.from(groupMap.keys()).sort()
+    const groups = groupNames.map(name => groupMap.get(name)!)
+
+    if (groups.length < 2) {
+      throw new Error(`독립표본 t-검정은 2개 그룹이 필요합니다. 현재 ${groups.length}개 발견`)
+    }
+    if (groups.length > 2) {
+      logger.warn(`t-검정: ${groups.length}개 그룹 발견, 처음 2개 사용: ${groupNames.slice(0, 2).join(', ')}`)
+    }
+
+    return { group1: groups[0], group2: groups[1], groupNames }
+  }
+
+  /**
+   * Extract paired data from data using variable names
+   */
+  private extractPairedFromData(
+    data: unknown[],
+    var1: string,
+    var2: string
+  ): { before: number[]; after: number[] } {
+    const before: number[] = []
+    const after: number[] = []
+
+    for (const row of data) {
+      if (typeof row !== 'object' || row === null) continue
+      const record = row as Record<string, unknown>
+
+      const val1 = record[var1]
+      const val2 = record[var2]
+
+      if (typeof val1 === 'number' && !isNaN(val1) &&
+          typeof val2 === 'number' && !isNaN(val2)) {
+        before.push(val1)
+        after.push(val2)
+      }
+    }
+
+    return { before, after }
+  }
+
+  /**
    * 통합 실행 메서드
    */
   async execute(data: unknown[], options?: unknown): Promise<AnalysisResult> {
@@ -318,6 +384,8 @@ export class TTestExecutor extends BaseExecutor {
     }
 
     const { method = 'independent', ...restOptions } = parseOptions(options)
+    const groupVar = restOptions.groupVar as string | undefined
+    const dependentVar = restOptions.dependentVar as string | undefined
 
     switch (method) {
       case 'one-sample': {
@@ -328,45 +396,79 @@ export class TTestExecutor extends BaseExecutor {
           : 0
         return this.executeOneSample(numericData, populationMean)
       }
-      case 'independent': {
-        // 그룹 데이터 추출
-        const group1Data = restOptions.group1 as unknown[]
-        const group2Data = restOptions.group2 as unknown[]
+      case 'independent':
+      case 'independent-t-test':
+      case 'two-sample-t': {
+        // 그룹 데이터 추출 - groupVar/dependentVar 또는 group1/group2
+        let group1: number[] = []
+        let group2: number[] = []
 
-        const group1 = Array.isArray(group1Data)
-          ? this.extractNumericSeries(group1Data, restOptions)
-          : []
-        const group2 = Array.isArray(group2Data)
-          ? this.extractNumericSeries(group2Data, restOptions)
-          : []
+        if (restOptions.group1 && restOptions.group2) {
+          // 직접 제공된 경우
+          const group1Data = restOptions.group1 as unknown[]
+          const group2Data = restOptions.group2 as unknown[]
+          group1 = Array.isArray(group1Data) ? this.extractNumericSeries(group1Data, restOptions) : []
+          group2 = Array.isArray(group2Data) ? this.extractNumericSeries(group2Data, restOptions) : []
+        } else if (groupVar && dependentVar) {
+          // Smart Flow에서 전달된 경우
+          const extracted = this.extractGroupsFromData(data, groupVar, dependentVar)
+          group1 = extracted.group1
+          group2 = extracted.group2
+        }
+
+        if (group1.length === 0 || group2.length === 0) {
+          throw new Error('독립표본 t-검정을 위한 그룹 데이터가 없습니다. groupVar/dependentVar 또는 group1/group2를 확인하세요.')
+        }
 
         return this.executeIndependent(group1, group2)
       }
-      case 'paired': {
-        // 대응 데이터 추출
-        const beforeData = restOptions.before as unknown[]
-        const afterData = restOptions.after as unknown[]
+      case 'paired':
+      case 'paired-t':
+      case 'paired-t-test': {
+        // 대응 데이터 추출 - variables 또는 before/after
+        let before: number[] = []
+        let after: number[] = []
 
-        const before = Array.isArray(beforeData)
-          ? this.extractNumericSeries(beforeData, restOptions)
-          : []
-        const after = Array.isArray(afterData)
-          ? this.extractNumericSeries(afterData, restOptions)
-          : []
+        if (restOptions.before && restOptions.after) {
+          // 직접 제공된 경우
+          const beforeData = restOptions.before as unknown[]
+          const afterData = restOptions.after as unknown[]
+          before = Array.isArray(beforeData) ? this.extractNumericSeries(beforeData, restOptions) : []
+          after = Array.isArray(afterData) ? this.extractNumericSeries(afterData, restOptions) : []
+        } else if (restOptions.variables && Array.isArray(restOptions.variables) && restOptions.variables.length >= 2) {
+          // Smart Flow PairedSelector에서 전달된 경우 (variables: [var1, var2])
+          const vars = restOptions.variables as string[]
+          const extracted = this.extractPairedFromData(data, vars[0], vars[1])
+          before = extracted.before
+          after = extracted.after
+        }
+
+        if (before.length === 0 || after.length === 0) {
+          throw new Error('대응표본 t-검정을 위한 데이터가 없습니다. variables 또는 before/after를 확인하세요.')
+        }
 
         return this.executePaired(before, after)
       }
-      case 'welch': {
-        // Welch's t-test (이분산)
-        const group1Data = restOptions.group1 as unknown[]
-        const group2Data = restOptions.group2 as unknown[]
+      case 'welch':
+      case 'welch-t': {
+        // Welch's t-test (이분산) - groupVar/dependentVar 또는 group1/group2
+        let group1: number[] = []
+        let group2: number[] = []
 
-        const group1 = Array.isArray(group1Data)
-          ? this.extractNumericSeries(group1Data, restOptions)
-          : []
-        const group2 = Array.isArray(group2Data)
-          ? this.extractNumericSeries(group2Data, restOptions)
-          : []
+        if (restOptions.group1 && restOptions.group2) {
+          const group1Data = restOptions.group1 as unknown[]
+          const group2Data = restOptions.group2 as unknown[]
+          group1 = Array.isArray(group1Data) ? this.extractNumericSeries(group1Data, restOptions) : []
+          group2 = Array.isArray(group2Data) ? this.extractNumericSeries(group2Data, restOptions) : []
+        } else if (groupVar && dependentVar) {
+          const extracted = this.extractGroupsFromData(data, groupVar, dependentVar)
+          group1 = extracted.group1
+          group2 = extracted.group2
+        }
+
+        if (group1.length === 0 || group2.length === 0) {
+          throw new Error("Welch's t-검정을 위한 그룹 데이터가 없습니다.")
+        }
 
         return this.executeWelch(group1, group2)
       }

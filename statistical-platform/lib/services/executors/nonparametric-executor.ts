@@ -250,22 +250,105 @@ export class NonparametricExecutor extends BaseExecutor {
   }
 
   /**
+   * Extract groups from data using groupVar and dependentVar
+   */
+  private extractGroups(
+    data: unknown[],
+    groupVar: string,
+    dependentVar: string
+  ): { groups: number[][]; groupNames: string[] } {
+    const groupMap = new Map<string, number[]>()
+
+    for (const row of data) {
+      if (typeof row !== 'object' || row === null) continue
+      const record = row as Record<string, unknown>
+
+      const groupValue = String(record[groupVar] ?? '')
+      const numericValue = record[dependentVar]
+
+      if (typeof numericValue === 'number' && !isNaN(numericValue)) {
+        if (!groupMap.has(groupValue)) {
+          groupMap.set(groupValue, [])
+        }
+        groupMap.get(groupValue)!.push(numericValue)
+      }
+    }
+
+    const groupNames = Array.from(groupMap.keys()).sort()
+    const groups = groupNames.map(name => groupMap.get(name)!)
+
+    return { groups, groupNames }
+  }
+
+  /**
    * 통합 실행 메서드
    */
-  async execute(data: any[], options?: any): Promise<AnalysisResult> {
+  async execute(data: unknown[], options?: Record<string, unknown>): Promise<AnalysisResult> {
     const { method = 'mann-whitney', ...restOptions } = options || {}
+    const groupVar = restOptions.groupVar as string | undefined
+    const dependentVar = restOptions.dependentVar as string | undefined
 
     switch (method) {
-      case 'mann-whitney':
-        return this.executeMannWhitneyU(restOptions.group1, restOptions.group2)
-      case 'wilcoxon':
-        return this.executeWilcoxon(restOptions.x, restOptions.y)
-      case 'kruskal-wallis':
-        return this.executeKruskalWallis(restOptions.groups || data)
+      case 'mann-whitney': {
+        // If group1/group2 provided directly, use them
+        if (restOptions.group1 && restOptions.group2) {
+          return this.executeMannWhitneyU(
+            restOptions.group1 as number[],
+            restOptions.group2 as number[]
+          )
+        }
+        // Otherwise extract from data using groupVar/dependentVar
+        if (groupVar && dependentVar) {
+          const { groups, groupNames } = this.extractGroups(data, groupVar, dependentVar)
+          if (groups.length < 2) {
+            throw new Error(`Mann-Whitney U requires at least 2 groups, found ${groups.length}`)
+          }
+          if (groups.length > 2) {
+            logger.warn(`Mann-Whitney U: Found ${groups.length} groups, using first 2: ${groupNames.slice(0, 2).join(', ')}`)
+          }
+          return this.executeMannWhitneyU(groups[0], groups[1])
+        }
+        throw new Error('Mann-Whitney U requires either group1/group2 or groupVar/dependentVar')
+      }
+
+      case 'wilcoxon': {
+        const x = restOptions.x as number[] | undefined
+        if (!x || x.length === 0) {
+          throw new Error('Wilcoxon test requires x array')
+        }
+        return this.executeWilcoxon(x, restOptions.y as number[] | undefined)
+      }
+
+      case 'kruskal-wallis': {
+        // If groups provided directly, use them
+        if (restOptions.groups) {
+          return this.executeKruskalWallis(restOptions.groups as number[][])
+        }
+        // Otherwise extract from data
+        if (groupVar && dependentVar) {
+          const { groups } = this.extractGroups(data, groupVar, dependentVar)
+          if (groups.length < 2) {
+            throw new Error(`Kruskal-Wallis requires at least 2 groups, found ${groups.length}`)
+          }
+          return this.executeKruskalWallis(groups)
+        }
+        throw new Error('Kruskal-Wallis requires either groups or groupVar/dependentVar')
+      }
+
       case 'friedman':
         return this.executeFriedman(data as number[][])
-      case 'dunn':
-        return this.executeDunn(restOptions.groups || data)
+
+      case 'dunn': {
+        if (restOptions.groups) {
+          return this.executeDunn(restOptions.groups as number[][])
+        }
+        if (groupVar && dependentVar) {
+          const { groups } = this.extractGroups(data, groupVar, dependentVar)
+          return this.executeDunn(groups)
+        }
+        throw new Error('Dunn test requires either groups or groupVar/dependentVar')
+      }
+
       default:
         throw new Error(`Unknown nonparametric method: ${method}`)
     }

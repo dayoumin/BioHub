@@ -207,24 +207,154 @@ export class RegressionExecutor extends BaseExecutor {
   }
 
   /**
+   * Extract x, y arrays from data using variable names
+   */
+  private extractRegressionData(
+    data: unknown[],
+    dependentVar: string,
+    independentVar: string | string[]
+  ): { x: number[]; y: number[]; X?: number[][] } {
+    const y: number[] = []
+    const isMultiple = Array.isArray(independentVar)
+
+    if (isMultiple) {
+      // Multiple regression: X is 2D array
+      const X: number[][] = []
+      const indVars = independentVar as string[]
+
+      for (const row of data) {
+        if (typeof row !== 'object' || row === null) continue
+        const record = row as Record<string, unknown>
+
+        const depVal = record[dependentVar]
+        if (typeof depVal !== 'number' || isNaN(depVal)) continue
+
+        const indVals: number[] = []
+        let allValid = true
+        for (const iv of indVars) {
+          const val = record[iv]
+          if (typeof val !== 'number' || isNaN(val)) {
+            allValid = false
+            break
+          }
+          indVals.push(val)
+        }
+
+        if (allValid) {
+          y.push(depVal)
+          X.push(indVals)
+        }
+      }
+
+      return { x: [], y, X }
+    } else {
+      // Simple regression: x is 1D array
+      const x: number[] = []
+      const indVar = independentVar as string
+
+      for (const row of data) {
+        if (typeof row !== 'object' || row === null) continue
+        const record = row as Record<string, unknown>
+
+        const depVal = record[dependentVar]
+        const indVal = record[indVar]
+
+        if (typeof depVal === 'number' && !isNaN(depVal) &&
+            typeof indVal === 'number' && !isNaN(indVal)) {
+          y.push(depVal)
+          x.push(indVal)
+        }
+      }
+
+      return { x, y }
+    }
+  }
+
+  /**
    * 통합 실행 메서드
    */
-  async execute(data: any[], options?: any): Promise<AnalysisResult> {
+  async execute(data: unknown[], options?: Record<string, unknown>): Promise<AnalysisResult> {
     const { method = 'simple', ...restOptions } = options || {}
+    const dependentVar = restOptions.dependentVar as string | undefined
+    const independentVar = restOptions.independentVar as string | string[] | undefined
 
     switch (method) {
       case 'simple':
-        return this.executeSimpleLinear(restOptions.x, restOptions.y)
+      case 'simple-regression': {
+        // x, y 직접 제공 또는 변수명으로 추출
+        let x = restOptions.x as number[] | undefined
+        let y = restOptions.y as number[] | undefined
+
+        if ((!x || !y) && dependentVar && independentVar) {
+          const indVar = Array.isArray(independentVar) ? independentVar[0] : independentVar
+          const extracted = this.extractRegressionData(data, dependentVar, indVar)
+          x = extracted.x
+          y = extracted.y
+        }
+
+        if (!x || !y || x.length === 0 || y.length === 0) {
+          throw new Error('단순회귀분석을 위한 데이터가 없습니다. dependentVar/independentVar를 확인하세요.')
+        }
+
+        return this.executeSimpleLinear(x, y)
+      }
+
       case 'multiple':
-        return this.executeMultiple(restOptions.X, restOptions.y)
-      case 'logistic':
-        return this.executeLogistic(restOptions.X, restOptions.y)
-      case 'polynomial':
-        return this.executePolynomial(
-          restOptions.x,
-          restOptions.y,
-          restOptions.degree
-        )
+      case 'multiple-regression': {
+        // X, y 직접 제공 또는 변수명으로 추출
+        let X = restOptions.X as number[][] | undefined
+        let y = restOptions.y as number[] | undefined
+
+        if ((!X || !y) && dependentVar && independentVar) {
+          const indVars = Array.isArray(independentVar) ? independentVar : independentVar.split(',').map(s => s.trim())
+          const extracted = this.extractRegressionData(data, dependentVar, indVars)
+          X = extracted.X
+          y = extracted.y
+        }
+
+        if (!X || !y || X.length === 0 || y.length === 0) {
+          throw new Error('다중회귀분석을 위한 데이터가 없습니다. dependentVar/independentVar를 확인하세요.')
+        }
+
+        return this.executeMultiple(X, y)
+      }
+
+      case 'logistic': {
+        let X = restOptions.X as number[][] | undefined
+        let y = restOptions.y as number[] | undefined
+
+        if ((!X || !y) && dependentVar && independentVar) {
+          const indVars = Array.isArray(independentVar) ? independentVar : [independentVar]
+          const extracted = this.extractRegressionData(data, dependentVar, indVars)
+          X = extracted.X || extracted.x.map(v => [v])
+          y = extracted.y
+        }
+
+        if (!X || !y || X.length === 0) {
+          throw new Error('로지스틱 회귀를 위한 데이터가 없습니다.')
+        }
+
+        return this.executeLogistic(X, y)
+      }
+
+      case 'polynomial': {
+        let x = restOptions.x as number[] | undefined
+        let y = restOptions.y as number[] | undefined
+
+        if ((!x || !y) && dependentVar && independentVar) {
+          const indVar = Array.isArray(independentVar) ? independentVar[0] : independentVar
+          const extracted = this.extractRegressionData(data, dependentVar, indVar)
+          x = extracted.x
+          y = extracted.y
+        }
+
+        if (!x || !y || x.length === 0) {
+          throw new Error('다항회귀를 위한 데이터가 없습니다.')
+        }
+
+        return this.executePolynomial(x, y, restOptions.degree as number | undefined)
+      }
+
       default:
         throw new Error(`Unknown regression method: ${method}`)
     }
