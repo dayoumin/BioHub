@@ -36,6 +36,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 // Services & Hooks
 import { VariableMapping } from '@/components/variable-selection/types'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 

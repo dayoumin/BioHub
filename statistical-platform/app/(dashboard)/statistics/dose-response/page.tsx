@@ -18,6 +18,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -303,6 +304,13 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
 
       {result && (
         <div className="space-y-6">
+          <ResultContextHeader
+            analysisType="용량-반응 분석"
+            analysisSubtitle="Dose-Response Analysis"
+            fileName={uploadedData?.fileName}
+            variables={[doseColumn, responseColumn].filter(Boolean)}
+            sampleSize={uploadedData?.data?.length}
+          />
           {/* 주요 결과 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
