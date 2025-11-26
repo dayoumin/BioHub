@@ -46,6 +46,7 @@ import {
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -114,6 +115,7 @@ export default function ProportionTestPage(): React.ReactElement {
   })
 
   const [activeTab, setActiveTab] = React.useState('summary')
+  const [analysisTimestamp, setAnalysisTimestamp] = React.useState<Date | null>(null)
 
   // ============================================================================
   // Breadcrumbs
@@ -223,6 +225,7 @@ export default function ProportionTestPage(): React.ReactElement {
         continuityCorrection: totalCount < 50
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(finalResults, 3)
       setActiveTab('summary')
     } catch (err) {
@@ -702,6 +705,15 @@ export default function ProportionTestPage(): React.ReactElement {
     )
 
     return (
+      <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="일표본 비율 검정"
+          analysisSubtitle="One-Sample Proportion Test"
+          fileName={uploadedData?.fileName}
+          variables={selectedVariables?.dependent ? [selectedVariables.dependent] : []}
+          sampleSize={results.totalCount}
+          timestamp={analysisTimestamp ?? undefined}
+        />
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="summary">요약</TabsTrigger>
@@ -739,8 +751,9 @@ export default function ProportionTestPage(): React.ReactElement {
           {renderMethodExplanation()}
         </TabsContent>
       </Tabs>
+      </div>
     )
-  }, [results, activeTab])
+  }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])
 
   // ============================================================================
   // JSX 렌더링

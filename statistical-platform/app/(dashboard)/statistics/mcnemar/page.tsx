@@ -24,6 +24,7 @@ import {
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -64,6 +65,7 @@ export default function McNemarTestPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs (useMemo)
   const breadcrumbs = useMemo(() => [
@@ -223,6 +225,7 @@ export default function McNemarTestPage() {
         return
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(result, 2)
     } catch (error) {
       console.error('McNemar 검정 분석 중 오류:', error)
@@ -534,6 +537,11 @@ export default function McNemarTestPage() {
   const renderResults = useCallback(() => {
     if (!results) return null
 
+    // Build variable list for context header
+    const usedVariables = Array.isArray(selectedVariables?.dependent)
+      ? selectedVariables.dependent
+      : selectedVariables?.dependent ? [selectedVariables.dependent] : []
+
     const {
       variable1,
       variable2,
@@ -550,6 +558,14 @@ export default function McNemarTestPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="McNemar 검정"
+          analysisSubtitle="McNemar Test"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={results.sampleSize}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         {/* 주요 결과 요약 */}
         <Alert className={significant ? "border-error-border bg-muted" : "border-success-border bg-muted"}>
           <AlertCircle className="h-4 w-4" />
@@ -777,7 +793,7 @@ export default function McNemarTestPage() {
         </div>
       </div>
     )
-  }, [results])
+  }, [results, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

@@ -43,6 +43,7 @@ import { Calculator, Upload, Settings, BarChart3, Info, CheckCircle2, AlertCircl
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -108,6 +109,7 @@ export default function BinomialTestPage(): React.ReactElement {
   })
 
   const [uniqueValues, setUniqueValues] = React.useState<Array<string | number>>([])
+  const [analysisTimestamp, setAnalysisTimestamp] = React.useState<Date | null>(null)
 
   // ============================================================================
   // Breadcrumbs
@@ -273,6 +275,7 @@ export default function BinomialTestPage(): React.ReactElement {
         return
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(result, 3)
     } catch (error) {
       console.error('이항 검정 분석 중 오류:', error)
@@ -553,6 +556,14 @@ export default function BinomialTestPage(): React.ReactElement {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="이항 검정"
+          analysisSubtitle="Binomial Test"
+          fileName={uploadedData?.fileName}
+          variables={selectedVariables?.dependent ? [selectedVariables.dependent] : []}
+          sampleSize={results.totalCount}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         {/* 기본 통계 */}
         <Card className="p-4">
           <h4 className="font-semibold mb-3">기본 통계</h4>
@@ -638,7 +649,7 @@ export default function BinomialTestPage(): React.ReactElement {
         </Button>
       </div>
     )
-  }, [results, actions])
+  }, [results, actions, uploadedData, selectedVariables, analysisTimestamp])
 
   // ============================================================================
   // JSX 렌더링

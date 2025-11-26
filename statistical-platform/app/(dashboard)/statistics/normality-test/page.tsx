@@ -24,6 +24,7 @@ import {
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -72,6 +73,7 @@ export default function NormalityTestPage() {
     withError: false
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [activeTab, setActiveTab] = useState('summary')
   const [showAllTests, setShowAllTests] = useState(true)
 
@@ -164,6 +166,7 @@ export default function NormalityTestPage() {
         }
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(analysisResult, 3)
       setActiveTab('summary')
     } catch (error) {
@@ -414,6 +417,15 @@ export default function NormalityTestPage() {
     }
 
     return (
+      <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="정규성 검정"
+          analysisSubtitle="Normality Test"
+          fileName={uploadedData?.fileName}
+          variables={selectedVariables?.dependent ? [selectedVariables.dependent] : []}
+          sampleSize={results.sampleSize}
+          timestamp={analysisTimestamp ?? undefined}
+        />
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="summary">요약</TabsTrigger>
@@ -447,8 +459,9 @@ export default function NormalityTestPage() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     )
-  }, [results, activeTab])
+  }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])
 
   // 검정 결과 테이블 렌더링
   const renderTestResultsTable = useCallback(() => {
