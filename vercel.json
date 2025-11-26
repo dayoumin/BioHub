@@ -1,7 +1,5 @@
 {
-  "version": 2,
-  "buildCommand": "cd statistical-platform && npm ci && npm run build",
-  "outputDirectory": "statistical-platform/out",
-  "installCommand": "cd statistical-platform && npm ci",
-  "framework": null
+  "installCommand": "cd statistical-platform && npm install --legacy-peer-deps",
+  "buildCommand": "cd statistical-platform && npm run build",
+  "outputDirectory": "statistical-platform/.next"
 }
