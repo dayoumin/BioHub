@@ -30,8 +30,8 @@ import type { AnalysisResult as ExecutorResult } from '@/lib/services/executors/
  * - 지속성: IndexedDB에 분석 결과를 영구 저장합니다 (원본 데이터는 제외).
  */
 
-// Smart Flow 총 단계 수 (2025-11-24: 7 → 5단계로 축소)
-const MAX_STEPS = 5
+// Smart Flow 총 단계 수 (2025-11-26: 5 → 4단계로 축소)
+const MAX_STEPS = 4
 
 // 분석 히스토리 타입 (UI용 - IndexedDB와 호환)
 export interface AnalysisHistory {
@@ -415,14 +415,14 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       },
       
       // 유틸리티 함수들
+      // 4단계 플로우: 탐색(1) → 방법(2) → 변수(3) → 분석(4)
       canProceedToNext: () => {
         const state = get()
         switch (state.currentStep) {
-          case 1: return state.uploadedFile !== null && state.uploadedData !== null && state.validationResults?.isValid === true
-          case 2: return true // 데이터 탐색 (선택 사항, 항상 진행 가능)
-          case 3: return state.selectedMethod !== null
-          case 4: return state.variableMapping !== null // 변수 선택 완료
-          case 5: return false // 마지막 단계
+          case 1: return state.uploadedFile !== null && state.uploadedData !== null && state.validationResults?.isValid === true // 탐색: 데이터 업로드 완료
+          case 2: return state.selectedMethod !== null // 방법: 분석 방법 선택 완료
+          case 3: return state.variableMapping !== null // 변수: 변수 매핑 완료
+          case 4: return false // 분석: 마지막 단계
           default: return false
         }
       },
