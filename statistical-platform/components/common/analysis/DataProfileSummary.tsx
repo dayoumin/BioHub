@@ -47,71 +47,71 @@ export function DataProfileSummary({
   title = '데이터 검증 완료',
   className
 }: DataProfileSummaryProps) {
-  // 데이터 품질 계산
+  // 결측률 계산
   const missingRate = totalCells
     ? (missingValues / totalCells) * 100
     : 0
 
-  const qualityLabel =
-    missingValues === 0
-      ? '완벽'
-      : missingRate < 5
-        ? '양호'
-        : '주의'
-
   return (
     <Card className={`animate-in fade-in duration-500 ${className || ''}`}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-success" />
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <CardContent className="py-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <CheckCircle className="w-4 h-4 text-success" />
+            <span className="text-sm font-semibold">{title}</span>
+          </div>
+
+          <div className="h-5 w-px bg-border" />
+
           {/* 표본 크기 */}
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-xs text-muted-foreground mb-1">표본 크기</p>
-            <p className="text-lg font-semibold">{sampleSize}</p>
+          <div className="flex items-center gap-1.5 text-sm flex-shrink-0">
+            <span className="text-muted-foreground">표본:</span>
+            <span className="font-semibold">{sampleSize}</span>
             <Badge
               variant={sampleSize >= 30 ? 'default' : 'secondary'}
-              className="mt-1"
+              className="text-xs px-1.5 py-0"
             >
               {sampleSize >= 30 ? '충분' : '소표본'}
             </Badge>
           </div>
 
+          <div className="h-5 w-px bg-border" />
+
           {/* 변수 */}
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-xs text-muted-foreground mb-1">변수</p>
-            <p className="text-sm font-semibold">
-              수치형 {numericVars}개
-            </p>
-            <p className="text-xs text-muted-foreground">
-              범주형 {categoricalVars}개
-            </p>
+          <div className="flex items-center gap-1.5 text-sm flex-shrink-0">
+            <span className="text-muted-foreground">변수:</span>
+            <span className="font-semibold">수치형 {numericVars}</span>
+            <span className="text-muted-foreground">·</span>
+            <span className="font-semibold">범주형 {categoricalVars}</span>
           </div>
 
-          {/* 데이터 품질 */}
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-xs text-muted-foreground mb-1">데이터 품질</p>
-            <p className="text-lg font-semibold">{qualityLabel}</p>
-            <p className="text-xs text-muted-foreground">
-              결측 {missingValues}개
-              {totalCells && ` (${missingRate.toFixed(1)}%)`}
-            </p>
+          <div className="h-5 w-px bg-border" />
+
+          {/* 결측치 */}
+          <div className="flex items-center gap-1.5 text-sm flex-shrink-0">
+            <span className="text-muted-foreground">결측치:</span>
+            {missingValues === 0 ? (
+              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                결측치 없음
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-800 border-yellow-200">
+                결측치 {missingValues}개{totalCells ? ` (${missingRate.toFixed(1)}%)` : ''}
+              </Badge>
+            )}
           </div>
+          <div className="h-5 w-px bg-border" />
 
           {/* 권장 분석 */}
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-xs text-muted-foreground mb-1">권장 분석</p>
-            <p className="text-sm font-semibold">
+          <div className="flex items-center gap-1.5 text-sm flex-shrink-0">
+            <span className="text-muted-foreground">권장:</span>
+            <span className="font-semibold">
               {recommendedType === 'parametric'
                 ? '모수적'
                 : recommendedType === 'nonparametric'
                   ? '비모수적'
                   : '분석 중...'}
-            </p>
+            </span>
           </div>
         </div>
       </CardContent>
