@@ -1,7 +1,6 @@
 import { BaseExecutor } from './base-executor'
 import { AnalysisResult } from './types'
 import { pyodideStats } from '../pyodide-statistics'
-import { logger } from '@/lib/utils/logger'
 
 /**
  * 회귀분석 실행자
@@ -18,9 +17,17 @@ export class RegressionExecutor extends BaseExecutor {
 
       const result = await pyodideStats.regression(x, y)
 
-      // R² 계산 (result에 없으면 직접 계산 스킵)
-      const yMean = y.reduce((a, b) => a + b, 0) / y.length
-      const totalSS = y.reduce((sum, yi) => sum + Math.pow(yi - yMean, 2), 0)
+      // RMSE 계산을 위한 예측값/잔차 준비
+      const slope = result.slope ?? 0
+      const intercept = result.intercept ?? 0
+
+      // 예측값 및 잔차 계산
+      const predictions = x.map(xi => slope * xi + intercept)
+      const residuals = y.map((yi, i) => yi - predictions[i])
+
+      // RMSE 계산
+      const mse = residuals.reduce((sum, r) => sum + r * r, 0) / residuals.length
+      const rmse = Math.sqrt(mse)
 
       return {
         metadata: this.createMetadata('단순선형회귀', x.length, startTime),
@@ -33,23 +40,30 @@ export class RegressionExecutor extends BaseExecutor {
           coefficients: [
             {
               name: '절편',
-              value: result.intercept ?? 0,
-              stdError: 0, // result.interceptStderr가 없음
+              value: intercept,
+              stdError: 0,
               tValue: 0,
-              pvalue: 0 // result.interceptPvalue가 없음
+              pvalue: 0
             },
             {
               name: '기울기',
-              value: result.slope ?? 0,
-              stdError: 0, // result.slopeStderr가 없음
+              value: slope,
+              stdError: 0,
               tValue: 0,
               pvalue: result.pvalue
             }
           ],
+          effectSize: {
+            value: result.rSquared,
+            type: 'R-squared',
+            interpretation: result.rSquared >= 0.67 ? '큰 효과' : result.rSquared >= 0.33 ? '중간 효과' : '작은 효과'
+          },
+          intercept,
           rSquared: result.rSquared,
-          adjustedRSquared: result.rSquared, // 단순회귀에서는 동일
-          residuals: result.predictions ?? [], // residuals가 없음
-          predictions: result.predictions ?? []
+          adjustedRSquared: result.rSquared,
+          rmse,
+          residuals,
+          predictions
         },
         visualizationData: {
           type: 'scatter',
@@ -79,17 +93,25 @@ export class RegressionExecutor extends BaseExecutor {
 
       const result = await pyodideStats.multipleRegression(X, y)
 
-      // Adjusted R² 계산
+      // Adjusted R² 계산 (n > k + 1 보호)
       const n = y.length
       const k = X[0].length
-      const adjustedRSquared = 1 - ((1 - result.rSquared) * (n - 1) / (n - k - 1))
+      let adjustedRSquared: number | null = null
+      if (n > k + 1) {
+        adjustedRSquared = 1 - ((1 - result.rSquared) * (n - 1) / (n - k - 1))
+      }
+
+      // interpretation 생성
+      const adjRSquaredText = adjustedRSquared !== null
+        ? `, Adj. R² = ${adjustedRSquared.toFixed(4)}`
+        : ' (Adj. R² 계산 불가: 표본 부족)'
 
       return {
         metadata: this.createMetadata('다중회귀분석', y.length, startTime),
         mainResults: {
           statistic: result.fStatistic,
           pvalue: result.pValue,
-          interpretation: `R² = ${result.rSquared.toFixed(4)}, Adj. R² = ${adjustedRSquared.toFixed(4)}, ${this.interpretPValue(result.pValue)}`
+          interpretation: `R² = ${result.rSquared.toFixed(4)}${adjRSquaredText}, ${this.interpretPValue(result.pValue)}`
         },
         additionalInfo: {
           coefficients: result.coefficients.map((coef: any, i: number) => ({
@@ -100,7 +122,7 @@ export class RegressionExecutor extends BaseExecutor {
             pvalue: coef.pValue
           })),
           rSquared: result.rSquared,
-          adjustedRSquared,
+          adjustedRSquared: adjustedRSquared ?? undefined,
           vif: result.vif,
           residuals: result.residuals
         },

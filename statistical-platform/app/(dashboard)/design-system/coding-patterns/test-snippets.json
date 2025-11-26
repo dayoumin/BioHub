@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "lastUpdated": "2025-11-26",
   "sources": [
     "statistical-platform/__tests__/",
@@ -28,6 +28,30 @@
           "purpose": "비동기 데이터 로딩 및 로딩 상태 확인",
           "code": "import { render, screen, waitFor } from '@testing-library/react';\nimport { MyComponent } from '@/components/MyComponent';\nimport { fetchData } from '@/lib/api';\n\njest.mock('@/lib/api');\nconst mockFetchData = fetchData as jest.MockedFunction<typeof fetchData>;\n\ndescribe('MyComponent 비동기', () => {\n  it('로딩 중에는 스피너가 표시되어야 함', async () => {\n    mockFetchData.mockImplementation(() => \n      new Promise(resolve => setTimeout(() => resolve([]), 1000))\n    );\n    \n    render(<MyComponent />);\n    \n    // 로딩 스피너 확인\n    expect(screen.getByRole('status')).toBeInTheDocument();\n    \n    // 데이터 로딩 완료 후\n    await waitFor(() => {\n      expect(screen.queryByRole('status')).not.toBeInTheDocument();\n    });\n  });\n  \n  it('데이터 로딩 실패 시 에러 메시지가 표시되어야 함', async () => {\n    mockFetchData.mockRejectedValue(new Error('Failed to fetch'));\n    \n    render(<MyComponent />);\n    \n    await waitFor(() => {\n      expect(screen.getByText(/Failed to fetch/)).toBeInTheDocument();\n    });\n  });\n});",
           "keywords": ["mock", "mockResolvedValue", "mockRejectedValue", "waitFor"]
+        }
+      ]
+    },
+    {
+      "name": "Schema Validation Tests",
+      "description": "스키마 검증 테스트 패턴 (통계 결과 일관성 보장)",
+      "patterns": [
+        {
+          "name": "카테고리별 필수 필드 검증",
+          "purpose": "통계 방법별 필수 필드 존재 여부 확인",
+          "code": "import { describe, it, expect } from '@jest/globals';\nimport { validateResultSchema, getCategoryForMethod } from '@/lib/validation/result-schema-validator';\nimport type { AnalysisResult } from '@/types/smart-flow';\n\ndescribe('Result Schema Validator', () => {\n  it('should pass when all required fields exist', () => {\n    const result: AnalysisResult = {\n      method: 'Independent t-test',\n      statistic: 2.5,\n      pValue: 0.05,\n      interpretation: 'Significant difference found'\n    };\n\n    const validation = validateResultSchema(result, 't-test');\n\n    expect(validation.valid).toBe(true);\n    expect(validation.missing).toHaveLength(0);\n    expect(validation.category).toBe('comparison');\n  });\n\n  it('should fail when required field is missing', () => {\n    const result = {\n      method: 'regression',\n      statistic: 15.3,\n      pValue: 0.001,\n      interpretation: 'Model fit'\n      // missing additional.rSquared\n    } as AnalysisResult;\n\n    const validation = validateResultSchema(result, 'regression');\n\n    expect(validation.valid).toBe(false);\n    expect(validation.missing).toContain('additional.rSquared');\n  });\n});",
+          "keywords": ["schema validation", "required fields", "category mapping"]
+        },
+        {
+          "name": "Method ID 정규화 검증",
+          "purpose": "다양한 method ID 형식이 올바른 카테고리로 매핑되는지 확인",
+          "code": "describe('Method ID Normalization', () => {\n  it('should map executor-facing IDs correctly', () => {\n    // executor에서 사용하는 짧은 ID들\n    expect(getCategoryForMethod('simple')).toBe('regression');\n    expect(getCategoryForMethod('multiple')).toBe('regression');\n    expect(getCategoryForMethod('logistic')).toBe('regression');\n  });\n\n  it('should normalize method IDs with spaces', () => {\n    expect(getCategoryForMethod('t test')).toBe('comparison');\n    expect(getCategoryForMethod('chi square')).toBe('goodnessOfFit');\n  });\n\n  it('should handle case insensitive method IDs', () => {\n    expect(getCategoryForMethod('T-TEST')).toBe('comparison');\n    expect(getCategoryForMethod('ANOVA')).toBe('comparison');\n  });\n\n  it('should default to comparison for unknown methods', () => {\n    expect(getCategoryForMethod('unknown-method')).toBe('comparison');\n  });\n});",
+          "keywords": ["method ID", "normalization", "case insensitive"]
+        },
+        {
+          "name": "배치 검증 테스트",
+          "purpose": "여러 결과를 동시에 검증하고 실패한 method 식별",
+          "code": "import { validateBatch } from '@/lib/validation/result-schema-validator';\n\ndescribe('Batch Validation', () => {\n  it('should validate multiple results at once', () => {\n    const results = [\n      { methodId: 't-test', result: { method: 't-test', statistic: 2.5, pValue: 0.05, interpretation: 'Significant' } },\n      { methodId: 'regression', result: { method: 'regression', statistic: 15.3, pValue: 0.001, interpretation: 'Model fit' } }\n    ];\n\n    const batch = validateBatch(results);\n\n    expect(batch.allValid).toBe(false);\n    expect(batch.failedMethods).toContain('regression');\n    expect(batch.failedMethods).not.toContain('t-test');\n  });\n});",
+          "keywords": ["batch validation", "multiple results", "failed methods"]
         }
       ]
     },
