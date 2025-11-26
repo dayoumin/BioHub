@@ -18,7 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp, CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp } from 'lucide-react'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 

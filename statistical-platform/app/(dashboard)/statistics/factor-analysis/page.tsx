@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle2, CheckCircle2, XCircle, Target, BarChart3, Activity, Zap, TrendingUp, Info } from 'lucide-react'
+import { CheckCircle2, XCircle, Target, BarChart3, Activity, Zap, TrendingUp, Info } from 'lucide-react'
 
 // Components
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
