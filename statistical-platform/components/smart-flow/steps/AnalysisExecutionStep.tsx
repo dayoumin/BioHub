@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { BarChart3, CheckCircle, Loader2, AlertCircle, Pause, Play, X } from 'lucide-react'
+import { BarChart3, CheckCircle2, Loader2, AlertCircle, Pause, Play, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -359,7 +359,7 @@ export function AnalysisExecutionStep({
                 return (
                   <div key={stage.id} className="flex items-center gap-3">
                     {isCompleted ? (
-                      <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
                     ) : isCurrent ? (
                       <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
                     ) : (
@@ -477,7 +477,7 @@ export function AnalysisExecutionStep({
           {/* 성공 시 결과 미리보기 */}
           {analysisResult && (
             <Alert className="bg-success-bg dark:bg-success-bg border-success-border">
-              <CheckCircle className="h-4 w-4 text-success" />
+              <CheckCircle2 className="h-4 w-4 text-success" />
               <AlertDescription>
                 <strong>분석 완료!</strong>
                 <div className="mt-2 text-sm">

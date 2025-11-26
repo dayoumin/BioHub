@@ -15,7 +15,7 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
 
 export interface DataProfileSummaryProps {
@@ -73,7 +73,7 @@ export function DataProfileSummary({
   // 상태별 설정
   const statusConfig = {
     success: {
-      icon: CheckCircle,
+      icon: CheckCircle2,
       title: title || '검토 완료',
       iconColor: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-50 dark:bg-green-950/30',

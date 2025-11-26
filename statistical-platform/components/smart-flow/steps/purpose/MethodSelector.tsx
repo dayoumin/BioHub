@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { Search, Check, ChevronDown, CheckCircle, XCircle, AlertCircle, Sparkles, ArrowUp, ArrowDown } from 'lucide-react'
+import { Search, Check, ChevronDown, CheckCircle2, XCircle, AlertCircle, Sparkles, ArrowUp, ArrowDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -31,7 +31,7 @@ function ChecklistItem({
   const Icon = passed === undefined
     ? AlertCircle
     : passed
-      ? CheckCircle
+      ? CheckCircle2
       : type === 'warning' ? AlertCircle : XCircle
 
   const color = passed === undefined

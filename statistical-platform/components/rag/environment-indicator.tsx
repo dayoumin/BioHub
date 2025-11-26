@@ -12,7 +12,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { Loader2, Globe, Monitor, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
+import { Loader2, Globe, Monitor, CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   getCachedEnvironmentInfo,
@@ -98,7 +98,7 @@ export function EnvironmentIndicator() {
             <span className="text-muted-foreground">PDF 파싱 (Docling)</span>
             {envInfo.doclingAvailable ? (
               <Badge variant="default" className="gap-1 bg-success">
-                <CheckCircle className="h-3 w-3" />
+                <CheckCircle2 className="h-3 w-3" />
                 사용 가능
               </Badge>
             ) : (
@@ -114,7 +114,7 @@ export function EnvironmentIndicator() {
             <span className="text-muted-foreground">AI 모델 (Ollama)</span>
             {envInfo.ollamaAvailable ? (
               <Badge variant="default" className="gap-1 bg-success">
-                <CheckCircle className="h-3 w-3" />
+                <CheckCircle2 className="h-3 w-3" />
                 연결됨
               </Badge>
             ) : (

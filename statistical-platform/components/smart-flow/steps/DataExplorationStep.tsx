@@ -13,7 +13,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3 } from 'lucide-react'
+import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3, GitCommitHorizontal } from 'lucide-react'
 import { ValidationResults, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { usePyodide } from '@/components/providers/PyodideProvider'
@@ -1014,7 +1014,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               onClick={() => setChartType('boxplot')}
               className="text-xs"
             >
-              <ListOrdered className="h-3 w-3 mr-1" />
+              <GitCommitHorizontal className="h-3 w-3 mr-1" />
               박스플롯
             </Button>
           </div>

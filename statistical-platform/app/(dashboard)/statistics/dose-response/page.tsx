@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
-import { Activity, CheckCircle, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
+import { Activity, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -636,7 +636,7 @@ export default function DoseResponsePage() {
       <div className="flex justify-end">
         <Button onClick={() => actions.setCurrentStep(1)}>
           다음 단계
-          <CheckCircle className="ml-2 h-4 w-4" />
+          <CheckCircle2 className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, AlertCircle, BarChart3, Target, CheckCircle } from 'lucide-react'
+import { CheckCircle2, AlertCircle, BarChart3, Target, CheckCircle2 } from 'lucide-react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ErrorBar } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -450,7 +450,7 @@ export default function MeansPlotPage() {
                     }}
                   >
                     {col}
-                    {isSelected && <CheckCircle className="ml-1 h-3 w-3" />}
+                    {isSelected && <CheckCircle2 className="ml-1 h-3 w-3" />}
                   </Badge>
                 )
               })}
@@ -482,7 +482,7 @@ export default function MeansPlotPage() {
                     }}
                   >
                     {col}
-                    {isSelected && <CheckCircle className="ml-1 h-3 w-3" />}
+                    {isSelected && <CheckCircle2 className="ml-1 h-3 w-3" />}
                   </Badge>
                 )
               })}

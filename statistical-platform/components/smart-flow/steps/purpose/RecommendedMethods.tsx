@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Sparkles, ChevronDown, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Check, Sparkles, ChevronDown, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -32,7 +32,7 @@ function ChecklistItem({
   const Icon = passed === undefined
     ? AlertCircle
     : passed
-      ? CheckCircle
+      ? CheckCircle2
       : type === 'warning' ? AlertCircle : XCircle
 
   const color = passed === undefined

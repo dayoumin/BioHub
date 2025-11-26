@@ -1,7 +1,7 @@
 'use client'
 
 import { memo, useMemo, useEffect, useState, useCallback } from 'react'
-import { CheckCircle, AlertTriangle, XCircle, Sparkles } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, XCircle, Sparkles } from 'lucide-react'
 import { ValidationResults, ColumnStatistics } from '@/types/smart-flow'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -210,7 +210,7 @@ export const DataValidationStep = memo(function DataValidationStep({
             ) : hasWarnings ? (
               <AlertTriangle className="w-6 h-6 text-warning" />
             ) : (
-              <CheckCircle className="w-6 h-6 text-success" />
+              <CheckCircle2 className="w-6 h-6 text-success" />
             )}
             <span>
               {hasErrors ? '데이터 검증 실패' :

@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface MethodInfo {
@@ -69,7 +69,7 @@ export function MethodSelectionCard({
                         </CardDescription>
                       </div>
                       {isSelected && (
-                        <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
                       )}
                     </div>
                   </div>

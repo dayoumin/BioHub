@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
@@ -88,7 +88,7 @@ export function GuidanceCard({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* 좌측: 아이콘 + 제목 + 설명 */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+            <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
             <div className="text-left min-w-0 flex-1">
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                 {title}

@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle, XCircle, Users, Target, Zap, BarChart3, Activity, CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Users, Target, Zap, BarChart3, Activity, CheckCircle2 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -467,9 +467,9 @@ export default function ClusterAnalysisPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       {results.silhouetteScore > 0.5 ? (
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                       ) : results.silhouetteScore > 0.25 ? (
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground" />
                       )}
@@ -481,7 +481,7 @@ export default function ClusterAnalysisPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                       <span>
                         전체 분산의 {((results.betweenClusterSS / results.totalSS) * 100).toFixed(1)}%가
                         군집 간 차이로 설명됩니다.
@@ -490,7 +490,7 @@ export default function ClusterAnalysisPage() {
 
                     {results.davies_bouldin_score < 1 && (
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                         <span>
                           Davies-Bouldin 지수 {results.davies_bouldin_score.toFixed(3)}는
                           잘 분리된 군집을 나타냅니다.

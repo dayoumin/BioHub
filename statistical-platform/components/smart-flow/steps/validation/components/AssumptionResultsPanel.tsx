@@ -11,7 +11,7 @@
 'use client'
 
 import { memo } from 'react'
-import { CheckCircle, AlertTriangle } from 'lucide-react'
+import { CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { StatisticalAssumptions, ColumnStatistics } from '@/types/smart-flow'
 import type { NormalityTestResult } from '../hooks'
@@ -53,7 +53,7 @@ export const AssumptionResultsPanel = memo(function AssumptionResultsPanel({
             : 'bg-warning-bg'
         }`}>
           {summary.canUseParametric ? (
-            <CheckCircle className="w-5 h-5 text-success" />
+            <CheckCircle2 className="w-5 h-5 text-success" />
           ) : (
             <AlertTriangle className="w-5 h-5 text-warning" />
           )}

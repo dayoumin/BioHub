@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle, CheckCircle2, XCircle, Target, BarChart3, Activity, Zap, TrendingUp, Info } from 'lucide-react'
+import { CheckCircle2, CheckCircle2, XCircle, Target, BarChart3, Activity, Zap, TrendingUp, Info } from 'lucide-react'
 
 // Components
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -650,15 +650,15 @@ export default function FactorAnalysisPage() {
                     <h4 className="font-semibold mb-3">공통성 해석 기준</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                         <span><strong>0.7 이상:</strong> 매우 좋음</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                         <span><strong>0.5-0.7:</strong> 양호함</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                         <span><strong>0.3-0.5:</strong> 보통</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -689,7 +689,7 @@ export default function FactorAnalysisPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
                       {results.kmo >= 0.6 ? (
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground" />
                       )}
@@ -704,7 +704,7 @@ export default function FactorAnalysisPage() {
 
                     <div className="flex items-center gap-2">
                       {results.bartlettTest.significant ? (
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <XCircle className="h-4 w-4 text-muted-foreground" />
                       )}
@@ -730,12 +730,12 @@ export default function FactorAnalysisPage() {
 
                     {results.varianceExplained.cumulative[results.numFactors - 1] >= 60 ? (
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                         <span>분산설명력이 60% 이상으로 양호합니다.</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                         <span>분산설명력이 60% 미만입니다. 요인 수 조정을 고려해보세요.</span>
                       </div>
                     )}

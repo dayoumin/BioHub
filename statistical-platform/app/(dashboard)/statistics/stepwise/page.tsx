@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
-import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus, Home, ChartBar, CheckCircle } from 'lucide-react'
+import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus, Home, ChartBar, CheckCircle2 } from 'lucide-react'
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
 import { escapeHtml } from '@/lib/utils/html-escape'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -893,7 +893,7 @@ export default function StepwiseRegressionPage() {
                     >
                       {header}
                       {isSelected && (
-                        <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                        <CheckCircle2 className="ml-1 h-3 w-3 flex-shrink-0" />
                       )}
                     </Badge>
                   )
@@ -918,7 +918,7 @@ export default function StepwiseRegressionPage() {
                     >
                       {header}
                       {isSelected && (
-                        <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                        <CheckCircle2 className="ml-1 h-3 w-3 flex-shrink-0" />
                       )}
                     </Badge>
                   )
@@ -943,7 +943,7 @@ export default function StepwiseRegressionPage() {
                     >
                       {header}
                       {isSelected && (
-                        <CheckCircle className="ml-1 h-3 w-3 flex-shrink-0" />
+                        <CheckCircle2 className="ml-1 h-3 w-3 flex-shrink-0" />
                       )}
                     </Badge>
                   )
