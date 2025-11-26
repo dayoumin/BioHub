@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   AlertTriangle,
   Info,
@@ -24,7 +24,7 @@ interface StatusIconProps extends Omit<LucideProps, 'ref'> {
 }
 
 const iconMap = {
-  success: CheckCircle,
+  success: CheckCircle2,
   error: XCircle,
   warning: AlertTriangle,
   info: Info,

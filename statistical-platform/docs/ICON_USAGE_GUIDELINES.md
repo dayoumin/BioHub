@@ -167,15 +167,19 @@ When updating existing components:
 For status indicators, use the `StatusIcon` component:
 
 ```tsx
-import { StatusIcon } from '@/components/common/StatusIcon'
+import { StatusIcon, SuccessIcon, ErrorIcon } from '@/components/ui/status-icon'
 
 // Usage
 <StatusIcon status="success" />
-<StatusIcon status="error" size="lg" />
-<StatusIcon status="warning" className="mr-2" />
+<StatusIcon status="error" filled />
+<StatusIcon status="warning" className="w-5 h-5" />
+
+// Convenience components
+<SuccessIcon className="w-4 h-4" />
+<ErrorIcon />
 ```
 
-See: `components/common/StatusIcon.tsx`
+See: `components/ui/status-icon.tsx`
 
 ---
 

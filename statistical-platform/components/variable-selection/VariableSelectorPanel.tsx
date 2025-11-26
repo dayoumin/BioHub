@@ -22,7 +22,7 @@ import {
   Hash,
   Type,
   Calendar,
-  CheckCircle,
+  CheckCircle2,
   Plus,
   ArrowRight,
   Info,
@@ -339,7 +339,7 @@ export function VariableSelectorPanel({
                         </Badge>
                         <span className="truncate flex-1 text-left">{col}</span>
                         {isAssigned ? (
-                          <CheckCircle className="w-4 h-4 text-primary ml-2" />
+                          <CheckCircle2 className="w-4 h-4 text-primary ml-2" />
                         ) : (
                           <Plus className="w-4 h-4 text-muted-foreground ml-2" />
                         )}
@@ -493,7 +493,7 @@ export function VariableSelectorPanel({
               >
                 {isValid ? (
                   <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
                     변수 선택 완료
                   </>
                 ) : (
