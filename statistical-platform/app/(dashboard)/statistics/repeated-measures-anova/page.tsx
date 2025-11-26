@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -74,6 +75,7 @@ export default function RepeatedMeasuresANOVAPage() {
     initialStep: 1
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   const handleDataUpload = useCallback((file: File, data: Record<string, unknown>[]) => {
     const columns = data.length > 0 ? Object.keys(data[0]) : []
@@ -255,6 +257,7 @@ export default function RepeatedMeasuresANOVAPage() {
         timePointMeans
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(finalResult, 4)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
@@ -441,6 +444,15 @@ export default function RepeatedMeasuresANOVAPage() {
 
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="반복측정 분산분석"
+          analysisSubtitle="Repeated Measures ANOVA"
+          fileName={uploadedData?.fileName}
+          variables={selectedVariables?.timeVariables || []}
+          sampleSize={results.timePointMeans[0]?.n}
+          timestamp={analysisTimestamp ?? undefined}
+        />
+
         {/* Main Results Card */}
         <Card>
           <CardHeader>

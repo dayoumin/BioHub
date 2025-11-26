@@ -29,6 +29,7 @@ import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
@@ -101,6 +102,7 @@ export default function DiscriminantPage() {
     initialStep: 0
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -170,6 +172,7 @@ export default function DiscriminantPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '판별분석 중 오류가 발생했습니다.'
@@ -346,8 +349,22 @@ export default function DiscriminantPage() {
 
     const groups = Object.keys(confusionMatrix)
 
+    // Build variable list
+    const usedVariables = [
+      ...(selectedVariables?.dependent ? [selectedVariables.dependent] : []),
+      ...(selectedVariables?.independent || [])
+    ]
+
     return (
       <div className="space-y-6">
+          <ResultContextHeader
+            analysisType="판별분석"
+            analysisSubtitle="Discriminant Analysis"
+            fileName={uploadedData?.fileName}
+            variables={usedVariables}
+            sampleSize={classificationResults.length}
+            timestamp={analysisTimestamp ?? undefined}
+          />
           {/* 주요 결과 요약 */}
           <Alert className="border-blue-500 bg-muted">
             <Activity className="h-4 w-4" />
@@ -600,7 +617,7 @@ export default function DiscriminantPage() {
           </div>
       </div>
     )
-  }, [results])
+  }, [results, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

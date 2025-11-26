@@ -32,6 +32,7 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -158,6 +159,7 @@ export default function ManovaPage() {
 
   // Pyodide ready state
   const [pyodideReady, setPyodideReady] = useState(false)
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -218,6 +220,7 @@ export default function ManovaPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(workerResult, 3)
     } catch (err) {
       console.error('MANOVA 분석 실패:', err)
@@ -375,8 +378,22 @@ export default function ManovaPage() {
       )
     }
 
+    // Build variables list
+    const usedVariables = [
+      ...(Array.isArray(_selectedVariables?.dependent) ? _selectedVariables.dependent : []),
+      ...(Array.isArray(_selectedVariables?.factor) ? _selectedVariables.factor : [])
+    ]
+
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType="다변량 분산분석"
+          analysisSubtitle="Multivariate Analysis of Variance (MANOVA)"
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         <Card>
           <CardHeader>
             <CardTitle>MANOVA 분석 결과</CardTitle>
@@ -821,7 +838,7 @@ export default function ManovaPage() {
         </div>
       </div>
     )
-  }, [analysisResult, getEffectSizeInterpretation, actions])
+  }, [analysisResult, getEffectSizeInterpretation, actions, uploadedData, _selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

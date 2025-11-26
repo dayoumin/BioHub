@@ -33,6 +33,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -87,6 +88,7 @@ export default function PCAPage() {
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -366,6 +368,7 @@ export default function PCAPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'PCA 분석 중 오류가 발생했습니다.'
