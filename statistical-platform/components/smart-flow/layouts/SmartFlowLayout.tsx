@@ -11,7 +11,6 @@ import {
   HelpCircle,
   X,
   Check,
-  Upload,
   BarChart3,
   Target,
   Settings,
@@ -21,22 +20,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-// 5단계 스텝 정의
+// 4단계 스텝 정의
 const STEPS = [
-  { id: 1, label: '업로드', icon: Upload },
-  { id: 2, label: '탐색', icon: BarChart3 },
-  { id: 3, label: '방법', icon: Target },
-  { id: 4, label: '변수', icon: Settings },
-  { id: 5, label: '분석', icon: Play },
+  { id: 1, label: '탐색', icon: BarChart3 },
+  { id: 2, label: '방법', icon: Target },
+  { id: 3, label: '변수', icon: Settings },
+  { id: 4, label: '분석', icon: Play },
 ]
 
-const STEP_DESCRIPTIONS: Record<number, string> = {
-  1: '데이터 파일을 업로드하세요',
-  2: '변수 간 상관관계를 자유롭게 탐색하세요',
-  3: '분석 방법을 선택하세요 (AI 추천)',
-  4: '분석에 사용할 변수를 선택하세요',
-  5: '분석을 실행하고 결과를 확인하세요',
-}
+
 
 export interface SmartFlowLayoutProps {
   currentStep: number
@@ -267,11 +259,6 @@ export function SmartFlowLayout({
             </CardContent>
           </Card>
         )}
-
-        {/* 현재 단계 설명 */}
-        <p className="text-muted-foreground">
-          {STEP_DESCRIPTIONS[currentStep]}
-        </p>
 
         {/* 메인 콘텐츠 */}
         {children}

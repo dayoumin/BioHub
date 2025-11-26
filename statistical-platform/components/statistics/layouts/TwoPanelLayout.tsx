@@ -92,7 +92,7 @@ export function TwoPanelLayout({
 
   return (
     <div className={cn(
-      "flex h-screen overflow-hidden bg-background relative",
+      "flex h-full overflow-hidden bg-background relative",
       className
     )}>
       {/* 좌측 사이드바 - Steps (고정, 스크롤 안됨) */}

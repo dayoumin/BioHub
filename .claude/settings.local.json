@@ -24,7 +24,8 @@
       "Bash(xargs ls:*)",
       "Bash(awk:*)",
       "Bash(mv:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

@@ -12,7 +12,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
-import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
@@ -98,44 +97,7 @@ export function PurposeInputStep({
   const assumptionResults = useSmartFlowStore(state => state.assumptionResults)
   const setSelectedMethod = useSmartFlowStore(state => state.setSelectedMethod)
 
-  // DataProfile 계산 (Step 2 결과 요약)
-  const dataProfile = useMemo(() => {
-    if (!validationResults || !data) return null
-
-    const numericVars = validationResults.columns?.filter(
-      (col: { type: string }) => col.type === 'numeric'
-    ).length || 0
-
-    const categoricalVars = validationResults.columns?.filter(
-      (col: { type: string }) => col.type === 'categorical'
-    ).length || 0
-
-    const totalCells = data.length * (validationResults.columnCount || 0)
-    const missingValues = validationResults.missingValues || 0
-
-    return {
-      sampleSize: data.length,
-      numericVars,
-      categoricalVars,
-      missingValues,
-      totalCells,
-      recommendedType: (() => {
-        const n = data.length
-
-        // 1. 소표본 (n < 30) → 무조건 비모수
-        if (n < 30) return 'nonparametric' as const
-
-        // 2. 대표본이지만 가정 검정 결과가 있으면 그것 우선
-        if (assumptionResults?.summary?.canUseParametric !== undefined) {
-          return assumptionResults.summary.canUseParametric ? 'parametric' as const : 'nonparametric' as const
-        }
-
-        // 3. 가정 검정 없음 → 보수적 접근 (비모수 권장)
-        // 이유: n≥30이어도 데이터가 심하게 비대칭이거나 이상치가 많을 수 있음
-        return 'nonparametric' as const
-      })()
-    }
-  }, [validationResults, data])
+  
 
   // 변수 목록 계산
   const numericColumns = useMemo((): ColumnStatistics[] => {
@@ -358,18 +320,7 @@ export function PurposeInputStep({
 
   return (
     <div className="w-full h-full flex flex-col space-y-6">
-      {/* Step 2 결과 요약 */}
-      {dataProfile && (
-        <DataProfileSummary
-          sampleSize={dataProfile.sampleSize}
-          numericVars={dataProfile.numericVars}
-          categoricalVars={dataProfile.categoricalVars}
-          missingValues={dataProfile.missingValues}
-          totalCells={dataProfile.totalCells}
-          recommendedType={dataProfile.recommendedType}
-          title="데이터 요약 (Step 2 결과)"
-        />
-      )}
+      
 
       {/* 분석 목적 선택 (Decision Tree) */}
       <div>

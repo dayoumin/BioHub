@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { Header } from "@/components/layout/header"
+import { ConditionalHeader } from "@/components/layout/conditional-header"
 import { Toaster } from "@/components/ui/sonner"
 import { ClientProviders } from "@/components/providers/ClientProviders"
 import { UIProvider } from "@/contexts/ui-context"
@@ -45,8 +45,8 @@ export default function RootLayout({
             <div className="flex h-screen overflow-hidden">
               {/* 메인 영역 */}
               <div className="flex-1 flex flex-col overflow-hidden">
-                <Header />
-                <main className="flex-1 overflow-y-auto overflow-x-hidden">
+                <ConditionalHeader />
+                <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
                   {children}
                 </main>
               </div>

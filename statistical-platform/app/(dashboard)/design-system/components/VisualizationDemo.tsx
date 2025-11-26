@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Histogram } from '@/components/charts/histogram'
 import { BoxPlot } from '@/components/charts/boxplot'
 import { Scatterplot } from '@/components/charts/scatterplot'
+import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
 
 // 샘플 데이터
 const sampleHistogramData = [
@@ -53,6 +54,15 @@ const sampleScatterData = Array.from({ length: 30 }, (_, i) => ({
   x: i + 1,
   y: 10 + i * 2 + Math.random() * 10 - 5
 }))
+
+// CorrelationHeatmap 샘플 데이터
+const sampleCorrelationMatrix = [
+  [1.00,  0.85, -0.32,  0.12],
+  [0.85,  1.00, -0.45,  0.08],
+  [-0.32, -0.45, 1.00,  0.67],
+  [0.12,  0.08,  0.67,  1.00]
+]
+const sampleCorrelationLabels = ['체중', '체장', '수온', '염분']
 
 export function VisualizationDemo() {
   return (
@@ -244,6 +254,65 @@ export function VisualizationDemo() {
         </CardContent>
       </Card>
 
+      {/* CorrelationHeatmap */}
+      <Card>
+        <CardHeader>
+          <CardTitle>CorrelationHeatmap (상관계수 히트맵)</CardTitle>
+          <CardDescription>
+            변수 간 상관관계를 색상 행렬로 표시합니다 (Plotly 기반)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <CorrelationHeatmap
+            matrix={sampleCorrelationMatrix}
+            labels={sampleCorrelationLabels}
+            height={350}
+          />
+
+          <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
+            <p className="font-medium mb-1">사용 예제:</p>
+            <pre className="overflow-x-auto">
+{`<CorrelationHeatmap
+  matrix={[
+    [1.00, 0.85, -0.32],
+    [0.85, 1.00, -0.45],
+    [-0.32, -0.45, 1.00]
+  ]}
+  labels={['체중', '체장', '수온']}
+  height={350}
+/>`}
+            </pre>
+          </div>
+
+          <div className="text-xs text-muted-foreground">
+            <p className="font-medium mb-1">Props:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><code>matrix: number[][]</code> - 상관계수 행렬 (대칭)</li>
+              <li><code>labels: string[]</code> - 변수명 배열</li>
+              <li><code>height?: number</code> - 차트 높이 (기본값: 400)</li>
+            </ul>
+          </div>
+
+          <div className="text-xs text-muted-foreground bg-purple-50 dark:bg-purple-950/20 border border-purple-200 p-3 rounded-lg">
+            <p className="font-medium mb-1">색상 스케일:</p>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-1">
+                <span className="inline-block w-4 h-4 rounded bg-blue-500"></span>
+                <span>-1 (음의 상관)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="inline-block w-4 h-4 rounded bg-gray-200"></span>
+                <span>0 (무상관)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="inline-block w-4 h-4 rounded bg-red-500"></span>
+                <span>+1 (양의 상관)</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 사용 시나리오 */}
       <Card className="border-cyan-200 bg-cyan-50/50 dark:bg-cyan-950/20">
         <CardHeader>
@@ -275,6 +344,15 @@ export function VisualizationDemo() {
               • 두 변수 간 상관관계 확인<br />
               • 선형 회귀 추세선 표시<br />
               • 상관계수, p-value 표시
+            </p>
+          </div>
+
+          <div>
+            <p className="font-medium mb-1">🔥 CorrelationHeatmap</p>
+            <p className="text-muted-foreground">
+              • 다변량 상관관계 한눈에 파악<br />
+              • 변수 선택/제외 결정에 활용<br />
+              • 다중공선성 진단
             </p>
           </div>
         </CardContent>

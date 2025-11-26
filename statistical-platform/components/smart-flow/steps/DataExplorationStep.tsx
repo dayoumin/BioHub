@@ -15,19 +15,24 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered, ArrowRight, ArrowLeft, Sparkles, ExternalLink, BarChart3 } from 'lucide-react'
 import { ValidationResults, DataRow, ColumnStatistics, StatisticalAssumptions } from '@/types/smart-flow'
+import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { usePyodide } from '@/components/providers/PyodideProvider'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { logger } from '@/lib/utils/logger'
-import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { Histogram } from '@/components/charts/histogram'
 import { BoxPlot } from '@/components/charts/boxplot'
 import { openDataWindow } from '@/lib/utils/open-data-window'
+import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
+import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
   data: DataRow[]
   onNext: () => void
   onPrevious: () => void
+  onUploadComplete?: (file: File, data: DataRow[]) => void
+  existingFileName?: string
 }
 
 interface ScatterplotConfig {
@@ -75,7 +80,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   validationResults,
   data,
   onNext,
-  onPrevious
+  onPrevious,
+  onUploadComplete,
+  existingFileName
 }: DataExplorationStepProps) {
   // Pyodide 및 Store
   const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
@@ -98,17 +105,19 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const assumptionRunId = useRef(0)
 
   // 수치형/범주형 변수 목록
+  // ID로 감지된 컬럼은 시각화/분석에서 제외
   const numericVariables = useMemo(() => {
     if (!validationResults?.columnStats) return []
     return validationResults.columnStats
-      .filter(col => col.type === 'numeric')
+      .filter(col => col.type === 'numeric' && !col.idDetection?.isId)
       .map(col => col.name)
   }, [validationResults])
 
+  // ID로 감지된 컬럼은 시각화/분석에서 제외
   const categoricalVariables = useMemo(() => {
     if (!validationResults?.columnStats) return []
     return validationResults.columnStats
-      .filter(col => col.type === 'categorical')
+      .filter(col => col.type === 'categorical' && !col.idDetection?.isId)
       .map(col => col.name)
   }, [validationResults])
 
@@ -360,56 +369,136 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     }
   }, [numericVariables.length])
 
-  // 빈 상태 처리
-  if (!validationResults || numericVariables.length < 2) {
+  // 데이터 없을 때: 업로드 영역 표시
+  if (!validationResults || !data || data.length === 0) {
     return (
       <div className="space-y-6">
-        {/* 헤더 + 네비게이션 */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1 flex-1">
-            <div className="flex items-center gap-2">
-              <ChartScatter className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-semibold">데이터 탐색</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              변수 간 상관관계를 시각화하고 분석합니다
-            </p>
-          </div>
-          
+        <div className="flex items-center gap-2">
+          <ChartScatter className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">데이터 탐색</h2>
         </div>
 
+        {onUploadComplete && (
+          <DataUploadStep
+            onUploadComplete={onUploadComplete}
+            existingFileName={existingFileName}
+          />
+        )}
+      </div>
+    )
+  }
+
+  // 수치형 변수 부족: 데이터 표시 + 경고
+  if (numericVariables.length < 2) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <ChartScatter className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-semibold">데이터 탐색</h2>
+        </div>
+
+        <DataProfileSummary
+          sampleSize={data.length}
+          numericVars={numericVariables.length}
+          categoricalVars={categoricalVariables.length}
+          missingValues={validationResults.missingValues}
+          totalCells={data.length * validationResults.columnCount}
+          recommendedType={data.length >= 30 ? 'parametric' : 'nonparametric'}
+          title="데이터 준비 완료"
+          className="border-success-border bg-success-bg"
+        />
+
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">데이터 미리보기</CardTitle>
+                <CardDescription>상위 {Math.min(20, data.length)}행</CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleOpenDataInNewWindow} className="gap-2">
+                <ExternalLink className="w-4 h-4" />
+                전체 보기 ({data.length}행)
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <DataPreviewTable data={data} maxRows={20} defaultOpen={true} title="" height="300px" />
+          </CardContent>
+        </Card>
+
         <Card className="border-warning-border bg-warning-bg">
-          <CardContent className="py-8">
+          <CardContent className="py-6">
             <div className="text-center text-muted-foreground">
-              <p>수치형 변수가 2개 이상 필요합니다.</p>
-              <p className="text-sm mt-2">현재: {numericVariables.length}개</p>
+              <p>상관분석에는 수치형 변수가 2개 이상 필요합니다.</p>
+              <p className="text-sm mt-2">현재: 수치형 {numericVariables.length}개, 범주형 {categoricalVariables.length}개</p>
+              <p className="text-sm mt-1">다음 단계에서 적합한 분석 방법을 선택할 수 있습니다.</p>
             </div>
           </CardContent>
         </Card>
+
+        <div className="flex justify-end">
+          <Button onClick={onNext} className="gap-2">
+            다음 단계로
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* 헤더 + 네비게이션 */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1 flex-1">
-          <div className="flex items-center gap-2">
-            <ChartScatter className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-semibold">데이터 탐색</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            변수 간 상관관계를 자유롭게 탐색하세요
-          </p>
-          <div className="flex items-center gap-2 text-sm pt-1">
-            <Badge variant="outline">{numericVariables.length}개 수치형 변수</Badge>
-            <Badge variant="outline">{scatterplots.length}개 산점도</Badge>
-            <Badge variant="outline">{correlationMatrix.length}개 상관관계</Badge>
-          </div>
-        </div>
-        
+      {/* 헤더 */}
+      <div className="flex items-center gap-2">
+        <ChartScatter className="h-5 w-5 text-primary" />
+        <h2 className="text-xl font-semibold">데이터 탐색</h2>
       </div>
+
+      {/* 데이터 요약 (공통 컴포넌트) */}
+      {validationResults && (
+        <DataProfileSummary
+          sampleSize={data.length}
+          numericVars={numericVariables.length}
+          categoricalVars={categoricalVariables.length}
+          missingValues={validationResults.missingValues}
+          totalCells={data.length * validationResults.columnCount}
+          recommendedType={data.length >= 30 ? 'parametric' : 'nonparametric'}
+          title="데이터 준비 완료"
+          className="border-success-border bg-success-bg"
+        />
+      )}
+
+      {/* 데이터 미리보기 (상위 20행) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">데이터 미리보기</CardTitle>
+              <CardDescription>
+                업로드된 데이터의 상위 {Math.min(20, data.length)}행
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenDataInNewWindow}
+              className="gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              전체 보기 ({data.length}행)
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <DataPreviewTable
+            data={data}
+            maxRows={20}
+            defaultOpen={true}
+            title=""
+            height="300px"
+          />
+        </CardContent>
+      </Card>
 
       {/* 기초 통계량 (상단 카드) */}
       <Card>
@@ -439,7 +528,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               </thead>
               <tbody>
                 {validationResults?.columnStats
-                  ?.filter(col => col.type === 'numeric')
+                  ?.filter(col => col.type === 'numeric' && !col.idDetection?.isId)
                   .map((col: ColumnStatistics) => (
                     <tr key={col.name} className="border-b hover:bg-muted/50">
                       <td className="p-2 font-medium">{col.name}</td>
@@ -551,19 +640,20 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             데이터 분포 시각화
           </CardTitle>
           <CardDescription>
-            수치형 변수들의 분포를 히스토그램과 박스플롯으로 확인합니다
+            수치형 변수들의 분포를 히스토그램 또는 박스플롯으로 확인합니다
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* 변수 선택 탭 */}
           <Tabs defaultValue={numericVariables[0]} className="w-full">
-            <TabsList className="flex flex-wrap gap-1 h-auto">
-              {numericVariables.slice(0, 6).map(varName => (
+            <TabsList className="flex flex-wrap gap-1 h-auto mb-4">
+              {numericVariables.slice(0, 8).map(varName => (
                 <TabsTrigger key={varName} value={varName} className="text-xs">
                   {varName}
                 </TabsTrigger>
               ))}
             </TabsList>
-            {numericVariables.slice(0, 6).map(varName => {
+            {numericVariables.slice(0, 8).map(varName => {
               const colData = data
                 .map(row => row[varName])
                 .filter(v => v !== null && v !== undefined && v !== '')
@@ -588,30 +678,45 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               const outliers = colData.filter(v => v < lowerBound || v > upperBound)
 
               return (
-                <TabsContent key={varName} value={varName} className="space-y-4 mt-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <Histogram
-                      data={colData}
-                      title={`${varName} 분포`}
-                      xAxisLabel={varName}
-                      yAxisLabel="빈도"
-                      bins={10}
-                    />
-                    <BoxPlot
-                      data={[{
-                        name: varName,
-                        min: Math.min(...colData),
-                        q1, median, q3,
-                        max: Math.max(...colData),
-                        mean, std,
-                        outliers
-                      }]}
-                      title={`${varName} 박스플롯`}
-                      showMean={true}
-                      showOutliers={true}
-                      height={250}
-                    />
-                  </div>
+                <TabsContent key={varName} value={varName} className="space-y-4 mt-0">
+                  {/* 차트 타입 선택 탭 */}
+                  <Tabs defaultValue="histogram" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 max-w-xs">
+                      <TabsTrigger value="histogram" className="text-xs">
+                        <BarChart3 className="h-3 w-3 mr-1" />
+                        히스토그램
+                      </TabsTrigger>
+                      <TabsTrigger value="boxplot" className="text-xs">
+                        <ListOrdered className="h-3 w-3 mr-1" />
+                        박스플롯
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="histogram" className="mt-4">
+                      <Histogram
+                        data={colData}
+                        title={`${varName} 분포`}
+                        xAxisLabel={varName}
+                        yAxisLabel="빈도"
+                        bins={10}
+                      />
+                    </TabsContent>
+                    <TabsContent value="boxplot" className="mt-4">
+                      <BoxPlot
+                        data={[{
+                          name: varName,
+                          min: Math.min(...colData),
+                          q1, median, q3,
+                          max: Math.max(...colData),
+                          mean, std,
+                          outliers
+                        }]}
+                        title={`${varName} 박스플롯`}
+                        showMean={true}
+                        showOutliers={true}
+                        height={300}
+                      />
+                    </TabsContent>
+                  </Tabs>
                   {outliers.length > 0 && (
                     <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
                       <span className="font-medium">⚠️ 이상치:</span> {outliers.length}개 발견 (범위: &lt;{lowerBound.toFixed(2)} 또는 &gt;{upperBound.toFixed(2)})
@@ -772,13 +877,13 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </button>
         </TabsContent>
 
-        {/* 상관계수 행렬 Tab */}
+        {/* 상관계수 행렬 Tab - 히트맵 */}
         <TabsContent value="correlation">
           <Card>
             <CardHeader>
-              <CardTitle>상관계수 행렬</CardTitle>
+              <CardTitle>상관계수 히트맵</CardTitle>
               <CardDescription>
-                모든 변수 쌍의 상관관계 (강도 순 정렬)
+                모든 수치형 변수 쌍의 상관관계를 시각화합니다
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -794,44 +899,62 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                 </div>
               ) : (
                 <>
-                  <div className="space-y-2">
-                    {correlationMatrix.map(({ var1, var2, r, r2, strength, color }) => (
-                      <div
-                        key={`${var1}-${var2}`}
-                        className={`p-3 rounded-lg border ${color}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{var1}</span>
-                            <span className="text-muted-foreground">↔</span>
-                            <span className="font-medium">{var2}</span>
-                          </div>
-                          <Badge variant={Math.abs(r) >= 0.5 ? 'default' : 'secondary'}>
-                            {strength} 상관
-                          </Badge>
-                        </div>
-                        <div className="mt-2 text-sm text-muted-foreground grid grid-cols-3 gap-2">
-                          <div>r = {r.toFixed(3)}</div>
-                          <div>r² = {r2.toFixed(3)}</div>
-                          <div>
-                            {r > 0 ? '양의 상관' : r < 0 ? '음의 상관' : '무상관'}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {/* 히트맵 시각화 */}
+                  {numericVariables.length >= 2 && (
+                    <CorrelationHeatmap
+                      matrix={(() => {
+                        // 상관계수 행렬 생성
+                        const n = numericVariables.length
+                        const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0))
+                        for (let i = 0; i < n; i++) {
+                          matrix[i][i] = 1 // 대각선은 1
+                          for (let j = i + 1; j < n; j++) {
+                            const corr = correlationMatrix.find(
+                              c => (c.var1 === numericVariables[i] && c.var2 === numericVariables[j]) ||
+                                   (c.var1 === numericVariables[j] && c.var2 === numericVariables[i])
+                            )
+                            const r = corr?.r ?? 0
+                            matrix[i][j] = r
+                            matrix[j][i] = r
+                          }
+                        }
+                        return matrix
+                      })()}
+                      labels={numericVariables}
+                      height={Math.max(350, numericVariables.length * 40)}
+                    />
+                  )}
 
+                  {/* 해석 가이드 */}
                   <div className="mt-4 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="font-medium mb-1">💡 상관계수 해석:</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      <li><strong>|r| ≥ 0.7</strong>: 매우 강한 상관</li>
-                      <li><strong>0.5 ≤ |r| &lt; 0.7</strong>: 강한 상관</li>
-                      <li><strong>0.3 ≤ |r| &lt; 0.5</strong>: 중간 상관</li>
-                      <li><strong>|r| &lt; 0.3</strong>: 약한 상관</li>
-                      <li><strong>r &gt; 0</strong>: 양의 상관 (같이 증가)</li>
-                      <li><strong>r &lt; 0</strong>: 음의 상관 (반대로 변화)</li>
-                    </ul>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r ≈ +1</strong>: 강한 양의 상관</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r ≈ -1</strong>: 강한 음의 상관</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r ≈ 0</strong>: 상관 없음</div>
+                      <div><strong>|r| ≥ 0.7</strong>: 매우 강한 상관</div>
+                    </div>
                   </div>
+
+                  {/* 강한 상관관계 목록 */}
+                  {correlationMatrix.filter(c => Math.abs(c.r) >= 0.5).length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">📌 주요 상관관계 (|r| ≥ 0.5)</p>
+                      <div className="space-y-1">
+                        {correlationMatrix
+                          .filter(c => Math.abs(c.r) >= 0.5)
+                          .slice(0, 5)
+                          .map(({ var1, var2, r, strength }) => (
+                            <div key={`${var1}-${var2}`} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
+                              <span>{var1} ↔ {var2}</span>
+                              <Badge variant={Math.abs(r) >= 0.7 ? 'default' : 'secondary'}>
+                                r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
+                              </Badge>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </CardContent>
@@ -839,38 +962,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </TabsContent>
       </Tabs>
 
-      {/* 전체 데이터 확인 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <ListOrdered className="h-5 w-5" />
-              전체 데이터
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleOpenDataInNewWindow}
-              className="gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              새 창으로 보기
-            </Button>
-          </div>
-          <CardDescription>
-            업로드된 원본 데이터를 확인합니다 ({data.length}행)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataPreviewTable
-            data={data}
-            maxRows={data.length}
-            defaultOpen={true}
-            title=""
-            height="400px"
-          />
-        </CardContent>
-      </Card>
+      
     </div>
   )
 })

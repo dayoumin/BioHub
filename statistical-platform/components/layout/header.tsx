@@ -22,7 +22,7 @@ export const Header = memo(() => {
   return (
     <>
       <header className="sticky top-0 z-50 bg-background shadow-sm">
-        <div className="px-8">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             {/* 왼쪽: 로고 */}
             <Link href="/" className="text-xl font-bold text-foreground hover:text-primary transition-colors">

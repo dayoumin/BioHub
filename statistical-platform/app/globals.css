@@ -302,19 +302,44 @@
     @apply border-border outline-ring/50;
   }
 
-  /* Grok 스타일 - 전역 스크롤바 완전 숨김 */
+  /* Modern Thin Scrollbar - 전역 적용 (Grok 스타일) */
   html,
   body {
     @apply bg-background text-foreground;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.08) transparent;
   }
 
   html::-webkit-scrollbar,
   body::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
-    width: 0;
-    height: 0;
+    width: 6px;
+    height: 6px;
+  }
+
+  html::-webkit-scrollbar-track,
+  body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+  }
+
+  html::-webkit-scrollbar-thumb:hover,
+  body::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  .dark html::-webkit-scrollbar-thumb,
+  .dark body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .dark html::-webkit-scrollbar-thumb:hover,
+  .dark body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
   }
 }
 
@@ -647,22 +672,91 @@
     background: linear-gradient(to right, var(--track-analysis-hover-from), var(--track-analysis-hover-to));
   }
 
-  /* Custom Scrollbar - Grok 스타일 (완전 숨김) */
+  /* Custom Scrollbar - Thin 스타일 */
   .custom-scrollbar::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
+    width: 6px;
+    height: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.15);
   }
 
   /* Firefox */
   .custom-scrollbar {
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.08) transparent;
   }
 
-  /* IE/Edge */
-  .custom-scrollbar {
-    -ms-overflow-style: none;
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
   }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .dark .custom-scrollbar {
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+  }
+
+  /* Modern Thin Scrollbar - Notion/Linear 스타일 */
+  .thin-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+  }
+
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  .dark .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .dark .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  /* Firefox */
+  .thin-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  }
+
+  .dark .thin-scrollbar {
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  }
+
+  /* Hidden Scrollbar - Modern UI (스크롤은 가능, 스크롤바 숨김) */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE/Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+
+
 
   /* Perplexity 스타일: Inline Citations */
   .citation-link {

@@ -11,7 +11,6 @@ import {
   DataRow
 } from '@/types/smart-flow'
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
-import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { DataValidationStep } from '@/components/smart-flow/steps/DataValidationStep'
 import { DataExplorationStep } from '@/components/smart-flow/steps/DataExplorationStep'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
@@ -84,11 +83,10 @@ export default function SmartFlowPage() {
   // 2025-11-26: SmartFlowLayout STEPS와 동기화
   const steps = useMemo(() => {
     return [
-      { id: 1, label: '업로드' },
-      { id: 2, label: '탐색' },
-      { id: 3, label: '방법' },
-      { id: 4, label: '변수' },
-      { id: 5, label: '분석' }
+      { id: 1, label: '탐색' },
+      { id: 2, label: '방법' },
+      { id: 3, label: '변수' },
+      { id: 4, label: '분석' }
     ].map((step) => ({
       ...step,
       completed: completedSteps.includes(step.id)
@@ -118,8 +116,7 @@ export default function SmartFlowPage() {
       const detailedValidation = DataValidationService.performValidation(data)
       setValidationResults(detailedValidation)
 
-      // 3단계: 사용자가 "데이터 탐색하기" 버튼을 클릭해야 다음 단계로 이동
-      // (자동 네비게이션 제거 - 사용자가 데이터 검증 결과를 확인할 시간 제공)
+      // Step 1에서 업로드 완료 - 같은 화면에서 데이터 탐색 표시
     } catch (err) {
       setError('데이터 업로드 중 오류가 발생했습니다: ' + (err as Error).message)
     }
@@ -161,31 +158,8 @@ export default function SmartFlowPage() {
       systemMemory={systemMemory}
       historyPanel={<AnalysisHistoryPanel />}
     >
-      {/* Step 1: 데이터 업로드 및 검증 (기존 Step 1 + Step 2 임시 통합) */}
+      {/* Step 1: 데이터 탐색 (업로드 포함) */}
       {currentStep === 1 && (
-        <div className="animate-fade-in">
-          <DataUploadStep
-            onUploadComplete={handleUploadComplete}
-            existingFileName={uploadedFileName || undefined}
-          />
-
-          {/* 업로드 완료 시 즉시 검증 결과 표시 */}
-          {validationResults && uploadedData && (
-            <div className="mt-6">
-              <ErrorBoundary>
-                <DataValidationStep
-                  validationResults={validationResults}
-                  data={uploadedData}
-                  onNext={goToNextStep}
-                />
-              </ErrorBoundary>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step 2: 데이터 탐색 (기존 Step 3) */}
-      {currentStep === 2 && (
         <div className="animate-fade-in">
           <ErrorBoundary>
             <DataExplorationStep
@@ -193,13 +167,15 @@ export default function SmartFlowPage() {
               data={uploadedData || []}
               onNext={goToNextStep}
               onPrevious={goToPreviousStep}
+              onUploadComplete={handleUploadComplete}
+              existingFileName={uploadedFileName || undefined}
             />
           </ErrorBoundary>
         </div>
       )}
 
-      {/* Step 3: 분석 목적 선택 (기존 Step 4) */}
-      {currentStep === 3 && (
+      {/* Step 2: 분석 목적 선택 */}
+      {currentStep === 2 && (
         <div className="animate-fade-in">
           <PurposeInputStep
             onPurposeSubmit={handlePurposeSubmit}
@@ -209,15 +185,15 @@ export default function SmartFlowPage() {
         </div>
       )}
 
-      {/* Step 4: 변수 선택 (기존 Step 5) */}
-      {currentStep === 4 && (
+      {/* Step 3: 변수 선택 */}
+      {currentStep === 3 && (
         <div className="animate-fade-in">
           <VariableSelectionStep />
         </div>
       )}
 
-      {/* Step 5: 분석 실행 및 결과 (기존 Step 6 + Step 7) */}
-      {currentStep === 5 && (
+      {/* Step 4: 분석 실행 및 결과 */}
+      {currentStep === 4 && (
         <div className="animate-fade-in">
           <AnalysisExecutionStep
             selectedMethod={selectedMethod}
