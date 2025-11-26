@@ -23,6 +23,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -105,6 +106,9 @@ export default function CorrelationPage() {
     initialStep: 1
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Analysis timestamp state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Page-specific state
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
@@ -311,6 +315,7 @@ export default function CorrelationPage() {
         } : null
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(mockResults, 4)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
@@ -506,14 +511,20 @@ export default function CorrelationPage() {
       )}
 
       {/* Step 4: 결과 확인 */}
-      {currentStep === 4 && results && (
+      {currentStep === 4 && results && (() => {
+          const usedVariables = Array.isArray(selectedVariables?.all)
+            ? selectedVariables.all
+            : selectedVariables?.all ? [selectedVariables.all] : []
+          return (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-2">상관분석 결과</h2>
-            <p className="text-sm text-muted-foreground">
-              {correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo]?.title} 분석이 완료되었습니다
-            </p>
-          </div>
+          <ResultContextHeader
+            analysisType={correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo]?.title || '상관분석'}
+            analysisSubtitle={correlationTypeInfo[correlationType as keyof typeof correlationTypeInfo]?.subtitle || 'Correlation Analysis'}
+            fileName={uploadedData?.fileName}
+            variables={usedVariables}
+            sampleSize={results.sampleSize}
+            timestamp={analysisTimestamp ?? undefined}
+          />
 
           {/* 주요 결과 요약 */}
           <Alert className="border-blue-500 bg-muted">
@@ -730,7 +741,8 @@ export default function CorrelationPage() {
             </CardContent>
           </Card>
         </div>
-      )}
+          )
+        })()}
     </TwoPanelLayout>
   )
 }

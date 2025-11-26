@@ -25,6 +25,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { DataTableViewer } from '@/components/statistics/common/DataTableViewer'
 import { VariableSelectorPanel, COMMON_ROLES } from '@/components/variable-selection/VariableSelectorPanel'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -82,6 +83,9 @@ export default function DescriptiveStatsPage() {
     initialStep: 1
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
+
+  // Analysis timestamp state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 
@@ -235,6 +239,7 @@ export default function DescriptiveStatsPage() {
       }
 
       if (actions.completeAnalysis) {
+        setAnalysisTimestamp(new Date())
         actions.completeAnalysis(analysisResult, 4)
       }
       setActiveTab('summary')
@@ -504,6 +509,15 @@ export default function DescriptiveStatsPage() {
 
       {/* Step 4: 결과 확인 */}
       {currentStep === 4 && results && (
+        <div className="space-y-6">
+          <ResultContextHeader
+            analysisType="기술통계"
+            analysisSubtitle="Descriptive Statistics"
+            fileName={uploadedData?.fileName}
+            variables={selectedVariables?.variables || []}
+            sampleSize={results.totalCases}
+            timestamp={analysisTimestamp ?? undefined}
+          />
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="summary">요약</TabsTrigger>
@@ -526,6 +540,7 @@ export default function DescriptiveStatsPage() {
             {renderDescriptiveTable()}
           </TabsContent>
         </Tabs>
+        </div>
       )}
     </TwoPanelLayout>
   )

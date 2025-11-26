@@ -44,6 +44,7 @@ import { StatisticsTable, type TableColumn } from '@/components/statistics/commo
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler, createVariableSelectionHandler } from '@/lib/utils/statistics-handlers'
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
@@ -97,6 +98,9 @@ export default function RegressionPage() {
     withError: true
   })
   const { currentStep, uploadedData, selectedVariables, results, error, isAnalyzing } = state
+
+  // Analysis timestamp state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Page-specific state
   const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
@@ -527,6 +531,7 @@ export default function RegressionPage() {
         result = await handleLogisticRegression(pyodideCore, vars, uploadedData)
       }
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
@@ -988,8 +993,25 @@ export default function RegressionPage() {
     const currentTypeInfo = regressionType ? regressionTypeInfo[regressionType as 'simple' | 'multiple' | 'logistic'] : null
     if (!currentTypeInfo) return null
 
+    // Build variable list for context header
+    const independentVars = Array.isArray(selectedVariables?.independent)
+      ? selectedVariables.independent
+      : selectedVariables?.independent ? [selectedVariables.independent] : []
+    const usedVariables = [
+      ...(selectedVariables?.dependent ? [selectedVariables.dependent] : []),
+      ...independentVars
+    ]
+
     return (
       <div className="space-y-6">
+        <ResultContextHeader
+          analysisType={currentTypeInfo.title}
+          analysisSubtitle={currentTypeInfo.subtitle}
+          fileName={uploadedData?.fileName}
+          variables={usedVariables}
+          sampleSize={uploadedData?.data?.length}
+          timestamp={analysisTimestamp ?? undefined}
+        />
         {regressionType === 'logistic' ? renderLogisticResults() : renderLinearResults()}
 
         <div className="flex gap-3 justify-center pt-6">
@@ -1018,7 +1040,7 @@ export default function RegressionPage() {
         </div>
       </div>
     )
-  }, [results, regressionType, regressionTypeInfo, renderLinearResults, renderLogisticResults])
+  }, [results, regressionType, regressionTypeInfo, renderLinearResults, renderLogisticResults, selectedVariables, uploadedData, analysisTimestamp])
 
   return (
     <TwoPanelLayout

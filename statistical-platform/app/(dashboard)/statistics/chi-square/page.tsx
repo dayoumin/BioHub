@@ -26,6 +26,7 @@ import {
 import { Info, CheckCircle2, AlertCircle, Calculator } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
+import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -43,6 +44,9 @@ export default function FisherExactTestPage() {
     withError: true
   })
   const { results, isAnalyzing, error } = state
+
+  // Analysis timestamp state
+  const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
 
   // Pyodide Core Service (singleton - stable across renders)
   const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
@@ -127,6 +131,7 @@ export default function FisherExactTestPage() {
         }
       )
 
+      setAnalysisTimestamp(new Date())
       actions.completeAnalysis(result, 2)
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
@@ -327,6 +332,15 @@ export default function FisherExactTestPage() {
 
     return (
       <div className="space-y-4">
+        <ResultContextHeader
+          analysisType="Fisher 정확 검정"
+          analysisSubtitle="Fisher's Exact Test"
+          fileName="수동 입력 데이터"
+          variables={['변수 1', '변수 2']}
+          sampleSize={results.sampleSize}
+          timestamp={analysisTimestamp ?? undefined}
+        />
+
         {/* 주요 결과 */}
         <Card>
           <CardHeader>
