@@ -26,8 +26,6 @@ import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StepNavigation } from '@/components/smart-flow/StepNavigation'
 import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
-import { VariableGallery } from '@/components/smart-flow/steps/exploration/VariableGallery'
-import { VariableDetailPanel } from '@/components/smart-flow/steps/exploration/VariableDetailPanel'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -132,20 +130,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       .map(col => col.name)
   }, [validationResults])
 
-  // ID 감지된 컬럼 제외한 수치형 컬럼 통계
+  // ID ���� �÷��� ���� ����
   const numericColumnStats = useMemo(() => {
     if (!validationResults?.columnStats) return []
     return validationResults.columnStats.filter(col => col.type === 'numeric' && !col.idDetection?.isId)
   }, [validationResults])
-
-  // 전체 변수 목록 (VariableGallery용)
-  const allVariables = useMemo(() => {
-    if (!validationResults?.columnStats) return []
-    return validationResults.columnStats.filter(col => !col.idDetection?.isId)
-  }, [validationResults])
-
-  // 선택된 변수 상태 (VariableDetailPanel용)
-  const [selectedVariable, setSelectedVariable] = useState<typeof allVariables[0] | null>(null)
 
   // 초기 변수 설정 (numericVariables 선언 이후)
   useEffect(() => {
@@ -681,314 +670,680 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         />
       )}
 
-      {/* 메인 대시보드 탭 */}
-      <Tabs defaultValue="variables" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="variables">
-            <ListOrdered className="h-4 w-4 mr-2" />
-            변수 상세 분석
-          </TabsTrigger>
-          <TabsTrigger value="correlation">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            상관관계 분석
-          </TabsTrigger>
-        </TabsList>
-
-        {/* 탭 1: 변수 갤러리 */}
-        <TabsContent value="variables" className="mt-0 space-y-4">
-          {/* 등분산성 검정 결과 (있을 경우) */}
-          {assumptionResults?.homogeneity?.levene && (
-            <div className="p-3 bg-white dark:bg-background rounded-lg border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-sm">📏 등분산성 검정 (Levene)</span>
-                <Badge variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "secondary"}>
-                  {assumptionResults.homogeneity.levene.equalVariance ? '등분산' : '이분산'}
-                </Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">통계량: </span>
-                  <span className="font-mono">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">p-value: </span>
-                  <span className="font-mono">{(assumptionResults.homogeneity.levene.pValue ?? 0).toFixed(4)}</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {assumptionResults.homogeneity.levene.equalVariance
-                  ? '✓ 등분산 가정을 만족합니다 (p ≥ 0.05).'
-                  : '⚠ 등분산 가정을 만족하지 않습니다 (p < 0.05). Welch 검정 고려가 필요합니다.'}
-              </p>
-            </div>
-          )}
-
-          {/* 변수 갤러리 컴포넌트 */}
-          <div className="bg-card rounded-lg border shadow-sm">
-            <div className="p-4 border-b">
-              <h3 className="font-semibold flex items-center gap-2">
-                <ListOrdered className="h-4 w-4" />
-                변수 목록
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                각 변수를 클릭하여 상세 통계와 분포를 확인하세요.
-              </p>
-            </div>
-            <div className="p-4">
-              <VariableGallery
-                variables={allVariables}
-                data={data}
-                onVariableSelect={setSelectedVariable}
-                selectedVariableId={selectedVariable?.name}
-              />
-            </div>
+      {/* 기초 통계량 / 데이터 미리보기 탭 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <ListOrdered className="h-5 w-5" />
+              데이터 요약
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenDataInNewWindow}
+              className="gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              전체 데이터 보기 ({data.length}행)
+            </Button>
           </div>
-        </TabsContent>
-
-        {/* 탭 2: 상관관계 분석 (산점도 + 히트맵) */}
-        <TabsContent value="correlation" className="mt-0 space-y-4">
-          <Tabs defaultValue="scatterplots" className="w-full">
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="statistics" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="scatterplots">
-                <ChartScatter className="h-4 w-4 mr-2" />
-                산점도
+              <TabsTrigger value="statistics">
+                <ListOrdered className="h-4 w-4 mr-2" />
+                기초 통계량
               </TabsTrigger>
-              <TabsTrigger value="heatmap">
-                <TrendingUp className="h-4 w-4 mr-2" />
-                상관계수 행렬
+              <TabsTrigger value="preview">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                데이터 미리보기
               </TabsTrigger>
             </TabsList>
 
-            {/* 산점도 탭 */}
-            <TabsContent value="scatterplots" className="space-y-4">
-              {scatterplots.map(config => {
-                const { x: xData, y: yData } = getPairedData(config.xVariable, config.yVariable)
-                const scatterData = xData.map((x, i) => ({ x, y: yData[i] }))
-                const { r, r2 } = calculateCorrelation(xData, yData)
+            {/* 기초 통계량 탭 */}
+            <TabsContent value="statistics" className="mt-0">
+              <div className="space-y-4">
+                {/* 이상치 요약 배너 */}
 
-                return (
-                  <Card key={config.id} className="overflow-hidden border-0 shadow-sm bg-card">
-                    {/* 모던 헤더 - 변수 선택 영역 */}
-                    <div className="px-5 py-4 border-b bg-muted/30">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 rounded-md bg-primary/10">
-                            <ChartScatter className="h-4 w-4 text-primary" />
+                {(() => {
+
+                  const varsWithOutliers = numericDistributions
+
+                    .filter(v => v.outlierCount > 0)
+
+                    .sort((a, b) => b.outlierCount - a.outlierCount)
+
+                  const totalOutliers = numericDistributions.reduce((sum, v) => sum + v.outlierCount, 0)
+
+
+
+                  if (totalOutliers === 0) return null
+
+
+
+                  return (
+
+                    <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+
+                      <div className="flex items-start gap-2">
+
+                        <span className="text-yellow-600 dark:text-yellow-400">⚠️</span>
+
+                        <div className="text-sm leading-5">
+
+                          <div className="font-medium text-yellow-800 dark:text-yellow-200">
+
+                            ⚠️ 이상치 감지: {varsWithOutliers.length}개 변수에서 총 {totalOutliers}개
+
                           </div>
-                          <span className="font-medium text-sm">변수 관계 분석</span>
+
+                          {varsWithOutliers.length > 0 && (
+
+                            <div className="mt-1 text-yellow-700 dark:text-yellow-300 text-xs">
+
+                              {varsWithOutliers.slice(0, 5).map(v => `${v.name}(${v.outlierCount}개)`).join(', ')}
+
+                              {varsWithOutliers.length > 5 && ` 외 ${varsWithOutliers.length - 5}개 변수`}
+
+                            </div>
+
+                          )}
+
                         </div>
-                        {scatterplots.length > 1 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeScatterplot(config.id)}
-                            className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
+
                       </div>
 
-                      {/* 현대적 X → Y 변수 선택 UI */}
-                      <div className="flex items-center gap-3">
-                        {/* X축 선택 */}
-                        <div className="flex-1">
-                          <label className="text-xs text-muted-foreground mb-1.5 block">X축 (독립변수)</label>
-                          <Select
-                            value={config.xVariable}
-                            onValueChange={(value) => updateXVariable(config.id, value)}
-                          >
-                            <SelectTrigger className="h-9 bg-background border-border/50 hover:border-primary/50 transition-colors">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {numericVariables.map(v => (
-                                <SelectItem key={v} value={v} disabled={v === config.yVariable}>
-                                  {v}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* 화살표 */}
-                        <div className="flex items-end pb-0.5">
-                          <div className="p-2 rounded-full bg-primary/5">
-                            <ArrowRight className="h-4 w-4 text-primary/70" />
-                          </div>
-                        </div>
-
-                        {/* Y축 선택 */}
-                        <div className="flex-1">
-                          <label className="text-xs text-muted-foreground mb-1.5 block">Y축 (종속변수)</label>
-                          <Select
-                            value={config.yVariable}
-                            onValueChange={(value) => updateYVariable(config.id, value)}
-                          >
-                            <SelectTrigger className="h-9 bg-background border-border/50 hover:border-primary/50 transition-colors">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {numericVariables.map(v => (
-                                <SelectItem key={v} value={v} disabled={v === config.xVariable}>
-                                  {v}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
                     </div>
 
-                    {/* 상관계수 뱃지 바 */}
-                    <div className="px-5 py-2.5 border-b bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-muted-foreground">상관계수</span>
-                          <Badge
-                            variant={Math.abs(r) >= 0.7 ? "default" : Math.abs(r) >= 0.4 ? "secondary" : "outline"}
-                            className="font-mono text-xs"
-                          >
-                            r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-muted-foreground">결정계수</span>
-                          <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
-                            R² = {r2.toFixed(3)}
-                          </span>
-                        </div>
-                        <div className="text-muted-foreground">
-                          n = {xData.length}
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-xs gap-1">
-                        <Sparkles className="h-3 w-3" />
-                        {Math.abs(r) >= 0.7 ? '강한 상관' : Math.abs(r) >= 0.4 ? '중간 상관' : '약한 상관'}
-                      </Badge>
-                    </div>
+                  )
 
-                    {/* 그래프 영역 */}
-                    <CardContent className="p-5">
-                      <Scatterplot
-                        data={scatterData}
-                        title={`${config.xVariable} vs ${config.yVariable}`}
-                        xAxisLabel={config.xVariable}
-                        yAxisLabel={config.yVariable}
-                        showTrendLine={true}
-                        correlationCoefficient={r}
-                      />
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                })()}
 
-              {/* 산점도 추가 버튼 */}
-              <button
-                onClick={addScatterplot}
-                disabled={scatterplots.length >= numericVariables.length}
-                className="w-full py-3 border-2 border-dashed border-muted-foreground/20 rounded-lg text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="text-sm font-medium">새 산점도 추가</span>
-              </button>
+                <div className="overflow-x-auto max-h-[400px] border rounded-lg">
+                  <table className="w-full text-sm border-collapse">
+                    <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
+
+                      <tr className="border-b">
+
+                        <th className="text-left p-2 font-semibold whitespace-nowrap">변수명</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">N</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">평균</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">표준편차</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">중앙값</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">최소</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">최대</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">Q1</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">Q3</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">왜도</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">첨도</th>
+
+                        <th className="text-right p-2 font-semibold whitespace-nowrap">이상치</th>
+
+                      </tr>
+
+                    </thead>
+
+
+                    <tbody>
+                      {numericDistributions.map(col => {
+                        const skewWarning = col.skewness !== undefined && Math.abs(col.skewness) > 2
+                        const kurtWarning = col.kurtosis !== undefined && Math.abs(col.kurtosis) > 7
+
+                        return (
+                          <tr key={col.name} className="border-b hover:bg-muted/50">
+                            <td className="p-2 font-medium whitespace-nowrap">{col.name}</td>
+                            <td className="p-2 text-right">{col.n}</td>
+                            <td className="p-2 text-right">{formatStat(col.mean)}</td>
+                            <td className="p-2 text-right">{formatStat(col.std)}</td>
+                            <td className="p-2 text-right">{formatStat(col.median)}</td>
+                            <td className="p-2 text-right">{formatStat(col.min)}</td>
+                            <td className="p-2 text-right">{formatStat(col.max)}</td>
+                            <td className="p-2 text-right">{formatStat(col.q1)}</td>
+                            <td className="p-2 text-right">{formatStat(col.q3)}</td>
+                            <td className={`p-2 text-right ${skewWarning ? 'text-yellow-600 dark:text-yellow-400 font-medium' : ''}`}>
+                              {formatStat(col.skewness)}
+                              {skewWarning && ' ⚠'}
+                            </td>
+                            <td className={`p-2 text-right ${kurtWarning ? 'text-yellow-600 dark:text-yellow-400 font-medium' : ''}`}>
+                              {formatStat(col.kurtosis)}
+                              {kurtWarning && ' ⚠'}
+                            </td>
+                            <td className="p-2 text-right">
+                              {col.outlierCount > 0 ? (
+                                <Badge variant="secondary" className="text-xs">
+                                  {col.outlierCount}개
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+
+
+
+                  </table>
+                </div>
+
+                {/* 해석 가이드 */}
+                <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="font-medium mb-1">💡 해석 기준:</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <div><strong>왜도</strong>: |값| &gt; 2 → 심한 비대칭 (⚠ 표시)</div>
+                    <div><strong>첨도</strong>: |값| &gt; 7 → 극단값 많음 (⚠ 표시)</div>
+                    <div><strong>이상치</strong>: IQR × 1.5 범위 벗어난 값</div>
+                    <div><strong>N</strong>: 유효한 값의 개수 (결측 제외)</div>
+                  </div>
+                </div>
+              </div>
             </TabsContent>
 
-            {/* 히트맵 탭 */}
-            <TabsContent value="heatmap">
-              <Card>
-                <CardHeader>
-                  <CardTitle>상관계수 히트맵</CardTitle>
-                  <CardDescription>
-                    모든 수치형 변수 쌍의 상관관계를 시각화합니다
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isCalculating ? (
-                    <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <div className="text-center">
-                        <p className="text-sm font-medium">상관계수 계산 중...</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {numericVariables.length}개 변수 분석
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* 히트맵 시각화 */}
-                      {numericVariables.length >= 2 && (
-                        <CorrelationHeatmap
-                          matrix={(() => {
-                            // 상관계수 행렬 생성
-                            const n = numericVariables.length
-                            const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0))
-                            for (let i = 0; i < n; i++) {
-                              matrix[i][i] = 1 // 대각선은 1
-                              for (let j = i + 1; j < n; j++) {
-                                const corr = correlationMatrix.find(
-                                  c => (c.var1 === numericVariables[i] && c.var2 === numericVariables[j]) ||
-                                    (c.var1 === numericVariables[j] && c.var2 === numericVariables[i])
-                                )
-                                const r = corr?.r ?? 0
-                                matrix[i][j] = r
-                                matrix[j][i] = r
-                              }
-                            }
-                            return matrix
-                          })()}
-                          labels={numericVariables}
-                          height={Math.max(350, numericVariables.length * 40)}
-                        />
-                      )}
+            {/* 데이터 미리보기 탭 (상위 5개 + 생략 + 하위 5개를 하나의 테이블로) */}
+            <TabsContent value="preview" className="mt-0">
+              <div className="space-y-4">
+                {/* 10행 이하: 전체 표시 / 10행 초과: 상위 5 + 생략 + 하위 5 */}
+                {data.length <= 10 ? (
+                  <DataPreviewTable
+                    data={data}
+                    maxRows={10}
+                    defaultOpen={true}
+                    title=""
+                    height="auto"
+                  />
+                ) : (
+                  (() => {
+                    const topRows = data.slice(0, 5)
+                    const bottomRows = data.slice(-5)
+                    const omittedCount = data.length - 10
 
-                      {/* 해석 가이드 */}
-                      <div className="mt-4 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <p className="font-medium mb-1">💡 상관계수 해석:</p>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                          <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r ≈ +1</strong>: 강한 양의 상관</div>
-                          <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r ≈ -1</strong>: 강한 음의 상관</div>
-                          <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r ≈ 0</strong>: 상관 없음</div>
-                          <div><strong>|r| ≥ 0.7</strong>: 매우 강한 상관</div>
-                        </div>
-                      </div>
+                    // 행 번호 배열: 상위 1-5, 하위 (n-4)~n
+                    const indices = [1, 2, 3, 4, 5].concat(
+                      [...Array(5).keys()].map(i => data.length - 4 + i)
+                    )
 
-                      {/* 강한 상관관계 목록 */}
-                      {correlationMatrix.filter(c => Math.abs(c.r) >= 0.5).length > 0 && (
-                        <div className="mt-4">
-                          <p className="text-sm font-medium mb-2">📌 주요 상관관계 (|r| ≥ 0.5)</p>
-                          <div className="space-y-1">
-                            {correlationMatrix
-                              .filter(c => Math.abs(c.r) >= 0.5)
-                              .slice(0, 5)
-                              .map(({ var1, var2, r }) => (
-                                <div key={`${var1}-${var2}`} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
-                                  <span>{var1} ↔ {var2}</span>
-                                  <Badge variant={Math.abs(r) >= 0.7 ? 'default' : 'secondary'}>
-                                    r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
-                                  </Badge>
-                                </div>
-                              ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+                    return (
+                      <DataPreviewTable
+                        data={[...topRows, ...bottomRows]}
+                        maxRows={10}
+                        defaultOpen={true}
+                        title=""
+                        height="auto"
+                        omittedRows={omittedCount}
+                        omitAfterIndex={4}
+                        rowIndices={indices}
+                      />
+                    )
+                  })()
+                )}
+
+                {/* 전체 보기 안내 */}
+                <div className="text-center text-sm text-muted-foreground py-2">
+                  전체 데이터({data.length}행)를 보려면 상단의 &quot;전체 데이터 보기&quot; 버튼을 클릭하세요.
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* 가정 검정 결과 카드 */}
+      {isAssumptionLoading && (
+        <Card className="border-highlight-border bg-highlight-bg">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              통계적 가정 검증 중...
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              정규성, 등분산성 검정을 수행하고 있습니다. 잠시만 기다려주세요.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isAssumptionLoading && assumptionResults && (
+        <Card className="border-highlight-border bg-highlight-bg">
+          <CardHeader>
+            <CardTitle className="text-base">🔍 통계적 가정 검증</CardTitle>
+            <CardDescription>
+              이 결과를 바탕으로 적절한 통계 검정 방법을 선택하세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* 정규성 검정 결과 */}
+              {assumptionResults.normality?.shapiroWilk && (
+                <div className="p-3 bg-white dark:bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">📊 정규성 검정 (Shapiro-Wilk)</span>
+                    <Badge variant={assumptionResults.normality.shapiroWilk.isNormal ? "default" : "secondary"}>
+                      {assumptionResults.normality.shapiroWilk.isNormal ? '정규분포' : '비정규분포'}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">통계량: </span>
+                      <span className="font-mono">{(assumptionResults.normality.shapiroWilk.statistic ?? 0).toFixed(4)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">p-value: </span>
+                      <span className="font-mono">{(assumptionResults.normality.shapiroWilk.pValue ?? 0).toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {assumptionResults.normality.shapiroWilk.isNormal
+                      ? '✓ 정규분포 가정을 만족합니다 (p ≥ 0.05). 모수 검정 사용 가능합니다.'
+                      : '⚠ 정규분포 가정을 만족하지 않습니다 (p < 0.05). 비모수 검정 고려가 필요합니다.'}
+                  </p>
+                </div>
+              )}
+
+              {/* 등분산성 검정 결과 */}
+              {assumptionResults.homogeneity?.levene && (
+                <div className="p-3 bg-white dark:bg-background rounded-lg border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">📏 등분산성 검정 (Levene)</span>
+                    <Badge variant={assumptionResults.homogeneity.levene.equalVariance ? "default" : "secondary"}>
+                      {assumptionResults.homogeneity.levene.equalVariance ? '등분산' : '이분산'}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">통계량: </span>
+                      <span className="font-mono">{(assumptionResults.homogeneity.levene.statistic ?? 0).toFixed(4)}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">p-value: </span>
+                      <span className="font-mono">{(assumptionResults.homogeneity.levene.pValue ?? 0).toFixed(4)}</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    {assumptionResults.homogeneity.levene.equalVariance
+                      ? '✓ 등분산 가정을 만족합니다 (p ≥ 0.05).'
+                      : '⚠ 등분산 가정을 만족하지 않습니다 (p < 0.05). Welch 검정 고려가 필요합니다.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 데이터 분포 시각화 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            데이터 분포 시각화
+          </CardTitle>
+          <CardDescription>
+            수치형 변수들의 분포를 히스토그램 또는 박스플롯으로 확인합니다
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* 차트 타입 선택 (외부 상태로 관리) */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant={chartType === 'histogram' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setChartType('histogram')}
+              className="text-xs"
+            >
+              <BarChart3 className="h-3 w-3 mr-1" />
+              히스토그램
+            </Button>
+            <Button
+              variant={chartType === 'boxplot' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setChartType('boxplot')}
+              className="text-xs"
+            >
+              <GitCommitHorizontal className="h-3 w-3 mr-1" />
+              박스플롯
+            </Button>
+          </div>
+
+          {/* 히스토그램 모드: 단일 변수 선택 */}
+          {chartType === 'histogram' && (
+            <>
+              <div className="flex flex-wrap gap-1">
+                {numericVariables.slice(0, 8).map(varName => (
+                  <Button
+                    key={varName}
+                    variant={selectedHistogramVar === varName ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedHistogramVar(varName)}
+                    className="text-xs"
+                  >
+                    {varName}
+                  </Button>
+                ))}
+              </div>
+              {selectedHistogramVar && (() => {
+                const colData = data
+                  .map(row => row[selectedHistogramVar])
+                  .filter(v => v !== null && v !== undefined && v !== '')
+                  .map(Number)
+                  .filter(v => !isNaN(v))
+
+                if (colData.length === 0) return null
+
+                const sortedData = [...colData].sort((a, b) => a - b)
+                const q1Index = Math.floor(sortedData.length * 0.25)
+                const q3Index = Math.floor(sortedData.length * 0.75)
+                const q1 = sortedData[q1Index] || 0
+                const q3 = sortedData[q3Index] || 0
+                const iqr = q3 - q1
+                const lowerBound = q1 - 1.5 * iqr
+                const upperBound = q3 + 1.5 * iqr
+                const outliers = colData.filter(v => v < lowerBound || v > upperBound)
+
+                return (
+                  <div className="space-y-4">
+                    <Histogram
+                      data={colData}
+                      title={`${selectedHistogramVar} 분포`}
+                      xAxisLabel={selectedHistogramVar}
+                      yAxisLabel="빈도"
+                      bins={10}
+                      showCard={false}
+                    />
+                    {outliers.length > 0 && (
+                      <div className="text-xs bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 p-3 rounded-lg">
+                        <span className="font-medium">이상치:</span> {outliers.length}개 발견 (범위: &lt;{lowerBound.toFixed(2)} 또는 &gt;{upperBound.toFixed(2)})
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+            </>
+          )}
+
+          {/* 박스플롯 모드: 다중 변수 선택 */}
+          {chartType === 'boxplot' && (
+            <>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">변수를 클릭하여 비교할 변수를 선택하세요 (최대 8개)</p>
+                <div className="flex flex-wrap gap-1">
+                  {numericVariables.slice(0, 8).map(varName => (
+                    <Button
+                      key={varName}
+                      variant={selectedBoxplotVars.includes(varName) ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => toggleBoxplotVar(varName)}
+                      className="text-xs"
+                    >
+                      {selectedBoxplotVars.includes(varName) && <span className="mr-1">✓</span>}
+                      {varName}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {boxplotMultiData.length > 0 && (
+                <BoxPlot
+                  data={boxplotMultiData as Array<{name: string; min: number; q1: number; median: number; q3: number; max: number; mean: number; std: number; outliers: number[]}>}
+                  title={selectedBoxplotVars.length === 1
+                    ? `${selectedBoxplotVars[0]} 박스플롯`
+                    : `변수 분포 비교 (${selectedBoxplotVars.length}개)`}
+                  showMean={true}
+                  showOutliers={true}
+                  height={350}
+                />
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tabs: 산점도 vs 상관계수 행렬 */}
+      <Tabs defaultValue="scatterplots" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="scatterplots">
+            <ChartScatter className="h-4 w-4 mr-2" />
+            산점도
+          </TabsTrigger>
+          <TabsTrigger value="correlation">
+            <TrendingUp className="h-4 w-4 mr-2" />
+            상관계수 행렬
+          </TabsTrigger>
+        </TabsList>
+
+        {/* 산점도 Tab */}
+        <TabsContent value="scatterplots" className="space-y-4">
+          {scatterplots.map(config => {
+            const { x: xData, y: yData } = getPairedData(config.xVariable, config.yVariable)
+            const scatterData = xData.map((x, i) => ({ x, y: yData[i] }))
+            const { r, r2 } = calculateCorrelation(xData, yData)
+
+            return (
+              <Card key={config.id} className="overflow-hidden border-0 shadow-sm bg-card">
+                {/* 모던 헤더 - 변수 선택 영역 */}
+                <div className="px-5 py-4 border-b bg-muted/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-md bg-primary/10">
+                        <ChartScatter className="h-4 w-4 text-primary" />
+                      </div>
+                      <span className="font-medium text-sm">변수 관계 분석</span>
+                    </div>
+                    {scatterplots.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeScatterplot(config.id)}
+                        className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* 현대적 X → Y 변수 선택 UI */}
+                  <div className="flex items-center gap-3">
+                    {/* X축 선택 */}
+                    <div className="flex-1">
+                      <label className="text-xs text-muted-foreground mb-1.5 block">X축 (독립변수)</label>
+                      <Select
+                        value={config.xVariable}
+                        onValueChange={(value) => updateXVariable(config.id, value)}
+                      >
+                        <SelectTrigger className="h-9 bg-background border-border/50 hover:border-primary/50 transition-colors">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {numericVariables.map(v => (
+                            <SelectItem key={v} value={v} disabled={v === config.yVariable}>
+                              {v}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* 화살표 */}
+                    <div className="flex items-end pb-0.5">
+                      <div className="p-2 rounded-full bg-primary/5">
+                        <ArrowRight className="h-4 w-4 text-primary/70" />
+                      </div>
+                    </div>
+
+                    {/* Y축 선택 */}
+                    <div className="flex-1">
+                      <label className="text-xs text-muted-foreground mb-1.5 block">Y축 (종속변수)</label>
+                      <Select
+                        value={config.yVariable}
+                        onValueChange={(value) => updateYVariable(config.id, value)}
+                      >
+                        <SelectTrigger className="h-9 bg-background border-border/50 hover:border-primary/50 transition-colors">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {numericVariables.map(v => (
+                            <SelectItem key={v} value={v} disabled={v === config.xVariable}>
+                              {v}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 상관계수 뱃지 바 */}
+                <div className="px-5 py-2.5 border-b bg-gradient-to-r from-primary/5 to-transparent flex items-center justify-between">
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">상관계수</span>
+                      <Badge
+                        variant={Math.abs(r) >= 0.7 ? "default" : Math.abs(r) >= 0.4 ? "secondary" : "outline"}
+                        className="font-mono text-xs"
+                      >
+                        r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground">결정계수</span>
+                      <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
+                        R² = {r2.toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="text-muted-foreground">
+                      n = {xData.length}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    {Math.abs(r) >= 0.7 ? '강한 상관' : Math.abs(r) >= 0.4 ? '중간 상관' : '약한 상관'}
+                  </Badge>
+                </div>
+
+                {/* 그래프 영역 */}
+                <CardContent className="p-5">
+                  <Scatterplot
+                    data={scatterData}
+                    title={`${config.xVariable} vs ${config.yVariable}`}
+                    xAxisLabel={config.xVariable}
+                    yAxisLabel={config.yVariable}
+                    showTrendLine={true}
+                    correlationCoefficient={r}
+                  />
+                </CardContent>
+              </Card>
+            )
+          })}
+
+          {/* 산점도 추가 버튼 */}
+          <button
+            onClick={addScatterplot}
+            disabled={scatterplots.length >= numericVariables.length}
+            className="w-full py-3 border-2 border-dashed border-muted-foreground/20 rounded-lg text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="text-sm font-medium">새 산점도 추가</span>
+          </button>
+        </TabsContent>
+
+        {/* 상관계수 행렬 Tab - 히트맵 */}
+        <TabsContent value="correlation">
+          <Card>
+            <CardHeader>
+              <CardTitle>상관계수 히트맵</CardTitle>
+              <CardDescription>
+                모든 수치형 변수 쌍의 상관관계를 시각화합니다
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isCalculating ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <div className="text-center">
+                    <p className="text-sm font-medium">상관계수 계산 중...</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {numericVariables.length}개 변수 분석
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* 히트맵 시각화 */}
+                  {numericVariables.length >= 2 && (
+                    <CorrelationHeatmap
+                      matrix={(() => {
+                        // 상관계수 행렬 생성
+                        const n = numericVariables.length
+                        const matrix: number[][] = Array(n).fill(null).map(() => Array(n).fill(0))
+                        for (let i = 0; i < n; i++) {
+                          matrix[i][i] = 1 // 대각선은 1
+                          for (let j = i + 1; j < n; j++) {
+                            const corr = correlationMatrix.find(
+                              c => (c.var1 === numericVariables[i] && c.var2 === numericVariables[j]) ||
+                                (c.var1 === numericVariables[j] && c.var2 === numericVariables[i])
+                            )
+                            const r = corr?.r ?? 0
+                            matrix[i][j] = r
+                            matrix[j][i] = r
+                          }
+                        }
+                        return matrix
+                      })()}
+                      labels={numericVariables}
+                      height={Math.max(350, numericVariables.length * 40)}
+                    />
+                  )}
+
+                  {/* 해석 가이드 */}
+                  <div className="mt-4 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="font-medium mb-1">💡 상관계수 해석:</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r ≈ +1</strong>: 강한 양의 상관</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r ≈ -1</strong>: 강한 음의 상관</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r ≈ 0</strong>: 상관 없음</div>
+                      <div><strong>|r| ≥ 0.7</strong>: 매우 강한 상관</div>
+                    </div>
+                  </div>
+
+                  {/* 강한 상관관계 목록 */}
+                  {correlationMatrix.filter(c => Math.abs(c.r) >= 0.5).length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium mb-2">📌 주요 상관관계 (|r| ≥ 0.5)</p>
+                      <div className="space-y-1">
+                        {correlationMatrix
+                          .filter(c => Math.abs(c.r) >= 0.5)
+                          .slice(0, 5)
+                          .map(({ var1, var2, r }) => (
+                            <div key={`${var1}-${var2}`} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
+                              <span>{var1} ↔ {var2}</span>
+                              <Badge variant={Math.abs(r) >= 0.7 ? 'default' : 'secondary'}>
+                                r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
+                              </Badge>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
-      {/* 변수 상세 패널 */}
-      {selectedVariable && (
-        <VariableDetailPanel
-          variable={selectedVariable}
-          data={data}
-          onClose={() => setSelectedVariable(null)}
-        />
-      )}
     </div>
   )
 })

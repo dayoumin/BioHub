@@ -321,101 +321,98 @@ export function AnalysisExecutionStep({
             </Alert>
           )}
 
-          {/* 메인 진행 상황 */}
-          <div className="bg-background rounded-lg p-8 text-center">
-            <div className="mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
-                <BarChart3 className="w-10 h-10 text-primary animate-pulse" />
+          {/* 메인 진행 상황 - 완료 시 간소화 */}
+          {progress === 100 ? (
+            /* 완료 시: 간소화된 배너 */
+            <div className="bg-success-bg dark:bg-success-bg border border-success-border rounded-lg p-4 flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+              <span className="font-medium">분석이 완료되었습니다</span>
+            </div>
+          ) : (
+            /* 진행 중: 전체 프로그레스 UI */
+            <div className="bg-background rounded-lg p-8 text-center">
+              <div className="mb-6">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
+                  <BarChart3 className="w-10 h-10 text-primary animate-pulse" />
+                </div>
+
+                <h3 className="text-xl font-semibold mb-2">분석 수행 중</h3>
+                <p className="text-muted-foreground">{currentStage.message}</p>
               </div>
 
-              <h3 className="text-xl font-semibold mb-2">
-                {progress === 100 ? '분석 완료!' : '분석 수행 중'}
-              </h3>
+              {/* 진행률 바 */}
+              <div className="max-w-2xl mx-auto mb-6">
+                <Progress value={progress} className="h-3" />
+                <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                  <span>{progress}%</span>
+                  <span>예상 남은 시간: {Math.ceil(estimatedTime * (100 - progress) / 100)}초</span>
+                </div>
+              </div>
 
-              {progress < 100 && (
-                <p className="text-muted-foreground">
-                  {currentStage.message}
-                </p>
+              {/* 단계별 진행 상황 */}
+              <div className="max-w-md mx-auto text-left space-y-3">
+                {EXECUTION_STAGES.map((stage) => {
+                  const isCompleted = completedStages.includes(stage.id)
+                  const isCurrent = currentStage.id === stage.id && !isCompleted
+
+                  return (
+                    <div key={stage.id} className="flex items-center gap-3">
+                      {isCompleted ? (
+                        <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+                      ) : isCurrent ? (
+                        <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-muted flex-shrink-0" />
+                      )}
+                      <span className={`text-sm ${
+                        isCompleted ? 'text-muted-foreground line-through' :
+                        isCurrent ? 'font-medium text-foreground' :
+                        'text-muted-foreground/50'
+                      }`}>
+                        {stage.label}
+                      </span>
+                      {isCompleted && (
+                        <span className="text-xs text-success ml-auto">✓</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* 컨트롤 버튼 */}
+              {!error && (
+                <div className="flex justify-center gap-3 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePauseResume}
+                    disabled={progress >= 75}
+                  >
+                    {isPaused ? (
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        계속
+                      </>
+                    ) : (
+                      <>
+                        <Pause className="w-4 h-4 mr-2" />
+                        일시정지
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancel}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    취소
+                  </Button>
+                </div>
               )}
             </div>
-
-            {/* 진행률 바 */}
-            <div className="max-w-2xl mx-auto mb-6">
-              <Progress value={progress} className="h-3" />
-              <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                <span>{progress}%</span>
-                {progress < 100 && (
-                  <span>예상 남은 시간: {Math.ceil(estimatedTime * (100 - progress) / 100)}초</span>
-                )}
-              </div>
-            </div>
-
-            {/* 단계별 진행 상황 - 완료 시 숨김 */}
-            {progress < 100 && (
-              <div className="max-w-md mx-auto text-left space-y-3">
-              {EXECUTION_STAGES.map((stage) => {
-                const isCompleted = completedStages.includes(stage.id)
-                const isCurrent = currentStage.id === stage.id && !isCompleted
-
-                return (
-                  <div key={stage.id} className="flex items-center gap-3">
-                    {isCompleted ? (
-                      <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
-                    ) : isCurrent ? (
-                      <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-muted flex-shrink-0" />
-                    )}
-                    <span className={`text-sm ${
-                      isCompleted ? 'text-muted-foreground line-through' :
-                      isCurrent ? 'font-medium text-foreground' :
-                      'text-muted-foreground/50'
-                    }`}>
-                      {stage.label}
-                    </span>
-                    {isCompleted && (
-                      <span className="text-xs text-success ml-auto">✓</span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-            )}
-
-            {/* 컨트롤 버튼 */}
-            {progress < 100 && !error && (
-              <div className="flex justify-center gap-3 mt-6">
-                {/* 일시정지/재개 버튼 (75% 이후로는 일시정지 불가) */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePauseResume}
-                  disabled={progress >= 75}
-                >
-                  {isPaused ? (
-                    <>
-                      <Play className="w-4 h-4 mr-2" />
-                      계속
-                    </>
-                  ) : (
-                    <>
-                      <Pause className="w-4 h-4 mr-2" />
-                      일시정지
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancel}
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  취소
-                </Button>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* 상세 실행 로그 */}
           <div className="bg-muted/50 rounded-lg">
