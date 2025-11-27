@@ -12,7 +12,8 @@ export const COMPONENT_LIST = [
   { id: 'variable-selector', label: 'VarSelector', badge: null },
   { id: 'result-context', label: 'ResultContext', badge: null },
   { id: 'statistical-result', label: 'StatResult', badge: null },
-  { id: 'floating-step', label: 'FloatingStep', badge: 'NEW' },
+  { id: 'floating-step', label: 'FloatingStep', badge: null },
+  { id: 'fit-score', label: 'FitScore', badge: 'NEW' },
 ] as const
 
 // 샘플 데이터 (기본)

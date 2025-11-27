@@ -42,6 +42,7 @@ import { VisualizationDemo } from './components/VisualizationDemo'
 import { ResultContextDemo } from './components/ResultContextDemo'
 import { StatisticalResultDemo } from './components/StatisticalResultDemo'
 import { FloatingStepIndicatorDemo } from './components/FloatingStepIndicatorDemo'
+import { FitScoreIndicatorDemo } from './components/FitScoreIndicatorDemo'
 import { COMPONENT_LIST } from './constants'
 
 // 로딩 스피너 (dynamic import용)
@@ -746,6 +747,10 @@ animation: {
 
               {selectedComponent === 'floating-step' && (
                 <FloatingStepIndicatorDemo />
+              )}
+
+              {selectedComponent === 'fit-score' && (
+                <FitScoreIndicatorDemo />
               )}
             </div>
           )}
