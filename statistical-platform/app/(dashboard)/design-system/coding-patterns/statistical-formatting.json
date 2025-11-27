@@ -24,9 +24,9 @@
         },
         {
           "name": "formatEffectSize",
-          "signature": "formatEffectSize(value: number, showInterpretation?: boolean): string",
+          "signature": "formatEffectSize(effectSize: number, showInterpretation?: boolean): string",
           "purpose": "Format effect size with optional interpretation",
-          "example": "formatEffectSize(0.65) // '0.6500'\nformatEffectSize(0.65, true) // '0.6500 (medium)'",
+          "example": "formatEffectSize(0.65) // '0.6500'\nformatEffectSize(0.65, true) // '0.6500 (중간)'",
           "rules": ["4 decimal places", "Optional interpretation suffix"]
         },
         {
@@ -92,10 +92,10 @@
         },
         {
           "name": "interpretEffectSizeEn",
-          "signature": "interpretEffectSizeEn(effectSize: number, type?: EffectSizeType): string",
+          "signature": "interpretEffectSizeEn(effectSize: number, effectType?: 'cohen_d' | 'eta_squared' | 'r'): string",
           "purpose": "Get English interpretation for effect size",
-          "example": "interpretEffectSizeEn(0.65, 'cohens_d') // 'medium'",
-          "rules": ["Supports: cohens_d, eta_squared, r"]
+          "example": "interpretEffectSizeEn(0.65, 'cohen_d') // 'medium'",
+          "rules": ["Supports: cohen_d, eta_squared, r", "Unified with Korean version parameter naming"]
         },
         {
           "name": "interpretCorrelationEn",

@@ -3,14 +3,17 @@
  *
  * 목적:
  * - compact={true} 시 "파일 변경" 버튼만 렌더링
- * - 버튼 클릭 시 파일 선택 다이얼로그 열림
+ * - 버튼 클릭 시 파일 선택 다이얼로그 열림 (open() 호출)
  * - 업로드 중 로딩 상태 표시
  * - 에러 발생 시 에러 메시지 표시
  */
 
 import { describe, it, beforeEach, jest } from '@jest/globals'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
+
+// open 함수를 외부에서 접근 가능하도록 설정
+const mockOpen = jest.fn()
 
 // data-validation-service mock (pyodide-core 의존성 방지)
 jest.mock('@/lib/services/data-validation-service', () => ({
@@ -22,16 +25,19 @@ jest.mock('@/lib/services/data-validation-service', () => ({
     WARNING_COLUMNS: 200
   },
   validateData: jest.fn(),
-  validateDataComprehensive: jest.fn()
+  validateDataComprehensive: jest.fn(),
+  DataValidationService: {
+    validateFileContent: jest.fn()
+  }
 }))
 
-// react-dropzone mock
+// react-dropzone mock - open 함수를 mockOpen으로 연결
 jest.mock('react-dropzone', () => ({
   useDropzone: jest.fn(({ onDrop, disabled }) => ({
     getRootProps: () => ({}),
     getInputProps: () => ({ 'data-testid': 'file-input' }),
     isDragActive: false,
-    open: jest.fn()
+    open: mockOpen
   }))
 }))
 
@@ -45,6 +51,7 @@ describe('DataUploadStep compact 모드', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockOpen.mockClear()
   })
 
   describe('렌더링', () => {
@@ -100,7 +107,21 @@ describe('DataUploadStep compact 모드', () => {
     })
   })
 
-  describe('버튼 상태', () => {
+  describe('버튼 클릭 동작', () => {
+    it('버튼 클릭 시 open() 함수가 호출되어야 함', () => {
+      render(
+        <DataUploadStep
+          onUploadComplete={mockOnUploadComplete}
+          compact={true}
+        />
+      )
+
+      const button = screen.getByRole('button', { name: /파일 변경/i })
+      fireEvent.click(button)
+
+      expect(mockOpen).toHaveBeenCalledTimes(1)
+    })
+
     it('기본 상태에서 버튼이 활성화되어 있어야 함', () => {
       render(
         <DataUploadStep
@@ -142,7 +163,7 @@ describe('DataUploadStep compact 모드', () => {
   })
 
   describe('스타일', () => {
-    it('버튼이 outline variant를 사용해야 함', () => {
+    it('버튼이 gap-1.5 클래스를 사용해야 함', () => {
       render(
         <DataUploadStep
           onUploadComplete={mockOnUploadComplete}
@@ -151,11 +172,10 @@ describe('DataUploadStep compact 모드', () => {
       )
 
       const button = screen.getByRole('button', { name: /파일 변경/i })
-      // shadcn Button의 outline variant는 border 스타일을 가짐
       expect(button).toHaveClass('gap-1.5')
     })
 
-    it('에러 메시지 컨테이너가 relative 부모를 가져야 함', () => {
+    it('컨테이너가 relative 클래스를 가져야 함 (에러 메시지 positioning용)', () => {
       render(
         <DataUploadStep
           onUploadComplete={mockOnUploadComplete}
