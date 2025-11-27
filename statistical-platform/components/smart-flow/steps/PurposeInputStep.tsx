@@ -492,15 +492,18 @@ export function PurposeInputStep({
                 {recommendation ? (
                   <div className="space-y-4">
                     {/* Recommendation Card */}
-                    <div className={cn(
-                      "p-4 rounded-lg border-2",
-                      !manualSelectedMethod ? "border-primary bg-primary/5" : "border-border"
-                    )}>
+                    <div
+                      data-testid="recommendation-card"
+                      className={cn(
+                        "p-4 rounded-lg border-2",
+                        !manualSelectedMethod ? "border-primary bg-primary/5" : "border-border"
+                      )}
+                    >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <Sparkles className="w-5 h-5 text-amber-500" />
-                            <span className="font-semibold">{recommendation.method.name}</span>
+                            <span data-testid="recommended-method-name" className="font-semibold">{recommendation.method.name}</span>
                             <Badge variant="secondary" className="text-xs">
                               {recommendation.confidence >= 0.95 ? 'LLM' : 'Rule-based'}
                             </Badge>
@@ -622,10 +625,10 @@ export function PurposeInputStep({
 
       {/* Action Button */}
       {finalSelectedMethod && selectedPurpose && !isAnalyzing && (
-        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+        <div data-testid="selected-method-bar" className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div>
             <span className="text-sm text-muted-foreground">선택된 방법:</span>
-            <span className="ml-2 font-semibold">{finalSelectedMethod.name}</span>
+            <span data-testid="final-selected-method-name" className="ml-2 font-semibold">{finalSelectedMethod.name}</span>
             {manualSelectedMethod && (
               <Badge variant="outline" className="ml-2 text-xs">직접 선택</Badge>
             )}

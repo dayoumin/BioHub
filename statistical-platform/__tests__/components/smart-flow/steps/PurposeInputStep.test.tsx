@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useSettingsStore } from '@/lib/stores/settings-store'
@@ -43,7 +43,7 @@ jest.mock('@/lib/hooks/useReducedMotion', () => ({
 
 // Mock UI components to avoid complex rendering
 jest.mock('@/components/common/analysis/PurposeCard', () => ({
-    PurposeCard: ({ title, onClick, selected }: any) => (
+    PurposeCard: ({ title, onClick, selected }: { title: string; onClick: () => void; selected: boolean }) => (
         <button data-testid={`purpose-card-${title}`} onClick={onClick} aria-selected={selected}>
             {title}
         </button>
@@ -58,12 +58,22 @@ jest.mock('@/components/smart-flow/visualization/AssumptionResultChart', () => (
     AssumptionResultChart: () => <div data-testid="assumption-chart">Chart</div>
 }))
 
+// Mock MethodBrowser to avoid duplicate text
+jest.mock('@/components/smart-flow/steps/purpose/MethodBrowser', () => ({
+    MethodBrowser: ({ selectedMethod, recommendedMethodId }: { selectedMethod: { name: string } | null; recommendedMethodId?: string }) => (
+        <div data-testid="method-browser">
+            <span data-testid="method-browser-selected">{selectedMethod?.name || 'None'}</span>
+            <span data-testid="method-browser-recommended">{recommendedMethodId || 'None'}</span>
+        </div>
+    )
+}))
+
 // Mock Tabs to render content immediately for testing
 jest.mock('@/components/ui/tabs', () => ({
-    Tabs: ({ children }: any) => <div>{children}</div>,
-    TabsList: ({ children }: any) => <div>{children}</div>,
-    TabsTrigger: ({ children }: any) => <button>{children}</button>,
-    TabsContent: ({ children }: any) => <div>{children}</div>,
+    Tabs: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    TabsList: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    TabsTrigger: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
+    TabsContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
 describe('PurposeInputStep', () => {
@@ -76,19 +86,32 @@ describe('PurposeInputStep', () => {
     const mockData = [{ age: 20, group: 'A' }]
 
     beforeEach(() => {
-        (useSmartFlowStore as unknown as jest.Mock).mockReturnValue({
+        jest.clearAllMocks()
+
+        // Mock store with selector support
+        const defaultStoreState = {
             assumptionResults: {},
             setSelectedMethod: jest.fn(),
             setDetectedVariables: jest.fn()
-        });
-        (useSettingsStore as unknown as jest.Mock).mockReturnValue(false); // useOllamaForRecommendation
+        }
+        ;(useSmartFlowStore as unknown as jest.Mock).mockImplementation(
+            (selector: (state: typeof defaultStoreState) => unknown) => selector(defaultStoreState)
+        )
+
+        // Settings store mock with selector
+        const defaultSettingsState = {
+            useOllamaForRecommendation: false
+        }
+        ;(useSettingsStore as unknown as jest.Mock).mockImplementation(
+            (selector: (state: typeof defaultSettingsState) => unknown) => selector(defaultSettingsState)
+        )
     })
 
     it('renders purpose selection cards', () => {
         render(
             <PurposeInputStep
                 onPurposeSubmit={jest.fn()}
-                validationResults={mockValidationResults as any}
+                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                 data={mockData}
             />
         )
@@ -102,39 +125,148 @@ describe('PurposeInputStep', () => {
         const mockResult = {
             method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
             confidence: 0.9,
-            reasoning: ['Reason 1']
+            reasoning: ['Two groups detected', 'Numeric dependent variable']
         }
 
-        // Setup mock implementation to log calls
-        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock;
-        recommendMock.mockImplementation((...args) => {
-            console.log('Test: DecisionTreeRecommender.recommend called with:', args)
-            return mockResult
-        })
+        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
+        recommendMock.mockReturnValue(mockResult)
 
         render(
             <PurposeInputStep
                 onPurposeSubmit={jest.fn()}
-                validationResults={mockValidationResults as any}
+                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                 data={mockData}
             />
         )
 
-        // Click purpose
-        console.log('Test: Clicking purpose card')
+        // Click purpose card
         fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
 
-        // Wait for recommendation
+        // Wait for recommendation card to appear
         await waitFor(() => {
-            // Check logger calls
-            const loggerInfo = (require('@/lib/utils/logger').logger.info as jest.Mock).mock.calls;
-            const loggerError = (require('@/lib/utils/logger').logger.error as jest.Mock).mock.calls;
-            console.log('Test: Logger Info calls:', loggerInfo)
-            console.log('Test: Logger Error calls:', loggerError)
+            // Use data-testid to get the specific element
+            expect(screen.getByTestId('recommendation-card')).toBeInTheDocument()
+        }, { timeout: 3000 })
 
-            screen.debug()
-            expect(screen.getByText('Independent t-test')).toBeInTheDocument()
-            expect(screen.getByText('AI 강력 추천')).toBeInTheDocument()
+        // Verify recommended method name within the recommendation card
+        const recommendationCard = screen.getByTestId('recommendation-card')
+        expect(within(recommendationCard).getByTestId('recommended-method-name')).toHaveTextContent('Independent t-test')
+
+        // Verify Badge shows Rule-based (confidence < 0.95)
+        expect(within(recommendationCard).getByText('Rule-based')).toBeInTheDocument()
+
+        // Verify final selected method bar also shows the method
+        expect(screen.getByTestId('final-selected-method-name')).toHaveTextContent('Independent t-test')
+    })
+
+    it('shows LLM badge when confidence is high', async () => {
+        // Mock recommendation with high confidence (LLM)
+        const mockResult = {
+            method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
+            confidence: 0.98, // >= 0.95 shows LLM
+            reasoning: ['LLM analyzed data pattern']
+        }
+
+        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
+        recommendMock.mockReturnValue(mockResult)
+
+        render(
+            <PurposeInputStep
+                onPurposeSubmit={jest.fn()}
+                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                data={mockData}
+            />
+        )
+
+        fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
+
+        await waitFor(() => {
+            const recommendationCard = screen.getByTestId('recommendation-card')
+            expect(within(recommendationCard).getByText('LLM')).toBeInTheDocument()
+        }, { timeout: 3000 })
+    })
+
+    it('calls onPurposeSubmit when confirm button is clicked', async () => {
+        const mockOnPurposeSubmit = jest.fn()
+        const mockSetSelectedMethod = jest.fn()
+        const mockSetDetectedVariables = jest.fn()
+
+        // Mock store with selector support
+        const mockStoreState = {
+            assumptionResults: {},
+            setSelectedMethod: mockSetSelectedMethod,
+            setDetectedVariables: mockSetDetectedVariables
+        }
+        ;(useSmartFlowStore as unknown as jest.Mock).mockImplementation(
+            (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState)
+        )
+
+        const mockResult = {
+            method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
+            confidence: 0.9,
+            reasoning: ['Reason']
+        }
+
+        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
+        recommendMock.mockReturnValue(mockResult)
+
+        render(
+            <PurposeInputStep
+                onPurposeSubmit={mockOnPurposeSubmit}
+                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                data={mockData}
+            />
+        )
+
+        // Select purpose
+        fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
+
+        // Wait for recommendation card AND selected method bar to appear
+        await waitFor(() => {
+            expect(screen.getByTestId('recommendation-card')).toBeInTheDocument()
+            expect(screen.getByTestId('selected-method-bar')).toBeInTheDocument()
+        }, { timeout: 3000 })
+
+        // Verify confirm button exists and is enabled
+        const confirmButton = screen.getByRole('button', { name: /이 방법으로 분석하기/i })
+        expect(confirmButton).toBeInTheDocument()
+        expect(confirmButton).not.toBeDisabled()
+
+        // Click confirm button using userEvent-like interaction
+        await fireEvent.click(confirmButton)
+
+        // The callback should be called synchronously after click
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(mockResult.method)
+        expect(mockSetDetectedVariables).toHaveBeenCalled()
+        expect(mockOnPurposeSubmit).toHaveBeenCalledWith('그룹 간 차이 비교', mockResult.method)
+    })
+
+    it('shows reasoning list in recommendation card', async () => {
+        const mockResult = {
+            method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
+            confidence: 0.85,
+            reasoning: ['Two groups detected', 'Numeric variable present', 'Sample size sufficient']
+        }
+
+        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
+        recommendMock.mockReturnValue(mockResult)
+
+        render(
+            <PurposeInputStep
+                onPurposeSubmit={jest.fn()}
+                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                data={mockData}
+            />
+        )
+
+        fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
+
+        await waitFor(() => {
+            const recommendationCard = screen.getByTestId('recommendation-card')
+            // Check reasoning items are displayed (up to 3)
+            expect(within(recommendationCard).getByText(/Two groups detected/)).toBeInTheDocument()
+            expect(within(recommendationCard).getByText(/Numeric variable present/)).toBeInTheDocument()
+            expect(within(recommendationCard).getByText(/Sample size sufficient/)).toBeInTheDocument()
         }, { timeout: 3000 })
     })
 })
