@@ -149,13 +149,27 @@ export function formatMetric(
 }
 
 /**
- * p-value 해석
+ * p-value 유의성 판정 (boolean)
  * @param p p-value
  * @param alpha 유의수준 (기본값: 0.05)
  * @returns 통계적 유의성 여부
  */
 export function interpretPValue(p: number, alpha: number = SIGNIFICANCE_LEVELS.STANDARD): boolean {
   return p < alpha
+}
+
+/**
+ * p-value 해석 (한글, 문자열 반환)
+ * UI 표시 및 해석 텍스트 생성용
+ * @param pValue p-value
+ * @returns 해석 문자열
+ */
+export function interpretPValueKo(pValue: number): string {
+  if (pValue < 0.001) return '매우 강한 통계적 유의성 (p < 0.001)'
+  if (pValue < 0.01) return '강한 통계적 유의성 (p < 0.01)'
+  if (pValue < 0.05) return '통계적으로 유의 (p < 0.05)'
+  if (pValue < 0.1) return '약한 통계적 유의성 (p < 0.1)'
+  return '통계적으로 유의하지 않음 (p >= 0.05)'
 }
 
 /**
@@ -242,4 +256,118 @@ export function interpretCorrelation(r: number): string {
   } else {
     return `거의 완벽한 ${direction}의 상관관계`
   }
+}
+
+// ============================================================================
+// 영어 버전 해석 함수 (내부 계산/로깅용)
+// ============================================================================
+
+/**
+ * p-value 해석 (영어, 문자열 반환)
+ * @param pValue p-value
+ * @param alpha 유의수준 (기본값: 0.05)
+ * @returns 해석 문자열
+ */
+export function interpretPValueEn(pValue: number, alpha: number = 0.05): string {
+  if (pValue < 0.001) return 'highly significant (p < 0.001)'
+  if (pValue < 0.01) return 'very significant (p < 0.01)'
+  if (pValue < alpha) return `significant (p < ${alpha})`
+  return `not significant (p >= ${alpha})`
+}
+
+/**
+ * 효과크기 해석 (영어)
+ * @param effectSize 효과크기 값
+ * @param type 효과크기 유형
+ * @returns 해석 문자열
+ */
+export function interpretEffectSizeEn(
+  effectSize: number,
+  type: 'cohens_d' | 'eta_squared' | 'r' = 'cohens_d'
+): string {
+  const absValue = Math.abs(effectSize)
+
+  switch (type) {
+    case 'cohens_d':
+      if (absValue < 0.2) return 'negligible'
+      if (absValue < 0.5) return 'small'
+      if (absValue < 0.8) return 'medium'
+      return 'large'
+    case 'eta_squared':
+      if (absValue < 0.01) return 'negligible'
+      if (absValue < 0.06) return 'small'
+      if (absValue < 0.14) return 'medium'
+      return 'large'
+    case 'r':
+      if (absValue < 0.1) return 'negligible'
+      if (absValue < 0.3) return 'small'
+      if (absValue < 0.5) return 'medium'
+      if (absValue < 0.7) return 'large'
+      return 'very large'
+    default:
+      return 'unknown'
+  }
+}
+
+/**
+ * 상관계수 강도 해석 (영어)
+ * @param r 상관계수
+ * @returns 해석 문자열
+ */
+export function interpretCorrelationEn(r: number): string {
+  const absR = Math.abs(r)
+  if (absR < 0.1) return 'negligible'
+  if (absR < 0.3) return 'weak'
+  if (absR < 0.5) return 'moderate'
+  if (absR < 0.7) return 'strong'
+  return 'very strong'
+}
+
+/**
+ * 상관계수 강도만 해석 (한글, 방향 없이)
+ * @param correlation 상관계수
+ * @returns 강도 문자열 (예: "강한", "약한")
+ */
+export function interpretCorrelationStrength(correlation: number): string {
+  const absCorr = Math.abs(correlation)
+  if (absCorr > 0.7) return '강한'
+  if (absCorr > 0.5) return '중간'
+  if (absCorr > 0.3) return '약간'
+  return '약한'
+}
+
+/**
+ * 정규성 검정 해석
+ * @param pValue p-value
+ * @param alpha 유의수준 (기본값: 0.05)
+ * @returns 정규성 여부와 해석 문자열
+ */
+export function interpretNormality(pValue: number, alpha: number = 0.05): {
+  isNormal: boolean
+  interpretation: string
+} {
+  const isNormal = pValue >= alpha
+  const interpretation = isNormal
+    ? `Data appears to be normally distributed (p = ${formatPValue(pValue)} >= ${alpha})`
+    : `Data deviates from normal distribution (p = ${formatPValue(pValue)} < ${alpha})`
+
+  return { isNormal, interpretation }
+}
+
+/**
+ * 등분산성 검정 해석
+ * @param pValue p-value
+ * @param alpha 유의수준 (기본값: 0.05)
+ * @returns 등분산성 여부와 해석 문자열
+ */
+export function interpretHomogeneity(pValue: number, alpha: number = 0.05): {
+  isHomogeneous: boolean
+  interpretation: string
+} {
+  const isHomogeneous = pValue >= alpha
+  const interpretation = isHomogeneous
+    ? `Variances appear to be equal (p = ${formatPValue(pValue)} >= ${alpha})`
+    : `Variances are not equal (p = ${formatPValue(pValue)} < ${alpha})`
+
+  return { isHomogeneous, interpretation }
 }

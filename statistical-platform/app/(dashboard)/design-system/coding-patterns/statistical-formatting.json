@@ -1,0 +1,187 @@
+{
+  "title": "Statistical Formatting",
+  "description": "p-value, effect size, correlation coefficient formatting and interpretation utilities",
+  "sourceFile": "lib/statistics/formatters.ts",
+  "lastUpdated": "2025-11-27",
+  "categories": [
+    {
+      "name": "Formatting",
+      "description": "Format numeric values for display",
+      "functions": [
+        {
+          "name": "formatPValue",
+          "signature": "formatPValue(value: number | null | undefined): string",
+          "purpose": "Format p-value (< 0.001 for very small values)",
+          "example": "formatPValue(0.0003) // '< 0.001'\nformatPValue(0.0234) // '0.0234'",
+          "rules": ["< 0.001 threshold", "4 decimal places", "Returns 'N/A' for null/undefined"]
+        },
+        {
+          "name": "formatNumber",
+          "signature": "formatNumber(value: number | null | undefined, precision?: number): string",
+          "purpose": "Format number with specified precision",
+          "example": "formatNumber(3.14159, 2) // '3.14'\nformatNumber(null) // 'N/A'",
+          "rules": ["Default precision: 4 (PRECISION.STATISTIC)", "Returns 'N/A' for invalid values"]
+        },
+        {
+          "name": "formatEffectSize",
+          "signature": "formatEffectSize(value: number, showInterpretation?: boolean): string",
+          "purpose": "Format effect size with optional interpretation",
+          "example": "formatEffectSize(0.65) // '0.6500'\nformatEffectSize(0.65, true) // '0.6500 (medium)'",
+          "rules": ["4 decimal places", "Optional interpretation suffix"]
+        },
+        {
+          "name": "formatConfidenceInterval",
+          "signature": "formatConfidenceInterval(lower: number, upper: number, precision?: number): string",
+          "purpose": "Format confidence interval",
+          "example": "formatConfidenceInterval(1.23, 4.56) // '[1.2300, 4.5600]'",
+          "rules": ["Square bracket notation", "Default precision: 4"]
+        }
+      ]
+    },
+    {
+      "name": "Interpretation (Korean)",
+      "description": "Interpret statistical values in Korean for UI display",
+      "functions": [
+        {
+          "name": "interpretPValue",
+          "signature": "interpretPValue(p: number, alpha?: number): boolean",
+          "purpose": "Check if p-value is statistically significant",
+          "example": "interpretPValue(0.03) // true\ninterpretPValue(0.08) // false",
+          "rules": ["Default alpha: 0.05", "Returns boolean"]
+        },
+        {
+          "name": "interpretPValueKo",
+          "signature": "interpretPValueKo(pValue: number): string",
+          "purpose": "Get Korean interpretation string for p-value",
+          "example": "interpretPValueKo(0.003) // 'Strong statistical significance (p < 0.01)'",
+          "rules": ["< 0.001: Very strong", "< 0.01: Strong", "< 0.05: Significant", "< 0.1: Weak", ">= 0.1: Not significant"]
+        },
+        {
+          "name": "interpretEffectSize",
+          "signature": "interpretEffectSize(value: number, type?: EffectSizeType): string",
+          "purpose": "Get Korean interpretation for effect size",
+          "example": "interpretEffectSize(0.65, 'cohen_d') // 'medium'",
+          "rules": ["Supports: cohen_d, eta_squared, omega_squared, r, phi, cramers_v", "Uses EFFECT_SIZE constants"]
+        },
+        {
+          "name": "interpretCorrelation",
+          "signature": "interpretCorrelation(r: number): string",
+          "purpose": "Get Korean interpretation with direction",
+          "example": "interpretCorrelation(0.75) // 'Strong positive correlation'",
+          "rules": ["Includes direction (positive/negative)", "Uses CORRELATION_STRENGTH constants"]
+        },
+        {
+          "name": "interpretCorrelationStrength",
+          "signature": "interpretCorrelationStrength(correlation: number): string",
+          "purpose": "Get strength only (without direction)",
+          "example": "interpretCorrelationStrength(0.75) // 'Strong'",
+          "rules": ["> 0.7: Strong", "> 0.5: Medium", "> 0.3: Moderate", "<= 0.3: Weak"]
+        }
+      ]
+    },
+    {
+      "name": "Interpretation (English)",
+      "description": "Interpret statistical values in English for internal/logging use",
+      "functions": [
+        {
+          "name": "interpretPValueEn",
+          "signature": "interpretPValueEn(pValue: number, alpha?: number): string",
+          "purpose": "Get English interpretation string for p-value",
+          "example": "interpretPValueEn(0.003) // 'very significant (p < 0.01)'",
+          "rules": ["For internal calculation results", "Matches utils.ts legacy behavior"]
+        },
+        {
+          "name": "interpretEffectSizeEn",
+          "signature": "interpretEffectSizeEn(effectSize: number, type?: EffectSizeType): string",
+          "purpose": "Get English interpretation for effect size",
+          "example": "interpretEffectSizeEn(0.65, 'cohens_d') // 'medium'",
+          "rules": ["Supports: cohens_d, eta_squared, r"]
+        },
+        {
+          "name": "interpretCorrelationEn",
+          "signature": "interpretCorrelationEn(r: number): string",
+          "purpose": "Get English strength interpretation",
+          "example": "interpretCorrelationEn(0.75) // 'strong'",
+          "rules": ["Lowercase English terms", "For logging/debugging"]
+        }
+      ]
+    },
+    {
+      "name": "Assumption Tests",
+      "description": "Interpret normality and homogeneity tests",
+      "functions": [
+        {
+          "name": "interpretNormality",
+          "signature": "interpretNormality(pValue: number, alpha?: number): { isNormal: boolean; interpretation: string }",
+          "purpose": "Interpret normality test result",
+          "example": "interpretNormality(0.12) // { isNormal: true, interpretation: 'Data appears to be normally distributed...' }",
+          "rules": ["p >= alpha: Normal", "Returns object with boolean + string"]
+        },
+        {
+          "name": "interpretHomogeneity",
+          "signature": "interpretHomogeneity(pValue: number, alpha?: number): { isHomogeneous: boolean; interpretation: string }",
+          "purpose": "Interpret homogeneity of variance test",
+          "example": "interpretHomogeneity(0.08) // { isHomogeneous: true, interpretation: 'Variances appear to be equal...' }",
+          "rules": ["p >= alpha: Homogeneous", "Returns object with boolean + string"]
+        }
+      ]
+    }
+  ],
+  "constants": {
+    "PRECISION": {
+      "STATISTIC": 4,
+      "P_VALUE": 4,
+      "CORRELATION": 4,
+      "PERCENTAGE": 2,
+      "COUNT": 0
+    },
+    "SIGNIFICANCE_LEVELS": {
+      "VERY_STRICT": 0.001,
+      "STRICT": 0.01,
+      "STANDARD": 0.05,
+      "LENIENT": 0.10
+    },
+    "EFFECT_SIZE": {
+      "SMALL": 0.2,
+      "MEDIUM": 0.5,
+      "LARGE": 0.8,
+      "VERY_LARGE": 1.2
+    },
+    "CORRELATION_STRENGTH": {
+      "VERY_WEAK": 0.2,
+      "WEAK": 0.4,
+      "MODERATE": 0.6,
+      "STRONG": 0.8,
+      "VERY_STRONG": 0.9
+    }
+  },
+  "usageGuidelines": [
+    {
+      "rule": "Always use formatPValue for p-value display",
+      "bad": "pValue.toFixed(4)",
+      "good": "formatPValue(pValue)"
+    },
+    {
+      "rule": "Use Korean functions for UI, English for internal",
+      "bad": "interpretPValueEn(p) in UI components",
+      "good": "interpretPValueKo(p) in UI, interpretPValueEn(p) in calculations"
+    },
+    {
+      "rule": "Import from formatters.ts, not utils.ts",
+      "bad": "import { interpretPValue } from '@/lib/statistics/utils'",
+      "good": "import { interpretPValueKo } from '@/lib/statistics/formatters'"
+    }
+  ],
+  "relatedComponents": [
+    {
+      "name": "PValueBadge",
+      "path": "components/statistics/common/PValueBadge.tsx",
+      "description": "Visual badge component for p-value display with color coding"
+    },
+    {
+      "name": "EffectSizeCard",
+      "path": "components/statistics/common/EffectSizeCard.tsx",
+      "description": "Card component for effect size display with interpretation"
+    }
+  ]
+}

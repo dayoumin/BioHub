@@ -49,82 +49,16 @@ export async function ensurePyodideReady(): Promise<any> {
   return getPyodideInstance()
 }
 
-/**
- * 효과 크기 해석
- */
-export function interpretEffectSize(effectSize: number, type: 'cohens_d' | 'eta_squared' | 'r'): string {
-  if (type === 'cohens_d') {
-    if (Math.abs(effectSize) < 0.2) return 'negligible'
-    if (Math.abs(effectSize) < 0.5) return 'small'
-    if (Math.abs(effectSize) < 0.8) return 'medium'
-    return 'large'
-  } else if (type === 'eta_squared') {
-    if (effectSize < 0.01) return 'negligible'
-    if (effectSize < 0.06) return 'small'
-    if (effectSize < 0.14) return 'medium'
-    return 'large'
-  } else if (type === 'r') {
-    const absR = Math.abs(effectSize)
-    if (absR < 0.1) return 'negligible'
-    if (absR < 0.3) return 'small'
-    if (absR < 0.5) return 'medium'
-    if (absR < 0.7) return 'large'
-    return 'very large'
-  }
-  return 'unknown'
-}
-
-/**
- * p-value 해석
- */
-export function interpretPValue(pValue: number, alpha: number = 0.05): string {
-  if (pValue < 0.001) return 'highly significant (p < 0.001)'
-  if (pValue < 0.01) return 'very significant (p < 0.01)'
-  if (pValue < alpha) return `significant (p < ${alpha})`
-  return `not significant (p ≥ ${alpha})`
-}
-
-/**
- * 상관계수 강도 해석
- */
-export function interpretCorrelation(r: number): string {
-  const absR = Math.abs(r)
-  if (absR < 0.1) return 'negligible'
-  if (absR < 0.3) return 'weak'
-  if (absR < 0.5) return 'moderate'
-  if (absR < 0.7) return 'strong'
-  return 'very strong'
-}
-
-/**
- * 정규성 검정 해석
- */
-export function interpretNormality(pValue: number, alpha: number = 0.05): {
-  isNormal: boolean
-  interpretation: string
-} {
-  const isNormal = pValue >= alpha
-  const interpretation = isNormal 
-    ? `Data appears to be normally distributed (p = ${pValue.toFixed(4)} ≥ ${alpha})`
-    : `Data deviates from normal distribution (p = ${pValue.toFixed(4)} < ${alpha})`
-  
-  return { isNormal, interpretation }
-}
-
-/**
- * 등분산성 검정 해석
- */
-export function interpretHomogeneity(pValue: number, alpha: number = 0.05): {
-  isHomogeneous: boolean
-  interpretation: string
-} {
-  const isHomogeneous = pValue >= alpha
-  const interpretation = isHomogeneous
-    ? `Variances appear to be equal (p = ${pValue.toFixed(4)} ≥ ${alpha})`
-    : `Variances are not equal (p = ${pValue.toFixed(4)} < ${alpha})`
-  
-  return { isHomogeneous, interpretation }
-}
+// ============================================================================
+// 해석 함수들은 formatters.ts에서 re-export (단일 소스 원칙)
+// ============================================================================
+export {
+  interpretEffectSizeEn as interpretEffectSize,
+  interpretPValueEn as interpretPValue,
+  interpretCorrelationEn as interpretCorrelation,
+  interpretNormality,
+  interpretHomogeneity
+} from './formatters'
 
 /**
  * 신뢰구간 계산

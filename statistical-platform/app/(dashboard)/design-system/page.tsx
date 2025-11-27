@@ -16,7 +16,7 @@ import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack,
-  ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout
+  ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -41,6 +41,7 @@ import { VariableSelectorDemo } from './components/VariableSelectorDemo'
 import { VisualizationDemo } from './components/VisualizationDemo'
 import { ResultContextDemo } from './components/ResultContextDemo'
 import { StatisticalResultDemo } from './components/StatisticalResultDemo'
+import { FloatingStepIndicatorDemo } from './components/FloatingStepIndicatorDemo'
 import { COMPONENT_LIST } from './constants'
 
 // 로딩 스피너 (dynamic import용)
@@ -87,6 +88,13 @@ const TestSnippetsSection = process.env.NODE_ENV !== 'production'
     })
   : null
 
+const StatisticalFormattingSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/StatisticalFormattingSection').then(mod => ({ default: mod.StatisticalFormattingSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
+
 // 네비게이션 섹션 정의
 const NAV_SECTIONS = [
   { id: 'colors', label: 'Colors', icon: Palette },
@@ -100,6 +108,7 @@ const NAV_SECTIONS = [
   // 개발 전용 섹션 (프로덕션에서 제외)
   ...(process.env.NODE_ENV !== 'production' ? [
     { id: 'stats-pattern', label: 'Statistics Pattern', icon: Code, devOnly: true },
+    { id: 'stats-formatting', label: 'Statistical Formatting', icon: Calculator, devOnly: true },
     { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
     { id: 'rag-components', label: 'RAG Components', icon: MessageCircle, devOnly: true },
     { id: 'test-snippets', label: 'Test Snippets', icon: FlaskConical, devOnly: true },
@@ -734,6 +743,10 @@ animation: {
               {selectedComponent === 'statistical-result' && (
                 <StatisticalResultDemo />
               )}
+
+              {selectedComponent === 'floating-step' && (
+                <FloatingStepIndicatorDemo />
+              )}
             </div>
           )}
 
@@ -1201,6 +1214,13 @@ const handleOpenNewWindow = useCallback(() => {
           ======================================== */}
           {activeSection === 'test-snippets' && TestSnippetsSection && (
             <TestSnippetsSection />
+          )}
+
+          {/* ========================================
+              13. Statistical Formatting (개발 전용)
+          ======================================== */}
+          {activeSection === 'stats-formatting' && StatisticalFormattingSection && (
+            <StatisticalFormattingSection />
           )}
         </div>
       </main>
