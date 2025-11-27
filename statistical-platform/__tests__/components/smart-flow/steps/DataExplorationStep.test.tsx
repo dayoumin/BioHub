@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { DataExplorationStep } from '@/components/smart-flow/steps/DataExplorationStep'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { ColumnStatistics } from '@/types/smart-flow'
@@ -75,6 +75,13 @@ jest.mock('@/components/charts/histogram', () => ({
 
 jest.mock('@/components/charts/boxplot', () => ({
     BoxPlot: () => <div data-testid="boxplot">BoxPlot</div>
+}))
+
+jest.mock('@/components/ui/tabs', () => ({
+    Tabs: ({ children }: any) => <div>{children}</div>,
+    TabsList: ({ children }: any) => <div role="tablist">{children}</div>,
+    TabsTrigger: ({ children, value }: any) => <button role="tab">{children}</button>,
+    TabsContent: ({ children, value }: any) => <div>{children}</div>,
 }))
 
 // Mock Recharts to avoid sizing issues in test environment
@@ -158,7 +165,7 @@ describe('DataExplorationStep', () => {
         expect(screen.getByTestId('variable-gallery')).toBeVisible()
 
         // Click Correlation tab
-        fireEvent.click(screen.getByText('상관관계 분석'))
+        fireEvent.click(screen.getByRole('tab', { name: /상관관계 분석/ }))
 
         // Check if correlation content is shown
         expect(screen.getByText('상관계수 행렬')).toBeInTheDocument()
@@ -174,8 +181,10 @@ describe('DataExplorationStep', () => {
             />
         )
 
-        // Click 'income'
-        fireEvent.click(screen.getByText('income'))
+        // Click 'income' button in the gallery
+        const gallery = screen.getByTestId('variable-gallery')
+        const button = within(gallery).getByText('income')
+        fireEvent.click(button)
 
         // Check detail panel
         await waitFor(() => {

@@ -1,0 +1,3848 @@
+
+> statistical-platform@0.1.0 test
+> jest __tests__/components/smart-flow/steps/PurposeInputStep.test.tsx
+
+  console.log
+    PurposeInputStep Render: {
+      selectedPurpose: null,
+      isAnalyzing: false,
+      recommendation: null,
+      activeTab: 'recommended'
+    }
+
+      at PurposeInputStep (components/smart-flow/steps/PurposeInputStep.tsx:417:11)
+
+  console.log
+    PurposeInputStep Render: {
+      selectedPurpose: null,
+      isAnalyzing: false,
+      recommendation: null,
+      activeTab: 'recommended'
+    }
+
+      at PurposeInputStep (components/smart-flow/steps/PurposeInputStep.tsx:417:11)
+
+  console.log
+    Test: Clicking purpose card
+
+      at Object.<anonymous> (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:124:17)
+
+  console.log
+    Test: DecisionTreeRecommender.recommend called with: [
+      'compare',
+      {
+        assumptionResults: {},
+        setSelectedMethod: [Function: mockConstructor] {
+          _isMockFunction: true,
+          getMockImplementation: [Function (anonymous)],
+          mock: [Getter/Setter],
+          mockClear: [Function (anonymous)],
+          mockReset: [Function (anonymous)],
+          mockRestore: [Function (anonymous)],
+          mockReturnValueOnce: [Function (anonymous)],
+          mockResolvedValueOnce: [Function (anonymous)],
+          mockRejectedValueOnce: [Function (anonymous)],
+          mockReturnValue: [Function (anonymous)],
+          mockResolvedValue: [Function (anonymous)],
+          mockRejectedValue: [Function (anonymous)],
+          mockImplementationOnce: [Function (anonymous)],
+          withImplementation: [Function: bound withImplementation],
+          mockImplementation: [Function (anonymous)],
+          mockReturnThis: [Function (anonymous)],
+          mockName: [Function (anonymous)],
+          getMockName: [Function (anonymous)],
+          [Symbol(nodejs.dispose)]: [Function (anonymous)]
+        },
+        setDetectedVariables: [Function: mockConstructor] {
+          _isMockFunction: true,
+          getMockImplementation: [Function (anonymous)],
+          mock: [Getter/Setter],
+          mockClear: [Function (anonymous)],
+          mockReset: [Function (anonymous)],
+          mockRestore: [Function (anonymous)],
+          mockReturnValueOnce: [Function (anonymous)],
+          mockResolvedValueOnce: [Function (anonymous)],
+          mockRejectedValueOnce: [Function (anonymous)],
+          mockReturnValue: [Function (anonymous)],
+          mockResolvedValue: [Function (anonymous)],
+          mockRejectedValue: [Function (anonymous)],
+          mockImplementationOnce: [Function (anonymous)],
+          withImplementation: [Function: bound withImplementation],
+          mockImplementation: [Function (anonymous)],
+          mockReturnThis: [Function (anonymous)],
+          mockName: [Function (anonymous)],
+          getMockName: [Function (anonymous)],
+          [Symbol(nodejs.dispose)]: [Function (anonymous)]
+        }
+      },
+      { columns: [ [Object], [Object] ] },
+      [ { age: 20, group: 'A' } ]
+    ]
+
+      at Object.<anonymous> (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:111:21)
+
+  console.log
+    PurposeInputStep Render: {
+      selectedPurpose: 'compare',
+      isAnalyzing: false,
+      recommendation: null,
+      activeTab: 'recommended'
+    }
+
+      at PurposeInputStep (components/smart-flow/steps/PurposeInputStep.tsx:417:11)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    PurposeInputStep Render: {
+      selectedPurpose: 'compare',
+      isAnalyzing: false,
+      recommendation: {
+        method: {
+          id: 't-test',
+          name: 'Independent t-test',
+          description: 'Compare means',
+          category: 'compare'
+        },
+        confidence: 0.9,
+        reasoning: [ 'Reason 1' ]
+      },
+      activeTab: 'recommended'
+    }
+
+      at PurposeInputStep (components/smart-flow/steps/PurposeInputStep.tsx:417:11)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+  console.log
+    Test: Logger Info calls: [
+      [ 'Analysis purpose selected', { purpose: 'compare' } ],
+      [ '[Hybrid] Ollama disabled in settings, using DecisionTree' ],
+      [
+        '[Hybrid] DecisionTree recommendation SUCCESS',
+        { method: 't-test', confidence: 0.9 }
+      ]
+    ]
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:132:21)
+
+  console.log
+    Test: Logger Error calls: []
+
+      at timeout (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:133:21)
+
+  console.log
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"w-full h-full flex flex-col space-y-6"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<h3[39m
+              [33mclass[39m=[32m"text-lg font-semibold mb-3"[39m
+              [33mid[39m=[32m"purpose-selection-label"[39m
+            [36m>[39m
+              [0m?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???[0m
+            [36m</h3>[39m
+            [36m<div[39m
+              [33maria-describedby[39m=[32m"purpose-selection-help"[39m
+              [33maria-labelledby[39m=[32m"purpose-selection-label"[39m
+              [33mclass[39m=[32m"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"[39m
+              [33mrole[39m=[32m"radiogroup"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 0ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"true"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"[39m
+                [36m>[39m
+                  [0m洹몃９ 媛?李⑥씠 鍮꾧탳[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 150ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-蹂??媛?愿怨?遺꾩꽍"[39m
+                [36m>[39m
+                  [0m蹂??媛?愿怨?遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 300ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m遺꾪룷? 鍮덈룄 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 450ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?덉륫 紐⑤뜽留?[39m
+                [36m>[39m
+                  [0m?덉륫 紐⑤뜽留?[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 600ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?쒓퀎??遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?쒓퀎??遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-slide-in"[39m
+                [33mstyle[39m=[32m"animation-delay: 750ms; animation-fill-mode: backwards;"[39m
+              [36m>[39m
+                [36m<button[39m
+                  [33maria-selected[39m=[32m"false"[39m
+                  [33mdata-testid[39m=[32m"purpose-card-?앹〈 遺꾩꽍"[39m
+                [36m>[39m
+                  [0m?앹〈 遺꾩꽍[0m
+                [36m</button>[39m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"sr-only"[39m
+              [33mid[39m=[32m"purpose-selection-help"[39m
+            [36m>[39m
+              [0m5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??[0m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"[39m
+            [33mdata-slot[39m=[32m"card"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"[39m
+              [33mdata-slot[39m=[32m"card-header"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"font-semibold text-lg flex items-center gap-2"[39m
+                [33mdata-slot[39m=[32m"card-title"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mclass[39m=[32m"lucide lucide-list w-5 h-5"[39m
+                  [33mfill[39m=[32m"none"[39m
+                  [33mheight[39m=[32m"24"[39m
+                  [33mstroke[39m=[32m"currentColor"[39m
+                  [33mstroke-linecap[39m=[32m"round"[39m
+                  [33mstroke-linejoin[39m=[32m"round"[39m
+                  [33mstroke-width[39m=[32m"2"[39m
+                  [33mviewBox[39m=[32m"0 0 24 24"[39m
+                  [33mwidth[39m=[32m"24"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 5h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 12h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M3 19h.01"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 5h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 12h13"[39m
+                  [36m/>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M8 19h13"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+                [0m遺꾩꽍 諛⑸쾿 ?좏깮[0m
+              [36m</div>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"text-muted-foreground text-sm"[39m
+                [33mdata-slot[39m=[32m"card-description"[39m
+              [36m>[39m
+                [0mAI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              [36m</div>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"px-6"[39m
+              [33mdata-slot[39m=[32m"card-content"[39m
+            [36m>[39m
+              [36m<div>[39m
+                [36m<div>[39m
+                  [36m<button>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"lucide lucide-sparkles w-4 h-4"[39m
+                      [33mfill[39m=[32m"none"[39m
+                      [33mheight[39m=[32m"24"[39m
+                      [33mstroke[39m=[32m"currentColor"[39m
+                      [33mstroke-linecap[39m=[32m"round"[39m
+                      [33mstroke-linejoin[39m=[32m"round"[39m
+                      [33mstroke-width[39m=[32m"2"[39m
+                      [33mviewBox[39m=[32m"0 0 24 24"[39m
+                      [33mwidth[39m=[32m"24"[39m
+      ...
+
+      at logDOM (node_modules/@testing-library/dom/dist/pretty-dom.js:93:13)
+
+FAIL __tests__/components/smart-flow/steps/PurposeInputStep.test.tsx (18.658 s)
+  PurposeInputStep
+    ??renders purpose selection cards (302 ms)
+    횞 shows AI recommendation when purpose is selected (3811 ms)
+
+  ??PurposeInputStep ??shows AI recommendation when purpose is selected
+
+    Found multiple elements with the text: Independent t-test
+
+    Here are the matching elements:
+
+    Ignored nodes: comments, script, style
+    <p
+      class="text-sm text-muted-foreground mt-0.5"
+    >
+      Independent t-test
+    </p>
+
+    Ignored nodes: comments, script, style
+    <span
+      class="font-medium text-sm"
+    >
+      Independent t-test
+    </span>
+
+    Ignored nodes: comments, script, style
+    <span
+      class="ml-2 font-semibold"
+    >
+      Independent t-test
+    </span>
+
+    (If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+    Ignored nodes: comments, script, style
+    <body>
+      <div>
+        <div
+          class="w-full h-full flex flex-col space-y-6"
+        >
+          <div>
+            <h3
+              class="text-lg font-semibold mb-3"
+              id="purpose-selection-label"
+            >
+              ?대뼡 遺꾩꽍???섍퀬 ?띠쑝?좉???
+            </h3>
+            <div
+              aria-describedby="purpose-selection-help"
+              aria-labelledby="purpose-selection-label"
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              role="radiogroup"
+            >
+              <div
+                class="animate-slide-in"
+                style="animation-delay: 0ms; animation-fill-mode: backwards;"
+              >
+                <button
+                  aria-selected="true"
+                  data-testid="purpose-card-洹몃９ 媛?李⑥씠 鍮꾧탳"
+                >
+                  洹몃９ 媛?李⑥씠 鍮꾧탳
+                </button>
+              </div>
+              <div
+                class="animate-slide-in"
+                style="animation-delay: 150ms; animation-fill-mode: backwards;"
+              >
+                <button
+                  aria-selected="false"
+                  data-testid="purpose-card-蹂??媛?愿怨?遺꾩꽍"
+                >
+                  蹂??媛?愿怨?遺꾩꽍
+                </button>
+              </div>
+              <div
+                class="animate-slide-in"
+                style="animation-delay: 300ms; animation-fill-mode: backwards;"
+              >
+                <button
+                  aria-selected="false"
+                  data-testid="purpose-card-遺꾪룷? 鍮덈룄 遺꾩꽍"
+                >
+                  遺꾪룷? 鍮덈룄 遺꾩꽍
+                </button>
+              </div>
+              <div
+                class="animate-slide-in"
+                style="animation-delay: 450ms; animation-fill-mode: backwards;"
+              >
+                <button
+                  aria-selected="false"
+                  data-testid="purpose-card-?덉륫 紐⑤뜽留?
+                >
+                  ?덉륫 紐⑤뜽留?[0m
+                </button>
+              </div>
+              <div
+                class="animate-slide-in"
+                style="animation-delay: 600ms; animation-fill-mode: backwards;"
+              >
+                <button
+                  aria-selected="false"
+                  data-testid="purpose-card-?쒓퀎??遺꾩꽍"
+                >
+                  ?쒓퀎??遺꾩꽍
+                </button>
+              </div>
+              <div
+                class="animate-slide-in"
+                style="animation-delay: 750ms; animation-fill-mode: backwards;"
+              >
+                <button
+                  aria-selected="false"
+                  data-testid="purpose-card-?앹〈 遺꾩꽍"
+                >
+                  ?앹〈 遺꾩꽍
+                </button>
+              </div>
+            </div>
+            <div
+              class="sr-only"
+              id="purpose-selection-help"
+            >
+              5媛?以??섎굹??遺꾩꽍 紐⑹쟻???좏깮?섏꽭?? ?좏깮?섎㈃ AI媛 理쒖쟻???듦퀎 諛⑸쾿??異붿쿇?⑸땲??
+            </div>
+          </div>
+          <div
+            class="bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm border-2"
+            data-slot="card"
+          >
+            <div
+              class="@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6 pb-3"
+              data-slot="card-header"
+            >
+              <div
+                class="font-semibold text-lg flex items-center gap-2"
+                data-slot="card-title"
+              >
+                <svg
+                  aria-hidden="true"
+                  class="lucide lucide-list w-5 h-5"
+                  fill="none"
+                  height="24"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M3 5h.01"
+                  />
+                  <path
+                    d="M3 12h.01"
+                  />
+                  <path
+                    d="M3 19h.01"
+                  />
+                  <path
+                    d="M8 5h13"
+                  />
+                  <path
+                    d="M8 12h13"
+                  />
+                  <path
+                    d="M8 19h13"
+                  />
+                </svg>
+                遺꾩꽍 諛⑸쾿 ?좏깮
+              </div>
+              <div
+                class="text-muted-foreground text-sm"
+                data-slot="card-description"
+              >
+                AI 異붿쿇???ъ슜?섍굅??吏곸젒 ?먰븯??諛⑸쾿???좏깮?섏꽭??[0m
+              </div>
+            </div>
+            <div
+              class="px-6"
+              data-slot="card-content"
+            >
+              <div>
+                <div>
+                  <button>
+                    <svg
+                      aria-hidden="true"
+                      class="lucide lucide-sparkles w-4 h-4"
+                      fill="none"
+                      height="24"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="24"
+      ...
+
+      126 |
+      127 |         // Wait for recommendation
+    > 128 |         await waitFor(() => {
+          |                      ^
+      129 |             // Check logger calls
+      130 |             const loggerInfo = (require('@/lib/utils/logger').logger.info as jest.Mock).mock.calls;
+      131 |             const loggerError = (require('@/lib/utils/logger').logger.error as jest.Mock).mock.calls;
+
+      at waitForWrapper (node_modules/@testing-library/dom/dist/wait-for.js:163:27)
+      at Object.<anonymous> (__tests__/components/smart-flow/steps/PurposeInputStep.test.tsx:128:22)
+
+Snapshot Summary
+ ??2 snapshot files obsolete from 2 test suites. To remove them all, run `npm test -- -u`.
+   ??  ??__tests__/lib/interpretation/__snapshots__/snapshots-simple.test.ts.snap
+       ??__tests__/lib/interpretation/__snapshots__/snapshots.test.ts.snap
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 passed, 2 total
+Snapshots:   2 files obsolete, 0 total
+Time:        27.298 s
+Ran all test suites matching __tests__/components/smart-flow/steps/PurposeInputStep.test.tsx.

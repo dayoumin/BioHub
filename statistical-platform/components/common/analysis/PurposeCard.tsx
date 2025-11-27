@@ -61,12 +61,12 @@ export function PurposeCard({
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all duration-200',
+        'group cursor-pointer transition-all duration-300 relative overflow-hidden',
         'border-2',
-        !disabled && 'hover:shadow-lg hover:scale-[1.02]',
+        !disabled && 'hover:shadow-xl hover:scale-[1.02] hover:border-primary/50',
         selected
-          ? 'border-primary bg-primary/5 shadow-md'
-          : 'border-border hover:border-primary/50',
+          ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20'
+          : 'border-border',
         disabled && 'opacity-50 cursor-not-allowed',
         className
       )}
@@ -77,30 +77,36 @@ export function PurposeCard({
       aria-checked={selected}
       aria-disabled={disabled}
     >
+      {/* Selection Indicator (Corner) */}
+      {selected && (
+        <div className="absolute top-0 right-0 p-1.5 bg-primary rounded-bl-xl shadow-sm animate-in fade-in zoom-in duration-200">
+          <Check className="w-3.5 h-3.5 text-primary-foreground" />
+        </div>
+      )}
+
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div
               className={cn(
-                'p-2 rounded-lg transition-colors',
-                selected ? 'bg-primary/20' : 'bg-muted'
+                'p-2.5 rounded-xl transition-colors duration-300',
+                selected
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'
               )}
             >
               {icon}
             </div>
-            <CardTitle className="text-base">{title}</CardTitle>
+            <CardTitle className="text-base font-bold tracking-tight">{title}</CardTitle>
           </div>
-          {selected && (
-            <Check className="w-5 h-5 text-primary shrink-0" />
-          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors">
           {description}
         </p>
         {examples && (
-          <p className="text-xs text-muted-foreground/80 italic">
+          <p className="text-xs text-muted-foreground/80 italic border-t pt-2 mt-2">
             {examples}
           </p>
         )}

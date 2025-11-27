@@ -368,27 +368,24 @@ npm run setup:pyodide    # Pyodide 다운로드 (200MB)
 
 ## 📚 문서 구조
 
-### 루트 문서 (5개만 유지)
+### 루트 문서 (4개만 유지)
 - **[CLAUDE.md](CLAUDE.md)** - AI 코딩 규칙 (이 파일)
 - **[README.md](README.md)** - 프로젝트 개요
 - **[ROADMAP.md](ROADMAP.md)** - 개발 로드맵
-- **[STATUS.md](STATUS.md)** - 프로젝트 현재 상태
-- **[dailywork.md](dailywork.md)** - 작업 기록 (최근 7일만)
+- **[STATUS.md](STATUS.md)** - 프로젝트 현황 + 최근 작업 (7일)
 
 ### statistical-platform/docs/ (구현 상세)
 - [AI-CODING-RULES.md](statistical-platform/docs/AI-CODING-RULES.md) - any → unknown 예제
 - [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - 통계 모듈 코딩 표준 ⭐
 - [TROUBLESHOOTING_ISANALYZING_BUG.md](statistical-platform/docs/TROUBLESHOOTING_ISANALYZING_BUG.md) - Critical 버그 예방 🚨
-- [DESIGN_SYSTEM_SYNC_RULES.md](statistical-platform/docs/DESIGN_SYSTEM_SYNC_RULES.md) - Design System 메타데이터 동기화 ⭐ **신규**
-- [AUTOMATED_TESTING_ROADMAP.md](statistical-platform/docs/AUTOMATED_TESTING_ROADMAP.md) - 자동화 테스트 계획 🧪
-- [RAG_ARCHITECTURE.md](statistical-platform/docs/RAG_ARCHITECTURE.md) - RAG 시스템 아키텍처 🔍
-- [NEXTJS_STATIC_EXPORT.md](statistical-platform/docs/NEXTJS_STATIC_EXPORT.md) - Static Export vs API Route 📦
+- [DESIGN_SYSTEM_SYNC_RULES.md](statistical-platform/docs/DESIGN_SYSTEM_SYNC_RULES.md) - Design System 메타데이터 동기화 ⭐
+- [SMART_FLOW_UX_IMPROVEMENTS.md](statistical-platform/docs/SMART_FLOW_UX_IMPROVEMENTS.md) - Smart Flow UX 개선 계획
 
 ### 문서 관리 규칙
-- **dailywork.md**: 최근 7일만 유지 (주말마다 `archive/dailywork/`로 이동)
-- **STATUS.md**: Phase 완료 시 또는 주요 마일스톤만 업데이트
+- **STATUS.md**: 현황 + 최근 7일 작업 기록 (통합 관리)
+- **archive/dailywork/**: 7일 이상 된 작업 기록 보관
 - ❌ 분석/검토 문서: 새 파일 생성 금지 → STATUS.md에 요약만 추가
 
 ---
 
-**Updated**: 2025-11-24 | **Version**: Phase 9 Complete + AI-Native Design System | **Next**: Phase 11 (자동화 테스트 시스템)
+**Updated**: 2025-11-27 | **Version**: Phase 9 Complete + AI-Native Design System | **Next**: Phase 11 (자동화 테스트 시스템)

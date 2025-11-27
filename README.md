@@ -147,8 +147,7 @@ Statics/
 ├── README.md                 # 프로젝트 소개 (이 파일)
 ├── CLAUDE.md                 # AI 코딩 규칙
 ├── ROADMAP.md                # 개발 로드맵
-├── STATUS.md                 # 현재 상태
-├── dailywork.md              # 작업 기록 (최근 7일)
+├── STATUS.md                 # 현황 + 최근 작업 (7일)
 │
 └── statistical-platform/     # Next.js 15 앱
     ├── app/                  # App Router
