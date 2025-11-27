@@ -333,15 +333,25 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   useEffect(() => {
     // 데이터가 없거나 수치형 변수가 없으면 결과 초기화
     if (!data || !validationResults || numericVariables.length === 0) {
-      setLocalAssumptionResults(null)
-      useSmartFlowStore.getState().setAssumptionResults(null)
+      // 이미 null이면 setState 호출 스킵 (무한 루프 방지)
+      if (assumptionResults !== null) {
+        setLocalAssumptionResults(null)
+      }
+      if (useSmartFlowStore.getState().assumptionResults !== null) {
+        useSmartFlowStore.getState().setAssumptionResults(null)
+      }
       return
     }
 
     // Pyodide 미로드 시: 결과 초기화하고 대기 (로딩 완료 시 재실행됨)
     if (!pyodideLoaded || !pyodideService) {
-      setLocalAssumptionResults(null)
-      useSmartFlowStore.getState().setAssumptionResults(null)
+      // 이미 null이면 setState 호출 스킵 (무한 루프 방지)
+      if (assumptionResults !== null) {
+        setLocalAssumptionResults(null)
+      }
+      if (useSmartFlowStore.getState().assumptionResults !== null) {
+        useSmartFlowStore.getState().setAssumptionResults(null)
+      }
       return
     }
 
@@ -431,7 +441,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       isActive = false
       clearTimeout(timer)
     }
-  }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables]) // setAssumptionResults 의존성 제거
+  }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables, assumptionResults]) // assumptionResults 추가 (null 체크로 무한 루프 방지)
 
   // 산점도 상태 추적용 ref (무한 루프 방지)
   const scatterplotsRef = useRef(scatterplots)

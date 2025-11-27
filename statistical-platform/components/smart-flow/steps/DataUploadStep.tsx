@@ -456,11 +456,6 @@ export function DataUploadStep({
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• 첫 번째 행은 변수명(헤더)이어야 합니다</li>
             <li>• Excel 파일의 경우 여러 시트가 있으면 선택할 수 있습니다</li>
-            <li>• 결측값은 자동으로 인식됩니다
-              <span className="block text-xs text-muted-foreground/70 mt-0.5 ml-2">
-                빈 셀, NA, N/A, -, ., NULL, NaN, #N/A, missing
-              </span>
-            </li>
           </ul>
         </div>
       )}
