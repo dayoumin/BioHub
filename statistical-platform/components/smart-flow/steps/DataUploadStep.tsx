@@ -25,6 +25,7 @@ import {
 
 import type { DataUploadStepProps } from '@/types/smart-flow-navigation'
 import { UI_TEXT } from '@/lib/constants/ui-text'
+import { RefreshCw } from 'lucide-react'
 
 export function DataUploadStep({
   onUploadComplete,
@@ -32,8 +33,9 @@ export function DataUploadStep({
   canGoNext,
   currentStep,
   totalSteps,
-  existingFileName
-}: DataUploadStepProps & { existingFileName?: string }) {
+  existingFileName,
+  compact = false
+}: DataUploadStepProps & { existingFileName?: string; compact?: boolean }) {
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<ProcessingProgress | null>(null)
@@ -264,7 +266,7 @@ export function DataUploadStep({
     }
   }, [pendingExcelFile, selectedSheet, onUploadComplete])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: {
       'text/csv': ['.csv'],
@@ -273,8 +275,43 @@ export function DataUploadStep({
     },
     maxFiles: 1,
     maxSize: 100 * 1024 * 1024, // 100MB
-    disabled: isUploading // 업로드 중에는 드롭존 비활성화
+    disabled: isUploading, // 업로드 중에는 드롭존 비활성화
+    noClick: compact, // compact 모드에서는 드롭존 클릭 비활성화 (버튼으로 대체)
+    noDrag: compact // compact 모드에서는 드래그 비활성화
   })
+
+  // Compact 모드: 파일 변경 버튼만 표시
+  if (compact) {
+    return (
+      <div className="relative">
+        <input {...getInputProps()} />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={open}
+          disabled={isUploading}
+          className="gap-1.5"
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              업로드 중...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-3.5 w-3.5" />
+              파일 변경
+            </>
+          )}
+        </Button>
+        {error && (
+          <div className="absolute top-full mt-1 right-0 bg-destructive/10 border border-destructive/20 rounded-lg p-2 text-xs text-destructive whitespace-nowrap z-50">
+            {error}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
