@@ -397,6 +397,15 @@ def bonferroni_correction(p_values, alpha=0.05):
     """
     import numpy as np
 
+    if not p_values or len(p_values) == 0:
+        return {
+            'original_p_values': [],
+            'corrected_p_values': [],
+            'adjusted_alpha': float(alpha),
+            'n_comparisons': 0,
+            'significant': []
+        }
+
     p_arr = np.array(p_values)
     n = len(p_arr)
 

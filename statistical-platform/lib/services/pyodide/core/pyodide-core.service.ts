@@ -1254,33 +1254,33 @@ json.dumps(result)
   /**
    * Two-Way ANOVA
    */
-  async twoWayAnova(data: number[][], factorA: string[], factorB: string[]): Promise<StatisticsResult> {
+  async twoWayAnova(dataValues: number[], factor1Values: string[], factor2Values: string[]): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'two_way_anova', { data, factor_a: factorA, factor_b: factorB })
+    return this.callWorkerMethod<StatisticsResult>(3, 'two_way_anova', { data_values: dataValues, factor1_values: factor1Values, factor2_values: factor2Values })
   }
 
   /**
    * Repeated Measures ANOVA
    */
-  async repeatedMeasuresAnovaWorker(data: number[][]): Promise<StatisticsResult> {
+  async repeatedMeasuresAnovaWorker(dataMatrix: number[][], subjectIds: string[], timeLabels: string[]): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'repeated_measures_anova', { data })
+    return this.callWorkerMethod<StatisticsResult>(3, 'repeated_measures_anova', { data_matrix: dataMatrix, subject_ids: subjectIds, time_labels: timeLabels })
   }
 
   /**
    * ANCOVA (Analysis of Covariance)
    */
-  async ancovaWorker(y: number[], x: number[][], covariate: number[]): Promise<StatisticsResult> {
+  async ancovaWorker(yValues: number[], groupValues: string[], covariates: number[][]): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'ancova', { y, x, covariate })
+    return this.callWorkerMethod<StatisticsResult>(3, 'ancova', { y_values: yValues, group_values: groupValues, covariates: covariates })
   }
 
   /**
    * MANOVA (Multivariate ANOVA)
    */
-  async manovaWorker(y: number[][], x: number[][]): Promise<StatisticsResult> {
+  async manovaWorker(dataMatrix: number[][], groupValues: string[], varNames: string[]): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'manova', { y, x })
+    return this.callWorkerMethod<StatisticsResult>(3, 'manova', { data_matrix: dataMatrix, group_values: groupValues, var_names: varNames })
   }
 
   /**
