@@ -88,7 +88,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   void _onPrevious // Suppress unused warning
   // Pyodide 및 Store
   const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
-  const { setAssumptionResults, uploadedFile, uploadedFileName } = useSmartFlowStore()
+  const { uploadedFile, uploadedFileName } = useSmartFlowStore()
+  // Note: setAssumptionResults는 useEffect에서 getState()로 직접 접근 (의존성 루프 방지)
 
   // 새 창으로 데이터 보기
   const handleOpenDataInNewWindow = useCallback(() => {
@@ -333,14 +334,14 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     // 데이터가 없거나 수치형 변수가 없으면 결과 초기화
     if (!data || !validationResults || numericVariables.length === 0) {
       setLocalAssumptionResults(null)
-      setAssumptionResults(null)
+      useSmartFlowStore.getState().setAssumptionResults(null)
       return
     }
 
     // Pyodide 미로드 시: 결과 초기화하고 대기 (로딩 완료 시 재실행됨)
     if (!pyodideLoaded || !pyodideService) {
       setLocalAssumptionResults(null)
-      setAssumptionResults(null)
+      useSmartFlowStore.getState().setAssumptionResults(null)
       return
     }
 
@@ -395,7 +396,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           logger.info('[DataExploration] 가정 검정 스킵: 유효한 데이터 없음')
           if (isActive && currentRunId === assumptionRunId.current) {
             setLocalAssumptionResults(null)
-            setAssumptionResults(null)
+            useSmartFlowStore.getState().setAssumptionResults(null)
             setIsAssumptionLoading(false)
           }
           return
@@ -407,7 +408,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         // 언마운트 체크: isActive가 false면 상태 업데이트 스킵
         if (isActive && currentRunId === assumptionRunId.current) {
           setLocalAssumptionResults(assumptions)
-          setAssumptionResults(assumptions)
+          useSmartFlowStore.getState().setAssumptionResults(assumptions)
           logger.info('[DataExploration] 통계 가정 검정 완료', { summary: assumptions.summary })
         }
       } catch (error) {
@@ -415,7 +416,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           logger.error('[DataExploration] 가정 검정 실패', { error })
           // 에러 시에도 결과 초기화
           setLocalAssumptionResults(null)
-          setAssumptionResults(null)
+          useSmartFlowStore.getState().setAssumptionResults(null)
         }
       } finally {
         // 언마운트 체크 후 로딩 상태 해제
@@ -430,7 +431,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       isActive = false
       clearTimeout(timer)
     }
-  }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables, setAssumptionResults])
+  }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables]) // setAssumptionResults 의존성 제거
 
   // 산점도 상태 추적용 ref (무한 루프 방지)
   const scatterplotsRef = useRef(scatterplots)
