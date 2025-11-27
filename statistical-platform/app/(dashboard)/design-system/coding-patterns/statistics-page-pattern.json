@@ -1,7 +1,7 @@
 {
   "id": "statistics-page-pattern",
-  "version": "1.1.0",
-  "lastUpdated": "2025-11-25",
+  "version": "1.2.0",
+  "lastUpdated": "2025-11-27",
   "sources": [
     "statistical-platform/docs/STATISTICS_CODING_STANDARDS.md",
     "statistical-platform/docs/AI-CODING-RULES.md",
@@ -102,9 +102,19 @@
     ]
   },
   "pyodideWorkerMapping": {
-    "worker1": "descriptive, t-test, anova",
-    "worker2": "regression, correlation",
-    "worker3": "non-parametric (Mann-Whitney, Kruskal-Wallis)",
-    "worker4": "advanced (ANCOVA, Mixed Model, Discriminant)"
+    "worker1": "scipy only (descriptive_stats, normality_test, outlier_detection, cronbach_alpha, bonferroni_correction)",
+    "worker2": "scipy + statsmodels (t-test, z-test, chi-square, correlation, levene_test)",
+    "worker3": "scikit-learn (nonparametric: Mann-Whitney, Kruskal-Wallis, Friedman + ANOVA: one-way, two-way, repeated-measures, ANCOVA, MANOVA + post-hoc: Tukey, Scheffe, Games-Howell)",
+    "worker4": "scikit-learn (regression: linear, multiple, logistic + advanced: PCA, factor analysis, cluster analysis)"
+  },
+  "relatedDocumentation": {
+    "analysisFlowArchitecture": {
+      "location": "Design System > Test Snippets > Analysis Flow Architecture",
+      "description": "UI → Executor → Service → Core → Worker 전체 흐름 상세 문서"
+    },
+    "workerMappingTests": {
+      "location": "__tests__/pyodide/worker-function-mapping.test.ts",
+      "description": "Worker-Function 매핑 검증 테스트 (61개)"
+    }
   }
 }
