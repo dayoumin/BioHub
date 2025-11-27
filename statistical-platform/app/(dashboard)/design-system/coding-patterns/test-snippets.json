@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "lastUpdated": "2025-11-27",
   "sources": [
     "statistical-platform/__tests__/",
@@ -395,6 +395,31 @@
             "prepareData",
             "category",
             "switch"
+          ]
+        },
+        {
+          "name": "Executor 라우팅 테이블 (Category → Executor)",
+          "purpose": "메서드 카테고리별 Executor 분기 규칙 및 테스트 검증 방법",
+          "code": "// === Executor 라우팅 테이블 ===\n// 파일: lib/services/statistical-executor.ts (Line 115-156)\n// 업데이트: 2025-11-27\n\n// StatisticalExecutor.executeMethod() 내부 switch-case 분기:\n\n// ┌────────────────────────────────────────────────────────────────────────┐\n// │ Category       │ Executor Method         │ Executor 파일               │\n// ├────────────────────────────────────────────────────────────────────────┤\n// │ descriptive    │ executeDescriptive()    │ descriptive-executor.ts     │\n// │ t-test         │ executeTTest()          │ t-test-executor.ts          │\n// │ anova          │ executeANOVA()          │ anova-executor.ts           │\n// │ regression     │ executeRegression()     │ regression-executor.ts      │\n// │ correlation    │ executeCorrelation()    │ correlation-executor.ts  ⭐ │\n// │ nonparametric  │ executeNonparametric()  │ nonparametric-executor.ts   │\n// │ chi-square     │ executeChiSquare()      │ (inline 구현)               │\n// │ pca/clustering │ executeMultivariate()   │ advanced-executor.ts        │\n// │ advanced       │ executeMultivariate()   │ advanced-executor.ts        │\n// │ timeseries     │ executeTimeSeries()     │ (inline 구현)               │\n// │ psychometrics  │ executeReliability()    │ (inline 구현)               │\n// │ survival       │ executeSurvival()       │ (inline 구현)               │\n// │ design         │ executeDesign()         │ (inline 구현)               │\n// └────────────────────────────────────────────────────────────────────────┘\n\n// ⭐ = 2025-11-27 버그 수정 완료 (Pearson 상관분석 → 기술통계 출력 문제)\n\n// === 라우팅 흐름 ===\n// 1. UI에서 method 객체 전달 (id, name, category 포함)\n// 2. StatisticalExecutor.executeMethod(method, data, variables)\n// 3. switch (method.category) → 해당 execute*() 메서드 호출\n// 4. Executor 내부에서 PyodideCoreService.callWorkerMethod() 호출\n\n// === 라우팅 테스트 ===\n// 파일: __tests__/services/executors/statistical-executor-routing.test.ts\n// 검증: 각 메서드 ID가 올바른 category로 라우팅되는지 확인\n\ndescribe('Statistical Executor Routing', () => {\n  it('pearson-correlation → correlation category', () => {\n    const method = STATISTICAL_METHODS.find(m => m.id === 'pearson-correlation')\n    expect(method?.category).toBe('correlation')\n  })\n\n  it('independent-t-test → t-test category', () => {\n    const method = STATISTICAL_METHODS.find(m => m.id === 'independent-t-test')\n    expect(method?.category).toBe('t-test')\n  })\n})",
+          "keywords": [
+            "routing",
+            "라우팅",
+            "category",
+            "Executor",
+            "switch-case",
+            "분기"
+          ]
+        },
+        {
+          "name": "Executor 라우팅 버그 및 해결 방법",
+          "purpose": "자주 발생하는 라우팅 버그와 디버깅 방법",
+          "code": "// === 자주 발생하는 라우팅 버그 ===\n\n// 버그 1: 잘못된 결과 출력 (예: Pearson → 기술통계)\n// ────────────────────────────────────────────────\n// 증상: 특정 분석 선택 시 다른 분석 결과가 출력됨\n// 원인:\n//   1. method.category가 잘못 설정됨\n//   2. switch-case에서 해당 category 누락 (default로 빠짐)\n//   3. 불완전한 라우터 파일 존재 (중복 StatisticalExecutor)\n\n// 디버깅 방법:\nconsole.log('Method:', method.id)\nconsole.log('Category:', method.category)\n// → category가 undefined이거나 예상과 다르면 STATISTICAL_METHODS 확인\n\n// 해결:\n// 1. lib/constants/statistical-methods.ts에서 해당 method의 category 확인\n// 2. statistical-executor.ts switch-case에 해당 category 존재 확인\n// 3. 중복 파일 제거 (lib/services/executors/statistical-executor.ts 삭제)\n\n\n// 버그 2: \"지원되지 않는 분석 카테고리\" 에러\n// ────────────────────────────────────────────────\n// 증상: Error: 지원되지 않는 분석 카테고리: xxx\n// 원인: switch-case에 해당 category가 없음\n\n// 해결:\n// statistical-executor.ts에 새 case 추가:\nswitch (method.category) {\n  // ... 기존 case ...\n  case 'new-category':\n    result = await this.executeNewCategory(method, preparedData)\n    break\n}\n\n\n// 버그 3: Executor 파일 충돌\n// ────────────────────────────────────────────────\n// 증상: import 경로에 따라 다른 구현이 로드됨\n// 원인: 같은 이름의 Executor가 여러 위치에 존재\n\n// 확인 방법:\n// find . -name \"*executor*.ts\" -type f\n\n// 파일 구조 (올바른 구조):\n// lib/services/\n// ├── statistical-executor.ts          ← 메인 라우터 (유일해야 함)\n// └── executors/\n//     ├── base-executor.ts             ← 추상 클래스\n//     ├── descriptive-executor.ts\n//     ├── t-test-executor.ts\n//     ├── anova-executor.ts\n//     ├── regression-executor.ts\n//     ├── correlation-executor.ts      ← 2025-11-27 추가\n//     ├── nonparametric-executor.ts\n//     └── advanced-executor.ts",
+          "keywords": [
+            "bug",
+            "버그",
+            "디버깅",
+            "debugging",
+            "라우팅 오류"
           ]
         },
         {
