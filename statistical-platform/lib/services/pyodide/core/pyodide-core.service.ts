@@ -1226,17 +1226,17 @@ json.dumps(result)
   /**
    * Multiple Regression
    */
-  async multipleRegression(y: number[], x: number[][]): Promise<StatisticsResult> {
+  async multipleRegression(X: number[][], y: number[]): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'multiple_regression', { y, x })
+    return this.callWorkerMethod<StatisticsResult>(4, 'multiple_regression', { X, y })
   }
 
   /**
    * Logistic Regression
    */
-  async logisticRegression(y: number[], x: number[][]): Promise<StatisticsResult> {
+  async logisticRegression(X: number[][], y: number[]): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'logistic_regression', { y, x })
+    return this.callWorkerMethod<StatisticsResult>(4, 'logistic_regression', { X, y })
   }
 
   // ============================================================================
@@ -1322,12 +1322,9 @@ json.dumps(result)
   /**
    * Descriptive Statistics (Mean, Median, Std, etc.)
    */
-  async descriptiveStats(data: number[], groupBy?: string[]): Promise<StatisticsResult> {
+  async descriptiveStats(data: number[]): Promise<StatisticsResult> {
     await this.ensureWorker1Loaded()
-    return this.callWorkerMethod<StatisticsResult>(1, 'descriptive_stats', {
-      data,
-      group_by: groupBy ?? []
-    })
+    return this.callWorkerMethod<StatisticsResult>(1, 'descriptive_stats', { data })
   }
 
   /**
@@ -1358,21 +1355,21 @@ json.dumps(result)
   /**
    * One Sample Proportion Test
    */
-  async oneSampleProportionTest(successes: number, trials: number, hypothesizedProp?: number): Promise<StatisticsResult> {
+  async oneSampleProportionTest(successCount: number, totalCount: number, nullProportion?: number): Promise<StatisticsResult> {
     await this.ensureWorker1Loaded()
     return this.callWorkerMethod<StatisticsResult>(1, 'one_sample_proportion_test', {
-      successes,
-      trials,
-      hypothesized_prop: hypothesizedProp ?? 0.5
+      success_count: successCount,
+      total_count: totalCount,
+      null_proportion: nullProportion ?? 0.5
     })
   }
 
   /**
    * Cronbach's Alpha (Internal Consistency)
    */
-  async cronbachAlpha(data: number[][]): Promise<StatisticsResult> {
+  async cronbachAlpha(itemsMatrix: number[][]): Promise<StatisticsResult> {
     await this.ensureWorker1Loaded()
-    return this.callWorkerMethod<StatisticsResult>(1, 'cronbach_alpha', { data })
+    return this.callWorkerMethod<StatisticsResult>(1, 'cronbach_alpha', { items_matrix: itemsMatrix })
   }
 
   // ============================================================================
@@ -1398,8 +1395,8 @@ json.dumps(result)
   /**
    * Cluster Analysis (K-Means)
    */
-  async clusterAnalysis(data: number[][], nClusters?: number): Promise<StatisticsResult> {
+  async clusterAnalysis(data: number[][], numClusters?: number): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, n_clusters: nClusters ?? 3 })
+    return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, num_clusters: numClusters ?? 3 })
   }
 }
