@@ -15,7 +15,7 @@
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import {
-  Copy, Check, Menu, X, Palette, Type, SquareStack,
+  Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
   ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -52,6 +52,14 @@ const LoadingSpinner = () => (
     <span className="ml-3 text-muted-foreground">Loading...</span>
   </div>
 );
+
+// Tech Stack 섹션
+
+// Tech Stack Section
+const TechStackSection = dynamic(
+  () => import('./sections/TechStackSection').then(mod => ({ default: mod.TechStackSection })),
+  { ssr: false, loading: LoadingSpinner }
+)
 
 // Layout Prototype 섹션 (항상 사용 가능)
 const LayoutPrototypeSection = dynamic(
@@ -98,6 +106,7 @@ const StatisticalFormattingSection = process.env.NODE_ENV !== 'production'
 
 // 네비게이션 섹션 정의
 const NAV_SECTIONS = [
+  { id: 'tech-stack', label: 'Tech Stack', icon: Cpu },
   { id: 'colors', label: 'Colors', icon: Palette },
   { id: 'buttons', label: 'Buttons', icon: SquareStack },
   { id: 'typography', label: 'Typography', icon: Type },
@@ -240,6 +249,13 @@ export default function ComponentsShowcasePage() {
         </div>
 
         <div className="max-w-5xl mx-auto p-6 lg:p-8">
+          {/* ========================================
+              0. Tech Stack
+          ======================================== */}
+          {activeSection === 'tech-stack' && (
+            <TechStackSection />
+          )}
+
           {/* ========================================
               1. 색상 시스템
           ======================================== */}
