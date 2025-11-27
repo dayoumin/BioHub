@@ -12,7 +12,7 @@
  * Related fix: Mann-Whitney U group1 undefined error
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals'
+import { describe, it, beforeAll } from '@jest/globals'
 
 // Mock Pyodide for unit testing (avoid actual Python execution)
 jest.mock('@/lib/services/pyodide-statistics', () => ({

@@ -12,7 +12,9 @@ import {
   CheckCircle2,
   Grid3X3,
   Target,
-  Layers
+  Layers,
+  Clock,
+  Heart
 } from 'lucide-react'
 
 export interface StatisticsMenuItem {
@@ -470,6 +472,76 @@ export const STATISTICS_MENU: StatisticsCategory[] = [
         subtitle: '표본크기, 효과크기 계산',
         category: 'diagnostic',
         icon: Zap,
+        implemented: true
+      },
+      {
+        id: 'reliability',
+        href: '/statistics/reliability',
+        title: '신뢰도 분석',
+        subtitle: "Cronbach's α, 내적일관성",
+        category: 'diagnostic',
+        icon: CheckCircle2,
+        implemented: true
+      }
+    ]
+  },
+  {
+    id: 'survival',
+    title: '생존분석',
+    description: '시간-사건 데이터 분석',
+    icon: Heart,
+    items: [
+      {
+        id: 'kaplan-meier',
+        href: '/statistics/kaplan-meier',
+        title: 'Kaplan-Meier 생존분석',
+        subtitle: '생존함수 추정, Log-rank 검정',
+        category: 'survival',
+        icon: Heart,
+        implemented: true
+      },
+      {
+        id: 'cox-regression',
+        href: '/statistics/cox-regression',
+        title: 'Cox 비례위험 회귀',
+        subtitle: '공변량의 위험비(HR) 추정',
+        category: 'survival',
+        icon: TrendingUp,
+        implemented: true
+      }
+    ]
+  },
+  {
+    id: 'timeseries',
+    title: '시계열 분석',
+    description: '시간에 따른 패턴 분석',
+    icon: Clock,
+    items: [
+      {
+        id: 'arima',
+        href: '/statistics/arima',
+        title: 'ARIMA 모델',
+        subtitle: '자기회귀 이동평균 예측',
+        category: 'timeseries',
+        icon: TrendingUp,
+        implemented: true
+      },
+      {
+        id: 'seasonal-decompose',
+        href: '/statistics/seasonal-decompose',
+        title: '계절성 분해',
+        subtitle: '추세, 계절, 잔차 분리',
+        category: 'timeseries',
+        icon: Activity,
+        implemented: true
+      },
+      {
+        id: 'stationarity-test',
+        href: '/statistics/stationarity-test',
+        title: '정상성 검정',
+        subtitle: 'ADF/KPSS 단위근 검정',
+        category: 'timeseries',
+        icon: Clock,
         implemented: true
       }
     ]

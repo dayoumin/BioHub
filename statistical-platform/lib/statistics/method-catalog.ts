@@ -6,32 +6,47 @@
  */
 
 import { STATISTICAL_METHODS } from './method-mapping'
-import type { StatisticalMethod } from '@/types/smart-flow'
+import type { AnalysisPurpose, StatisticalMethod } from '@/types/smart-flow'
 
 // Cast STATISTICAL_METHODS to the smart-flow type
-const METHODS = STATISTICAL_METHODS as unknown as StatisticalMethod[]
-
-export type AnalysisPurpose = 'compare' | 'relationship' | 'distribution' | 'prediction' | 'timeseries'
+const METHODS: StatisticalMethod[] = STATISTICAL_METHODS
 
 /**
  * Purpose -> Category mapping
  */
 export const PURPOSE_CATEGORY_MAP: Record<AnalysisPurpose, string[]> = {
   compare: ['t-test', 'anova', 'nonparametric'],
-  relationship: ['correlation', 'chi-square'],
-  distribution: ['descriptive', 'chi-square'],
+  relationship: ['correlation', 'regression', 'chi-square'],
+  distribution: ['descriptive', 'nonparametric', 'chi-square'],
   prediction: ['regression', 'advanced'],
-  timeseries: ['timeseries', 'regression']
+  timeseries: ['timeseries', 'regression'],
+  survival: ['survival']
+}
+
+const uniqueCategoriesForPurpose = (purpose: AnalysisPurpose): string[] =>
+  Array.from(new Set(PURPOSE_CATEGORY_MAP[purpose] || []))
+
+const dedupeMethods = (methods: StatisticalMethod[]): StatisticalMethod[] => {
+  const seen = new Set<string>()
+  return methods.filter(method => {
+    if (seen.has(method.id)) return false
+    seen.add(method.id)
+    return true
+  })
 }
 
 /**
  * Get all methods for a given purpose
  */
 export function getMethodsByPurpose(purpose: AnalysisPurpose): StatisticalMethod[] {
-  const categories = PURPOSE_CATEGORY_MAP[purpose] || []
-  return METHODS.filter(m =>
-    categories.includes(m.category) ||
-    categories.includes(m.subcategory || '')
+  const categories = uniqueCategoriesForPurpose(purpose)
+  if (categories.length === 0) return METHODS
+
+  return dedupeMethods(
+    METHODS.filter(m =>
+      categories.includes(m.category) ||
+      categories.includes(m.subcategory || '')
+    )
   )
 }
 
@@ -63,7 +78,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export function getMethodsGroupedByCategory(purpose: AnalysisPurpose): MethodGroup[] {
   const methods = getMethodsByPurpose(purpose)
-  const categories = PURPOSE_CATEGORY_MAP[purpose] || []
+  const categories = uniqueCategoriesForPurpose(purpose)
 
   // Group methods by category
   const grouped = new Map<string, StatisticalMethod[]>()
@@ -77,12 +92,16 @@ export function getMethodsGroupedByCategory(purpose: AnalysisPurpose): MethodGro
   }
 
   // Convert to array, maintaining category order
-  return categories
+  const orderedCategories = categories.length > 0
+    ? categories
+    : Array.from(grouped.keys())
+
+  return orderedCategories
     .filter(cat => grouped.has(cat))
     .map(cat => ({
       category: cat,
       categoryLabel: CATEGORY_LABELS[cat] || cat,
-      methods: grouped.get(cat) || []
+      methods: dedupeMethods(grouped.get(cat) || [])
     }))
 }
 
@@ -123,7 +142,7 @@ export function getAllMethodsGrouped(): MethodGroup[] {
     .map(cat => ({
       category: cat,
       categoryLabel: CATEGORY_LABELS[cat] || cat,
-      methods: grouped.get(cat) || []
+      methods: dedupeMethods(grouped.get(cat) || [])
     }))
 }
 

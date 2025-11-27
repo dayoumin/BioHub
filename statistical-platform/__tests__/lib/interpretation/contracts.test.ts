@@ -6,7 +6,7 @@
  * - Runtime validation using Zod schemas
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 import { getInterpretation } from '@/lib/interpretation/engine'
 import {
   AnalysisResultSchema,

@@ -1736,3 +1736,103 @@ def dose_response_analysis(dose_data, response_data, model_type='logistic4', con
 
     return result_dict
 
+
+def stationarity_test(values, regression='c'):
+    """
+    Comprehensive stationarity test using ADF and KPSS
+
+    Parameters:
+    - values: List of numeric values (time series)
+    - regression: 'c' (constant only), 'ct' (constant + trend), 'n' (no constant)
+
+    Returns:
+    - Combined ADF and KPSS test results with interpretation
+    """
+    from statsmodels.tsa.stattools import adfuller, kpss
+
+    data = np.array(values, dtype=float)
+    data = data[~np.isnan(data)]
+
+    if len(data) < 20:
+        raise ValueError("Stationarity test requires at least 20 observations")
+
+    # ADF Test
+    # H0: Unit root exists (non-stationary)
+    # H1: No unit root (stationary)
+    adf_result = adfuller(data, regression=regression, autolag='AIC')
+    adf_statistic = float(adf_result[0])
+    adf_pvalue = float(adf_result[1])
+    adf_lags = int(adf_result[2])
+    adf_nobs = int(adf_result[3])
+    adf_critical_values = {
+        '1%': float(adf_result[4]['1%']),
+        '5%': float(adf_result[4]['5%']),
+        '10%': float(adf_result[4]['10%'])
+    }
+
+    # KPSS Test
+    # H0: Series is stationary
+    # H1: Series has a unit root (non-stationary)
+    kpss_regression = 'c' if regression in ['c', 'n'] else 'ct'
+    kpss_result = kpss(data, regression=kpss_regression, nlags='auto')
+    kpss_statistic = float(kpss_result[0])
+    kpss_pvalue = float(kpss_result[1])
+    kpss_lags = int(kpss_result[2])
+    kpss_critical_values = {
+        '1%': float(kpss_result[3]['1%']),
+        '2.5%': float(kpss_result[3]['2.5%']),
+        '5%': float(kpss_result[3]['5%']),
+        '10%': float(kpss_result[3]['10%'])
+    }
+
+    # Combined interpretation
+    adf_stationary = adf_pvalue < 0.05  # Reject H0 -> stationary
+    kpss_stationary = kpss_pvalue >= 0.05  # Do not reject H0 -> stationary
+
+    if adf_stationary and kpss_stationary:
+        conclusion = 'stationary'
+        interpretation = 'Both ADF and KPSS agree: The series is stationary.'
+        recommendation = 'No differencing needed. You can proceed with ARMA modeling.'
+    elif not adf_stationary and not kpss_stationary:
+        conclusion = 'non_stationary'
+        interpretation = 'Both ADF and KPSS agree: The series is non-stationary.'
+        recommendation = 'Apply differencing (d=1) and re-test. Consider ARIMA model.'
+    elif adf_stationary and not kpss_stationary:
+        conclusion = 'trend_stationary'
+        interpretation = 'ADF suggests stationary, KPSS suggests non-stationary. Possible trend-stationary.'
+        recommendation = 'Consider detrending or use regression with time trend.'
+    else:  # not adf_stationary and kpss_stationary
+        conclusion = 'difference_stationary'
+        interpretation = 'ADF suggests non-stationary, KPSS suggests stationary. Possible difference-stationary.'
+        recommendation = 'Apply differencing and re-test. Check for structural breaks.'
+
+    # Descriptive statistics
+    mean_val = float(np.mean(data))
+    std_val = float(np.std(data, ddof=1))
+
+    return {
+        'adf': {
+            'statistic': adf_statistic,
+            'pValue': adf_pvalue,
+            'lags': adf_lags,
+            'nobs': adf_nobs,
+            'criticalValues': adf_critical_values,
+            'isStationary': bool(adf_stationary)
+        },
+        'kpss': {
+            'statistic': kpss_statistic,
+            'pValue': kpss_pvalue,
+            'lags': kpss_lags,
+            'criticalValues': kpss_critical_values,
+            'isStationary': bool(kpss_stationary)
+        },
+        'conclusion': conclusion,
+        'interpretation': interpretation,
+        'recommendation': recommendation,
+        'sampleSize': len(data),
+        'descriptives': {
+            'mean': mean_val,
+            'std': std_val
+        }
+    }
+

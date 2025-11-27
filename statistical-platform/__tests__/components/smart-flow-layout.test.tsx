@@ -8,7 +8,7 @@
  * - TwoPanelLayout 통합 테스트
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
+import { describe, it, beforeEach, jest } from '@jest/globals'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
 

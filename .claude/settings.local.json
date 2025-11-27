@@ -26,7 +26,16 @@
       "Bash(mv:*)",
       "Bash(git restore:*)",
       "Bash(curl:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(sed:*)",
+      "Bash(components/variable-selection/VariableSelectorPanel.tsx )",
+      "Bash(components/ui/status-icon.tsx )",
+      "Bash(components/charts/boxplot.tsx )",
+      "Bash(__tests__/components/charts/histogram.test.tsx )",
+      "Bash(docs/ICON_USAGE_GUIDELINES.md)",
+      "Bash(git rm:*)",
+      "Bash(git fetch:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

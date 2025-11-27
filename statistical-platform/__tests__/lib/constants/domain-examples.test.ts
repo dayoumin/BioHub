@@ -5,7 +5,7 @@
  * 수산과학 도메인 예시 중앙 관리 시스템의 기능을 검증합니다.
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it } from '@jest/globals';
 import {
   DOMAIN_EXAMPLES,
   getExample,

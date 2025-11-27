@@ -5,7 +5,7 @@
  * 이전 테스트와의 차이: 실제 함수를 import하여 실행 (Mock 아님)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
+import { describe, it, beforeEach, afterEach } from '@jest/globals'
 import { getPyodideCDNUrls } from '@/lib/constants'
 
 describe('getPyodideCDNUrls - Real Function Test', () => {

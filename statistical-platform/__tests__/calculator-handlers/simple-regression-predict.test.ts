@@ -7,7 +7,7 @@
  * 3. 에러 방어: undefined, 빈 문자열, 잘못된 형식
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 
 describe('Issue 4: simpleLinearRegression predictValues 타입 수정', () => {
   it('타입 검증: predictValues는 string', () => {

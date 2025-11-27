@@ -7,7 +7,7 @@
  * - Docling 환경 체크
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 
 describe('File Upload Improvements - Korean Filename Handling', () => {
   it('should use UUID fallback for Korean-only filenames', () => {

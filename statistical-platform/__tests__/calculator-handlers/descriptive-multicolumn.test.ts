@@ -7,7 +7,7 @@
  * 3. 빈 배열 에러 처리
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 
 describe('Issue 1: calculateDescriptiveStats 다중 컬럼 지원', () => {
   it('코드 로직 검증 (타입 체크 통과)', () => {

@@ -14,6 +14,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
     {
       name: 'id',
       type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
       uniqueValues: 100,
       missingCount: 0,
       mean: 50.5,
@@ -33,6 +35,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
     {
       name: 'sample_no',
       type: 'numeric',
+      numericCount: 100,
+      textCount: 0,
       uniqueValues: 100,
       missingCount: 0,
       mean: 50.5,
@@ -52,6 +56,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
     {
       name: 'weight',
       type: 'numeric',
+      numericCount: 85,
+      textCount: 0,
       uniqueValues: 85,
       missingCount: 2,
       mean: 150.3,
@@ -71,6 +77,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
     {
       name: 'length',
       type: 'numeric',
+      numericCount: 78,
+      textCount: 0,
       uniqueValues: 78,
       missingCount: 1,
       mean: 45.6,
@@ -90,6 +98,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
     {
       name: 'species_code',
       type: 'categorical',
+      numericCount: 0,
+      textCount: 5,
       uniqueValues: 5,
       missingCount: 0,
       idDetection: {
@@ -102,6 +112,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
     {
       name: 'region',
       type: 'categorical',
+      numericCount: 0,
+      textCount: 3,
       uniqueValues: 3,
       missingCount: 0,
       idDetection: {
@@ -154,6 +166,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
         {
           name: 'age',
           type: 'numeric',
+          numericCount: 50,
+          textCount: 0,
           uniqueValues: 50,
           missingCount: 0
           // idDetection 없음
@@ -169,6 +183,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
         {
           name: 'temperature',
           type: 'numeric',
+          numericCount: 40,
+          textCount: 0,
           uniqueValues: 40,
           missingCount: 0,
           idDetection: {
@@ -251,6 +267,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
         {
           name: 'row_id',
           type: 'numeric',
+          numericCount: 100,
+          textCount: 0,
           uniqueValues: 100,
           missingCount: 0,
           idDetection: { isId: true, reason: 'ID', confidence: 0.9, source: 'name' }
@@ -258,6 +276,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
         {
           name: 'sample_id',
           type: 'numeric',
+          numericCount: 100,
+          textCount: 0,
           uniqueValues: 100,
           missingCount: 0,
           idDetection: { isId: true, reason: 'ID', confidence: 0.9, source: 'name' }
@@ -273,6 +293,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
         {
           name: 'var1',
           type: 'numeric',
+          numericCount: 50,
+          textCount: 0,
           uniqueValues: 50,
           missingCount: 0,
           idDetection: { isId: false, reason: '', confidence: 0, source: 'none' }
@@ -280,6 +302,8 @@ describe('DataExplorationStep ID 컬럼 제외 로직', () => {
         {
           name: 'var2',
           type: 'numeric',
+          numericCount: 60,
+          textCount: 0,
           uniqueValues: 60,
           missingCount: 0,
           idDetection: { isId: false, reason: '', confidence: 0, source: 'none' }

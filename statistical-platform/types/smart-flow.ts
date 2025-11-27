@@ -81,7 +81,21 @@ export interface StatisticalMethod {
   id: string
   name: string
   description: string
-  category: 'descriptive' | 't-test' | 'anova' | 'regression' | 'correlation' | 'chi-square' | 'nonparametric' | 'advanced'
+  category:
+    | 'descriptive'
+    | 't-test'
+    | 'anova'
+    | 'regression'
+    | 'correlation'
+    | 'chi-square'
+    | 'nonparametric'
+    | 'advanced'
+    | 'timeseries'
+    | 'pca'
+    | 'clustering'
+    | 'psychometrics'
+    | 'design'
+    | 'survival'
   subcategory?: string
   requirements?: {
     minSampleSize?: number
@@ -114,6 +128,7 @@ export type AnalysisPurpose =
   | 'distribution'  // 분포와 빈도 분석
   | 'prediction'    // 예측 모델링
   | 'timeseries'    // 시계열 분석
+  | 'survival'      // survival analysis
 
 /**
  * 변수 선택 정보 (Step 3에서 사용)

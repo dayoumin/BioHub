@@ -10,8 +10,9 @@ export const COMPONENT_LIST = [
   { id: 'data-profile', label: 'DataProfile', badge: null },
   { id: 'guidance-card', label: 'GuidanceCard', badge: null },
   { id: 'variable-selector', label: 'VarSelector', badge: null },
-  { id: 'result-context', label: 'ResultContext', badge: 'NEW' },
-  { id: 'statistical-result', label: 'StatResult', badge: 'NEW' },
+  { id: 'result-context', label: 'ResultContext', badge: null },
+  { id: 'statistical-result', label: 'StatResult', badge: null },
+  { id: 'floating-step', label: 'FloatingStep', badge: 'NEW' },
 ] as const
 
 // 샘플 데이터 (기본)

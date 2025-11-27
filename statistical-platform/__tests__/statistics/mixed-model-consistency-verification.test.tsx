@@ -8,7 +8,7 @@
  * 4. 타입 안전성
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 

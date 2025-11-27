@@ -8,7 +8,7 @@
  * - Hook 최적화 검증
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
+import { describe, it, beforeEach, jest } from '@jest/globals'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import SmartFlowPage from '@/app/smart-flow/page'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'

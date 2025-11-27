@@ -28,6 +28,47 @@ interface MethodBrowserProps {
   }
 }
 
+const normalizeText = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9\uac00-\ud7a3]/g, '')
+
+const SEARCH_SYNONYMS: Record<string, string[]> = {
+  ttest: ['t-test', 'ttest', 't test'],
+  anova: ['analysis of variance', 'anova', 'anova test'],
+  regression: ['prediction', 'predict'],
+  correlation: ['association', 'relationship'],
+  chisquare: ['chi-square', 'chi square', 'contingency'],
+  nonparametric: ['nonparametric', 'non parametric', 'rank'],
+  distribution: ['distribution', 'normality'],
+  descriptive: ['summary', 'basic stats', 'descriptives'],
+  timeseries: ['time series', 'trend', 'seasonality'],
+  survival: ['survival', 'cox'],
+  clustering: ['cluster', 'clustering'],
+  pca: ['principal component', 'factor', 'dimension reduction']
+}
+
+const expandQueryTokens = (query: string): string[] => {
+  const base = normalizeText(query)
+  if (!base) return []
+
+  const tokens = new Set<string>([base])
+
+  Object.entries(SEARCH_SYNONYMS).forEach(([rawKey, rawValues]) => {
+    const key = normalizeText(rawKey)
+    const values = rawValues.map(normalizeText)
+    const hasKey = base.includes(key)
+    const hasValue = values.some(v => v && base.includes(v))
+
+    if (hasKey || hasValue) {
+      if (key) tokens.add(key)
+      values.forEach(v => v && tokens.add(v))
+    }
+  })
+
+  return Array.from(tokens).filter(Boolean)
+}
+
 /**
  * MethodBrowser - Browse and select statistical methods
  *
@@ -56,17 +97,29 @@ export function MethodBrowser({
 
   // Filter methods by search query
   const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return methodGroups
+    const tokens = expandQueryTokens(searchQuery)
+    if (!searchQuery.trim() || tokens.length === 0) return methodGroups
 
-    const q = searchQuery.toLowerCase()
+    const matchesQuery = (method: StatisticalMethod) => {
+      const haystack = [
+        method.name,
+        method.description,
+        method.id,
+        method.category,
+        method.subcategory || ''
+      ]
+        .map(normalizeText)
+        .filter(Boolean)
+
+      return tokens.some(token =>
+        haystack.some(field => field.includes(token))
+      )
+    }
+
     return methodGroups
       .map(group => ({
         ...group,
-        methods: group.methods.filter(m =>
-          m.name.toLowerCase().includes(q) ||
-          m.description.toLowerCase().includes(q) ||
-          m.id.toLowerCase().includes(q)
-        )
+        methods: group.methods.filter(matchesQuery)
       }))
       .filter(group => group.methods.length > 0)
   }, [methodGroups, searchQuery])

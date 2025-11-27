@@ -11,7 +11,7 @@
  * 7. breadcrumbs 추가 확인
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 

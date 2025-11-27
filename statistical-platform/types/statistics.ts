@@ -321,6 +321,38 @@ export interface MeansPlotVariables {
 }
 
 // ============================================================================
+// 시계열 분석 (Time Series)
+// ============================================================================
+export interface StationarityTestVariables {
+  dependent: string // 시계열 변수
+}
+
+export interface ARIMAVariables {
+  dependent: string // 시계열 변수
+  time?: string // 시간 인덱스 (선택)
+}
+
+export interface SeasonalDecomposeVariables {
+  dependent: string // 시계열 변수
+  time?: string // 시간 인덱스 (선택)
+}
+
+// ============================================================================
+// 생존분석 (Survival Analysis)
+// ============================================================================
+export interface KaplanMeierVariables {
+  time: string // 시간 변수
+  event: string // 사건 변수 (0/1)
+  group?: string // 그룹 변수 (선택)
+}
+
+export interface CoxRegressionVariables {
+  time: string // 시간 변수
+  event: string // 사건 변수 (0/1)
+  covariates: string[] // 공변량들
+}
+
+// ============================================================================
 // 분석 결과 타입
 // ============================================================================
 

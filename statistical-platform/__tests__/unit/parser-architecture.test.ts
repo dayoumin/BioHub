@@ -4,7 +4,7 @@
  * Parser와 Chunking Strategy 분리 검증
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals'
+import { describe, it, beforeEach } from '@jest/globals'
 import { ParserRegistry } from '../../lib/rag/parsers/parser-registry'
 import { HWPParser } from '../../lib/rag/parsers/hwp-parser'
 import { MarkdownParser } from '../../lib/rag/parsers/markdown-parser'

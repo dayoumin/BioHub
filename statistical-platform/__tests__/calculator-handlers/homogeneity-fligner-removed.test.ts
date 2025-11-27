@@ -6,7 +6,7 @@
  * 2. 올바른 검정 방법 이름 반환
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 
 describe('Issue 2: homogeneityTest Fligner 옵션 제거', () => {
   it('검정 방법 이름 매핑 로직', () => {

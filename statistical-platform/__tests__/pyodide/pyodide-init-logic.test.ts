@@ -8,7 +8,7 @@
  * - Worker 독립: Worker 컨텍스트 제약 없이 테스트 가능
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals'
+import { describe, it, beforeEach } from '@jest/globals'
 import {
   registerHelpersModule,
   validateInitialization,

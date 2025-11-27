@@ -5,7 +5,7 @@
  * (실제 HWP 파일 파싱은 제외 - 로직만 테스트)
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 
 describe('Semantic Rechunk - File Type Detection', () => {
   it('should detect HWP file by filePath extension (.hwp)', () => {

@@ -135,14 +135,22 @@ export class StatisticalExecutor {
         case 'chi-square':
           result = await this.executeChiSquare(method, preparedData)
           break
-        case 'multivariate':
+        case 'pca':
+        case 'clustering':
+        case 'advanced':
           result = await this.executeMultivariate(method, preparedData)
           break
-        case 'time-series':
+        case 'timeseries':
           result = await this.executeTimeSeries(method, preparedData)
           break
-        case 'reliability':
+        case 'psychometrics':
           result = await this.executeReliability(method, preparedData)
+          break
+        case 'survival':
+          result = await this.executeSurvival(method, preparedData)
+          break
+        case 'design':
+          result = await this.executeDesign(method, preparedData)
           break
         default:
           throw new Error(`지원되지 않는 분석 카테고리: ${method.category}`)
@@ -969,6 +977,28 @@ export class StatisticalExecutor {
       },
       rawResults: result
     }
+  }
+
+  /**
+   * 생존 분석 실행
+   */
+  private async executeSurvival(
+    method: StatisticalMethod,
+    data: any
+  ): Promise<AnalysisResult> {
+    // TODO: 생존 분석 구현 (kaplan-meier, cox-regression)
+    throw new Error(`생존 분석 '${method.id}'은 아직 구현되지 않았습니다.`)
+  }
+
+  /**
+   * 실험 설계 분석 실행
+   */
+  private async executeDesign(
+    method: StatisticalMethod,
+    data: any
+  ): Promise<AnalysisResult> {
+    // TODO: 실험 설계 분석 구현
+    throw new Error(`실험 설계 분석 '${method.id}'은 아직 구현되지 않았습니다.`)
   }
 
   /**

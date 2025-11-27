@@ -12,7 +12,7 @@
  * - 수정: 패키지 로드 → Python 코드 실행 (올바른 순서)
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
+import { describe, it, beforeEach, jest } from '@jest/globals'
 import type { PyodideInterface } from '@/types/pyodide'
 
 /**

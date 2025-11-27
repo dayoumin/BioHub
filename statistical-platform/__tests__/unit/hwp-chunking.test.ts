@@ -5,7 +5,7 @@
  * 대신 인터페이스, 설정, 로직만 테스트
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 
 describe('HWP Chunking Strategy - Configuration', () => {
   it('should use correct strategy name', () => {

@@ -1397,6 +1397,169 @@ export const STATISTICAL_METHOD_REQUIREMENTS: StatisticalMethodRequirements[] = 
       }
     ],
     notes: ['그룹당 20개 이상 표본', 'Box\'s M Test', 'Leave-one-out CV']
+  },
+
+  // ========================================
+  // 9. 생존분석 (Survival Analysis) - 2개
+  // ========================================
+  {
+    id: 'kaplan-meier',
+    name: 'Kaplan-Meier 생존분석',
+    category: 'survival',
+    description: '생존함수 추정 및 생존곡선 (Log-rank 검정 포함)',
+    minSampleSize: 10,
+    assumptions: ['독립적 중도절단', '비정보적 중도절단'],
+    variables: [
+      {
+        role: 'time',
+        label: '시간 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '생존 시간 (양수)',
+        example: '생존일수, 관찰기간_월'
+      },
+      {
+        role: 'event',
+        label: '사건 변수',
+        types: ['binary'],
+        required: true,
+        multiple: false,
+        description: '사건 발생 여부 (1=발생, 0=중도절단)',
+        example: '사망여부 (1=사망, 0=생존)'
+      },
+      {
+        role: 'factor',
+        label: '그룹 변수 (선택)',
+        types: ['categorical', 'binary'],
+        required: false,
+        multiple: false,
+        description: '그룹별 생존곡선 비교 시',
+        example: '처치군 (실험/대조)'
+      }
+    ],
+    notes: ['Log-rank 검정으로 그룹 비교', '중앙 생존시간 추정', 'lifelines 라이브러리 사용']
+  },
+  {
+    id: 'cox-regression',
+    name: 'Cox 비례위험 회귀',
+    category: 'survival',
+    description: '공변량의 위험비(HR) 추정',
+    minSampleSize: 30,
+    assumptions: ['비례위험 가정', '독립적 중도절단'],
+    variables: [
+      {
+        role: 'time',
+        label: '시간 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '생존 시간 (양수)',
+        example: '관찰기간_일'
+      },
+      {
+        role: 'event',
+        label: '사건 변수',
+        types: ['binary'],
+        required: true,
+        multiple: false,
+        description: '사건 발생 여부 (1=발생, 0=중도절단)',
+        example: '이탈여부 (1=이탈, 0=유지)'
+      },
+      {
+        role: 'independent',
+        label: '공변량',
+        types: ['continuous', 'categorical'],
+        required: true,
+        multiple: true,
+        minCount: 1,
+        description: '위험비를 추정할 예측변수들',
+        example: '연령, 성별, 처치방법'
+      }
+    ],
+    notes: ['Hazard Ratio 해석', 'Schoenfeld 잔차로 가정 검정', 'lifelines 라이브러리 사용']
+  },
+
+  // ========================================
+  // 10. 시계열 분석 (Time Series) - 3개
+  // ========================================
+  {
+    id: 'arima',
+    name: 'ARIMA 모델',
+    category: 'timeseries',
+    description: '자기회귀 누적 이동평균 모델로 예측',
+    minSampleSize: 50,
+    assumptions: ['정상성 (차분 후)', '잔차 백색잡음'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '시계열 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '예측할 시계열 데이터',
+        example: '월별_매출, 일일_수온'
+      },
+      {
+        role: 'time',
+        label: '시간 인덱스 (선택)',
+        types: ['date'],
+        required: false,
+        multiple: false,
+        description: '날짜/시간 변수 (없으면 순서 사용)',
+        example: '측정일자, 년월'
+      }
+    ],
+    notes: ['Auto ARIMA로 최적 (p,d,q) 탐색', 'AIC/BIC 기준', 'statsmodels 라이브러리 사용']
+  },
+  {
+    id: 'seasonal-decompose',
+    name: '계절성 분해',
+    category: 'timeseries',
+    description: '시계열을 추세, 계절, 잔차로 분해',
+    minSampleSize: 24,
+    assumptions: ['주기적 계절성'],
+    variables: [
+      {
+        role: 'dependent',
+        label: '시계열 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '분해할 시계열 데이터',
+        example: '월별_판매량, 분기별_생산량'
+      },
+      {
+        role: 'time',
+        label: '시간 인덱스 (선택)',
+        types: ['date'],
+        required: false,
+        multiple: false,
+        description: '날짜/시간 변수',
+        example: '년월'
+      }
+    ],
+    notes: ['가법/승법 모델 선택', '계절 주기 지정 필요', 'statsmodels 라이브러리 사용']
+  },
+  {
+    id: 'stationarity-test',
+    name: '정상성 검정',
+    category: 'timeseries',
+    description: 'ADF/KPSS 단위근 검정',
+    minSampleSize: 20,
+    assumptions: [],
+    variables: [
+      {
+        role: 'dependent',
+        label: '시계열 변수',
+        types: ['continuous'],
+        required: true,
+        multiple: false,
+        description: '정상성을 검정할 시계열',
+        example: '주가, 환율'
+      }
+    ],
+    notes: ['ADF: 단위근 귀무가설', 'KPSS: 정상성 귀무가설', '두 검정 결합 권장']
   }
 ]
 

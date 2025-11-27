@@ -271,6 +271,47 @@ npm test:coverage     # 커버리지
 - ✅ Next.js 15 App Router 사용 (Pages Router 금지)
 - ✅ shadcn/ui 컴포넌트 우선 사용
 
+### 7. 명명 규칙 (Naming Convention) ⭐ NEW
+
+**TypeScript/JavaScript 일반**:
+| 항목 | 패턴 | 예시 |
+|------|------|------|
+| 변수/함수 | camelCase | `selectedMethod`, `handleClick`, `isLoading` |
+| 상수 | UPPER_SNAKE_CASE | `STATISTICAL_METHODS`, `PURPOSE_CATEGORY_MAP` |
+| 타입/인터페이스 | PascalCase | `StatisticalMethod`, `AnalysisPurpose` |
+| 컴포넌트 | PascalCase | `MethodBrowser`, `PurposeInputStep` |
+| 파일명 (일반) | kebab-case | `method-mapping.ts`, `smart-flow.ts` |
+| 파일명 (컴포넌트) | PascalCase | `MethodBrowser.tsx`, `PurposeInputStep.tsx` |
+
+**Python Worker I/O 규칙 (CRITICAL)**:
+- ✅ **Worker 요청/응답은 모두 `snake_case`** - 변환하지 않음
+- ✅ **TypeScript 타입 정의도 `snake_case` 유지** (`p_value`, `cohen_d`, `r_squared`)
+- ❌ **camelCase 변환 금지** (`pValue`, `cohensD` 등으로 바꾸지 않음)
+
+```typescript
+// ✅ 올바른 사용 (snake_case 직통)
+interface AnalysisResult {
+  p_value: number
+  cohen_d: number
+  r_squared?: number
+}
+
+// ❌ 금지 (불필요한 변환)
+interface AnalysisResult {
+  pValue: number  // 변환 금지
+  cohensD: number // 변환 금지
+}
+```
+
+**예외**: Zustand/Redux state 등 프런트 도메인에서 camelCase가 강하게 필요한 경우만 국소적 매핑 유틸 사용
+
+**⚠️ 자주 틀리는 표기**:
+| 올바른 표기 | 잘못된 표기 | 비고 |
+|------------|------------|------|
+| `cohen_d` | `cohens_d` | 효과크기 |
+| `timeseries` | `time-series` | 카테고리명 |
+| `p_value` | `pvalue`, `pValue` | 유의확률 |
+
 ---
 
 ## 🏗️ 아키텍처

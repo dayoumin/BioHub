@@ -295,7 +295,8 @@ Categories:
       'relationship': '변수 간 관계 분석',
       'distribution': '분포와 빈도 분석',
       'prediction': '예측 모델링',
-      'timeseries': '시계열 분석'
+      'timeseries': '시계열 분석',
+      'survival': '생존분석'
     }
 
     // 가정 검정 결과 요약

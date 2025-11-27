@@ -10,10 +10,14 @@ import {
   ChevronRight,
   Activity,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  ArrowRight
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { PValueBadge } from './PValueBadge'
 import { formatNumber, interpretPValue } from '@/lib/statistics/formatters'
+import { getAlternatives } from '@/lib/statistics/alternative-mapping'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
   Tooltip,
@@ -43,6 +47,7 @@ export interface AssumptionTest {
 interface AssumptionTestCardProps {
   title?: string
   tests: AssumptionTest[]
+  testType?: string
   showRecommendations?: boolean
   showDetails?: boolean
   className?: string
@@ -56,12 +61,14 @@ interface AssumptionTestCardProps {
 export function AssumptionTestCard({
   title = '가정 검정 결과',
   tests,
+  testType,
   showRecommendations = true,
   showDetails = true,
   className,
   onViolation
 }: AssumptionTestCardProps) {
   const [isOpen, setIsOpen] = React.useState(true)
+  const router = useRouter()
 
   // 전체 가정 충족 여부
   const allPassed = tests.every(test => test.passed !== false)
@@ -207,12 +214,12 @@ export function AssumptionTestCard({
                       <Badge
                         variant={
                           test.severity === 'high' ? 'destructive' :
-                          test.severity === 'medium' ? 'secondary' : 'outline'
+                            test.severity === 'medium' ? 'secondary' : 'outline'
                         }
                         className="text-xs ml-2"
                       >
                         {test.severity === 'high' ? '심각' :
-                         test.severity === 'medium' ? '보통' : '경미'}
+                          test.severity === 'medium' ? '보통' : '경미'}
                       </Badge>
                     )}
                   </div>
@@ -240,7 +247,40 @@ export function AssumptionTestCard({
             )}
 
             {/* 대안 분석 버튼 */}
-            {hasViolations && onViolation && (
+            {hasViolations && testType && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-blue-600" />
+                  추천 대안 분석 방법
+                </p>
+                <div className="grid gap-2">
+                  {getAlternatives(testType).map((alt, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <div>
+                        <div className="font-medium text-sm">{alt.name}</div>
+                        <div className="text-xs text-muted-foreground">{alt.reason}</div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1"
+                        onClick={() => router.push(alt.route)}
+                      >
+                        이동 <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {getAlternatives(testType).length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      이 분석에 대해 등록된 대안 분석 방법이 없습니다.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 기존 대안 분석 버튼 (Fallback) */}
+            {hasViolations && !testType && onViolation && (
               <button
                 onClick={() => {
                   const violatedTest = tests.find(t => !t.passed)

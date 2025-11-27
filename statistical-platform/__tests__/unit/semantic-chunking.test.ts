@@ -5,7 +5,7 @@
  * (LangChain ESM import 이슈로 인해 실제 청킹은 제외, 로직만 테스트)
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 import type { DocumentMetadata } from '../../lib/rag/strategies/chunking/semantic-chunking'
 
 describe('SemanticChunkingStrategy - Configuration', () => {

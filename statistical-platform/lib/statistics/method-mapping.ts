@@ -2,18 +2,9 @@
  * 50개 통계 방법 매핑 및 카테고리 정의
  */
 
-export interface StatisticalMethod {
-  id: string
-  name: string
-  description: string
-  category: string
-  subcategory?: string
-  requirements?: {
-    minSampleSize?: number
-    variableTypes?: string[]
-    assumptions?: string[]
-  }
-}
+import type { StatisticalMethod } from '@/types/smart-flow'
+
+export type { StatisticalMethod } from '@/types/smart-flow'
 
 export const QUESTION_TYPES = [
   {
@@ -608,6 +599,67 @@ export const STATISTICAL_METHODS: StatisticalMethod[] = [
     requirements: {
       minSampleSize: 5,
       variableTypes: ['numeric', 'categorical']
+    }
+  },
+
+  // ========================================
+  // 생존분석 (Survival Analysis) - 2개
+  // ========================================
+  {
+    id: 'kaplan-meier',
+    name: 'Kaplan-Meier 생존분석',
+    description: '생존함수 추정 및 생존곡선',
+    category: 'survival',
+    requirements: {
+      minSampleSize: 10,
+      variableTypes: ['numeric', 'categorical'],
+      assumptions: ['독립적 중도절단']
+    }
+  },
+  {
+    id: 'cox-regression',
+    name: 'Cox 비례위험 회귀',
+    description: '공변량을 포함한 생존분석',
+    category: 'survival',
+    requirements: {
+      minSampleSize: 30,
+      variableTypes: ['numeric', 'categorical'],
+      assumptions: ['비례위험 가정']
+    }
+  },
+
+  // ========================================
+  // 시계열 분석 (Time Series) - 3개
+  // ========================================
+  {
+    id: 'arima',
+    name: 'ARIMA 모델',
+    description: '자기회귀 누적 이동평균 모델',
+    category: 'timeseries',
+    requirements: {
+      minSampleSize: 50,
+      variableTypes: ['numeric', 'date'],
+      assumptions: ['정상성']
+    }
+  },
+  {
+    id: 'seasonal-decompose',
+    name: '계절성 분해',
+    description: '추세, 계절, 잔차 분리',
+    category: 'timeseries',
+    requirements: {
+      minSampleSize: 24,
+      variableTypes: ['numeric', 'date']
+    }
+  },
+  {
+    id: 'stationarity-test',
+    name: '정상성 검정',
+    description: 'ADF/KPSS 단위근 검정',
+    category: 'timeseries',
+    requirements: {
+      minSampleSize: 20,
+      variableTypes: ['numeric']
     }
   }
 ]

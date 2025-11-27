@@ -22,7 +22,12 @@ import { AssumptionTestCard } from './AssumptionTestCard'
 import { StatisticsTable } from './StatisticsTable'
 import { ConfidenceIntervalDisplay } from './ConfidenceIntervalDisplay'
 import { ResultActionButtons } from './ResultActionButtons'
+import { EasyExplanation } from './EasyExplanation'
+import { NextStepsCard } from './NextStepsCard'
 import { formatNumber, formatStatisticalResult } from '@/lib/statistics/formatters'
+import { useSettingsStore } from '@/lib/stores/settings-store'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import {
   Collapsible,
@@ -123,6 +128,7 @@ export function StatisticalResultCard({
 }: StatisticalResultCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(!expandable)
   const [activeTab, setActiveTab] = React.useState('main')
+  const { userLevel, setUserLevel } = useSettingsStore()
 
   // 유의성 판단
   const isSignificant = result.pValue < (result.alpha || 0.05)
@@ -139,7 +145,7 @@ export function StatisticalResultCard({
 
   // 상태 아이콘
   const StatusIcon = !assumptionsPassed ? AlertCircle :
-                     isSignificant ? CheckCircle2 : XCircle
+    isSignificant ? CheckCircle2 : XCircle
 
   return (
     <Card className={cn('transition-all duration-300', getStatusColor(), className)}>
@@ -150,7 +156,7 @@ export function StatisticalResultCard({
               <StatusIcon className={cn(
                 'w-5 h-5',
                 !assumptionsPassed ? 'text-warning' :
-                isSignificant ? 'text-stat-significant' : 'text-stat-non-significant'
+                  isSignificant ? 'text-stat-significant' : 'text-stat-non-significant'
               )} />
               <CardTitle className="text-xl">{result.testName}</CardTitle>
               {result.testType && (
@@ -182,49 +188,128 @@ export function StatisticalResultCard({
           )}
         </div>
 
-        {/* 주요 결과 요약 */}
-        <div className="mt-4 p-4 bg-background rounded-lg border">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 통계량 */}
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">통계량</p>
-              <p className="text-2xl font-bold">
-                {result.statisticName || 'Statistic'} = {formatNumber(result.statistic, 4)}
-              </p>
-              {result.df && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  df = {Array.isArray(result.df) ? result.df.join(', ') : result.df}
-                </p>
-              )}
-            </div>
-
-            {/* P-value */}
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">유의확률</p>
-              <div className="flex justify-center mt-2">
-                <PValueWithSignificance
-                  value={result.pValue}
-                  alpha={result.alpha}
-                  showSignificance={true}
-                  size="lg"
-                />
+        {/* 사용자 레벨 선택 UI */}
+        <div className="mt-4 flex justify-end">
+          <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-lg">
+            <span className="text-xs font-medium text-muted-foreground px-2">설명 수준:</span>
+            <RadioGroup
+              value={userLevel}
+              onValueChange={(v) => setUserLevel(v as any)}
+              className="flex gap-1"
+            >
+              <div className="flex items-center space-x-1">
+                <RadioGroupItem value="beginner" id="r1" className="sr-only" />
+                <Label
+                  htmlFor="r1"
+                  className={cn(
+                    "text-xs px-2 py-1 rounded cursor-pointer transition-colors",
+                    userLevel === 'beginner' ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                  )}
+                >
+                  초보자
+                </Label>
               </div>
-            </div>
-
-            {/* 효과크기 */}
-            {result.effectSize && (
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">효과크기</p>
-                <p className="text-2xl font-bold">
-                  {formatNumber(result.effectSize.value, 3)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {result.effectSize.type?.replace('_', ' ')}
-                </p>
+              <div className="flex items-center space-x-1">
+                <RadioGroupItem value="intermediate" id="r2" className="sr-only" />
+                <Label
+                  htmlFor="r2"
+                  className={cn(
+                    "text-xs px-2 py-1 rounded cursor-pointer transition-colors",
+                    userLevel === 'intermediate' ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                  )}
+                >
+                  중급자
+                </Label>
               </div>
-            )}
+              <div className="flex items-center space-x-1">
+                <RadioGroupItem value="expert" id="r3" className="sr-only" />
+                <Label
+                  htmlFor="r3"
+                  className={cn(
+                    "text-xs px-2 py-1 rounded cursor-pointer transition-colors",
+                    userLevel === 'expert' ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                  )}
+                >
+                  전문가
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
         </div>
+
+        {/* 쉬운 설명 (초보자용) */}
+        {userLevel === 'beginner' && (
+          <div className="mt-4">
+            <EasyExplanation
+              pValue={result.pValue}
+              effectSize={result.effectSize ? {
+                value: result.effectSize.value,
+                type: result.effectSize.type || 'unknown'
+              } : undefined}
+              isSignificant={isSignificant}
+              testType={result.testType}
+              alpha={result.alpha}
+            />
+          </div>
+        )}
+
+        {/* 주요 결과 요약 (중급/전문가용) */}
+        {userLevel !== 'beginner' && (
+          <div className="mt-4 p-4 bg-background rounded-lg border">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 통계량 */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">통계량</p>
+                <p className="text-2xl font-bold">
+                  {result.statisticName || 'Statistic'} = {formatNumber(result.statistic, 4)}
+                </p>
+                {result.df && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    df = {Array.isArray(result.df) ? result.df.join(', ') : result.df}
+                  </p>
+                )}
+              </div>
+
+              {/* P-value */}
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">유의확률</p>
+                <div className="flex justify-center mt-2">
+                  <PValueWithSignificance
+                    value={result.pValue}
+                    alpha={result.alpha}
+                    showSignificance={true}
+                    size="lg"
+                  />
+                </div>
+              </div>
+
+              {/* 효과크기 */}
+              {result.effectSize && (
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-1">효과크기</p>
+                  <p className="text-2xl font-bold">
+                    {formatNumber(result.effectSize.value, 3)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {result.effectSize.type?.replace('_', ' ')}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 다음 단계 안내 (초보자/중급자용) */}
+        {userLevel !== 'expert' && (
+          <div className="mt-4">
+            <NextStepsCard
+              isSignificant={isSignificant}
+              testType={result.testType}
+              assumptionsPassed={assumptionsPassed}
+              hasPostHoc={result.testName.toLowerCase().includes('anova')}
+            />
+          </div>
+        )}
 
         {/* 빠른 해석 */}
         {!assumptionsPassed && (
@@ -305,6 +390,7 @@ export function StatisticalResultCard({
                 {showAssumptions && result.assumptions && (
                   <AssumptionTestCard
                     tests={result.assumptions}
+                    testType={result.testType}
                     showRecommendations={true}
                     showDetails={true}
                   />

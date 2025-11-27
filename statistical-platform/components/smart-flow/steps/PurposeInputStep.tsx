@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, ArrowRight, AlertTriangle, AlertCircle, List, Sparkles } from 'lucide-react'
+import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, AlertTriangle, AlertCircle, List, Sparkles } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Accordion,
@@ -31,6 +31,7 @@ import { ConfidenceGauge } from '@/components/smart-flow/visualization/Confidenc
 import { AssumptionResultChart } from '@/components/smart-flow/visualization/AssumptionResultChart'
 import { MethodBrowser } from './purpose/MethodBrowser'
 import { getMethodsGroupedByCategory, getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
+import type { MethodGroup } from '@/lib/statistics/method-catalog'
 
 /**
  * Phase 5: PurposeInputStep with Method Browser
@@ -77,8 +78,49 @@ const ANALYSIS_PURPOSES = [
     title: '시계열 분석',
     description: '시간에 따른 데이터의 변화 패턴을 분석하고 미래를 예측합니다.',
     examples: '예: 월별 매출 추이, 연도별 인구 변화'
+  },
+  {
+    id: 'survival' as AnalysisPurpose,
+    icon: <Heart className="w-5 h-5" />,
+    title: '생존 분석',
+    description: '시간에 따른 사건 발생까지의 기간을 분석하고 위험 요인을 파악합니다.',
+    examples: '예: 환자 생존기간, 장비 고장까지 시간, 고객 이탈 분석'
   }
 ]
+
+
+const mergeMethodGroups = (primary: MethodGroup[], fallback: MethodGroup[]): MethodGroup[] => {
+  const merged: MethodGroup[] = []
+  const categoryMap = new Map<string, MethodGroup>()
+  const seenMethodIds = new Set<string>()
+
+  const addGroup = (group: MethodGroup) => {
+    const existing = categoryMap.get(group.category)
+    const dedupedMethods = group.methods.filter(method => {
+      if (seenMethodIds.has(method.id)) return false
+      seenMethodIds.add(method.id)
+      return true
+    })
+
+    if (dedupedMethods.length === 0) return
+
+    if (existing) {
+      existing.methods.push(...dedupedMethods)
+    } else {
+      const nextGroup: MethodGroup = {
+        ...group,
+        methods: [...dedupedMethods]
+      }
+      categoryMap.set(group.category, nextGroup)
+      merged.push(nextGroup)
+    }
+  }
+
+  primary.forEach(addGroup)
+  fallback.forEach(addGroup)
+
+  return merged
+}
 
 export function PurposeInputStep({
   onPurposeSubmit,
@@ -122,14 +164,45 @@ export function PurposeInputStep({
     }
   }, [validationResults, data])
 
-  // Method groups for current purpose
-  const methodGroups = useMemo(() => {
-    if (!selectedPurpose) return getAllMethodsGrouped()
-    return getMethodsGroupedByCategory(selectedPurpose)
-  }, [selectedPurpose])
-
   // All method groups (for Browse All tab)
   const allMethodGroups = useMemo(() => getAllMethodsGrouped(), [])
+
+  // Method groups for current purpose
+  const purposeMethodGroups = useMemo(() => {
+    if (!selectedPurpose) return allMethodGroups
+    return getMethodsGroupedByCategory(selectedPurpose)
+  }, [selectedPurpose, allMethodGroups])
+
+  // Merge purpose-first view with full catalog to avoid losing AI context when browsing
+  const browseMethodGroups = useMemo(() => {
+    const baseGroups = mergeMethodGroups(
+      selectedPurpose ? purposeMethodGroups : allMethodGroups,
+      allMethodGroups
+    )
+
+    const recommendedMethodFromCatalog = recommendation?.method
+      ? allMethodGroups
+        .flatMap(group => group.methods)
+        .find(m => m.id === recommendation.method.id) || recommendation.method
+      : null
+
+    if (!recommendedMethodFromCatalog) return baseGroups
+
+    const hasRecommended = baseGroups.some(group =>
+      group.methods.some(method => method.id === recommendedMethodFromCatalog.id)
+    )
+
+    if (hasRecommended) return baseGroups
+
+    return [
+      ...baseGroups,
+      {
+        category: recommendedMethodFromCatalog.category,
+        categoryLabel: recommendedMethodFromCatalog.category,
+        methods: [recommendedMethodFromCatalog]
+      }
+    ]
+  }, [selectedPurpose, purposeMethodGroups, allMethodGroups, recommendation])
 
   // The final selected method (manual override or AI recommendation)
   const finalSelectedMethod = useMemo(() => {
@@ -535,7 +608,7 @@ export function PurposeInputStep({
               {/* Browse All Tab */}
               <TabsContent value="browse" className="mt-0">
                 <MethodBrowser
-                  methodGroups={selectedPurpose ? methodGroups : allMethodGroups}
+                  methodGroups={browseMethodGroups}
                   selectedMethod={manualSelectedMethod}
                   recommendedMethodId={recommendation?.method.id}
                   onMethodSelect={handleManualMethodSelect}

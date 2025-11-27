@@ -6,7 +6,7 @@
  * 날짜: 2025-11-13
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 
 describe('Batch 4 Additional Critical Bugs - Session 4 Fixes', () => {
   describe('Bug #7: dose-response isLoading 미사용 ✅ FIXED', () => {

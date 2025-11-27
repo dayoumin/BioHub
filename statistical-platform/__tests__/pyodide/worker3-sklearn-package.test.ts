@@ -6,7 +6,7 @@
  * - Worker 3 로딩 시 scikit-learn 패키지 로드 확인
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it } from '@jest/globals'
 
 /**
  * Worker별 추가 패키지 정의 (테스트용 복사)
