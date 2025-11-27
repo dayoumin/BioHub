@@ -150,12 +150,12 @@ export function formatMetric(
 
 /**
  * p-value 유의성 판정 (boolean)
- * @param p p-value
+ * @param pValue p-value
  * @param alpha 유의수준 (기본값: 0.05)
  * @returns 통계적 유의성 여부
  */
-export function interpretPValue(p: number, alpha: number = SIGNIFICANCE_LEVELS.STANDARD): boolean {
-  return p < alpha
+export function interpretPValue(pValue: number, alpha: number = SIGNIFICANCE_LEVELS.STANDARD): boolean {
+  return pValue < alpha
 }
 
 /**
@@ -175,37 +175,37 @@ export function interpretPValueKo(pValue: number): string {
 /**
  * 통계 결과 요약 텍스트 생성
  * @param statistic 통계량 이름 (예: 't', 'F', 'χ²')
- * @param value 통계량 값
+ * @param statisticValue 통계량 값
  * @param df 자유도
- * @param p p-value
+ * @param pValue p-value
  * @returns 포맷된 결과 요약 문자열
  */
 export function formatStatisticalResult(
   statistic: string,
-  value: number,
+  statisticValue: number,
   df: number | number[],
-  p: number
+  pValue: number
 ): string {
   const formattedDf = Array.isArray(df) ? `(${df.join(', ')})` : `(${df})`
-  const formattedP = formatPValue(p)
-  const formattedValue = formatNumber(value, PRECISION.STATISTIC)
+  const formattedP = formatPValue(pValue)
+  const formattedValue = formatNumber(statisticValue, PRECISION.STATISTIC)
 
   return `${statistic}${formattedDf} = ${formattedValue}, p = ${formattedP}`
 }
 
 /**
  * 효과크기 해석 (확장)
- * @param value 효과크기 값
- * @param type 효과크기 유형
+ * @param effectSize 효과크기 값
+ * @param effectType 효과크기 유형
  * @returns 해석 문자열
  */
 export function interpretEffectSize(
-  value: number,
-  type: 'cohen_d' | 'eta_squared' | 'omega_squared' | 'r' | 'phi' | 'cramers_v' = 'cohen_d'
+  effectSize: number,
+  effectType: 'cohen_d' | 'eta_squared' | 'omega_squared' | 'r' | 'phi' | 'cramers_v' = 'cohen_d'
 ): string {
-  const absValue = Math.abs(value)
+  const absValue = Math.abs(effectSize)
 
-  switch (type) {
+  switch (effectType) {
     case 'cohen_d':
       if (absValue < EFFECT_SIZE.SMALL) return '매우 작음'
       if (absValue < EFFECT_SIZE.MEDIUM) return '작음'

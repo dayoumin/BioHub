@@ -44,7 +44,7 @@
       "functions": [
         {
           "name": "interpretPValue",
-          "signature": "interpretPValue(p: number, alpha?: number): boolean",
+          "signature": "interpretPValue(pValue: number, alpha?: number): boolean",
           "purpose": "Check if p-value is statistically significant",
           "example": "interpretPValue(0.03) // true\ninterpretPValue(0.08) // false",
           "rules": ["Default alpha: 0.05", "Returns boolean"]
@@ -58,7 +58,7 @@
         },
         {
           "name": "interpretEffectSize",
-          "signature": "interpretEffectSize(value: number, type?: EffectSizeType): string",
+          "signature": "interpretEffectSize(effectSize: number, effectType?: EffectSizeType): string",
           "purpose": "Get Korean interpretation for effect size",
           "example": "interpretEffectSize(0.65, 'cohen_d') // 'medium'",
           "rules": ["Supports: cohen_d, eta_squared, omega_squared, r, phi, cramers_v", "Uses EFFECT_SIZE constants"]
@@ -155,6 +155,17 @@
       "VERY_STRONG": 0.9
     }
   },
+  "parameterNamingConvention": {
+    "description": "Standard parameter names for statistical functions",
+    "rules": [
+      { "concept": "p-value", "paramName": "pValue", "bad": ["p", "pvalue", "p_value"] },
+      { "concept": "Effect size value", "paramName": "effectSize", "bad": ["value", "d", "effect"] },
+      { "concept": "Effect size type", "paramName": "effectType", "bad": ["type", "kind"] },
+      { "concept": "Correlation coefficient", "paramName": "r", "alternative": "correlation" },
+      { "concept": "Significance level", "paramName": "alpha", "bad": ["a", "sig", "significance"] },
+      { "concept": "Statistic value", "paramName": "statisticValue", "bad": ["value", "stat"] }
+    ]
+  },
   "usageGuidelines": [
     {
       "rule": "Always use formatPValue for p-value display",
@@ -163,13 +174,18 @@
     },
     {
       "rule": "Use Korean functions for UI, English for internal",
-      "bad": "interpretPValueEn(p) in UI components",
-      "good": "interpretPValueKo(p) in UI, interpretPValueEn(p) in calculations"
+      "bad": "interpretPValueEn(pValue) in UI components",
+      "good": "interpretPValueKo(pValue) in UI, interpretPValueEn(pValue) in calculations"
     },
     {
       "rule": "Import from formatters.ts, not utils.ts",
       "bad": "import { interpretPValue } from '@/lib/statistics/utils'",
       "good": "import { interpretPValueKo } from '@/lib/statistics/formatters'"
+    },
+    {
+      "rule": "Use standard parameter names",
+      "bad": "function foo(p: number, d: number)",
+      "good": "function foo(pValue: number, effectSize: number)"
     }
   ],
   "relatedComponents": [
