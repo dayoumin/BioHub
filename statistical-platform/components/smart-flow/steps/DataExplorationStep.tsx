@@ -432,18 +432,26 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     }
   }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables, setAssumptionResults])
 
+  // 산점도 상태 추적용 ref (무한 루프 방지)
+  const scatterplotsRef = useRef(scatterplots)
+  useEffect(() => {
+    scatterplotsRef.current = scatterplots
+  }, [scatterplots])
+
   // 산점도 초기화 및 데이터셋 변경 시 재동기화
   useEffect(() => {
+    const currentScatterplots = scatterplotsRef.current
+
     if (numericVariables.length < 2) {
       // 수치형 변수가 2개 미만이면 산점도 초기화
-      if (scatterplots.length > 0) {
+      if (currentScatterplots.length > 0) {
         setScatterplots([])
       }
       return
     }
 
     // 산점도가 없으면 초기화
-    if (scatterplots.length === 0) {
+    if (currentScatterplots.length === 0) {
       setScatterplots([{
         id: '1',
         xVariable: numericVariables[0],
@@ -453,7 +461,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     }
 
     // 기존 산점도의 변수가 유효한지 검증 및 재설정
-    const updatedScatterplots = scatterplots.map(sp => {
+    const updatedScatterplots = currentScatterplots.map(sp => {
       const xValid = numericVariables.includes(sp.xVariable)
       const yValid = numericVariables.includes(sp.yVariable)
 
@@ -472,12 +480,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
     // 변경이 있을 때만 업데이트
     const hasChanges = updatedScatterplots.some((sp, i) =>
-      sp.xVariable !== scatterplots[i].xVariable || sp.yVariable !== scatterplots[i].yVariable
+      sp.xVariable !== currentScatterplots[i].xVariable || sp.yVariable !== currentScatterplots[i].yVariable
     )
     if (hasChanges) {
       setScatterplots(updatedScatterplots)
     }
-  }, [numericVariables, scatterplots])
+  }, [numericVariables]) // scatterplots 의존성 제거
 
   // 변수 데이터 추출 (Raw - 필터링 없음, row index 유지)
   const getVariableDataRaw = useCallback((variableName: string): Array<number | null> => {
