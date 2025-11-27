@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "lastUpdated": "2025-11-27",
   "sources": [
     "statistical-platform/__tests__/",
@@ -234,6 +234,76 @@
             "Pyodide",
             "function mapping",
             "Python"
+          ]
+        },
+        {
+          "name": "양방향 동기화 검증 (Bidirectional Sync)",
+          "purpose": "서비스 메서드 추가/삭제 시 EXPECTED_MAPPINGS 업데이트를 강제하여 누락 방지",
+          "code": "// 1. 서비스 파일에서 메서드 추출\nfunction extractServiceMethods() {\n  const content = readFileSync(SERVICE_PATH, 'utf8')\n  const pattern = /asyncs+(w+).*callWorkerMethod.*((d),.*['\"]([w_]+)['\"]/g\n  // ... 추출 로직\n}\n\n// 2. 양방향 검증 테스트\nit('서비스의 모든 메서드가 EXPECTED_MAPPINGS에 등록되어 있어야 함', () => {\n  const serviceMethods = extractServiceMethods()\n  const testedMethods = EXPECTED_MAPPINGS.map(m => m.tsMethod)\n  const untestedMethods = serviceMethods.filter(m => !testedMethods.includes(m.tsMethod))\n  \n  if (untestedMethods.length > 0) {\n    throw new Error('EXPECTED_MAPPINGS에 추가하세요: ' + untestedMethods.map(m => m.tsMethod))\n  }\n})\n\nit('EXPECTED_MAPPINGS의 모든 메서드가 서비스에 존재해야 함', () => {\n  // 삭제된 메서드 감지 → EXPECTED_MAPPINGS에서도 제거 강제\n})",
+          "keywords": [
+            "Bidirectional",
+            "Sync",
+            "동기화",
+            "양방향",
+            "EXPECTED_MAPPINGS"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pyodide Worker Architecture",
+      "description": "Pyodide Worker 매핑 구조 이해 및 관리 방법",
+      "patterns": [
+        {
+          "name": "3계층 매핑 구조 (3-Layer Mapping)",
+          "purpose": "TypeScript → Service → Python Worker 호출 흐름 이해",
+          "code": "// === 3계층 매핑 구조 ===\n//\n// 1. TypeScript 메서드 (pyodide-core.service.ts)\n//    async twoSampleTTest(group1: number[], group2: number[]): Promise<StatisticsResult>\n//\n// 2. callWorkerMethod 호출 (Worker 번호 + Python 함수명)\n//    return this.callWorkerMethod<StatisticsResult>(2, 't_test_two_sample', { group1, group2 })\n//                                                   ^        ^\n//                                                   |        |\n//                                       Worker 번호(1-4)   Python 함수명\n//\n// 3. Python Worker 실행 (worker2-hypothesis.py)\n//    def t_test_two_sample(group1, group2):\n//        from scipy import stats\n//        return stats.ttest_ind(group1, group2)\n\n// === Worker 구성 ===\n// Worker 1: scipy만 (가벼움) - normality_test, descriptive_stats, outlier_detection\n// Worker 2: scipy + statsmodels (중간) - t-tests, chi-square, correlation\n// Worker 3: scikit-learn (무거움) - nonparametric + ANOVA + post-hoc\n// Worker 4: scikit-learn (무거움) - regression + PCA + factor + cluster",
+          "keywords": [
+            "3-layer",
+            "mapping",
+            "callWorkerMethod",
+            "Worker"
+          ]
+        },
+        {
+          "name": "Worker 선택 최적화",
+          "purpose": "가벼운 함수는 Worker 1/2, 무거운 함수는 Worker 3/4 사용",
+          "code": "// Worker 로딩 시간 차이 (scikit-learn 여부)\n//\n// Worker 1: scipy only       → ~2초  (기본 통계)\n// Worker 2: scipy+statsmodels → ~3초  (가설 검정)\n// Worker 3: +scikit-learn    → ~8초  (비모수 + ANOVA)\n// Worker 4: +scikit-learn    → ~8초  (회귀 + 고급)\n//\n// 최적화 원칙:\n// - 간단한 통계 (평균, 정규성, 이상치) → Worker 1\n// - 가설 검정 (t-test, chi-square)    → Worker 2\n// - 비모수 + ANOVA                    → Worker 3\n// - 회귀 + 고급 분석                  → Worker 4\n\n// ✅ 올바른 Worker 선택\nawait this.ensureWorker1Loaded()  // scipy만 필요한 함수\nreturn this.callWorkerMethod(1, 'descriptive_stats', { data })\n\n// ❌ 잘못된 Worker 선택 (불필요하게 무거운 Worker 사용)\nawait this.ensureWorker4Loaded()  // scikit-learn 불필요한데 Worker 4 사용\nreturn this.callWorkerMethod(4, 'descriptive_stats', { data })",
+          "keywords": [
+            "optimization",
+            "Worker 선택",
+            "scikit-learn",
+            "로딩 시간"
+          ]
+        },
+        {
+          "name": "함수명 규칙 (snake_case)",
+          "purpose": "Python Worker 함수명은 snake_case 사용 필수",
+          "code": "// Python Worker 함수명 규칙\n//\n// ✅ 올바른 함수명 (snake_case)\n// def t_test_two_sample(group1, group2):\n// def chi_square_test(observed, expected):\n// def one_way_anova(groups):\n//\n// ❌ 잘못된 함수명\n// def tTestTwoSample()  // camelCase 금지\n// def TwoSampleTTest()  // PascalCase 금지\n// def two-sample-ttest()  // kebab-case 금지\n//\n// TypeScript 메서드명 → Python 함수명 매핑\n// twoSampleTTest()    → t_test_two_sample\n// chiSquareTest()     → chi_square_test\n// oneWayANOVA()       → one_way_anova\n// simpleLinearRegression() → linear_regression",
+          "keywords": [
+            "snake_case",
+            "naming convention",
+            "함수명"
+          ]
+        },
+        {
+          "name": "매핑 검증 테스트 추가 방법",
+          "purpose": "새 함수 추가 시 EXPECTED_MAPPINGS에 등록",
+          "code": "// 새 Worker 메서드 추가 시 EXPECTED_MAPPINGS 업데이트 필수!\n// 파일: __tests__/pyodide/worker-function-mapping.test.ts\n\nconst EXPECTED_MAPPINGS = [\n  // ... 기존 매핑 ...\n\n  // 새로 추가하는 함수\n  {\n    worker: 3,                    // Python Worker 번호 (1-4)\n    function: 'dunn_test',        // Python 함수명 (snake_case)\n    tsMethod: 'dunnTestWorker'    // TypeScript 메서드명 (camelCase)\n  },\n]\n\n// 양방향 동기화로 자동 감지:\n// 1. 서비스에 메서드 추가 → 테스트 실패 → EXPECTED_MAPPINGS에 추가\n// 2. 서비스에서 메서드 삭제 → 테스트 실패 → EXPECTED_MAPPINGS에서 제거\n// 3. Python에 함수 없음 → 테스트 실패 → Python Worker에 함수 구현",
+          "keywords": [
+            "EXPECTED_MAPPINGS",
+            "테스트",
+            "새 함수 추가"
+          ]
+        },
+        {
+          "name": "현재 Worker별 함수 목록",
+          "purpose": "2025-11-27 기준 Worker별 함수 배치",
+          "code": "// Worker 1 (scipy only - 가벼움)\n// - normality_test       (shapiroWilkTest)\n// - descriptive_stats    (descriptiveStats)\n// - outlier_detection    (outlierDetection)\n// - cronbach_alpha       (cronbachAlpha)\n// - one_sample_proportion_test (oneSampleProportionTest)\n// - bonferroni_correction (performBonferroni)\n\n// Worker 2 (scipy + statsmodels - 중간)\n// - t_test_two_sample    (twoSampleTTest)\n// - t_test_paired        (pairedTTest)\n// - t_test_one_sample    (oneSampleTTest)\n// - z_test               (zTestWorker)\n// - chi_square_test      (chiSquareTest)\n// - binomial_test        (binomialTestWorker)\n// - correlation_test     (correlationTest)\n// - partial_correlation  (partialCorrelationWorker)\n// - levene_test          (leveneTest)\n\n// Worker 3 (scikit-learn - 무거움, 비모수 + ANOVA)\n// - mann_whitney_test, wilcoxon_test, kruskal_wallis_test\n// - friedman_test, sign_test, runs_test, mcnemar_test\n// - cochran_q_test, mood_median_test\n// - one_way_anova, two_way_anova, repeated_measures_anova\n// - ancova, manova\n// - tukey_hsd, scheffe_test, games_howell_test\n\n// Worker 4 (scikit-learn - 무거움, 회귀 + 고급)\n// - linear_regression, multiple_regression, logistic_regression\n// - pca_analysis, factor_analysis, cluster_analysis",
+          "keywords": [
+            "Worker 목록",
+            "함수 배치",
+            "현재 상태"
           ]
         }
       ]

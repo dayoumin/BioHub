@@ -1062,7 +1062,7 @@ json.dumps(result)
     equalVar: boolean
   ): Promise<StatisticsResult> {
     await this.ensureWorker2Loaded()
-    return this.callWorkerMethod<StatisticsResult>(2, 'two_sample_ttest', {
+    return this.callWorkerMethod<StatisticsResult>(2, 't_test_two_sample', {
       group1,
       group2,
       equal_var: equalVar
@@ -1074,7 +1074,7 @@ json.dumps(result)
    */
   async pairedTTest(group1: number[], group2: number[]): Promise<StatisticsResult> {
     await this.ensureWorker2Loaded()
-    return this.callWorkerMethod<StatisticsResult>(2, 'paired_ttest', { group1, group2 })
+    return this.callWorkerMethod<StatisticsResult>(2, 't_test_paired', { group1, group2 })
   }
 
   /**
@@ -1082,7 +1082,7 @@ json.dumps(result)
    */
   async oneSampleTTest(data: number[], testValue: number): Promise<StatisticsResult> {
     await this.ensureWorker2Loaded()
-    return this.callWorkerMethod<StatisticsResult>(2, 'one_sample_ttest', { data, test_value: testValue })
+    return this.callWorkerMethod<StatisticsResult>(2, 't_test_one_sample', { data, test_value: testValue })
   }
 
   /**
@@ -1220,7 +1220,7 @@ json.dumps(result)
    */
   async simpleLinearRegression(x: number[], y: number[]): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'simple_linear_regression', { x, y })
+    return this.callWorkerMethod<StatisticsResult>(4, 'linear_regression', { x, y })
   }
 
   /**
@@ -1255,64 +1255,64 @@ json.dumps(result)
    * Two-Way ANOVA
    */
   async twoWayAnova(data: number[][], factorA: string[], factorB: string[]): Promise<StatisticsResult> {
-    await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'two_way_anova', { data, factor_a: factorA, factor_b: factorB })
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'two_way_anova', { data, factor_a: factorA, factor_b: factorB })
   }
 
   /**
    * Repeated Measures ANOVA
    */
   async repeatedMeasuresAnovaWorker(data: number[][]): Promise<StatisticsResult> {
-    await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'repeated_measures_anova', { data })
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'repeated_measures_anova', { data })
   }
 
   /**
    * ANCOVA (Analysis of Covariance)
    */
   async ancovaWorker(y: number[], x: number[][], covariate: number[]): Promise<StatisticsResult> {
-    await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'ancova', { y, x, covariate })
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'ancova', { y, x, covariate })
   }
 
   /**
    * MANOVA (Multivariate ANOVA)
    */
   async manovaWorker(y: number[][], x: number[][]): Promise<StatisticsResult> {
-    await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'manova', { y, x })
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'manova', { y, x })
   }
 
   /**
    * Tukey HSD (Honestly Significant Difference) Post-Hoc Test
    */
   async tukeyHSD(groups: number[][]): Promise<StatisticsResult> {
-    await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'tukey_hsd', { groups })
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'tukey_hsd', { groups })
   }
 
   /**
    * Scheffe Test Post-Hoc
    */
   async scheffeTestWorker(groups: number[][]): Promise<StatisticsResult> {
-    await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'scheffe_test', { groups })
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'scheffe_test', { groups })
   }
 
   /**
    * Bonferroni Correction
    */
   async performBonferroni(pValues: number[], alpha?: number): Promise<StatisticsResult> {
-    await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'bonferroni_correction', { p_values: pValues, alpha: alpha ?? 0.05 })
+    await this.ensureWorker1Loaded()
+    return this.callWorkerMethod<StatisticsResult>(1, 'bonferroni_correction', { p_values: pValues, alpha: alpha ?? 0.05 })
   }
 
   /**
    * Games-Howell Test (non-parametric alternative to Tukey HSD)
    */
   async gamesHowellTest(groups: number[][]): Promise<StatisticsResult> {
-    await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'games_howell_test', { groups })
+    await this.ensureWorker3Loaded()
+    return this.callWorkerMethod<StatisticsResult>(3, 'games_howell_test', { groups })
   }
 
   // ============================================================================
@@ -1323,8 +1323,8 @@ json.dumps(result)
    * Descriptive Statistics (Mean, Median, Std, etc.)
    */
   async descriptiveStats(data: number[], groupBy?: string[]): Promise<StatisticsResult> {
-    await this.ensureWorker2Loaded()
-    return this.callWorkerMethod<StatisticsResult>(2, 'descriptive_stats', {
+    await this.ensureWorker1Loaded()
+    return this.callWorkerMethod<StatisticsResult>(1, 'descriptive_stats', {
       data,
       group_by: groupBy ?? []
     })
@@ -1335,7 +1335,7 @@ json.dumps(result)
    * Worker 1 사용 (scipy만 필요, scikit-learn 불필요)
    */
   async shapiroWilkTest(data: number[]): Promise<StatisticsResult> {
-    await this.ensureInitialized()
+    await this.ensureWorker1Loaded()
     return this.callWorkerMethod<StatisticsResult>(1, 'normality_test', { data })
   }
 
@@ -1351,16 +1351,16 @@ json.dumps(result)
    * Outlier Detection
    */
   async outlierDetection(data: number[], method?: 'iqr' | 'zscore' | 'isolation'): Promise<StatisticsResult> {
-    await this.ensureWorker2Loaded()
-    return this.callWorkerMethod<StatisticsResult>(2, 'outlier_detection', { data, method: method ?? 'iqr' })
+    await this.ensureWorker1Loaded()
+    return this.callWorkerMethod<StatisticsResult>(1, 'outlier_detection', { data, method: method ?? 'iqr' })
   }
 
   /**
    * One Sample Proportion Test
    */
   async oneSampleProportionTest(successes: number, trials: number, hypothesizedProp?: number): Promise<StatisticsResult> {
-    await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'one_sample_proportion_test', {
+    await this.ensureWorker1Loaded()
+    return this.callWorkerMethod<StatisticsResult>(1, 'one_sample_proportion_test', {
       successes,
       trials,
       hypothesized_prop: hypothesizedProp ?? 0.5
@@ -1371,8 +1371,8 @@ json.dumps(result)
    * Cronbach's Alpha (Internal Consistency)
    */
   async cronbachAlpha(data: number[][]): Promise<StatisticsResult> {
-    await this.ensureWorker2Loaded()
-    return this.callWorkerMethod<StatisticsResult>(2, 'cronbach_alpha', { data })
+    await this.ensureWorker1Loaded()
+    return this.callWorkerMethod<StatisticsResult>(1, 'cronbach_alpha', { data })
   }
 
   // ============================================================================
@@ -1384,7 +1384,7 @@ json.dumps(result)
    */
   async pca(data: number[][], nComponents?: number): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'pca', { data, n_components: nComponents ?? 2 })
+    return this.callWorkerMethod<StatisticsResult>(4, 'pca_analysis', { data, n_components: nComponents ?? 2 })
   }
 
   /**

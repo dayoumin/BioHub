@@ -384,6 +384,36 @@ def mann_kendall_test(data: List[Union[float, int]]) -> Dict[str, Union[str, flo
         'n': int(n)
     }
 
+def bonferroni_correction(p_values, alpha=0.05):
+    """
+    Bonferroni correction for multiple comparisons
+
+    Parameters:
+    - p_values: List[float] - Original p-values
+    - alpha: float - Significance level (default: 0.05)
+
+    Returns:
+    - Dict with corrected p-values and significance results
+    """
+    import numpy as np
+
+    p_arr = np.array(p_values)
+    n = len(p_arr)
+
+    # Bonferroni correction: multiply p-values by number of tests
+    corrected = np.minimum(p_arr * n, 1.0)
+
+    # Adjusted alpha
+    adjusted_alpha = alpha / n
+
+    return {
+        'original_p_values': [float(p) for p in p_values],
+        'corrected_p_values': [float(p) for p in corrected],
+        'adjusted_alpha': float(adjusted_alpha),
+        'n_comparisons': int(n),
+        'significant': [bool(p < adjusted_alpha) for p in p_arr]
+    }
+
 def means_plot_data(data, dependent_var, factor_var):
     """
     집단별 평균 플롯 데이터 생성
