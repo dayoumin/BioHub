@@ -53,29 +53,29 @@
           "name": "interpretPValueKo",
           "signature": "interpretPValueKo(pValue: number): string",
           "purpose": "Get Korean interpretation string for p-value",
-          "example": "interpretPValueKo(0.003) // 'Strong statistical significance (p < 0.01)'",
-          "rules": ["< 0.001: Very strong", "< 0.01: Strong", "< 0.05: Significant", "< 0.1: Weak", ">= 0.1: Not significant"]
+          "example": "interpretPValueKo(0.003) // '강한 통계적 유의성 (p < 0.01)'\\ninterpretPValueKo(0.08) // '경계선 수준 (p < 0.1)'",
+          "rules": ["< 0.001: 매우 강한 통계적 유의성", "< 0.01: 강한 통계적 유의성", "< 0.05: 통계적으로 유의 (α=0.05 기준)", "< 0.1: 경계선 수준 (marginally significant)", ">= 0.1: 통계적으로 유의하지 않음"]
         },
         {
           "name": "interpretEffectSize",
           "signature": "interpretEffectSize(effectSize: number, effectType?: EffectSizeType): string",
           "purpose": "Get Korean interpretation for effect size",
-          "example": "interpretEffectSize(0.65, 'cohen_d') // 'medium'",
+          "example": "interpretEffectSize(0.65, 'cohen_d') // '중간'\\ninterpretEffectSize(0.25, 'cohen_d') // '작음'",
           "rules": ["Supports: cohen_d, eta_squared, omega_squared, r, phi, cramers_v", "Uses EFFECT_SIZE constants"]
         },
         {
           "name": "interpretCorrelation",
           "signature": "interpretCorrelation(r: number): string",
           "purpose": "Get Korean interpretation with direction",
-          "example": "interpretCorrelation(0.75) // 'Strong positive correlation'",
-          "rules": ["Includes direction (positive/negative)", "Uses CORRELATION_STRENGTH constants"]
+          "example": "interpretCorrelation(0.75) // '강한 양의 상관관계'\\ninterpretCorrelation(-0.45) // '중간 정도의 음의 상관관계'",
+          "rules": ["Includes direction (양/음)", "Uses CORRELATION_STRENGTH constants"]
         },
         {
           "name": "interpretCorrelationStrength",
           "signature": "interpretCorrelationStrength(correlation: number): string",
           "purpose": "Get strength only (without direction)",
-          "example": "interpretCorrelationStrength(0.75) // 'Strong'",
-          "rules": ["> 0.7: Strong", "> 0.5: Medium", "> 0.3: Moderate", "<= 0.3: Weak"]
+          "example": "interpretCorrelationStrength(0.75) // '중간'\\ninterpretCorrelationStrength(0.85) // '강한'",
+          "rules": [">= 0.8: 강한", ">= 0.6: 중간", ">= 0.4: 약간", "< 0.4: 약한"]
         }
       ]
     },

@@ -168,8 +168,8 @@ export function interpretPValueKo(pValue: number): string {
   if (pValue < 0.001) return '매우 강한 통계적 유의성 (p < 0.001)'
   if (pValue < 0.01) return '강한 통계적 유의성 (p < 0.01)'
   if (pValue < 0.05) return '통계적으로 유의 (p < 0.05)'
-  if (pValue < 0.1) return '약한 통계적 유의성 (p < 0.1)'
-  return '통계적으로 유의하지 않음 (p >= 0.05)'
+  if (pValue < 0.1) return '경계선 수준 (p < 0.1)'
+  return '통계적으로 유의하지 않음 (p >= 0.1)'
 }
 
 /**
@@ -330,10 +330,11 @@ export function interpretCorrelationEn(r: number): string {
  */
 export function interpretCorrelationStrength(correlation: number): string {
   const absCorr = Math.abs(correlation)
-  if (absCorr > 0.7) return '강한'
-  if (absCorr > 0.5) return '중간'
-  if (absCorr > 0.3) return '약간'
-  return '약한'
+  // CORRELATION_STRENGTH constants 기준 (경계값은 상위 범주에 포함)
+  if (absCorr >= CORRELATION_STRENGTH.STRONG) return '강한'        // >= 0.8
+  if (absCorr >= CORRELATION_STRENGTH.MODERATE) return '중간'     // >= 0.6
+  if (absCorr >= CORRELATION_STRENGTH.WEAK) return '약간'         // >= 0.4
+  return '약한'                                                    // < 0.4
 }
 
 /**
