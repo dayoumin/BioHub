@@ -194,21 +194,19 @@ export default function SmartFlowPage() {
       {/* Step 4: 분석 실행 및 결과 */}
       {currentStep === 4 && (
         <div className="animate-fade-in">
-          <AnalysisExecutionStep
-            selectedMethod={selectedMethod}
-            variableMapping={variableMapping || {}}
-            onAnalysisComplete={handleAnalysisComplete}
-            onNext={goToNextStep}
-            onPrevious={goToPreviousStep}
-            canGoNext={canProceedToNext()}
-            canGoPrevious={currentStep > 1}
-          />
-
-          {/* 분석 완료 시 즉시 결과 표시 */}
-          {results && (
-            <div className="mt-6">
-              <ResultsActionStep results={results} />
-            </div>
+          {/* 결과가 없으면 분석 실행 화면, 있으면 결과 화면만 표시 */}
+          {!results ? (
+            <AnalysisExecutionStep
+              selectedMethod={selectedMethod}
+              variableMapping={variableMapping || {}}
+              onAnalysisComplete={handleAnalysisComplete}
+              onNext={goToNextStep}
+              onPrevious={goToPreviousStep}
+              canGoNext={canProceedToNext()}
+              canGoPrevious={currentStep > 1}
+            />
+          ) : (
+            <ResultsActionStep results={results} />
           )}
         </div>
       )}

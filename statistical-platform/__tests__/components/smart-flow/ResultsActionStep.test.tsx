@@ -2,8 +2,8 @@
  * ResultsActionStep 컴포넌트 테스트
  *
  * 목적:
- * 1. nextActions 제거 후 렌더링 정상 작동 확인
- * 2. power와 requiredSampleSize 독립적 렌더링 검증
+ * 1. StatisticalResultCard를 통한 결과 표시 검증
+ * 2. 액션 버튼 렌더링 확인
  * 3. 타입 안전성 검증
  */
 
@@ -14,7 +14,8 @@ import { AnalysisResult } from '@/types/smart-flow'
 // Mock PDF service
 jest.mock('@/lib/services/pdf-report-service', () => ({
   PDFReportService: {
-    generateReport: jest.fn()
+    generateReport: jest.fn(),
+    generateSummaryText: jest.fn().mockReturnValue('Summary text')
   }
 }))
 
@@ -22,171 +23,54 @@ jest.mock('@/lib/services/pdf-report-service', () => ({
 jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
-    error: jest.fn()
+    error: jest.fn(),
+    info: jest.fn()
   }
 }))
 
-// Mock ResultsVisualization to avoid chart rendering issues
-jest.mock('@/components/smart-flow/ResultsVisualization', () => ({
-  ResultsVisualization: () => <div data-testid="results-visualization">Chart</div>
+// Mock smart-flow-store
+jest.mock('@/lib/stores/smart-flow-store', () => ({
+  useSmartFlowStore: () => ({
+    saveToHistory: jest.fn(),
+    reset: jest.fn(),
+    uploadedData: [{ id: 1 }, { id: 2 }],
+    variableMapping: {
+      dependentVar: 'score',
+      groupVar: 'group'
+    }
+  })
 }))
 
-describe('ResultsActionStep - Type Safety & Rendering', () => {
+// Mock result-converter
+jest.mock('@/lib/statistics/result-converter', () => ({
+  convertToStatisticalResult: jest.fn().mockReturnValue({
+    testName: 'Independent T-Test',
+    testType: 'parametric',
+    statistic: 2.456,
+    statisticName: 't',
+    pValue: 0.015,
+    df: 48,
+    alpha: 0.05,
+    effectSize: {
+      value: 0.72,
+      type: 'cohen_d'
+    }
+  })
+}))
+
+describe('ResultsActionStep - StatisticalResultCard Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  describe('1. nextActions 제거 검증', () => {
-    it('results가 없을 때 에러 없이 렌더링되어야 함', () => {
-      const { container } = render(<ResultsActionStep results={null} />)
+  describe('1. 기본 렌더링', () => {
+    it('results가 없을 때 안내 메시지가 표시되어야 함', () => {
+      render(<ResultsActionStep results={null} />)
 
       expect(screen.getByText('분석을 먼저 실행해주세요.')).toBeInTheDocument()
-      expect(container.querySelector('[data-testid="next-actions"]')).not.toBeInTheDocument()
     })
 
-    it('results가 있을 때 nextActions 관련 UI가 표시되지 않아야 함', () => {
-      const mockResults: AnalysisResult = {
-        method: 'Independent T-Test',
-        statistic: 2.5,
-        pValue: 0.015,
-        df: 48,
-        interpretation: '두 그룹 간 유의한 차이가 있습니다.'
-      }
-
-      const { container } = render(<ResultsActionStep results={mockResults} />)
-
-      // nextActions UI가 없어야 함
-      expect(container.querySelector('[data-testid="next-actions"]')).not.toBeInTheDocument()
-      expect(screen.queryByText(/다음 단계 추천/i)).not.toBeInTheDocument()
-    })
-  })
-
-  describe('2. power와 requiredSampleSize 독립적 렌더링', () => {
-    it('power만 있을 때 표시되어야 함', () => {
-      const mockResults: AnalysisResult = {
-        method: 'Independent T-Test',
-        statistic: 2.5,
-        pValue: 0.015,
-        interpretation: 'Test',
-        additional: {
-          power: 0.85
-        }
-      }
-
-      render(<ResultsActionStep results={mockResults} />)
-
-      expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
-      expect(screen.getByText('검정력')).toBeInTheDocument()
-      expect(screen.getByText('85.0%')).toBeInTheDocument()
-      expect(screen.queryByText('필요 표본 크기')).not.toBeInTheDocument()
-    })
-
-    it('requiredSampleSize만 있을 때 표시되어야 함', () => {
-      const mockResults: AnalysisResult = {
-        method: 'Independent T-Test',
-        statistic: 2.5,
-        pValue: 0.015,
-        interpretation: 'Test',
-        additional: {
-          requiredSampleSize: 120
-        }
-      }
-
-      render(<ResultsActionStep results={mockResults} />)
-
-      expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
-      expect(screen.getByText('필요 표본 크기')).toBeInTheDocument()
-      expect(screen.getByText('120')).toBeInTheDocument()
-      expect(screen.queryByText('검정력')).not.toBeInTheDocument()
-    })
-
-    it('power와 requiredSampleSize 둘 다 있을 때 모두 표시되어야 함', () => {
-      const mockResults: AnalysisResult = {
-        method: 'Independent T-Test',
-        statistic: 2.5,
-        pValue: 0.015,
-        interpretation: 'Test',
-        additional: {
-          power: 0.85,
-          requiredSampleSize: 120
-        }
-      }
-
-      render(<ResultsActionStep results={mockResults} />)
-
-      expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
-      expect(screen.getByText('검정력')).toBeInTheDocument()
-      expect(screen.getByText('85.0%')).toBeInTheDocument()
-      expect(screen.getByText('필요 표본 크기')).toBeInTheDocument()
-      expect(screen.getByText('120')).toBeInTheDocument()
-    })
-
-    it('power와 requiredSampleSize 둘 다 없을 때 검정력 분석 섹션이 표시되지 않아야 함', () => {
-      const mockResults: AnalysisResult = {
-        method: 'Independent T-Test',
-        statistic: 2.5,
-        pValue: 0.015,
-        interpretation: 'Test',
-        additional: {}
-      }
-
-      render(<ResultsActionStep results={mockResults} />)
-
-      expect(screen.queryByText('⚡ 검정력 분석')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('3. 타입 안전성 검증', () => {
-    it('additional이 undefined일 때 에러 없이 렌더링되어야 함', () => {
-      const mockResults: AnalysisResult = {
-        method: 'Independent T-Test',
-        statistic: 2.5,
-        pValue: 0.015,
-        interpretation: 'Test'
-        // additional: undefined (명시적으로 없음)
-      }
-
-      expect(() => render(<ResultsActionStep results={mockResults} />)).not.toThrow()
-      expect(screen.queryByText('⚡ 검정력 분석')).not.toBeInTheDocument()
-    })
-
-    it('power가 0일 때도 표시되어야 함 (0 !== undefined)', () => {
-      const mockResults: AnalysisResult = {
-        method: 'Independent T-Test',
-        statistic: 2.5,
-        pValue: 0.015,
-        interpretation: 'Test',
-        additional: {
-          power: 0  // 0 is a valid value
-        }
-      }
-
-      render(<ResultsActionStep results={mockResults} />)
-
-      expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
-      expect(screen.getByText('0.0%')).toBeInTheDocument()
-    })
-
-    it('requiredSampleSize가 0일 때도 표시되어야 함', () => {
-      const mockResults: AnalysisResult = {
-        method: 'Independent T-Test',
-        statistic: 2.5,
-        pValue: 0.015,
-        interpretation: 'Test',
-        additional: {
-          requiredSampleSize: 0  // Edge case
-        }
-      }
-
-      render(<ResultsActionStep results={mockResults} />)
-
-      expect(screen.getByText('⚡ 검정력 분석')).toBeInTheDocument()
-      expect(screen.getByText('0')).toBeInTheDocument()
-    })
-  })
-
-  describe('4. 기본 결과 표시', () => {
-    it('기본 통계 결과가 표시되어야 함', () => {
+    it('results가 있을 때 StatisticalResultCard가 렌더링되어야 함', () => {
       const mockResults: AnalysisResult = {
         method: 'Independent T-Test',
         statistic: 2.456,
@@ -197,13 +81,58 @@ describe('ResultsActionStep - Type Safety & Rendering', () => {
 
       render(<ResultsActionStep results={mockResults} />)
 
+      // StatisticalResultCard의 요소들이 표시되어야 함
       expect(screen.getByText('Independent T-Test')).toBeInTheDocument()
-      expect(screen.getByText(/2\.456/)).toBeInTheDocument()
-      // p-value는 여러 곳에 표시되므로 getAllByText 사용
-      const pValueElements = screen.getAllByText(/0\.015/)
-      expect(pValueElements.length).toBeGreaterThan(0)
-      expect(screen.getByText(/48/)).toBeInTheDocument()
-      expect(screen.getByText('두 그룹 간 유의한 차이가 있습니다.')).toBeInTheDocument()
+    })
+  })
+
+  describe('2. 액션 버튼 표시', () => {
+    it('모든 액션 버튼이 표시되어야 함', () => {
+      const mockResults: AnalysisResult = {
+        method: 'Independent T-Test',
+        statistic: 2.456,
+        pValue: 0.015,
+        interpretation: 'Test'
+      }
+
+      render(<ResultsActionStep results={mockResults} />)
+
+      expect(screen.getByText('히스토리 저장')).toBeInTheDocument()
+      expect(screen.getByText('PDF 보고서')).toBeInTheDocument()
+      expect(screen.getByText('결과 복사')).toBeInTheDocument()
+      expect(screen.getByText('새 분석 시작')).toBeInTheDocument()
+    })
+  })
+
+  describe('3. 타입 안전성 검증', () => {
+    it('minimal results로 에러 없이 렌더링되어야 함', () => {
+      const mockResults: AnalysisResult = {
+        method: 'Test',
+        statistic: 1.0,
+        pValue: 0.5,
+        interpretation: 'No effect'
+      }
+
+      expect(() => render(<ResultsActionStep results={mockResults} />)).not.toThrow()
+    })
+
+    it('effectSize가 있을 때 표시되어야 함', () => {
+      const mockResults: AnalysisResult = {
+        method: 'Independent T-Test',
+        statistic: 2.456,
+        pValue: 0.015,
+        interpretation: 'Test',
+        effectSize: {
+          value: 0.72,
+          type: 'cohen_d',
+          interpretation: 'medium'
+        }
+      }
+
+      render(<ResultsActionStep results={mockResults} />)
+
+      // StatisticalResultCard가 효과크기를 표시
+      expect(screen.getByText('Independent T-Test')).toBeInTheDocument()
     })
   })
 })

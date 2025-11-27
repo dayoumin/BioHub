@@ -8,32 +8,82 @@ import {
   XCircle,
   AlertCircle,
   Info,
-  TrendingUp,
   BarChart3,
   FileText,
   Settings,
   ChevronRight,
   Lightbulb,
-  BookOpen
+  HelpCircle
 } from 'lucide-react'
-import { PValueBadge, PValueWithSignificance } from './PValueBadge'
+import { PValueWithSignificance } from './PValueBadge'
 import { EffectSizeCard } from './EffectSizeCard'
 import { AssumptionTestCard } from './AssumptionTestCard'
 import { StatisticsTable } from './StatisticsTable'
 import { ConfidenceIntervalDisplay } from './ConfidenceIntervalDisplay'
 import { ResultActionButtons } from './ResultActionButtons'
-import { EasyExplanation } from './EasyExplanation'
-import { NextStepsCard } from './NextStepsCard'
 import { formatNumber, formatStatisticalResult } from '@/lib/statistics/formatters'
-import { useSettingsStore } from '@/lib/stores/settings-store'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+// 효과크기 타입별 툴팁 설명
+function getEffectSizeTooltip(type?: string): string {
+  switch (type) {
+    case 'cohen_d':
+      return "Cohen's d: 두 그룹 평균 차이를 표준편차로 나눈 값. |d| < 0.2 작음, 0.2-0.8 중간, > 0.8 큼"
+    case 'eta_squared':
+      return "Eta squared (η²): 총 분산 중 그룹 간 차이로 설명되는 비율. < 0.01 작음, 0.01-0.06 중간, > 0.14 큼"
+    case 'r':
+      return "상관계수 r: 두 변수 간 선형 관계 강도. |r| < 0.1 작음, 0.1-0.3 중간, > 0.5 큼"
+    case 'phi':
+      return "Phi (φ): 2×2 분할표에서의 연관성 강도. 해석은 r과 동일"
+    case 'cramers_v':
+      return "Cramer's V: 분할표에서의 연관성 강도. 자유도에 따라 해석이 달라짐"
+    default:
+      return "효과크기는 통계적 유의성과 별개로 실질적인 효과의 크기를 나타냅니다."
+  }
+}
+
+// 효과크기 해석
+function getEffectSizeInterpretation(value: number, type?: string): string {
+  const absValue = Math.abs(value)
+
+  switch (type) {
+    case 'cohen_d':
+      if (absValue < 0.2) return '작음'
+      if (absValue < 0.5) return '작음~중간'
+      if (absValue < 0.8) return '중간'
+      return '큼'
+    case 'eta_squared':
+      if (absValue < 0.01) return '작음'
+      if (absValue < 0.06) return '중간'
+      if (absValue < 0.14) return '중간~큼'
+      return '큼'
+    case 'r':
+    case 'phi':
+      if (absValue < 0.1) return '작음'
+      if (absValue < 0.3) return '중간'
+      if (absValue < 0.5) return '중간~큼'
+      return '큼'
+    case 'cramers_v':
+      if (absValue < 0.1) return '작음'
+      if (absValue < 0.3) return '중간'
+      return '큼'
+    default:
+      if (absValue < 0.2) return '작음'
+      if (absValue < 0.5) return '중간'
+      return '큼'
+  }
+}
 
 export interface StatisticalResult {
   // 기본 정보
@@ -128,7 +178,6 @@ export function StatisticalResultCard({
 }: StatisticalResultCardProps) {
   const [isExpanded, setIsExpanded] = React.useState(!expandable)
   const [activeTab, setActiveTab] = React.useState('main')
-  const { userLevel, setUserLevel } = useSettingsStore()
 
   // 유의성 판단
   const isSignificant = result.pValue < (result.alpha || 0.05)
@@ -188,78 +237,23 @@ export function StatisticalResultCard({
           )}
         </div>
 
-        {/* 사용자 레벨 선택 UI */}
-        <div className="mt-4 flex justify-end">
-          <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-lg">
-            <span className="text-xs font-medium text-muted-foreground px-2">설명 수준:</span>
-            <RadioGroup
-              value={userLevel}
-              onValueChange={(v) => setUserLevel(v as any)}
-              className="flex gap-1"
-            >
-              <div className="flex items-center space-x-1">
-                <RadioGroupItem value="beginner" id="r1" className="sr-only" />
-                <Label
-                  htmlFor="r1"
-                  className={cn(
-                    "text-xs px-2 py-1 rounded cursor-pointer transition-colors",
-                    userLevel === 'beginner' ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                  )}
-                >
-                  초보자
-                </Label>
-              </div>
-              <div className="flex items-center space-x-1">
-                <RadioGroupItem value="intermediate" id="r2" className="sr-only" />
-                <Label
-                  htmlFor="r2"
-                  className={cn(
-                    "text-xs px-2 py-1 rounded cursor-pointer transition-colors",
-                    userLevel === 'intermediate' ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                  )}
-                >
-                  중급자
-                </Label>
-              </div>
-              <div className="flex items-center space-x-1">
-                <RadioGroupItem value="expert" id="r3" className="sr-only" />
-                <Label
-                  htmlFor="r3"
-                  className={cn(
-                    "text-xs px-2 py-1 rounded cursor-pointer transition-colors",
-                    userLevel === 'expert' ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                  )}
-                >
-                  전문가
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </div>
-
-        {/* 쉬운 설명 (초보자용) */}
-        {userLevel === 'beginner' && (
-          <div className="mt-4">
-            <EasyExplanation
-              pValue={result.pValue}
-              effectSize={result.effectSize ? {
-                value: result.effectSize.value,
-                type: result.effectSize.type || 'unknown'
-              } : undefined}
-              isSignificant={isSignificant}
-              testType={result.testType}
-              alpha={result.alpha}
-            />
-          </div>
-        )}
-
-        {/* 주요 결과 요약 (중급/전문가용) */}
-        {userLevel !== 'beginner' && (
+        {/* 주요 결과 요약 */}
+        <TooltipProvider>
           <div className="mt-4 p-4 bg-background rounded-lg border">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 통계량 */}
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">통계량</p>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <p className="text-sm text-muted-foreground">통계량</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs">검정통계량은 귀무가설 하에서 표본 데이터가 얼마나 극단적인지를 나타냅니다.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <p className="text-2xl font-bold">
                   {result.statisticName || 'Statistic'} = {formatNumber(result.statistic, 4)}
                 </p>
@@ -272,7 +266,17 @@ export function StatisticalResultCard({
 
               {/* P-value */}
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">유의확률</p>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <p className="text-sm text-muted-foreground">p-value</p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="text-xs">귀무가설이 참일 때 현재 결과 이상으로 극단적인 값을 얻을 확률입니다. p {'<'} {result.alpha || 0.05}이면 통계적으로 유의합니다.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <div className="flex justify-center mt-2">
                   <PValueWithSignificance
                     value={result.pValue}
@@ -286,32 +290,32 @@ export function StatisticalResultCard({
               {/* 효과크기 */}
               {result.effectSize && (
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-1">효과크기</p>
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <p className="text-sm text-muted-foreground">효과크기</p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-xs">
+                          {getEffectSizeTooltip(result.effectSize.type)}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <p className="text-2xl font-bold">
                     {formatNumber(result.effectSize.value, 3)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {result.effectSize.type?.replace('_', ' ')}
+                    {result.effectSize.type?.replace('_', ' ')} ({getEffectSizeInterpretation(result.effectSize.value, result.effectSize.type)})
                   </p>
                 </div>
               )}
             </div>
           </div>
-        )}
+        </TooltipProvider>
 
-        {/* 다음 단계 안내 (초보자/중급자용) */}
-        {userLevel !== 'expert' && (
-          <div className="mt-4">
-            <NextStepsCard
-              isSignificant={isSignificant}
-              testType={result.testType}
-              assumptionsPassed={assumptionsPassed}
-              hasPostHoc={result.testName.toLowerCase().includes('anova')}
-            />
-          </div>
-        )}
-
-        {/* 빠른 해석 */}
+        {/* 가정 위반 경고 */}
         {!assumptionsPassed && (
           <Alert className="mt-3" variant="default">
             <AlertCircle className="h-4 w-4" />

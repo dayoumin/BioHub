@@ -30,8 +30,8 @@ export const useSettingsStore = create<SettingsState>()(
       // Default to DecisionTree (faster and more stable)
       useOllamaForRecommendation: false,
 
-      // Default to beginner for easier understanding
-      userLevel: 'beginner',
+      // Default to expert for professional analysis
+      userLevel: 'expert',
 
       setUseOllamaForRecommendation: (value: boolean) => {
         set({ useOllamaForRecommendation: value })

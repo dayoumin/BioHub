@@ -3,9 +3,7 @@
 import { Save, FileDown, Copy, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { AnalysisResult } from '@/types/smart-flow'
-import { ResultsVisualization } from '../ResultsVisualization'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { useState, useRef, useEffect, useMemo } from 'react'
@@ -169,53 +167,8 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* 시각화 차트 */}
-      <div ref={chartRef}>
-        <ResultsVisualization results={results} />
-      </div>
-
-      {/* 분석 요약 배지 */}
-      {variableMapping && (
-        <div className="p-3 bg-muted/50 rounded-lg space-y-2">
-          <p className="text-xs text-muted-foreground font-medium">분석 요약</p>
-          <div className="flex flex-wrap gap-2">
-            {uploadedData && (
-              <Badge variant="outline" className="text-xs">
-                표본 크기: N={uploadedData.length}
-              </Badge>
-            )}
-            {variableMapping.dependentVar && (
-              <Badge variant="secondary" className="text-xs">
-                종속변수: {Array.isArray(variableMapping.dependentVar)
-                  ? variableMapping.dependentVar.join(', ')
-                  : variableMapping.dependentVar}
-              </Badge>
-            )}
-            {variableMapping.independentVar && (
-              <Badge variant="secondary" className="text-xs">
-                독립변수: {Array.isArray(variableMapping.independentVar)
-                  ? variableMapping.independentVar.join(', ')
-                  : variableMapping.independentVar}
-              </Badge>
-            )}
-            {variableMapping.groupVar && (
-              <Badge variant="secondary" className="text-xs">
-                그룹변수: {variableMapping.groupVar}
-              </Badge>
-            )}
-            {variableMapping.covariate && (
-              <Badge variant="secondary" className="text-xs">
-                공변량: {Array.isArray(variableMapping.covariate)
-                  ? variableMapping.covariate.join(', ')
-                  : variableMapping.covariate}
-              </Badge>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* StatisticalResultCard 컴포넌트 사용 */}
+    <div className="space-y-6" ref={chartRef}>
+      {/* StatisticalResultCard - 핵심 결과만 표시 */}
       {statisticalResult && (
         <StatisticalResultCard
           result={statisticalResult}
