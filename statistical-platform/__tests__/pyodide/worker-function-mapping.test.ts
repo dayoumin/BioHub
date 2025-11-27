@@ -67,6 +67,142 @@ function extractServiceMethods(): Array<{ tsMethod: string; worker: number; pyFu
   return methods
 }
 
+
+/**
+ * Python Worker 파일에서 함수의 파라미터 목록 추출
+ */
+function extractPythonFunctionParams(workerNum: number, funcName: string): string[] {
+  const workerFiles: Record<number, string> = {
+    1: 'worker1-descriptive.py',
+    2: 'worker2-hypothesis.py',
+    3: 'worker3-nonparametric-anova.py',
+    4: 'worker4-regression-advanced.py',
+  }
+
+  const filePath = join(WORKER_DIR, workerFiles[workerNum])
+  const content = readFileSync(filePath, 'utf8')
+
+  // "def function_name(param1, param2, ...)" 패턴 매칭
+  const pattern = new RegExp(`def ${funcName}\\(([^)]*)\\)`, 'm')
+  const match = content.match(pattern)
+
+  if (!match) return []
+
+  // 파라미터 문자열 파싱 (기본값 제거, 타입 힌트 제거)
+  const paramStr = match[1]
+  if (!paramStr.trim()) return []
+
+  return paramStr
+    .split(',')
+    .map(p => p.trim())
+    .map(p => p.split('=')[0].trim())  // 기본값 제거
+    .map(p => p.split(':')[0].trim())  // 타입 힌트 제거
+    .filter(p => p.length > 0)
+}
+
+/**
+ * TypeScript 서비스에서 callWorkerMethod로 전달하는 파라미터 키 추출
+ */
+function extractServiceCallParams(tsMethod: string): string[] {
+  const content = readFileSync(SERVICE_PATH, 'utf8')
+
+  // 메서드 정의와 callWorkerMethod 호출을 함께 찾음
+  // 패턴: async methodName(...) { ... callWorkerMethod<T>(N, 'func', { param1, param2: value, ... })
+  const methodPattern = new RegExp(
+    `async\\s+${tsMethod}\\s*\\([^)]*\\)[^{]*\\{[\\s\\S]*?callWorkerMethod[^(]*\\([^,]+,\\s*['"][\\w_]+['"],\\s*\\{([^}]*)\\}`,
+    'm'
+  )
+  const match = content.match(methodPattern)
+
+  if (!match) return []
+
+  const paramsStr = match[1]
+  if (!paramsStr.trim()) return []
+
+  // { key1: value1, key2, key3: value3 } 형태에서 키만 추출
+  const params: string[] = []
+  const paramMatches = paramsStr.matchAll(/([\w_]+)\s*(?::|,|$)/g)
+
+  for (const m of paramMatches) {
+    const key = m[1].trim()
+    if (key && !['true', 'false', 'null', 'undefined'].includes(key)) {
+      params.push(key)
+    }
+  }
+
+  return params
+}
+
+/**
+ * 파라미터 시그니처 매핑 정의
+ * TypeScript에서 보내는 키 → Python 함수가 기대하는 파라미터
+ */
+const EXPECTED_PARAM_SIGNATURES: Array<{
+  tsMethod: string
+  worker: number
+  pyFunc: string
+  tsParams: string[]      // TypeScript에서 callWorkerMethod로 전달하는 키
+  pyParams: string[]      // Python 함수가 기대하는 파라미터
+}> = [
+  // Worker 1
+  { tsMethod: 'shapiroWilkTest', worker: 1, pyFunc: 'normality_test',
+    tsParams: ['data'], pyParams: ['data', 'alpha'] },
+  { tsMethod: 'descriptiveStats', worker: 1, pyFunc: 'descriptive_stats',
+    tsParams: ['data', 'group_by'], pyParams: ['data'] },
+  { tsMethod: 'outlierDetection', worker: 1, pyFunc: 'outlier_detection',
+    tsParams: ['data', 'method'], pyParams: ['data', 'method', 'threshold'] },
+  { tsMethod: 'cronbachAlpha', worker: 1, pyFunc: 'cronbach_alpha',
+    tsParams: ['data'], pyParams: ['items_matrix'] },
+  { tsMethod: 'oneSampleProportionTest', worker: 1, pyFunc: 'one_sample_proportion_test',
+    tsParams: ['successes', 'trials', 'hypothesized_prop'], pyParams: ['successes', 'trials', 'hypothesized_prop', 'alternative'] },
+  { tsMethod: 'performBonferroni', worker: 1, pyFunc: 'bonferroni_correction',
+    tsParams: ['p_values', 'alpha'], pyParams: ['p_values', 'alpha'] },
+
+  // Worker 2
+  { tsMethod: 'twoSampleTTest', worker: 2, pyFunc: 't_test_two_sample',
+    tsParams: ['group1', 'group2', 'equal_var'], pyParams: ['group1', 'group2', 'equal_var', 'alternative'] },
+  { tsMethod: 'pairedTTest', worker: 2, pyFunc: 't_test_paired',
+    tsParams: ['group1', 'group2'], pyParams: ['group1', 'group2', 'alternative'] },
+  { tsMethod: 'oneSampleTTest', worker: 2, pyFunc: 't_test_one_sample',
+    tsParams: ['data', 'test_value'], pyParams: ['data', 'test_value', 'alternative'] },
+  { tsMethod: 'leveneTest', worker: 2, pyFunc: 'levene_test',
+    tsParams: ['groups'], pyParams: ['groups'] },
+
+  // Worker 3 - ANOVA
+  { tsMethod: 'oneWayANOVA', worker: 3, pyFunc: 'one_way_anova',
+    tsParams: ['groups'], pyParams: ['groups'] },
+  { tsMethod: 'twoWayAnova', worker: 3, pyFunc: 'two_way_anova',
+    tsParams: ['data_values', 'factor1_values', 'factor2_values'], pyParams: ['data_values', 'factor1_values', 'factor2_values'] },
+  { tsMethod: 'repeatedMeasuresAnovaWorker', worker: 3, pyFunc: 'repeated_measures_anova',
+    tsParams: ['data_matrix', 'subject_ids', 'time_labels'], pyParams: ['data_matrix', 'subject_ids', 'time_labels'] },
+  { tsMethod: 'ancovaWorker', worker: 3, pyFunc: 'ancova',
+    tsParams: ['y_values', 'group_values', 'covariates'], pyParams: ['y_values', 'group_values', 'covariates'] },
+  { tsMethod: 'manovaWorker', worker: 3, pyFunc: 'manova',
+    tsParams: ['data_matrix', 'group_values', 'var_names'], pyParams: ['data_matrix', 'group_values', 'var_names'] },
+
+  // Worker 3 - Post-hoc
+  { tsMethod: 'tukeyHSD', worker: 3, pyFunc: 'tukey_hsd',
+    tsParams: ['groups'], pyParams: ['groups'] },
+  { tsMethod: 'scheffeTestWorker', worker: 3, pyFunc: 'scheffe_test',
+    tsParams: ['groups'], pyParams: ['groups'] },
+  { tsMethod: 'gamesHowellTest', worker: 3, pyFunc: 'games_howell_test',
+    tsParams: ['groups'], pyParams: ['groups'] },
+
+  // Worker 4
+  { tsMethod: 'simpleLinearRegression', worker: 4, pyFunc: 'linear_regression',
+    tsParams: ['x', 'y'], pyParams: ['x', 'y'] },
+  { tsMethod: 'multipleRegression', worker: 4, pyFunc: 'multiple_regression',
+    tsParams: ['y', 'x'], pyParams: ['X', 'y'] },
+  { tsMethod: 'logisticRegression', worker: 4, pyFunc: 'logistic_regression',
+    tsParams: ['y', 'x'], pyParams: ['X', 'y'] },
+  { tsMethod: 'pca', worker: 4, pyFunc: 'pca_analysis',
+    tsParams: ['data', 'n_components'], pyParams: ['data', 'n_components'] },
+  { tsMethod: 'factorAnalysis', worker: 4, pyFunc: 'factor_analysis',
+    tsParams: ['data', 'n_factors'], pyParams: ['data_matrix', 'n_factors', 'rotation'] },
+  { tsMethod: 'clusterAnalysis', worker: 4, pyFunc: 'cluster_analysis',
+    tsParams: ['data', 'n_clusters'], pyParams: ['data', 'method', 'num_clusters', 'linkage', 'distance'] },
+]
+
 /**
  * 현재 pyodide-core.service.ts에서 사용하는 Worker-함수 매핑
  * 새 함수 추가 시 이 목록도 업데이트해야 함
@@ -213,4 +349,83 @@ describe('Worker-Function Mapping Verification', () => {
       }
     })
   })
+
+  describe('파라미터 시그니처 검증 (Parameter Signature Verification)', () => {
+    /**
+     * TypeScript에서 보내는 파라미터 키가 Python 함수의 파라미터와 일치하는지 검증
+     *
+     * 검증 대상:
+     * - 필수 파라미터가 모두 전달되는지
+     * - 파라미터 이름이 일치하는지 (snake_case)
+     */
+
+    // 핵심 ANOVA 메서드 파라미터 검증
+    describe('ANOVA 메서드 파라미터', () => {
+      it('twoWayAnova: data_values, factor1_values, factor2_values 파라미터가 일치해야 함', () => {
+        const pyParams = extractPythonFunctionParams(3, 'two_way_anova')
+        expect(pyParams).toContain('data_values')
+        expect(pyParams).toContain('factor1_values')
+        expect(pyParams).toContain('factor2_values')
+      })
+
+      it('repeatedMeasuresAnovaWorker: data_matrix, subject_ids, time_labels 파라미터가 일치해야 함', () => {
+        const pyParams = extractPythonFunctionParams(3, 'repeated_measures_anova')
+        expect(pyParams).toContain('data_matrix')
+        expect(pyParams).toContain('subject_ids')
+        expect(pyParams).toContain('time_labels')
+      })
+
+      it('ancovaWorker: y_values, group_values, covariates 파라미터가 일치해야 함', () => {
+        const pyParams = extractPythonFunctionParams(3, 'ancova')
+        expect(pyParams).toContain('y_values')
+        expect(pyParams).toContain('group_values')
+        expect(pyParams).toContain('covariates')
+      })
+
+      it('manovaWorker: data_matrix, group_values, var_names 파라미터가 일치해야 함', () => {
+        const pyParams = extractPythonFunctionParams(3, 'manova')
+        expect(pyParams).toContain('data_matrix')
+        expect(pyParams).toContain('group_values')
+        expect(pyParams).toContain('var_names')
+      })
+    })
+
+    // 서비스에서 실제로 보내는 파라미터 키 검증
+    describe('서비스 callWorkerMethod 파라미터 키 검증', () => {
+      const criticalMethods = [
+        { tsMethod: 'twoWayAnova', expectedKeys: ['data_values', 'factor1_values', 'factor2_values'] },
+        { tsMethod: 'repeatedMeasuresAnovaWorker', expectedKeys: ['data_matrix', 'subject_ids', 'time_labels'] },
+        { tsMethod: 'ancovaWorker', expectedKeys: ['y_values', 'group_values', 'covariates'] },
+        { tsMethod: 'manovaWorker', expectedKeys: ['data_matrix', 'group_values', 'var_names'] },
+      ]
+
+      criticalMethods.forEach(({ tsMethod, expectedKeys }) => {
+        it(`${tsMethod}()가 올바른 파라미터 키를 전달해야 함: ${expectedKeys.join(', ')}`, () => {
+          const actualKeys = extractServiceCallParams(tsMethod)
+          expectedKeys.forEach(key => {
+            expect(actualKeys).toContain(key)
+          })
+        })
+      })
+    })
+
+    // Python 함수 파라미터 개수 검증
+    describe('Python 함수 필수 파라미터 개수 검증', () => {
+      const paramCounts: Array<{ func: string; worker: number; minParams: number }> = [
+        { func: 'two_way_anova', worker: 3, minParams: 3 },
+        { func: 'repeated_measures_anova', worker: 3, minParams: 3 },
+        { func: 'ancova', worker: 3, minParams: 3 },
+        { func: 'manova', worker: 3, minParams: 3 },
+        { func: 'bonferroni_correction', worker: 1, minParams: 1 },
+      ]
+
+      paramCounts.forEach(({ func, worker, minParams }) => {
+        it(`${func}()는 최소 ${minParams}개의 파라미터가 필요해야 함`, () => {
+          const params = extractPythonFunctionParams(worker, func)
+          expect(params.length).toBeGreaterThanOrEqual(minParams)
+        })
+      })
+    })
+  })
+
 })
