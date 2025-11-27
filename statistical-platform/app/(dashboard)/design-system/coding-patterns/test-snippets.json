@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "lastUpdated": "2025-11-27",
   "sources": [
     "statistical-platform/__tests__/",
@@ -328,6 +328,101 @@
             "검증",
             "테스트 목록",
             "61개"
+          ]
+        },
+        {
+          "name": "상위 계층 참조 (Analysis Flow)",
+          "purpose": "Worker가 호출되는 전체 흐름 참조",
+          "code": "// Worker는 전체 분석 흐름의 5번째 계층입니다.\n// 전체 흐름을 이해하려면 \"Analysis Flow Architecture\" 카테고리 참조\n\n// UI → Executor → Service → Core → Worker (여기)\n//\n// 상위 계층에서 Worker 호출하는 방법:\n//\n// 1. Executor (statistical-executor.ts)\n//    const stats = await pyodideStats.descriptiveStats(values)\n//\n// 2. Service (pyodide-statistics.ts)\n//    return this.core.callWorkerMethod(1, 'descriptive_stats', { data })\n//\n// 3. Core (pyodide-core.service.ts)\n//    await this.ensureWorker1Loaded()\n//    const result = this.pyodide.runPythonAsync(`descriptive_stats(**params)`)\n//\n// 4. Worker (worker1-descriptive.py)\n//    def descriptive_stats(data):\n//        return { 'mean': np.mean(data), 'std': np.std(data), ... }",
+          "keywords": [
+            "cross-reference",
+            "상위 계층",
+            "Analysis Flow"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Analysis Flow Architecture",
+      "description": "통계 분석 실행 흐름 전체 아키텍처 (UI → Executor → Service → Worker)",
+      "patterns": [
+        {
+          "name": "전체 분석 흐름 (End-to-End Flow)",
+          "purpose": "UI 컴포넌트부터 Python Worker까지 전체 데이터 흐름 이해",
+          "code": "// === 통계 분석 실행 흐름 (5계층) ===\n//\n// ┌─────────────────────────────────────────────────────────────────┐\n// │ 1. UI Layer (React Components)                                  │\n// │    app/(dashboard)/methods/t-test/page.tsx                     │\n// │    └─ useStatisticsPage() hook 사용                            │\n// │    └─ handleAnalyze() → StatisticalExecutor.executeMethod()    │\n// └─────────────────────────────────────────────────────────────────┘\n//                              ↓\n// ┌─────────────────────────────────────────────────────────────────┐\n// │ 2. Executor Layer (비즈니스 로직)                               │\n// │    lib/services/statistical-executor.ts                        │\n// │    └─ executeMethod(method, data, variables)                   │\n// │    └─ prepareData() → 변수 추출 및 그룹화                       │\n// │    └─ executeTTest() / executeANOVA() 등 카테고리별 분기        │\n// └─────────────────────────────────────────────────────────────────┘\n//                              ↓\n// ┌─────────────────────────────────────────────────────────────────┐\n// │ 3. Service Layer (Python 호출 래퍼)                             │\n// │    lib/services/pyodide-statistics.ts                          │\n// │    └─ pyodideStats.tTest() / .anova() / .correlation()         │\n// │    └─ 내부적으로 PyodideCoreService.callWorkerMethod() 호출     │\n// └─────────────────────────────────────────────────────────────────┘\n//                              ↓\n// ┌─────────────────────────────────────────────────────────────────┐\n// │ 4. Core Service Layer (Worker 관리)                             │\n// │    lib/services/pyodide/core/pyodide-core.service.ts           │\n// │    └─ callWorkerMethod<T>(workerNum, funcName, params)         │\n// │    └─ ensureWorker1/2/3/4Loaded() → 필요 시 Worker 로딩         │\n// │    └─ Python 코드 실행 및 결과 파싱                             │\n// └─────────────────────────────────────────────────────────────────┘\n//                              ↓\n// ┌─────────────────────────────────────────────────────────────────┐\n// │ 5. Python Worker Layer (실제 계산)                              │\n// │    public/workers/python/worker1~4-*.py                        │\n// │    └─ def t_test_two_sample(group1, group2, ...)               │\n// │    └─ SciPy/statsmodels/scikit-learn 사용                      │\n// │    └─ JSON 결과 반환                                            │\n// └─────────────────────────────────────────────────────────────────┘",
+          "keywords": [
+            "architecture",
+            "flow",
+            "5-layer",
+            "전체 흐름",
+            "아키텍처"
+          ]
+        },
+        {
+          "name": "Executor 계층 상세",
+          "purpose": "StatisticalExecutor의 역할과 카테고리별 분기 이해",
+          "code": "// === StatisticalExecutor ===\n// 파일: lib/services/statistical-executor.ts\n// 역할: UI와 Python Worker 사이의 중간 계층 (비즈니스 로직)\n\nclass StatisticalExecutor {\n  // Singleton 패턴\n  static getInstance(): StatisticalExecutor\n\n  // 메인 실행 메서드\n  async executeMethod(\n    method: StatisticalMethod,    // 분석 메서드 정보 (id, name, category)\n    data: any[],                  // 원본 데이터 (업로드된 행 배열)\n    variables: {                  // 변수 역할 매핑\n      dependent?: string[]        // 종속변수\n      independent?: string[]      // 독립변수\n      group?: string              // 그룹변수\n      time?: string               // 시간변수\n      covariate?: string[]        // 공변량 (ANCOVA)\n      within?: string[]           // 피험자내 요인 (반복측정)\n      between?: string[]          // 피험자간 요인 (혼합모형)\n    }\n  ): Promise<AnalysisResult>\n\n  // 카테고리별 분기 (switch-case)\n  switch (method.category) {\n    case 'descriptive':   → executeDescriptive()\n    case 't-test':        → executeTTest()\n    case 'anova':         → executeANOVA()\n    case 'regression':    → executeRegression()\n    case 'correlation':   → executeCorrelation()\n    case 'nonparametric': → executeNonparametric()\n    case 'chi-square':    → executeChiSquare()\n    case 'pca':           → executeMultivariate()\n    case 'timeseries':    → executeTimeSeries()\n    case 'psychometrics': → executeReliability()\n    case 'survival':      → executeSurvival()\n  }\n}\n\n// 데이터 준비 (prepareData)\n// - 종속/독립변수 추출 → arrays.dependent, arrays.independent\n// - 그룹변수로 데이터 분할 → arrays.byGroup\n// - 공변량/피험자내/피험자간 요인 추출",
+          "keywords": [
+            "Executor",
+            "executeMethod",
+            "prepareData",
+            "category",
+            "switch"
+          ]
+        },
+        {
+          "name": "Service 계층 (pyodide-statistics.ts)",
+          "purpose": "Python Worker 호출 래퍼 레이어 이해",
+          "code": "// === pyodide-statistics.ts ===\n// 파일: lib/services/pyodide-statistics.ts\n// 역할: TypeScript에서 Python 함수를 호출하기 위한 래퍼\n\n// ⚠️ 주의사항 (파일 상단 주석)\n// - 새 메서드를 이 파일에 직접 구현하지 말 것!\n// - Python Worker 파일에 함수 추가 후 래퍼만 추가\n\n// 예시: tTest 메서드\nasync tTest(group1: number[], group2: number[], options?) {\n  // 내부적으로 PyodideCoreService 호출\n  return this.core.callWorkerMethod<StatisticsResult>(\n    2,                    // Worker 2 (hypothesis)\n    't_test_two_sample',  // Python 함수명\n    { group1, group2, equal_var: options?.equalVar }\n  )\n}\n\n// pyodideStats 싱글톤 인스턴스\nexport const pyodideStats = PyodideStatistics.getInstance()\n\n// 사용 예시 (Executor에서)\nconst result = await pyodideStats.tTest(group1, group2, { paired: false })\nconst stats = await pyodideStats.descriptiveStats(values)\nconst anova = await pyodideStats.anova(groups, { type: 'one-way' })",
+          "keywords": [
+            "pyodide-statistics",
+            "wrapper",
+            "래퍼",
+            "pyodideStats"
+          ]
+        },
+        {
+          "name": "PyodideCoreService (Worker 관리)",
+          "purpose": "Python Worker 로딩 및 호출 메커니즘 이해",
+          "code": "// === PyodideCoreService ===\n// 파일: lib/services/pyodide/core/pyodide-core.service.ts\n// 역할: Pyodide 인스턴스 관리 + Worker 로딩 + 메서드 호출\n\nclass PyodideCoreService {\n  // Singleton 패턴\n  private static instance: PyodideCoreService\n\n  // 핵심 메서드: Worker 함수 호출\n  async callWorkerMethod<T>(\n    workerNum: number,           // Worker 번호 (1-4)\n    funcName: string,            // Python 함수명 (snake_case)\n    params: Record<string, any>  // 파라미터 객체\n  ): Promise<T> {\n    // 1. Worker 로딩 확인\n    await this.ensureWorkerLoaded(workerNum)\n\n    // 2. Python 함수 호출\n    const pythonCode = `\n      import json\n      result = ${funcName}(**${JSON.stringify(params)})\n      json.dumps(result)\n    `\n\n    // 3. 결과 파싱 및 반환\n    const result = await this.pyodide.runPythonAsync(pythonCode)\n    return JSON.parse(result) as T\n  }\n\n  // Worker 로딩 (Lazy Loading)\n  private async ensureWorkerLoaded(workerNum: number) {\n    if (this.loadedWorkers.has(workerNum)) return\n\n    const workerCode = await fetch(`/workers/python/worker${workerNum}-*.py`)\n    await this.pyodide.runPythonAsync(workerCode)\n    this.loadedWorkers.add(workerNum)\n  }\n}\n\n// Worker 파일 구성\n// Worker 1: scipy only      (worker1-descriptive.py)      ~2초\n// Worker 2: statsmodels     (worker2-hypothesis.py)       ~3초\n// Worker 3: scikit-learn    (worker3-nonparametric.py)    ~8초\n// Worker 4: scikit-learn    (worker4-regression.py)       ~8초",
+          "keywords": [
+            "PyodideCoreService",
+            "callWorkerMethod",
+            "Worker",
+            "Lazy Loading"
+          ]
+        },
+        {
+          "name": "Python Worker 파일 구조",
+          "purpose": "Python Worker 파일의 함수 구조 이해",
+          "code": "// === Python Worker 파일 ===\n// 위치: public/workers/python/worker*.py\n\n# worker2-hypothesis.py 예시\nimport numpy as np\nfrom scipy import stats\n\ndef t_test_two_sample(group1, group2, equal_var=True, alternative='two-sided'):\n    \"\"\"\n    독립표본 t-검정 (Two-sample t-test)\n\n    Parameters:\n    -----------\n    group1 : list[float]\n        첫 번째 그룹 데이터\n    group2 : list[float]\n        두 번째 그룹 데이터\n    equal_var : bool\n        등분산 가정 (True: Student's t, False: Welch's t)\n    alternative : str\n        대립가설 방향 ('two-sided', 'less', 'greater')\n\n    Returns:\n    --------\n    dict\n        {\n            't_statistic': float,\n            'p_value': float,\n            'df': float,\n            'mean1': float,\n            'mean2': float,\n            'cohen_d': float\n        }\n    \"\"\"\n    arr1 = np.array(group1)\n    arr2 = np.array(group2)\n\n    result = stats.ttest_ind(arr1, arr2, equal_var=equal_var, alternative=alternative)\n\n    # Cohen's d 계산\n    pooled_std = np.sqrt(((len(arr1)-1)*arr1.std(ddof=1)**2 +\n                          (len(arr2)-1)*arr2.std(ddof=1)**2) /\n                         (len(arr1) + len(arr2) - 2))\n    cohen_d = (arr1.mean() - arr2.mean()) / pooled_std\n\n    return {\n        't_statistic': float(result.statistic),\n        'p_value': float(result.pvalue),\n        'df': float(len(arr1) + len(arr2) - 2),\n        'mean1': float(arr1.mean()),\n        'mean2': float(arr2.mean()),\n        'cohen_d': float(cohen_d)\n    }\n\n# 함수명 규칙: snake_case\n# 파라미터: snake_case\n# 반환값: dict → JSON 직렬화",
+          "keywords": [
+            "Python Worker",
+            "snake_case",
+            "SciPy",
+            "statsmodels"
+          ]
+        },
+        {
+          "name": "BaseExecutor (공통 유틸리티)",
+          "purpose": "Executor 공통 기능 (데이터 추출, 에러 처리, 해석)",
+          "code": "// === BaseExecutor ===\n// 파일: lib/services/executors/base-executor.ts\n// 역할: 모든 Executor의 공통 기능 제공\n\nabstract class BaseExecutor {\n  // 공통 유틸리티\n\n  // 1. p-value 해석\n  protected interpretPValue(pvalue: number): string {\n    if (pvalue < 0.001) return '매우 강한 통계적 유의성 (p < 0.001)'\n    if (pvalue < 0.01)  return '강한 통계적 유의성 (p < 0.01)'\n    if (pvalue < 0.05)  return '통계적으로 유의 (p < 0.05)'\n    if (pvalue < 0.1)   return '약한 통계적 유의성 (p < 0.1)'\n    return '통계적으로 유의하지 않음 (p ≥ 0.05)'\n  }\n\n  // 2. 효과크기 해석\n  protected interpretEffectSize(d: number, type: 'cohen' | 'eta' | 'omega'): string {\n    if (type === 'cohen') {\n      if (d < 0.2) return '무시할 수준'\n      if (d < 0.5) return '작은 효과'\n      if (d < 0.8) return '중간 효과'\n      return '큰 효과'\n    }\n    // eta-squared, omega-squared\n    if (d < 0.01) return '무시할 수준'\n    if (d < 0.06) return '작은 효과'\n    if (d < 0.14) return '중간 효과'\n    return '큰 효과'\n  }\n\n  // 3. 수치형 데이터 추출 (객체 배열 → 숫자 배열)\n  protected extractNumericSeries(data: unknown[], options?: unknown): number[] {\n    // - 이미 숫자 배열이면 그대로 반환\n    // - 객체 배열이면 variables 옵션에서 컬럼명 추출\n    // - null/undefined/''/NaN 필터링\n  }\n\n  // 4. 메타데이터 생성\n  protected createMetadata(method: string, dataSize: number, startTime: number)\n\n  // 5. 에러 처리\n  protected handleError(error: unknown, method: string): AnalysisResult\n\n  // 추상 메서드 (각 Executor가 구현)\n  abstract execute(data: unknown[], options?: unknown): Promise<AnalysisResult>\n}",
+          "keywords": [
+            "BaseExecutor",
+            "interpretPValue",
+            "extractNumericSeries",
+            "공통 유틸"
+          ]
+        },
+        {
+          "name": "AnalysisResult 결과 타입",
+          "purpose": "통계 분석 결과의 표준 데이터 구조",
+          "code": "// === StatisticalExecutorResult (AnalysisResult) ===\n// 파일: lib/services/statistical-executor.ts\n\ninterface StatisticalExecutorResult {\n  // 1. 메타데이터\n  metadata: {\n    method: string           // 메서드 ID (예: 'two-sample-t')\n    methodName: string       // 표시명 (예: '독립표본 t-검정')\n    timestamp: string        // ISO 8601 (예: '2025-11-27T12:00:00Z')\n    duration: number         // 실행 시간 (초)\n    dataInfo: {\n      totalN: number         // 총 표본 수\n      missingRemoved: number // 제거된 결측값 수\n      groups?: number        // 그룹 수 (해당 시)\n    }\n  }\n\n  // 2. 주 결과\n  mainResults: {\n    statistic: number        // 검정통계량 (t, F, χ², r 등)\n    pvalue: number           // 유의확률\n    df?: number              // 자유도\n    significant: boolean     // 유의 여부 (p < 0.05)\n    interpretation?: string  // 결과 해석 문장\n  }\n\n  // 3. 부가 정보\n  additionalInfo: {\n    effectSize?: {           // 효과크기\n      type: string           // \"Cohen's d\", \"eta-squared\", \"R²\" 등\n      value: number\n      interpretation: string // \"작은 효과\", \"중간 효과\" 등\n    }\n    confidenceInterval?: {   // 신뢰구간\n      level: number          // 95\n      lower: number\n      upper: number\n    }\n    assumptions?: {          // 가정 검정 결과\n      passed: boolean\n      details: any[]\n    }\n    postHoc?: any            // 사후검정 결과 (ANOVA)\n  }\n\n  // 4. 시각화 데이터\n  visualizationData?: {\n    type: string             // 'boxplot', 'histogram', 'scatter' 등\n    data: any                // 차트 렌더링용 데이터\n  }\n\n  // 5. 원시 결과 (디버깅용)\n  rawResults?: any           // Python Worker 원본 반환값\n}",
+          "keywords": [
+            "AnalysisResult",
+            "StatisticalExecutorResult",
+            "결과 타입",
+            "mainResults"
           ]
         }
       ]
