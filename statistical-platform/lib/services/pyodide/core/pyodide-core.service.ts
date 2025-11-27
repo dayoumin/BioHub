@@ -1332,10 +1332,11 @@ json.dumps(result)
 
   /**
    * Shapiro-Wilk Test for Normality
+   * Worker 1 사용 (scipy만 필요, scikit-learn 불필요)
    */
   async shapiroWilkTest(data: number[]): Promise<StatisticsResult> {
-    await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'shapiro_wilk_test', { data })
+    await this.ensureInitialized()
+    return this.callWorkerMethod<StatisticsResult>(1, 'normality_test', { data })
   }
 
   /**
