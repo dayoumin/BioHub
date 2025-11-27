@@ -60,23 +60,26 @@ export default function SmartFlowPage() {
     canProceedToNext,
     goToNextStep,
     goToPreviousStep,
-    reset,
     navigateToStep,
-    canNavigateToStep,
-    loadHistoryFromDB
+    canNavigateToStep
+    // Note: reset, loadHistoryFromDB는 useEffect에서 직접 getState()로 접근
   } = useSmartFlowStore()
 
   // IndexedDB에서 히스토리 불러오기 (초기화)
   useEffect(() => {
-    loadHistoryFromDB().catch(console.error)
-  }, [loadHistoryFromDB])
+    // 직접 store 접근 (의존성 루프 방지)
+    useSmartFlowStore.getState().loadHistoryFromDB().catch(console.error)
+  }, []) // 빈 의존성: 마운트 시 한 번만 실행
 
   // 페이지 이탈 시 세션 상태 초기화 (분석 히스토리는 IndexedDB에 유지)
+  // Note: reset은 Zustand selector이므로 안정적인 참조를 가짐 (eslint-disable 불필요)
   useEffect(() => {
+    // cleanup 함수는 컴포넌트 언마운트 시에만 실행
     return () => {
-      reset()
+      // 직접 store 접근하여 reset 호출 (의존성 루프 방지)
+      useSmartFlowStore.getState().reset()
     }
-  }, [reset])
+  }, []) // 빈 의존성: 마운트/언마운트 시에만 실행
 
   // Steps configuration (useMemo로 최적화)
   // 2025-11-26: SmartFlowLayout STEPS와 동기화
