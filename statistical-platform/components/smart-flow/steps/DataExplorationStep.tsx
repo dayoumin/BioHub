@@ -139,10 +139,25 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   // 이전 numericVariables 추적 (데이터셋 변경 감지용)
   const prevNumericVarsRef = useRef<string[]>([])
 
+  // 히스토그램/박스플롯 선택 상태 추적용 ref (무한 루프 방지)
+  const selectedHistogramVarRef = useRef(selectedHistogramVar)
+  const selectedBoxplotVarsRef = useRef(selectedBoxplotVars)
+  
+  // ref 동기화
+  useEffect(() => {
+    selectedHistogramVarRef.current = selectedHistogramVar
+  }, [selectedHistogramVar])
+  
+  useEffect(() => {
+    selectedBoxplotVarsRef.current = selectedBoxplotVars
+  }, [selectedBoxplotVars])
+
   // 차트 변수 초기화 및 데이터셋 변경 시 재동기화
   useEffect(() => {
     const prevVars = prevNumericVarsRef.current
     const currentVars = numericVariables
+    const currentHistogramVar = selectedHistogramVarRef.current
+    const currentBoxplotVars = selectedBoxplotVarsRef.current
 
     // 데이터셋이 변경되었는지 확인 (변수 목록이 다른 경우)
     const isDatasetChanged = prevVars.length > 0 && (
@@ -152,17 +167,17 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
     if (currentVars.length > 0) {
       // 히스토그램: 초기화 또는 데이터셋 변경 시 재설정
-      if (selectedHistogramVar === '' || isDatasetChanged || !currentVars.includes(selectedHistogramVar)) {
+      if (currentHistogramVar === '' || isDatasetChanged || !currentVars.includes(currentHistogramVar)) {
         setSelectedHistogramVar(currentVars[0])
       }
 
       // 박스플롯: 초기화 또는 데이터셋 변경 시 재설정
-      if (selectedBoxplotVars.length === 0 || isDatasetChanged) {
+      if (currentBoxplotVars.length === 0 || isDatasetChanged) {
         setSelectedBoxplotVars(currentVars.slice(0, Math.min(3, currentVars.length)))
       } else {
         // 기존 선택 중 유효하지 않은 변수 필터링
-        const validVars = selectedBoxplotVars.filter(v => currentVars.includes(v))
-        if (validVars.length !== selectedBoxplotVars.length) {
+        const validVars = currentBoxplotVars.filter(v => currentVars.includes(v))
+        if (validVars.length !== currentBoxplotVars.length) {
           setSelectedBoxplotVars(validVars.length > 0 ? validVars : currentVars.slice(0, Math.min(3, currentVars.length)))
         }
       }
@@ -170,7 +185,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
     // 현재 변수 목록 저장
     prevNumericVarsRef.current = currentVars
-  }, [numericVariables, selectedHistogramVar, selectedBoxplotVars])
+  }, [numericVariables])
 
   // 박스플롯 변수 토글
   const toggleBoxplotVar = useCallback((varName: string) => {
