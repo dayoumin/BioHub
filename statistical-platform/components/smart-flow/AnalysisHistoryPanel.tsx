@@ -1,20 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import { 
-  Clock, 
-  ChevronRight, 
-  Trash2, 
+import {
+  Clock,
+  Trash2,
   RotateCcw,
   Database,
   BarChart3,
   FileText,
   Search,
-  Filter
+  Filter,
+  Plus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +24,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useSmartFlowStore, AnalysisHistory } from '@/lib/stores/smart-flow-store'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import {
@@ -41,6 +50,9 @@ export function AnalysisHistoryPanel() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterMethod, setFilterMethod] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [saveName, setSaveName] = useState('')
   
   const {
     analysisHistory,
@@ -48,7 +60,8 @@ export function AnalysisHistoryPanel() {
     loadFromHistory,
     deleteFromHistory,
     clearHistory,
-    saveToHistory
+    saveToHistory,
+    reset
   } = useSmartFlowStore()
 
   // 필터링된 히스토리
@@ -67,15 +80,18 @@ export function AnalysisHistoryPanel() {
     return matchesSearch && matchesFilter
   })
 
-  // 고유한 분석 방법 추출 (필터용)
-  const uniqueMethods = Array.from(
-    new Set(analysisHistory.map(h => h.method?.id).filter(Boolean))
-  )
+  // 고유한 분석 방법 추출 (필터용) - id와 name 매핑
+  const uniqueMethods = analysisHistory
+    .filter(h => h.method?.id)
+    .reduce((acc, h) => {
+      if (h.method?.id && !acc.find(m => m.id === h.method?.id)) {
+        acc.push({ id: h.method.id, name: h.method.name || h.method.id })
+      }
+      return acc
+    }, [] as Array<{ id: string; name: string }>)
 
   const handleLoad = async (historyId: string) => {
     await loadFromHistory(historyId)
-    // 안내 메시지 (선택)
-    // alert('✅ 결과를 불러왔습니다.\n⚠️ 원본 데이터는 없어 재분석할 수 없습니다.')
   }
 
   const handleDelete = async (historyId: string) => {
@@ -83,11 +99,26 @@ export function AnalysisHistoryPanel() {
     setDeleteConfirmId(null)
   }
 
-  const handleSaveCurrent = async () => {
-    const name = prompt('분석 이름을 입력하세요:')
-    if (name) {
-      await saveToHistory(name)
+  const handleClearAll = async () => {
+    await clearHistory()
+    setShowClearConfirm(false)
+  }
+
+  const handleSaveCurrent = () => {
+    setSaveName('')
+    setShowSaveDialog(true)
+  }
+
+  const handleSaveConfirm = async () => {
+    if (saveName.trim()) {
+      await saveToHistory(saveName.trim())
+      setShowSaveDialog(false)
+      setSaveName('')
     }
+  }
+
+  const handleNewAnalysis = () => {
+    reset()
   }
 
   if (analysisHistory.length === 0) {
@@ -98,7 +129,8 @@ export function AnalysisHistoryPanel() {
         <p className="text-sm text-muted-foreground mb-4">
           완료된 분석이 자동으로 저장됩니다
         </p>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={handleNewAnalysis}>
+          <Plus className="w-4 h-4 mr-1" />
           새 분석 시작
         </Button>
       </Card>
@@ -125,7 +157,7 @@ export function AnalysisHistoryPanel() {
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className={filterMethod ? 'bg-muted' : ''}>
                 <Filter className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -135,21 +167,22 @@ export function AnalysisHistoryPanel() {
               <DropdownMenuItem onClick={() => setFilterMethod(null)}>
                 전체 보기
               </DropdownMenuItem>
-              {uniqueMethods.map(methodId => (
-                <DropdownMenuItem 
-                  key={methodId}
-                  onClick={() => setFilterMethod(methodId || null)}
+              {uniqueMethods.map(method => (
+                <DropdownMenuItem
+                  key={method.id}
+                  onClick={() => setFilterMethod(method.id)}
                 >
-                  {methodId}
+                  {method.name}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          
-          <Button 
-            variant="ghost" 
+
+          <Button
+            variant="ghost"
             size="sm"
-            onClick={() => clearHistory()}
+            onClick={() => setShowClearConfirm(true)}
+            title="전체 삭제"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -262,7 +295,7 @@ export function AnalysisHistoryPanel() {
         ))}
       </div>
 
-      {/* 삭제 확인 다이얼로그 */}
+      {/* 개별 삭제 확인 다이얼로그 */}
       <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -273,7 +306,7 @@ export function AnalysisHistoryPanel() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
             >
               삭제
@@ -281,6 +314,64 @@ export function AnalysisHistoryPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 전체 삭제 확인 다이얼로그 */}
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>전체 히스토리 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              모든 분석 히스토리({analysisHistory.length}개)를 삭제하시겠습니까?
+              이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              전체 삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 현재 분석 저장 다이얼로그 */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>현재 분석 저장</DialogTitle>
+            <DialogDescription>
+              현재 분석에 이름을 지정하여 저장합니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="save-name">분석 이름</Label>
+            <Input
+              id="save-name"
+              value={saveName}
+              onChange={(e) => setSaveName(e.target.value)}
+              placeholder="예: 2024년 실험 데이터 t-검정"
+              className="mt-2"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && saveName.trim()) {
+                  handleSaveConfirm()
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              취소
+            </Button>
+            <Button onClick={handleSaveConfirm} disabled={!saveName.trim()}>
+              저장
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
