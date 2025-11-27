@@ -71,15 +71,13 @@ export default function SmartFlowPage() {
     useSmartFlowStore.getState().loadHistoryFromDB().catch(console.error)
   }, []) // 빈 의존성: 마운트 시 한 번만 실행
 
-  // 페이지 이탈 시 세션 상태 초기화 (분석 히스토리는 IndexedDB에 유지)
-  // Note: reset은 Zustand selector이므로 안정적인 참조를 가짐 (eslint-disable 불필요)
-  useEffect(() => {
-    // cleanup 함수는 컴포넌트 언마운트 시에만 실행
-    return () => {
-      // 직접 store 접근하여 reset 호출 (의존성 루프 방지)
-      useSmartFlowStore.getState().reset()
-    }
-  }, []) // 빈 의존성: 마운트/언마운트 시에만 실행
+  // 세션 상태 자동 초기화 제거
+  // 이유:
+  // 1. sessionStorage persist로 브라우저 새로고침/탭 종료 시 자동 정리됨
+  // 2. React Strict Mode에서 개발 중 마운트/언마운트 두 번 발생 문제 방지
+  // 3. 사용자가 명시적으로 "새 분석" 버튼을 눌렀을 때만 reset (AnalysisHistoryPanel에서 처리)
+  //
+  // Note: 히스토리는 IndexedDB에 저장되어 브라우저 종료 후에도 유지됨
 
   // Steps configuration (useMemo로 최적화)
   // 2025-11-26: SmartFlowLayout STEPS와 동기화
