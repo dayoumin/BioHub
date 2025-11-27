@@ -130,21 +130,47 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       .map(col => col.name)
   }, [validationResults])
 
-  // ID ���� �÷��� ���� ����
+  // ID 감지된 컬럼 제외한 수치형 컬럼 통계
   const numericColumnStats = useMemo(() => {
     if (!validationResults?.columnStats) return []
     return validationResults.columnStats.filter(col => col.type === 'numeric' && !col.idDetection?.isId)
   }, [validationResults])
 
-  // 초기 변수 설정 (numericVariables 선언 이후)
+  // 이전 numericVariables 추적 (데이터셋 변경 감지용)
+  const prevNumericVarsRef = useRef<string[]>([])
+
+  // 차트 변수 초기화 및 데이터셋 변경 시 재동기화
   useEffect(() => {
-    if (numericVariables.length > 0 && selectedHistogramVar === '') {
-      setSelectedHistogramVar(numericVariables[0])
+    const prevVars = prevNumericVarsRef.current
+    const currentVars = numericVariables
+
+    // 데이터셋이 변경되었는지 확인 (변수 목록이 다른 경우)
+    const isDatasetChanged = prevVars.length > 0 && (
+      prevVars.length !== currentVars.length ||
+      !prevVars.every(v => currentVars.includes(v))
+    )
+
+    if (currentVars.length > 0) {
+      // 히스토그램: 초기화 또는 데이터셋 변경 시 재설정
+      if (selectedHistogramVar === '' || isDatasetChanged || !currentVars.includes(selectedHistogramVar)) {
+        setSelectedHistogramVar(currentVars[0])
+      }
+
+      // 박스플롯: 초기화 또는 데이터셋 변경 시 재설정
+      if (selectedBoxplotVars.length === 0 || isDatasetChanged) {
+        setSelectedBoxplotVars(currentVars.slice(0, Math.min(3, currentVars.length)))
+      } else {
+        // 기존 선택 중 유효하지 않은 변수 필터링
+        const validVars = selectedBoxplotVars.filter(v => currentVars.includes(v))
+        if (validVars.length !== selectedBoxplotVars.length) {
+          setSelectedBoxplotVars(validVars.length > 0 ? validVars : currentVars.slice(0, Math.min(3, currentVars.length)))
+        }
+      }
     }
-    if (numericVariables.length > 0 && selectedBoxplotVars.length === 0) {
-      setSelectedBoxplotVars(numericVariables.slice(0, Math.min(3, numericVariables.length)))
-    }
-  }, [numericVariables, selectedHistogramVar, selectedBoxplotVars.length])
+
+    // 현재 변수 목록 저장
+    prevNumericVarsRef.current = currentVars
+  }, [numericVariables, selectedHistogramVar, selectedBoxplotVars])
 
   // 박스플롯 변수 토글
   const toggleBoxplotVar = useCallback((varName: string) => {
@@ -289,9 +315,19 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
   // 가정 검정 자동 실행 (Step 2: 데이터 탐색)
   useEffect(() => {
-    if (!pyodideLoaded || !pyodideService) return
-    if (!data || !validationResults) return
-    if (numericVariables.length === 0) return
+    // 데이터가 없거나 수치형 변수가 없으면 결과 초기화
+    if (!data || !validationResults || numericVariables.length === 0) {
+      setLocalAssumptionResults(null)
+      setAssumptionResults(null)
+      return
+    }
+
+    // Pyodide 미로드 시: 결과 초기화하고 대기 (로딩 완료 시 재실행됨)
+    if (!pyodideLoaded || !pyodideService) {
+      setLocalAssumptionResults(null)
+      setAssumptionResults(null)
+      return
+    }
 
     // 중복 실행 방지
     assumptionRunId.current++
@@ -339,10 +375,12 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           }
         }
 
-        // 데이터가 없으면 호출 스킵
+        // 데이터가 없으면 호출 스킵 + 결과 초기화
         if (!payload.values && !payload.groups) {
           logger.info('[DataExploration] 가정 검정 스킵: 유효한 데이터 없음')
           if (isActive && currentRunId === assumptionRunId.current) {
+            setLocalAssumptionResults(null)
+            setAssumptionResults(null)
             setIsAssumptionLoading(false)
           }
           return
@@ -360,6 +398,9 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       } catch (error) {
         if (isActive) {
           logger.error('[DataExploration] 가정 검정 실패', { error })
+          // 에러 시에도 결과 초기화
+          setLocalAssumptionResults(null)
+          setAssumptionResults(null)
         }
       } finally {
         // 언마운트 체크 후 로딩 상태 해제
@@ -376,16 +417,52 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     }
   }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables, setAssumptionResults])
 
-  // 비동기 데이터 로딩 대응: numericVariables 업데이트 시 기본 산점도 추가
+  // 산점도 초기화 및 데이터셋 변경 시 재동기화
   useEffect(() => {
-    if (numericVariables.length >= 2 && scatterplots.length === 0) {
+    if (numericVariables.length < 2) {
+      // 수치형 변수가 2개 미만이면 산점도 초기화
+      if (scatterplots.length > 0) {
+        setScatterplots([])
+      }
+      return
+    }
+
+    // 산점도가 없으면 초기화
+    if (scatterplots.length === 0) {
       setScatterplots([{
         id: '1',
         xVariable: numericVariables[0],
-        yVariable: numericVariables[1]  // 단일 Y축
+        yVariable: numericVariables[1]
       }])
+      return
     }
-  }, [numericVariables, scatterplots.length])
+
+    // 기존 산점도의 변수가 유효한지 검증 및 재설정
+    const updatedScatterplots = scatterplots.map(sp => {
+      const xValid = numericVariables.includes(sp.xVariable)
+      const yValid = numericVariables.includes(sp.yVariable)
+
+      if (xValid && yValid) {
+        return sp // 변경 없음
+      }
+
+      // 유효하지 않은 변수 대체
+      const newX = xValid ? sp.xVariable : numericVariables[0]
+      const newY = yValid && newX !== sp.yVariable
+        ? sp.yVariable
+        : numericVariables.find(v => v !== newX) || numericVariables[1]
+
+      return { ...sp, xVariable: newX, yVariable: newY }
+    })
+
+    // 변경이 있을 때만 업데이트
+    const hasChanges = updatedScatterplots.some((sp, i) =>
+      sp.xVariable !== scatterplots[i].xVariable || sp.yVariable !== scatterplots[i].yVariable
+    )
+    if (hasChanges) {
+      setScatterplots(updatedScatterplots)
+    }
+  }, [numericVariables, scatterplots])
 
   // 변수 데이터 추출 (Raw - 필터링 없음, row index 유지)
   const getVariableDataRaw = useCallback((variableName: string): Array<number | null> => {
