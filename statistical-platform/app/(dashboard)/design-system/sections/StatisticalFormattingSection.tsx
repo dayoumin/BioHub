@@ -9,7 +9,7 @@ import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, Calculator, Code2, AlertTriangle } from 'lucide-react';
+import { Copy, Check, Calculator, Code2, AlertTriangle, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import formattingMetadata from '../coding-patterns/statistical-formatting.json';
 
@@ -181,6 +181,56 @@ export function StatisticalFormattingSection() {
           </CardContent>
         </Card>
       )}
+
+      {/* Parameter Naming Convention */}
+      <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Tag className="w-5 h-5 text-purple-600" />
+            Parameter Naming Convention
+          </CardTitle>
+          <CardDescription>
+            {formattingMetadata.parameterNamingConvention.description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-3 font-medium">Concept</th>
+                  <th className="text-left py-2 px-3 font-medium">Standard Name</th>
+                  <th className="text-left py-2 px-3 font-medium">Avoid</th>
+                </tr>
+              </thead>
+              <tbody>
+                {formattingMetadata.parameterNamingConvention.rules.map((rule, index) => (
+                  <tr key={index} className="border-b last:border-0">
+                    <td className="py-2 px-3 text-muted-foreground">{rule.concept}</td>
+                    <td className="py-2 px-3">
+                      <code className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-0.5 rounded text-xs">
+                        {rule.paramName}
+                      </code>
+                      {'alternative' in rule && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          (or <code className="bg-muted px-1 rounded">{rule.alternative}</code>)
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3">
+                      {'bad' in rule && (rule.bad as string[]).map((bad, i) => (
+                        <code key={i} className="bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-2 py-0.5 rounded text-xs mr-1">
+                          {bad}
+                        </code>
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Usage Guidelines */}
       <Card className="border-yellow-200 bg-yellow-50/50 dark:bg-yellow-950/20">
