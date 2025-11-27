@@ -187,11 +187,19 @@ describe('formatters.ts', () => {
   })
 
   describe('interpretEffectSizeEn', () => {
-    it('should return English strings for cohens_d', () => {
-      expect(interpretEffectSizeEn(0.1, 'cohens_d')).toBe('negligible')
-      expect(interpretEffectSizeEn(0.3, 'cohens_d')).toBe('small')
-      expect(interpretEffectSizeEn(0.6, 'cohens_d')).toBe('medium')
-      expect(interpretEffectSizeEn(0.9, 'cohens_d')).toBe('large')
+    it('should return English strings for cohen_d', () => {
+      expect(interpretEffectSizeEn(0.1, 'cohen_d')).toBe('negligible')
+      expect(interpretEffectSizeEn(0.3, 'cohen_d')).toBe('small')
+      expect(interpretEffectSizeEn(0.6, 'cohen_d')).toBe('medium')
+      expect(interpretEffectSizeEn(0.9, 'cohen_d')).toBe('large')
+    })
+
+    it('should use effectType parameter name (not type)', () => {
+      // Verify the function signature uses effectType (unified with Korean version)
+      // eta_squared: < 0.01 negligible, < 0.06 small, < 0.14 medium, >= 0.14 large
+      expect(interpretEffectSizeEn(0.10, 'eta_squared')).toBe('medium')  // 0.06 <= 0.10 < 0.14
+      // r: < 0.1 negligible, < 0.3 small, < 0.5 medium, < 0.7 large, >= 0.7 very large
+      expect(interpretEffectSizeEn(0.4, 'r')).toBe('medium')  // 0.3 <= 0.4 < 0.5
     })
   })
 

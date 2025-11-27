@@ -70,12 +70,14 @@ export function formatConfidenceInterval(
 
 /**
  * 효과크기 포맷팅 (Cohen's d)
+ * @param effectSize 효과크기 값
+ * @param showInterpretation 해석 표시 여부
  */
-export function formatEffectSize(value: number, showInterpretation = false): string {
-  const formatted = formatNumber(value, PRECISION.CORRELATION)
+export function formatEffectSize(effectSize: number, showInterpretation = false): string {
+  const formatted = formatNumber(effectSize, PRECISION.CORRELATION)
   if (!showInterpretation) return formatted
 
-  const abs = Math.abs(value)
+  const abs = Math.abs(effectSize)
   let interpretation = ''
   if (abs < 0.2) interpretation = ' (무시할 만함)'
   else if (abs < 0.5) interpretation = ' (작음)'
@@ -107,9 +109,9 @@ export interface TableRow {
   [key: string]: string | number
 }
 
-export function formatTableData(
-  data: any[],
-  formatters: Record<string, (value: any) => string>
+export function formatTableData<T extends Record<string, unknown>>(
+  data: T[],
+  formatters: Record<string, (value: unknown) => string>
 ): TableRow[] {
   return data.map(row => {
     const formatted: TableRow = {}
@@ -278,17 +280,17 @@ export function interpretPValueEn(pValue: number, alpha: number = 0.05): string 
 /**
  * 효과크기 해석 (영어)
  * @param effectSize 효과크기 값
- * @param type 효과크기 유형
+ * @param effectType 효과크기 유형
  * @returns 해석 문자열
  */
 export function interpretEffectSizeEn(
   effectSize: number,
-  type: 'cohens_d' | 'eta_squared' | 'r' = 'cohens_d'
+  effectType: 'cohen_d' | 'eta_squared' | 'r' = 'cohen_d'
 ): string {
   const absValue = Math.abs(effectSize)
 
-  switch (type) {
-    case 'cohens_d':
+  switch (effectType) {
+    case 'cohen_d':
       if (absValue < 0.2) return 'negligible'
       if (absValue < 0.5) return 'small'
       if (absValue < 0.8) return 'medium'
