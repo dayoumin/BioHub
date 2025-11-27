@@ -6,6 +6,7 @@
 import { pyodideStats } from './pyodide-statistics'
 import { StatisticalMethod } from '../statistics/method-mapping'
 import { logger } from '../utils/logger'
+import { CorrelationExecutor } from './executors/correlation-executor'
 
 /**
  * StatisticalExecutor 전용 분석 결과 인터페이스
@@ -84,31 +85,30 @@ export class StatisticalExecutor {
 
   /**
    * 선택된 통계 메서드 실행
+   *
+   * @param method - 통계 방법 정의
+   * @param data - 원본 데이터 (객체 배열)
+   * @param variables - 변수 매핑 (VariableMapping 호환)
+   *   - dependentVar/dependent: 종속변수
+   *   - independentVar/independent: 독립변수
+   *   - groupVar/group: 그룹변수
+   *   - 기타 고급 변수 역할 지원
    */
   async executeMethod(
     method: StatisticalMethod,
-    data: any,
-    variables: {
-      dependent?: string[]
-      independent?: string[]
-      group?: string
-      time?: string
-      // 고급 변수 역할
-      covariate?: string | string[]
-      within?: string[]
-      between?: string[]
-      blocking?: string | string[]
-      event?: string
-      censoring?: string
-      weight?: string
-    }
+    data: unknown[],
+    variables: Record<string, unknown> = {}
   ): Promise<AnalysisResult> {
     this.startTime = Date.now()
     logger.info(`통계 분석 시작: ${method.name}`, { methodId: method.id })
 
     try {
-      // 데이터 준비
-      const preparedData = this.prepareData(data, variables, method)
+      // 데이터 준비 (unknown[] -> Record<string, unknown>[]로 캐스팅)
+      const preparedData = this.prepareData(
+        data as Array<Record<string, unknown>>,
+        variables,
+        method
+      )
 
       // 메서드별 실행
       let result: AnalysisResult
@@ -174,45 +174,71 @@ export class StatisticalExecutor {
 
   /**
    * 데이터 준비
+   * VariableMapping (dependentVar, independentVar, groupVar) 호환
    */
   private prepareData(
-    data: any[],
-    variables: any,
+    data: Array<Record<string, unknown>>,
+    variables: Record<string, unknown>,
     method: StatisticalMethod
-  ): any {
-    // 변수 추출
-    const prepared: any = {
-      data: data,
-      variables: variables,
-      arrays: {}
+  ): Record<string, unknown> {
+    // VariableMapping 호환 - 두 가지 네이밍 컨벤션 지원
+    const getDependent = (): string[] => {
+      const dep = variables.dependent || variables.dependentVar
+      if (!dep) return []
+      return Array.isArray(dep) ? dep as string[] : [dep as string]
     }
 
+    const getIndependent = (): string[] => {
+      const ind = variables.independent || variables.independentVar
+      if (!ind) return []
+      return Array.isArray(ind) ? ind as string[] : [ind as string]
+    }
+
+    const getGroup = (): string | undefined => {
+      return (variables.group || variables.groupVar) as string | undefined
+    }
+
+    const dependent = getDependent()
+    const independent = getIndependent()
+    const group = getGroup()
+
+    // 변수 추출
+    const prepared: Record<string, unknown> = {
+      data: data,
+      variables: variables,
+      arrays: {} as Record<string, unknown>,
+      totalN: data.length
+    }
+
+    const arrays = prepared.arrays as Record<string, unknown>
+
     // 종속변수 추출
-    if (variables.dependent && variables.dependent.length > 0) {
-      prepared.arrays.dependent = data.map(row =>
-        Number(row[variables.dependent[0]])
+    if (dependent.length > 0) {
+      arrays.dependent = data.map(row =>
+        Number(row[dependent[0]])
       ).filter(v => !isNaN(v))
     }
 
     // 독립변수 추출
-    if (variables.independent && variables.independent.length > 0) {
-      prepared.arrays.independent = variables.independent.map((col: string) =>
+    if (independent.length > 0) {
+      arrays.independent = independent.map((col: string) =>
         data.map(row => Number(row[col])).filter(v => !isNaN(v))
       )
     }
 
     // 그룹변수로 데이터 분할
-    if (variables.group) {
-      const groups = [...new Set(data.map(row => row[variables.group]))]
+    if (group) {
+      const groups = [...new Set(data.map(row => row[group]))]
       prepared.groups = groups
-      prepared.arrays.byGroup = {}
+      arrays.byGroup = {} as Record<string, number[]>
 
-      groups.forEach(group => {
-        prepared.arrays.byGroup[group] = data
-          .filter(row => row[variables.group] === group)
+      const byGroup = arrays.byGroup as Record<string, number[]>
+      groups.forEach(grp => {
+        byGroup[String(grp)] = data
+          .filter(row => row[group] === grp)
           .map(row => {
-            const val = variables.dependent ?
-              Number(row[variables.dependent[0]]) :
+            const val = dependent.length > 0 ?
+              Number(row[dependent[0]]) :
               Object.values(row).find(v => !isNaN(Number(v)))
             return typeof val === 'number' ? val : Number(val)
           })
@@ -224,57 +250,62 @@ export class StatisticalExecutor {
     // 공변량 (ANCOVA 등)
     if (variables.covariate) {
       const covariates = Array.isArray(variables.covariate)
-        ? variables.covariate
-        : [variables.covariate]
-      prepared.arrays.covariate = covariates.map((col: string) =>
+        ? variables.covariate as string[]
+        : [variables.covariate as string]
+      arrays.covariate = covariates.map((col: string) =>
         data.map(row => Number(row[col])).filter(v => !isNaN(v))
       )
     }
 
     // Within-subject 요인 (반복측정)
-    if (variables.within && variables.within.length > 0) {
-      prepared.arrays.within = variables.within.map((col: string) =>
+    const within = variables.within as string[] | undefined
+    if (within && within.length > 0) {
+      arrays.within = within.map((col: string) =>
         data.map(row => Number(row[col])).filter(v => !isNaN(v))
       )
-      prepared.withinFactors = variables.within
+      prepared.withinFactors = within
     }
 
     // Between-subject 요인 (혼합모형)
-    if (variables.between && variables.between.length > 0) {
-      prepared.arrays.between = variables.between.map((col: string) =>
+    const between = variables.between as string[] | undefined
+    if (between && between.length > 0) {
+      arrays.between = between.map((col: string) =>
         data.map(row => row[col])
       )
-      prepared.betweenFactors = variables.between
+      prepared.betweenFactors = between
     }
 
     // 블록 변수 (블록설계)
     if (variables.blocking) {
       const blocking = Array.isArray(variables.blocking)
-        ? variables.blocking
-        : [variables.blocking]
-      prepared.arrays.blocking = blocking.map((col: string) =>
+        ? variables.blocking as string[]
+        : [variables.blocking as string]
+      arrays.blocking = blocking.map((col: string) =>
         data.map(row => row[col])
       )
     }
 
     // 사건 변수 (생존분석)
-    if (variables.event) {
-      prepared.arrays.event = data.map(row =>
-        Number(row[variables.event])
+    const event = variables.event as string | undefined
+    if (event) {
+      arrays.event = data.map(row =>
+        Number(row[event])
       ).filter(v => !isNaN(v))
     }
 
     // 중도절단 변수 (생존분석)
-    if (variables.censoring) {
-      prepared.arrays.censoring = data.map(row =>
-        Number(row[variables.censoring])
+    const censoring = variables.censoring as string | undefined
+    if (censoring) {
+      arrays.censoring = data.map(row =>
+        Number(row[censoring])
       ).filter(v => !isNaN(v))
     }
 
     // 가중치 변수
-    if (variables.weight) {
-      prepared.arrays.weight = data.map(row =>
-        Number(row[variables.weight])
+    const weight = variables.weight as string | undefined
+    if (weight) {
+      arrays.weight = data.map(row =>
+        Number(row[weight])
       ).filter(v => !isNaN(v))
     }
 
@@ -727,7 +758,14 @@ export class StatisticalExecutor {
   }
 
   /**
-   * 상관분석 실행
+   * 상관분석 실행 - CorrelationExecutor에 위임
+   *
+   * 지원하는 method.id:
+   * - correlation: 종합 상관분석 (Pearson + Spearman + Kendall)
+   * - pearson, pearson-correlation: Pearson 상관분석
+   * - spearman, spearman-correlation: Spearman 상관분석
+   * - kendall, kendall-correlation: Kendall 상관분석
+   * - partial-correlation: 편상관분석 (공변량 통제)
    */
   private async executeCorrelation(
     method: StatisticalMethod,
@@ -740,34 +778,52 @@ export class StatisticalExecutor {
       throw new Error('상관분석을 위한 두 변수가 필요합니다')
     }
 
-    const result = await pyodideStats.correlation(var1, var2)
-    const methodType = method.id === 'spearman' ? 'spearman' : 'pearson'
-    const selectedResult = result[methodType as keyof typeof result]
+    const executor = new CorrelationExecutor()
 
+    // method.id에 따라 적절한 상관분석 실행
+    const methodId = method.id.toLowerCase()
+
+    let executorResult: any
+
+    if (methodId === 'partial-correlation') {
+      // 편상관분석: 공변량(통제변수) 처리
+      const covariates = data.arrays.covariates || []
+      const dataMatrix = [var1, var2, ...covariates]
+      const controlIndices = covariates.length > 0
+        ? Array.from({ length: covariates.length }, (_, i) => i + 2)
+        : []
+      executorResult = await executor.executePartialCorrelation(dataMatrix, 0, 1, controlIndices)
+    } else if (methodId.includes('spearman')) {
+      executorResult = await executor.executeSpearman(var1, var2)
+    } else if (methodId.includes('kendall')) {
+      executorResult = await executor.executeKendall(var1, var2)
+    } else if (methodId.includes('pearson') && !methodId.includes('correlation')) {
+      // 명시적으로 pearson만 지정된 경우
+      executorResult = await executor.executePearson(var1, var2)
+    } else {
+      // 기본: 종합 상관분석 (correlation 또는 pearson-correlation)
+      executorResult = await executor.executeCorrelation(var1, var2)
+    }
+
+    // CorrelationExecutor 결과를 StatisticalExecutor 형식으로 변환
     return {
       metadata: {
         method: method.id,
         methodName: method.name,
-        timestamp: '',
-        duration: 0,
+        timestamp: executorResult.metadata?.timestamp || '',
+        duration: executorResult.metadata?.duration || 0,
         dataInfo: {
           totalN: var1.length,
           missingRemoved: 0
         }
       },
       mainResults: {
-        statistic: selectedResult.r,
-        pvalue: selectedResult.pValue,
-        significant: selectedResult.pValue < 0.05,
-        interpretation: `상관계수 = ${selectedResult.r.toFixed(3)} (${this.interpretCorrelation(selectedResult.r)})`
+        statistic: executorResult.mainResults.statistic,
+        pvalue: executorResult.mainResults.pvalue,
+        significant: executorResult.mainResults.pvalue < 0.05,
+        interpretation: executorResult.mainResults.interpretation
       },
-      additionalInfo: {
-        postHoc: {
-          pearson: result.pearson,
-          spearman: result.spearman,
-          kendall: result.kendall
-        }
-      },
+      additionalInfo: executorResult.additionalInfo || {},
       visualizationData: {
         type: 'scatter',
         data: {
@@ -775,7 +831,7 @@ export class StatisticalExecutor {
           y: var2
         }
       },
-      rawResults: result
+      rawResults: executorResult
     }
   }
 

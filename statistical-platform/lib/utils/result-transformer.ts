@@ -10,16 +10,30 @@ import {
   GroupStats,
   StatisticalAssumptions
 } from '@/types/smart-flow'
-import { ExecutorAnalysisResult as ExecutorResult } from '@/lib/services/executors/types'
+import { ExecutorAnalysisResult } from '@/lib/services/executors/types'
+import type { StatisticalExecutorResult } from '@/lib/services/statistical-executor'
+
+/**
+ * additionalInfo의 안전한 접근을 위한 헬퍼 타입
+ * 두 Executor 결과 타입 모두에서 additionalInfo에 동적 프로퍼티 접근 가능
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AdditionalInfoAccessor = Record<string, any>
 
 /**
  * Executor의 ExecutorAnalysisResult를 Smart Flow UI의 AnalysisResult로 변환
+ * ExecutorAnalysisResult와 StatisticalExecutorResult 모두 지원
  */
-export function transformExecutorResult(executorResult: ExecutorResult): SmartFlowResult {
+export function transformExecutorResult(
+  executorResult: ExecutorAnalysisResult | StatisticalExecutorResult
+): SmartFlowResult {
+  // additionalInfo를 안전하게 접근하기 위해 타입 캐스팅
+  const additionalInfo = executorResult.additionalInfo as AdditionalInfoAccessor
+
   // 효과크기 변환 (eta-squared)
   let effectSize: number | EffectSizeInfo | undefined
-  if (executorResult.additionalInfo?.effectSize) {
-    const es = executorResult.additionalInfo.effectSize
+  if (additionalInfo?.effectSize) {
+    const es = additionalInfo.effectSize
     effectSize = {
       value: es.value,
       type: es.type,
@@ -29,8 +43,8 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
 
   // omega-squared 효과크기 변환
   let omegaSquared: EffectSizeInfo | undefined
-  if (executorResult.additionalInfo?.omegaSquared) {
-    const os = executorResult.additionalInfo.omegaSquared
+  if (additionalInfo?.omegaSquared) {
+    const os = additionalInfo.omegaSquared
     omegaSquared = {
       value: os.value,
       type: os.type,
@@ -39,14 +53,14 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
   }
 
   // 제곱합 값 추출
-  const ssBetween = executorResult.additionalInfo?.ssBetween as number | undefined
-  const ssWithin = executorResult.additionalInfo?.ssWithin as number | undefined
-  const ssTotal = executorResult.additionalInfo?.ssTotal as number | undefined
+  const ssBetween = additionalInfo?.ssBetween as number | undefined
+  const ssWithin = additionalInfo?.ssWithin as number | undefined
+  const ssTotal = additionalInfo?.ssTotal as number | undefined
 
   // 사후검정 결과 변환
   let postHoc: PostHocResult[] | undefined
-  if (executorResult.additionalInfo?.postHoc) {
-    postHoc = executorResult.additionalInfo.postHoc.map((item: {
+  if (additionalInfo?.postHoc) {
+    postHoc = additionalInfo.postHoc.map((item: {
       group1: string | number
       group2: string | number
       meanDiff?: number
@@ -67,8 +81,8 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
 
   // 회귀계수 변환
   let coefficients: CoefficientResult[] | undefined
-  if (executorResult.additionalInfo?.coefficients) {
-    coefficients = executorResult.additionalInfo.coefficients.map((coef: {
+  if (additionalInfo?.coefficients) {
+    coefficients = additionalInfo.coefficients.map((coef: {
       name: string
       value: number
       stdError: number
@@ -85,8 +99,8 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
 
   // 그룹 통계 변환
   let groupStats: GroupStats[] | undefined
-  if (executorResult.additionalInfo?.groupStats) {
-    groupStats = executorResult.additionalInfo.groupStats.map((stat: {
+  if (additionalInfo?.groupStats) {
+    groupStats = additionalInfo.groupStats.map((stat: {
       name?: string
       mean: number
       std: number
@@ -99,10 +113,10 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
       n: stat.n,
       median: stat.median
     }))
-  } else if (executorResult.additionalInfo?.group1Stats && executorResult.additionalInfo?.group2Stats) {
+  } else if (additionalInfo?.group1Stats && additionalInfo?.group2Stats) {
     // t-test의 경우 group1Stats, group2Stats로 분리되어 있음
-    const g1 = executorResult.additionalInfo.group1Stats
-    const g2 = executorResult.additionalInfo.group2Stats
+    const g1 = additionalInfo.group1Stats
+    const g2 = additionalInfo.group2Stats
     groupStats = [
       { name: '그룹 1', mean: g1.mean, std: g1.std, n: g1.n },
       { name: '그룹 2', mean: g2.mean, std: g2.std, n: g2.n }
@@ -111,8 +125,11 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
 
   // 가정 검정 변환
   let assumptions: StatisticalAssumptions | undefined
-  if (executorResult.metadata?.assumptions) {
-    const metaAssump = executorResult.metadata.assumptions
+  // metadata를 any로 캐스팅하여 assumptions 접근 (두 타입의 메타데이터 구조가 다름)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const metadata = executorResult.metadata as any
+  if (metadata?.assumptions) {
+    const metaAssump = metadata.assumptions
     assumptions = {
       normality: metaAssump.normality ? {
         group1: {
@@ -131,72 +148,78 @@ export function transformExecutorResult(executorResult: ExecutorResult): SmartFl
     }
   }
 
+  // mainResults를 안전하게 접근
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mainResults = executorResult.mainResults as any
+
   // 신뢰구간 변환
-  const confidence = executorResult.mainResults.confidenceInterval ? {
-    lower: executorResult.mainResults.confidenceInterval.lower,
-    upper: executorResult.mainResults.confidenceInterval.upper,
-    level: executorResult.mainResults.confidenceInterval.level
+  const confidence = mainResults.confidenceInterval ? {
+    lower: mainResults.confidenceInterval.lower,
+    upper: mainResults.confidenceInterval.upper,
+    level: mainResults.confidenceInterval.level
   } : undefined
 
   // additional 정보 구성
   const additional: SmartFlowResult['additional'] = {
-    intercept: executorResult.additionalInfo?.intercept,
-    rmse: executorResult.additionalInfo?.rmse,
-    rSquared: executorResult.additionalInfo?.rSquared,
-    adjustedRSquared: executorResult.additionalInfo?.adjustedRSquared,
-    adjRSquared: executorResult.additionalInfo?.adjustedRSquared,  // Alias for backward compatibility
-    vif: executorResult.additionalInfo?.vif,
-    residuals: executorResult.additionalInfo?.residuals,
-    predictions: executorResult.additionalInfo?.predictions,
-    confusionMatrix: executorResult.additionalInfo?.confusionMatrix,
-    accuracy: executorResult.additionalInfo?.accuracy,
-    precision: executorResult.additionalInfo?.precision,
-    recall: executorResult.additionalInfo?.recall,
-    f1Score: executorResult.additionalInfo?.f1Score,
-    rocAuc: executorResult.additionalInfo?.rocAuc,
-    silhouetteScore: executorResult.additionalInfo?.silhouetteScore,
-    clusters: executorResult.additionalInfo?.clusters,
-    centers: executorResult.additionalInfo?.centers,
-    explainedVarianceRatio: executorResult.additionalInfo?.explainedVarianceRatio,
-    loadings: executorResult.additionalInfo?.loadings,
-    communalities: executorResult.additionalInfo?.communalities,
-    eigenvalues: executorResult.additionalInfo?.eigenvalues,
-    rankings: executorResult.additionalInfo?.rankings,
-    itemTotalCorrelations: executorResult.additionalInfo?.itemTotalCorrelations,
-    alpha: executorResult.additionalInfo?.alpha,
-    power: executorResult.additionalInfo?.power,
-    requiredSampleSize: executorResult.additionalInfo?.requiredSampleSize,
+    intercept: additionalInfo?.intercept,
+    rmse: additionalInfo?.rmse,
+    rSquared: additionalInfo?.rSquared,
+    adjustedRSquared: additionalInfo?.adjustedRSquared,
+    adjRSquared: additionalInfo?.adjustedRSquared,  // Alias for backward compatibility
+    vif: additionalInfo?.vif,
+    residuals: additionalInfo?.residuals,
+    predictions: additionalInfo?.predictions,
+    confusionMatrix: additionalInfo?.confusionMatrix,
+    accuracy: additionalInfo?.accuracy,
+    precision: additionalInfo?.precision,
+    recall: additionalInfo?.recall,
+    f1Score: additionalInfo?.f1Score,
+    rocAuc: additionalInfo?.rocAuc,
+    silhouetteScore: additionalInfo?.silhouetteScore,
+    clusters: additionalInfo?.clusters,
+    centers: additionalInfo?.centers,
+    explainedVarianceRatio: additionalInfo?.explainedVarianceRatio,
+    loadings: additionalInfo?.loadings,
+    communalities: additionalInfo?.communalities,
+    eigenvalues: additionalInfo?.eigenvalues,
+    rankings: additionalInfo?.rankings,
+    itemTotalCorrelations: additionalInfo?.itemTotalCorrelations,
+    alpha: additionalInfo?.alpha,
+    power: additionalInfo?.power,
+    requiredSampleSize: additionalInfo?.requiredSampleSize,
     // Regression-specific metrics (Phase 3 fix)
-    aic: executorResult.additionalInfo?.aic,
-    bic: executorResult.additionalInfo?.bic,
-    pseudo_r_squared_mcfadden: executorResult.additionalInfo?.pseudo_r_squared_mcfadden,
-    pseudo_r_squared_nagelkerke: executorResult.additionalInfo?.pseudo_r_squared_nagelkerke,
-    pseudo_r_squared_cox_snell: executorResult.additionalInfo?.pseudo_r_squared_cox_snell,
-    pseudo_r_squared: executorResult.additionalInfo?.pseudo_r_squared,
-    finalVariables: executorResult.additionalInfo?.finalVariables,
-    deviance: executorResult.additionalInfo?.deviance,
-    log_likelihood: executorResult.additionalInfo?.log_likelihood
+    aic: additionalInfo?.aic,
+    bic: additionalInfo?.bic,
+    pseudo_r_squared_mcfadden: additionalInfo?.pseudo_r_squared_mcfadden,
+    pseudo_r_squared_nagelkerke: additionalInfo?.pseudo_r_squared_nagelkerke,
+    pseudo_r_squared_cox_snell: additionalInfo?.pseudo_r_squared_cox_snell,
+    pseudo_r_squared: additionalInfo?.pseudo_r_squared,
+    finalVariables: additionalInfo?.finalVariables,
+    deviance: additionalInfo?.deviance,
+    log_likelihood: additionalInfo?.log_likelihood
   }
 
   // 시각화 데이터 변환
-  const visualizationData = executorResult.visualizationData ? {
-    type: executorResult.visualizationData.type,
-    data: executorResult.visualizationData.data as Record<string, unknown>,
-    options: executorResult.visualizationData.options as Record<string, unknown> | undefined
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const vizData = executorResult.visualizationData as any
+  const visualizationData = vizData ? {
+    type: vizData.type,
+    data: vizData.data as Record<string, unknown>,
+    options: vizData.options as Record<string, unknown> | undefined
   } : undefined
 
   return {
     method: executorResult.metadata.method,
-    statistic: executorResult.mainResults.statistic,
-    pValue: executorResult.mainResults.pvalue,
-    df: executorResult.mainResults.df,
+    statistic: mainResults.statistic,
+    pValue: mainResults.pvalue,
+    df: mainResults.df,
     effectSize,
     omegaSquared,
     ssBetween,
     ssWithin,
     ssTotal,
     confidence,
-    interpretation: executorResult.mainResults.interpretation,
+    interpretation: mainResults.interpretation || '',
     assumptions,
     postHoc,
     coefficients,

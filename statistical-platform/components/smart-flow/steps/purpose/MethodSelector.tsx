@@ -1,78 +1,60 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
-import { Search, Check, ChevronDown, CheckCircle2, XCircle, AlertCircle, Sparkles, ArrowUp, ArrowDown } from 'lucide-react'
+import { Search, Check, ChevronDown, CheckCircle2, XCircle, AlertCircle, Sparkles, ArrowUp, ArrowDown, Info } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { FitScoreIndicator, FitScoreBadge } from '@/components/smart-flow/visualization/FitScoreIndicator'
 import type { StatisticalMethod } from '@/types/smart-flow'
+
+interface DataProfile {
+  totalRows: number
+  numericVars: number
+  categoricalVars: number
+  normalityPassed?: boolean
+  homogeneityPassed?: boolean
+}
+
+interface AssumptionResults {
+  normality?: {
+    shapiroWilk?: { isNormal?: boolean }
+    kolmogorovSmirnov?: { isNormal?: boolean }
+  }
+  homogeneity?: {
+    levene?: { equalVariance?: boolean }
+    bartlett?: { equalVariance?: boolean }
+  }
+}
 
 interface MethodSelectorProps {
   methods: StatisticalMethod[]
   selectedMethod: StatisticalMethod | null
-  dataProfile: any
-  assumptionResults?: any
+  dataProfile: DataProfile | null
+  assumptionResults?: AssumptionResults
   onMethodSelect: (method: StatisticalMethod) => void
-  checkMethodRequirements: (method: StatisticalMethod, profile: any) => any
+  checkMethodRequirements: (method: StatisticalMethod, profile: DataProfile) => { canUse: boolean; warnings: string[] }
   recommendedMethods?: StatisticalMethod[]
 }
 
-// 체크리스트 아이템 컴포넌트
-function ChecklistItem({
-  passed,
-  label,
-  type = 'check'
-}: {
-  passed: boolean | undefined
-  label: string
-  type?: 'check' | 'warning'
-}) {
-  const Icon = passed === undefined
-    ? AlertCircle
-    : passed
-      ? CheckCircle2
-      : type === 'warning' ? AlertCircle : XCircle
+// 적합도 점수 계산 함수
+function calculateFitScore(
+  method: StatisticalMethod,
+  dataProfile: DataProfile | null,
+  assumptionResults?: AssumptionResults
+): number {
+  if (!dataProfile) return 0
 
-  const color = passed === undefined
-    ? 'text-muted-foreground'
-    : passed
-      ? 'text-success'
-      : type === 'warning'
-        ? 'text-amber-500'
-        : 'text-error'
-
-  return (
-    <div className="flex items-center gap-2">
-      <Icon className={`h-3 w-3 flex-shrink-0 ${color}`} />
-      <span className="text-xs">{label}</span>
-    </div>
-  )
-}
-
-// 요구사항 체크리스트
-function RequirementsChecklist({
-  method,
-  dataProfile,
-  assumptionResults
-}: {
-  method: StatisticalMethod
-  dataProfile: any
-  assumptionResults?: any
-}) {
   const methodReq = method.requirements
-
-  // 신뢰도 점수 계산
   let passedCount = 0
   let totalCount = 0
 
-  // 샘플 크기 체크
   if (methodReq?.minSampleSize) {
     totalCount++
     if (dataProfile.totalRows >= methodReq.minSampleSize) passedCount++
   }
 
-  // 변수 타입 체크
   if (methodReq?.variableTypes) {
     if (methodReq.variableTypes.includes('numeric')) {
       totalCount++
@@ -84,7 +66,6 @@ function RequirementsChecklist({
     }
   }
 
-  // 가정 체크 (assumptionResults 우선, dataProfile fallback)
   if (methodReq?.assumptions) {
     methodReq.assumptions.forEach((assumption) => {
       if (assumption === '정규성') {
@@ -113,43 +94,87 @@ function RequirementsChecklist({
     })
   }
 
-  const confidence = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0
+  return totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 75
+}
+
+// 체크리스트 아이템 컴포넌트
+function ChecklistItem({
+  passed,
+  label,
+  type = 'check'
+}: {
+  passed: boolean | undefined
+  label: string
+  type?: 'check' | 'warning'
+}) {
+  const Icon = passed === undefined
+    ? AlertCircle
+    : passed
+      ? CheckCircle2
+      : type === 'warning' ? AlertCircle : XCircle
+
+  const color = passed === undefined
+    ? 'text-muted-foreground'
+    : passed
+      ? 'text-green-600 dark:text-green-400'
+      : type === 'warning'
+        ? 'text-amber-500'
+        : 'text-red-500'
 
   return (
-    <div className="space-y-2">
-      {/* 신뢰도 점수 */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium">일치율</span>
-        <Badge variant={confidence >= 80 ? 'default' : confidence >= 60 ? 'secondary' : 'outline'}>
-          {confidence}%
-        </Badge>
-      </div>
+    <div className="flex items-center gap-2">
+      <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${color}`} />
+      <span className="text-xs">{label}</span>
+    </div>
+  )
+}
 
-      {/* 체크리스트 */}
-      <div className="space-y-1">
-        {/* 샘플 크기 */}
+// 요구사항 체크리스트 (확장 시 표시)
+function RequirementsChecklist({
+  method,
+  dataProfile,
+  assumptionResults
+}: {
+  method: StatisticalMethod
+  dataProfile: DataProfile | null
+  assumptionResults?: AssumptionResults
+}) {
+  if (!dataProfile) {
+    return (
+      <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
+        <Info className="w-4 h-4 inline mr-1" />
+        데이터 프로파일 정보가 없습니다
+      </div>
+    )
+  }
+
+  const methodReq = method.requirements
+
+  return (
+    <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+      <h5 className="text-xs font-medium text-muted-foreground">적합도 상세</h5>
+
+      <div className="space-y-1.5">
         {methodReq?.minSampleSize && (
           <ChecklistItem
             passed={dataProfile.totalRows >= methodReq.minSampleSize}
-            label={`샘플 크기 충분 (n=${dataProfile.totalRows}, 필요: ${methodReq.minSampleSize})`}
+            label={`샘플 크기: ${dataProfile.totalRows}개 (최소 ${methodReq.minSampleSize}개 필요)`}
           />
         )}
 
-        {/* 변수 타입 */}
         {methodReq?.variableTypes?.includes('numeric') && (
           <ChecklistItem
             passed={dataProfile.numericVars > 0}
-            label={`수치형 변수 있음 (${dataProfile.numericVars}개)`}
+            label={`수치형 변수: ${dataProfile.numericVars}개`}
           />
         )}
         {methodReq?.variableTypes?.includes('categorical') && (
           <ChecklistItem
             passed={dataProfile.categoricalVars > 0}
-            label={`범주형 변수 있음 (${dataProfile.categoricalVars}개)`}
+            label={`범주형 변수: ${dataProfile.categoricalVars}개`}
           />
         )}
 
-        {/* 가정 검정 */}
         {methodReq?.assumptions?.includes('정규성') && (() => {
           const normalityPassed =
             assumptionResults?.normality?.shapiroWilk?.isNormal ??
@@ -159,7 +184,7 @@ function RequirementsChecklist({
           return (
             <ChecklistItem
               passed={normalityPassed}
-              label={`정규성 검정 ${normalityPassed === undefined ? '미실행' : normalityPassed ? '통과' : '실패'}`}
+              label={`정규성: ${normalityPassed === undefined ? '검정 필요' : normalityPassed ? '충족' : '불충족'}`}
               type="warning"
             />
           )
@@ -173,7 +198,7 @@ function RequirementsChecklist({
           return (
             <ChecklistItem
               passed={homogeneityPassed}
-              label={`등분산성 검정 ${homogeneityPassed === undefined ? '미실행' : homogeneityPassed ? '통과' : '실패'}`}
+              label={`등분산성: ${homogeneityPassed === undefined ? '검정 필요' : homogeneityPassed ? '충족' : '불충족'}`}
               type="warning"
             />
           )
@@ -189,9 +214,11 @@ function MethodItem({
   isSelected,
   isFocused,
   isRecommended,
-  requirements,
+  fitScore,
   dataProfile,
   assumptionResults,
+  canUse,
+  warnings,
   onSelect,
   onToggleExpand,
   isExpanded
@@ -200,22 +227,24 @@ function MethodItem({
   isSelected: boolean
   isFocused: boolean
   isRecommended: boolean
-  requirements: { canUse: boolean; warnings: string[] }
-  dataProfile: any
-  assumptionResults?: any
+  fitScore: number
+  dataProfile: DataProfile | null
+  assumptionResults?: AssumptionResults
+  canUse: boolean
+  warnings: string[]
   onSelect: () => void
   onToggleExpand: () => void
   isExpanded: boolean
 }) {
   return (
     <div
-      className={`border rounded-lg transition-all ${
+      className={`border-2 rounded-lg transition-all ${
         isSelected
           ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
           : isFocused
             ? 'border-primary/50 bg-accent/50'
             : 'border-border hover:border-primary/30'
-      } ${!requirements.canUse ? 'opacity-60' : ''}`}
+      } ${!canUse ? 'opacity-60' : ''}`}
     >
       <button
         onClick={onSelect}
@@ -236,7 +265,7 @@ function MethodItem({
                   {method.subcategory}
                 </Badge>
               )}
-              {!requirements.canUse && (
+              {!canUse && (
                 <Badge variant="destructive" className="text-xs">
                   요구사항 미충족
                 </Badge>
@@ -245,6 +274,13 @@ function MethodItem({
             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
               {method.description}
             </p>
+
+            {/* 적합도 표시 (간단 버전) */}
+            {dataProfile && (
+              <div className="mt-2">
+                <FitScoreIndicator score={fitScore} compact />
+              </div>
+            )}
           </div>
           {isSelected && (
             <Check className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
@@ -253,32 +289,31 @@ function MethodItem({
       </button>
 
       {/* 경고 메시지 인라인 표시 */}
-      {requirements.warnings.length > 0 && (
+      {warnings.length > 0 && (
         <div className="px-3 pb-2 space-y-1">
-          {requirements.warnings.map((warning, idx) => (
-            <p key={idx} className="text-xs text-amber-600 dark:text-amber-400">
-              ⚠️ {warning}
+          {warnings.map((warning, idx) => (
+            <p key={idx} className="text-xs text-amber-600 dark:text-amber-400 flex items-start gap-1">
+              <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              <span>{warning}</span>
             </p>
           ))}
         </div>
       )}
 
-      {/* 요구사항 체크리스트 Collapsible */}
+      {/* 요구사항 체크리스트 (점진적 공개) */}
       {dataProfile && method.requirements && (
         <Collapsible open={isExpanded} onOpenChange={() => onToggleExpand()}>
-          <CollapsibleTrigger className="w-full px-3 pb-2 text-xs text-primary hover:underline flex items-center gap-1">
-            요구사항 확인
+          <CollapsibleTrigger className="w-full px-3 pb-2 text-xs text-primary hover:underline flex items-center justify-center gap-1 border-t border-border/50 pt-2">
+            {isExpanded ? '간략히 보기' : '자세히 보기'}
             <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
           </CollapsibleTrigger>
           <CollapsibleContent>
             <div className="px-3 pb-3">
-              <div className="p-3 bg-muted/50 rounded-lg">
-                <RequirementsChecklist
-                  method={method}
-                  dataProfile={dataProfile}
-                  assumptionResults={assumptionResults}
-                />
-              </div>
+              <RequirementsChecklist
+                method={method}
+                dataProfile={dataProfile}
+                assumptionResults={assumptionResults}
+              />
             </div>
           </CollapsibleContent>
         </Collapsible>
@@ -302,13 +337,11 @@ export function MethodSelector({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  // 추천 메서드 ID Set
   const recommendedIds = useMemo(() =>
     new Set(recommendedMethods.map(m => m.id)),
     [recommendedMethods]
   )
 
-  // 검색 필터링
   const filteredMethods = useMemo(() => {
     if (!searchQuery.trim()) return methods
 
@@ -320,7 +353,6 @@ export function MethodSelector({
     )
   }, [methods, searchQuery])
 
-  // 추천 + 일반 그룹 분리
   const groupedMethods = useMemo(() => {
     const recommended: StatisticalMethod[] = []
     const others: StatisticalMethod[] = []
@@ -336,13 +368,11 @@ export function MethodSelector({
     return { recommended, others }
   }, [filteredMethods, recommendedIds])
 
-  // 전체 메서드 리스트 (네비게이션용)
   const allDisplayedMethods = useMemo(() =>
     [...groupedMethods.recommended, ...groupedMethods.others],
     [groupedMethods]
   )
 
-  // 키보드 네비게이션
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
       case 'ArrowDown':
@@ -369,7 +399,6 @@ export function MethodSelector({
     }
   }, [allDisplayedMethods, focusedIndex, onMethodSelect])
 
-  // 포커스된 아이템 스크롤
   useEffect(() => {
     if (listRef.current && focusedIndex >= 0) {
       const focusedElement = listRef.current.querySelector(`[data-index="${focusedIndex}"]`)
@@ -379,12 +408,10 @@ export function MethodSelector({
     }
   }, [focusedIndex])
 
-  // 검색어 변경 시 포커스 리셋
   useEffect(() => {
     setFocusedIndex(0)
   }, [searchQuery])
 
-  // 메서드별 인덱스 맵 (렌더링 중 변수 변경 방지)
   const methodIndexMap = useMemo(() => {
     const map = new Map<string, number>()
     let index = 0
@@ -442,7 +469,7 @@ export function MethodSelector({
           {/* 추천 그룹 */}
           {groupedMethods.recommended.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400 sticky top-0 bg-background/95 backdrop-blur py-1">
+              <div className="flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400 sticky top-0 bg-background/95 backdrop-blur py-1 z-10">
                 <Sparkles className="w-3.5 h-3.5" />
                 AI 추천 ({groupedMethods.recommended.length})
               </div>
@@ -452,6 +479,7 @@ export function MethodSelector({
                   const requirements = dataProfile
                     ? checkMethodRequirements(method, dataProfile)
                     : { canUse: true, warnings: [] }
+                  const fitScore = calculateFitScore(method, dataProfile, assumptionResults)
 
                   return (
                     <div key={method.id} data-index={index}>
@@ -460,9 +488,11 @@ export function MethodSelector({
                         isSelected={selectedMethod?.id === method.id}
                         isFocused={focusedIndex === index}
                         isRecommended={true}
-                        requirements={requirements}
+                        fitScore={fitScore}
                         dataProfile={dataProfile}
                         assumptionResults={assumptionResults}
+                        canUse={requirements.canUse}
+                        warnings={requirements.warnings}
                         onSelect={() => onMethodSelect(method)}
                         onToggleExpand={() =>
                           setExpandedMethod(expandedMethod === method.id ? null : method.id)
@@ -480,7 +510,7 @@ export function MethodSelector({
           {groupedMethods.others.length > 0 && (
             <div className="space-y-2">
               {groupedMethods.recommended.length > 0 && (
-                <div className="text-xs font-medium text-muted-foreground sticky top-0 bg-background/95 backdrop-blur py-1">
+                <div className="text-xs font-medium text-muted-foreground sticky top-0 bg-background/95 backdrop-blur py-1 z-10">
                   기타 방법 ({groupedMethods.others.length})
                 </div>
               )}
@@ -490,6 +520,7 @@ export function MethodSelector({
                   const requirements = dataProfile
                     ? checkMethodRequirements(method, dataProfile)
                     : { canUse: true, warnings: [] }
+                  const fitScore = calculateFitScore(method, dataProfile, assumptionResults)
 
                   return (
                     <div key={method.id} data-index={index}>
@@ -498,9 +529,11 @@ export function MethodSelector({
                         isSelected={selectedMethod?.id === method.id}
                         isFocused={focusedIndex === index}
                         isRecommended={false}
-                        requirements={requirements}
+                        fitScore={fitScore}
                         dataProfile={dataProfile}
                         assumptionResults={assumptionResults}
+                        canUse={requirements.canUse}
+                        warnings={requirements.warnings}
                         onSelect={() => onMethodSelect(method)}
                         onToggleExpand={() =>
                           setExpandedMethod(expandedMethod === method.id ? null : method.id)

@@ -164,7 +164,11 @@ const EXPECTED_PARAM_SIGNATURES: Array<{
   { tsMethod: 'pairedTTest', worker: 2, pyFunc: 't_test_paired',
     tsParams: ['group1', 'group2'], pyParams: ['group1', 'group2', 'alternative'] },
   { tsMethod: 'oneSampleTTest', worker: 2, pyFunc: 't_test_one_sample',
-    tsParams: ['data', 'test_value'], pyParams: ['data', 'test_value', 'alternative'] },
+    tsParams: ['data', 'popmean'], pyParams: ['data', 'popmean'] },
+  { tsMethod: 'zTestWorker', worker: 2, pyFunc: 'z_test',
+    tsParams: ['data', 'popmean', 'popstd'], pyParams: ['data', 'popmean', 'popstd'] },
+  { tsMethod: 'partialCorrelationWorker', worker: 2, pyFunc: 'partial_correlation',
+    tsParams: ['data_matrix', 'x_idx', 'y_idx', 'control_indices'], pyParams: ['data_matrix', 'x_idx', 'y_idx', 'control_indices'] },
   { tsMethod: 'leveneTest', worker: 2, pyFunc: 'levene_test',
     tsParams: ['groups'], pyParams: ['groups'] },
 
@@ -179,6 +183,10 @@ const EXPECTED_PARAM_SIGNATURES: Array<{
     tsParams: ['y_values', 'group_values', 'covariates'], pyParams: ['y_values', 'group_values', 'covariates'] },
   { tsMethod: 'manovaWorker', worker: 3, pyFunc: 'manova',
     tsParams: ['data_matrix', 'group_values', 'var_names'], pyParams: ['data_matrix', 'group_values', 'var_names'] },
+
+  // Worker 3 - Nonparametric
+  { tsMethod: 'mcnemarTestWorker', worker: 3, pyFunc: 'mcnemar_test',
+    tsParams: ['contingency_table'], pyParams: ['contingency_table'] },
 
   // Worker 3 - Post-hoc
   { tsMethod: 'tukeyHSD', worker: 3, pyFunc: 'tukey_hsd',

@@ -9,6 +9,7 @@ import { PDFReportService } from '@/lib/services/pdf-report-service'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
+import { AnalysisInfoCard } from '@/components/smart-flow/components/AnalysisInfoCard'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -19,7 +20,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
-  const { saveToHistory, reset, uploadedData, variableMapping } = useSmartFlowStore()
+  const {
+    saveToHistory,
+    reset,
+    uploadedData,
+    variableMapping,
+    uploadedFileName,
+    selectedMethod,
+    validationResults,
+    assumptionResults
+  } = useSmartFlowStore()
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -168,6 +178,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
   return (
     <div className="space-y-6" ref={chartRef}>
+      {/* 분석 정보 카드 */}
+      <AnalysisInfoCard
+        fileName={uploadedFileName}
+        dataRows={uploadedData?.length}
+        dataColumns={uploadedData && uploadedData.length > 0 ? Object.keys(uploadedData[0]).length : undefined}
+        method={selectedMethod}
+        timestamp={new Date()}
+        variableMapping={variableMapping}
+        validationResults={validationResults}
+        assumptionResults={assumptionResults}
+      />
+
       {/* StatisticalResultCard - 핵심 결과만 표시 */}
       {statisticalResult && (
         <StatisticalResultCard

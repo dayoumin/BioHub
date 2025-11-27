@@ -28,6 +28,7 @@ import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 import { ollamaRecommender } from '@/lib/services/ollama-recommender'
 import { ConfidenceGauge } from '@/components/smart-flow/visualization/ConfidenceGauge'
+import { FitScoreIndicator } from '@/components/smart-flow/visualization/FitScoreIndicator'
 import { AssumptionResultChart } from '@/components/smart-flow/visualization/AssumptionResultChart'
 import { MethodBrowser } from './purpose/MethodBrowser'
 import { getMethodsGroupedByCategory, getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
@@ -49,42 +50,42 @@ const ANALYSIS_PURPOSES = [
     icon: <GitCompare className="w-5 h-5" />,
     title: '그룹 간 차이 비교',
     description: '두 개 이상의 그룹을 비교하여 평균이나 비율의 차이를 검정합니다.',
-    examples: '예: 남녀 간 키 차이, 약물 효과 비교, 교육 방법별 성적 비교'
+    examples: '예: 양식장별 어류 성장률 비교, 사료 종류에 따른 체중 증가 비교, 해역별 수온 차이'
   },
   {
     id: 'relationship' as AnalysisPurpose,
     icon: <TrendingUp className="w-5 h-5" />,
     title: '변수 간 관계 분석',
     description: '두 개 이상의 변수 사이의 상관관계나 연관성을 분석합니다.',
-    examples: '예: 키와 몸무게의 관계, 공부시간과 성적의 관계'
+    examples: '예: 수온과 어류 성장률의 관계, 염분과 생존율의 관계, 체장과 체중의 관계'
   },
   {
     id: 'distribution' as AnalysisPurpose,
     icon: <PieChart className="w-5 h-5" />,
     title: '분포와 빈도 분석',
     description: '데이터의 분포 형태를 파악하고 각 범주의 빈도를 분석합니다.',
-    examples: '예: 나이 분포, 성별 비율, 직업별 분포'
+    examples: '예: 어류 체장 분포, 어종별 어획량 비율, 해역별 플랑크톤 밀도 분포'
   },
   {
     id: 'prediction' as AnalysisPurpose,
     icon: <LineChart className="w-5 h-5" />,
     title: '예측 모델링',
     description: '독립변수를 사용하여 종속변수를 예측하는 모델을 만듭니다.',
-    examples: '예: 공부시간으로 성적 예측, 온도로 판매량 예측'
+    examples: '예: 수온으로 어획량 예측, 사료량으로 성장률 예측, 환경요인으로 폐사율 예측'
   },
   {
     id: 'timeseries' as AnalysisPurpose,
     icon: <Clock className="w-5 h-5" />,
     title: '시계열 분석',
     description: '시간에 따른 데이터의 변화 패턴을 분석하고 미래를 예측합니다.',
-    examples: '예: 월별 매출 추이, 연도별 인구 변화'
+    examples: '예: 월별 어획량 추이, 연도별 양식 생산량 변화, 계절별 수온 패턴'
   },
   {
     id: 'survival' as AnalysisPurpose,
     icon: <Heart className="w-5 h-5" />,
     title: '생존 분석',
     description: '시간에 따른 사건 발생까지의 기간을 분석하고 위험 요인을 파악합니다.',
-    examples: '예: 환자 생존기간, 장비 고장까지 시간, 고객 이탈 분석'
+    examples: '예: 치어 생존기간, 양식 시설 내구연수, 질병 발생 후 폐사까지 시간'
   }
 ]
 
@@ -491,56 +492,69 @@ export function PurposeInputStep({
               <TabsContent value="recommended" className="mt-0">
                 {recommendation ? (
                   <div className="space-y-4">
-                    {/* Recommendation Card */}
+                    {/* Recommendation Card - 점진적 공개 패턴 적용 */}
                     <div
                       data-testid="recommendation-card"
                       className={cn(
-                        "p-4 rounded-lg border-2",
-                        !manualSelectedMethod ? "border-primary bg-primary/5" : "border-border"
+                        "rounded-lg border-2 overflow-hidden",
+                        !manualSelectedMethod ? "border-primary bg-gradient-to-br from-primary/5 to-primary/10" : "border-border"
                       )}
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Sparkles className="w-5 h-5 text-amber-500" />
-                            <span data-testid="recommended-method-name" className="font-semibold">{recommendation.method.name}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {recommendation.confidence >= 0.95 ? 'LLM' : 'Rule-based'}
-                            </Badge>
-                            {!manualSelectedMethod && (
-                              <Badge variant="default" className="text-xs">Selected</Badge>
-                            )}
+                      {/* 메인 카드 - 항상 표시 (간단 버전) */}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              <Sparkles className="w-5 h-5 text-amber-500" />
+                              <span data-testid="recommended-method-name" className="font-semibold text-lg">{recommendation.method.name}</span>
+                              <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                                {recommendation.confidence >= 0.95 ? 'LLM 추천' : 'AI 추천'}
+                              </Badge>
+                              {!manualSelectedMethod && (
+                                <Badge variant="default" className="text-xs">선택됨</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {recommendation.method.description}
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {recommendation.method.description}
-                          </p>
                         </div>
-                        <ConfidenceGauge
-                          value={recommendation.confidence * 100}
-                          size="sm"
-                        />
+
+                        {/* 적합도 표시 (숫자 대신 언어 + 프로그레스 바) */}
+                        <div className="mt-4">
+                          <FitScoreIndicator score={recommendation.confidence * 100} />
+                        </div>
+
+                        {manualSelectedMethod && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-4"
+                            onClick={handleUseRecommendation}
+                          >
+                            AI 추천 사용하기
+                          </Button>
+                        )}
                       </div>
 
-                      {/* Reasoning */}
-                      <div className="mt-3">
-                        <h4 className="text-sm font-medium mb-2">추천 이유:</h4>
-                        <ul className="text-xs text-muted-foreground space-y-1">
-                          {recommendation.reasoning.slice(0, 3).map((reason, idx) => (
-                            <li key={idx}>• {reason}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {manualSelectedMethod && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-3"
-                          onClick={handleUseRecommendation}
-                        >
-                          AI 추천 사용하기
-                        </Button>
-                      )}
+                      {/* 추천 이유 - 점진적 공개 (Accordion) */}
+                      <Accordion type="single" collapsible className="border-t">
+                        <AccordionItem value="reasoning" className="border-0">
+                          <AccordionTrigger className="px-4 py-2 text-sm hover:no-underline">
+                            <span className="text-xs text-muted-foreground">왜 이 방법을 추천하나요?</span>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4">
+                            <ul className="text-xs text-muted-foreground space-y-2">
+                              {recommendation.reasoning.map((reason, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <Check className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                                  <span>{reason}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
                     </div>
 
                     {/* Alternative methods */}

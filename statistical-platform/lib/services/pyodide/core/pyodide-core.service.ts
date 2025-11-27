@@ -1082,7 +1082,7 @@ json.dumps(result)
    */
   async oneSampleTTest(data: number[], testValue: number): Promise<StatisticsResult> {
     await this.ensureWorker2Loaded()
-    return this.callWorkerMethod<StatisticsResult>(2, 't_test_one_sample', { data, test_value: testValue })
+    return this.callWorkerMethod<StatisticsResult>(2, 't_test_one_sample', { data, popmean: testValue })
   }
 
   /**
@@ -1092,8 +1092,8 @@ json.dumps(result)
     await this.ensureWorker2Loaded()
     return this.callWorkerMethod<StatisticsResult>(2, 'z_test', {
       data,
-      test_value: testValue,
-      population_std: populationStd
+      popmean: testValue,
+      popstd: populationStd
     })
   }
 
@@ -1127,17 +1127,23 @@ json.dumps(result)
 
   /**
    * Partial Correlation Test
+   * @param dataMatrix - 2D data matrix where each column is a variable
+   * @param xIdx - Column index for x variable
+   * @param yIdx - Column index for y variable
+   * @param controlIndices - Column indices for control variables
    */
   async partialCorrelationWorker(
-    x: number[],
-    y: number[],
-    controlVars: number[][]
+    dataMatrix: number[][],
+    xIdx: number,
+    yIdx: number,
+    controlIndices: number[]
   ): Promise<StatisticsResult> {
     await this.ensureWorker2Loaded()
     return this.callWorkerMethod<StatisticsResult>(2, 'partial_correlation', {
-      x,
-      y,
-      control_vars: controlVars
+      data_matrix: dataMatrix,
+      x_idx: xIdx,
+      y_idx: yIdx,
+      control_indices: controlIndices
     })
   }
 
@@ -1196,7 +1202,7 @@ json.dumps(result)
     tableCells: number[][]
   ): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'mcnemar_test', { table_cells: tableCells })
+    return this.callWorkerMethod<StatisticsResult>(3, 'mcnemar_test', { contingency_table: tableCells })
   }
 
   /**

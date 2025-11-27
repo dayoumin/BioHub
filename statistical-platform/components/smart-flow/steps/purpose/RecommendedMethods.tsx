@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Sparkles, ChevronDown, CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { Check, Sparkles, ChevronDown, CheckCircle2, XCircle, AlertCircle, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { QUESTION_TYPES, checkMethodRequirements } from '@/lib/statistics/method-mapping'
+import { FitScoreIndicator, FitScoreBadge } from '@/components/smart-flow/visualization/FitScoreIndicator'
 import type { StatisticalMethod } from '@/types/smart-flow'
 
 interface RecommendedMethodsProps {
@@ -15,8 +16,23 @@ interface RecommendedMethodsProps {
   onToggle: () => void
   onMethodSelect: (method: StatisticalMethod) => void
   onQuestionTypeChange: (typeId: string) => void
-  dataProfile?: any // 데이터 프로파일 (requirements 체크용)
-  assumptionResults?: any // 가정 검정 결과
+  dataProfile?: {
+    totalRows: number
+    numericVars: number
+    categoricalVars: number
+    normalityPassed?: boolean
+    homogeneityPassed?: boolean
+  }
+  assumptionResults?: {
+    normality?: {
+      shapiroWilk?: { isNormal?: boolean }
+      kolmogorovSmirnov?: { isNormal?: boolean }
+    }
+    homogeneity?: {
+      levene?: { equalVariance?: boolean }
+      bartlett?: { equalVariance?: boolean }
+    }
+  }
 }
 
 // 체크리스트 아이템 컴포넌트
@@ -38,41 +54,28 @@ function ChecklistItem({
   const color = passed === undefined
     ? 'text-muted-foreground'
     : passed
-      ? 'text-success'
+      ? 'text-green-600 dark:text-green-400'
       : type === 'warning'
         ? 'text-amber-500'
-        : 'text-error'
+        : 'text-red-500'
 
   return (
     <div className="flex items-center gap-2">
-      <Icon className={`h-3 w-3 flex-shrink-0 ${color}`} />
+      <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${color}`} />
       <span className="text-xs">{label}</span>
     </div>
   )
 }
 
-// 추천 이유 체크리스트
-function RecommendationChecklist({
-  method,
-  dataProfile,
-  assumptionResults
-}: {
-  method: StatisticalMethod
-  dataProfile?: any
-  assumptionResults?: any
-}) {
-  if (!dataProfile) {
-    return (
-      <div className="text-xs text-muted-foreground">
-        데이터 프로파일 정보가 없습니다
-      </div>
-    )
-  }
+// 신뢰도 점수 계산 함수
+function calculateFitScore(
+  method: StatisticalMethod,
+  dataProfile?: RecommendedMethodsProps['dataProfile'],
+  assumptionResults?: RecommendedMethodsProps['assumptionResults']
+): number {
+  if (!dataProfile) return 0
 
-  const requirements = checkMethodRequirements(method, dataProfile)
   const methodReq = method.requirements
-
-  // 신뢰도 점수 계산
   let passedCount = 0
   let totalCount = 0
 
@@ -94,17 +97,15 @@ function RecommendationChecklist({
     }
   }
 
-  // 가정 체크 (assumptionResults 우선, dataProfile fallback)
+  // 가정 체크
   if (methodReq?.assumptions) {
     methodReq.assumptions.forEach((assumption) => {
       if (assumption === '정규성') {
-        // assumptionResults에서 최신 값 우선 사용
         const normalityPassed =
           assumptionResults?.normality?.shapiroWilk?.isNormal ??
           assumptionResults?.normality?.kolmogorovSmirnov?.isNormal ??
           dataProfile.normalityPassed
 
-        // 검정 결과가 있을 때만 분모/분자에 반영
         if (normalityPassed !== undefined) {
           totalCount++
           if (normalityPassed) passedCount++
@@ -112,13 +113,11 @@ function RecommendationChecklist({
       }
 
       if (assumption === '등분산성') {
-        // assumptionResults에서 최신 값 우선 사용
         const homogeneityPassed =
           assumptionResults?.homogeneity?.levene?.equalVariance ??
           assumptionResults?.homogeneity?.bartlett?.equalVariance ??
           dataProfile.homogeneityPassed
 
-        // 검정 결과가 있을 때만 분모/분자에 반영
         if (homogeneityPassed !== undefined) {
           totalCount++
           if (homogeneityPassed) passedCount++
@@ -127,25 +126,41 @@ function RecommendationChecklist({
     })
   }
 
-  const confidence = totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 0
+  return totalCount > 0 ? Math.round((passedCount / totalCount) * 100) : 75 // default to good if no requirements
+}
+
+// 추천 이유 체크리스트 (확장 시 표시)
+function RecommendationDetails({
+  method,
+  dataProfile,
+  assumptionResults
+}: {
+  method: StatisticalMethod
+  dataProfile?: RecommendedMethodsProps['dataProfile']
+  assumptionResults?: RecommendedMethodsProps['assumptionResults']
+}) {
+  if (!dataProfile) {
+    return (
+      <div className="text-xs text-muted-foreground p-3 bg-muted/50 rounded-lg">
+        <Info className="w-4 h-4 inline mr-1" />
+        데이터 프로파일 정보가 없습니다
+      </div>
+    )
+  }
+
+  const methodReq = method.requirements
+  const requirements = checkMethodRequirements(method, dataProfile)
 
   return (
-    <div className="space-y-2">
-      {/* 신뢰도 점수 */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium">일치율</span>
-        <Badge variant={confidence >= 80 ? 'default' : confidence >= 60 ? 'secondary' : 'outline'}>
-          {confidence}%
-        </Badge>
-      </div>
+    <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+      <h5 className="text-xs font-medium text-muted-foreground">적합도 상세</h5>
 
-      {/* 체크리스트 */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {/* 샘플 크기 */}
         {methodReq?.minSampleSize && (
           <ChecklistItem
             passed={dataProfile.totalRows >= methodReq.minSampleSize}
-            label={`샘플 크기 충분 (n=${dataProfile.totalRows}, 필요: ${methodReq.minSampleSize})`}
+            label={`샘플 크기: ${dataProfile.totalRows}개 (최소 ${methodReq.minSampleSize}개 필요)`}
           />
         )}
 
@@ -153,13 +168,13 @@ function RecommendationChecklist({
         {methodReq?.variableTypes?.includes('numeric') && (
           <ChecklistItem
             passed={dataProfile.numericVars > 0}
-            label={`수치형 변수 있음 (${dataProfile.numericVars}개)`}
+            label={`수치형 변수: ${dataProfile.numericVars}개`}
           />
         )}
         {methodReq?.variableTypes?.includes('categorical') && (
           <ChecklistItem
             passed={dataProfile.categoricalVars > 0}
-            label={`범주형 변수 있음 (${dataProfile.categoricalVars}개)`}
+            label={`범주형 변수: ${dataProfile.categoricalVars}개`}
           />
         )}
 
@@ -173,7 +188,7 @@ function RecommendationChecklist({
           return (
             <ChecklistItem
               passed={normalityPassed}
-              label={`정규성 검정 ${normalityPassed === undefined ? '미실행' : normalityPassed ? '통과' : '실패'}`}
+              label={`정규성: ${normalityPassed === undefined ? '검정 필요' : normalityPassed ? '충족' : '불충족 → 비모수 검정 권장'}`}
               type="warning"
             />
           )
@@ -187,7 +202,7 @@ function RecommendationChecklist({
           return (
             <ChecklistItem
               passed={homogeneityPassed}
-              label={`등분산성 검정 ${homogeneityPassed === undefined ? '미실행' : homogeneityPassed ? '통과' : '실패'}`}
+              label={`등분산성: ${homogeneityPassed === undefined ? '검정 필요' : homogeneityPassed ? '충족' : '불충족 → Welch 검정 권장'}`}
               type="warning"
             />
           )
@@ -198,7 +213,10 @@ function RecommendationChecklist({
       {requirements.warnings.length > 0 && (
         <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/20 rounded text-xs text-amber-700 dark:text-amber-400 space-y-1">
           {requirements.warnings.map((warning, idx) => (
-            <div key={idx}>⚠️ {warning}</div>
+            <div key={idx} className="flex items-start gap-1">
+              <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              <span>{warning}</span>
+            </div>
           ))}
         </div>
       )}
@@ -225,84 +243,97 @@ export function RecommendedMethods({
         <Button onClick={onToggle} variant="outline" className="flex-1">
           <Sparkles className="w-4 h-4 mr-2" />
           스마트 추천 방법 {showRecommendations ? '숨기기' : '보기'}
-          {methods.length > 0 && `(${methods.length}개)`}
+          {methods.length > 0 && ` (${methods.length}개)`}
         </Button>
       </div>
 
       {/* 스마트 추천 방법 표시 */}
       {showRecommendations && methods.length > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 space-y-2">
-          <h4 className="font-medium text-sm mb-2">🤖 데이터 특성 기반 추천</h4>
-          {methods.map((method) => (
-            <div
-              key={method.id}
-              className={`bg-white dark:bg-background rounded border transition-all ${
-                selectedMethod?.id === method.id ? 'ring-2 ring-primary border-primary' : 'border-border'
-              }`}
-            >
-              <button
-                onClick={() => {
-                  onMethodSelect(method)
-                  // 해당 카테고리로 이동
-                  const questionType = QUESTION_TYPES.find(
-                    q => q.methods.includes(method.category)
-                  )
-                  if (questionType) {
-                    onQuestionTypeChange(questionType.id)
-                  }
-                }}
-                className="w-full text-left p-3 hover:bg-muted/50 transition-colors"
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-lg p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <h4 className="font-medium text-sm">데이터 기반 AI 추천</h4>
+          </div>
+
+          {methods.map((method) => {
+            const fitScore = calculateFitScore(method, dataProfile, assumptionResults)
+            const isExpanded = expandedMethod === method.id
+            const isSelected = selectedMethod?.id === method.id
+
+            return (
+              <div
+                key={method.id}
+                className={`bg-white dark:bg-background rounded-lg border-2 transition-all ${
+                  isSelected
+                    ? 'border-primary ring-2 ring-primary/20'
+                    : 'border-border hover:border-primary/30'
+                }`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{method.name}</span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        스마트 추천
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{method.description}</p>
-                    {['mannwhitney','kruskal-wallis','welchAnova','gamesHowell','permutation'].includes(method.id) && (
-                      <div className="text-[11px] text-blue-600 mt-1">
-                        {method.id === 'mannwhitney' && '정규성 위반 또는 소표본에서 평균 비교 대안'}
-                        {method.id === 'kruskal-wallis' && '정규성 위반 다집단 평균 비교 대안'}
-                        {method.id === 'welchAnova' && '이분산 환경에서 평균 비교(ANOVA) 대안'}
-                        {method.id === 'gamesHowell' && '이분산 사후검정 (등분산 가정 불필요)'}
-                        {method.id === 'permutation' && '표본 수가 작을 때 견고한 검정'}
+                {/* 메인 카드 - 항상 표시 (간단 버전) */}
+                <button
+                  onClick={() => {
+                    onMethodSelect(method)
+                    const questionType = QUESTION_TYPES.find(
+                      q => q.methods.includes(method.category)
+                    )
+                    if (questionType) {
+                      onQuestionTypeChange(questionType.id)
+                    }
+                  }}
+                  className="w-full text-left p-4 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      {/* 방법명 + 배지 */}
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-semibold text-sm">{method.name}</span>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200">
+                          추천
+                        </Badge>
                       </div>
+
+                      {/* 설명 */}
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {method.description}
+                      </p>
+
+                      {/* 적합도 표시 (간단 버전) */}
+                      <div className="mt-3">
+                        <FitScoreIndicator score={fitScore} />
+                      </div>
+                    </div>
+
+                    {/* 선택 체크 */}
+                    {isSelected && (
+                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
                     )}
                   </div>
-                  {selectedMethod?.id === method.id && (
-                    <Check className="w-4 h-4 text-primary flex-shrink-0 ml-2" />
-                  )}
-                </div>
-              </button>
+                </button>
 
-              {/* 추천 이유 Collapsible */}
-              {dataProfile && (
-                <Collapsible
-                  open={expandedMethod === method.id}
-                  onOpenChange={(open) => setExpandedMethod(open ? method.id : null)}
-                >
-                  <CollapsibleTrigger className="w-full px-3 pb-2 text-xs text-primary hover:underline flex items-center gap-1">
-                    왜 추천되나요?
-                    <ChevronDown className={`h-3 w-3 transition-transform ${expandedMethod === method.id ? 'rotate-180' : ''}`} />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="px-3 pb-3">
-                      <div className="p-3 bg-muted/50 rounded-lg">
-                        <RecommendationChecklist
+                {/* 자세히 보기 (점진적 공개) */}
+                {dataProfile && (
+                  <Collapsible
+                    open={isExpanded}
+                    onOpenChange={(open) => setExpandedMethod(open ? method.id : null)}
+                  >
+                    <CollapsibleTrigger className="w-full px-4 pb-3 text-xs text-primary hover:underline flex items-center justify-center gap-1 border-t border-border/50 pt-2 mt-1">
+                      {isExpanded ? '간략히 보기' : '자세히 보기'}
+                      <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="px-4 pb-4">
+                        <RecommendationDetails
                           method={method}
                           dataProfile={dataProfile}
                           assumptionResults={assumptionResults}
                         />
                       </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-            </div>
-          ))}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </>
