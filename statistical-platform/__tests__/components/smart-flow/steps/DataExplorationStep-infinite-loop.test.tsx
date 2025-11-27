@@ -142,6 +142,115 @@ describe('DataExplorationStep 무한 루프 수정', () => {
   })
 })
 
+describe('DataExplorationStep scatterplots 무한 루프 수정', () => {
+  interface ScatterplotConfig {
+    id: string
+    xVariable: string
+    yVariable: string
+  }
+
+  /**
+   * scatterplots 상태가 의존성에 있으면서 setScatterplots 호출 시 무한 루프
+   * ref 패턴으로 해결
+   */
+  it('✅ scatterplots ref 패턴: 무한 루프 없음', () => {
+    let renderCount = 0
+
+    const { result } = renderHook(() => {
+      renderCount++
+
+      const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>([])
+      const [numericVars] = useState(['x', 'y', 'z'])
+
+      // ref로 현재 값 추적
+      const scatterplotsRef = useRef(scatterplots)
+      useEffect(() => {
+        scatterplotsRef.current = scatterplots
+      }, [scatterplots])
+
+      // 초기화 로직
+      useEffect(() => {
+        const currentScatterplots = scatterplotsRef.current
+
+        if (numericVars.length >= 2 && currentScatterplots.length === 0) {
+          setScatterplots([{
+            id: '1',
+            xVariable: numericVars[0],
+            yVariable: numericVars[1]
+          }])
+        }
+      }, [numericVars]) // ✅ scatterplots 의존성 제거
+
+      return { scatterplots, renderCount }
+    })
+
+    // 무한 루프 없이 초기화 완료
+    expect(renderCount).toBeLessThan(10)
+    expect(result.current.scatterplots).toHaveLength(1)
+    expect(result.current.scatterplots[0].xVariable).toBe('x')
+    expect(result.current.scatterplots[0].yVariable).toBe('y')
+  })
+
+  /**
+   * numericVars 변경 시 유효하지 않은 변수 대체
+   */
+  it('✅ numericVars 변경 시 유효하지 않은 변수 대체', () => {
+    const { result, rerender } = renderHook(
+      ({ numericVars }: { numericVars: string[] }) => {
+        const [scatterplots, setScatterplots] = useState<ScatterplotConfig[]>([
+          { id: '1', xVariable: 'a', yVariable: 'b' }
+        ])
+        const scatterplotsRef = useRef(scatterplots)
+
+        useEffect(() => {
+          scatterplotsRef.current = scatterplots
+        }, [scatterplots])
+
+        useEffect(() => {
+          const currentScatterplots = scatterplotsRef.current
+
+          if (numericVars.length < 2) {
+            if (currentScatterplots.length > 0) setScatterplots([])
+            return
+          }
+
+          const updatedScatterplots = currentScatterplots.map(sp => {
+            const xValid = numericVars.includes(sp.xVariable)
+            const yValid = numericVars.includes(sp.yVariable)
+
+            if (xValid && yValid) return sp
+
+            const newX = xValid ? sp.xVariable : numericVars[0]
+            const newY = yValid && newX !== sp.yVariable
+              ? sp.yVariable
+              : numericVars.find(v => v !== newX) || numericVars[1]
+
+            return { ...sp, xVariable: newX, yVariable: newY }
+          })
+
+          const hasChanges = updatedScatterplots.some((sp, i) =>
+            sp.xVariable !== currentScatterplots[i].xVariable ||
+            sp.yVariable !== currentScatterplots[i].yVariable
+          )
+          if (hasChanges) setScatterplots(updatedScatterplots)
+        }, [numericVars])
+
+        return { scatterplots }
+      },
+      { initialProps: { numericVars: ['a', 'b', 'c'] } }
+    )
+
+    // 초기 상태 유지
+    expect(result.current.scatterplots[0].xVariable).toBe('a')
+    expect(result.current.scatterplots[0].yVariable).toBe('b')
+
+    // numericVars 변경 (기존 변수 'a', 'b'가 없음)
+    rerender({ numericVars: ['x', 'y', 'z'] })
+    expect(result.current.scatterplots[0].xVariable).toBe('x')
+    expect(result.current.scatterplots[0].yVariable).toBe('y')
+  })
+})
+
 describe('SmartFlowPage Zustand 의존성 수정', () => {
   /**
    * getState() 패턴 검증
