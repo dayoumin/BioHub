@@ -17,7 +17,7 @@ import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
   ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft,
-  ChevronDown, Settings, Vote
+  ChevronDown, Settings, Vote, Server
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -135,6 +135,12 @@ const StatisticalFormattingSection = process.env.NODE_ENV !== 'production'
     })
   : null
 
+// Deployment Log Section (always available - useful for troubleshooting)
+const DeploymentLogSection = dynamic(
+  () => import('./sections/DeploymentLogSection').then(mod => ({ default: mod.DeploymentLogSection })),
+  { ssr: false, loading: LoadingSpinner }
+)
+
 // 네비게이션 카테고리 정의 (그룹화)
 interface NavItem {
   id: string
@@ -209,6 +215,7 @@ const NAV_CATEGORIES: NavCategory[] = [
     },
     items: [
       { id: 'tech-stack', label: 'Tech Stack', icon: Cpu },
+      { id: 'deployment-log', label: 'Deployment Log', icon: Server, isNew: true },
       ...(process.env.NODE_ENV !== 'production' ? [
         { id: 'stats-pattern', label: 'Statistics Pattern', icon: Code, devOnly: true },
         { id: 'stats-formatting', label: 'Statistical Formatting', icon: Calculator, devOnly: true },
@@ -1295,6 +1302,13 @@ const handleOpenNewWindow = useCallback(() => {
           ======================================== */}
           {activeSection === 'stats-formatting' && StatisticalFormattingSection && (
             <StatisticalFormattingSection />
+          )}
+
+          {/* ========================================
+              14. Deployment Log (항상 사용 가능)
+          ======================================== */}
+          {activeSection === 'deployment-log' && (
+            <DeploymentLogSection />
           )}
         </div>
       </main>
