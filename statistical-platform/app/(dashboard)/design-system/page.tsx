@@ -163,7 +163,11 @@ interface NavCategory {
   }
 }
 
-const NAV_CATEGORIES: NavCategory[] = [
+// 상단 탭 타입 정의
+type TopTab = 'design' | 'dev'
+
+// Design 탭 카테고리
+const DESIGN_CATEGORIES: NavCategory[] = [
   {
     id: 'foundations',
     label: 'Foundations',
@@ -198,11 +202,12 @@ const NAV_CATEGORIES: NavCategory[] = [
       { id: 'data-utils', label: 'Data Utilities', icon: Table },
       { id: 'layout-prototype', label: 'Layout Prototype', icon: Layout },
       { id: 'feedback-panel', label: 'Feedback Panel', icon: Vote, isNew: true },
-      ...(process.env.NODE_ENV !== 'production' ? [
-        { id: 'method-card-comparison', label: 'Method Card (리팩토링)', icon: GitCompare, isNew: true, devOnly: true },
-      ] : []),
     ]
   },
+]
+
+// Dev Tools 탭 카테고리
+const DEV_CATEGORIES: NavCategory[] = [
   {
     id: 'dev-tools',
     label: 'Developer Tools',
@@ -217,6 +222,7 @@ const NAV_CATEGORIES: NavCategory[] = [
       { id: 'tech-stack', label: 'Tech Stack', icon: Cpu },
       { id: 'deployment-log', label: 'Deployment Log', icon: Server, isNew: true },
       ...(process.env.NODE_ENV !== 'production' ? [
+        { id: 'method-card-comparison', label: 'Method Card Comparison', icon: GitCompare, isNew: true, devOnly: true },
         { id: 'stats-pattern', label: 'Statistics Pattern', icon: Code, devOnly: true },
         { id: 'stats-formatting', label: 'Statistical Formatting', icon: Calculator, devOnly: true },
         { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
@@ -227,8 +233,18 @@ const NAV_CATEGORIES: NavCategory[] = [
   }
 ]
 
+// 탭에 따른 카테고리 반환
+const getCategories = (tab: TopTab): NavCategory[] => {
+  return tab === 'design' ? DESIGN_CATEGORIES : DEV_CATEGORIES
+}
+
+// 탭에 따른 기본 섹션
+const getDefaultSection = (tab: TopTab): string => {
+  return tab === 'design' ? 'colors' : 'tech-stack'
+}
+
 // 플랫 섹션 목록 (헤더 표시용)
-const ALL_SECTIONS = NAV_CATEGORIES.flatMap(cat => cat.items)
+const ALL_SECTIONS = [...DESIGN_CATEGORIES, ...DEV_CATEGORIES].flatMap(cat => cat.items)
 
 // 색상 데이터 - 카테고리별 분류
 const COLOR_CATEGORIES = {
@@ -301,10 +317,19 @@ const COLOR_CATEGORIES = {
 }
 
 export default function ComponentsShowcasePage() {
+  // 상단 탭 상태
+  const [activeTab, setActiveTab] = useState<TopTab>('design')
+
   // 네비게이션 상태
   const [activeSection, setActiveSection] = useState('colors')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // 모바일 초기 상태: 닫힘 (데스크탑은 CSS로 항상 열림)
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['foundations', 'components', 'dev-tools']) // 모두 열림
+
+  // 탭 변경 핸들러
+  const handleTabChange = useCallback((tab: TopTab) => {
+    setActiveTab(tab)
+    setActiveSection(getDefaultSection(tab))
+  }, [])
 
   // 카테고리 토글 함수
   const toggleCategory = useCallback((categoryId: string) => {
@@ -360,9 +385,44 @@ export default function ComponentsShowcasePage() {
           </Button>
         </div>
 
+        {/* 상단 탭 (Design / Dev Tools) */}
+        <div className="p-3 border-b">
+          <div className="flex gap-1 p-1 bg-muted rounded-lg">
+            <button
+              onClick={() => handleTabChange('design')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all",
+                activeTab === 'design'
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Palette className="h-4 w-4" />
+              Design
+            </button>
+            <button
+              onClick={() => handleTabChange('dev')}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all",
+                activeTab === 'dev'
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Code className="h-4 w-4" />
+              Dev Tools
+              {process.env.NODE_ENV !== 'production' && (
+                <Badge variant="secondary" className="text-[9px] px-1 py-0">
+                  DEV
+                </Badge>
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* 네비게이션 (카테고리별 그룹화) */}
         <nav className="p-4 space-y-1 overflow-y-auto flex-1">
-          {NAV_CATEGORIES.map((category) => {
+          {getCategories(activeTab).map((category) => {
             const CategoryIcon = category.icon
             const isExpanded = expandedCategories.includes(category.id)
             const hasActiveItem = category.items.some(item => item.id === activeSection)
