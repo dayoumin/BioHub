@@ -35,7 +35,9 @@
       "Bash(docs/ICON_USAGE_GUIDELINES.md)",
       "Bash(git rm:*)",
       "Bash(git fetch:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(done)",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []

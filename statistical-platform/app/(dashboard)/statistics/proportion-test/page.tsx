@@ -26,7 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -41,6 +41,10 @@ import {
   Settings,
   CheckCircle2,
   AlertCircle
+,
+  FileText,
+  Table,
+  HelpCircle
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -114,7 +118,7 @@ export default function ProportionTestPage(): React.ReactElement {
     method: 'normal'
   })
 
-  const [activeTab, setActiveTab] = React.useState('summary')
+  const [activeResultTab, setActiveResultTab] = React.useState('summary')
   const [analysisTimestamp, setAnalysisTimestamp] = React.useState<Date | null>(null)
 
   // ============================================================================
@@ -227,7 +231,7 @@ export default function ProportionTestPage(): React.ReactElement {
 
       setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(finalResults, 3)
-      setActiveTab('summary')
+      setActiveResultTab('summary')
     } catch (err) {
       actions.setError?.(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
@@ -714,15 +718,21 @@ export default function ProportionTestPage(): React.ReactElement {
           sampleSize={results.totalCount}
           timestamp={analysisTimestamp ?? undefined}
         />
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="summary">요약</TabsTrigger>
-          <TabsTrigger value="results">검정결과</TabsTrigger>
-          <TabsTrigger value="confidence">신뢰구간</TabsTrigger>
-          <TabsTrigger value="methods">방법설명</TabsTrigger>
-        </TabsList>
+      <ContentTabs
+              tabs={[
+                { id: 'summary', label: '요약', icon: FileText },
+                { id: 'results', label: '검정결과', icon: Table },
+                { id: 'confidence', label: '신뢰구간', icon: Target },
+                { id: 'methods', label: '방법설명', icon: HelpCircle }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+        
 
-        <TabsContent value="summary" className="space-y-6">
+        <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
             {renderSummaryCards()}
@@ -732,28 +742,28 @@ export default function ProportionTestPage(): React.ReactElement {
             <p className="text-muted-foreground dark:text-success-muted">{results.conclusion}</p>
             <p className="text-sm text-muted-foreground dark:text-success-muted mt-1">{results.interpretation}</p>
           </div>
-        </TabsContent>
+        </ContentTabsContent>
 
-        <TabsContent value="results" className="space-y-6">
+        <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">
           <div>
             {renderDescriptiveTable()}
           </div>
           <div>
             {renderTestResultsTable()}
           </div>
-        </TabsContent>
+        </ContentTabsContent>
 
-        <TabsContent value="confidence" className="space-y-6">
+        <ContentTabsContent tabId="confidence" show={activeResultTab === 'confidence'} className="space-y-6">
           {renderConfidenceInterval()}
-        </TabsContent>
+        </ContentTabsContent>
 
-        <TabsContent value="methods" className="space-y-6">
+        <ContentTabsContent tabId="methods" show={activeResultTab === 'methods'} className="space-y-6">
           {renderMethodExplanation()}
-        </TabsContent>
-      </Tabs>
+        </ContentTabsContent>
+      </div>
       </div>
     )
-  }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])
+  }, [results, activeResultTab, uploadedData, selectedVariables, analysisTimestamp])
 
   // ============================================================================
   // JSX 렌더링

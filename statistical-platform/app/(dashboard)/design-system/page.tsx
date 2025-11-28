@@ -16,7 +16,8 @@ import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
-  ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft
+  ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft,
+  ChevronDown, Settings
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -110,27 +111,89 @@ const StatisticalFormattingSection = process.env.NODE_ENV !== 'production'
     })
   : null
 
-// 네비게이션 섹션 정의
-const NAV_SECTIONS = [
-  { id: 'tech-stack', label: 'Tech Stack', icon: Cpu },
-  { id: 'colors', label: 'Colors', icon: Palette },
-  { id: 'buttons', label: 'Buttons', icon: SquareStack },
-  { id: 'typography', label: 'Typography', icon: Type },
-  { id: 'animations', label: 'Animations', icon: Zap },
-  { id: 'tab-styles', label: 'Tab Styles', icon: ToggleLeft, isNew: true },
-  { id: 'components', label: 'Components', icon: GitCompare },
-  { id: 'visualizations', label: 'Visualizations', icon: SquareStack },
-  { id: 'data-utils', label: 'Data Utilities', icon: Table },
-  { id: 'layout-prototype', label: 'Layout Prototype', icon: Layout },
-  // 개발 전용 섹션 (프로덕션에서 제외)
-  ...(process.env.NODE_ENV !== 'production' ? [
-    { id: 'stats-pattern', label: 'Statistics Pattern', icon: Code, devOnly: true },
-    { id: 'stats-formatting', label: 'Statistical Formatting', icon: Calculator, devOnly: true },
-    { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
-    { id: 'rag-components', label: 'RAG Components', icon: MessageCircle, devOnly: true },
-    { id: 'test-snippets', label: 'Test Snippets', icon: FlaskConical, devOnly: true },
-  ] : [])
-] as const
+// 네비게이션 카테고리 정의 (그룹화)
+interface NavItem {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  isNew?: boolean
+  devOnly?: boolean
+}
+
+interface NavCategory {
+  id: string
+  label: string
+  icon: React.ComponentType<{ className?: string }>
+  items: NavItem[]
+  color: {
+    bg: string        // 카테고리 헤더 배경 (활성)
+    text: string      // 카테고리 헤더 텍스트
+    border: string    // 아이템 좌측 border
+    activeBg: string  // 아이템 활성 배경
+  }
+}
+
+const NAV_CATEGORIES: NavCategory[] = [
+  {
+    id: 'foundations',
+    label: 'Foundations',
+    icon: Palette,
+    color: {
+      bg: 'bg-violet-500/10',
+      text: 'text-violet-600 dark:text-violet-400',
+      border: 'border-violet-300 dark:border-violet-700',
+      activeBg: 'bg-violet-600 dark:bg-violet-500',
+    },
+    items: [
+      { id: 'colors', label: 'Colors', icon: Palette },
+      { id: 'typography', label: 'Typography', icon: Type },
+      { id: 'animations', label: 'Animations', icon: Zap },
+      { id: 'tab-styles', label: 'Tab Styles', icon: ToggleLeft, isNew: true },
+    ]
+  },
+  {
+    id: 'components',
+    label: 'Components',
+    icon: GitCompare,
+    color: {
+      bg: 'bg-blue-500/10',
+      text: 'text-blue-600 dark:text-blue-400',
+      border: 'border-blue-300 dark:border-blue-700',
+      activeBg: 'bg-blue-600 dark:bg-blue-500',
+    },
+    items: [
+      { id: 'buttons', label: 'Buttons', icon: SquareStack },
+      { id: 'components', label: 'Common Components', icon: GitCompare },
+      { id: 'visualizations', label: 'Visualizations', icon: SquareStack },
+      { id: 'data-utils', label: 'Data Utilities', icon: Table },
+      { id: 'layout-prototype', label: 'Layout Prototype', icon: Layout },
+    ]
+  },
+  {
+    id: 'dev-tools',
+    label: 'Developer Tools',
+    icon: Settings,
+    color: {
+      bg: 'bg-amber-500/10',
+      text: 'text-amber-600 dark:text-amber-400',
+      border: 'border-amber-300 dark:border-amber-700',
+      activeBg: 'bg-amber-600 dark:bg-amber-500',
+    },
+    items: [
+      { id: 'tech-stack', label: 'Tech Stack', icon: Cpu },
+      ...(process.env.NODE_ENV !== 'production' ? [
+        { id: 'stats-pattern', label: 'Statistics Pattern', icon: Code, devOnly: true },
+        { id: 'stats-formatting', label: 'Statistical Formatting', icon: Calculator, devOnly: true },
+        { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
+        { id: 'rag-components', label: 'RAG Components', icon: MessageCircle, devOnly: true },
+        { id: 'test-snippets', label: 'Test Snippets', icon: FlaskConical, devOnly: true },
+      ] : [])
+    ]
+  }
+]
+
+// 플랫 섹션 목록 (헤더 표시용)
+const ALL_SECTIONS = NAV_CATEGORIES.flatMap(cat => cat.items)
 
 // 색상 데이터
 const COLOR_PALETTE = [
@@ -146,6 +209,16 @@ export default function ComponentsShowcasePage() {
   // 네비게이션 상태
   const [activeSection, setActiveSection] = useState('colors')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // 모바일 초기 상태: 닫힘 (데스크탑은 CSS로 항상 열림)
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['foundations', 'components', 'dev-tools']) // 모두 열림
+
+  // 카테고리 토글 함수
+  const toggleCategory = useCallback((categoryId: string) => {
+    setExpandedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    )
+  }, [])
 
   // 복사 상태
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
@@ -192,37 +265,72 @@ export default function ComponentsShowcasePage() {
           </Button>
         </div>
 
-        {/* 네비게이션 */}
-        <nav className="p-4 space-y-2">
-          {NAV_SECTIONS.map((section) => {
-            const Icon = section.icon
+        {/* 네비게이션 (카테고리별 그룹화) */}
+        <nav className="p-4 space-y-1 overflow-y-auto flex-1">
+          {NAV_CATEGORIES.map((category) => {
+            const CategoryIcon = category.icon
+            const isExpanded = expandedCategories.includes(category.id)
+            const hasActiveItem = category.items.some(item => item.id === activeSection)
+
             return (
-              <button
-                key={section.id}
-                onClick={() => {
-                  setActiveSection(section.id)
-                  setIsSidebarOpen(false)
-                }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  activeSection === section.id
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted text-muted-foreground"
+              <div key={category.id} className="space-y-1">
+                {/* 카테고리 헤더 */}
+                <button
+                  onClick={() => toggleCategory(category.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors",
+                    hasActiveItem
+                      ? cn(category.color.bg, category.color.text)
+                      : "hover:bg-muted/50 text-foreground"
+                  )}
+                >
+                  <CategoryIcon className={cn("h-4 w-4", hasActiveItem && category.color.text)} />
+                  <span className="flex-1 text-left">{category.label}</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      isExpanded ? "rotate-0" : "-rotate-90"
+                    )}
+                  />
+                </button>
+
+                {/* 카테고리 아이템 */}
+                {isExpanded && (
+                  <div className={cn("ml-3 pl-3 border-l-2 space-y-1", category.color.border)}>
+                    {category.items.map((item) => {
+                      const ItemIcon = item.icon
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveSection(item.id)
+                            setIsSidebarOpen(false)
+                          }}
+                          className={cn(
+                            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                            activeSection === item.id
+                              ? cn(category.color.activeBg, "text-white")
+                              : "hover:bg-muted text-muted-foreground"
+                          )}
+                        >
+                          <ItemIcon className="h-4 w-4" />
+                          {item.label}
+                          {item.isNew && (
+                            <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-green-500">
+                              NEW
+                            </Badge>
+                          )}
+                          {item.devOnly && (
+                            <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">
+                              DEV
+                            </Badge>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 )}
-              >
-                <Icon className="h-4 w-4" />
-                {section.label}
-                {'isNew' in section && section.isNew && (
-                  <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-green-500">
-                    NEW
-                  </Badge>
-                )}
-                {'devOnly' in section && section.devOnly && (
-                  <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">
-                    DEV
-                  </Badge>
-                )}
-              </button>
+              </div>
             )
           })}
         </nav>
@@ -255,7 +363,7 @@ export default function ComponentsShowcasePage() {
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">
-            {NAV_SECTIONS.find(s => s.id === activeSection)?.label}
+            {ALL_SECTIONS.find(s => s.id === activeSection)?.label}
           </h1>
           <div className="w-10" />
         </div>

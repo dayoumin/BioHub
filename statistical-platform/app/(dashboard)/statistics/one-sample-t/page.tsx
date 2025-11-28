@@ -5,7 +5,7 @@ import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { OneSampleTVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,6 +26,10 @@ import {
   AlertCircle,
   CheckCircle,
   CheckCircle2
+,
+  FileText,
+  Table,
+  Shield
 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -71,6 +75,7 @@ export default function OneSampleTPage() {
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [activeTab, setActiveTab] = useState('summary')
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('summary')
   const [testValue, setTestValue] = useState('0')
   const [confidenceLevel, setConfidenceLevel] = useState('95')
   const [alternative, setAlternative] = useState('two-sided')
@@ -651,14 +656,19 @@ export default function OneSampleTPage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="summary">요약</TabsTrigger>
-          <TabsTrigger value="results">검정결과</TabsTrigger>
-          <TabsTrigger value="assumptions">가정검토</TabsTrigger>
-        </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'summary', label: '요약', icon: FileText },
+                { id: 'results', label: '검정결과', icon: Table },
+                { id: 'assumptions', label: '가정검토', icon: Shield }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-        <TabsContent value="summary" className="space-y-6">
+        <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
             {renderSummaryCards()}
@@ -668,21 +678,21 @@ export default function OneSampleTPage() {
             <p className="text-muted-foreground">{results.conclusion}</p>
             <p className="text-sm text-muted-foreground mt-1">{results.interpretation}</p>
           </div>
-        </TabsContent>
+        </ContentTabsContent>
 
-        <TabsContent value="results" className="space-y-6">
+        <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">
           <div>
             {renderDescriptiveTable()}
           </div>
           <div>
             {renderTestResultsTable()}
           </div>
-        </TabsContent>
+        </ContentTabsContent>
 
-        <TabsContent value="assumptions" className="space-y-6">
+        <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'} className="space-y-6">
           {renderAssumptions()}
-        </TabsContent>
-      </Tabs>
+        </ContentTabsContent>
+      </div>
       </div>
     )
   }

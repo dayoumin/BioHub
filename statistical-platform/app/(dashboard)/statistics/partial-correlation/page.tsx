@@ -15,11 +15,16 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp ,
+  FileText,
+  Shield,
+  ArrowLeftRight,
+  MessageSquare
+} from 'lucide-react'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -108,6 +113,7 @@ export default function PartialCorrelationPage() {
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('summary')
 
   const steps = useMemo(() => {
     const baseSteps = [
@@ -511,16 +517,21 @@ export default function PartialCorrelationPage() {
           <p className="text-gray-600">편상관계수와 통계적 유의성을 확인하세요</p>
         </div>
 
-        <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="summary">분석 요약</TabsTrigger>
-            <TabsTrigger value="assumptions">가정 검정</TabsTrigger>
-            <TabsTrigger value="partial">편상관계수</TabsTrigger>
-            <TabsTrigger value="comparison">상관 비교</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'summary', label: '분석 요약', icon: FileText },
+                { id: 'assumptions', label: '가정 검정', icon: Shield },
+                { id: 'partial', label: '편상관계수', icon: Table },
+                { id: 'comparison', label: '상관 비교', icon: ArrowLeftRight },
+                { id: 'interpretation', label: '해석', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="summary" className="space-y-4">
+          <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>분석 요약</CardTitle>
@@ -576,9 +587,9 @@ export default function PartialCorrelationPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="assumptions" className="space-y-4">
+          <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'} className="space-y-4">
             {results.assumptions && (
               <AssumptionTestCard
                 title="편상관분석 가정 검정"
@@ -654,9 +665,9 @@ export default function PartialCorrelationPage() {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="partial" className="space-y-4">
+          <ContentTabsContent tabId="partial" show={activeResultTab === 'partial'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>편상관계수 결과</CardTitle>
@@ -707,9 +718,9 @@ export default function PartialCorrelationPage() {
                 <p className="text-xs text-gray-500 mt-2">* p &lt; 0.05에서 통계적으로 유의</p>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="comparison" className="space-y-4">
+          <ContentTabsContent tabId="comparison" show={activeResultTab === 'comparison'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>편상관 vs 단순상관 비교</CardTitle>
@@ -762,9 +773,9 @@ export default function PartialCorrelationPage() {
                 />
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation" className="space-y-4">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>분석 결과 해석</CardTitle>
@@ -821,8 +832,8 @@ export default function PartialCorrelationPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
   }, [isAnalyzing, error, results, selectedVariables, getCorrelationStrength, uploadedData, analysisTimestamp])

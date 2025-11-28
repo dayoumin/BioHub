@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -22,6 +22,10 @@ import {
   Info,
   TrendingUp,
   BarChart3
+,
+  FileText,
+  Table,
+  HelpCircle
 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -78,6 +82,7 @@ export default function PowerAnalysisPage() {
   })
   const { currentStep, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('summary')
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -597,14 +602,19 @@ export default function PowerAnalysisPage() {
             variables={[config.testType]}
             timestamp={analysisTimestamp ?? undefined}
           />
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="summary">요약</TabsTrigger>
-              <TabsTrigger value="results">분석결과</TabsTrigger>
-              <TabsTrigger value="guide">효과크기 가이드</TabsTrigger>
-            </TabsList>
+          <ContentTabs
+              tabs={[
+                { id: 'summary', label: '요약', icon: FileText },
+                { id: 'results', label: '분석결과', icon: Table },
+                { id: 'guide', label: '효과크기 가이드', icon: HelpCircle }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-            <TabsContent value="summary" className="space-y-6">
+            <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold mb-4">분석 요약</h3>
                 {renderSummaryCards()}
@@ -621,9 +631,9 @@ export default function PowerAnalysisPage() {
                   </ul>
                 </div>
               </div>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="results" className="space-y-6">
+            <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">
               <div>
                 {renderResultsTable()}
               </div>
@@ -632,12 +642,12 @@ export default function PowerAnalysisPage() {
                   {renderPowerCurveTable()}
                 </div>
               )}
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="guide" className="space-y-6">
+            <ContentTabsContent tabId="guide" show={activeResultTab === 'guide'} className="space-y-6">
               {renderEffectSizeGuide()}
-            </TabsContent>
-          </Tabs>
+            </ContentTabsContent>
+          </div>
           </>
         )}
       </div>

@@ -6,7 +6,7 @@ import type { CoxRegressionVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import {
@@ -17,6 +17,10 @@ import {
   TrendingDown,
   CheckCircle,
   Variable
+,
+  FileText,
+  Table,
+  MessageSquare
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -52,6 +56,7 @@ export default function CoxRegressionPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('summary')
   const [activeTab, setActiveTab] = useState('summary')
 
   const breadcrumbs = useMemo(() => [
@@ -433,14 +438,19 @@ export default function CoxRegressionPage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="coefficients">Coefficients</TabsTrigger>
-            <TabsTrigger value="interpretation">Interpretation</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'summary', label: 'Summary', icon: FileText },
+                { id: 'coefficients', label: 'Coefficients', icon: Table },
+                { id: 'interpretation', label: 'Interpretation', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="summary" className="space-y-6">
+          <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
@@ -517,9 +527,9 @@ export default function CoxRegressionPage() {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="coefficients" className="space-y-6">
+          <ContentTabsContent tabId="coefficients" show={activeResultTab === 'coefficients'} className="space-y-6">
             <StatisticsTable
               columns={coeffColumns}
               data={coefficientData}
@@ -537,9 +547,9 @@ export default function CoxRegressionPage() {
                 </ul>
               </AlertDescription>
             </Alert>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation" className="space-y-6">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Results Interpretation</CardTitle>
@@ -578,8 +588,8 @@ export default function CoxRegressionPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
   }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])

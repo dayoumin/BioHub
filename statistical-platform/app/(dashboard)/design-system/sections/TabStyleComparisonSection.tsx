@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
-import { ChartScatter, BarChart3, LineChart, Table2, Flame, GitCommitHorizontal, Info } from 'lucide-react'
+import { ChartScatter, BarChart3, LineChart, Table2, Flame, GitCommitHorizontal, Info, Palette, Type, Zap, ChevronDown, Settings, GitCompare } from 'lucide-react'
 
 /**
  * Tab Style Comparison Section
@@ -22,6 +22,11 @@ export function TabStyleComparisonSection() {
   const [style3Tab, setStyle3Tab] = useState('scatter')
   const [style4Tab, setStyle4Tab] = useState('histogram')
   const [style5Tab, setStyle5Tab] = useState('scatter')
+
+  // Sidebar style states
+  const [sidebarStyle, setSidebarStyle] = useState<'A' | 'B' | 'C'>('A')
+  const [activeSidebarItem, setActiveSidebarItem] = useState('colors')
+  const [expandedCats, setExpandedCats] = useState(['foundations'])
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -410,6 +415,274 @@ export function TabStyleComparisonSection() {
           <p className="mt-3 text-xs text-muted-foreground">
             5개 이상 옵션 또는 툴바형 인터페이스에 적합. 툴팁 필요.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* ============================================
+          Sidebar Navigation Styles
+      ============================================ */}
+      <div className="space-y-4 pt-8 border-t">
+        <h2 className="text-2xl font-bold">사이드바 네비게이션 스타일</h2>
+        <p className="text-muted-foreground">
+          Design System 사이드바에 적용 가능한 3가지 스타일 옵션
+        </p>
+      </div>
+
+      {/* Style Selector */}
+      <div className="flex gap-2 p-4 bg-muted/30 rounded-lg">
+        {(['A', 'B', 'C'] as const).map(style => (
+          <button
+            key={style}
+            onClick={() => setSidebarStyle(style)}
+            className={cn(
+              "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              sidebarStyle === style
+                ? "bg-primary text-primary-foreground"
+                : "bg-background hover:bg-muted"
+            )}
+          >
+            Style {style}: {style === 'A' ? 'Light' : style === 'B' ? 'Medium' : 'Full'}
+          </button>
+        ))}
+      </div>
+
+      {/* Sidebar Preview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Style {sidebarStyle}: {sidebarStyle === 'A' ? 'Light (현재 + 호버 애니메이션)' : sidebarStyle === 'B' ? 'Medium (글래스모피즘 + 카운트)' : 'Full (검색 + 키보드)'}
+          </CardTitle>
+          <CardDescription>
+            {sidebarStyle === 'A' && '미니멀한 호버 효과와 dot 인디케이터'}
+            {sidebarStyle === 'B' && '글래스모피즘 헤더와 아이템 카운트 뱃지'}
+            {sidebarStyle === 'C' && '검색 바와 키보드 단축키 지원'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-6">
+            {/* Sidebar Preview */}
+            <div className={cn(
+              "w-64 rounded-xl border overflow-hidden",
+              sidebarStyle === 'B' && "bg-gradient-to-b from-background to-muted/30",
+              sidebarStyle === 'C' && "bg-background"
+            )}>
+              {/* Header */}
+              <div className={cn(
+                "p-4 border-b",
+                sidebarStyle === 'B' && "backdrop-blur-sm bg-background/80"
+              )}>
+                {sidebarStyle === 'C' && (
+                  <div className="mb-3 relative">
+                    <input
+                      type="text"
+                      placeholder="Search sections..."
+                      className="w-full px-3 py-1.5 text-sm rounded-lg bg-muted/50 border-0 focus:ring-2 focus:ring-primary/20"
+                    />
+                    <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">⌘K</kbd>
+                  </div>
+                )}
+                <h3 className="font-semibold text-sm">Design System</h3>
+                <p className="text-xs text-muted-foreground">UI Showcase</p>
+              </div>
+
+              {/* Nav Items */}
+              <nav className="p-2 space-y-1">
+                {/* Foundations Category */}
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => setExpandedCats(prev =>
+                      prev.includes('foundations')
+                        ? prev.filter(c => c !== 'foundations')
+                        : [...prev, 'foundations']
+                    )}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                      sidebarStyle === 'A' && "hover:bg-violet-500/10 hover:text-violet-600",
+                      sidebarStyle === 'B' && "hover:bg-violet-500/10",
+                      sidebarStyle === 'C' && "hover:bg-muted"
+                    )}
+                  >
+                    {sidebarStyle === 'A' && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                    )}
+                    <Palette className={cn(
+                      "h-4 w-4",
+                      sidebarStyle !== 'C' && "text-violet-500"
+                    )} />
+                    <span className="flex-1 text-left">Foundations</span>
+                    {sidebarStyle === 'B' && (
+                      <span className="text-[10px] bg-violet-500/20 text-violet-600 px-1.5 py-0.5 rounded-full">4</span>
+                    )}
+                    <ChevronDown className={cn(
+                      "h-3.5 w-3.5 transition-transform",
+                      expandedCats.includes('foundations') ? "rotate-0" : "-rotate-90"
+                    )} />
+                  </button>
+
+                  {expandedCats.includes('foundations') && (
+                    <div className={cn(
+                      "ml-4 space-y-0.5",
+                      sidebarStyle !== 'C' && "border-l-2 border-violet-200 dark:border-violet-800 pl-2"
+                    )}>
+                      {[
+                        { id: 'colors', label: 'Colors', icon: Palette },
+                        { id: 'typography', label: 'Typography', icon: Type },
+                        { id: 'animations', label: 'Animations', icon: Zap },
+                      ].map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => setActiveSidebarItem(item.id)}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all",
+                            activeSidebarItem === item.id
+                              ? sidebarStyle === 'A'
+                                ? "bg-violet-500 text-white"
+                                : sidebarStyle === 'B'
+                                  ? "bg-violet-500/20 text-violet-700 dark:text-violet-300 font-medium"
+                                  : "bg-primary text-primary-foreground"
+                              : cn(
+                                  "text-muted-foreground",
+                                  sidebarStyle === 'A' && "hover:bg-violet-500/10 hover:text-violet-600 hover:translate-x-1",
+                                  sidebarStyle === 'B' && "hover:bg-muted/50",
+                                  sidebarStyle === 'C' && "hover:bg-muted"
+                                )
+                          )}
+                        >
+                          <item.icon className="h-3.5 w-3.5" />
+                          {item.label}
+                          {sidebarStyle === 'C' && item.id === 'colors' && (
+                            <kbd className="ml-auto text-[9px] text-muted-foreground bg-muted px-1 rounded">1</kbd>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Components Category (collapsed) */}
+                <button className={cn(
+                  "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all text-muted-foreground",
+                  sidebarStyle === 'A' && "hover:bg-blue-500/10 hover:text-blue-600",
+                  sidebarStyle === 'B' && "hover:bg-blue-500/10",
+                  sidebarStyle === 'C' && "hover:bg-muted"
+                )}>
+                  {sidebarStyle === 'A' && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-50" />
+                  )}
+                  <GitCompare className={cn(
+                    "h-4 w-4",
+                    sidebarStyle !== 'C' && "text-blue-500 opacity-50"
+                  )} />
+                  <span className="flex-1 text-left">Components</span>
+                  {sidebarStyle === 'B' && (
+                    <span className="text-[10px] bg-blue-500/20 text-blue-600 px-1.5 py-0.5 rounded-full opacity-50">5</span>
+                  )}
+                  <ChevronDown className="h-3.5 w-3.5 -rotate-90" />
+                </button>
+
+                {/* Dev Tools Category (collapsed) */}
+                <button className={cn(
+                  "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all text-muted-foreground",
+                  sidebarStyle === 'A' && "hover:bg-amber-500/10 hover:text-amber-600",
+                  sidebarStyle === 'B' && "hover:bg-amber-500/10",
+                  sidebarStyle === 'C' && "hover:bg-muted"
+                )}>
+                  {sidebarStyle === 'A' && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 opacity-50" />
+                  )}
+                  <Settings className={cn(
+                    "h-4 w-4",
+                    sidebarStyle !== 'C' && "text-amber-500 opacity-50"
+                  )} />
+                  <span className="flex-1 text-left">Developer Tools</span>
+                  {sidebarStyle === 'B' && (
+                    <span className="text-[10px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded-full opacity-50">6</span>
+                  )}
+                  <ChevronDown className="h-3.5 w-3.5 -rotate-90" />
+                </button>
+              </nav>
+            </div>
+
+            {/* Style Description */}
+            <div className="flex-1 space-y-4">
+              {sidebarStyle === 'A' && (
+                <div className="space-y-3">
+                  <h4 className="font-medium">Style A: Light</h4>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>Dot 인디케이터</strong> - 카테고리 색상 표시
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>호버 애니메이션</strong> - translate-x로 살짝 이동
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>컬러 호버</strong> - 카테고리 색상으로 호버
+                    </li>
+                  </ul>
+                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg text-sm">
+                    <p className="text-green-700 dark:text-green-300">✓ 현재 스타일에서 가장 적은 변경</p>
+                  </div>
+                </div>
+              )}
+
+              {sidebarStyle === 'B' && (
+                <div className="space-y-3">
+                  <h4 className="font-medium">Style B: Medium</h4>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>글래스모피즘 헤더</strong> - backdrop-blur + 반투명
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>그라디언트 배경</strong> - 미묘한 깊이감
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>카운트 뱃지</strong> - 각 카테고리 아이템 수
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>소프트 활성 스타일</strong> - 배경 + 텍스트 색상
+                    </li>
+                  </ul>
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg text-sm">
+                    <p className="text-blue-700 dark:text-blue-300">✓ 모던하면서도 과하지 않음</p>
+                  </div>
+                </div>
+              )}
+
+              {sidebarStyle === 'C' && (
+                <div className="space-y-3">
+                  <h4 className="font-medium">Style C: Full</h4>
+                  <ul className="text-sm text-muted-foreground space-y-2">
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>검색 바</strong> - ⌘K로 빠른 섹션 검색
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>키보드 단축키</strong> - 숫자 키로 빠른 이동
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>모노크롬 디자인</strong> - 색상 제거, 깔끔함
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <strong>VS Code 스타일</strong> - 개발 도구 느낌
+                    </li>
+                  </ul>
+                  <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg text-sm">
+                    <p className="text-purple-700 dark:text-purple-300">✓ 파워 유저를 위한 기능</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

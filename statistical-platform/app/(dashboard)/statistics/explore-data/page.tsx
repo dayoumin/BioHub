@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -24,6 +24,10 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle
+,
+  LayoutGrid,
+  List,
+  CheckCircle2
 } from 'lucide-react'
 
 // Components
@@ -118,7 +122,7 @@ export default function ExploreDataPage() {
     withError: true
   })
   const { currentStep, uploadedData, results, isAnalyzing, error } = state
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeResultTab, setActiveResultTab] = useState('overview')
   const [selectedVariable, setSelectedVariable] = useState<string>('')
   const [showOutliers, setShowOutliers] = useState(true)
   const [includeNormality, setIncludeNormality] = useState(true)
@@ -311,11 +315,11 @@ export default function ExploreDataPage() {
       if (exploreResults.length > 0) {
         setSelectedVariable(exploreResults[0].variable)
       }
-      setActiveTab('overview')
+      setActiveResultTab('overview')
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다')
     }
-  }, [actions, uploadedData, setActiveTab, setSelectedVariable])
+  }, [actions, uploadedData, setActiveResultTab, setSelectedVariable])
 
   // 단계 변경 처리
   const handleStepChange = useCallback((step: number) => {
@@ -328,8 +332,8 @@ export default function ExploreDataPage() {
   const handleReset = useCallback(() => {
     actions.reset()
     setSelectedVariable('')
-    setActiveTab('overview')
-  }, [actions, setSelectedVariable, setActiveTab])
+    setActiveResultTab('overview')
+  }, [actions, setSelectedVariable, setActiveResultTab])
 
   // 전체 개요 테이블 렌더링
   const renderOverviewTable = () => {
@@ -722,14 +726,21 @@ export default function ExploreDataPage() {
 
         {/* Step 4: 결과 확인 */}
         {results && results.length > 0 && currentStep === 4 && (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">전체 개요</TabsTrigger>
-              <TabsTrigger value="details">변수별 상세</TabsTrigger>
-              <TabsTrigger value="quality">데이터 품질</TabsTrigger>
-            </TabsList>
+          <>
+          <ContentTabs
+              tabs={[
+                { id: 'overview', label: '전체 개요', icon: LayoutGrid },
+                { id: 'details', label: '변수별 상세', icon: List },
+                { id: 'quality', label: '데이터 품질', icon: CheckCircle2 }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+            
 
-            <TabsContent value="overview" className="space-y-6">
+            <ContentTabsContent tabId="overview" show={activeResultTab === 'overview'} className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold mb-4">탐색 요약</h3>
                 {renderSummaryCards()}
@@ -737,9 +748,9 @@ export default function ExploreDataPage() {
               <div>
                 {renderOverviewTable()}
               </div>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="details" className="space-y-6">
+            <ContentTabsContent tabId="details" show={activeResultTab === 'details'} className="space-y-6">
               <div className="flex items-center gap-2 mb-4">
                 <Label>변수 선택:</Label>
                 <Select value={selectedVariable} onValueChange={setSelectedVariable}>
@@ -764,12 +775,13 @@ export default function ExploreDataPage() {
                   renderNumericalDetails(selectedResult) :
                   renderCategoricalTable(selectedResult)
               })()}
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="quality" className="space-y-6">
+            <ContentTabsContent tabId="quality" show={activeResultTab === 'quality'} className="space-y-6">
               {renderDataQualityAssessment()}
-            </TabsContent>
-          </Tabs>
+            </ContentTabsContent>
+          </div>
+          </>
         )}
 
         {/* 오류 표시 */}

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Activity,
@@ -22,6 +22,10 @@ import {
   Target,
   GitBranch,
   AlertCircle
+,
+  Table,
+  MessageSquare,
+  LineChart
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -100,6 +104,7 @@ export default function WilcoxonPage() {
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('statistics')
 
   const steps = useMemo(() => {
     const baseSteps = [
@@ -469,15 +474,21 @@ export default function WilcoxonPage() {
         </div>
 
         {/* 상세 결과 탭 */}
-        <Tabs defaultValue="statistics" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="statistics">통계량</TabsTrigger>
-            <TabsTrigger value="descriptives">기술통계</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-            <TabsTrigger value="visualization">시각화</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'statistics', label: '통계량', icon: Calculator },
+                { id: 'descriptives', label: '기술통계', icon: Table },
+                { id: 'interpretation', label: '해석', icon: MessageSquare },
+                { id: 'visualization', label: '시각화', icon: LineChart }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+          
 
-          <TabsContent value="statistics">
+          <ContentTabsContent tabId="statistics" show={activeResultTab === 'statistics'}>
             <Card>
               <CardHeader>
                 <CardTitle>Wilcoxon 부호순위 검정 통계량</CardTitle>
@@ -504,9 +515,9 @@ export default function WilcoxonPage() {
                 />
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="descriptives">
+          <ContentTabsContent tabId="descriptives" show={activeResultTab === 'descriptives'}>
             <Card>
               <CardHeader>
                 <CardTitle>사전-사후 기술통계량</CardTitle>
@@ -584,9 +595,9 @@ export default function WilcoxonPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
             <Card>
               <CardHeader>
                 <CardTitle>결과 해석</CardTitle>
@@ -626,9 +637,9 @@ export default function WilcoxonPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="visualization">
+          <ContentTabsContent tabId="visualization" show={activeResultTab === 'visualization'}>
             <Card>
               <CardHeader>
                 <CardTitle>데이터 시각화</CardTitle>
@@ -640,8 +651,8 @@ export default function WilcoxonPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
 
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>

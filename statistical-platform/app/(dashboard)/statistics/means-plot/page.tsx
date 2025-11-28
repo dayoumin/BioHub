@@ -11,11 +11,14 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CheckCircle2, AlertCircle, BarChart3, Target } from 'lucide-react'
+import { CheckCircle2, AlertCircle, BarChart3, Target ,
+  Table,
+  MessageSquare
+} from 'lucide-react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ErrorBar } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -64,6 +67,7 @@ export default function MeansPlotPage() {
   })
   const { currentStep, uploadedData, selectedVariables, isAnalyzing, results, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('plot')
 
   const steps = useMemo(() => {
     const baseSteps = [
@@ -304,14 +308,19 @@ export default function MeansPlotPage() {
           <p className="text-gray-600">집단별 평균값과 오차막대를 확인하세요</p>
         </div>
 
-        <Tabs defaultValue="plot" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="plot">평균 도표</TabsTrigger>
-            <TabsTrigger value="descriptives">기술통계량</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'plot', label: '평균 도표', icon: BarChart3 },
+                { id: 'descriptives', label: '기술통계량', icon: Table },
+                { id: 'interpretation', label: '해석', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="plot" className="space-y-4">
+          <ContentTabsContent tabId="plot" show={activeResultTab === 'plot'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>집단별 평균 도표</CardTitle>
@@ -341,9 +350,9 @@ export default function MeansPlotPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="descriptives" className="space-y-4">
+          <ContentTabsContent tabId="descriptives" show={activeResultTab === 'descriptives'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>집단별 기술통계량</CardTitle>
@@ -374,9 +383,9 @@ export default function MeansPlotPage() {
                 />
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation" className="space-y-4">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>분석 결과 해석</CardTitle>
@@ -405,8 +414,8 @@ export default function MeansPlotPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
   }

@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Activity,
@@ -27,6 +27,10 @@ import {
   TrendingUp,
   FileSpreadsheet,
   Download
+,
+  List,
+  Network,
+  MessageSquare
 } from 'lucide-react'
 
 // Components
@@ -90,6 +94,7 @@ export default function ReliabilityAnalysisPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('items')
   const [analysisOptions, setAnalysisOptions] = useState({
     model: 'alpha' as 'alpha' | 'split-half' | 'parallel',
     scaleIfDeleted: true,
@@ -555,14 +560,20 @@ export default function ReliabilityAnalysisPage() {
           </div>
 
           {/* 상세 결과 */}
-          <Tabs defaultValue="items" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="items">항목 통계</TabsTrigger>
-              <TabsTrigger value="correlations">상관 분석</TabsTrigger>
-              <TabsTrigger value="interpretation">해석 가이드</TabsTrigger>
-            </TabsList>
+          <ContentTabs
+              tabs={[
+                { id: 'items', label: '항목 통계', icon: List },
+                { id: 'correlations', label: '상관 분석', icon: Network },
+                { id: 'interpretation', label: '해석 가이드', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+            
 
-            <TabsContent value="items">
+            <ContentTabsContent tabId="items" show={activeResultTab === 'items'}>
               <Card>
                 <CardHeader>
                   <CardTitle>항목별 통계량</CardTitle>
@@ -594,9 +605,9 @@ export default function ReliabilityAnalysisPage() {
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="correlations">
+            <ContentTabsContent tabId="correlations" show={activeResultTab === 'correlations'}>
               <Card>
                 <CardHeader>
                   <CardTitle>항목 간 상관관계</CardTitle>
@@ -625,9 +636,9 @@ export default function ReliabilityAnalysisPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="interpretation">
+            <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
               <Card>
                 <CardHeader>
                   <CardTitle>결과 해석 가이드</CardTitle>
@@ -658,8 +669,8 @@ export default function ReliabilityAnalysisPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+            </ContentTabsContent>
+          </div>
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => actions.setCurrentStep?.(2)}>

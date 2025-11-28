@@ -13,12 +13,14 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calculator, TrendingUp, BarChart3, Info, CheckCircle2, Table as TableIcon } from 'lucide-react'
+import { Calculator, TrendingUp, BarChart3, Info, CheckCircle2, Table as TableIcon ,
+  FileText
+} from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -86,6 +88,7 @@ export default function DescriptiveStatsPage() {
 
   // Analysis timestamp state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('summary')
 
   const pyodideCore = useMemo(() => PyodideCoreService.getInstance(), [])
 
@@ -518,13 +521,18 @@ export default function DescriptiveStatsPage() {
             sampleSize={results.totalCases}
             timestamp={analysisTimestamp ?? undefined}
           />
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="summary">요약</TabsTrigger>
-            <TabsTrigger value="table">통계표</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'summary', label: '요약', icon: FileText },
+                { id: 'table', label: '통계표', icon: Table }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="summary" className="space-y-6">
+          <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-4">분석 요약</h3>
               {renderSummaryCards()}
@@ -534,12 +542,12 @@ export default function DescriptiveStatsPage() {
                 분석 일시: {results.analysisDate}
               </p>
             </div>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="table" className="space-y-6">
+          <ContentTabsContent tabId="table" show={activeResultTab === 'table'} className="space-y-6">
             {renderDescriptiveTable()}
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
         </div>
       )}
     </TwoPanelLayout>

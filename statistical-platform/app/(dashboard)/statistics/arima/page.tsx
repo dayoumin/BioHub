@@ -6,7 +6,7 @@ import type { ARIMAVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,9 @@ import {
   TrendingUp,
   BarChart3,
   Clock
+,
+  FileText,
+  Activity
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -55,6 +58,7 @@ export default function ARIMAPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('summary')
   const [activeTab, setActiveTab] = useState('summary')
   const [orderP, setOrderP] = useState(1)
   const [orderD, setOrderD] = useState(1)
@@ -398,14 +402,19 @@ export default function ARIMAPage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="forecast">Forecast</TabsTrigger>
-            <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'summary', label: 'Summary', icon: FileText },
+                { id: 'forecast', label: 'Forecast', icon: TrendingUp },
+                { id: 'diagnostics', label: 'Diagnostics', icon: Activity }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="summary" className="space-y-6">
+          <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
@@ -466,9 +475,9 @@ export default function ARIMAPage() {
                 </ul>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="forecast" className="space-y-6">
+          <ContentTabsContent tabId="forecast" show={activeResultTab === 'forecast'} className="space-y-6">
             <StatisticsTable
               columns={forecastColumns}
               data={forecastData}
@@ -480,9 +489,9 @@ export default function ARIMAPage() {
                 These are point forecasts. For prediction intervals, consider confidence bounds.
               </AlertDescription>
             </Alert>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="diagnostics" className="space-y-6">
+          <ContentTabsContent tabId="diagnostics" show={activeResultTab === 'diagnostics'} className="space-y-6">
             <StatisticsTable
               columns={fittedColumns}
               data={fittedData}
@@ -510,8 +519,8 @@ export default function ARIMAPage() {
                 </Alert>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
   }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])

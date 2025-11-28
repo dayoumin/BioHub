@@ -19,7 +19,7 @@ import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPane
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
@@ -41,6 +41,9 @@ import {
   XCircle,
   Target,
   TrendingUp
+,
+  FileText,
+  Shield
 } from 'lucide-react'
 
 interface WelchTResults {
@@ -101,7 +104,7 @@ export default function WelchTPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
-  const [activeTab, setActiveTab] = useState('summary')
+  const [activeResultTab, setActiveResultTab] = useState('summary')
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
   const [confidenceLevel, setConfidenceLevel] = useState('95')
   const [alternative, setAlternative] = useState('two-sided')
@@ -273,7 +276,7 @@ export default function WelchTPage() {
 
       setAnalysisTimestamp(new Date())
       actions.completeAnalysis(results, 3)
-      setActiveTab('summary')
+      setActiveResultTab('summary')
     } catch (err) {
       actions.setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.')
     }
@@ -581,15 +584,21 @@ export default function WelchTPage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="summary">요약</TabsTrigger>
-            <TabsTrigger value="results">검정결과</TabsTrigger>
-            <TabsTrigger value="assumptions">가정검토</TabsTrigger>
-            <TabsTrigger value="confidence">신뢰구간</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'summary', label: '요약', icon: FileText },
+                { id: 'results', label: '검정결과', icon: Table },
+                { id: 'assumptions', label: '가정검토', icon: Shield },
+                { id: 'confidence', label: '신뢰구간', icon: Target }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+          
 
-          <TabsContent value="summary" className="space-y-6">
+          <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
@@ -647,9 +656,9 @@ export default function WelchTPage() {
               <p className="text-muted-foreground">{results.conclusion}</p>
               <p className="text-sm text-muted-foreground mt-1">{results.interpretation}</p>
             </div>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="results" className="space-y-6">
+          <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">
             <StatisticsTable
               columns={[
                 { key: 'group', header: '그룹', type: 'text' as const },
@@ -706,9 +715,9 @@ export default function WelchTPage() {
               ]}
               title="Welch t-검정 결과"
             />
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="assumptions" className="space-y-6">
+          <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'} className="space-y-6">
             <Card className={results.equalVariances.assumption === 'violated' ? 'border bg-warning-bg' : 'border bg-success-bg'}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -769,9 +778,9 @@ export default function WelchTPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="confidence" className="space-y-6">
+          <ContentTabsContent tabId="confidence" show={activeResultTab === 'confidence'} className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -801,11 +810,11 @@ export default function WelchTPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
-  }, [isAnalyzing, error, results, activeTab, uploadedData, selectedVariables])
+  }, [isAnalyzing, error, results, activeResultTab, uploadedData, selectedVariables])
 
   // Type-safe onStepChange handler
   const handleStepChange = useCallback((step: number) => {

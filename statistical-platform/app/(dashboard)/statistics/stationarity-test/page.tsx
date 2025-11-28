@@ -6,7 +6,7 @@ import type { StationarityTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
@@ -18,6 +18,10 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle
+,
+  FileText,
+  Table,
+  MessageSquare
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -68,7 +72,7 @@ export default function StationarityTestPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
-  const [activeTab, setActiveTab] = useState('summary')
+  const [activeResultTab, setActiveResultTab] = useState('summary')
   const [regression, setRegression] = useState<'c' | 'ct'>('c')
 
   const breadcrumbs = useMemo(() => [
@@ -111,7 +115,7 @@ export default function StationarityTestPage() {
 
       setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(result, 3)
-      setActiveTab('summary')
+      setActiveResultTab('summary')
     } catch (error) {
       console.error('Stationarity test error:', error)
       actions.setError?.(error instanceof Error ? error.message : 'Analysis failed.')
@@ -369,14 +373,20 @@ export default function StationarityTestPage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="details">Test Details</TabsTrigger>
-            <TabsTrigger value="interpretation">Interpretation</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'summary', label: 'Summary', icon: FileText },
+                { id: 'details', label: 'Test Details', icon: Table },
+                { id: 'interpretation', label: 'Interpretation', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+          
 
-          <TabsContent value="summary" className="space-y-6">
+          <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
@@ -432,9 +442,9 @@ export default function StationarityTestPage() {
                 <strong>Recommendation:</strong> {results.recommendation}
               </AlertDescription>
             </Alert>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="details" className="space-y-6">
+          <ContentTabsContent tabId="details" show={activeResultTab === 'details'} className="space-y-6">
             <StatisticsTable
               columns={testColumns}
               data={adfData}
@@ -462,9 +472,9 @@ export default function StationarityTestPage() {
                 Lags used: {results.kpss.lags}
               </AlertDescription>
             </Alert>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation" className="space-y-6">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Analysis Summary</CardTitle>
@@ -512,11 +522,11 @@ export default function StationarityTestPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
-  }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])
+  }, [results, activeResultTab, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

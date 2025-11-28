@@ -6,7 +6,7 @@ import type { SeasonalDecomposeVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
@@ -17,6 +17,10 @@ import {
   Activity,
   TrendingUp,
   BarChart3
+,
+  FileText,
+  Layers,
+  MessageSquare
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -57,7 +61,7 @@ export default function SeasonalDecomposePage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
-  const [activeTab, setActiveTab] = useState('summary')
+  const [activeResultTab, setActiveResultTab] = useState('summary')
   const [model, setModel] = useState<'additive' | 'multiplicative'>('additive')
   const [period, setPeriod] = useState(12)
 
@@ -141,7 +145,7 @@ export default function SeasonalDecomposePage() {
 
       setAnalysisTimestamp(new Date())
       actions.completeAnalysis?.(analysisResult, 3)
-      setActiveTab('summary')
+      setActiveResultTab('summary')
     } catch (error) {
       console.error('Seasonal decomposition error:', error)
       actions.setError?.(error instanceof Error ? error.message : 'Analysis failed.')
@@ -369,14 +373,20 @@ export default function SeasonalDecomposePage() {
           timestamp={analysisTimestamp ?? undefined}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="components">Components</TabsTrigger>
-            <TabsTrigger value="interpretation">Interpretation</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'summary', label: 'Summary', icon: FileText },
+                { id: 'components', label: 'Components', icon: Layers },
+                { id: 'interpretation', label: 'Interpretation', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+          
 
-          <TabsContent value="summary" className="space-y-6">
+          <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
@@ -440,9 +450,9 @@ export default function SeasonalDecomposePage() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="components" className="space-y-6">
+          <ContentTabsContent tabId="components" show={activeResultTab === 'components'} className="space-y-6">
             <StatisticsTable
               columns={componentColumns}
               data={componentData}
@@ -454,9 +464,9 @@ export default function SeasonalDecomposePage() {
                 N/A values in trend and residual columns are due to edge effects in the moving average calculation.
               </AlertDescription>
             </Alert>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation" className="space-y-6">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Analysis Summary</CardTitle>
@@ -499,11 +509,11 @@ export default function SeasonalDecomposePage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
-  }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])
+  }, [results, activeResultTab, uploadedData, selectedVariables, analysisTimestamp])
 
   return (
     <TwoPanelLayout

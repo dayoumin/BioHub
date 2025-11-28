@@ -14,7 +14,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,11 @@ import {
   ChartBar,
   Play,
   ChevronRight
+,
+  Calculator,
+  MessageSquare,
+  Shield,
+  LineChart
 } from 'lucide-react'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
@@ -70,6 +75,7 @@ export default function MannKendallPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, error, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('statistics')
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -495,15 +501,20 @@ export default function MannKendallPage() {
         </div>
 
         {/* 상세 결과 탭 */}
-        <Tabs defaultValue="statistics" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="statistics">통계량</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-            <TabsTrigger value="assumptions">가정</TabsTrigger>
-            <TabsTrigger value="visualization">시각화</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+              tabs={[
+                { id: 'statistics', label: '통계량', icon: Calculator },
+                { id: 'interpretation', label: '해석', icon: MessageSquare },
+                { id: 'assumptions', label: '가정', icon: Shield },
+                { id: 'visualization', label: '시각화', icon: LineChart }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="statistics">
+          <ContentTabsContent tabId="statistics" show={activeResultTab === 'statistics'}>
             <Card>
               <CardHeader>
                 <CardTitle>Mann-Kendall 통계량</CardTitle>
@@ -541,9 +552,9 @@ export default function MannKendallPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
             <Card>
               <CardHeader>
                 <CardTitle>결과 해석</CardTitle>
@@ -608,9 +619,9 @@ export default function MannKendallPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="assumptions">
+          <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'}>
             <Card>
               <CardHeader>
                 <CardTitle>Mann-Kendall 검정 가정</CardTitle>
@@ -662,9 +673,9 @@ export default function MannKendallPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="visualization">
+          <ContentTabsContent tabId="visualization" show={activeResultTab === 'visualization'}>
             <Card>
               <CardHeader>
                 <CardTitle>시각화 가이드</CardTitle>
@@ -691,8 +702,8 @@ export default function MannKendallPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
   }, [results, uploadedData, selectedVariables, analysisTimestamp])

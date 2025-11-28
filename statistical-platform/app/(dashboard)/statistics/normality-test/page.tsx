@@ -6,7 +6,7 @@ import type { NormalityTestVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -19,6 +19,9 @@ import {
   CheckCircle2,
   Info,
   TrendingUp
+,
+  FileText,
+  Table
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -74,6 +77,7 @@ export default function NormalityTestPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('summary')
   const [activeTab, setActiveTab] = useState('summary')
   const [showAllTests, setShowAllTests] = useState(true)
 
@@ -426,15 +430,20 @@ export default function NormalityTestPage() {
           sampleSize={results.sampleSize}
           timestamp={analysisTimestamp ?? undefined}
         />
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="summary">요약</TabsTrigger>
-          <TabsTrigger value="results">검정결과</TabsTrigger>
-          <TabsTrigger value="conclusion">결론</TabsTrigger>
-          <TabsTrigger value="methods">방법설명</TabsTrigger>
-        </TabsList>
+      <ContentTabs
+              tabs={[
+                { id: 'summary', label: '요약', icon: FileText },
+                { id: 'results', label: '검정결과', icon: Table },
+                { id: 'conclusion', label: '결론', icon: CheckCircle2 },
+                { id: 'methods', label: '방법설명', icon: Info }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-        <TabsContent value="summary" className="space-y-6">
+        <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
             {renderSummaryCards()}
@@ -442,23 +451,23 @@ export default function NormalityTestPage() {
           <div>
             {renderDescriptiveTable()}
           </div>
-        </TabsContent>
+        </ContentTabsContent>
 
-        <TabsContent value="results" className="space-y-6">
+        <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">
           {renderTestResultsTable()}
-        </TabsContent>
+        </ContentTabsContent>
 
-        <TabsContent value="conclusion" className="space-y-6">
+        <ContentTabsContent tabId="conclusion" show={activeResultTab === 'conclusion'} className="space-y-6">
           {renderOverallConclusion()}
-        </TabsContent>
+        </ContentTabsContent>
 
-        <TabsContent value="methods" className="space-y-6">
+        <ContentTabsContent tabId="methods" show={activeResultTab === 'methods'} className="space-y-6">
           <div>
             <h3 className="text-lg font-semibold mb-4">검정 방법별 설명</h3>
             {renderTestDescriptions()}
           </div>
-        </TabsContent>
-      </Tabs>
+        </ContentTabsContent>
+      </div>
       </div>
     )
   }, [results, activeTab, uploadedData, selectedVariables, analysisTimestamp])
