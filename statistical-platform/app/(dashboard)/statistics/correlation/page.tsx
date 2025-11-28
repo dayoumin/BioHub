@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Separator } from '@/components/ui/separator'
 import {
   Binary,
@@ -16,7 +16,8 @@ import {
   TrendingUp,
   Network,
   Activity,
-  BarChart3
+  BarChart3,
+  ScatterChart as ScatterIcon
 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -109,6 +110,7 @@ export default function CorrelationPage() {
 
   // Analysis timestamp state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeScatterTab, setActiveScatterTab] = useState('0')
 
   // Page-specific state
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
@@ -617,36 +619,37 @@ export default function CorrelationPage() {
                 <CardTitle className="text-base">산점도 및 추세선</CardTitle>
               </CardHeader>
               <CardContent>
-                <Tabs defaultValue="0">
-                  <TabsList>
-                    {results.scatterPlots.map((plot: ScatterPlotData, idx: number) => (
-                      <TabsTrigger key={idx} value={idx.toString()}>
-                        {plot.name}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                  {results.scatterPlots.map((plot: ScatterPlotData, idx: number) => (
-                    <TabsContent key={idx} value={idx.toString()}>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <ScatterChart>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="x" name="X" />
-                          <YAxis dataKey="y" name="Y" />
-                          <Tooltip />
-                          <Scatter
-                            name={plot.name}
-                            data={plot.data}
-                            fill="#3b82f6"
-                          />
-                        </ScatterChart>
-                      </ResponsiveContainer>
-                      <div className="mt-2 text-center">
-                        <p className="text-sm font-medium">r = {plot.r.toFixed(3)}</p>
-                        <p className="text-xs text-muted-foreground">{plot.equation}</p>
-                      </div>
-                    </TabsContent>
-                  ))}
-                </Tabs>
+                <ContentTabs
+                  tabs={results.scatterPlots.map((plot: ScatterPlotData, idx: number) => ({
+                    id: idx.toString(),
+                    label: plot.name,
+                    icon: ScatterIcon
+                  }))}
+                  activeTab={activeScatterTab}
+                  onTabChange={setActiveScatterTab}
+                  className="mb-4"
+                />
+                {results.scatterPlots.map((plot: ScatterPlotData, idx: number) => (
+                  <ContentTabsContent key={idx} tabId={idx.toString()} show={activeScatterTab === idx.toString()}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ScatterChart>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="x" name="X" />
+                        <YAxis dataKey="y" name="Y" />
+                        <Tooltip />
+                        <Scatter
+                          name={plot.name}
+                          data={plot.data}
+                          fill="#3b82f6"
+                        />
+                      </ScatterChart>
+                    </ResponsiveContainer>
+                    <div className="mt-2 text-center">
+                      <p className="text-sm font-medium">r = {plot.r.toFixed(3)}</p>
+                      <p className="text-xs text-muted-foreground">{plot.equation}</p>
+                    </div>
+                  </ContentTabsContent>
+                ))}
               </CardContent>
             </Card>
           )}
