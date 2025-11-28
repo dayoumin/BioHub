@@ -1399,3 +1399,56 @@ app/(dashboard)/statistics/
 **관련 파일**:
 - [StatisticalResultCard.tsx](statistical-platform/components/statistics/common/StatisticalResultCard.tsx)
 - [result-converter.ts](statistical-platform/lib/statistics/result-converter.ts)
+
+---
+
+## 📋 백로그: 프로젝트 구조 단순화 (예정)
+
+**목표**: 모노레포 구조 → 플랫 구조로 변경하여 개발 편의성 향상
+
+**배경** (2025-11-28):
+- 현재 `statistical-platform/` 하위 폴더에 Next.js 앱 위치
+- 매번 `cd statistical-platform` 필요
+- `vercel.json`에서 경로 지정 필요
+- IDE에서 루트 열면 Next.js 자동 인식 안 됨
+
+**현재 구조**:
+```
+Statics/                        ← Git 루트
+├── CLAUDE.md, README.md, ...   ← 문서
+├── vercel.json                 ← 경로 지정 필요
+├── archive/, docs/ (루트)      ← 임시 파일들
+└── statistical-platform/       ← Next.js 앱
+    ├── app/, components/, ...
+    └── package.json
+```
+
+**목표 구조**:
+```
+Statics/                        ← Git 루트 + Next.js 루트
+├── app/, components/, lib/     ← Next.js 앱 (루트로 이동)
+├── package.json
+├── CLAUDE.md, README.md, ...   ← 문서 유지
+├── vercel.json                 ← 단순화
+└── src-tauri/                  ← (나중에 Tauri 추가 시)
+```
+
+**작업 내용**:
+1. 루트의 임시 파일들 정리 (archive로 이동 또는 삭제)
+2. `statistical-platform/*` 내용을 루트로 이동
+3. `vercel.json` 단순화
+4. `CLAUDE.md` 내 경로 참조 수정
+5. `.gitignore` 병합
+6. 빌드 테스트
+
+**예상 효과**:
+- `npm run dev` 바로 실행 가능
+- IDE에서 Next.js 자동 인식
+- 경로 관련 설정 오류 감소
+- 신규 개발자 진입 장벽 낮춤
+
+**우선순위**: Low (현재 기능에 영향 없음, 편의성 개선)
+
+**주의사항**:
+- Git 히스토리는 유지됨 (파일 이동으로 처리)
+- Vercel 재배포 필요

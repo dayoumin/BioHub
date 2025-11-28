@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vercel 배포 가이드</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    details > summary { cursor: pointer; list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+    details[open] .chevron { transform: rotate(180deg); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn.active { background: #3b82f6; color: white; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="max-w-4xl mx-auto p-6">
+
+    <!-- 헤더 -->
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Vercel 배포 가이드</h1>
+      <p class="text-gray-600">배포 과정에서 배운 핵심 개념 정리</p>
+      <div class="flex gap-2 mt-3">
+        <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">마지막 업데이트: 2025-11-28</span>
+        <span class="px-2 py-1 text-xs rounded bg-green-100 text-green-700">배포 성공</span>
+      </div>
+    </header>
+
+    <!-- 탭 네비게이션 -->
+    <div class="flex gap-2 mb-6">
+      <button onclick="showTab('concepts')" class="tab-btn active px-4 py-2 rounded-lg text-sm font-medium bg-gray-200">
+        핵심 개념
+      </button>
+      <button onclick="showTab('checklist')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200">
+        체크리스트
+      </button>
+      <button onclick="showTab('config')" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-200">
+        현재 설정
+      </button>
+    </div>
+
+    <!-- 핵심 개념 탭 -->
+    <div id="concepts" class="tab-content active space-y-6">
+
+      <!-- 네이티브 바이너리 -->
+      <div class="bg-white rounded-lg border p-6">
+        <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
+          <span class="text-2xl">💻</span> 네이티브 바이너리란?
+        </h2>
+        <p class="text-sm text-blue-600 mb-4">한 줄 요약: 운영체제와 CPU에 따라 다르게 컴파일된 실행 파일</p>
+
+        <p class="text-gray-600 mb-4">
+          JavaScript는 어디서든 실행되지만, 일부 패키지는 성능을 위해 C/C++이나 Rust로 작성됩니다.
+          이런 코드는 플랫폼(운영체제 + CPU)별로 다르게 컴파일해야 합니다.
+        </p>
+
+        <div class="bg-gray-50 rounded p-4 mb-4">
+          <h4 class="font-medium mb-2">예시 - lightningcss 패키지의 파일들</h4>
+          <div class="font-mono text-sm space-y-1">
+            <div><span class="text-blue-600">lightningcss.win32-x64-msvc.node</span> → Windows용</div>
+            <div><span class="text-green-600">lightningcss.linux-x64-gnu.node</span> → Linux용</div>
+            <div><span class="text-purple-600">lightningcss.darwin-x64.node</span> → macOS용</div>
+          </div>
+        </div>
+
+        <div class="bg-yellow-50 border border-yellow-200 rounded p-4">
+          <h4 class="font-medium text-yellow-800 mb-2">왜 문제가 되나요?</h4>
+          <ul class="text-sm text-yellow-700 space-y-1">
+            <li>• 내 컴퓨터: Windows → Windows용 바이너리 설치됨</li>
+            <li>• Vercel 서버: Linux → Linux용 바이너리가 필요함</li>
+            <li>• <strong>package-lock.json이 없으면</strong> 버전이 달라져서 잘못된 바이너리가 설치될 수 있음</li>
+          </ul>
+        </div>
+
+        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+          <p class="text-sm font-mono text-red-600">Error: Cannot find module '../lightningcss.linux-x64-gnu.node'</p>
+        </div>
+      </div>
+
+      <!-- package.json vs lock -->
+      <div class="bg-white rounded-lg border p-6">
+        <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
+          <span class="text-2xl">📄</span> package.json vs package-lock.json
+        </h2>
+        <p class="text-sm text-blue-600 mb-4">한 줄 요약: package.json은 "대충 이 버전", lock 파일은 "정확히 이 버전"</p>
+
+        <div class="grid md:grid-cols-2 gap-4 mb-4">
+          <div class="bg-gray-50 rounded p-4">
+            <h4 class="font-medium mb-2">package.json</h4>
+            <code class="block bg-gray-200 px-2 py-1 rounded text-sm mb-2">"tailwindcss": "^4.0.0"</code>
+            <p class="text-sm text-gray-600">4.0.0 이상이면 아무거나 OK</p>
+          </div>
+          <div class="bg-green-50 rounded p-4">
+            <h4 class="font-medium mb-2">package-lock.json</h4>
+            <code class="block bg-green-200 px-2 py-1 rounded text-sm mb-2">"tailwindcss": "4.0.15"</code>
+            <p class="text-sm text-gray-600">무조건 4.0.15만 설치</p>
+          </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded p-4">
+          <h4 class="font-medium text-blue-800 mb-2">왜 lock 파일이 필요한가요?</h4>
+          <pre class="text-xs text-blue-700 whitespace-pre-wrap">오늘 npm install
+→ tailwindcss 4.0.15 설치
+→ lightningcss 1.25.0 설치
+
+내일 npm install (lock 파일 없이)
+→ tailwindcss 4.1.0 설치 (새 버전!)
+→ lightningcss 1.26.0 설치
+→ 바이너리 불일치!</pre>
+        </div>
+
+        <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded">
+          <p class="text-sm"><strong>핵심 규칙:</strong> package-lock.json은 <strong>반드시 Git에 커밋</strong>해야 함</p>
+        </div>
+      </div>
+
+      <!-- Static vs Server -->
+      <div class="bg-white rounded-lg border p-6">
+        <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
+          <span class="text-2xl">🖥️</span> Static Export vs Server Mode
+        </h2>
+        <p class="text-sm text-blue-600 mb-4">한 줄 요약: HTML 파일만 만들 것인가, 서버도 돌릴 것인가</p>
+
+        <table class="w-full text-sm mb-4">
+          <thead>
+            <tr class="border-b">
+              <th class="text-left py-2">구분</th>
+              <th class="text-left py-2">Static Export</th>
+              <th class="text-left py-2">Server Mode</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b">
+              <td class="py-2 font-medium">설정</td>
+              <td class="py-2"><code class="bg-gray-100 px-1 rounded">output: 'export'</code></td>
+              <td class="py-2">기본값</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-medium">결과물</td>
+              <td class="py-2"><code class="bg-gray-100 px-1 rounded">out/</code> 폴더</td>
+              <td class="py-2"><code class="bg-gray-100 px-1 rounded">.next/</code> 폴더</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2 font-medium">API Routes</td>
+              <td class="py-2 text-red-600">사용 불가</td>
+              <td class="py-2 text-green-600">사용 가능</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-medium">호스팅</td>
+              <td class="py-2">아무 웹서버 OK</td>
+              <td class="py-2">Node.js 필요</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="bg-purple-50 border border-purple-200 rounded p-4">
+          <h4 class="font-medium text-purple-800 mb-2">이 프로젝트는 왜 Static Export인가요?</h4>
+          <ul class="text-sm text-purple-700 space-y-1">
+            <li>• Pyodide(Python)가 <strong>클라이언트(브라우저)</strong>에서 실행됨</li>
+            <li>• 서버가 필요 없음</li>
+            <li>• 어떤 웹서버에서든 호스팅 가능</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Monorepo -->
+      <div class="bg-white rounded-lg border p-6">
+        <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
+          <span class="text-2xl">📁</span> Monorepo 구조
+        </h2>
+        <p class="text-sm text-blue-600 mb-4">한 줄 요약: Next.js가 루트가 아닌 하위 폴더에 있음</p>
+
+        <pre class="bg-gray-900 text-gray-100 p-4 rounded text-xs overflow-x-auto mb-4">Statistics/                    ← Git 루트
+├── vercel.json               ← Vercel 설정 (여기!)
+├── statistical-platform/      ← Next.js 앱 (여기서 빌드)
+│   ├── app/
+│   ├── package.json
+│   ├── package-lock.json     ← 반드시 커밋!
+│   └── next.config.ts
+├── rag-system/               ← Python 시스템
+└── docs/</pre>
+
+        <div class="bg-orange-50 border border-orange-200 rounded p-4">
+          <h4 class="font-medium text-orange-800 mb-2">Vercel 설정의 핵심</h4>
+          <ul class="text-sm text-orange-700 space-y-1">
+            <li>• <code class="bg-orange-200 px-1 rounded">framework: "nextjs"</code> 사용하면 안 됨 (루트에서 찾으려고 함)</li>
+            <li>• buildCommand로 직접 지정: <code class="bg-orange-200 px-1 rounded">cd statistical-platform && npm run build</code></li>
+            <li>• outputDirectory는 루트 기준: <code class="bg-orange-200 px-1 rounded">statistical-platform/out</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- 체크리스트 탭 -->
+    <div id="checklist" class="tab-content space-y-6">
+
+      <!-- 배포 전 체크리스트 -->
+      <div class="bg-white rounded-lg border p-6">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <span class="text-2xl">✅</span> 배포 전 체크리스트
+        </h2>
+        <ul class="space-y-3">
+          <li class="flex items-center gap-3">
+            <input type="checkbox" class="w-5 h-5 accent-green-500">
+            <span><strong>package-lock.json이 Git에 커밋되어 있는가?</strong></span>
+            <span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">필수!</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <input type="checkbox" class="w-5 h-5 accent-green-500">
+            <span><strong>로컬에서 npm run build 성공하는가?</strong></span>
+            <span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">필수!</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <input type="checkbox" class="w-5 h-5 accent-green-500">
+            <span><strong>vercel.json의 outputDirectory가 올바른가?</strong></span>
+            <span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">필수!</span>
+          </li>
+          <li class="flex items-center gap-3">
+            <input type="checkbox" class="w-5 h-5 accent-green-500">
+            <span>API Routes를 사용한다면 Static Export가 아닌지 확인</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 자주 발생하는 에러 -->
+      <div class="bg-white rounded-lg border p-6">
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+          <span class="text-2xl">⚠️</span> 자주 발생하는 에러
+        </h2>
+        <div class="space-y-4">
+
+          <div class="border rounded-lg p-4">
+            <code class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded block mb-2">
+              Cannot find module '...node'
+            </code>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-gray-500">원인:</span>
+                <p class="font-medium">네이티브 바이너리 누락</p>
+              </div>
+              <div>
+                <span class="text-gray-500">해결:</span>
+                <p class="font-medium text-green-600">package-lock.json 커밋</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="border rounded-lg p-4">
+            <code class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded block mb-2">
+              404 NOT_FOUND
+            </code>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-gray-500">원인:</span>
+                <p class="font-medium">outputDirectory 불일치</p>
+              </div>
+              <div>
+                <span class="text-gray-500">해결:</span>
+                <p class="font-medium text-green-600">out/ 또는 .next/ 확인</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="border rounded-lg p-4">
+            <code class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded block mb-2">
+              No Next.js version detected
+            </code>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-gray-500">원인:</span>
+                <p class="font-medium">Monorepo에서 framework 사용</p>
+              </div>
+              <div>
+                <span class="text-gray-500">해결:</span>
+                <p class="font-medium text-green-600">framework 필드 제거</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="border rounded-lg p-4">
+            <code class="text-xs text-red-600 bg-red-50 px-2 py-1 rounded block mb-2">
+              dynamic = "force-static" not configured
+            </code>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span class="text-gray-500">원인:</span>
+                <p class="font-medium">Static Export + API Routes</p>
+              </div>
+              <div>
+                <span class="text-gray-500">해결:</span>
+                <p class="font-medium text-green-600">API Routes 제거</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 현재 설정 탭 -->
+    <div id="config" class="tab-content space-y-6">
+
+      <div class="bg-white rounded-lg border p-6">
+        <h2 class="text-xl font-bold mb-4">현재 프로젝트 설정</h2>
+        <p class="text-gray-600 mb-4">
+          이 프로젝트는 <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">Static Export</span> 방식으로 배포됩니다
+        </p>
+
+        <div class="space-y-4">
+          <div>
+            <h4 class="font-medium mb-2">vercel.json</h4>
+            <pre class="bg-gray-900 text-gray-100 p-4 rounded text-xs overflow-x-auto">{
+  "version": 2,
+  "installCommand": "cd statistical-platform && npm install --legacy-peer-deps",
+  "buildCommand": "cd statistical-platform && npm run build",
+  "outputDirectory": "statistical-platform/out"
+}</pre>
+          </div>
+
+          <div>
+            <h4 class="font-medium mb-2">next.config.ts (핵심 부분)</h4>
+            <pre class="bg-gray-900 text-gray-100 p-4 rounded text-xs overflow-x-auto">// Static Export 활성화 (프로덕션에서만)
+...(process.env.NODE_ENV === 'production' && {
+  output: 'export',
+  trailingSlash: true,
+}),</pre>
+          </div>
+
+          <div>
+            <h4 class="font-medium mb-3">배포 요구사항</h4>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-green-500 text-lg">✓</span>
+                <span>package-lock.json 커밋</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-green-500 text-lg">✓</span>
+                <span>Static Export 활성화</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-green-500 text-lg">✓</span>
+                <span>API Routes 제거됨</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <span class="text-green-500 text-lg">✓</span>
+                <span>outputDirectory 설정</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 문제 해결 히스토리 -->
+      <div class="bg-white rounded-lg border p-6">
+        <h2 class="text-xl font-bold mb-4">문제 해결 히스토리 (2025-11-28)</h2>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b">
+              <th class="text-left py-2">시도</th>
+              <th class="text-left py-2">결과</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b">
+              <td class="py-2">rm -rf node_modules 추가</td>
+              <td class="py-2 text-red-600">실패</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2">CSS_TRANSFORMER_WASM=1 환경변수</td>
+              <td class="py-2 text-red-600">실패</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2">lightningcss-linux-x64-gnu 설치</td>
+              <td class="py-2 text-red-600">실패</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2">optionalDependencies 추가</td>
+              <td class="py-2 text-red-600">실패</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2">Vercel 캐시 삭제</td>
+              <td class="py-2 text-red-600">실패</td>
+            </tr>
+            <tr class="border-b bg-green-50">
+              <td class="py-2 font-medium">package-lock.json 커밋</td>
+              <td class="py-2 text-green-600 font-medium">성공!</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2">framework: nextjs 추가</td>
+              <td class="py-2 text-red-600">실패</td>
+            </tr>
+            <tr class="border-b">
+              <td class="py-2">Static Export + out 디렉토리</td>
+              <td class="py-2 text-red-600">API Routes 에러</td>
+            </tr>
+            <tr class="bg-green-50">
+              <td class="py-2 font-medium">API Routes 제거</td>
+              <td class="py-2 text-green-600 font-medium">최종 성공!</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer class="mt-8 text-center text-sm text-gray-500">
+      <p>Statistical Analysis Platform - 배포 가이드</p>
+    </footer>
+  </div>
+
+  <script>
+    function showTab(tabId) {
+      // 모든 탭 컨텐츠 숨기기
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      // 모든 탭 버튼 비활성화
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('active');
+        el.classList.add('bg-gray-200');
+      });
+      // 선택된 탭 활성화
+      document.getElementById(tabId).classList.add('active');
+      // 선택된 버튼 활성화
+      event.target.classList.add('active');
+      event.target.classList.remove('bg-gray-200');
+    }
+  </script>
+</body>
+</html>
