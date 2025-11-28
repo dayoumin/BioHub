@@ -51,6 +51,15 @@ export interface DataPreviewTableProps {
 
   /** 각 행의 실제 행 번호 배열 (순서대로). 미지정 시 startIndex부터 순차 증가 */
   rowIndices?: number[]
+
+  /** 하이라이트할 행 번호 배열 (1-indexed, 원본 데이터 기준) */
+  highlightRows?: number[]
+
+  /** 하이라이트할 컬럼명 (특정 컬럼만 강조) */
+  highlightColumn?: string
+
+  /** 하이라이트된 행 클릭 시 콜백 */
+  onHighlightRowClick?: (rowIndex: number) => void
 }
 
 export function DataPreviewTable({
@@ -63,7 +72,10 @@ export function DataPreviewTable({
   startIndex = 1,
   omittedRows,
   omitAfterIndex,
-  rowIndices
+  rowIndices,
+  highlightRows,
+  highlightColumn,
+  onHighlightRowClick
 }: DataPreviewTableProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
@@ -174,9 +186,29 @@ export function DataPreviewTable({
                           </td>
                         </tr>
                       )}
-                      <tr className="hover:bg-muted/30 transition-colors">
+                      <tr
+                        className={cn(
+                          "transition-colors",
+                          highlightRows?.includes(displayRowNumber)
+                            ? "bg-yellow-100 dark:bg-yellow-900/40 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 cursor-pointer"
+                            : "hover:bg-muted/30"
+                        )}
+                        onClick={() => {
+                          if (highlightRows?.includes(displayRowNumber) && onHighlightRowClick) {
+                            onHighlightRowClick(displayRowNumber)
+                          }
+                        }}
+                      >
                         {/* 행 번호 */}
-                        <td className="px-3 py-2 text-muted-foreground border-b font-mono text-xs">
+                        <td className={cn(
+                          "px-3 py-2 border-b font-mono text-xs",
+                          highlightRows?.includes(displayRowNumber)
+                            ? "text-yellow-700 dark:text-yellow-300 font-bold"
+                            : "text-muted-foreground"
+                        )}>
+                          {highlightRows?.includes(displayRowNumber) && (
+                            <span className="mr-1">●</span>
+                          )}
                           {displayRowNumber}
                         </td>
                         {/* 데이터 셀 */}
@@ -188,6 +220,8 @@ export function DataPreviewTable({
                               : String(value)
 
                           const isNumber = typeof value === 'number' || (!isNaN(Number(value)) && value !== '')
+                          const isHighlightedCell = highlightRows?.includes(displayRowNumber) &&
+                            (!highlightColumn || highlightColumn === col)
 
                           return (
                             <td
@@ -195,7 +229,8 @@ export function DataPreviewTable({
                               className={cn(
                                 'px-3 py-2 border-b',
                                 isNumber && 'text-right font-mono',
-                                (value === null || value === undefined || value === '') && 'text-muted-foreground'
+                                (value === null || value === undefined || value === '') && 'text-muted-foreground',
+                                isHighlightedCell && highlightColumn === col && 'bg-yellow-200 dark:bg-yellow-800/50 font-bold'
                               )}
                             >
                               {displayValue}

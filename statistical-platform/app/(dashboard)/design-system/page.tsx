@@ -16,7 +16,7 @@ import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
-  ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator
+  ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -67,6 +67,12 @@ const LayoutPrototypeSection = dynamic(
   { ssr: false, loading: LoadingSpinner }
 )
 
+// Tab Style Comparison 섹션 (항상 사용 가능)
+const TabStyleComparisonSection = dynamic(
+  () => import('./sections/TabStyleComparisonSection').then(mod => ({ default: mod.TabStyleComparisonSection })),
+  { ssr: false, loading: LoadingSpinner }
+)
+
 // 개발 전용 섹션 (프로덕션에서 제외)
 
 const StatisticsPagePatternSection = process.env.NODE_ENV !== 'production'
@@ -111,6 +117,7 @@ const NAV_SECTIONS = [
   { id: 'buttons', label: 'Buttons', icon: SquareStack },
   { id: 'typography', label: 'Typography', icon: Type },
   { id: 'animations', label: 'Animations', icon: Zap },
+  { id: 'tab-styles', label: 'Tab Styles', icon: ToggleLeft, isNew: true },
   { id: 'components', label: 'Components', icon: GitCompare },
   { id: 'visualizations', label: 'Visualizations', icon: SquareStack },
   { id: 'data-utils', label: 'Data Utilities', icon: Table },
@@ -205,6 +212,11 @@ export default function ComponentsShowcasePage() {
               >
                 <Icon className="h-4 w-4" />
                 {section.label}
+                {'isNew' in section && section.isNew && (
+                  <Badge className="ml-auto text-[10px] px-1.5 py-0 bg-green-500">
+                    NEW
+                  </Badge>
+                )}
                 {'devOnly' in section && section.devOnly && (
                   <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">
                     DEV
@@ -698,7 +710,14 @@ animation: {
           )}
 
           {/* ========================================
-              5. 공통 컴포넌트
+              5. Tab Styles Comparison
+          ======================================== */}
+          {activeSection === 'tab-styles' && (
+            <TabStyleComparisonSection />
+          )}
+
+          {/* ========================================
+              6. 공통 컴포넌트
           ======================================== */}
           {activeSection === 'components' && (
             <div className="space-y-6 animate-in fade-in duration-500">

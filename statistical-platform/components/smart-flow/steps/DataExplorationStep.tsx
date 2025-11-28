@@ -13,7 +13,8 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, X, TrendingUp, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3, GitCommitHorizontal } from 'lucide-react'
+import { X, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3, GitCommitHorizontal, Flame } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { ValidationResults, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
 import { DataProfileSummary } from '@/components/common/analysis/DataProfileSummary'
 import { usePyodide } from '@/components/providers/PyodideProvider'
@@ -26,6 +27,8 @@ import { DataPreviewTable } from '@/components/common/analysis/DataPreviewTable'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StepNavigation } from '@/components/smart-flow/StepNavigation'
 import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
+import { OutlierDetailPanel, OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -113,6 +116,42 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const [selectedBoxplotVars, setSelectedBoxplotVars] = useState<string[]>([])
   // 히스토그램용 단일 변수 선택
   const [selectedHistogramVar, setSelectedHistogramVar] = useState<string>('')
+
+  // 이상치 상세 모달 상태
+  const [outlierModalOpen, setOutlierModalOpen] = useState(false)
+  const [selectedOutlierVar, setSelectedOutlierVar] = useState<string | null>(null)
+
+  // 데이터 미리보기 탭에서 하이라이트할 행들
+  const [highlightedRows, setHighlightedRows] = useState<number[]>([])
+
+  // 산점도/히트맵 탭 상태 (ContentTabs 스타일용)
+  const [explorationTab, setExplorationTab] = useState<'scatterplots' | 'heatmap'>('scatterplots')
+  const [highlightedColumn, setHighlightedColumn] = useState<string | undefined>(undefined)
+
+
+  // 이상치가 포함된 행만 미리보기에서 확인하기 위한 필터링 데이터
+  const highlightedPreview = useMemo(() => {
+    if (highlightedRows.length === 0) {
+      return { rows: [] as DataRow[], rowIndices: [] as number[] }
+    }
+
+    const sortedIndices = Array.from(new Set(highlightedRows)).sort((a, b) => a - b)
+    const rows: DataRow[] = []
+    const rowIndices: number[] = []
+
+    sortedIndices.forEach(idx => {
+      const row = data[idx - 1]
+      if (row !== undefined) {
+        rows.push(row)
+        rowIndices.push(idx)
+      }
+    })
+
+    return { rows, rowIndices }
+  }, [data, highlightedRows])
+
+  // 현재 활성 탭 (기초 통계량 / 데이터 미리보기)
+  const [activeDataTab, setActiveDataTab] = useState<string>('statistics')
 
   // 수치형/범주형 변수 목록
   // ID로 감지된 컬럼은 시각화/분석에서 제외
@@ -313,6 +352,90 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   const formatStat = useCallback((value?: number, digits = 2) => {
     return value !== undefined && !Number.isNaN(value) ? value.toFixed(digits) : 'N/A'
   }, [])
+
+  // 특정 변수의 이상치 상세 정보 계산
+  const getOutlierDetails = useCallback((varName: string): {
+    outliers: OutlierInfo[]
+    statistics: {
+      min: number
+      q1: number
+      median: number
+      q3: number
+      max: number
+      mean?: number
+      iqr: number
+      lowerBound: number
+      upperBound: number
+      extremeLowerBound: number
+      extremeUpperBound: number
+    }
+  } | null => {
+    const values = getNumericValues(varName)
+    if (values.length === 0) return null
+
+    const sorted = [...values].sort((a, b) => a - b)
+    const n = sorted.length
+
+    const q1 = getPercentile(sorted, 0.25) ?? 0
+    const q3 = getPercentile(sorted, 0.75) ?? 0
+    const median = getPercentile(sorted, 0.5) ?? 0
+    const iqr = q3 - q1
+
+    const lowerBound = q1 - 1.5 * iqr
+    const upperBound = q3 + 1.5 * iqr
+    const extremeLowerBound = q1 - 3.0 * iqr
+    const extremeUpperBound = q3 + 3.0 * iqr
+
+    const mean = values.reduce((sum, v) => sum + v, 0) / n
+
+    // 이상치 찾기 (행 번호 포함)
+    const outliers: OutlierInfo[] = []
+    data.forEach((row, idx) => {
+      const val = row[varName]
+      if (val === null || val === undefined || val === '') return
+      const numVal = Number(val)
+      if (isNaN(numVal)) return
+
+      if (numVal < lowerBound || numVal > upperBound) {
+        const isExtreme = numVal < extremeLowerBound || numVal > extremeUpperBound
+        outliers.push({
+          value: numVal,
+          rowIndex: idx + 1, // 1-indexed
+          isExtreme
+        })
+      }
+    })
+
+    return {
+      outliers,
+      statistics: {
+        min: sorted[0],
+        q1,
+        median,
+        q3,
+        max: sorted[n - 1],
+        mean,
+        iqr,
+        lowerBound,
+        upperBound,
+        extremeLowerBound,
+        extremeUpperBound
+      }
+    }
+  }, [data, getNumericValues, getPercentile])
+
+  // 이상치 모달 열기 핸들러
+  const handleOpenOutlierModal = useCallback((varName: string) => {
+    setSelectedOutlierVar(varName)
+    setOutlierModalOpen(true)
+  }, [])
+
+  // 이상치 데이터에서 보기 핸들러
+  const handleViewOutliersInData = useCallback((rowIndices: number[]) => {
+    setHighlightedRows(rowIndices)
+    setHighlightedColumn(selectedOutlierVar ?? undefined)
+    setActiveDataTab('preview')
+  }, [selectedOutlierVar])
 
   // 다음 단계 진행 가능 여부 (데이터 검증 통과 필수)
   const canProceedToNext = useMemo(() => {
@@ -801,7 +924,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="statistics" className="w-full">
+          <Tabs value={activeDataTab} onValueChange={setActiveDataTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="statistics">
                 <ListOrdered className="h-4 w-4 mr-2" />
@@ -810,6 +933,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               <TabsTrigger value="preview">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 데이터 미리보기
+                {highlightedRows.length > 0 && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {highlightedRows.length}
+                  </Badge>
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -933,7 +1061,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                             </td>
                             <td className="p-2 text-right">
                               {col.outlierCount > 0 ? (
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800 transition-colors"
+                                  onClick={() => handleOpenOutlierModal(col.name)}
+                                >
                                   {col.outlierCount}개
                                 </Badge>
                               ) : (
@@ -963,42 +1095,84 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               </div>
             </TabsContent>
 
-            {/* 데이터 미리보기 탭 (상위 5개 + 생략 + 하위 5개를 하나의 테이블로) */}
+            {/* 데이터 미리보기 탭 */}
             <TabsContent value="preview" className="mt-0">
               <div className="space-y-4">
-                {/* 10행 이하: 전체 표시 / 10행 초과: 상위 5 + 생략 + 하위 5 */}
-                {data.length <= 10 ? (
-                  <DataPreviewTable
-                    data={data}
-                    maxRows={10}
-                    defaultOpen={true}
-                    title=""
-                    height="auto"
-                  />
-                ) : (
-                  (() => {
-                    const topRows = data.slice(0, 5)
-                    const bottomRows = data.slice(-5)
-                    const omittedCount = data.length - 10
-
-                    // 행 번호 배열: 상위 1-5, 하위 (n-4)~n
-                    const indices = [1, 2, 3, 4, 5].concat(
-                      [...Array(5).keys()].map(i => data.length - 4 + i)
-                    )
-
-                    return (
+                {/* 하이라이트된 행이 있으면 해당 행들만 표시 */}
+                {highlightedRows.length > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-yellow-600 dark:text-yellow-400">●</span>
+                        <span className="font-medium text-yellow-800 dark:text-yellow-200">
+                          {highlightedColumn} 변수의 이상치 {highlightedRows.length}개가 강조 표시되었습니다
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setHighlightedRows([])
+                          setHighlightedColumn(undefined)
+                        }}
+                      >
+                        하이라이트 해제
+                      </Button>
+                    </div>
+                    {highlightedPreview.rowIndices.length > 0 ? (
                       <DataPreviewTable
-                        data={[...topRows, ...bottomRows]}
+                        data={highlightedPreview.rows}
+                        maxRows={highlightedPreview.rows.length || 1}
+                        defaultOpen={true}
+                        title=""
+                        height="400px"
+                        rowIndices={highlightedPreview.rowIndices}
+                        highlightRows={highlightedPreview.rowIndices}
+                        highlightColumn={highlightedColumn}
+                      />
+                    ) : (
+                      <div className="p-3 text-sm text-muted-foreground border rounded-md bg-muted/30">
+                        선택한 행을 찾을 수 없습니다. 데이터가 변경되었는지 확인해주세요.
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* 10행 이하: 전체 표시 / 10행 초과: 상위 5 + 생략 + 하위 5 */}
+                    {data.length <= 10 ? (
+                      <DataPreviewTable
+                        data={data}
                         maxRows={10}
                         defaultOpen={true}
                         title=""
                         height="auto"
-                        omittedRows={omittedCount}
-                        omitAfterIndex={4}
-                        rowIndices={indices}
                       />
-                    )
-                  })()
+                    ) : (
+                      (() => {
+                        const topRows = data.slice(0, 5)
+                        const bottomRows = data.slice(-5)
+                        const omittedCount = data.length - 10
+
+                        // 행 번호 배열: 상위 1-5, 하위 (n-4)~n
+                        const indices = [1, 2, 3, 4, 5].concat(
+                          [...Array(5).keys()].map(i => data.length - 4 + i)
+                        )
+
+                        return (
+                          <DataPreviewTable
+                            data={[...topRows, ...bottomRows]}
+                            maxRows={10}
+                            defaultOpen={true}
+                            title=""
+                            height="auto"
+                            omittedRows={omittedCount}
+                            omitAfterIndex={4}
+                            rowIndices={indices}
+                          />
+                        )
+                      })()
+                    )}
+                  </>
                 )}
 
                 {/* 전체 보기 안내 */}
@@ -1222,21 +1396,21 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         </CardContent>
       </Card>
 
-      {/* Tabs: 산점도 vs 상관계수 행렬 */}
-      <Tabs defaultValue="scatterplots" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="scatterplots">
-            <ChartScatter className="h-4 w-4 mr-2" />
-            산점도
-          </TabsTrigger>
-          <TabsTrigger value="correlation">
-            <TrendingUp className="h-4 w-4 mr-2" />
-            상관계수 행렬
-          </TabsTrigger>
-        </TabsList>
+      {/* ContentTabs: 산점도 vs 상관 히트맵 */}
+      <div className="w-full">
+        <ContentTabs
+          tabs={[
+            { id: 'scatterplots', label: '산점도', icon: ChartScatter },
+            { id: 'heatmap', label: '상관 히트맵', icon: Flame }
+          ]}
+          activeTab={explorationTab}
+          onTabChange={(id) => setExplorationTab(id as 'scatterplots' | 'heatmap')}
+          className="mb-4"
+        />
 
-        {/* 산점도 Tab */}
-        <TabsContent value="scatterplots" className="space-y-4">
+        {/* 산점도 Tab Content */}
+        <ContentTabsContent show={explorationTab === 'scatterplots'}>
+          <div className="space-y-4">
           {scatterplots.map(config => {
             const { x: xData, y: yData } = getPairedData(config.xVariable, config.yVariable)
             const scatterData = xData.map((x, i) => ({ x, y: yData[i] }))
@@ -1358,20 +1532,11 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               </Card>
             )
           })}
+          </div>
+        </ContentTabsContent>
 
-          {/* 산점도 추가 버튼 */}
-          <button
-            onClick={addScatterplot}
-            disabled={scatterplots.length >= numericVariables.length}
-            className="w-full py-3 border-2 border-dashed border-muted-foreground/20 rounded-lg text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="text-sm font-medium">새 산점도 추가</span>
-          </button>
-        </TabsContent>
-
-        {/* 상관계수 행렬 Tab - 히트맵 */}
-        <TabsContent value="correlation">
+        {/* 상관 히트맵 Tab Content */}
+        <ContentTabsContent show={explorationTab === 'heatmap'}>
           <Card>
             <CardHeader>
               <CardTitle>상관계수 히트맵</CardTitle>
@@ -1420,26 +1585,26 @@ export const DataExplorationStep = memo(function DataExplorationStep({
 
                   {/* 해석 가이드 */}
                   <div className="mt-4 text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="font-medium mb-1">💡 상관계수 해석:</p>
+                    <p className="font-medium mb-1">상관계수 해석:</p>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r ≈ +1</strong>: 강한 양의 상관</div>
-                      <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r ≈ -1</strong>: 강한 음의 상관</div>
-                      <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r ≈ 0</strong>: 상관 없음</div>
-                      <div><strong>|r| ≥ 0.7</strong>: 매우 강한 상관</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-red-500 mr-1"></span> <strong>r = +1</strong>: 강한 양의 상관</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span> <strong>r = -1</strong>: 강한 음의 상관</div>
+                      <div><span className="inline-block w-3 h-3 rounded bg-gray-200 mr-1"></span> <strong>r = 0</strong>: 상관 없음</div>
+                      <div><strong>|r| &gt;= 0.7</strong>: 매우 강한 상관</div>
                     </div>
                   </div>
 
                   {/* 강한 상관관계 목록 */}
                   {correlationMatrix.filter(c => Math.abs(c.r) >= 0.5).length > 0 && (
                     <div className="mt-4">
-                      <p className="text-sm font-medium mb-2">📌 주요 상관관계 (|r| ≥ 0.5)</p>
+                      <p className="text-sm font-medium mb-2">주요 상관관계 (|r| &gt;= 0.5)</p>
                       <div className="space-y-1">
                         {correlationMatrix
                           .filter(c => Math.abs(c.r) >= 0.5)
                           .slice(0, 5)
                           .map(({ var1, var2, r }) => (
                             <div key={`${var1}-${var2}`} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
-                              <span>{var1} ↔ {var2}</span>
+                              <span>{var1} - {var2}</span>
                               <Badge variant={Math.abs(r) >= 0.7 ? 'default' : 'secondary'}>
                                 r = {r >= 0 ? '+' : ''}{r.toFixed(3)}
                               </Badge>
@@ -1452,8 +1617,25 @@ export const DataExplorationStep = memo(function DataExplorationStep({
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </ContentTabsContent>
+      </div>
+
+      {/* 이상치 상세 모달 */}
+      {selectedOutlierVar && (() => {
+        const details = getOutlierDetails(selectedOutlierVar)
+        if (!details) return null
+
+        return (
+          <OutlierDetailPanel
+            open={outlierModalOpen}
+            onOpenChange={setOutlierModalOpen}
+            variableName={selectedOutlierVar}
+            outliers={details.outliers}
+            statistics={details.statistics}
+            onViewInData={handleViewOutliersInData}
+          />
+        )
+      })()}
 
     </div>
   )

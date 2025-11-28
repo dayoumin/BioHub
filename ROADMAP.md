@@ -1224,6 +1224,87 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 **우선순위**: Medium (Phase 2-3은 향후 필요 시 진행)
 
 
+
+---
+
+## 📊 Phase 13: AI-Enhanced Result Interpretation (예정)
+
+**목표**: AHP App 분석을 통한 결과 해석 및 학술 보고서 기능 추가
+
+**참조**: [AHP_APP_FEATURES_PROPOSAL.md](statistical-platform/docs/proposals/AHP_APP_FEATURES_PROPOSAL.md)
+
+**배경** (2025-11-27):
+- AHP App (연구자 의사결정 플랫폼) 분석 완료
+- AI 기반 해석의 hallucination 위험으로 **규칙 기반 접근** 채택
+- 기존 `lib/interpretation/engine.ts` 확장 방식으로 구현
+
+### Phase 13-1: Rule-based Insights Engine (우선순위: High)
+
+**목표**: 분석 결과에 대한 맞춤형 인사이트 자동 생성
+
+**원리**: AI가 아닌 **통계학 규칙 기반** → 신뢰성 보장
+
+**인사이트 유형**:
+- significant_finding: 유의한 결과 발견
+- small_effect_warning: 유의하나 효과크기 작음
+- sample_size_warning: 표본 크기 주의
+- assumption_violation: 가정 검정 실패
+- recommendation: 다음 분석 권장
+
+**산출물**:
+- `lib/interpretation/insight-rules.ts` - 규칙 정의
+- `lib/interpretation/insights-engine.ts` - 인사이트 생성 엔진
+- `components/statistics/common/InsightsPanel.tsx` - UI 컴포넌트
+
+**예상 시간**: 2주
+
+---
+
+### Phase 13-2: Academic Report Generator (우선순위: Medium)
+
+**목표**: 통계 분석 결과를 학술 논문 형식으로 자동 변환
+
+**원리**: **템플릿 + 데이터 삽입** (AI 의존도 낮음)
+
+**보고서 구조**:
+1. 표지 (분석명, 분석자, 날짜)
+2. 분석 개요 (목적, 가설, 데이터 설명)
+3. 기술통계
+4. 가정 검정 결과
+5. 주 분석 결과 (테이블 + 차트)
+6. 해석 및 결론 (규칙 기반)
+7. 부록 (원본 데이터 요약)
+
+**지원 형식**:
+- PDF (jsPDF + jspdf-autotable)
+- DOCX (docx.js)
+- APA/KCI/SSCI 인용 스타일
+
+**예상 시간**: 3주
+
+---
+
+### Phase 13-3: RAG-based Interpretation (우선순위: Low, Optional)
+
+**목표**: RAG를 활용한 통계 개념 설명 강화
+
+**⚠️ 주의**: 결과 해석이 아닌 **개념 설명**에만 사용
+
+**예상 시간**: 1주 (선택적)
+
+---
+
+### 구현 우선순위
+
+| 기능 | 우선순위 | 예상 시간 | 위험도 |
+|------|---------|---------|--------|
+| Rule-based Insights | High | 2주 | Low |
+| Academic Report (PDF) | Medium | 3주 | Low |
+| RAG Interpretation | Low | 1주 | Medium |
+
+**총 예상 시간**: 5-6주 (Phase 13-1, 13-2만 구현 시)
+
+
 ## 🔮 장기 비전
 
 ### 기술적 목표
@@ -1243,4 +1324,48 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 **현재 진행률**: 43/55 (78%) → 목표 55/55 (100%)
 **다음 마일스톤**: Phase 5-3 (Worker Pool Lazy Loading)
 
-**최근 완료**: ResultContextHeader 43개 통계 페이지 적용 (2025-11-27)
+**최근 완료**:
+- 결과 페이지 전문가 수준 통일 + StatisticalResultCard 간소화 (2025-11-27)
+- ResultContextHeader 43개 통계 페이지 적용 (2025-11-27)
+
+---
+
+## 📋 백로그: 개별 통계 페이지 UI 통일 (예정)
+
+**목표**: 43개 개별 통계 페이지의 결과 표시를 Smart Flow와 동일한 `StatisticalResultCard`로 통일
+
+**배경** (2025-11-27):
+- Smart Flow 결과 페이지 전문가 수준으로 간소화 완료
+- 개별 통계 페이지들 (`/statistics/anova`, `/statistics/correlation` 등)은 각자 다른 방식으로 결과 표시
+- 사용자 경험 일관성을 위해 통일 필요
+
+**현재 상태**:
+- ✅ `StatisticalResultCard` 컴포넌트 개선 완료
+  - 레벨 선택 UI 제거 (전문가 고정)
+  - EasyExplanation, NextStepsCard 제거
+  - 툴팁으로 필요 시 설명 제공
+- ✅ Smart Flow `/smart-flow` 페이지 적용 완료
+- ❌ 개별 통계 페이지 43개 미적용
+
+**작업 내용**:
+1. 각 통계 페이지의 결과 표시 로직 → `StatisticalResultCard` 사용으로 변경
+2. 결과 데이터 → `StatisticalResult` 타입으로 변환하는 converter 작성
+3. 페이지별 커스텀 결과 UI 제거
+
+**영향 받는 파일**:
+```
+app/(dashboard)/statistics/
+├── anova/page.tsx
+├── correlation/page.tsx
+├── chi-square/page.tsx
+├── regression/page.tsx
+├── ... (43개 페이지)
+```
+
+**예상 시간**: 2-3일 (페이지당 30분-1시간)
+
+**우선순위**: Medium (Smart Flow 완성 후 진행)
+
+**관련 파일**:
+- [StatisticalResultCard.tsx](statistical-platform/components/statistics/common/StatisticalResultCard.tsx)
+- [result-converter.ts](statistical-platform/lib/statistics/result-converter.ts)
