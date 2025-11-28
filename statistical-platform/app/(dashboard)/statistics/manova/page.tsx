@@ -412,6 +412,7 @@ export default function ManovaPage() {
               tabs={[
                 { id: 'multivariate', label: '다변량 검정', icon: Grid3X3 },
                 { id: 'univariate', label: '단변량 검정', icon: BarChart3 },
+                { id: 'posthoc', label: '사후검정', icon: Activity },
                 { id: 'descriptives', label: '기술통계', icon: Table },
                 { id: 'discriminant', label: '판별분석', icon: GitBranch },
                 { id: 'assumptions', label: '가정검정', icon: Shield },
@@ -573,6 +574,73 @@ export default function ManovaPage() {
                         η² (에타제곱)는 각 변수에서 집단 변수가 설명하는 분산 비율입니다.
                       </AlertDescription>
                     </Alert>
+                  </CardContent>
+                </Card>
+              </ContentTabsContent>
+
+              {/* 사후검정 탭 */}
+              <ContentTabsContent tabId="posthoc" show={activeResultTab === 'posthoc'} className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="w-5 h-5" />
+                      사후검정 (Post-hoc Analysis)
+                    </CardTitle>
+                    <CardDescription>유의한 종속변수에 대한 집단 간 쌍별 비교</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {analysisResult.postHoc && analysisResult.postHoc.length > 0 ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Badge variant="outline">Bonferroni correction</Badge>
+                          <span className="text-sm text-muted-foreground">
+                            ({analysisResult.postHoc.length}개 비교)
+                          </span>
+                        </div>
+                        <StatisticsTable
+                          title="쌍별 비교 결과"
+                          columns={[
+                            { key: 'variable', header: '종속변수', type: 'text', align: 'left' },
+                            { key: 'comparison', header: '비교', type: 'text', align: 'left' },
+                            { key: 'meanDiff', header: '평균차이', type: 'number', align: 'center', formatter: (v: number) => v.toFixed(3) },
+                            { key: 'tValue', header: 't-값', type: 'number', align: 'center', formatter: (v: number) => v.toFixed(3) },
+                            { key: 'pValue', header: 'p-값', type: 'custom', align: 'center', formatter: (v: number) => <PValueBadge value={v} size="sm" /> },
+                            { key: 'adjustedPValue', header: '보정 p-값', type: 'custom', align: 'center', formatter: (v: number) => <PValueBadge value={v} size="sm" /> },
+                            { key: 'cohensD', header: "Cohen's d", type: 'number', align: 'center', formatter: (v: number) => v.toFixed(3) },
+                            { key: 'ci', header: '95% CI', type: 'text', align: 'center' },
+                            { key: 'significant', header: '유의성', type: 'custom', align: 'center', formatter: (v: boolean) => (
+                              <Badge variant={v ? 'default' : 'outline'}>{v ? '유의' : '비유의'}</Badge>
+                            )}
+                          ]}
+                          data={analysisResult.postHoc.map(comp => ({
+                            variable: comp.variable,
+                            comparison: comp.comparison,
+                            meanDiff: comp.meanDiff,
+                            tValue: comp.tValue,
+                            pValue: comp.pValue,
+                            adjustedPValue: comp.adjustedPValue,
+                            cohensD: comp.cohensD,
+                            ci: `[${comp.lowerCI.toFixed(3)}, ${comp.upperCI.toFixed(3)}]`,
+                            significant: comp.adjustedPValue < 0.05
+                          }))}
+                          bordered
+                          compactMode
+                        />
+                        <Alert>
+                          <Info className="h-4 w-4" />
+                          <AlertDescription>
+                            <strong>사후검정 해석:</strong> 단변량 F 검정에서 유의한 종속변수에 대해서만 사후검정이 수행됩니다.
+                            Bonferroni 보정된 p-값이 0.05 미만인 경우 해당 집단 간 차이가 통계적으로 유의합니다.
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        {analysisResult.univariateTests.some(ut => ut.pValue < 0.05)
+                          ? '사후검정 결과가 없습니다.'
+                          : '단변량 검정에서 유의한 종속변수가 없어 사후검정이 필요하지 않습니다.'}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </ContentTabsContent>

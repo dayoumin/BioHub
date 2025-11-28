@@ -974,9 +974,14 @@ def dunn_test(groups, p_adjust='holm'):
 
 
 def games_howell_test(groups):
+    """
+    Games-Howell post-hoc test for unequal variances.
+    Returns meanDiff, pValue, ciLower, ciUpper, significant for each comparison.
+    """
     try:
         import scikit_posthocs as sp
         import pandas as pd
+        from scipy.stats import t as t_dist
     except ImportError:
         raise ImportError("scikit-posthocs library is required for Games-Howell test")
 
@@ -1000,23 +1005,60 @@ def games_howell_test(groups):
         'group': group_labels
     })
 
+    # Get p-values from scikit-posthocs
     gh_result = sp.posthoc_gameshowell(df, val_col='data', group_col='group')
+
+    # Calculate group statistics for meanDiff and CI
+    group_stats = []
+    for i, group in enumerate(clean_groups):
+        arr = np.array(group)
+        group_stats.append({
+            'n': len(arr),
+            'mean': float(np.mean(arr)),
+            'var': float(np.var(arr, ddof=1))
+        })
 
     comparisons = []
     n_groups = len(clean_groups)
     for i in range(n_groups):
         for j in range(i + 1, n_groups):
-            p_value = gh_result.iloc[i, j]
+            p_value = float(gh_result.iloc[i, j])
+
+            # Calculate mean difference
+            mean_diff = group_stats[i]['mean'] - group_stats[j]['mean']
+
+            # Calculate SE for Games-Howell (using separate variances)
+            n_i, n_j = group_stats[i]['n'], group_stats[j]['n']
+            var_i, var_j = group_stats[i]['var'], group_stats[j]['var']
+            se = np.sqrt(var_i / n_i + var_j / n_j)
+
+            # Welch-Satterthwaite degrees of freedom
+            numerator = (var_i / n_i + var_j / n_j) ** 2
+            denominator = (var_i / n_i) ** 2 / (n_i - 1) + (var_j / n_j) ** 2 / (n_j - 1)
+            df_welch = numerator / denominator if denominator > 0 else 1
+
+            # 95% CI using t-distribution
+            t_crit = t_dist.ppf(0.975, df_welch)
+            ci_lower = mean_diff - t_crit * se
+            ci_upper = mean_diff + t_crit * se
+
             comparisons.append({
                 'group1': int(i),
                 'group2': int(j),
-                'pValue': float(p_value),
-                'significant': float(p_value) < 0.05
+                'meanDiff': float(mean_diff),
+                'pValue': p_value,
+                'pAdjusted': p_value,
+                'significant': p_value < 0.05,
+                'ciLower': float(ci_lower),
+                'ciUpper': float(ci_upper),
+                'se': float(se),
+                'df': float(df_welch)
             })
 
     return {
         'comparisons': comparisons,
-        'nComparisons': len(comparisons)
+        'nComparisons': len(comparisons),
+        'method': 'Games-Howell'
     }
 
 
@@ -1176,5 +1218,225 @@ def friedman_posthoc(groups, p_adjust='holm'):
         'comparisons': comparisons,
         'pAdjustMethod': p_adjust,
         'nComparisons': len(comparisons)
+    }
+
+
+def repeated_measures_posthoc(data_matrix, time_labels, p_adjust='bonferroni'):
+    """
+    Repeated Measures ANOVA post-hoc test: Pairwise paired t-tests with correction.
+
+    Args:
+        data_matrix: n_subjects x k_timepoints 2D list/array
+        time_labels: list of timepoint labels
+        p_adjust: 'bonferroni' or 'holm'
+
+    Returns:
+        Dictionary with pairwise comparisons including meanDiff, t-statistic, p-values, effect size
+    """
+    from scipy.stats import ttest_rel
+    from itertools import combinations
+
+    data = np.array(data_matrix, dtype=float)
+    n_subjects_orig, n_timepoints = data.shape
+
+    if n_timepoints < 2:
+        raise ValueError(f"Need at least 2 timepoints for post-hoc, got {n_timepoints}")
+
+    # Row-wise NaN/Inf cleaning (similar to friedman_posthoc)
+    valid_rows = []
+    for i in range(n_subjects_orig):
+        row = data[i, :]
+        if not np.any(np.isnan(row)) and not np.any(np.isinf(row)):
+            valid_rows.append(i)
+
+    if len(valid_rows) < 2:
+        raise ValueError(f"Need at least 2 valid subjects (without NaN/Inf) for post-hoc, got {len(valid_rows)}")
+
+    # Use only valid rows
+    data = data[valid_rows, :]
+    n_subjects = len(valid_rows)
+
+    comparisons = []
+    raw_p_values = []
+
+    for i, j in combinations(range(n_timepoints), 2):
+        col_i = data[:, i]
+        col_j = data[:, j]
+
+        # Paired t-test
+        t_stat, p_value = ttest_rel(col_i, col_j)
+
+        # Mean difference
+        mean_diff = float(np.mean(col_i) - np.mean(col_j))
+
+        # Cohen's d for paired samples
+        diff = col_i - col_j
+        std_diff = np.std(diff, ddof=1)
+        cohens_d = float(np.mean(diff) / std_diff) if std_diff > 0 else 0.0
+
+        # Standard error of the difference
+        se_diff = float(std_diff / np.sqrt(n_subjects))
+
+        # 95% CI for mean difference
+        from scipy.stats import t as t_dist
+        t_crit = t_dist.ppf(0.975, n_subjects - 1)
+        ci_lower = float(mean_diff - t_crit * se_diff)
+        ci_upper = float(mean_diff + t_crit * se_diff)
+
+        comparisons.append({
+            'timepoint1': time_labels[i] if i < len(time_labels) else f'Time {i + 1}',
+            'timepoint2': time_labels[j] if j < len(time_labels) else f'Time {j + 1}',
+            'meanDiff': mean_diff,
+            'tStatistic': float(t_stat),
+            'pValue': float(p_value),
+            'cohensD': cohens_d,
+            'seDiff': se_diff,
+            'ciLower': ci_lower,
+            'ciUpper': ci_upper,
+            'df': int(n_subjects - 1)
+        })
+        raw_p_values.append(p_value)
+
+    # Apply p-value correction
+    n_comparisons = len(comparisons)
+    if p_adjust == 'bonferroni':
+        adjusted_p_values = [min(p * n_comparisons, 1.0) for p in raw_p_values]
+    elif p_adjust == 'holm':
+        # Holm-Bonferroni method
+        sorted_indices = sorted(range(n_comparisons), key=lambda k: raw_p_values[k])
+        adjusted_p_values = [0.0] * n_comparisons
+        for rank, idx in enumerate(sorted_indices):
+            multiplier = n_comparisons - rank
+            adjusted_p_values[idx] = min(raw_p_values[idx] * multiplier, 1.0)
+        # Ensure monotonicity
+        for k in range(1, n_comparisons):
+            idx = sorted_indices[k]
+            prev_idx = sorted_indices[k - 1]
+            adjusted_p_values[idx] = max(adjusted_p_values[idx], adjusted_p_values[prev_idx])
+    else:
+        adjusted_p_values = raw_p_values
+
+    # Update comparisons with adjusted p-values and significance
+    for idx, comp in enumerate(comparisons):
+        comp['pAdjusted'] = float(adjusted_p_values[idx])
+        comp['significant'] = adjusted_p_values[idx] < 0.05
+
+    return {
+        'method': f'Paired t-test with {p_adjust.capitalize()} correction',
+        'comparisons': comparisons,
+        'pAdjustMethod': p_adjust,
+        'nComparisons': n_comparisons
+    }
+
+
+def cochran_q_posthoc(data_matrix, p_adjust='holm'):
+    """
+    Cochran Q post-hoc test: Pairwise McNemar tests with correction.
+
+    Args:
+        data_matrix: n_subjects x k_conditions 2D list/array (binary 0/1)
+        p_adjust: 'bonferroni' or 'holm'
+
+    Returns:
+        Dictionary with pairwise comparisons
+    """
+    from itertools import combinations
+    from scipy.stats import binom
+
+    data = np.array(data_matrix, dtype=float)
+    n_subjects, n_conditions = data.shape
+
+    if n_conditions < 3:
+        raise ValueError(f"Need at least 3 conditions for Cochran Q post-hoc, got {n_conditions}")
+
+    # Validate binary data (0 or 1 only)
+    unique_values = np.unique(data[~np.isnan(data)])
+    if not np.all(np.isin(unique_values, [0, 1])):
+        raise ValueError(f"Cochran Q post-hoc requires binary (0/1) data, found values: {unique_values}")
+
+    # Remove rows with any NaN
+    valid_rows = ~np.any(np.isnan(data), axis=1)
+    if np.sum(valid_rows) < 2:
+        raise ValueError("Need at least 2 valid subjects (without NaN) for post-hoc")
+    data = data[valid_rows, :]
+    n_subjects = data.shape[0]
+
+    comparisons = []
+    raw_p_values = []
+
+    for i, j in combinations(range(n_conditions), 2):
+        col_i = data[:, i].astype(int)
+        col_j = data[:, j].astype(int)
+
+        # McNemar 2x2 contingency table
+        # b = 1->0 (condition i=1, condition j=0)
+        # c = 0->1 (condition i=0, condition j=1)
+        b = int(np.sum((col_i == 1) & (col_j == 0)))
+        c = int(np.sum((col_i == 0) & (col_j == 1)))
+
+        # Use exact test for small samples (b+c < 25), otherwise chi-square with continuity correction
+        if b + c == 0:
+            chi2_stat = 0.0
+            p_value = 1.0
+            method_used = 'none'
+        elif b + c < 25:
+            # Exact binomial test (two-sided)
+            # Under H0, b ~ Binomial(b+c, 0.5)
+            k = min(b, c)
+            p_value = float(2 * binom.cdf(k, b + c, 0.5))
+            p_value = min(p_value, 1.0)  # Cap at 1.0
+            chi2_stat = float((b - c) ** 2 / (b + c))  # Still report chi2 for reference
+            method_used = 'exact'
+        else:
+            # Chi-square with Yates continuity correction
+            chi2_stat = float((abs(b - c) - 0.5) ** 2 / (b + c))
+            p_value = float(1 - stats.chi2.cdf(chi2_stat, 1))
+            method_used = 'continuity'
+
+        # Success rate difference
+        rate_i = float(np.mean(col_i))
+        rate_j = float(np.mean(col_j))
+        rate_diff = rate_i - rate_j
+
+        comparisons.append({
+            'condition1': int(i),
+            'condition2': int(j),
+            'b': b,
+            'c': c,
+            'chiSquare': chi2_stat,
+            'pValue': p_value,
+            'rateDiff': rate_diff,
+            'rate1': rate_i,
+            'rate2': rate_j
+        })
+        raw_p_values.append(p_value)
+
+    # Apply p-value correction
+    n_comparisons = len(comparisons)
+    if p_adjust == 'bonferroni':
+        adjusted_p_values = [min(p * n_comparisons, 1.0) for p in raw_p_values]
+    elif p_adjust == 'holm':
+        sorted_indices = sorted(range(n_comparisons), key=lambda k: raw_p_values[k])
+        adjusted_p_values = [0.0] * n_comparisons
+        for rank, idx in enumerate(sorted_indices):
+            multiplier = n_comparisons - rank
+            adjusted_p_values[idx] = min(raw_p_values[idx] * multiplier, 1.0)
+        for k in range(1, n_comparisons):
+            idx = sorted_indices[k]
+            prev_idx = sorted_indices[k - 1]
+            adjusted_p_values[idx] = max(adjusted_p_values[idx], adjusted_p_values[prev_idx])
+    else:
+        adjusted_p_values = raw_p_values
+
+    # Update comparisons with adjusted p-values
+    for idx, comp in enumerate(comparisons):
+        comp['pAdjusted'] = float(adjusted_p_values[idx])
+        comp['significant'] = adjusted_p_values[idx] < 0.05
+
+    return {
+        'method': f'McNemar pairwise with {p_adjust.capitalize()} correction',
+        'comparisons': comparisons,
+        'pAdjustMethod': p_adjust,
+        'nComparisons': n_comparisons
     }
 

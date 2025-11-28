@@ -2157,33 +2157,68 @@ def manova(
                 'ci95Upper': mean + ci_margin
             })
 
-    # Post-hoc (pairwise comparisons for first DV)
+    # Post-hoc (pairwise comparisons for ALL dependent variables)
     post_hoc = []
-    if len(dependent_vars) > 0:
-        dv = dependent_vars[0]
-        groups = df_clean[factor_vars[0]].unique()
+    groups = df_clean[factor_vars[0]].unique()
+    n_groups = len(groups)
+    n_comparisons = n_groups * (n_groups - 1) // 2
+
+    for dv in dependent_vars:
+        # Get overall ANOVA p-value for this DV
+        dv_p_value = next((ut['pValue'] for ut in univariate_tests if ut['variable'] == dv), 1.0)
+
+        # Only perform post-hoc if univariate test is significant
+        if dv_p_value >= 0.05:
+            continue
+
         for i, g1 in enumerate(groups):
             for g2 in groups[i+1:]:
                 vals1 = df_clean[df_clean[factor_vars[0]] == g1][dv].values
                 vals2 = df_clean[df_clean[factor_vars[0]] == g2][dv].values
 
-                if len(vals1) > 0 and len(vals2) > 0:
-                    t_stat, p_val = stats.ttest_ind(vals1, vals2)
+                if len(vals1) > 1 and len(vals2) > 1:
+                    # Use Welch t-test (equal_var=False) - robust to heteroscedasticity
+                    t_stat, p_val = stats.ttest_ind(vals1, vals2, equal_var=False)
                     mean_diff = float(np.mean(vals1) - np.mean(vals2))
-                    pooled_std = float(np.sqrt((np.var(vals1, ddof=1) + np.var(vals2, ddof=1)) / 2))
+
+                    # Pooled std for Cohen's d (uses original pooled formula)
+                    pooled_std = float(np.sqrt(
+                        ((len(vals1) - 1) * np.var(vals1, ddof=1) + (len(vals2) - 1) * np.var(vals2, ddof=1))
+                        / (len(vals1) + len(vals2) - 2)
+                    ))
                     cohens_d = mean_diff / pooled_std if pooled_std > 0 else 0
+
+                    # Standard error for Welch t-test (separate variances)
+                    var1 = np.var(vals1, ddof=1)
+                    var2 = np.var(vals2, ddof=1)
+                    n1, n2 = len(vals1), len(vals2)
+                    se = float(np.sqrt(var1/n1 + var2/n2))
+
+                    # Welch-Satterthwaite degrees of freedom
+                    num = (var1/n1 + var2/n2) ** 2
+                    denom = (var1/n1)**2 / (n1 - 1) + (var2/n2)**2 / (n2 - 1)
+                    df_welch = num / denom if denom > 0 else n1 + n2 - 2
+
+                    # 95% CI using Welch df
+                    t_crit = stats.t.ppf(0.975, df_welch)
+                    ci_lower = mean_diff - t_crit * se
+                    ci_upper = mean_diff + t_crit * se
+
+                    # Bonferroni correction
+                    adjusted_p = min(p_val * n_comparisons, 1.0)
 
                     post_hoc.append({
                         'variable': dv,
                         'comparison': f"{g1} vs {g2}",
                         'meanDiff': mean_diff,
-                        'standardError': float(pooled_std / np.sqrt(len(vals1) + len(vals2))),
+                        'standardError': float(se),
                         'tValue': float(t_stat),
                         'pValue': float(p_val),
-                        'adjustedPValue': float(p_val * len(groups)),  # Bonferroni
+                        'adjustedPValue': float(adjusted_p),
                         'cohensD': float(cohens_d),
-                        'lowerCI': mean_diff - 1.96 * pooled_std,
-                        'upperCI': mean_diff + 1.96 * pooled_std
+                        'lowerCI': float(ci_lower),
+                        'upperCI': float(ci_upper),
+                        'significant': adjusted_p < 0.05
                     })
 
     # Assumptions

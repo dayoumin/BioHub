@@ -34,6 +34,21 @@ import type { CochranQVariables } from '@/types/statistics'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
+// Post-hoc comparison for Cochran Q
+interface CochranQPostHocComparison {
+  condition1: number
+  condition2: number
+  b: number
+  c: number
+  chiSquare: number
+  pValue: number
+  pAdjusted: number
+  rateDiff: number
+  rate1: number
+  rate2: number
+  significant: boolean
+}
+
 // Cochran Q Test 결과
 interface CochranQTestResult {
   qStatistic: number
@@ -49,6 +64,12 @@ interface CochranQTestResult {
     successCount: number
   }>
   contingencyTable: number[][]
+  postHoc?: {
+    method: string
+    comparisons: CochranQPostHocComparison[]
+    pAdjustMethod: string
+    nComparisons: number
+  }
 }
 
 export default function CochranQTestPage() {
@@ -221,6 +242,26 @@ export default function CochranQTestPage() {
         interpretation = `조건 간 유의한 차이가 없습니다 (p = ${pythonResult.pValue.toFixed(3)})`
       }
 
+      // Post-hoc test (if significant)
+      let postHocResult: CochranQTestResult['postHoc'] | undefined
+      if (significant && nConditions >= 3) {
+        try {
+          const postHocWorkerResult = await pyodideCore.callWorkerMethod<{
+            method: string
+            comparisons: CochranQPostHocComparison[]
+            pAdjustMethod: string
+            nComparisons: number
+          }>(PyodideWorker.NonparametricAnova, 'cochran_q_posthoc', {
+            data_matrix: dataMatrix,
+            p_adjust: 'holm'
+          })
+          postHocResult = postHocWorkerResult
+        } catch (postHocErr) {
+          console.warn('Cochran Q post-hoc test failed:', postHocErr)
+          // Continue without post-hoc results
+        }
+      }
+
       const result: CochranQTestResult = {
         qStatistic: pythonResult.qStatistic,
         pValue: pythonResult.pValue,
@@ -230,7 +271,8 @@ export default function CochranQTestPage() {
         nSubjects,
         nConditions,
         conditionSuccessRates,
-        contingencyTable: dataMatrix
+        contingencyTable: dataMatrix,
+        postHoc: postHocResult
       }
 
       setAnalysisTimestamp(new Date())
@@ -641,6 +683,65 @@ export default function CochranQTestPage() {
           bordered
         />
 
+        {/* 사후검정 결과 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              사후검정 (Post-hoc Analysis)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {results.postHoc ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{results.postHoc.method}</Badge>
+                  <span className="text-sm text-muted-foreground">
+                    ({results.postHoc.nComparisons}개 비교)
+                  </span>
+                </div>
+                <StatisticsTable
+                  columns={[
+                    { key: 'comparison', header: '비교', type: 'text' },
+                    { key: 'rateDiff', header: '성공률 차이', type: 'percentage', align: 'center' },
+                    { key: 'chiSquare', header: 'χ²', type: 'number', align: 'center' },
+                    { key: 'pValue', header: 'p-값', type: 'custom', align: 'center', formatter: (v: number) => <PValueBadge value={v} size="sm" /> },
+                    { key: 'pAdjusted', header: '보정 p-값', type: 'custom', align: 'center', formatter: (v: number) => <PValueBadge value={v} size="sm" /> },
+                    { key: 'significant', header: '유의성', type: 'custom', align: 'center', formatter: (v: boolean) => (
+                      <Badge variant={v ? 'default' : 'outline'}>{v ? '유의' : '비유의'}</Badge>
+                    )}
+                  ]}
+                  data={results.postHoc.comparisons.map(comp => {
+                    const cond1Name = conditionSuccessRates[comp.condition1]?.condition || `조건 ${comp.condition1 + 1}`
+                    const cond2Name = conditionSuccessRates[comp.condition2]?.condition || `조건 ${comp.condition2 + 1}`
+                    return {
+                      comparison: `${cond1Name} vs ${cond2Name}`,
+                      rateDiff: comp.rateDiff,
+                      chiSquare: comp.chiSquare,
+                      pValue: comp.pValue,
+                      pAdjusted: comp.pAdjusted,
+                      significant: comp.significant
+                    }
+                  })}
+                  bordered
+                />
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>사후검정 해석:</strong> Holm 보정된 p-값이 0.05 미만인 경우 해당 조건 간 성공률 차이가 통계적으로 유의합니다.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                {significant
+                  ? '사후검정 실행에 실패했습니다.'
+                  : '전체 검정이 유의하지 않아 사후검정이 필요하지 않습니다. (p ≥ 0.05)'}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* 해석 가이드 */}
         <Card>
           <CardHeader>
@@ -658,14 +759,6 @@ export default function CochranQTestPage() {
                 </div>
               </AlertDescription>
             </Alert>
-
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2">사후 분석 (Post-hoc)</h4>
-              <p className="text-sm text-muted-foreground">
-                Cochran Q 검정이 유의하면, 어느 조건들 간에 차이가 있는지 확인하기 위해
-                McNemar 검정을 사용한 쌍별 비교(pairwise comparison)를 수행할 수 있습니다.
-              </p>
-            </div>
 
             <div className="bg-muted p-4 rounded-lg">
               <h4 className="font-medium mb-2">주의사항</h4>

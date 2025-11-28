@@ -12,8 +12,10 @@ import {
   Layers,
   AlertCircle,
   CheckCircle,
-  TrendingUp
+  TrendingUp,
+  Users
 } from 'lucide-react'
+import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -23,6 +25,21 @@ import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 interface RepeatedMeasuresVariables {
   subjectId?: string
   timeVariables: string[]
+}
+
+interface PostHocComparison {
+  timepoint1: string
+  timepoint2: string
+  meanDiff: number
+  tStatistic: number
+  pValue: number
+  pAdjusted: number
+  cohensD: number
+  seDiff: number
+  ciLower: number
+  ciUpper: number
+  df: number
+  significant: boolean
 }
 
 interface RepeatedMeasuresResults {
@@ -55,6 +72,12 @@ interface RepeatedMeasuresResults {
     se: number
     ci: [number, number]
   }[]
+  postHoc?: {
+    method: string
+    comparisons: PostHocComparison[]
+    pAdjustMethod: string
+    nComparisons: number
+  }
 }
 
 const STEPS = [
@@ -242,6 +265,27 @@ export default function RepeatedMeasuresANOVAPage() {
         ? '구형성 가정이 경미하게 위배되었습니다. Greenhouse-Geisser 보정을 고려하세요.'
         : '구형성 가정이 심각하게 위배되었습니다. 자유도 보정이 필요합니다.'
 
+      // Post-hoc test (if significant)
+      let postHocResult: RepeatedMeasuresResults['postHoc'] | undefined
+      if (workerResult.pValue < 0.05 && timeVars.length >= 2) {
+        try {
+          const postHocWorkerResult = await pyodideCore.callWorkerMethod<{
+            method: string
+            comparisons: PostHocComparison[]
+            pAdjustMethod: string
+            nComparisons: number
+          }>(PyodideWorker.NonparametricAnova, 'repeated_measures_posthoc', {
+            data_matrix: dataMatrix,
+            time_labels: timeVars,
+            p_adjust: 'bonferroni'
+          })
+          postHocResult = postHocWorkerResult
+        } catch (postHocErr) {
+          console.warn('Post-hoc test failed:', postHocErr)
+          // Continue without post-hoc results
+        }
+      }
+
       const finalResult: RepeatedMeasuresResults = {
         fStatistic: workerResult.fStatistic,
         pValue: workerResult.pValue,
@@ -254,7 +298,8 @@ export default function RepeatedMeasuresANOVAPage() {
           interpretation: sphericityInterpretation
         },
         anovaTable,
-        timePointMeans
+        timePointMeans,
+        postHoc: postHocResult
       }
 
       setAnalysisTimestamp(new Date())
@@ -571,6 +616,65 @@ export default function RepeatedMeasuresANOVAPage() {
                 <Line type="monotone" dataKey="95% CI 상한" stroke="#82ca9d" strokeDasharray="5 5" />
               </LineChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Post-hoc Analysis */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              사후검정 (Post-hoc Analysis)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {results.postHoc ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{results.postHoc.method}</Badge>
+                  <span className="text-sm text-muted-foreground">
+                    ({results.postHoc.nComparisons}개 비교)
+                  </span>
+                </div>
+                <StatisticsTable
+                  columns={[
+                    { key: 'comparison', header: '비교', type: 'text' },
+                    { key: 'meanDiff', header: '평균차이', type: 'number' },
+                    { key: 'tStatistic', header: 't-통계량', type: 'number' },
+                    { key: 'pValue', header: 'p-값', type: 'custom', formatter: (v: number) => <PValueBadge value={v} size="sm" /> },
+                    { key: 'pAdjusted', header: '보정 p-값', type: 'custom', formatter: (v: number) => <PValueBadge value={v} size="sm" /> },
+                    { key: 'cohensD', header: "Cohen's d", type: 'number' },
+                    { key: 'ci', header: '95% CI', type: 'text' },
+                    { key: 'significant', header: '유의성', type: 'custom', formatter: (v: boolean) => (
+                      <Badge variant={v ? 'default' : 'outline'}>{v ? '유의' : '비유의'}</Badge>
+                    )}
+                  ]}
+                  data={results.postHoc.comparisons.map(comp => ({
+                    comparison: `${comp.timepoint1} vs ${comp.timepoint2}`,
+                    meanDiff: comp.meanDiff,
+                    tStatistic: comp.tStatistic,
+                    pValue: comp.pValue,
+                    pAdjusted: comp.pAdjusted,
+                    cohensD: comp.cohensD,
+                    ci: `[${comp.ciLower.toFixed(3)}, ${comp.ciUpper.toFixed(3)}]`,
+                    significant: comp.significant
+                  }))}
+                />
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>사후검정 해석:</strong> Bonferroni 보정된 p-값이 0.05 미만인 경우 해당 시점 간 차이가 통계적으로 유의합니다.
+                    Cohen's d는 효과크기를 나타내며, |d| &lt; 0.2: 작음, 0.2-0.8: 중간, &gt; 0.8: 큼으로 해석합니다.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                {results.pValue < 0.05
+                  ? '사후검정 실행에 실패했습니다.'
+                  : '전체 검정이 유의하지 않아 사후검정이 필요하지 않습니다. (p ≥ 0.05)'}
+              </div>
+            )}
           </CardContent>
         </Card>
 
