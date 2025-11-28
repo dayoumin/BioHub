@@ -219,15 +219,75 @@ const NAV_CATEGORIES: NavCategory[] = [
 // 플랫 섹션 목록 (헤더 표시용)
 const ALL_SECTIONS = NAV_CATEGORIES.flatMap(cat => cat.items)
 
-// 색상 데이터
-const COLOR_PALETTE = [
-  { name: 'Primary', value: 'bg-primary text-primary-foreground', usage: '주요 액션, 링크', cssVar: 'hsl(var(--primary))' },
-  { name: 'Secondary', value: 'bg-secondary text-secondary-foreground', usage: '보조 버튼', cssVar: 'hsl(var(--secondary))' },
-  { name: 'Muted', value: 'bg-muted text-muted-foreground', usage: '배경, 비활성', cssVar: 'hsl(var(--muted))' },
-  { name: 'Accent', value: 'bg-accent text-accent-foreground', usage: '강조', cssVar: 'hsl(var(--accent))' },
-  { name: 'Destructive', value: 'bg-destructive text-destructive-foreground', usage: '삭제, 에러', cssVar: 'hsl(var(--destructive))' },
-  { name: 'Success', value: 'bg-success text-white', usage: '성공, 완료', cssVar: 'hsl(var(--success))' },
-]
+// 색상 데이터 - 카테고리별 분류
+const COLOR_CATEGORIES = {
+  core: {
+    title: 'Core Colors',
+    description: 'shadcn/ui 기본 색상',
+    convention: null,
+    colors: [
+      { name: 'Primary', value: 'bg-primary text-primary-foreground', usage: '주요 액션, 링크', cssVar: '--primary' },
+      { name: 'Secondary', value: 'bg-secondary text-secondary-foreground', usage: '보조 버튼', cssVar: '--secondary' },
+      { name: 'Muted', value: 'bg-muted text-muted-foreground', usage: '배경, 비활성', cssVar: '--muted' },
+      { name: 'Accent', value: 'bg-accent text-accent-foreground', usage: '강조', cssVar: '--accent' },
+      { name: 'Destructive', value: 'bg-destructive text-destructive-foreground', usage: '삭제, 에러', cssVar: '--destructive' },
+    ]
+  },
+  semantic: {
+    title: 'Semantic Colors',
+    description: '상태 표시용 시맨틱 색상',
+    convention: null,
+    colors: [
+      { name: 'Success', value: 'bg-success text-success-foreground', usage: '성공, 완료', cssVar: '--success' },
+      { name: 'Error', value: 'bg-error text-error-foreground', usage: '에러, 실패', cssVar: '--error' },
+      { name: 'Warning', value: 'bg-warning text-warning-foreground', usage: '경고, 주의', cssVar: '--warning' },
+      { name: 'Info', value: 'bg-info text-info-foreground', usage: '정보, 안내', cssVar: '--info' },
+    ]
+  },
+  statistical: {
+    title: 'Statistical Significance',
+    description: 'p-value 유의성 표시',
+    convention: 'ggplot2/ggpubr: Grey=중립(비유의), Color intensity=유의수준',
+    colors: [
+      { name: 'Highly Sig', value: 'bg-stat-highly-significant text-white', usage: 'p < 0.01 ***', cssVar: '--stat-highly-significant' },
+      { name: 'Significant', value: 'bg-stat-significant text-white', usage: 'p < 0.05 *', cssVar: '--stat-significant' },
+      { name: 'Non-Sig', value: 'bg-stat-non-significant text-foreground', usage: 'p >= 0.05', cssVar: '--stat-non-significant' },
+    ]
+  },
+  correlation: {
+    title: 'Correlation Heatmap',
+    description: 'Blue-Red Diverging 팔레트',
+    convention: 'R/seaborn/matplotlib 표준: Blue=양(+), Red=음(-)',
+    colors: [
+      { name: 'Strong +', value: 'bg-correlation-strong-pos text-white', usage: 'r > 0.7', cssVar: '--correlation-strong-pos' },
+      { name: 'Medium +', value: 'bg-correlation-medium-pos text-white', usage: '0.3~0.7', cssVar: '--correlation-medium-pos' },
+      { name: 'Weak', value: 'bg-correlation-weak text-foreground', usage: '|r| < 0.3', cssVar: '--correlation-weak' },
+      { name: 'Medium -', value: 'bg-correlation-medium-neg text-white', usage: '-0.7~-0.3', cssVar: '--correlation-medium-neg' },
+      { name: 'Strong -', value: 'bg-correlation-strong-neg text-white', usage: 'r < -0.7', cssVar: '--correlation-strong-neg' },
+    ]
+  },
+  highlight: {
+    title: 'Highlight / AI',
+    description: 'AI 추천, 강조 표시',
+    convention: null,
+    colors: [
+      { name: 'Highlight', value: 'bg-highlight text-highlight-foreground', usage: 'AI 추천', cssVar: '--highlight' },
+      { name: 'Highlight BG', value: 'bg-highlight-bg text-foreground', usage: '강조 배경', cssVar: '--highlight-bg' },
+    ]
+  },
+  chart: {
+    title: 'Chart Colors',
+    description: '차트 시각화용 (Grayscale)',
+    convention: null,
+    colors: [
+      { name: 'Chart 1', value: 'bg-chart-1 text-white', usage: '1번 계열', cssVar: '--chart-1' },
+      { name: 'Chart 2', value: 'bg-chart-2 text-white', usage: '2번 계열', cssVar: '--chart-2' },
+      { name: 'Chart 3', value: 'bg-chart-3 text-white', usage: '3번 계열', cssVar: '--chart-3' },
+      { name: 'Chart 4', value: 'bg-chart-4 text-foreground', usage: '4번 계열', cssVar: '--chart-4' },
+      { name: 'Chart 5', value: 'bg-chart-5 text-foreground', usage: '5번 계열', cssVar: '--chart-5' },
+    ]
+  },
+}
 
 export default function ComponentsShowcasePage() {
   // 네비게이션 상태
@@ -412,40 +472,52 @@ export default function ComponentsShowcasePage() {
                 </p>
               </div>
 
-              {/* 인터랙티브 색상 카드 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {COLOR_PALETTE.map((color) => (
-                  <button
-                    key={color.name}
-                    onClick={() => copyToClipboard(color.cssVar, color.name)}
-                    className={cn(
-                      "group relative overflow-hidden rounded-xl border transition-all duration-200",
-                      "hover:scale-105 hover:shadow-xl",
-                      color.value
+              {/* 카테고리별 색상 카드 */}
+              {Object.entries(COLOR_CATEGORIES).map(([key, category]) => (
+                <div key={key} className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold">{category.title}</h3>
+                      <span className="text-xs text-muted-foreground">({category.description})</span>
+                    </div>
+                    {category.convention && (
+                      <p className="text-xs text-muted-foreground/80 italic pl-1">
+                        Convention: {category.convention}
+                      </p>
                     )}
-                  >
-                    <div className="aspect-video flex items-center justify-center relative">
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {copiedCode === color.name ? (
-                          <Check className="h-4 w-4" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
+                  </div>
+                  <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                    {category.colors.map((color) => (
+                      <button
+                        key={color.name}
+                        onClick={() => copyToClipboard(`var(${color.cssVar})`, color.name)}
+                        className={cn(
+                          "group relative overflow-hidden rounded-lg border transition-all duration-200",
+                          "hover:scale-105 hover:shadow-lg",
+                          color.value
                         )}
-                      </div>
-                      <span className="text-2xl font-bold">{color.name}</span>
-                    </div>
-                    <div className={cn(
-                      "p-3 border-t",
-                      color.name === 'Muted' ? 'bg-background text-foreground' : 'bg-background'
-                    )}>
-                      <p className="text-xs text-muted-foreground">{color.usage}</p>
-                      <code className="text-xs font-mono mt-1 block truncate">
-                        {color.cssVar}
-                      </code>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                      >
+                        <div className="h-14 flex items-center justify-center relative">
+                          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {copiedCode === color.name ? (
+                              <Check className="h-3 w-3" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </div>
+                          <span className="text-xs font-semibold">{color.name}</span>
+                        </div>
+                        <div className="p-1.5 border-t bg-background">
+                          <p className="text-[10px] text-muted-foreground truncate">{color.usage}</p>
+                          <code className="text-[10px] font-mono text-muted-foreground/70 truncate block">
+                            {color.cssVar}
+                          </code>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

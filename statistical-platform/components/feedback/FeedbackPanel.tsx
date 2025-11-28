@@ -500,10 +500,10 @@ export function FeedbackPanel({ isDemo = false }: FeedbackPanelProps) {
               </div>
               <div className="relative flex-1">
                 <Textarea
-                  placeholder="버그, 아이디어, 응원 등 자유롭게 적어주세요..."
+                  placeholder="버그, 아이디어 등 자유롭게 적어주세요..."
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="h-full min-h-[280px] text-sm resize-none rounded-xl border-slate-200 focus:border-slate-400 bg-white pr-12"
+                  className="h-full min-h-[120px] text-sm resize-none rounded-xl border-slate-200 focus:border-slate-400 bg-white pr-12"
                 />
                 <button
                   className={cn(

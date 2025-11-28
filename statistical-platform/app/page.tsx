@@ -49,25 +49,28 @@ export default function HomePage() {
   return (
     <div className="space-y-12 max-w-5xl mx-auto pt-12 pb-16">
       {/* 1. 스마트 분석 (Hero Section) */}
-      <section className="text-center space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
-            스마트 데이터 분석
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            데이터만 업로드하면 분석 방법 추천부터 결과까지 한번에
-          </p>
+      <section className="grid lg:grid-cols-2 gap-8 items-center py-8 lg:py-12">
+        <div className="space-y-6 text-center lg:text-left order-2 lg:order-1">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/60">
+              스마트 데이터 분석
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto lg:mx-0">
+              데이터만 업로드하면 분석 방법 추천부터 결과까지 한번에
+            </p>
+          </div>
+
+          <Link href="/smart-flow" className="block max-w-xl mx-auto lg:mx-0">
+            <Button
+              size="lg"
+              className="w-full h-20 text-xl font-bold gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 hover:scale-[1.02] shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl"
+            >
+              <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
+              분석 시작하기
+            </Button>
+          </Link>
         </div>
 
-        <Link href="/smart-flow" className="block max-w-xl mx-auto">
-          <Button
-            size="lg"
-            className="w-full h-24 text-2xl font-bold gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 hover:scale-[1.02] shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl"
-          >
-            <Star className="h-8 w-8 fill-yellow-400 text-yellow-400" />
-            분석 시작하기
-          </Button>
-        </Link>
       </section>
 
       {/* 2. 내 통계 도구 (My Tools) */}

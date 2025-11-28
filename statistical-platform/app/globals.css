@@ -191,13 +191,15 @@
   --info-border: oklch(0.85 0.03 250);
   --info-muted: oklch(0.40 0.05 250);
 
-  /* Statistical Significance - Muted Palette */
-  --stat-significant: oklch(0.55 0.08 15);
-  /* Muted Rose (p < 0.05) */
-  --stat-non-significant: oklch(0.55 0.08 155);
-  /* Muted Sage (p >= 0.05) */
-  --stat-highly-significant: oklch(0.50 0.10 15);
-  /* Deeper Rose (p < 0.01) */
+  /* Statistical Significance - Academic Convention
+     Reference: ggplot2/ggpubr uses grey for non-significant, color intensity for significant
+     See: https://www.sthda.com/english/articles/24-ggpubr-publication-ready-plots/ */
+  --stat-significant: oklch(0.50 0.12 25);
+  /* Rose - draws attention (p < 0.05) */
+  --stat-non-significant: oklch(0.55 0 0);
+  /* Grey - neutral, no judgment (p >= 0.05) */
+  --stat-highly-significant: oklch(0.45 0.15 25);
+  /* Deeper Rose - strong attention (p < 0.01) */
 
   /* Category Colors - Grayscale */
   --category-1: oklch(0.1 0 0);
@@ -219,17 +221,20 @@
   /* Very light indigo tint */
   --highlight-border: oklch(0.88 0.03 260);
 
-  /* Correlation Heatmap - Professional muted palette */
-  --correlation-strong-pos: oklch(0.45 0.08 155);
-  /* Deep sage (r > 0.7) */
-  --correlation-medium-pos: oklch(0.65 0.05 155);
-  /* Light sage (0.3 < r < 0.7) */
-  --correlation-weak: oklch(0.92 0 0);
+  /* Correlation Heatmap - Blue-Red Diverging (Academic Standard)
+     Reference: Standard in R/ggplot2, seaborn, matplotlib
+     Blue = positive correlation, Red = negative correlation
+     See: https://www.researchgate.net/figure/Pearson-correlation-heatmap-matrix */
+  --correlation-strong-pos: oklch(0.45 0.12 250);
+  /* Deep Blue (r > 0.7) */
+  --correlation-medium-pos: oklch(0.65 0.08 250);
+  /* Light Blue (0.3 < r < 0.7) */
+  --correlation-weak: oklch(0.95 0 0);
   /* Near white (|r| < 0.3) */
-  --correlation-medium-neg: oklch(0.65 0.06 15);
-  /* Light rose (-0.7 < r < -0.3) */
-  --correlation-strong-neg: oklch(0.45 0.10 15);
-  /* Deep rose (r < -0.7) */
+  --correlation-medium-neg: oklch(0.65 0.10 25);
+  /* Light Rose (-0.7 < r < -0.3) */
+  --correlation-strong-neg: oklch(0.45 0.15 25);
+  /* Deep Rose (r < -0.7) */
 
   /* Layout Spacing */
   --header-height: 4rem;
@@ -384,12 +389,12 @@
   --info-border: oklch(0.35 0.03 250);
   --info-muted: oklch(0.58 0.05 250);
 
-  /* Dark Mode Statistical Significance - Muted Palette */
-  --stat-significant: oklch(0.70 0.08 15);
-  /* Muted Rose (p < 0.05) */
-  --stat-non-significant: oklch(0.70 0.08 155);
-  /* Muted Sage (p >= 0.05) */
-  --stat-highly-significant: oklch(0.72 0.10 15);
+  /* Dark Mode Statistical Significance - Academic Convention */
+  --stat-significant: oklch(0.70 0.12 25);
+  /* Rose (p < 0.05) */
+  --stat-non-significant: oklch(0.60 0 0);
+  /* Grey - neutral (p >= 0.05) */
+  --stat-highly-significant: oklch(0.75 0.15 25);
   /* Brighter Rose (p < 0.01) */
 
   /* Dark Mode Category Colors - Grayscale */
@@ -411,12 +416,14 @@
   --highlight-bg: oklch(0.20 0.02 260);
   --highlight-border: oklch(0.35 0.04 260);
 
-  /* Dark Mode Correlation Heatmap */
-  --correlation-strong-pos: oklch(0.65 0.08 155);
-  --correlation-medium-pos: oklch(0.50 0.05 155);
+  /* Dark Mode Correlation Heatmap - Blue-Red Diverging */
+  --correlation-strong-pos: oklch(0.65 0.12 250);
+  /* Blue */
+  --correlation-medium-pos: oklch(0.50 0.08 250);
   --correlation-weak: oklch(0.25 0 0);
-  --correlation-medium-neg: oklch(0.50 0.06 15);
-  --correlation-strong-neg: oklch(0.65 0.10 15);
+  --correlation-medium-neg: oklch(0.50 0.10 25);
+  --correlation-strong-neg: oklch(0.65 0.15 25);
+  /* Rose */
 }
 
 @layer base {
@@ -640,6 +647,40 @@
   .bg-info {
     background-color: var(--info);
     color: var(--info-foreground);
+  }
+
+  .bg-error {
+    background-color: var(--error);
+    color: var(--error-foreground);
+  }
+
+  /* Highlight/AI utilities */
+  .bg-highlight {
+    background-color: var(--highlight);
+    color: var(--highlight-foreground);
+  }
+
+  .bg-highlight-bg {
+    background-color: var(--highlight-bg);
+  }
+
+  /* Chart color utilities */
+  .bg-chart-1 { background-color: var(--chart-1); }
+  .bg-chart-2 { background-color: var(--chart-2); }
+  .bg-chart-3 { background-color: var(--chart-3); }
+  .bg-chart-4 { background-color: var(--chart-4); }
+  .bg-chart-5 { background-color: var(--chart-5); }
+
+  /* Correlation heatmap utilities */
+  .bg-correlation-strong-pos { background-color: var(--correlation-strong-pos); }
+  .bg-correlation-medium-pos { background-color: var(--correlation-medium-pos); }
+  .bg-correlation-weak { background-color: var(--correlation-weak); }
+  .bg-correlation-medium-neg { background-color: var(--correlation-medium-neg); }
+  .bg-correlation-strong-neg { background-color: var(--correlation-strong-neg); }
+
+  /* Statistical significance - additional */
+  .bg-stat-highly-significant {
+    background-color: var(--stat-highly-significant);
   }
 
   /* Layout utilities */
