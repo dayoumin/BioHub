@@ -1,7 +1,4 @@
 {
-  "version": 2,
-  "installCommand": "cd statistical-platform && rm -rf node_modules && npm install --legacy-peer-deps && npm install lightningcss-linux-x64-gnu --legacy-peer-deps",
-  "buildCommand": "cd statistical-platform && npm run build",
-  "outputDirectory": "statistical-platform/out",
-  "framework": null
+  "installCommand": "cd statistical-platform && npm install --legacy-peer-deps",
+  "buildCommand": "cd statistical-platform && npm run build"
 }

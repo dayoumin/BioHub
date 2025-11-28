@@ -154,11 +154,16 @@
     "jest-environment-jsdom": "^30.1.2",
     "node-fetch": "^3.3.2",
     "process": "^0.11.10",
+    "@tailwindcss/oxide-wasm32-wasi": "4.1.17",
     "pyodide": "^0.28.3",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.1",
     "tsx": "^4.20.6",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5"
+  }
+  ,
+  "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "4.1.17"
   }
 }
