@@ -37,7 +37,11 @@
       "Bash(git fetch:*)",
       "Bash(dir:*)",
       "Bash(done)",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(npm install:*)",
+      "Bash(head:*)",
+      "Bash(git diff:*)",
+      "Bash(npm ls:*)"
     ],
     "deny": [],
     "ask": []

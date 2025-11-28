@@ -7,6 +7,7 @@ import { ClientProviders } from "@/components/providers/ClientProviders"
 import { UIProvider } from "@/contexts/ui-context"
 import { LayoutContent } from "@/components/layout/layout-content"
 import { MobileWarning } from "@/components/layout/mobile-warning"
+import { GlobalFeedbackPanel } from "@/components/feedback/GlobalFeedbackPanel"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -57,6 +58,9 @@ export default function RootLayout({
 
             {/* 모바일 경고 */}
             <MobileWarning />
+
+            {/* 전역 피드백 패널 */}
+            <GlobalFeedbackPanel />
 
             <Toaster
               position="top-center"

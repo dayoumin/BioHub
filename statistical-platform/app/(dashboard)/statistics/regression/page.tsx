@@ -5,6 +5,7 @@ import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { RegressionVariables } from '@/types/statistics'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -20,7 +21,6 @@ import {
   Play,
   Info,
   AlertCircle,
-  CheckCircle,
   LineChart,
   Users,
   Layers,
@@ -550,54 +550,27 @@ export default function RegressionPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <Card
-              className={cn(
-                "cursor-pointer border-2 transition-all",
-                regressionType === key
-                  ? "border-primary bg-primary/5 shadow-lg"
-                  : "border-border hover:border-primary/50 hover:shadow-md"
-              )}
+            <PurposeCard
+              icon={info.icon}
+              title={info.title}
+              subtitle={info.subtitle}
+              description={info.description}
+              examples={info.example}
+              selected={regressionType === key}
               onClick={() => handleMethodSelect(key as 'simple' | 'multiple' | 'logistic')}
             >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
-                    {info.icon}
-                  </div>
-                  {regressionType === key && (
-                    <CheckCircle className="w-5 h-5 text-primary" />
-                  )}
-                </div>
-                <CardTitle className="text-lg mt-3">{info.title}</CardTitle>
-                <Badge variant="outline" className="w-fit mt-2">
-                  {info.subtitle}
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">
-                  {info.description}
-                </p>
+              <div className="bg-primary/5 p-2 rounded text-center mt-2">
+                <code className="text-xs font-mono">{info.equation}</code>
+              </div>
 
-                <div className="bg-muted/50 p-3 rounded-lg">
-                  <p className="text-xs font-medium mb-1">예시:</p>
-                  <p className="text-xs text-muted-foreground">
-                    {info.example}
-                  </p>
-                </div>
-
-                <div className="bg-primary/5 p-2 rounded text-center">
-                  <code className="text-xs font-mono">{info.equation}</code>
-                </div>
-
-                <div className="flex flex-wrap gap-1">
-                  {info.assumptions.map((assumption) => (
-                    <Badge key={assumption} variant="secondary" className="text-xs">
-                      {assumption}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+              <div className="flex flex-wrap gap-1 mt-2">
+                {info.assumptions.map((assumption) => (
+                  <Badge key={assumption} variant="secondary" className="text-xs">
+                    {assumption}
+                  </Badge>
+                ))}
+              </div>
+            </PurposeCard>
           </motion.div>
         ))}
       </div>

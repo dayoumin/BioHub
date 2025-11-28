@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { CorrelationVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -382,59 +383,35 @@ export default function CorrelationPage() {
 
           <div className="grid md:grid-cols-2 gap-4">
             {Object.entries(correlationTypeInfo).map(([key, info]) => (
-              <Card
+              <PurposeCard
                 key={key}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  correlationType === key ? 'border-primary bg-primary/5' : ''
-                }`}
+                icon={info.icon}
+                title={info.title}
+                subtitle={info.subtitle}
+                description={info.description}
+                examples={info.example}
+                selected={correlationType === key}
                 onClick={() => handleMethodSelect(key as 'pearson' | 'spearman' | 'kendall' | 'partial')}
               >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
-                      {info.icon}
-                    </div>
-                    {correlationType === key && (
-                      <CheckCircle className="w-5 h-5 text-primary" />
-                    )}
+                <div className="grid grid-cols-2 gap-2 text-xs mt-3">
+                  <div className="bg-primary/5 p-2 rounded text-center">
+                    <p className="font-medium">범위</p>
+                    <p className="text-muted-foreground">{info.range}</p>
                   </div>
-                  <CardTitle className="text-lg mt-3">{info.title}</CardTitle>
-                  <Badge variant="outline" className="w-fit mt-2">
-                    {info.subtitle}
-                  </Badge>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    {info.description}
-                  </p>
+                  <div className="bg-primary/5 p-2 rounded text-center">
+                    <p className="font-medium">해석</p>
+                    <p className="text-muted-foreground">{info.interpretation}</p>
+                  </div>
+                </div>
 
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <p className="text-xs font-medium mb-1">예시:</p>
-                    <p className="text-xs text-muted-foreground">
-                      {info.example}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-primary/5 p-2 rounded text-center">
-                      <p className="font-medium">범위</p>
-                      <p className="text-muted-foreground">{info.range}</p>
-                    </div>
-                    <div className="bg-primary/5 p-2 rounded text-center">
-                      <p className="font-medium">해석</p>
-                      <p className="text-muted-foreground">{info.interpretation}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1">
-                    {info.assumptions.map((assumption) => (
-                      <Badge key={assumption} variant="secondary" className="text-xs">
-                        {assumption}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {info.assumptions.map((assumption) => (
+                    <Badge key={assumption} variant="secondary" className="text-xs">
+                      {assumption}
+                    </Badge>
+                  ))}
+                </div>
+              </PurposeCard>
             ))}
           </div>
         </div>

@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react'
 
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -421,40 +422,16 @@ export default function TTestPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Object.entries(testTypeInfo).map(([key, info]) => (
-              <Card
+              <PurposeCard
                 key={key}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  testType === key ? 'border-primary bg-primary/5' : ''
-                }`}
+                icon={info.icon}
+                title={info.title}
+                subtitle={info.subtitle}
+                description={info.description}
+                examples={info.example}
+                selected={testType === key}
                 onClick={() => handleMethodSelect(key as 'one-sample' | 'two-sample' | 'paired')}
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="p-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg">
-                      {info.icon}
-                    </div>
-                    {testType === key && (
-                      <CheckCircle className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                  <CardTitle className="text-lg mt-3">{info.title}</CardTitle>
-                  <Badge variant="outline" className="w-fit mt-2">
-                    {info.subtitle}
-                  </Badge>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    {info.description}
-                  </p>
-
-                  <div className="bg-muted/50 p-3 rounded-lg">
-                    <p className="text-xs font-medium mb-1">예시:</p>
-                    <p className="text-xs text-muted-foreground">
-                      {info.example}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              />
             ))}
           </div>
 

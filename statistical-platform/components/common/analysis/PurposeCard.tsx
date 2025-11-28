@@ -24,10 +24,14 @@ export interface PurposeCardProps {
   icon: React.ReactNode
   /** 카드 제목 */
   title: string
+  /** 부제목 (옵션) */
+  subtitle?: string
   /** 카드 설명 */
   description: string
   /** 예시 텍스트 (옵션) */
   examples?: string
+  /** 추가 콘텐츠 (옵션) - 커스텀 UI 삽입용 */
+  children?: React.ReactNode
   /** 클릭 핸들러 */
   onClick: () => void
   /** 선택 상태 */
@@ -41,8 +45,10 @@ export interface PurposeCardProps {
 export function PurposeCard({
   icon,
   title,
+  subtitle,
   description,
   examples,
+  children,
   onClick,
   selected,
   disabled = false,
@@ -97,7 +103,12 @@ export function PurposeCard({
             >
               {icon}
             </div>
-            <CardTitle className="text-base font-bold tracking-tight">{title}</CardTitle>
+            <div>
+              <CardTitle className="text-base font-bold tracking-tight">{title}</CardTitle>
+              {subtitle && (
+                <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -107,9 +118,10 @@ export function PurposeCard({
         </p>
         {examples && (
           <p className="text-xs text-muted-foreground/80 italic border-t pt-2 mt-2">
-            {examples}
+            예: {examples}
           </p>
         )}
+        {children}
       </CardContent>
     </Card>
   )
