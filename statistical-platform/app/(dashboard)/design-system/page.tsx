@@ -120,11 +120,13 @@ const TestSnippetsSection = process.env.NODE_ENV !== 'production'
     })
   : null
 
-// Method Card Comparison Section (UI 개선 비교)
-const MethodCardComparisonSection = dynamic(
-  () => import('./sections/MethodCardComparisonSection').then(mod => ({ default: mod.MethodCardComparisonSection })),
-  { ssr: false, loading: LoadingSpinner }
-)
+// Method Card Comparison Section (UI 개선 비교) - 개발 전용
+const MethodCardComparisonSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/MethodCardComparisonSection').then(mod => ({ default: mod.MethodCardComparisonSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
 
 const StatisticalFormattingSection = process.env.NODE_ENV !== 'production'
   ? dynamic(() => import('./sections/StatisticalFormattingSection').then(mod => ({ default: mod.StatisticalFormattingSection })), {
@@ -190,7 +192,9 @@ const NAV_CATEGORIES: NavCategory[] = [
       { id: 'data-utils', label: 'Data Utilities', icon: Table },
       { id: 'layout-prototype', label: 'Layout Prototype', icon: Layout },
       { id: 'feedback-panel', label: 'Feedback Panel', icon: Vote, isNew: true },
-      { id: 'method-card-comparison', label: 'Method Card (리팩토링)', icon: GitCompare, isNew: true },
+      ...(process.env.NODE_ENV !== 'production' ? [
+        { id: 'method-card-comparison', label: 'Method Card (리팩토링)', icon: GitCompare, isNew: true, devOnly: true },
+      ] : []),
     ]
   },
   {
@@ -1246,7 +1250,7 @@ const handleOpenNewWindow = useCallback(() => {
           {/* ========================================
               Method Card Comparison (리팩토링 비교)
           ======================================== */}
-          {activeSection === 'method-card-comparison' && (
+          {activeSection === 'method-card-comparison' && MethodCardComparisonSection && (
             <div className="space-y-6 animate-in fade-in duration-500">
               <div>
                 <h1 className="text-4xl font-bold mb-2">Method Card 리팩토링</h1>
