@@ -680,6 +680,40 @@
     }
   }
 
+  /* Fade-in with translateY animation */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+
+  /* Slide-in animation */
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(-10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.4s ease-out;
+  }
+
   /* Statistical platform specific components */
   .stat-card {
     @apply bg-card border border-border rounded-lg p-4 shadow-sm transition-all duration-200;
@@ -909,5 +943,20 @@
   /* 스크롤 마진 (앵커 링크 클릭 시 헤더 아래로 오프셋) */
   .scroll-mt-4 {
     scroll-margin-top: 1rem;
+  }
+
+
+  /* ========================================
+     Accessibility: Reduced Motion Support
+     ======================================== */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
