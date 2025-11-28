@@ -1330,6 +1330,36 @@ STATISTICS_EXAMPLES.oneWayAnova = {
 
 ---
 
+## 📋 백로그: ANOVA 사후검정 개선 (예정)
+
+**목표**: 이원/삼원 ANOVA 사후검정의 Games-Howell 자동 선택 로직 추가
+
+**배경** (2025-11-28):
+- 일원 ANOVA: Levene 검정 기반 Tukey HSD / Games-Howell 자동 선택 ✅ 완료
+- 이원/삼원 ANOVA: 현재 Tukey HSD만 사용 (의도적 설계)
+- 반복측정 ANOVA: Bonferroni 보정 paired t-test ✅ 이미 구현됨
+
+**미구현 이유**:
+- 다요인 ANOVA에서 각 요인별 등분산성 검정이 복잡함
+- 요인별로 다른 사후검정 방법 사용 시 결과 해석 혼란 우려
+- 현재 설계: "유의한 주효과에 대해 Tukey HSD 다중비교 수행"
+
+**향후 개선 시 고려사항**:
+1. 각 요인별 Levene 검정 실행
+2. 요인별로 Tukey HSD / Games-Howell 자동 선택
+3. UI에 요인별 방법 선택 이유 표시
+4. 사용자 수동 선택 옵션 추가
+
+**예상 시간**: 1-2일
+
+**우선순위**: Low (현재 구현으로 충분히 사용 가능)
+
+**관련 파일**:
+- [anova/page.tsx](statistical-platform/app/(dashboard)/statistics/anova/page.tsx) - Lines 599-662 (이원), 833-899 (삼원)
+- [worker3-nonparametric-anova.py](statistical-platform/public/workers/python/worker3-nonparametric-anova.py) - games_howell_test()
+
+---
+
 ## 📋 백로그: 개별 통계 페이지 UI 통일 (예정)
 
 **목표**: 43개 개별 통계 페이지의 결과 표시를 Smart Flow와 동일한 `StatisticalResultCard`로 통일

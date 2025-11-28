@@ -371,34 +371,10 @@ export default function ANOVAPage() {
               ciUpper: comp.ciUpper
             }))
           } catch (err) {
-            // Tukey HSD 실패 시 fallback (간단한 pairwise 비교)
-            console.warn('Tukey HSD Worker 호출 실패, fallback 사용:', err)
-            for (let i = 0; i < groupNames.length; i++) {
-              for (let j = i + 1; j < groupNames.length; j++) {
-                const group1Name = groupNames[i]
-                const group2Name = groupNames[j]
-                const group1 = groups[i]
-                const group2 = groups[j]
-
-                const meanDiff = group1.mean - group2.mean
-                const pooledSE = Math.sqrt(msWithin * (1/group1.n + 1/group2.n))
-                const t = Math.abs(meanDiff) / pooledSE
-                const pValue = t > 3 ? 0.001 : t > 2 ? 0.05 : 0.2
-                const significant = pValue < 0.05
-                const ciLower = meanDiff - 1.96 * pooledSE
-                const ciUpper = meanDiff + 1.96 * pooledSE
-
-                postHocComparisons.push({
-                  group1: group1Name,
-                  group2: group2Name,
-                  meanDiff,
-                  pValue,
-                  significant,
-                  ciLower,
-                  ciUpper
-                })
-              }
-            }
+            // Worker 실패 시 에러 표시 (통계 분석의 신뢰성을 위해 근사값 사용 안함)
+            console.error('Tukey HSD Worker 호출 실패:', err)
+            actions.setError?.('사후검정 계산 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.')
+            return
           }
         }
 
@@ -595,6 +571,74 @@ export default function ANOVAPage() {
           }
         }
 
+        // 이원 ANOVA 사후검정 - 유의한 주효과에 대해서만 실행
+        let twoWayPostHoc: { method: string; comparisons: PostHocComparison[]; adjustedAlpha: number } | undefined
+        const significantFactors: { name: string; col: string }[] = []
+
+        if (twoWayResult.factor1.pValue < 0.05) {
+          significantFactors.push({ name: factor1Col, col: factor1Col })
+        }
+        if (twoWayResult.factor2.pValue < 0.05) {
+          significantFactors.push({ name: factor2Col, col: factor2Col })
+        }
+
+        if (significantFactors.length > 0) {
+          try {
+            const allComparisons: PostHocComparison[] = []
+
+            for (const factor of significantFactors) {
+              // 해당 요인의 수준별로 그룹 데이터 추출
+              const factorLevels = [...new Set(factor.col === factor1Col ? factor1Values : factor2Values)]
+              const groupsForFactor: number[][] = factorLevels.map(level => {
+                const indices = (factor.col === factor1Col ? factor1Values : factor2Values)
+                  .map((v, i) => v === level ? i : -1)
+                  .filter(i => i >= 0)
+                return indices.map(i => dataValues[i])
+              })
+
+              // Tukey HSD 사후검정 (이원 ANOVA는 등분산 가정)
+              const tukeyResult = await pyodideCore.callWorkerMethod<{
+                comparisons: Array<{
+                  group1: number
+                  group2: number
+                  meanDiff: number
+                  pValue: number | null
+                  pAdjusted: number
+                  significant: boolean
+                  ciLower?: number
+                  ciUpper?: number
+                }>
+              }>(PyodideWorker.NonparametricAnova, 'tukey_hsd', { groups: groupsForFactor })
+
+              // 요인명을 포함한 비교 결과 추가
+              tukeyResult.comparisons.forEach(comp => {
+                allComparisons.push({
+                  group1: `${factor.name}: ${factorLevels[comp.group1]}`,
+                  group2: `${factor.name}: ${factorLevels[comp.group2]}`,
+                  meanDiff: comp.meanDiff,
+                  pValue: comp.pValue ?? comp.pAdjusted,
+                  significant: comp.significant,
+                  ciLower: comp.ciLower,
+                  ciUpper: comp.ciUpper
+                })
+              })
+            }
+
+            if (allComparisons.length > 0) {
+              twoWayPostHoc = {
+                method: 'Tukey HSD',
+                comparisons: allComparisons,
+                adjustedAlpha: 0.05 / allComparisons.length
+              }
+            }
+          } catch (err) {
+            // Worker 실패 시 에러 표시 (통계 분석의 신뢰성을 위해 근사값 사용 안함)
+            console.error('이원 ANOVA 사후검정 Worker 실패:', err)
+            actions.setError?.('사후검정 계산 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.')
+            return
+          }
+        }
+
         // 이원 ANOVA 결과 (일원 ANOVA 필드 + multiFactorResults)
         const twoWayFinalResult: ANOVAResults = {
           fStatistic: twoWayResult.factor1.fStatistic,
@@ -611,6 +655,7 @@ export default function ANOVAPage() {
             cohensF: Math.sqrt(factor1EffectSizes.eta2 / (1 - factor1EffectSizes.eta2))
           },
           groups: [],
+          postHoc: twoWayPostHoc,
           anovaTable: twoWayAnovaTable,
           multiFactorResults
         }
@@ -829,6 +874,77 @@ export default function ANOVAPage() {
           }
         }
 
+        // 삼원 ANOVA 사후검정 - 유의한 주효과에 대해서만 실행
+        let threeWayPostHoc: { method: string; comparisons: PostHocComparison[]; adjustedAlpha: number } | undefined
+        const significantFactors3: { name: string; values: string[] }[] = []
+
+        if (threeWayResult.factor1.pValue < 0.05) {
+          significantFactors3.push({ name: factor1Col, values: factor1Values })
+        }
+        if (threeWayResult.factor2.pValue < 0.05) {
+          significantFactors3.push({ name: factor2Col, values: factor2Values })
+        }
+        if (threeWayResult.factor3.pValue < 0.05) {
+          significantFactors3.push({ name: factor3Col, values: factor3Values })
+        }
+
+        if (significantFactors3.length > 0) {
+          try {
+            const allComparisons3: PostHocComparison[] = []
+
+            for (const factor of significantFactors3) {
+              // 해당 요인의 수준별로 그룹 데이터 추출
+              const factorLevels = [...new Set(factor.values)]
+              const groupsForFactor: number[][] = factorLevels.map(level => {
+                const indices = factor.values
+                  .map((v, i) => v === level ? i : -1)
+                  .filter(i => i >= 0)
+                return indices.map(i => dataValues[i])
+              })
+
+              // Tukey HSD 사후검정
+              const tukeyResult = await pyodideCore.callWorkerMethod<{
+                comparisons: Array<{
+                  group1: number
+                  group2: number
+                  meanDiff: number
+                  pValue: number | null
+                  pAdjusted: number
+                  significant: boolean
+                  ciLower?: number
+                  ciUpper?: number
+                }>
+              }>(PyodideWorker.NonparametricAnova, 'tukey_hsd', { groups: groupsForFactor })
+
+              // 요인명을 포함한 비교 결과 추가
+              tukeyResult.comparisons.forEach(comp => {
+                allComparisons3.push({
+                  group1: `${factor.name}: ${factorLevels[comp.group1]}`,
+                  group2: `${factor.name}: ${factorLevels[comp.group2]}`,
+                  meanDiff: comp.meanDiff,
+                  pValue: comp.pValue ?? comp.pAdjusted,
+                  significant: comp.significant,
+                  ciLower: comp.ciLower,
+                  ciUpper: comp.ciUpper
+                })
+              })
+            }
+
+            if (allComparisons3.length > 0) {
+              threeWayPostHoc = {
+                method: 'Tukey HSD',
+                comparisons: allComparisons3,
+                adjustedAlpha: 0.05 / allComparisons3.length
+              }
+            }
+          } catch (err) {
+            // Worker 실패 시 에러 표시 (통계 분석의 신뢰성을 위해 근사값 사용 안함)
+            console.error('삼원 ANOVA 사후검정 Worker 실패:', err)
+            actions.setError?.('사후검정 계산 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.')
+            return
+          }
+        }
+
         // 삼원 ANOVA 결과 (일원 ANOVA 필드 + multiFactorResults)
         const threeWayFinalResult: ANOVAResults = {
           fStatistic: threeWayResult.factor1.fStatistic,
@@ -845,6 +961,7 @@ export default function ANOVAPage() {
             cohensF: Math.sqrt(factor1EffectSizes3.eta2 / (1 - factor1EffectSizes3.eta2))
           },
           groups: [],
+          postHoc: threeWayPostHoc,
           anovaTable: anovaTable,
           multiFactorResults: multiFactorResults3
         }
