@@ -462,29 +462,16 @@ export function FeedbackPanel({ isDemo = false }: FeedbackPanelProps) {
                 rankedMethods.map((method, index) => (
                   <div
                     key={method.id}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-2xl border transition-all",
-                      index < 3
-                        ? "bg-white border-amber-100 shadow-sm"
-                        : "bg-slate-50/50 border-transparent"
-                    )}
+                    className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-all"
                   >
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
-                      index === 0 && "bg-yellow-400 text-white shadow-md",
-                      index === 1 && "bg-slate-300 text-white",
-                      index === 2 && "bg-amber-600 text-white",
-                      index >= 3 && "bg-slate-200 text-slate-500"
-                    )}>
+                    <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">
                       {index + 1}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-bold text-slate-700 truncate">{method.titleKr}</div>
-                      <div className="text-[10px] text-slate-400">{method.title}</div>
+                    <div className="flex-1 min-w-0 text-xs text-slate-600 truncate">
+                      {method.titleKr}
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-bold text-violet-500">{method.currentVotes}</div>
-                      <div className="text-[10px] text-slate-400">likes</div>
+                    <div className="text-xs font-bold text-violet-500 shrink-0">
+                      {method.currentVotes}
                     </div>
                   </div>
                 ))
@@ -516,7 +503,7 @@ export function FeedbackPanel({ isDemo = false }: FeedbackPanelProps) {
                   placeholder="버그, 아이디어, 응원 등 자유롭게 적어주세요..."
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="h-full min-h-[200px] text-sm resize-none rounded-xl border-slate-200 focus:border-slate-400 bg-white pr-12"
+                  className="h-full min-h-[280px] text-sm resize-none rounded-xl border-slate-200 focus:border-slate-400 bg-white pr-12"
                 />
                 <button
                   className={cn(
