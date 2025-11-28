@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { StatisticsTable, TableColumn, TableRow as StatTableRow } from '@/components/statistics/common/StatisticsTable'
 import {
   BarChart,
@@ -37,6 +37,13 @@ import {
   Info,
   BarChart3,
   Target
+,
+  FileText,
+  Gauge,
+  Shield,
+  MessageSquare
+,
+  Table
 } from 'lucide-react'
 
 interface DataRow {
@@ -128,6 +135,7 @@ export default function OrdinalRegressionPage() {
 
   // Page-specific state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('overview')
   const [selectedDependent, setSelectedDependent] = useState<string>('')
   const [selectedIndependent, setSelectedIndependent] = useState<string[]>([])
   const [pyodideReady, setPyodideReady] = useState(false)
@@ -503,17 +511,23 @@ export default function OrdinalRegressionPage() {
             <CardTitle>서열 회귀분석 결과</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="overview">개요</TabsTrigger>
-                <TabsTrigger value="coefficients">계수</TabsTrigger>
-                <TabsTrigger value="thresholds">임계값</TabsTrigger>
-                <TabsTrigger value="assumptions">가정검정</TabsTrigger>
-                <TabsTrigger value="predictions">예측</TabsTrigger>
-                <TabsTrigger value="interpretation">해석</TabsTrigger>
-              </TabsList>
+            
+              <ContentTabs
+              tabs={[
+                { id: 'overview', label: '개요', icon: FileText },
+                { id: 'coefficients', label: '계수', icon: Table },
+                { id: 'thresholds', label: '임계값', icon: Gauge },
+                { id: 'assumptions', label: '가정검정', icon: Shield },
+                { id: 'predictions', label: '예측', icon: TrendingUp },
+                { id: 'interpretation', label: '해석', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-              <TabsContent value="overview" className="space-y-4">
+              <ContentTabsContent tabId="overview" show={activeResultTab === 'overview'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">모델 정보</h4>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -576,9 +590,9 @@ export default function OrdinalRegressionPage() {
                     </Card>
                   </div>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="coefficients" className="space-y-4">
+              <ContentTabsContent tabId="coefficients" show={activeResultTab === 'coefficients'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">회귀 계수</h4>
                   <StatisticsTable
@@ -649,9 +663,9 @@ export default function OrdinalRegressionPage() {
                     </ResponsiveContainer>
                   </div>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="thresholds" className="space-y-4">
+              <ContentTabsContent tabId="thresholds" show={activeResultTab === 'thresholds'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">임계값 (Cut-off Points)</h4>
                   <StatisticsTable
@@ -695,9 +709,9 @@ export default function OrdinalRegressionPage() {
                     </AlertDescription>
                   </Alert>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="assumptions" className="space-y-4">
+              <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">비례 오즈 가정 검정</h4>
                   <Card>
@@ -771,9 +785,9 @@ export default function OrdinalRegressionPage() {
                     compactMode
                   />
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="predictions" className="space-y-4">
+              <ContentTabsContent tabId="predictions" show={activeResultTab === 'predictions'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">예측 확률</h4>
                   <StatisticsTable
@@ -880,9 +894,9 @@ export default function OrdinalRegressionPage() {
                     </div>
                   </div>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="interpretation" className="space-y-4">
+              <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">결과 해석</h4>
                   <div className="space-y-4">
@@ -928,8 +942,8 @@ export default function OrdinalRegressionPage() {
                     </ul>
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </ContentTabsContent>
+            </div>
           </CardContent>
         </Card>
       </div>

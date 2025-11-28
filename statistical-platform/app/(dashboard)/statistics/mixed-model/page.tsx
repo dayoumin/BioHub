@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import {
   Activity,
   BarChart3,
@@ -23,6 +23,10 @@ import {
   Settings,
   Network,
   Layers
+,
+  Lock,
+  Shuffle,
+  MessageSquare
 } from 'lucide-react'
 
 // Components
@@ -133,6 +137,7 @@ export default function MixedModelPage() {
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
 
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('fixed')
 
   // Pyodide ready state
   const [pyodideReady, setPyodideReady] = useState(false)
@@ -456,18 +461,24 @@ export default function MixedModelPage() {
           sampleSize={uploadedData?.data?.length}
           timestamp={analysisTimestamp ?? undefined}
         />
-        <Tabs defaultValue="fixed" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="fixed">고정효과</TabsTrigger>
-            <TabsTrigger value="random">무선효과</TabsTrigger>
-            <TabsTrigger value="variance">분산성분</TabsTrigger>
-            <TabsTrigger value="fit">모형적합도</TabsTrigger>
-            <TabsTrigger value="diagnostics">진단</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-          </TabsList>
+        
+          <ContentTabs
+              tabs={[
+                { id: 'fixed', label: '고정효과', icon: Lock },
+                { id: 'random', label: '무선효과', icon: Shuffle },
+                { id: 'variance', label: '분산성분', icon: Layers },
+                { id: 'fit', label: '모형적합도', icon: Target },
+                { id: 'diagnostics', label: '진단', icon: Activity },
+                { id: 'interpretation', label: '해석', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
           {/* 고정효과 탭 */}
-          <TabsContent value="fixed" className="mt-6">
+          <ContentTabsContent tabId="fixed" show={activeResultTab === 'fixed'} className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -526,10 +537,10 @@ export default function MixedModelPage() {
                 </Alert>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
           {/* 무선효과 탭 */}
-          <TabsContent value="random" className="mt-6 space-y-6">
+          <ContentTabsContent tabId="random" show={activeResultTab === 'random'} className="mt-6 space-y-6">
             {/* 무선효과 분산 */}
             <Card>
               <CardHeader>
@@ -619,10 +630,10 @@ export default function MixedModelPage() {
                 </Alert>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
           {/* 분산성분 탭 */}
-          <TabsContent value="variance" className="mt-6">
+          <ContentTabsContent tabId="variance" show={activeResultTab === 'variance'} className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -693,10 +704,10 @@ export default function MixedModelPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
           {/* 모형적합도 탭 */}
-          <TabsContent value="fit" className="mt-6">
+          <ContentTabsContent tabId="fit" show={activeResultTab === 'fit'} className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -777,10 +788,10 @@ export default function MixedModelPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
           {/* 진단 탭 */}
-          <TabsContent value="diagnostics" className="mt-6 space-y-6">
+          <ContentTabsContent tabId="diagnostics" show={activeResultTab === 'diagnostics'} className="mt-6 space-y-6">
             {/* 잔차 진단 */}
             <Card>
               <CardHeader>
@@ -929,10 +940,10 @@ export default function MixedModelPage() {
                 </Alert>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
           {/* 해석 탭 */}
-          <TabsContent value="interpretation" className="mt-6">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1003,8 +1014,8 @@ export default function MixedModelPage() {
                 </Alert>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
 
         <div className="flex justify-between mt-6">
           <Button variant="outline" onClick={() => actions?.setCurrentStep && actions.setCurrentStep(2)}>

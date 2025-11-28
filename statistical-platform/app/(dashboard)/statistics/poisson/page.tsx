@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { StatisticsTable, TableColumn } from '@/components/statistics/common/StatisticsTable'
 import {
   BarChart,
@@ -39,6 +39,14 @@ import {
   BarChart3,
   Target,
   Hash
+,
+  FileText,
+  Shield,
+  TrendingUp,
+  Percent,
+  MessageSquare
+,
+  Table
 } from 'lucide-react'
 
 interface PoissonRegressionResult {
@@ -134,6 +142,7 @@ export default function PoissonRegressionPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('overview')
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -460,17 +469,23 @@ export default function PoissonRegressionPage() {
             <CardTitle>포아송 회귀분석 결과</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="overview">개요</TabsTrigger>
-                <TabsTrigger value="coefficients">계수</TabsTrigger>
-                <TabsTrigger value="assumptions">가정검정</TabsTrigger>
-                <TabsTrigger value="predictions">예측</TabsTrigger>
-                <TabsTrigger value="ratios">발생률비</TabsTrigger>
-                <TabsTrigger value="interpretation">해석</TabsTrigger>
-              </TabsList>
+            
+              <ContentTabs
+              tabs={[
+                { id: 'overview', label: '개요', icon: FileText },
+                { id: 'coefficients', label: '계수', icon: Table },
+                { id: 'assumptions', label: '가정검정', icon: Shield },
+                { id: 'predictions', label: '예측', icon: TrendingUp },
+                { id: 'ratios', label: '발생률비', icon: Percent },
+                { id: 'interpretation', label: '해석', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-              <TabsContent value="overview" className="space-y-4">
+              <ContentTabsContent tabId="overview" show={activeResultTab === 'overview'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">모델 정보</h4>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -533,9 +548,9 @@ export default function PoissonRegressionPage() {
                     </Card>
                   </div>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="coefficients" className="space-y-4">
+              <ContentTabsContent tabId="coefficients" show={activeResultTab === 'coefficients'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">회귀 계수</h4>
                   <StatisticsTable
@@ -571,9 +586,9 @@ export default function PoissonRegressionPage() {
                     </ResponsiveContainer>
                   </div>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="assumptions" className="space-y-4">
+              <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">과산포 검정</h4>
                   <Card>
@@ -662,9 +677,9 @@ export default function PoissonRegressionPage() {
                     </Card>
                   </div>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="predictions" className="space-y-4">
+              <ContentTabsContent tabId="predictions" show={activeResultTab === 'predictions'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">예측값 및 잔차 (상위 10개)</h4>
                   <StatisticsTable
@@ -698,9 +713,9 @@ export default function PoissonRegressionPage() {
                     </ResponsiveContainer>
                   </div>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="ratios" className="space-y-4">
+              <ContentTabsContent tabId="ratios" show={activeResultTab === 'ratios'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">발생률비 (Incidence Rate Ratio)</h4>
                   <StatisticsTable
@@ -734,9 +749,9 @@ export default function PoissonRegressionPage() {
                     </div>
                   </div>
                 </div>
-              </TabsContent>
+              </ContentTabsContent>
 
-              <TabsContent value="interpretation" className="space-y-4">
+              <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">
                 <div>
                   <h4 className="font-medium mb-3">결과 해석</h4>
                   <div className="space-y-4">
@@ -784,8 +799,8 @@ export default function PoissonRegressionPage() {
                     </ul>
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </ContentTabsContent>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Progress } from '@/components/ui/progress'
@@ -101,6 +101,7 @@ export default function RegressionPage() {
 
   // Analysis timestamp state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('residual')
 
   // Page-specific state
   const [regressionType, setRegressionType] = useState<'simple' | 'multiple' | 'logistic' | ''>('')
@@ -826,12 +827,18 @@ export default function RegressionPage() {
             <CardTitle className="text-base">잔차 분석</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="residual">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="residual">잔차 플롯</TabsTrigger>
-                <TabsTrigger value="qq">Q-Q 플롯</TabsTrigger>
-              </TabsList>
-              <TabsContent value="residual">
+            
+              <ContentTabs
+              tabs={[
+                { id: 'residual', label: '잔차 플롯', icon: LineChart },
+                { id: 'qq', label: 'Q-Q 플롯', icon: TrendingUp }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
+              <ContentTabsContent tabId="residual" show={activeResultTab === 'residual'}>
                 <ResponsiveContainer width="100%" height={250}>
                   <ScatterChart data={residualPlot}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -841,13 +848,13 @@ export default function RegressionPage() {
                     <Scatter name="잔차" dataKey="residual" fill="#3b82f6" />
                   </ScatterChart>
                 </ResponsiveContainer>
-              </TabsContent>
-              <TabsContent value="qq">
+              </ContentTabsContent>
+              <ContentTabsContent tabId="qq" show={activeResultTab === 'qq'}>
                 <p className="text-sm text-muted-foreground text-center py-8">
                   Q-Q 플롯은 잔차의 정규성을 확인합니다
                 </p>
-              </TabsContent>
-            </Tabs>
+              </ContentTabsContent>
+            </div>
           </CardContent>
         </Card>
       </div>

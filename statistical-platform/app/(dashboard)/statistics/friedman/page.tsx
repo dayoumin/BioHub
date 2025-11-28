@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Activity,
@@ -24,6 +24,10 @@ import {
   Clock,
   Home,
   ChartBar
+,
+  Table,
+  MessageSquare,
+  Users
 } from 'lucide-react'
 
 // Components - TwoPanelLayout 사용
@@ -102,6 +106,7 @@ export default function FriedmanPage() {
   const [pyodideCore] = useState(() => PyodideCoreService.getInstance())
   const [isInitialized, setIsInitialized] = useState(false)
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('statistics')
 
   // Initialize PyodideCore
   useEffect(() => {
@@ -595,15 +600,21 @@ export default function FriedmanPage() {
         </div>
 
         {/* 상세 결과 탭 */}
-        <Tabs defaultValue="statistics" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="statistics">통계량</TabsTrigger>
-            <TabsTrigger value="descriptives">기술통계</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-            <TabsTrigger value="posthoc">사후검정</TabsTrigger>
-          </TabsList>
+        
+          <ContentTabs
+              tabs={[
+                { id: 'statistics', label: '통계량', icon: Calculator },
+                { id: 'descriptives', label: '기술통계', icon: Table },
+                { id: 'interpretation', label: '해석', icon: MessageSquare },
+                { id: 'posthoc', label: '사후검정', icon: Users }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="statistics">
+          <ContentTabsContent tabId="statistics" show={activeResultTab === 'statistics'}>
             <StatisticsTable
               title="Friedman 검정 통계량"
               description="χ² 통계량과 검정 결과"
@@ -623,9 +634,9 @@ export default function FriedmanPage() {
               bordered
               compactMode
             />
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="descriptives">
+          <ContentTabsContent tabId="descriptives" show={activeResultTab === 'descriptives'}>
             <div className="space-y-6">
               <StatisticsTable
                 title="조건별 기술통계량"
@@ -662,9 +673,9 @@ export default function FriedmanPage() {
                 </p>
               </Card>
             </div>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
             <Card>
               <CardHeader>
                 <CardTitle>결과 해석</CardTitle>
@@ -710,9 +721,9 @@ export default function FriedmanPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="posthoc">
+          <ContentTabsContent tabId="posthoc" show={activeResultTab === 'posthoc'}>
             {analysisResult.postHoc ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -744,8 +755,8 @@ export default function FriedmanPage() {
                 사후검정은 전체 검정이 유의할 때 수행됩니다.
               </Card>
             )}
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
 
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,6 +25,11 @@ import {
   Target,
   PieChart,
   Percent
+,
+  Table,
+  BarChart2,
+  MessageSquare,
+  LineChart
 } from 'lucide-react'
 
 // Components
@@ -94,6 +99,7 @@ export default function ChiSquareGoodnessPage() {
   const [expectedProportions, setExpectedProportions] = useState<Record<string, number>>({})
   const [useUniformDistribution, setUseUniformDistribution] = useState(true)
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('frequencies')
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -572,15 +578,20 @@ export default function ChiSquareGoodnessPage() {
           </div>
 
           {/* 상세 결과 탭 */}
-          <Tabs defaultValue="frequencies" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="frequencies">빈도표</TabsTrigger>
-              <TabsTrigger value="residuals">잔차분석</TabsTrigger>
-              <TabsTrigger value="interpretation">해석</TabsTrigger>
-              <TabsTrigger value="visualization">시각화</TabsTrigger>
-            </TabsList>
+          <ContentTabs
+              tabs={[
+                { id: 'frequencies', label: '빈도표', icon: Table },
+                { id: 'residuals', label: '잔차분석', icon: BarChart2 },
+                { id: 'interpretation', label: '해석', icon: MessageSquare },
+                { id: 'visualization', label: '시각화', icon: LineChart }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-            <TabsContent value="frequencies">
+            <ContentTabsContent tabId="frequencies" show={activeResultTab === 'frequencies'}>
               <Card>
                 <CardHeader>
                   <CardTitle>관측빈도 vs 기댓빈도</CardTitle>
@@ -619,9 +630,9 @@ export default function ChiSquareGoodnessPage() {
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="residuals">
+            <ContentTabsContent tabId="residuals" show={activeResultTab === 'residuals'}>
               <Card>
                 <CardHeader>
                   <CardTitle>잔차 분석</CardTitle>
@@ -652,9 +663,9 @@ export default function ChiSquareGoodnessPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="interpretation">
+            <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
               <Card>
                 <CardHeader>
                   <CardTitle>결과 해석</CardTitle>
@@ -712,9 +723,9 @@ export default function ChiSquareGoodnessPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="visualization">
+            <ContentTabsContent tabId="visualization" show={activeResultTab === 'visualization'}>
               <Card>
                 <CardHeader>
                   <CardTitle>데이터 시각화</CardTitle>
@@ -726,8 +737,8 @@ export default function ChiSquareGoodnessPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+            </ContentTabsContent>
+            </div>
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => actions?.setCurrentStep && actions.setCurrentStep(2)}>

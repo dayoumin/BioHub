@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FilterToggle } from '@/components/ui/filter-toggle'
 import { X, ChartScatter, Loader2, ListOrdered, ArrowRight, Sparkles, ExternalLink, BarChart3, GitCommitHorizontal, Flame } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ValidationResults, DataRow, StatisticalAssumptions } from '@/types/smart-flow'
@@ -924,25 +924,18 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeDataTab} onValueChange={setActiveDataTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="statistics">
-                <ListOrdered className="h-4 w-4 mr-2" />
-                기초 통계량
-              </TabsTrigger>
-              <TabsTrigger value="preview">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                데이터 미리보기
-                {highlightedRows.length > 0 && (
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {highlightedRows.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-            </TabsList>
+          <ContentTabs
+            tabs={[
+              { id: 'statistics', label: '기초 통계량', icon: ListOrdered },
+              { id: 'preview', label: '데이터 미리보기', icon: BarChart3, badge: highlightedRows.length > 0 ? highlightedRows.length : undefined }
+            ]}
+            activeTab={activeDataTab}
+            onTabChange={setActiveDataTab}
+            className="mb-4"
+          />
 
-            {/* 기초 통계량 탭 */}
-            <TabsContent value="statistics" className="mt-0">
+          {/* 기초 통계량 탭 */}
+          <ContentTabsContent tabId="statistics" show={activeDataTab === 'statistics'}>
               <div className="space-y-4">
                 {/* 이상치 요약 배너 */}
 
@@ -1093,10 +1086,10 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   </div>
                 </div>
               </div>
-            </TabsContent>
+          </ContentTabsContent>
 
-            {/* 데이터 미리보기 탭 */}
-            <TabsContent value="preview" className="mt-0">
+          {/* 데이터 미리보기 탭 */}
+          <ContentTabsContent tabId="preview" show={activeDataTab === 'preview'}>
               <div className="space-y-4">
                 {/* 하이라이트된 행이 있으면 해당 행들만 표시 */}
                 {highlightedRows.length > 0 ? (
@@ -1180,8 +1173,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
                   전체 데이터({data.length}행)를 보려면 상단의 &quot;전체 데이터 보기&quot; 버튼을 클릭하세요.
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
+          </ContentTabsContent>
         </CardContent>
       </Card>
 
@@ -1282,27 +1274,16 @@ export const DataExplorationStep = memo(function DataExplorationStep({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* 차트 타입 선택 (외부 상태로 관리) */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant={chartType === 'histogram' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setChartType('histogram')}
-              className="text-xs"
-            >
-              <BarChart3 className="h-3 w-3 mr-1" />
-              히스토그램
-            </Button>
-            <Button
-              variant={chartType === 'boxplot' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setChartType('boxplot')}
-              className="text-xs"
-            >
-              <GitCommitHorizontal className="h-3 w-3 mr-1" />
-              박스플롯
-            </Button>
-          </div>
+          {/* 차트 타입 선택 (FilterToggle) */}
+          <FilterToggle
+            options={[
+              { id: 'histogram', label: '히스토그램', icon: BarChart3 },
+              { id: 'boxplot', label: '박스플롯', icon: GitCommitHorizontal }
+            ]}
+            value={chartType}
+            onChange={(value) => setChartType(value as 'histogram' | 'boxplot')}
+            ariaLabel="차트 타입 선택"
+          />
 
           {/* 히스토그램 모드: 단일 변수 선택 */}
           {chartType === 'histogram' && (

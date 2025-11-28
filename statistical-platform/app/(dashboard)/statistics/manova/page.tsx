@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import {
   Activity,
   BarChart3,
@@ -22,6 +22,12 @@ import {
   Target,
   Settings,
   Layers3
+,
+  Grid3X3,
+  Table,
+  GitBranch,
+  Shield,
+  MessageSquare
 } from 'lucide-react'
 
 // Components
@@ -160,6 +166,7 @@ export default function ManovaPage() {
   // Pyodide ready state
   const [pyodideReady, setPyodideReady] = useState(false)
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('multivariate')
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -400,18 +407,24 @@ export default function ManovaPage() {
             <CardDescription>다변량 검정, 단변량 검정, 판별분석 결과</CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="multivariate" className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="multivariate">다변량 검정</TabsTrigger>
-                <TabsTrigger value="univariate">단변량 검정</TabsTrigger>
-                <TabsTrigger value="descriptives">기술통계</TabsTrigger>
-                <TabsTrigger value="discriminant">판별분석</TabsTrigger>
-                <TabsTrigger value="assumptions">가정검정</TabsTrigger>
-                <TabsTrigger value="interpretation">해석</TabsTrigger>
-              </TabsList>
+            
+              <ContentTabs
+              tabs={[
+                { id: 'multivariate', label: '다변량 검정', icon: Grid3X3 },
+                { id: 'univariate', label: '단변량 검정', icon: BarChart3 },
+                { id: 'descriptives', label: '기술통계', icon: Table },
+                { id: 'discriminant', label: '판별분석', icon: GitBranch },
+                { id: 'assumptions', label: '가정검정', icon: Shield },
+                { id: 'interpretation', label: '해석', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
               {/* 다변량 검정 탭 */}
-              <TabsContent value="multivariate" className="mt-6 space-y-6">
+              <ContentTabsContent tabId="multivariate" show={activeResultTab === 'multivariate'} className="mt-6 space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -506,10 +519,10 @@ export default function ManovaPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </ContentTabsContent>
 
               {/* 단변량 검정 탭 */}
-              <TabsContent value="univariate" className="mt-6">
+              <ContentTabsContent tabId="univariate" show={activeResultTab === 'univariate'} className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -562,10 +575,10 @@ export default function ManovaPage() {
                     </Alert>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </ContentTabsContent>
 
               {/* 기술통계 탭 */}
-              <TabsContent value="descriptives" className="mt-6">
+              <ContentTabsContent tabId="descriptives" show={activeResultTab === 'descriptives'} className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>집단별 기술통계</CardTitle>
@@ -597,10 +610,10 @@ export default function ManovaPage() {
                     />
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </ContentTabsContent>
 
               {/* 판별분석 탭 */}
-              <TabsContent value="discriminant" className="mt-6 space-y-6">
+              <ContentTabsContent tabId="discriminant" show={activeResultTab === 'discriminant'} className="mt-6 space-y-6">
                 {analysisResult.canonicalAnalysis && analysisResult.canonicalAnalysis.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -660,10 +673,10 @@ export default function ManovaPage() {
                     </CardContent>
                   </Card>
                 )}
-              </TabsContent>
+              </ContentTabsContent>
 
               {/* 가정검정 탭 */}
-              <TabsContent value="assumptions" className="mt-6 space-y-6">
+              <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'} className="mt-6 space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>다변량 정규성</CardTitle>
@@ -764,10 +777,10 @@ export default function ManovaPage() {
                     </CardContent>
                   </Card>
                 )}
-              </TabsContent>
+              </ContentTabsContent>
 
               {/* 해석 탭 */}
-              <TabsContent value="interpretation" className="mt-6">
+              <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="mt-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>결과 해석 및 권장사항</CardTitle>
@@ -822,8 +835,8 @@ export default function ManovaPage() {
                     </Alert>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
+              </ContentTabsContent>
+            </div>
           </CardContent>
         </Card>
 

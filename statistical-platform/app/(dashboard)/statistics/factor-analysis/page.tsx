@@ -9,9 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle2, XCircle, Target, BarChart3, Activity, Zap, TrendingUp, Info } from 'lucide-react'
+import { CheckCircle2, XCircle, Target, BarChart3, Activity, Zap, TrendingUp, Info ,
+  Grid3X3,
+  Layers,
+  MessageSquare
+} from 'lucide-react'
 
 // Components
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -81,6 +85,7 @@ export default function FactorAnalysisPage() {
   const [numFactors, setNumFactors] = useState<number>(0)
   const [autoFactorSelection, setAutoFactorSelection] = useState<boolean>(true)
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('loadings')
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -500,15 +505,21 @@ export default function FactorAnalysisPage() {
         </div>
 
         {/* 탭 컨텐츠 */}
-        <Tabs defaultValue="loadings" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="loadings">요인 로딩</TabsTrigger>
-            <TabsTrigger value="eigenvalues">고유값</TabsTrigger>
-            <TabsTrigger value="communalities">공통성</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-          </TabsList>
+        
+          <ContentTabs
+              tabs={[
+                { id: 'loadings', label: '요인 로딩', icon: Grid3X3 },
+                { id: 'eigenvalues', label: '고유값', icon: BarChart3 },
+                { id: 'communalities', label: '공통성', icon: Layers },
+                { id: 'interpretation', label: '해석', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="loadings" className="mt-4">
+          <ContentTabsContent tabId="loadings" show={activeResultTab === 'loadings'} className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle>요인 로딩 행렬</CardTitle>
@@ -551,9 +562,9 @@ export default function FactorAnalysisPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="eigenvalues" className="mt-4">
+          <ContentTabsContent tabId="eigenvalues" show={activeResultTab === 'eigenvalues'} className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -617,9 +628,9 @@ export default function FactorAnalysisPage() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="communalities" className="mt-4">
+          <ContentTabsContent tabId="communalities" show={activeResultTab === 'communalities'} className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle>공통성 분석</CardTitle>
@@ -678,9 +689,9 @@ export default function FactorAnalysisPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation" className="mt-4">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle>결과 해석 및 권장사항</CardTitle>
@@ -772,8 +783,8 @@ export default function FactorAnalysisPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
 
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>

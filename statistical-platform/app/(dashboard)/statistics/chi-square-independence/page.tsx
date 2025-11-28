@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Activity,
@@ -23,6 +23,11 @@ import {
   Target,
   Grid3X3,
   Link2
+,
+  Table,
+  BarChart2,
+  MessageSquare,
+  Shield
 } from 'lucide-react'
 
 // Components
@@ -104,6 +109,7 @@ export default function ChiSquareIndependencePage() {
   })
   const { currentStep, uploadedData, selectedVariables, results: analysisResult, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('crosstab')
 
   // Breadcrumbs - useMemo로 최적화
   const breadcrumbs = useMemo(() => [
@@ -508,15 +514,20 @@ export default function ChiSquareIndependencePage() {
           </div>
 
           {/* 상세 결과 탭 */}
-          <Tabs defaultValue="crosstab" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="crosstab">교차표</TabsTrigger>
-              <TabsTrigger value="residuals">잔차분석</TabsTrigger>
-              <TabsTrigger value="interpretation">해석</TabsTrigger>
-              <TabsTrigger value="assumptions">가정검정</TabsTrigger>
-            </TabsList>
+          <ContentTabs
+              tabs={[
+                { id: 'crosstab', label: '교차표', icon: Table },
+                { id: 'residuals', label: '잔차분석', icon: BarChart2 },
+                { id: 'interpretation', label: '해석', icon: MessageSquare },
+                { id: 'assumptions', label: '가정검정', icon: Shield }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-            <TabsContent value="crosstab">
+            <ContentTabsContent tabId="crosstab" show={activeResultTab === 'crosstab'}>
               <Card>
                 <CardHeader>
                   <CardTitle>교차표 (분할표)</CardTitle>
@@ -582,9 +593,9 @@ export default function ChiSquareIndependencePage() {
                   </p>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="residuals">
+            <ContentTabsContent tabId="residuals" show={activeResultTab === 'residuals'}>
               <Card>
                 <CardHeader>
                   <CardTitle>표준화 잔차 분석</CardTitle>
@@ -653,9 +664,9 @@ export default function ChiSquareIndependencePage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="interpretation">
+            <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
               <Card>
                 <CardHeader>
                   <CardTitle>결과 해석</CardTitle>
@@ -714,9 +725,9 @@ export default function ChiSquareIndependencePage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="assumptions">
+            <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'}>
               <Card>
                 <CardHeader>
                   <CardTitle>가정 검정</CardTitle>
@@ -770,8 +781,8 @@ export default function ChiSquareIndependencePage() {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+            </ContentTabsContent>
+            </div>
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>

@@ -6,12 +6,16 @@ import type { ResponseSurfaceVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Activity, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
+import { Activity, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target ,
+  Table
+,
+  BarChart3
+} from 'lucide-react'
 
 // Components
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -120,6 +124,7 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
   actions
 }) => {
   const [result, setResult] = useState<ResponseSurfaceResult | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('coefficients')
 
   const handleAnalysis = useCallback(async (variables: VariableAssignment) => {
     const typedVariables: ResponseSurfaceVariables = {
@@ -320,15 +325,21 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
           </div>
 
           {/* 상세 결과 탭 */}
-          <Tabs defaultValue="coefficients" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="coefficients">계수</TabsTrigger>
-              <TabsTrigger value="anova">ANOVA</TabsTrigger>
-              <TabsTrigger value="optimization">최적화</TabsTrigger>
-              <TabsTrigger value="diagnostics">진단</TabsTrigger>
-            </TabsList>
+          
+            <ContentTabs
+              tabs={[
+                { id: 'coefficients', label: '계수', icon: Table },
+                { id: 'anova', label: 'ANOVA', icon: BarChart3 },
+                { id: 'optimization', label: '최적화', icon: Target },
+                { id: 'diagnostics', label: '진단', icon: Activity }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-            <TabsContent value="coefficients">
+            <ContentTabsContent tabId="coefficients" show={activeResultTab === 'coefficients'}>
               <Card>
                 <CardHeader>
                   <CardTitle>모델 계수</CardTitle>
@@ -346,9 +357,9 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="anova">
+            <ContentTabsContent tabId="anova" show={activeResultTab === 'anova'}>
               <Card>
                 <CardHeader>
                   <CardTitle>분산분석표</CardTitle>
@@ -377,9 +388,9 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
                   />
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="optimization">
+            <ContentTabsContent tabId="optimization" show={activeResultTab === 'optimization'}>
               <Card>
                 <CardHeader>
                   <CardTitle>최적화 분석</CardTitle>
@@ -437,9 +448,9 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="diagnostics">
+            <ContentTabsContent tabId="diagnostics" show={activeResultTab === 'diagnostics'}>
               <Card>
                 <CardHeader>
                   <CardTitle>모델 진단</CardTitle>
@@ -483,8 +494,8 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+            </ContentTabsContent>
+          </div>
         </div>
       )}
     </div>
@@ -503,6 +514,7 @@ export default function ResponseSurfacePage() {
   })
   const { currentStep, uploadedData, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('coefficients')
 
   const [selectedModel, setSelectedModel] = useState('second_order')
   const [includeInteraction, setIncludeInteraction] = useState(true)

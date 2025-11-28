@@ -1,20 +1,21 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FilterToggle } from '@/components/ui/filter-toggle'
 import { PlotlyChartImproved } from '@/components/charts/PlotlyChartImproved'
 import { BarChart as BarChartComponent } from '@/components/charts/StatisticalChartsImproved'
 import { getModalLayout, CHART_STYLES } from '@/lib/plotly-config'
 import { ColumnStatistics } from '@/types/smart-flow'
 import { getNumericColumnData } from '../utils/correlationUtils'
 import type { Data } from 'plotly.js'
+import { BarChart3, GitCommitHorizontal } from 'lucide-react'
 
 interface ColumnDetailModalProps {
   column: ColumnStatistics | null
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  data: any[]
+  data: unknown[]
 }
 
 export const ColumnDetailModal = memo(function ColumnDetailModal({
@@ -23,6 +24,8 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
   onOpenChange,
   data
 }: ColumnDetailModalProps) {
+  const [chartType, setChartType] = useState<'histogram' | 'boxplot'>('histogram')
+
   if (!column) return null
 
   const numericData = column.type === 'numeric' ? getNumericColumnData(data, column.name) : []
@@ -37,67 +40,71 @@ export const ColumnDetailModal = memo(function ColumnDetailModal({
         <div className="space-y-4">
           {column.type === 'numeric' ? (
             <>
-              <Tabs defaultValue="histogram" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="histogram">히스토그램</TabsTrigger>
-                  <TabsTrigger value="boxplot">박스플롯</TabsTrigger>
-                </TabsList>
+              <FilterToggle
+                options={[
+                  { id: 'histogram', label: '히스토그램', icon: BarChart3 },
+                  { id: 'boxplot', label: '박스플롯', icon: GitCommitHorizontal }
+                ]}
+                value={chartType}
+                onChange={(value) => setChartType(value as 'histogram' | 'boxplot')}
+                size="md"
+                ariaLabel="차트 타입 선택"
+              />
 
-                <TabsContent value="histogram" className="mt-4">
-                  <div className="h-[400px] w-full">
-                    <PlotlyChartImproved
-                      data={[{
-                        x: numericData,
-                        type: 'histogram',
-                        ...CHART_STYLES.histogram,
-                        nbinsx: 20,
-                        name: column.name,
-                        hovertemplate: '%{x}: %{y}개<extra></extra>'
-                      } as Data]}
-                      layout={getModalLayout({
-                        title: { text: '' },
-                        xaxis: { title: { text: column.name } },
-                        yaxis: { title: { text: '빈도' } },
-                        height: 380,
-                        showlegend: false,
-                        margin: { l: 50, r: 30, t: 20, b: 50 }
-                      })}
-                      config={{
-                        displayModeBar: true,
-                        displaylogo: false,
-                        responsive: true
-                      }}
-                    />
-                  </div>
-                </TabsContent>
+              {chartType === 'histogram' && (
+                <div className="h-[400px] w-full mt-4">
+                  <PlotlyChartImproved
+                    data={[{
+                      x: numericData,
+                      type: 'histogram',
+                      ...CHART_STYLES.histogram,
+                      nbinsx: 20,
+                      name: column.name,
+                      hovertemplate: '%{x}: %{y}개<extra></extra>'
+                    } as Data]}
+                    layout={getModalLayout({
+                      title: { text: '' },
+                      xaxis: { title: { text: column.name } },
+                      yaxis: { title: { text: '빈도' } },
+                      height: 380,
+                      showlegend: false,
+                      margin: { l: 50, r: 30, t: 20, b: 50 }
+                    })}
+                    config={{
+                      displayModeBar: true,
+                      displaylogo: false,
+                      responsive: true
+                    }}
+                  />
+                </div>
+              )}
 
-                <TabsContent value="boxplot" className="mt-4">
-                  <div className="h-[400px] w-full">
-                    <PlotlyChartImproved
-                      data={[{
-                        y: numericData,
-                        type: 'box',
-                        ...CHART_STYLES.box,
-                        name: column.name,
-                        boxmean: true,
-                        hovertemplate: '%{y}<extra></extra>'
-                      } as Data]}
-                      layout={getModalLayout({
-                        title: { text: '' },
-                        yaxis: { title: { text: column.name } },
-                        height: 380,
-                        showlegend: false,
-                        margin: { l: 60, r: 30, t: 20, b: 40 }
-                      })}
-                      config={{
-                        displayModeBar: true,
-                        displaylogo: false,
-                        responsive: true
-                      }}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
+              {chartType === 'boxplot' && (
+                <div className="h-[400px] w-full mt-4">
+                  <PlotlyChartImproved
+                    data={[{
+                      y: numericData,
+                      type: 'box',
+                      ...CHART_STYLES.box,
+                      name: column.name,
+                      boxmean: true,
+                      hovertemplate: '%{y}<extra></extra>'
+                    } as Data]}
+                    layout={getModalLayout({
+                      title: { text: '' },
+                      yaxis: { title: { text: column.name } },
+                      height: 380,
+                      showlegend: false,
+                      margin: { l: 60, r: 30, t: 20, b: 40 }
+                    })}
+                    config={{
+                      displayModeBar: true,
+                      displaylogo: false,
+                      responsive: true
+                    }}
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                 <div className="bg-muted rounded p-3">

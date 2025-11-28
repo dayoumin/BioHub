@@ -23,14 +23,14 @@ export function FitScoreIndicatorDemo() {
             <Badge variant="secondary">NEW</Badge>
           </CardTitle>
           <CardDescription>
-            Data-method compatibility indicator with semantic labels (Progressive Disclosure Pattern)
+            데이터-방법 적합도 지표 (점진적 공개 패턴)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Live Demo Area */}
           <div className="bg-muted/30 rounded-lg p-6 space-y-6">
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Current Score</p>
+              <p className="text-sm text-muted-foreground">현재 점수</p>
               <p className="text-4xl font-bold">{score}</p>
             </div>
 
@@ -58,7 +58,7 @@ export function FitScoreIndicatorDemo() {
                 checked={compact}
                 onCheckedChange={setCompact}
               />
-              <Label htmlFor="compact-mode" className="text-sm">Compact Mode</Label>
+              <Label htmlFor="compact-mode" className="text-sm">컴팩트 모드</Label>
             </div>
 
             {/* Preview */}
@@ -68,14 +68,14 @@ export function FitScoreIndicatorDemo() {
 
             {/* Badge Preview */}
             <div className="flex items-center justify-center gap-4">
-              <span className="text-sm text-muted-foreground">Badge variant:</span>
+              <span className="text-sm text-muted-foreground">배지 변형:</span>
               <FitScoreBadge score={score} />
             </div>
           </div>
 
           {/* Score Levels Reference */}
           <div>
-            <h4 className="text-sm font-medium mb-3">Score Levels</h4>
+            <h4 className="text-sm font-medium mb-3">점수 레벨</h4>
             <div className="grid grid-cols-5 gap-2">
               {[
                 { score: 90, label: 'Excellent' },
@@ -112,20 +112,20 @@ export function FitScoreIndicatorDemo() {
 
           {/* Usage Code */}
           <div className="bg-muted rounded-lg p-4">
-            <h4 className="text-sm font-medium mb-2">Usage</h4>
+            <h4 className="text-sm font-medium mb-2">사용법</h4>
             <pre className="text-xs overflow-x-auto">
 {`import { FitScoreIndicator, FitScoreBadge, getFitLevel } from '@/components/smart-flow/visualization/FitScoreIndicator'
 
-// Full indicator with progress bar
+// 프로그레스 바가 있는 전체 지표
 <FitScoreIndicator score={85} />
 
-// Compact pill badge
+// 컴팩트 필 배지
 <FitScoreIndicator score={85} compact />
 
-// Inline badge variant
+// 인라인 배지 변형
 <FitScoreBadge score={85} />
 
-// Get level config programmatically
+// 프로그래밍 방식으로 레벨 설정 가져오기
 const config = getFitLevel(85)
 // => { level: 'excellent', label: 'Very Suitable', shortLabel: 'Optimal', ... }`}
             </pre>
@@ -137,10 +137,10 @@ const config = getFitLevel(85)
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2">Prop</th>
-                  <th className="text-left py-2">Type</th>
-                  <th className="text-left py-2">Default</th>
-                  <th className="text-left py-2">Description</th>
+                  <th className="text-left py-2">속성</th>
+                  <th className="text-left py-2">타입</th>
+                  <th className="text-left py-2">기본값</th>
+                  <th className="text-left py-2">설명</th>
                 </tr>
               </thead>
               <tbody>
@@ -148,19 +148,19 @@ const config = getFitLevel(85)
                   <td className="py-2 font-mono text-xs">score</td>
                   <td className="py-2 font-mono text-xs">number</td>
                   <td className="py-2">-</td>
-                  <td className="py-2 text-muted-foreground">0-100 fit score</td>
+                  <td className="py-2 text-muted-foreground">0-100 적합도 점수</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 font-mono text-xs">compact</td>
                   <td className="py-2 font-mono text-xs">boolean</td>
                   <td className="py-2">false</td>
-                  <td className="py-2 text-muted-foreground">Show pill badge only</td>
+                  <td className="py-2 text-muted-foreground">필 배지만 표시</td>
                 </tr>
                 <tr className="border-b">
                   <td className="py-2 font-mono text-xs">className</td>
                   <td className="py-2 font-mono text-xs">string</td>
                   <td className="py-2">-</td>
-                  <td className="py-2 text-muted-foreground">Additional CSS classes</td>
+                  <td className="py-2 text-muted-foreground">추가 CSS 클래스</td>
                 </tr>
               </tbody>
             </table>
@@ -168,12 +168,12 @@ const config = getFitLevel(85)
 
           {/* Design Rationale */}
           <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-2">
-            <h4 className="font-medium text-sm text-blue-800 dark:text-blue-300">Design Rationale</h4>
+            <h4 className="font-medium text-sm text-blue-800 dark:text-blue-300">디자인 근거</h4>
             <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
-              <li>• <strong>Progressive Disclosure:</strong> Show semantic labels first, details on expand</li>
-              <li>• <strong>Human-readable:</strong> Replaces confusing percentages with meaningful terms</li>
-              <li>• <strong>Color-coded:</strong> Green/Blue/Amber/Red for instant recognition</li>
-              <li>• <strong>Dark mode:</strong> Full support with accessible contrast ratios</li>
+              <li>• <strong>점진적 공개:</strong> 먼저 의미 있는 레이블을 보여주고, 확장 시 세부 정보 표시</li>
+              <li>• <strong>사람이 읽기 쉬움:</strong> 혼란스러운 퍼센트 대신 의미 있는 용어 사용</li>
+              <li>• <strong>색상 코드:</strong> 즉각적인 인식을 위한 녹색/파랑/주황/빨강</li>
+              <li>• <strong>다크 모드:</strong> 접근 가능한 대비율로 완벽 지원</li>
             </ul>
           </div>
         </CardContent>

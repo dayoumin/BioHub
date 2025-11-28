@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { cn } from '@/lib/utils'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
@@ -476,20 +476,18 @@ export function PurposeInputStep({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'recommended' | 'browse')}>
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="recommended" className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  AI 추천
-                </TabsTrigger>
-                <TabsTrigger value="browse" className="flex items-center gap-2">
-                  <List className="w-4 h-4" />
-                  전체 방법 보기
-                </TabsTrigger>
-              </TabsList>
+            <ContentTabs
+              tabs={[
+                { id: 'recommended', label: 'AI 추천', icon: Sparkles },
+                { id: 'browse', label: '전체 방법 보기', icon: List }
+              ]}
+              activeTab={activeTab}
+              onTabChange={(v) => setActiveTab(v as 'recommended' | 'browse')}
+              className="mb-4"
+            />
 
-              {/* AI Recommended Tab */}
-              <TabsContent value="recommended" className="mt-0">
+            {/* AI Recommended Tab */}
+            <ContentTabsContent tabId="recommended" show={activeTab === 'recommended'}>
                 {recommendation ? (
                   <div className="space-y-4">
                     {/* Recommendation Card - 점진적 공개 패턴 적용 */}
@@ -620,19 +618,18 @@ export function PurposeInputStep({
                     분석 중...
                   </div>
                 )}
-              </TabsContent>
+            </ContentTabsContent>
 
-              {/* Browse All Tab */}
-              <TabsContent value="browse" className="mt-0">
-                <MethodBrowser
-                  methodGroups={browseMethodGroups}
-                  selectedMethod={manualSelectedMethod}
-                  recommendedMethodId={recommendation?.method.id}
-                  onMethodSelect={handleManualMethodSelect}
-                  dataProfile={dataProfile}
-                />
-              </TabsContent>
-            </Tabs>
+            {/* Browse All Tab */}
+            <ContentTabsContent tabId="browse" show={activeTab === 'browse'}>
+              <MethodBrowser
+                methodGroups={browseMethodGroups}
+                selectedMethod={manualSelectedMethod}
+                recommendedMethodId={recommendation?.method.id}
+                onMethodSelect={handleManualMethodSelect}
+                dataProfile={dataProfile}
+              />
+            </ContentTabsContent>
           </CardContent>
         </Card>
       )}

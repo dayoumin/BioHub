@@ -6,12 +6,16 @@ import type { DoseResponseVariables } from '@/types/statistics'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Input } from '@/components/ui/input'
-import { Activity, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target } from 'lucide-react'
+import { Activity, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target ,
+  Settings,
+  Table,
+  MessageSquare
+} from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -98,6 +102,7 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
   const [result, setResult] = useState<DoseResponseResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('parameters')
   const [constraintsEnabled, setConstraintsEnabled] = useState(false)
   const [bottomConstraint, setBottomConstraint] = useState('')
   const [topConstraint, setTopConstraint] = useState('')
@@ -361,15 +366,21 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
           </div>
 
           {/* 상세 결과 탭 */}
-          <Tabs defaultValue="parameters" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="parameters">매개변수</TabsTrigger>
-              <TabsTrigger value="statistics">통계량</TabsTrigger>
-              <TabsTrigger value="interpretation">해석</TabsTrigger>
-              <TabsTrigger value="diagnostics">진단</TabsTrigger>
-            </TabsList>
+          
+            <ContentTabs
+              tabs={[
+                { id: 'parameters', label: '매개변수', icon: Settings },
+                { id: 'statistics', label: '통계량', icon: Table },
+                { id: 'interpretation', label: '해석', icon: MessageSquare },
+                { id: 'diagnostics', label: '진단', icon: Activity }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-            <TabsContent value="parameters">
+            <ContentTabsContent tabId="parameters" show={activeResultTab === 'parameters'}>
               <Card>
                 <CardHeader>
                   <CardTitle>모델 매개변수</CardTitle>
@@ -392,9 +403,9 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="statistics">
+            <ContentTabsContent tabId="statistics" show={activeResultTab === 'statistics'}>
               <Card>
                 <CardHeader>
                   <CardTitle>통계 지표</CardTitle>
@@ -432,9 +443,9 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="interpretation">
+            <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
               <Card>
                 <CardHeader>
                   <CardTitle>결과 해석</CardTitle>
@@ -485,9 +496,9 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </ContentTabsContent>
 
-            <TabsContent value="diagnostics">
+            <ContentTabsContent tabId="diagnostics" show={activeResultTab === 'diagnostics'}>
               <Card>
                 <CardHeader>
                   <CardTitle>모델 진단</CardTitle>
@@ -515,8 +526,8 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+            </ContentTabsContent>
+          </div>
         </div>
       )}
     </div>
@@ -537,6 +548,7 @@ export default function DoseResponsePage() {
   const { currentStep, uploadedData, error, results } = state
 
   const [selectedModel, setSelectedModel] = useState('logistic4')
+  const [activeResultTab, setActiveResultTab] = useState('parameters')
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [

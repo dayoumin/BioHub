@@ -9,9 +9,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CheckCircle2, XCircle, Users, Target, Zap, BarChart3, Activity } from 'lucide-react'
+import { CheckCircle2, XCircle, Users, Target, Zap, BarChart3, Activity ,
+  Table,
+  Gauge,
+  MessageSquare,
+  LineChart
+} from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -78,6 +83,7 @@ export default function ClusterAnalysisPage() {
   const [linkageMethod, setLinkageMethod] = useState<'ward' | 'complete' | 'average' | 'single'>('ward')
   const [distanceMetric, setDistanceMetric] = useState<'euclidean' | 'manhattan' | 'cosine'>('euclidean')
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('statistics')
 
   // STEPS 정의 (Batch 3 표준)
   const STEPS: TwoPanelStep[] = useMemo(() => [
@@ -377,15 +383,20 @@ export default function ClusterAnalysisPage() {
         </div>
 
         {/* 탭 컨텐츠 */}
-        <Tabs defaultValue="statistics" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="statistics">군집 통계</TabsTrigger>
-            <TabsTrigger value="performance">성능 지표</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-            <TabsTrigger value="visualization">시각화</TabsTrigger>
-          </TabsList>
+        <ContentTabs
+            tabs={[
+              { id: 'statistics', label: '군집 통계', icon: Table },
+              { id: 'performance', label: '성능 지표', icon: Gauge },
+              { id: 'interpretation', label: '해석', icon: MessageSquare },
+              { id: 'visualization', label: '시각화', icon: LineChart }
+            ]}
+            activeTab={activeResultTab}
+            onTabChange={setActiveResultTab}
+            className="mb-4"
+          />
+          <div className="w-full">
 
-          <TabsContent value="statistics" className="mt-4">
+          <ContentTabsContent tabId="statistics" show={activeResultTab === 'statistics'} className="mt-4">
             <StatisticsTable
               title="군집별 상세 통계"
               description="각 군집의 크기와 특성"
@@ -403,9 +414,9 @@ export default function ClusterAnalysisPage() {
               }))}
               bordered
             />
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="performance" className="mt-4">
+          <ContentTabsContent tabId="performance" show={activeResultTab === 'performance'} className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -465,9 +476,9 @@ export default function ClusterAnalysisPage() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation" className="mt-4">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle>결과 해석 및 권장사항</CardTitle>
@@ -539,9 +550,9 @@ export default function ClusterAnalysisPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="visualization" className="mt-4">
+          <ContentTabsContent tabId="visualization" show={activeResultTab === 'visualization'} className="mt-4">
             <Card>
               <CardHeader>
                 <CardTitle>시각화 안내</CardTitle>
@@ -571,8 +582,8 @@ export default function ClusterAnalysisPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+          </div>
 
         <div className="flex justify-between">
           <Button variant="outline" onClick={() => {

@@ -19,12 +19,18 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
-import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus, Home, ChartBar } from 'lucide-react'
+import { CheckCircle2, AlertCircle, TrendingUp, Target, BarChart3, Plus, Minus, Home, ChartBar ,
+  FileText,
+  ListOrdered,
+  Table,
+  Activity,
+  MessageSquare
+} from 'lucide-react'
 import { DataPreviewPanel } from '@/components/statistics/common/DataPreviewPanel'
 import { escapeHtml } from '@/lib/utils/html-escape'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
@@ -101,6 +107,7 @@ export default function StepwiseRegressionPage() {
   })
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+  const [activeResultTab, setActiveResultTab] = useState('summary')
 
   // Breadcrumbs
   const breadcrumbs = useMemo(() => [
@@ -462,16 +469,22 @@ export default function StepwiseRegressionPage() {
           <p className="text-gray-600">단계별 선택 과정과 최종 회귀모델을 확인하세요</p>
         </div>
 
-        <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="summary">모델 요약</TabsTrigger>
-            <TabsTrigger value="steps">단계별 과정</TabsTrigger>
-            <TabsTrigger value="coefficients">회귀계수</TabsTrigger>
-            <TabsTrigger value="diagnostics">모델 진단</TabsTrigger>
-            <TabsTrigger value="interpretation">해석</TabsTrigger>
-          </TabsList>
+        
+          <ContentTabs
+              tabs={[
+                { id: 'summary', label: '모델 요약', icon: FileText },
+                { id: 'steps', label: '단계별 과정', icon: ListOrdered },
+                { id: 'coefficients', label: '회귀계수', icon: Table },
+                { id: 'diagnostics', label: '모델 진단', icon: Activity },
+                { id: 'interpretation', label: '해석', icon: MessageSquare }
+              ]}
+              activeTab={activeResultTab}
+              onTabChange={setActiveResultTab}
+              className="mb-4"
+            />
+            <div className="space-y-4">
 
-          <TabsContent value="summary" className="space-y-4">
+          <ContentTabsContent tabId="summary" show={activeResultTab === 'summary'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>최종 모델 요약</CardTitle>
@@ -543,9 +556,9 @@ export default function StepwiseRegressionPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="steps" className="space-y-4">
+          <ContentTabsContent tabId="steps" show={activeResultTab === 'steps'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>단계별 선택 과정</CardTitle>
@@ -607,9 +620,9 @@ export default function StepwiseRegressionPage() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="coefficients" className="space-y-4">
+          <ContentTabsContent tabId="coefficients" show={activeResultTab === 'coefficients'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>회귀계수</CardTitle>
@@ -706,9 +719,9 @@ export default function StepwiseRegressionPage() {
                 </CardContent>
               </Card>
             )}
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="diagnostics" className="space-y-4">
+          <ContentTabsContent tabId="diagnostics" show={activeResultTab === 'diagnostics'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>모델 진단</CardTitle>
@@ -776,9 +789,9 @@ export default function StepwiseRegressionPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          </ContentTabsContent>
 
-          <TabsContent value="interpretation" className="space-y-4">
+          <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>분석 결과 해석</CardTitle>
@@ -819,8 +832,8 @@ export default function StepwiseRegressionPage() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </ContentTabsContent>
+        </div>
       </div>
     )
   }, [isAnalyzing, error, results, getModelFitInterpretation, uploadedData, selectedVariables, analysisTimestamp])
