@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Static HTML export 설정 (프로덕션에서만 활성화)
-  ...(process.env.NODE_ENV === 'production' && {
+  // Static HTML export 설정 (프로덕션에서만 활성화, Vercel이 아닐 때만)
+  // Vercel 배포 시에는 API routes 사용을 위해 export 비활성화
+  ...(process.env.NODE_ENV === 'production' && !process.env.VERCEL && {
     output: 'export',
     trailingSlash: true,
   }),
