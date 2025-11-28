@@ -524,7 +524,7 @@ export default function DescriptiveStatsPage() {
         <ContentTabs
               tabs={[
                 { id: 'summary', label: '요약', icon: FileText },
-                { id: 'table', label: '통계표', icon: Table }
+                { id: 'table', label: '통계표', icon: TableIcon }
               ]}
               activeTab={activeResultTab}
               onTabChange={setActiveResultTab}

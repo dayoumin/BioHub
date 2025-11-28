@@ -44,6 +44,8 @@ import {
 ,
   FileText,
   Shield
+,
+  Table
 } from 'lucide-react'
 
 interface WelchTResults {

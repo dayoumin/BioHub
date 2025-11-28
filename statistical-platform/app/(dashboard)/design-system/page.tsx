@@ -17,7 +17,7 @@ import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
   ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft,
-  ChevronDown, Settings
+  ChevronDown, Settings, PanelLeft
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -71,6 +71,12 @@ const LayoutPrototypeSection = dynamic(
 // Tab Style Comparison 섹션 (항상 사용 가능)
 const TabStyleComparisonSection = dynamic(
   () => import('./sections/TabStyleComparisonSection').then(mod => ({ default: mod.TabStyleComparisonSection })),
+  { ssr: false, loading: LoadingSpinner }
+)
+
+// Sidebar Styles 섹션 (항상 사용 가능)
+const SidebarStylesSection = dynamic(
+  () => import('./sections/SidebarStylesSection').then(mod => ({ default: mod.SidebarStylesSection })),
   { ssr: false, loading: LoadingSpinner }
 )
 
@@ -149,6 +155,7 @@ const NAV_CATEGORIES: NavCategory[] = [
       { id: 'typography', label: 'Typography', icon: Type },
       { id: 'animations', label: 'Animations', icon: Zap },
       { id: 'tab-styles', label: 'Tab Styles', icon: ToggleLeft, isNew: true },
+      { id: 'sidebar-styles', label: 'Sidebar Styles', icon: PanelLeft, isNew: true },
     ]
   },
   {
@@ -822,6 +829,13 @@ animation: {
           ======================================== */}
           {activeSection === 'tab-styles' && (
             <TabStyleComparisonSection />
+          )}
+
+          {/* ========================================
+              5.5. Sidebar Styles
+          ======================================== */}
+          {activeSection === 'sidebar-styles' && (
+            <SidebarStylesSection />
           )}
 
           {/* ========================================

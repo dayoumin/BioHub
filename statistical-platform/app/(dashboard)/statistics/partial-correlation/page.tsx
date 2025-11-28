@@ -24,6 +24,8 @@ import { CheckCircle2, AlertCircle, Activity, Target, TrendingUp ,
   Shield,
   ArrowLeftRight,
   MessageSquare
+,
+  Table
 } from 'lucide-react'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
