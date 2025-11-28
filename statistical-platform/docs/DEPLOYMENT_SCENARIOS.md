@@ -718,22 +718,30 @@ Error: Cannot find module '../lightningcss.linux-x64-gnu.node'
 ```
 
 **원인**:
-- Tailwind CSS v4는 `@tailwindcss/postcss` 사용
-- `lightningcss`가 네이티브 바이너리 필요
-- Vercel 빌드 환경에서 바이너리 없음
+- Tailwind CSS v4는 `@tailwindcss/postcss` → `lightningcss` 사용
+- `lightningcss`와 `@tailwindcss/oxide`는 플랫폼별 네이티브 바이너리 필요
+- `package-lock.json` 없이 빌드하면 npm이 매번 다른 버전을 설치할 수 있음
 
-**해결책**: ✅ **현재 정상 작동** (2025-11-26 기준)
+**해결책**: ✅ **`package-lock.json` 커밋 필수** (2025-11-28 확인)
 
-Tailwind v4가 Vercel에서 정상 작동합니다. 만약 이 오류가 발생하면:
+```bash
+# package-lock.json을 반드시 커밋해야 함
+git add statistical-platform/package-lock.json
+git commit -m "fix: commit package-lock.json for consistent builds"
+git push
+```
 
-1. `package.json`에서 `tailwindcss`와 `@tailwindcss/postcss`가 `devDependencies`에 있는지 확인
-2. `postcss.config.mjs`가 올바른 형식인지 확인:
-   ```javascript
-   const config = {
-     plugins: ["@tailwindcss/postcss"],
-   };
-   export default config;
-   ```
+**왜 package-lock.json이 필요한가?**
+- `^4` 같은 범위 버전은 매 설치마다 다른 버전이 설치될 수 있음
+- lock 파일이 정확한 버전을 고정하여 일관된 빌드 보장
+- npm이 Linux 빌드 시 올바른 플랫폼 바이너리를 자동 선택
+
+**시도했지만 효과 없었던 방법들**:
+- ❌ `rm -rf node_modules` 추가
+- ❌ `CSS_TRANSFORMER_WASM=1` 환경변수
+- ❌ `lightningcss-linux-x64-gnu` 명시 설치
+- ❌ `@tailwindcss/oxide-linux-x64-gnu` optionalDependencies
+- ❌ Vercel 빌드 캐시 삭제 (Redeploy without cache)
 
 **대안 (Tailwind v3로 다운그레이드)**:
 ```json
