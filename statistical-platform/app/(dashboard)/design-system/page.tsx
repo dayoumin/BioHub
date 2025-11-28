@@ -17,7 +17,7 @@ import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
   ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft,
-  ChevronDown, Settings, PanelLeft
+  ChevronDown, Settings, Vote
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -44,13 +44,23 @@ import { ResultContextDemo } from './components/ResultContextDemo'
 import { StatisticalResultDemo } from './components/StatisticalResultDemo'
 import { FloatingStepIndicatorDemo } from './components/FloatingStepIndicatorDemo'
 import { FitScoreIndicatorDemo } from './components/FitScoreIndicatorDemo'
+import { FeedbackPanelDemo } from './components/FeedbackPanelDemo'
 import { COMPONENT_LIST } from './constants'
 
-// 로딩 스피너 (dynamic import용)
+// 로딩 스켈레톤 (dynamic import용) - 2025 Modern Style
 const LoadingSpinner = () => (
-  <div className="flex items-center justify-center p-12">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    <span className="ml-3 text-muted-foreground">Loading...</span>
+  <div className="p-8 space-y-4">
+    <div className="space-y-3">
+      <div className="h-8 w-48 bg-muted rounded animate-pulse" />
+      <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+    </div>
+    <div className="space-y-2">
+      <div className="h-32 w-full bg-muted rounded-lg animate-pulse" />
+      <div className="flex gap-3">
+        <div className="h-10 w-24 bg-muted rounded animate-pulse" />
+        <div className="h-10 w-24 bg-muted rounded animate-pulse" />
+      </div>
+    </div>
   </div>
 );
 
@@ -68,15 +78,15 @@ const LayoutPrototypeSection = dynamic(
   { ssr: false, loading: LoadingSpinner }
 )
 
-// Tab Style Comparison 섹션 (항상 사용 가능)
-const TabStyleComparisonSection = dynamic(
-  () => import('./sections/TabStyleComparisonSection').then(mod => ({ default: mod.TabStyleComparisonSection })),
+// Styles 섹션 (Tab + Sidebar 통합)
+const StylesSection = dynamic(
+  () => import('./sections/StylesSection').then(mod => ({ default: mod.StylesSection })),
   { ssr: false, loading: LoadingSpinner }
 )
 
-// Sidebar Styles 섹션 (항상 사용 가능)
-const SidebarStylesSection = dynamic(
-  () => import('./sections/SidebarStylesSection').then(mod => ({ default: mod.SidebarStylesSection })),
+// Animations 섹션 (2025 Modern 스타일 비교)
+const AnimationsSection = dynamic(
+  () => import('./sections/AnimationsSection').then(mod => ({ default: mod.AnimationsSection })),
   { ssr: false, loading: LoadingSpinner }
 )
 
@@ -109,6 +119,12 @@ const TestSnippetsSection = process.env.NODE_ENV !== 'production'
       loading: LoadingSpinner
     })
   : null
+
+// Method Card Comparison Section (UI 개선 비교)
+const MethodCardComparisonSection = dynamic(
+  () => import('./sections/MethodCardComparisonSection').then(mod => ({ default: mod.MethodCardComparisonSection })),
+  { ssr: false, loading: LoadingSpinner }
+)
 
 const StatisticalFormattingSection = process.env.NODE_ENV !== 'production'
   ? dynamic(() => import('./sections/StatisticalFormattingSection').then(mod => ({ default: mod.StatisticalFormattingSection })), {
@@ -154,8 +170,7 @@ const NAV_CATEGORIES: NavCategory[] = [
       { id: 'colors', label: 'Colors', icon: Palette },
       { id: 'typography', label: 'Typography', icon: Type },
       { id: 'animations', label: 'Animations', icon: Zap },
-      { id: 'tab-styles', label: 'Tab Styles', icon: ToggleLeft, isNew: true },
-      { id: 'sidebar-styles', label: 'Sidebar Styles', icon: PanelLeft, isNew: true },
+      { id: 'styles', label: 'Styles', icon: ToggleLeft, isNew: true },
     ]
   },
   {
@@ -174,6 +189,8 @@ const NAV_CATEGORIES: NavCategory[] = [
       { id: 'visualizations', label: 'Visualizations', icon: SquareStack },
       { id: 'data-utils', label: 'Data Utilities', icon: Table },
       { id: 'layout-prototype', label: 'Layout Prototype', icon: Layout },
+      { id: 'feedback-panel', label: 'Feedback Panel', icon: Vote, isNew: true },
+      { id: 'method-card-comparison', label: 'Method Card (리팩토링)', icon: GitCompare, isNew: true },
     ]
   },
   {
@@ -251,7 +268,7 @@ export default function ComponentsShowcasePage() {
       {/* 사이드바 (좌측 고정) */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-background border-r transition-transform duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-background border-r transition-transform duration-300 ease-in-out",
           "lg:translate-x-0 lg:static",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
@@ -617,225 +634,14 @@ export default function ComponentsShowcasePage() {
               4. Animations
           ======================================== */}
           {activeSection === 'animations' && (
-            <div className="space-y-6 animate-in fade-in duration-500">
-              <div>
-                <h1 className="text-4xl font-bold mb-2">Animations</h1>
-                <p className="text-muted-foreground">
-                  프로젝트에서 사용하는 애니메이션 시스템 (Tailwind CSS 기반)
-                </p>
-              </div>
-
-              {/* Fade-in Animation */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Fade-in Animation</CardTitle>
-                  <CardDescription>부드럽게 나타나는 기본 애니메이션</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-muted p-6 rounded-lg">
-                    <div className="animate-fade-in">
-                      <Card className="bg-background">
-                        <CardHeader>
-                          <CardTitle>Fade-in 예시</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-muted-foreground">
-                            이 카드는 fade-in 애니메이션으로 나타납니다.
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">사용법</h4>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-                        <code>{`<div className="animate-fade-in">
-  <YourComponent />
-</div>`}</code>
-                      </pre>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => copyToClipboard(`<div className="animate-fade-in">\n  <YourComponent />\n</div>`, 'Fade-in code')}
-                      >
-                        {copiedCode === 'Fade-in code' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">설정 (tailwind.config.mjs)</h4>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-                        <code>{`keyframes: {
-  "fade-in": {
-    "0%": { opacity: "0", transform: "translateY(10px)" },
-    "100%": { opacity: "1", transform: "translateY(0)" }
-  }
-},
-animation: {
-  "fade-in": "fade-in 0.5s ease-out"
-}`}</code>
-                      </pre>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium">사용 위치</h4>
-                    <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                      <li>Smart Flow 각 Step 전환 (page.tsx Line 305-356)</li>
-                      <li>모달, 드롭다운 등 새로 나타나는 UI</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Slide-in (Stagger) Animation */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Slide-in (Stagger) Animation</CardTitle>
-                  <CardDescription>아래에서 위로 순차 표시 애니메이션</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-muted p-6 rounded-lg space-y-3">
-                    {[1, 2, 3].map((item, idx) => (
-                      <div
-                        key={item}
-                        className="animate-slide-in"
-                        style={{
-                          animationDelay: `${idx * 150}ms`,
-                          animationFillMode: 'backwards'
-                        }}
-                      >
-                        <Card className="bg-background">
-                          <CardContent className="py-4">
-                            <p className="text-sm">카드 #{item} - {idx * 150}ms 지연</p>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">사용법 (Stagger Effect)</h4>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-                        <code>{`{items.map((item, idx) => (
-  <div
-    key={item.id}
-    className="animate-slide-in"
-    style={{
-      animationDelay: \`\${idx * 150}ms\`,
-      animationFillMode: 'backwards'
-    }}
-  >
-    <YourComponent />
-  </div>
-))}`}</code>
-                      </pre>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => copyToClipboard(`{items.map((item, idx) => (\n  <div\n    key={item.id}\n    className="animate-slide-in"\n    style={{\n      animationDelay: \\\`\\\${idx * 150}ms\\\`,\n      animationFillMode: 'backwards'\n    }}\n  >\n    <YourComponent />\n  </div>\n))}`, 'Stagger code')}
-                      >
-                        {copiedCode === 'Stagger code' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">설정 (tailwind.config.mjs)</h4>
-                    <div className="relative">
-                      <pre className="bg-muted p-4 rounded-lg text-sm overflow-x-auto">
-                        <code>{`keyframes: {
-  "slide-in-from-bottom": {
-    "0%": { opacity: "0", transform: "translateY(20px)" },
-    "100%": { opacity: "1", transform: "translateY(0)" }
-  }
-},
-animation: {
-  "slide-in": "slide-in-from-bottom 0.5s ease-out"
-}`}</code>
-                      </pre>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-medium">사용 위치</h4>
-                    <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
-                      <li><strong>PurposeInputStep</strong>: 5개 분석 목적 카드 (Line 301-305)</li>
-                      <li><strong>PurposeInputStep</strong>: AI 추천 이유 리스트 (Line 363-366)</li>
-                      <li>리스트 아이템 순차 표시</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Animation Best Practices */}
-              <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
-                <CardHeader>
-                  <CardTitle className="text-lg">💡 애니메이션 Best Practices</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div>
-                    <strong>1. prefers-reduced-motion 지원</strong>
-                    <p className="text-muted-foreground mt-1">
-                      사용자 설정에 따라 애니메이션 비활성화 (WCAG 2.3.3 준수)
-                    </p>
-                    <pre className="bg-muted p-2 rounded mt-2 text-xs overflow-x-auto">
-                      <code>{`const prefersReducedMotion = useReducedMotion()
-
-<div className={prefersReducedMotion ? '' : 'animate-slide-in'}>
-  ...
-</div>`}</code>
-                    </pre>
-                  </div>
-
-                  <div>
-                    <strong>2. animationFillMode: 'backwards'</strong>
-                    <p className="text-muted-foreground mt-1">
-                      애니메이션 시작 전 초기 상태 유지 (깜빡임 방지)
-                    </p>
-                  </div>
-
-                  <div>
-                    <strong>3. Stagger 간격 가이드</strong>
-                    <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-1">
-                      <li>50-100ms: 매우 빠른 순차 표시 (리스트 아이템)</li>
-                      <li>150ms: 표준 간격 (카드, 버튼 그룹) ← <strong>권장</strong></li>
-                      <li>200-300ms: 느린 순차 표시 (큰 요소)</li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <strong>4. 성능 최적화</strong>
-                    <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-1">
-                      <li>transform, opacity만 사용 (GPU 가속)</li>
-                      <li>width, height 변경 지양 (리플로우 발생)</li>
-                      <li>will-change 속성 최소화</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <AnimationsSection />
           )}
 
           {/* ========================================
-              5. Tab Styles Comparison
+              5. Styles (Tab + Sidebar)
           ======================================== */}
-          {activeSection === 'tab-styles' && (
-            <TabStyleComparisonSection />
-          )}
-
-          {/* ========================================
-              5.5. Sidebar Styles
-          ======================================== */}
-          {activeSection === 'sidebar-styles' && (
-            <SidebarStylesSection />
+          {activeSection === 'styles' && (
+            <StylesSection />
           )}
 
           {/* ========================================
@@ -1348,6 +1154,36 @@ const handleOpenNewWindow = useCallback(() => {
           ======================================== */}
           {activeSection === 'layout-prototype' && (
             <LayoutPrototypeSection />
+          )}
+
+          {/* ========================================
+              8.5. Feedback Panel (NEW)
+          ======================================== */}
+          {activeSection === 'feedback-panel' && (
+            <div className="space-y-6 animate-in fade-in duration-500">
+              <div>
+                <h1 className="text-4xl font-bold mb-2">피드백 패널</h1>
+                <p className="text-muted-foreground">
+                  사용자 투표 및 피드백 사이드바 컴포넌트 - 원하는 스타일을 선택하세요
+                </p>
+              </div>
+              <FeedbackPanelDemo />
+            </div>
+          )}
+
+          {/* ========================================
+              Method Card Comparison (리팩토링 비교)
+          ======================================== */}
+          {activeSection === 'method-card-comparison' && (
+            <div className="space-y-6 animate-in fade-in duration-500">
+              <div>
+                <h1 className="text-4xl font-bold mb-2">Method Card 리팩토링</h1>
+                <p className="text-muted-foreground">
+                  통계 페이지 방법 선택 UI를 PurposeCard로 통일하는 개선안
+                </p>
+              </div>
+              <MethodCardComparisonSection />
+            </div>
           )}
 
           {/* ========================================
