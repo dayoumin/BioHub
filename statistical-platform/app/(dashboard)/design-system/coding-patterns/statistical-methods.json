@@ -1,9 +1,24 @@
 {
   "lastUpdated": "2025-12-01",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "통계 방법 ID 및 카테고리 정의. Single Source of Truth.",
   "sourceFile": "lib/constants/statistical-methods.ts",
-  "totalMethods": 48,
+  "summary": {
+    "totalDefinitions": 51,
+    "independentPages": 46,
+    "embeddedMethods": 5,
+    "decisionTreeSupported": 49
+  },
+  "embeddedMethods": {
+    "description": "hasOwnPage: false - 독립 페이지 없음",
+    "methods": [
+      { "id": "paired-t", "parentPage": "t-test" },
+      { "id": "welch-anova", "parentPage": "anova" },
+      { "id": "logistic-regression", "parentPage": "regression" },
+      { "id": "non-parametric", "reason": "카테고리 개요 페이지" },
+      { "id": "chi-square", "reason": "카테고리 개요 페이지" }
+    ]
+  },
   "idNamingRules": [
     {
       "rule": "ID = 페이지 경로",
@@ -28,125 +43,76 @@
       "rationale": "기존 코드 깨지지 않음"
     }
   ],
+  "decisionTree": {
+    "description": "사용자 질문에 따라 통계 방법 추천",
+    "sourceFile": "components/smart-flow/steps/purpose/DecisionTree.ts",
+    "purposes": [
+      { "id": "compare", "name": "그룹 간 차이 비교" },
+      { "id": "relationship", "name": "변수 간 관계 분석" },
+      { "id": "distribution", "name": "분포와 빈도 분석" },
+      { "id": "prediction", "name": "예측 모델링" },
+      { "id": "timeseries", "name": "시계열 분석" },
+      { "id": "survival", "name": "생존 분석" },
+      { "id": "multivariate", "name": "다변량 분석" },
+      { "id": "utility", "name": "유틸리티 분석" }
+    ],
+    "coverage": "49/51 (개요 페이지 2개 제외)"
+  },
   "categories": [
     {
       "name": "t-test",
       "description": "평균 비교 검정",
-      "methods": [
-        "t-test",
-        "welch-t",
-        "one-sample-t",
-        "paired-t"
-      ]
+      "methods": ["t-test", "welch-t", "one-sample-t", "paired-t"]
     },
     {
       "name": "anova",
       "description": "분산 분석",
-      "methods": [
-        "one-way-anova",
-        "welch-anova",
-        "two-way-anova",
-        "repeated-anova",
-        "ancova",
-        "manova",
-        "mixed-model"
-      ]
+      "methods": ["anova", "welch-anova", "repeated-measures-anova", "ancova", "manova", "mixed-model"]
     },
     {
       "name": "nonparametric",
       "description": "비모수 검정",
-      "methods": [
-        "mann-whitney",
-        "wilcoxon",
-        "kruskal-wallis",
-        "friedman",
-        "sign-test",
-        "mcnemar",
-        "cochran-q",
-        "binomial-test",
-        "runs-test",
-        "ks-test",
-        "mood-median"
-      ]
+      "methods": ["mann-whitney", "wilcoxon", "kruskal-wallis", "friedman", "sign-test", "mcnemar", "cochran-q", "binomial-test", "runs-test", "ks-test", "mood-median", "proportion-test"]
     },
     {
       "name": "correlation",
       "description": "상관 분석",
-      "methods": [
-        "correlation",
-        "partial-correlation",
-        "spearman-correlation"
-      ]
+      "methods": ["correlation", "partial-correlation"]
     },
     {
       "name": "regression",
       "description": "회귀 분석",
-      "methods": [
-        "regression",
-        "multiple-regression",
-        "logistic-regression",
-        "poisson-regression",
-        "ordinal-regression",
-        "stepwise-regression"
-      ]
+      "methods": ["regression", "logistic-regression", "poisson", "ordinal-regression", "stepwise", "dose-response", "response-surface"]
     },
     {
       "name": "chi-square",
       "description": "카이제곱 검정",
-      "methods": [
-        "chi-square-goodness",
-        "chi-square-independence",
-        "fisher-exact"
-      ]
+      "methods": ["chi-square-goodness", "chi-square-independence"]
     },
     {
       "name": "descriptive",
       "description": "기술 통계",
-      "methods": [
-        "descriptive",
-        "frequency-table",
-        "explore-data",
-        "normality-test"
-      ]
+      "methods": ["descriptive", "explore-data", "normality-test", "means-plot"]
     },
     {
       "name": "timeseries",
       "description": "시계열 분석",
-      "methods": [
-        "arima",
-        "seasonal-decompose",
-        "stationarity-test",
-        "mann-kendall"
-      ]
+      "methods": ["arima", "seasonal-decompose", "stationarity-test", "mann-kendall"]
     },
     {
       "name": "survival",
       "description": "생존 분석",
-      "methods": [
-        "kaplan-meier",
-        "cox-regression",
-        "log-rank"
-      ]
+      "methods": ["kaplan-meier", "cox-regression"]
     },
     {
       "name": "multivariate",
       "description": "다변량 분석",
-      "methods": [
-        "pca",
-        "factor-analysis",
-        "cluster-analysis",
-        "discriminant-analysis"
-      ]
+      "methods": ["pca", "factor-analysis", "cluster", "discriminant"]
     },
     {
       "name": "other",
       "description": "기타 분석",
-      "methods": [
-        "power-analysis",
-        "reliability-analysis",
-        "proportion-test",
-        "means-plot"
-      ]
+      "methods": ["power-analysis", "reliability"]
     }
   ],
   "forbiddenPatterns": [
