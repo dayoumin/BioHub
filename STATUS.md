@@ -1,6 +1,6 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-11-27
+**최종 업데이트**: 2025-12-01
 
 ---
 
@@ -15,10 +15,18 @@
 | **TypeScript 에러** | 0개 ✅ |
 | **테스트 커버리지** | 88% (38/43) |
 | **통계 신뢰성** | 98% (SciPy/statsmodels) |
+| **DecisionTree 커버리지** | 49/49 (100%) ✅ |
 
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2025-12-01 (일)
+- ✅ **DecisionTree 확장** - 8개 Purpose 완성, 49개 메서드 지원
+  - 새 Purpose: multivariate, utility
+  - 확장: compare, distribution, prediction, timeseries
+- ✅ **개요 페이지 분리** - non-parametric, chi-square → hasOwnPage: false (SPSS/JASP 패턴)
+- ✅ **테스트 추가** - decision-tree-expansion.test.ts (31개 케이스, 총 47개 통과)
 
 ### 2025-11-27 (수)
 - ✅ **Parameter Naming Convention** - CLAUDE.md에 명명 규칙 추가 (d92fc09)
