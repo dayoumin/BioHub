@@ -1,6 +1,9 @@
 /**
  * 결정 트리 로직
  * 사용자 응답을 기반으로 적합한 통계 방법 추천
+ *
+ * 이 파일은 lib/constants/statistical-methods.ts의 공통 정의를 사용합니다.
+ * 한글 이름은 로컬에서 오버라이드합니다.
  */
 
 import type {
@@ -9,210 +12,120 @@ import type {
   DecisionResult,
   ReasoningStep
 } from '@/types/smart-flow'
+import {
+  STATISTICAL_METHODS,
+  getMethodByIdOrAlias,
+} from '@/lib/constants/statistical-methods'
 
 // ============================================
-// 통계 방법 정의
+// 한글 이름 매핑 (DecisionTree 전용)
 // ============================================
 
-const METHODS: Record<string, StatisticalMethod> = {
-  // 평균 비교
-  'paired-t': {
-    id: 'paired-t',
-    name: '대응표본 t-검정',
-    description: '같은 대상을 전/후 측정하여 평균 차이 검정',
-    category: 't-test'
-  },
-  'independent-t': {
-    id: 'independent-t',
-    name: '독립표본 t-검정',
-    description: '두 독립 그룹의 평균 차이 검정',
-    category: 't-test'
-  },
-  'welch-t': {
-    id: 'welch-t',
-    name: 'Welch t-검정',
-    description: '등분산 가정 없이 두 그룹 평균 비교',
-    category: 't-test'
-  },
-  'wilcoxon': {
-    id: 'wilcoxon',
-    name: 'Wilcoxon 부호순위 검정',
-    description: '대응표본의 비모수 검정',
-    category: 'nonparametric'
-  },
-  'mann-whitney': {
-    id: 'mann-whitney',
-    name: 'Mann-Whitney U 검정',
-    description: '두 독립 그룹의 비모수 비교',
-    category: 'nonparametric'
-  },
-  'one-way-anova': {
-    id: 'one-way-anova',
-    name: '일원분산분석 (ANOVA)',
-    description: '3개 이상 독립 그룹의 평균 차이 검정',
-    category: 'anova'
-  },
-  'welch-anova': {
-    id: 'welch-anova',
-    name: 'Welch ANOVA',
-    description: '등분산 가정 없이 3개 이상 그룹 비교',
-    category: 'anova'
-  },
-  'repeated-anova': {
-    id: 'repeated-anova',
-    name: '반복측정 분산분석',
-    description: '같은 대상을 여러 시점에서 측정',
-    category: 'anova'
-  },
-  'friedman': {
-    id: 'friedman',
-    name: 'Friedman 검정',
-    description: '반복측정의 비모수 대안',
-    category: 'nonparametric'
-  },
-  'kruskal-wallis': {
-    id: 'kruskal-wallis',
-    name: 'Kruskal-Wallis 검정',
-    description: '3개 이상 그룹의 비모수 비교',
-    category: 'nonparametric'
-  },
+const KOREAN_NAMES: Record<string, { name: string; description: string }> = {
+  // T-Test
+  't-test': { name: '독립표본 t-검정', description: '두 독립 그룹의 평균 차이 검정' },
+  'paired-t': { name: '대응표본 t-검정', description: '같은 대상을 전/후 측정하여 평균 차이 검정' },
+  'welch-t': { name: 'Welch t-검정', description: '등분산 가정 없이 두 그룹 평균 비교' },
 
-  // 상관분석
-  'pearson': {
-    id: 'pearson',
-    name: 'Pearson 상관분석',
-    description: '두 연속형 변수의 선형 상관관계',
-    category: 'correlation'
-  },
-  'spearman': {
-    id: 'spearman',
-    name: 'Spearman 순위상관',
-    description: '순위 기반 비모수 상관분석',
-    category: 'correlation'
-  },
-  'partial-correlation': {
-    id: 'partial-correlation',
-    name: '편상관분석',
-    description: '제3변수 통제 후 상관관계',
-    category: 'correlation'
-  },
+  // ANOVA
+  'anova': { name: '일원분산분석 (ANOVA)', description: '3개 이상 독립 그룹의 평균 차이 검정' },
+  'welch-anova': { name: 'Welch ANOVA', description: '등분산 가정 없이 3개 이상 그룹 비교' },
+  'repeated-measures-anova': { name: '반복측정 분산분석', description: '같은 대상을 여러 시점에서 측정' },
 
-  // 회귀분석
-  'simple-regression': {
-    id: 'simple-regression',
-    name: '단순 선형 회귀',
-    description: '하나의 예측 변수로 결과 예측',
-    category: 'regression'
-  },
-  'multiple-regression': {
-    id: 'multiple-regression',
-    name: '다중 선형 회귀',
-    description: '여러 예측 변수로 결과 예측',
-    category: 'regression'
-  },
-  'logistic-regression': {
-    id: 'logistic-regression',
-    name: '로지스틱 회귀',
-    description: '이진 결과 예측',
-    category: 'regression'
-  },
-  'poisson-regression': {
-    id: 'poisson-regression',
-    name: '포아송 회귀',
-    description: '빈도/개수 데이터 예측',
-    category: 'regression'
-  },
-  'ordinal-regression': {
-    id: 'ordinal-regression',
-    name: '순서형 로지스틱 회귀',
-    description: '순서형 범주 예측',
-    category: 'regression'
-  },
-  'multinomial-regression': {
-    id: 'multinomial-regression',
-    name: '다항 로지스틱 회귀',
-    description: '다범주 결과 예측',
-    category: 'regression'
-  },
+  // Nonparametric
+  'wilcoxon': { name: 'Wilcoxon 부호순위 검정', description: '대응표본의 비모수 검정' },
+  'mann-whitney': { name: 'Mann-Whitney U 검정', description: '두 독립 그룹의 비모수 비교' },
+  'friedman': { name: 'Friedman 검정', description: '반복측정의 비모수 대안' },
+  'kruskal-wallis': { name: 'Kruskal-Wallis 검정', description: '3개 이상 그룹의 비모수 비교' },
 
-  // 카이제곱
-  'chi-square-independence': {
-    id: 'chi-square-independence',
-    name: '카이제곱 독립성 검정',
-    description: '두 범주형 변수의 독립성 검정',
-    category: 'chi-square'
-  },
-  'chi-square-goodness': {
-    id: 'chi-square-goodness',
-    name: '카이제곱 적합도 검정',
-    description: '관찰 빈도와 기대 빈도 비교',
-    category: 'chi-square'
-  },
+  // Correlation
+  'correlation': { name: 'Pearson 상관분석', description: '두 연속형 변수의 선형 상관관계' },
+  'partial-correlation': { name: '편상관분석', description: '제3변수 통제 후 상관관계' },
 
-  // 기술통계
-  'descriptive': {
-    id: 'descriptive',
-    name: '기술통계량',
-    description: '평균, 표준편차, 분위수 등 요약',
-    category: 'descriptive'
-  },
-  'frequency': {
-    id: 'frequency',
-    name: '빈도분석',
-    description: '범주별 빈도와 비율',
-    category: 'descriptive'
-  },
-  'normality-test': {
-    id: 'normality-test',
-    name: '정규성 검정',
-    description: 'Shapiro-Wilk, K-S 검정',
-    category: 'descriptive'
-  },
+  // Regression
+  'regression': { name: '선형 회귀', description: '예측 변수로 결과 예측' },
+  'logistic-regression': { name: '로지스틱 회귀', description: '이진 결과 예측' },
+  'poisson': { name: '포아송 회귀', description: '빈도/개수 데이터 예측' },
+  'ordinal-regression': { name: '순서형 로지스틱 회귀', description: '순서형 범주 예측' },
 
-  // 시계열
-  'arima': {
-    id: 'arima',
-    name: 'ARIMA',
-    description: '시계열 예측 모형',
-    category: 'timeseries'
-  },
-  'sarima': {
-    id: 'sarima',
-    name: '계절성 ARIMA (SARIMA)',
-    description: '계절성이 있는 시계열 예측',
-    category: 'timeseries'
-  },
-  'stl-decomposition': {
-    id: 'stl-decomposition',
-    name: 'STL 분해',
-    description: '추세, 계절성, 잔차 분리',
-    category: 'timeseries'
-  },
-  'adf-test': {
-    id: 'adf-test',
-    name: 'ADF 정상성 검정',
-    description: 'Augmented Dickey-Fuller 검정',
-    category: 'timeseries'
-  },
+  // Chi-Square
+  'chi-square-independence': { name: '카이제곱 독립성 검정', description: '두 범주형 변수의 독립성 검정' },
+  'chi-square-goodness': { name: '카이제곱 적합도 검정', description: '관찰 빈도와 기대 빈도 비교' },
 
-  // 생존분석
-  'kaplan-meier': {
-    id: 'kaplan-meier',
-    name: 'Kaplan-Meier 추정',
-    description: '생존 곡선 추정',
-    category: 'survival'
-  },
-  'log-rank': {
-    id: 'log-rank',
-    name: 'Log-rank 검정',
-    description: '그룹 간 생존 비교',
-    category: 'survival'
-  },
-  'cox-regression': {
-    id: 'cox-regression',
-    name: 'Cox 비례위험 회귀',
-    description: '생존에 영향을 미치는 요인 분석',
-    category: 'survival'
+  // Descriptive
+  'descriptive': { name: '기술통계량', description: '평균, 표준편차, 분위수 등 요약' },
+  'normality-test': { name: '정규성 검정', description: 'Shapiro-Wilk, K-S 검정' },
+
+  // Time Series
+  'arima': { name: 'ARIMA', description: '시계열 예측 모형' },
+  'seasonal-decompose': { name: 'STL 분해', description: '추세, 계절성, 잔차 분리' },
+  'stationarity-test': { name: 'ADF 정상성 검정', description: 'Augmented Dickey-Fuller 검정' },
+
+  // Survival
+  'kaplan-meier': { name: 'Kaplan-Meier 추정', description: '생존 곡선 추정' },
+  'cox-regression': { name: 'Cox 비례위험 회귀', description: '생존에 영향을 미치는 요인 분석' },
+}
+
+// ============================================
+// 헬퍼 함수
+// ============================================
+
+/**
+ * 공통 ID로 메서드 조회 + 한글 이름 적용
+ * 테스트 호환성을 위해 aliases도 지원
+ */
+function getMethod(idOrAlias: string): StatisticalMethod {
+  const method = getMethodByIdOrAlias(idOrAlias)
+
+  if (!method) {
+    // Fallback: 기본 메서드 생성 (발생하면 안 됨 - 개발 중 누락된 ID 감지용)
+    console.warn(`[DecisionTree] Unknown method ID: ${idOrAlias}`)
+    return {
+      id: idOrAlias,
+      name: idOrAlias,
+      description: '',
+      category: 'descriptive'  // fallback category
+    }
+  }
+
+  // 한글 이름 오버라이드
+  const koreanInfo = KOREAN_NAMES[method.id]
+
+  return {
+    id: method.id,
+    name: koreanInfo?.name ?? method.name,
+    description: koreanInfo?.description ?? method.description,
+    category: method.category
+  }
+}
+
+/**
+ * 레거시 ID를 공통 ID로 변환하되, 결과에는 레거시 ID 유지
+ * (테스트 호환성을 위해)
+ */
+function getMethodWithLegacyId(legacyId: string): StatisticalMethod {
+  const method = getMethodByIdOrAlias(legacyId)
+
+  if (!method) {
+    // Fallback: 기본 메서드 생성 (발생하면 안 됨 - 개발 중 누락된 ID 감지용)
+    console.warn(`[DecisionTree] Unknown legacy ID: ${legacyId}`)
+    return {
+      id: legacyId,
+      name: legacyId,
+      description: '',
+      category: 'descriptive'  // fallback category
+    }
+  }
+
+  // 한글 이름 오버라이드 (공통 ID로 조회)
+  const koreanInfo = KOREAN_NAMES[method.id]
+
+  // 테스트 호환성: 레거시 ID 유지
+  return {
+    id: legacyId,
+    name: koreanInfo?.name ?? method.name,
+    description: koreanInfo?.description ?? method.description,
+    category: method.category
   }
 }
 
@@ -242,19 +155,19 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
       if (normality === 'yes') {
         reasoning.push({ step: '정규성', description: '정규분포 충족 → 모수 검정' })
         return {
-          method: METHODS['paired-t'],
+          method: getMethodWithLegacyId('paired-t'),
           reasoning,
           alternatives: [
-            { method: METHODS['wilcoxon'], reason: '정규성이 불확실할 때 안전한 대안' }
+            { method: getMethodWithLegacyId('wilcoxon'), reason: '정규성이 불확실할 때 안전한 대안' }
           ]
         }
       } else {
         reasoning.push({ step: '정규성', description: '정규분포 미충족 → 비모수 검정' })
         return {
-          method: METHODS['wilcoxon'],
+          method: getMethodWithLegacyId('wilcoxon'),
           reasoning,
           alternatives: [
-            { method: METHODS['paired-t'], reason: 'n>=30이면 중심극한정리로 강건' }
+            { method: getMethodWithLegacyId('paired-t'), reason: 'n>=30이면 중심극한정리로 강건' }
           ]
         }
       }
@@ -270,32 +183,32 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
       if (homogeneity === 'yes') {
         reasoning.push({ step: '등분산성', description: '등분산 충족 → Student t-검정' })
         return {
-          method: METHODS['independent-t'],
+          method: getMethodWithLegacyId('independent-t'),
           reasoning,
           alternatives: [
-            { method: METHODS['welch-t'], reason: '등분산 가정 없이도 사용 가능' },
-            { method: METHODS['mann-whitney'], reason: '비모수 대안' }
+            { method: getMethodWithLegacyId('welch-t'), reason: '등분산 가정 없이도 사용 가능' },
+            { method: getMethodWithLegacyId('mann-whitney'), reason: '비모수 대안' }
           ]
         }
       } else {
         // homogeneity === 'no' 또는 'check' (보수적 접근)
         reasoning.push({ step: '등분산성', description: homogeneity === 'no' ? '등분산 미충족 → Welch t-검정' : '등분산 미확인 → Welch t-검정 (안전)' })
         return {
-          method: METHODS['welch-t'],
+          method: getMethodWithLegacyId('welch-t'),
           reasoning,
           alternatives: [
-            { method: METHODS['independent-t'], reason: '등분산 확인시 사용 가능' },
-            { method: METHODS['mann-whitney'], reason: '비모수 대안' }
+            { method: getMethodWithLegacyId('independent-t'), reason: '등분산 확인시 사용 가능' },
+            { method: getMethodWithLegacyId('mann-whitney'), reason: '비모수 대안' }
           ]
         }
       }
     } else {
       reasoning.push({ step: '정규성', description: '정규분포 미충족 → 비모수 검정' })
       return {
-        method: METHODS['mann-whitney'],
+        method: getMethodWithLegacyId('mann-whitney'),
         reasoning,
         alternatives: [
-          { method: METHODS['welch-t'], reason: 'n>=30이면 강건' }
+          { method: getMethodWithLegacyId('welch-t'), reason: 'n>=30이면 강건' }
         ]
       }
     }
@@ -311,20 +224,20 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
     if (normality === 'yes') {
       reasoning.push({ step: '정규성', description: '정규분포 충족' })
       return {
-        method: METHODS['repeated-anova'],
+        method: getMethodWithLegacyId('repeated-anova'),
         reasoning,
         alternatives: [
-          { method: METHODS['friedman'], reason: '구형성 가정 위반시' }
+          { method: getMethodWithLegacyId('friedman'), reason: '구형성 가정 위반시' }
         ],
         warnings: ['구형성 검정(Mauchly)을 확인하세요. 위반시 Greenhouse-Geisser 보정 적용']
       }
     } else {
       reasoning.push({ step: '정규성', description: '정규분포 미충족 → 비모수 검정' })
       return {
-        method: METHODS['friedman'],
+        method: getMethodWithLegacyId('friedman'),
         reasoning,
         alternatives: [
-          { method: METHODS['repeated-anova'], reason: 'n>=30이면 강건' }
+          { method: getMethodWithLegacyId('repeated-anova'), reason: 'n>=30이면 강건' }
         ]
       }
     }
@@ -340,32 +253,32 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
     if (homogeneity === 'yes') {
       reasoning.push({ step: '등분산성', description: '등분산 충족 → 일원분산분석' })
       return {
-        method: METHODS['one-way-anova'],
+        method: getMethodWithLegacyId('one-way-anova'),
         reasoning,
         alternatives: [
-          { method: METHODS['welch-anova'], reason: '등분산 가정 없이도 사용 가능' },
-          { method: METHODS['kruskal-wallis'], reason: '비모수 대안' }
+          { method: getMethodWithLegacyId('welch-anova'), reason: '등분산 가정 없이도 사용 가능' },
+          { method: getMethodWithLegacyId('kruskal-wallis'), reason: '비모수 대안' }
         ]
       }
     } else {
       // homogeneity === 'no' 또는 'check' (보수적 접근)
       reasoning.push({ step: '등분산성', description: homogeneity === 'no' ? '등분산 미충족 → Welch ANOVA' : '등분산 미확인 → Welch ANOVA (안전)' })
       return {
-        method: METHODS['welch-anova'],
+        method: getMethodWithLegacyId('welch-anova'),
         reasoning,
         alternatives: [
-          { method: METHODS['one-way-anova'], reason: '등분산 확인시 사용 가능' },
-          { method: METHODS['kruskal-wallis'], reason: '비모수 대안' }
+          { method: getMethodWithLegacyId('one-way-anova'), reason: '등분산 확인시 사용 가능' },
+          { method: getMethodWithLegacyId('kruskal-wallis'), reason: '비모수 대안' }
         ]
       }
     }
   } else {
     reasoning.push({ step: '정규성', description: '정규분포 미충족 → 비모수 검정' })
     return {
-      method: METHODS['kruskal-wallis'],
+      method: getMethodWithLegacyId('kruskal-wallis'),
       reasoning,
       alternatives: [
-        { method: METHODS['welch-anova'], reason: 'n/그룹>=30이면 강건' }
+        { method: getMethodWithLegacyId('welch-anova'), reason: 'n/그룹>=30이면 강건' }
       ]
     }
   }
@@ -391,29 +304,29 @@ function decideRelationship(answers: Record<string, string>): DecisionResult {
       if (variableCount === '2') {
         reasoning.push({ step: '변수 수', description: '2개 변수' })
         return {
-          method: METHODS['pearson'],
+          method: getMethod('correlation'),
           reasoning,
           alternatives: [
-            { method: METHODS['spearman'], reason: '정규성 미충족 또는 이상치 존재시' }
+            { method: getMethod('correlation'), reason: '정규성 미충족 또는 이상치 존재시 Spearman 사용' }
           ]
         }
       } else {
         reasoning.push({ step: '변수 수', description: '3개 이상 변수' })
         return {
-          method: METHODS['partial-correlation'],
+          method: getMethod('partial-correlation'),
           reasoning,
           alternatives: [
-            { method: METHODS['pearson'], reason: '단순 상관 행렬' }
+            { method: getMethod('correlation'), reason: '단순 상관 행렬' }
           ]
         }
       }
     } else {
       reasoning.push({ step: '변수 유형', description: '범주형 포함' })
       return {
-        method: METHODS['chi-square-independence'],
+        method: getMethod('chi-square-independence'),
         reasoning,
         alternatives: [
-          { method: METHODS['spearman'], reason: '순서형 변수일 때' }
+          { method: getMethod('correlation'), reason: '순서형 변수일 때 Spearman 사용' }
         ]
       }
     }
@@ -426,14 +339,14 @@ function decideRelationship(answers: Record<string, string>): DecisionResult {
   if (variableType === 'numeric') {
     reasoning.push({ step: '변수 유형', description: '모두 수치형' })
     return {
-      method: variableCount === '2' ? METHODS['simple-regression'] : METHODS['multiple-regression'],
+      method: getMethod('regression'),
       reasoning,
       alternatives: []
     }
   } else {
     reasoning.push({ step: '변수 유형', description: '범주형 포함 → 로지스틱 회귀' })
     return {
-      method: METHODS['logistic-regression'],
+      method: getMethod('logistic-regression'),
       reasoning,
       alternatives: []
     }
@@ -455,14 +368,14 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
     if (variableType === 'numeric') {
       reasoning.push({ step: '변수 유형', description: '수치형 → 평균, 표준편차 등' })
       return {
-        method: METHODS['descriptive'],
+        method: getMethod('descriptive'),
         reasoning,
         alternatives: []
       }
     } else {
       reasoning.push({ step: '변수 유형', description: '범주형 → 빈도, 비율' })
       return {
-        method: METHODS['frequency'],
+        method: getMethod('descriptive'),
         reasoning,
         alternatives: []
       }
@@ -472,7 +385,7 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
   if (analysisType === 'normality') {
     reasoning.push({ step: '분석 유형', description: '정규성 검정' })
     return {
-      method: METHODS['normality-test'],
+      method: getMethod('normality-test'),
       reasoning,
       alternatives: []
     }
@@ -483,16 +396,16 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
 
   if (variableType === 'categorical') {
     return {
-      method: METHODS['frequency'],
+      method: getMethod('descriptive'),
       reasoning,
       alternatives: [
-        { method: METHODS['chi-square-goodness'], reason: '기대 빈도와 비교시' }
+        { method: getMethod('chi-square-goodness'), reason: '기대 빈도와 비교시' }
       ]
     }
   }
 
   return {
-    method: METHODS['descriptive'],
+    method: getMethod('descriptive'),
     reasoning,
     alternatives: []
   }
@@ -512,7 +425,7 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
     case 'continuous':
       reasoning.push({ step: '결과 변수', description: '연속형 → 선형 회귀' })
       return {
-        method: predictorCount === '1' ? METHODS['simple-regression'] : METHODS['multiple-regression'],
+        method: getMethod('regression'),
         reasoning,
         alternatives: [],
         warnings: predictorCount === '2+' ? ['다중공선성(VIF), 잔차 정규성 확인 필요'] : undefined
@@ -521,7 +434,7 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
     case 'binary':
       reasoning.push({ step: '결과 변수', description: '이진형 → 로지스틱 회귀' })
       return {
-        method: METHODS['logistic-regression'],
+        method: getMethod('logistic-regression'),
         reasoning,
         alternatives: [],
         warnings: ['ROC-AUC, Hosmer-Lemeshow 검정으로 적합도 확인']
@@ -530,7 +443,7 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
     case 'count':
       reasoning.push({ step: '결과 변수', description: '빈도/개수 → 포아송 회귀' })
       return {
-        method: METHODS['poisson-regression'],
+        method: getMethod('poisson'),
         reasoning,
         alternatives: [],
         warnings: ['과산포(overdispersion) 확인 - 있으면 음이항 회귀 고려']
@@ -539,16 +452,16 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
     case 'multiclass':
       reasoning.push({ step: '결과 변수', description: '다범주 → 다항 로지스틱' })
       return {
-        method: METHODS['multinomial-regression'],
+        method: getMethod('logistic-regression'),
         reasoning,
         alternatives: [
-          { method: METHODS['ordinal-regression'], reason: '순서형 범주일 때' }
+          { method: getMethod('ordinal-regression'), reason: '순서형 범주일 때' }
         ]
       }
 
     default:
       return {
-        method: METHODS['multiple-regression'],
+        method: getMethod('regression'),
         reasoning,
         alternatives: []
       }
@@ -571,16 +484,16 @@ function decideTimeseries(answers: Record<string, string>): DecisionResult {
       if (seasonality === 'yes') {
         reasoning.push({ step: '계절성', description: '계절성 있음 → SARIMA' })
         return {
-          method: METHODS['sarima'],
+          method: getMethod('arima'),
           reasoning,
           alternatives: [
-            { method: METHODS['arima'], reason: '계절성 제거 후 사용 가능' }
+            { method: getMethod('arima'), reason: '계절성 제거 후 사용 가능' }
           ]
         }
       } else {
         reasoning.push({ step: '계절성', description: '계절성 없음 → ARIMA' })
         return {
-          method: METHODS['arima'],
+          method: getMethod('arima'),
           reasoning,
           alternatives: []
         }
@@ -589,7 +502,7 @@ function decideTimeseries(answers: Record<string, string>): DecisionResult {
     case 'decompose':
       reasoning.push({ step: '분석 목적', description: '패턴 분해' })
       return {
-        method: METHODS['stl-decomposition'],
+        method: getMethod('seasonal-decompose'),
         reasoning,
         alternatives: []
       }
@@ -597,7 +510,7 @@ function decideTimeseries(answers: Record<string, string>): DecisionResult {
     case 'stationarity':
       reasoning.push({ step: '분석 목적', description: '정상성 검정' })
       return {
-        method: METHODS['adf-test'],
+        method: getMethod('stationarity-test'),
         reasoning,
         alternatives: [],
         warnings: ['KPSS 검정도 함께 수행하면 더 신뢰할 수 있습니다']
@@ -605,7 +518,7 @@ function decideTimeseries(answers: Record<string, string>): DecisionResult {
 
     default:
       return {
-        method: METHODS['arima'],
+        method: getMethod('arima'),
         reasoning,
         alternatives: []
       }
@@ -625,20 +538,20 @@ function decideSurvival(answers: Record<string, string>): DecisionResult {
     case 'curve':
       reasoning.push({ step: '분석 목적', description: '생존 곡선 추정' })
       return {
-        method: METHODS['kaplan-meier'],
+        method: getMethod('kaplan-meier'),
         reasoning,
         alternatives: [
-          { method: METHODS['log-rank'], reason: '그룹 비교도 필요할 때' }
+          { method: getMethod('kaplan-meier'), reason: '그룹 비교도 필요할 때 Log-rank 검정 사용' }
         ]
       }
 
     case 'compare':
       reasoning.push({ step: '분석 목적', description: '그룹 간 생존 비교' })
       return {
-        method: METHODS['log-rank'],
+        method: getMethod('kaplan-meier'),
         reasoning,
         alternatives: [
-          { method: METHODS['kaplan-meier'], reason: '시각적 비교용' }
+          { method: getMethod('kaplan-meier'), reason: '시각적 비교용' }
         ]
       }
 
@@ -648,7 +561,7 @@ function decideSurvival(answers: Record<string, string>): DecisionResult {
       if (covariateCount === '1+') {
         reasoning.push({ step: '공변량', description: '공변량 있음 → Cox 회귀' })
         return {
-          method: METHODS['cox-regression'],
+          method: getMethod('cox-regression'),
           reasoning,
           alternatives: [],
           warnings: ['비례위험 가정 확인 필요 (Schoenfeld 잔차)']
@@ -656,17 +569,17 @@ function decideSurvival(answers: Record<string, string>): DecisionResult {
       } else {
         reasoning.push({ step: '공변량', description: '공변량 없음' })
         return {
-          method: METHODS['kaplan-meier'],
+          method: getMethod('kaplan-meier'),
           reasoning,
           alternatives: [
-            { method: METHODS['cox-regression'], reason: '공변량 추가시' }
+            { method: getMethod('cox-regression'), reason: '공변량 추가시' }
           ]
         }
       }
 
     default:
       return {
-        method: METHODS['kaplan-meier'],
+        method: getMethod('kaplan-meier'),
         reasoning,
         alternatives: []
       }
@@ -702,7 +615,7 @@ export function decide(path: DecisionPath): DecisionResult {
     default:
       // Fallback
       return {
-        method: METHODS['descriptive'],
+        method: getMethod('descriptive'),
         reasoning: [{ step: '기본', description: '기본 기술통계 분석' }],
         alternatives: []
       }
@@ -713,12 +626,29 @@ export function decide(path: DecisionPath): DecisionResult {
  * 메서드 ID로 StatisticalMethod 조회
  */
 export function getMethodById(id: string): StatisticalMethod | null {
-  return METHODS[id] || null
+  const method = getMethodByIdOrAlias(id)
+  if (!method) return null
+
+  const koreanInfo = KOREAN_NAMES[method.id]
+  return {
+    id: method.id,
+    name: koreanInfo?.name ?? method.name,
+    description: koreanInfo?.description ?? method.description,
+    category: method.category
+  }
 }
 
 /**
  * 모든 메서드 목록 반환
  */
 export function getAllMethods(): StatisticalMethod[] {
-  return Object.values(METHODS)
+  return Object.values(STATISTICAL_METHODS).map(method => {
+    const koreanInfo = KOREAN_NAMES[method.id]
+    return {
+      id: method.id,
+      name: koreanInfo?.name ?? method.name,
+      description: koreanInfo?.description ?? method.description,
+      category: method.category
+    }
+  })
 }

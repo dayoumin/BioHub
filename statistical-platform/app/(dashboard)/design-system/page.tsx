@@ -17,7 +17,7 @@ import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
   ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft,
-  ChevronDown, Settings, Vote, Server
+  ChevronDown, Settings, Vote, Server, Route
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -135,6 +135,14 @@ const StatisticalFormattingSection = process.env.NODE_ENV !== 'production'
     })
   : null
 
+// Statistical Methods Section (Smart Flow pipeline + ID mapping) - 개발 전용
+const StatisticalMethodsSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/StatisticalMethodsSection').then(mod => ({ default: mod.StatisticalMethodsSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
+
 // Deployment Log Section (always available - useful for troubleshooting)
 const DeploymentLogSection = dynamic(
   () => import('./sections/DeploymentLogSection').then(mod => ({ default: mod.DeploymentLogSection })),
@@ -222,7 +230,8 @@ const DEV_CATEGORIES: NavCategory[] = [
       { id: 'tech-stack', label: 'Tech Stack', icon: Cpu },
       { id: 'deployment-log', label: 'Deployment Log', icon: Server, isNew: true },
       ...(process.env.NODE_ENV !== 'production' ? [
-        { id: 'method-card-comparison', label: 'Method Card Comparison', icon: GitCompare, isNew: true, devOnly: true },
+        { id: 'statistical-methods', label: 'Statistical Methods', icon: Route, isNew: true, devOnly: true },
+        { id: 'method-card-comparison', label: 'Method Card Comparison', icon: GitCompare, devOnly: true },
         { id: 'stats-pattern', label: 'Statistics Pattern', icon: Code, devOnly: true },
         { id: 'stats-formatting', label: 'Statistical Formatting', icon: Calculator, devOnly: true },
         { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
@@ -1365,7 +1374,14 @@ const handleOpenNewWindow = useCallback(() => {
           )}
 
           {/* ========================================
-              14. Deployment Log (항상 사용 가능)
+              14. Statistical Methods (개발 전용)
+          ======================================== */}
+          {activeSection === 'statistical-methods' && StatisticalMethodsSection && (
+            <StatisticalMethodsSection />
+          )}
+
+          {/* ========================================
+              15. Deployment Log (항상 사용 가능)
           ======================================== */}
           {activeSection === 'deployment-log' && (
             <DeploymentLogSection />

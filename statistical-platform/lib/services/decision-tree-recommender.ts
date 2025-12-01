@@ -11,6 +11,8 @@
  * - 19개 Decision Tree 규칙
  * - 5개 목적별 추천 로직
  * - Paired design, Multi-factor 감지
+ *
+ * 이 파일은 lib/constants/statistical-methods.ts의 공통 정의를 참조합니다.
  */
 
 import type {
@@ -24,6 +26,70 @@ import type {
 } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { KeywordBasedRecommender } from './keyword-based-recommender'
+import {
+  getMethodByIdOrAlias
+} from '@/lib/constants/statistical-methods'
+
+// ============================================
+// 헬퍼: 공통 메서드 조회 + 한글 이름 오버라이드
+// ============================================
+
+const KOREAN_NAMES: Record<string, { name: string; description: string }> = {
+  // T-Test
+  't-test': { name: '독립표본 t-검정', description: '두 독립 그룹 간 평균 차이를 검정합니다.' },
+  'paired-t': { name: '대응표본 t-검정', description: '같은 피험자의 전후 비교' },
+  'welch-t': { name: "Welch's t-검정", description: '등분산 가정 완화' },
+
+  // ANOVA
+  'anova': { name: '일원분산분석 (ANOVA)', description: '세 개 이상 그룹 간 평균 비교' },
+
+  // Nonparametric
+  'mann-whitney': { name: 'Mann-Whitney U 검정', description: '두 독립 그룹 간 순위 기반 비교' },
+  'wilcoxon': { name: 'Wilcoxon 부호순위 검정', description: '대응표본 비모수 검정' },
+  'kruskal-wallis': { name: 'Kruskal-Wallis 검정', description: '세 개 이상 그룹 간 순위 기반 비교' },
+  'friedman': { name: 'Friedman 검정', description: '다요인 비모수 검정' },
+
+  // Correlation
+  'correlation': { name: 'Pearson 상관분석', description: '선형 상관관계 분석' },
+
+  // Regression
+  'regression': { name: '단순 선형회귀', description: '독립변수로 종속변수를 예측' },
+  'logistic-regression': { name: '로지스틱 회귀', description: '범주형 종속변수 예측' },
+
+  // Descriptive
+  'descriptive': { name: '기술통계', description: '데이터의 기본 통계량을 계산합니다.' },
+}
+
+/**
+ * 공통 메서드 조회 + 한글 이름 오버라이드
+ * legacy ID도 지원 (backward compatibility)
+ */
+function createMethod(
+  idOrAlias: string,
+  overrides?: Partial<StatisticalMethod>
+): StatisticalMethod {
+  const method = getMethodByIdOrAlias(idOrAlias)
+
+  if (method) {
+    const koreanInfo = KOREAN_NAMES[method.id]
+    return {
+      id: method.id,
+      name: overrides?.name ?? koreanInfo?.name ?? method.name,
+      description: overrides?.description ?? koreanInfo?.description ?? method.description,
+      category: method.category,
+      ...overrides
+    }
+  }
+
+  // Fallback: 공통 정의에 없는 메서드
+  return {
+    id: idOrAlias,
+    name: overrides?.name ?? idOrAlias,
+    description: overrides?.description ?? '',
+    category: overrides?.category ?? 'descriptive',
+    ...overrides
+  }
+}
 
 export class DecisionTreeRecommender {
   /**
@@ -59,12 +125,7 @@ export class DecisionTreeRecommender {
           // Fallback: 기본 기술통계
           const n1 = data.length
           return this.addExpectedKeywords({
-            method: {
-              id: 'descriptive-stats',
-              name: '기술통계',
-              description: '데이터의 기본 통계량을 계산합니다.',
-              category: 'descriptive'
-            },
+            method: createMethod('descriptive'),
             confidence: 0.50,
             reasoning: [
               '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
@@ -81,12 +142,7 @@ export class DecisionTreeRecommender {
       // 에러 시 기본 추천
       const n2 = data.length
       return this.addExpectedKeywords({
-        method: {
-          id: 'descriptive-stats',
-          name: '기술통계',
-          description: '데이터의 기본 통계량을 계산합니다.',
-          category: 'descriptive'
-        },
+        method: createMethod('descriptive'),
         confidence: 0.50,
         reasoning: [
           '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
@@ -118,12 +174,7 @@ export class DecisionTreeRecommender {
         if (groups === 2) {
           const n = data.length
           return this.addExpectedKeywords({
-            method: {
-              id: 'mann-whitney',
-              name: 'Mann-Whitney U 검정',
-              description: '두 독립 그룹 간 순위 기반 비교',
-              category: 'nonparametric'
-            },
+            method: createMethod('mann-whitney'),
             confidence: 0.70,
             reasoning: [
               '✓ 보통 신뢰도 (70%)로 Mann-Whitney U 검정을 추천합니다.',
@@ -133,23 +184,13 @@ export class DecisionTreeRecommender {
             ],
             assumptions: [],
             alternatives: [
-              {
-                id: 'independent-t-test',
-                name: '독립표본 t-검정',
-                description: '정규성 가정이 충족되면 사용 가능',
-                category: 't-test'
-              }
+              createMethod('t-test', { description: '정규성 가정이 충족되면 사용 가능' })
             ]
           })
         } else if (groups >= 3) {
           const n = data.length
           return this.addExpectedKeywords({
-            method: {
-              id: 'kruskal-wallis',
-              name: 'Kruskal-Wallis 검정',
-              description: '세 개 이상 그룹 간 순위 기반 비교',
-              category: 'nonparametric'
-            },
+            method: createMethod('kruskal-wallis'),
             confidence: 0.70,
             reasoning: [
               '✓ 보통 신뢰도 (70%)로 Kruskal-Wallis 검정을 추천합니다.',
@@ -159,12 +200,7 @@ export class DecisionTreeRecommender {
             ],
             assumptions: [],
             alternatives: [
-              {
-                id: 'one-way-anova',
-                name: '일원분산분석 (ANOVA)',
-                description: '정규성과 등분산성 가정이 충족되면 사용 가능',
-                category: 'anova'
-              }
+              createMethod('anova', { description: '정규성과 등분산성 가정이 충족되면 사용 가능' })
             ]
           })
         }
@@ -174,12 +210,10 @@ export class DecisionTreeRecommender {
       case 'relationship': {
         const n = data.length
         return this.addExpectedKeywords({
-          method: {
-            id: 'spearman-correlation',
+          method: createMethod('correlation', {
             name: 'Spearman 상관분석',
-            description: '순위 기반 상관관계 분석',
-            category: 'correlation'
-          },
+            description: '순위 기반 상관관계 분석'
+          }),
           confidence: 0.70,
           reasoning: [
             '✓ 보통 신뢰도 (70%)로 Spearman 상관분석을 추천합니다.',
@@ -189,12 +223,7 @@ export class DecisionTreeRecommender {
           ],
           assumptions: [],
           alternatives: [
-            {
-              id: 'pearson-correlation',
-              name: 'Pearson 상관분석',
-              description: '정규성 가정이 충족되면 사용 가능',
-              category: 'correlation'
-            }
+            createMethod('correlation', { description: '정규성 가정이 충족되면 Pearson 사용 가능' })
           ]
         })
       }
@@ -211,12 +240,7 @@ export class DecisionTreeRecommender {
       default: {
         const n3 = data.length
         return this.addExpectedKeywords({
-          method: {
-            id: 'descriptive-stats',
-            name: '기술통계',
-            description: '데이터의 기본 통계량',
-            category: 'descriptive'
-          },
+          method: createMethod('descriptive'),
           confidence: 0.50,
           reasoning: [
             '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
@@ -232,12 +256,7 @@ export class DecisionTreeRecommender {
     // Fallback
     const n4 = data.length
     return this.addExpectedKeywords({
-      method: {
-        id: 'descriptive-stats',
-        name: '기술통계',
-        description: '데이터의 기본 통계량',
-        category: 'descriptive'
-      },
+      method: createMethod('descriptive'),
       confidence: 0.50,
       reasoning: [
         '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
@@ -290,16 +309,12 @@ export class DecisionTreeRecommender {
     if (isPaired) {
       if (isNormal) {
         return this.addExpectedKeywords({
-          method: {
-            id: 'paired-t-test',
-            name: '대응표본 t-검정',
-            description: '같은 피험자의 전후 비교',
-            category: 't-test',
+          method: createMethod('paired-t', {
             requirements: {
               minSampleSize: 10,
               assumptions: ['정규성', '대응성']
             }
-          },
+          }),
           confidence: 0.91,
           reasoning: [
             '✓ 높은 신뢰도 (91%)로 대응표본 t-검정을 추천합니다.',
@@ -311,22 +326,12 @@ export class DecisionTreeRecommender {
             { name: '정규성', passed: true, pValue: normality.shapiroWilk?.pValue ?? NaN }
           ] : [],
           alternatives: [
-            {
-              id: 'wilcoxon-signed-rank',
-              name: 'Wilcoxon 부호순위 검정',
-              description: '비모수 대안',
-              category: 'nonparametric'
-            }
+            createMethod('wilcoxon', { description: '비모수 대안' })
           ]
         })
       } else {
         return this.addExpectedKeywords({
-          method: {
-            id: 'wilcoxon-signed-rank',
-            name: 'Wilcoxon 부호순위 검정',
-            description: '대응표본 비모수 검정',
-            category: 'nonparametric'
-          },
+          method: createMethod('wilcoxon'),
           confidence: 0.93,
           reasoning: [
             '✓ 높은 신뢰도 (93%)로 Wilcoxon 검정을 추천합니다.',
@@ -338,12 +343,7 @@ export class DecisionTreeRecommender {
             { name: '정규성', passed: false, pValue: normality.shapiroWilk?.pValue ?? NaN }
           ] : [],
           alternatives: [
-            {
-              id: 'paired-t-test',
-              name: '대응표본 t-검정',
-              description: '정규성 충족 시 사용 가능',
-              category: 't-test'
-            }
+            createMethod('paired-t', { description: '정규성 충족 시 사용 가능' })
           ]
         })
       }
@@ -376,22 +376,12 @@ export class DecisionTreeRecommender {
             ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
-            {
-              id: 'friedman',
-              name: 'Friedman 검정',
-              description: '비모수 대안',
-              category: 'nonparametric'
-            }
+            createMethod('friedman', { description: '비모수 대안' })
           ]
         })
       } else {
         return this.addExpectedKeywords({
-          method: {
-            id: 'friedman',
-            name: 'Friedman 검정',
-            description: '다요인 비모수 검정',
-            category: 'nonparametric'
-          },
+          method: createMethod('friedman'),
           confidence: 0.89,
           reasoning: [
             '✓ 높은 신뢰도 (89%)로 Friedman 검정을 추천합니다.',
@@ -420,16 +410,12 @@ export class DecisionTreeRecommender {
       if (isNormal && equalVariance) {
         // 정규성 ✓, 등분산 ✓
         return this.addExpectedKeywords({
-          method: {
-            id: 'independent-t-test',
-            name: '독립표본 t-검정',
-            description: '두 독립 그룹 간 평균 차이를 검정합니다.',
-            category: 't-test',
+          method: createMethod('t-test', {
             requirements: {
               minSampleSize: 30,
               assumptions: ['정규성', '등분산성', '독립성']
             }
-          },
+          }),
           confidence: 0.92,
           detectedVariables: groupVariable ? {
             groupVariable: {
@@ -452,23 +438,13 @@ export class DecisionTreeRecommender {
             ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
-            {
-              id: 'mann-whitney',
-              name: 'Mann-Whitney U 검정',
-              description: '비모수 대안 (정규성 가정 불필요)',
-              category: 'nonparametric'
-            }
+            createMethod('mann-whitney', { description: '비모수 대안 (정규성 가정 불필요)' })
           ]
         })
       } else if (!isNormal) {
         // 정규성 ✗
         return this.addExpectedKeywords({
-          method: {
-            id: 'mann-whitney',
-            name: 'Mann-Whitney U 검정',
-            description: '두 독립 그룹 간 순위 기반 비교',
-            category: 'nonparametric'
-          },
+          method: createMethod('mann-whitney'),
           confidence: 0.95,
           reasoning: [
             '✓ 매우 높은 신뢰도 (95%)로 Mann-Whitney U 검정을 추천합니다.',
@@ -480,23 +456,13 @@ export class DecisionTreeRecommender {
             { name: '정규성', passed: false, pValue: normality.shapiroWilk?.pValue ?? NaN }
           ] : [],
           alternatives: [
-            {
-              id: 'independent-t-test',
-              name: '독립표본 t-검정',
-              description: '정규성 충족 시 사용 가능',
-              category: 't-test'
-            }
+            createMethod('t-test', { description: '정규성 충족 시 사용 가능' })
           ]
         })
       } else {
         // 등분산 ✗
         return this.addExpectedKeywords({
-          method: {
-            id: 'welch-t',
-            name: "Welch's t-검정",
-            description: '등분산 가정 완화',
-            category: 't-test'
-          },
+          method: createMethod('welch-t'),
           confidence: 0.90,
           reasoning: [
             "✓ 높은 신뢰도 (90%)로 Welch's t-검정을 추천합니다.",
@@ -510,12 +476,7 @@ export class DecisionTreeRecommender {
             ...(hasLevene ? [{ name: '등분산성', passed: false, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
-            {
-              id: 'mann-whitney',
-              name: 'Mann-Whitney U 검정',
-              description: '비모수 대안',
-              category: 'nonparametric'
-            }
+            createMethod('mann-whitney', { description: '비모수 대안' })
           ]
         })
       }
@@ -525,16 +486,12 @@ export class DecisionTreeRecommender {
     if (groups >= 3) {
       if (isNormal && equalVariance) {
         return this.addExpectedKeywords({
-          method: {
-            id: 'one-way-anova',
-            name: '일원분산분석 (ANOVA)',
-            description: '세 개 이상 그룹 간 평균 비교',
-            category: 'anova',
+          method: createMethod('anova', {
             requirements: {
               minSampleSize: 30,
               assumptions: ['정규성', '등분산성', '독립성']
             }
-          },
+          }),
           confidence: 0.90,
           reasoning: [
             '✓ 높은 신뢰도 (90%)로 일원분산분석을 추천합니다.',
@@ -548,22 +505,12 @@ export class DecisionTreeRecommender {
             ...(hasLevene ? [{ name: '등분산성', passed: true, pValue: homogeneity?.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
-            {
-              id: 'kruskal-wallis',
-              name: 'Kruskal-Wallis 검정',
-              description: '비모수 대안',
-              category: 'nonparametric'
-            }
+            createMethod('kruskal-wallis', { description: '비모수 대안' })
           ]
         })
       } else {
         return this.addExpectedKeywords({
-          method: {
-            id: 'kruskal-wallis',
-            name: 'Kruskal-Wallis 검정',
-            description: '세 개 이상 그룹 간 순위 기반 비교',
-            category: 'nonparametric'
-          },
+          method: createMethod('kruskal-wallis'),
           confidence: 0.92,
           reasoning: [
             '✓ 매우 높은 신뢰도 (92%)로 Kruskal-Wallis 검정을 추천합니다.',
@@ -576,12 +523,7 @@ export class DecisionTreeRecommender {
             ...(hasLevene ? [{ name: '등분산성', passed: equalVariance, pValue: homogeneity.levene?.pValue ?? NaN }] : [])
           ],
           alternatives: [
-            {
-              id: 'one-way-anova',
-              name: '일원분산분석',
-              description: '가정 충족 시 사용 가능',
-              category: 'anova'
-            }
+            createMethod('anova', { description: '가정 충족 시 사용 가능' })
           ]
         })
       }
@@ -589,12 +531,9 @@ export class DecisionTreeRecommender {
 
     // Fallback
     return this.addExpectedKeywords({
-      method: {
-        id: 'descriptive-stats',
-        name: '기술통계',
-        description: '그룹을 찾을 수 없어 기본 통계량을 제공합니다.',
-        category: 'descriptive'
-      },
+      method: createMethod('descriptive', {
+        description: '그룹을 찾을 수 없어 기본 통계량을 제공합니다.'
+      }),
       confidence: 0.60,
       reasoning: [
         '⚠ 보통 신뢰도 (60%)로 기술통계를 추천합니다.',
@@ -629,12 +568,9 @@ export class DecisionTreeRecommender {
 
     if (numericVars < 2) {
       return this.addExpectedKeywords({
-        method: {
-          id: 'descriptive-stats',
-          name: '기술통계',
-          description: '상관분석에는 최소 2개의 수치형 변수가 필요합니다.',
-          category: 'descriptive'
-        },
+        method: createMethod('descriptive', {
+          description: '상관분석에는 최소 2개의 수치형 변수가 필요합니다.'
+        }),
         confidence: 0.50,
         reasoning: [
           '⚠ 보통 신뢰도 (50%)로 기술통계를 추천합니다.',
@@ -648,16 +584,12 @@ export class DecisionTreeRecommender {
 
     if (isNormal) {
       return this.addExpectedKeywords({
-        method: {
-          id: 'pearson-correlation',
-          name: 'Pearson 상관분석',
-          description: '선형 상관관계 분석',
-          category: 'correlation',
+        method: createMethod('correlation', {
           requirements: {
             minSampleSize: 30,
             assumptions: ['정규성', '선형성']
           }
-        },
+        }),
         confidence: 0.90,
         reasoning: [
           '✓ 높은 신뢰도 (90%)로 Pearson 상관분석을 추천합니다.',
@@ -669,22 +601,18 @@ export class DecisionTreeRecommender {
           { name: '정규성', passed: true, pValue: normality.shapiroWilk?.pValue ?? NaN }
         ] : [],
         alternatives: [
-          {
-            id: 'spearman-correlation',
+          createMethod('correlation', {
             name: 'Spearman 상관분석',
-            description: '비모수 대안',
-            category: 'correlation'
-          }
+            description: '비모수 대안'
+          })
         ]
       })
     } else {
       return this.addExpectedKeywords({
-        method: {
-          id: 'spearman-correlation',
+        method: createMethod('correlation', {
           name: 'Spearman 상관분석',
-          description: '순위 기반 상관관계 분석',
-          category: 'correlation'
-        },
+          description: '순위 기반 상관관계 분석'
+        }),
         confidence: 0.92,
         reasoning: [
           '✓ 매우 높은 신뢰도 (92%)로 Spearman 상관분석을 추천합니다.',
@@ -696,12 +624,7 @@ export class DecisionTreeRecommender {
           { name: '정규성', passed: false, pValue: normality.shapiroWilk?.pValue ?? NaN }
         ] : [],
         alternatives: [
-          {
-            id: 'pearson-correlation',
-            name: 'Pearson 상관분석',
-            description: '정규성 충족 시 사용 가능',
-            category: 'correlation'
-          }
+          createMethod('correlation', { description: '정규성 충족 시 Pearson 사용 가능' })
         ]
       })
     }
@@ -717,16 +640,14 @@ export class DecisionTreeRecommender {
     const n = data.length
 
     return this.addExpectedKeywords({
-      method: {
-        id: 'descriptive-stats',
+      method: createMethod('descriptive', {
         name: '기술통계 및 빈도분석',
         description: '데이터의 분포와 빈도를 분석합니다.',
-        category: 'descriptive',
         requirements: {
           minSampleSize: 1,
           assumptions: []
         }
-      },
+      }),
       confidence: 1.0,
       reasoning: [
         '✓ 완벽한 신뢰도 (100%)로 기술통계를 추천합니다.',
@@ -760,16 +681,12 @@ export class DecisionTreeRecommender {
     // 수치형 예측 → 회귀분석
     if (numericVars >= 2) {
       return this.addExpectedKeywords({
-        method: {
-          id: 'simple-regression',
-          name: '단순 선형회귀',
-          description: '독립변수로 종속변수를 예측',
-          category: 'regression',
+        method: createMethod('regression', {
           requirements: {
             minSampleSize: 30,
             assumptions: ['선형성', '정규성', '등분산성']
           }
-        },
+        }),
         confidence: 0.85,
         reasoning: [
           '✓ 높은 신뢰도 (85%)로 단순 선형회귀를 추천합니다.',
@@ -779,12 +696,10 @@ export class DecisionTreeRecommender {
         ],
         assumptions: [],
         alternatives: [
-          {
-            id: 'multiple-regression',
+          createMethod('regression', {
             name: '다중 선형회귀',
-            description: '여러 독립변수 사용',
-            category: 'regression'
-          }
+            description: '여러 독립변수 사용'
+          })
         ]
       })
     }
@@ -792,12 +707,7 @@ export class DecisionTreeRecommender {
     // 범주형 예측 → 로지스틱 회귀
     if (categoricalVars >= 1 && numericVars >= 1) {
       return this.addExpectedKeywords({
-        method: {
-          id: 'logistic-regression',
-          name: '로지스틱 회귀',
-          description: '범주형 종속변수 예측',
-          category: 'regression'
-        },
+        method: createMethod('logistic-regression'),
         confidence: 0.82,
         reasoning: [
           '✓ 높은 신뢰도 (82%)로 로지스틱 회귀를 추천합니다.',
@@ -806,24 +716,16 @@ export class DecisionTreeRecommender {
         ],
         assumptions: [],
         alternatives: [
-          {
-            id: 'simple-regression',
-            name: '선형회귀',
-            description: '수치형 종속변수일 경우',
-            category: 'regression'
-          }
+          createMethod('regression', { description: '수치형 종속변수일 경우' })
         ]
       })
     }
 
     // Fallback
     return this.addExpectedKeywords({
-      method: {
-        id: 'simple-regression',
-        name: '단순 선형회귀',
-        description: '기본 예측 모델',
-        category: 'regression'
-      },
+      method: createMethod('regression', {
+        description: '기본 예측 모델'
+      }),
       confidence: 0.70,
       reasoning: [
         '✓ 보통 신뢰도 (70%)로 단순 선형회귀를 추천합니다.',
@@ -851,16 +753,14 @@ export class DecisionTreeRecommender {
 
     if (hasDateTime) {
       return this.addExpectedKeywords({
-        method: {
-          id: 'time-series-analysis',
+        method: createMethod('arima', {
           name: '시계열 분석',
           description: '시간에 따른 데이터 변화 분석',
-          category: 'regression' as const, // timeseries는 category에 없음, regression으로 분류
           requirements: {
             minSampleSize: 30,
             assumptions: ['정상성']
           }
-        },
+        }),
         confidence: 0.80,
         reasoning: [
           '✓ 높은 신뢰도 (80%)로 시계열 분석을 추천합니다.',
@@ -870,23 +770,15 @@ export class DecisionTreeRecommender {
         ],
         assumptions: [],
         alternatives: [
-          {
-            id: 'simple-regression',
-            name: '회귀분석',
-            description: '시간을 독립변수로 사용',
-            category: 'regression'
-          }
+          createMethod('regression', { description: '시간을 독립변수로 사용' })
         ]
       })
     } else {
       // 날짜 변수 없음 → 대응표본 t-검정 추천
       return this.addExpectedKeywords({
-        method: {
-          id: 'paired-t-test',
-          name: '대응표본 t-검정',
-          description: '전후 비교 (시간 순서 활용)',
-          category: 't-test'
-        },
+        method: createMethod('paired-t', {
+          description: '전후 비교 (시간 순서 활용)'
+        }),
         confidence: 0.75,
         reasoning: [
           '✓ 높은 신뢰도 (75%)로 대응표본 t-검정을 추천합니다.',
@@ -896,12 +788,10 @@ export class DecisionTreeRecommender {
         ],
         assumptions: [],
         alternatives: [
-          {
-            id: 'time-series-analysis',
+          createMethod('arima', {
             name: '시계열 분석',
-            description: '날짜 변수 추가 시 사용 가능',
-            category: 'regression' as const
-          }
+            description: '날짜 변수 추가 시 사용 가능'
+          })
         ]
       })
     }
