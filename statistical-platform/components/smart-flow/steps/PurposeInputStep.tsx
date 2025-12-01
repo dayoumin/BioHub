@@ -569,8 +569,8 @@ export function PurposeInputStep({
         />
       )}
 
-      {/* Method Selection Area - Shows after purpose selection */}
-      {selectedPurpose && !isAnalyzing && (
+      {/* Method Selection Area - Only shows in 'browse' step (legacy mode) */}
+      {flowState.step === 'browse' && selectedPurpose && !isAnalyzing && (
         <Card className="border-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -740,8 +740,8 @@ export function PurposeInputStep({
         </Card>
       )}
 
-      {/* Action Button */}
-      {finalSelectedMethod && selectedPurpose && !isAnalyzing && (
+      {/* Action Button - Only shows in 'browse' step (legacy mode) */}
+      {flowState.step === 'browse' && finalSelectedMethod && selectedPurpose && !isAnalyzing && (
         <div data-testid="selected-method-bar" className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
           <div>
             <span className="text-sm text-muted-foreground">선택된 방법:</span>

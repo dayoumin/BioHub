@@ -120,17 +120,7 @@ describe('PurposeInputStep', () => {
         expect(screen.getByTestId('purpose-card-그룹 간 차이 비교')).toBeInTheDocument()
     })
 
-    it('shows AI recommendation when purpose is selected', async () => {
-        // Mock recommendation result
-        const mockResult = {
-            method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
-            confidence: 0.9,
-            reasoning: ['Two groups detected', 'Numeric dependent variable']
-        }
-
-        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
-        recommendMock.mockReturnValue(mockResult)
-
+    it('shows Guided Questions when purpose is selected (new flow)', async () => {
         render(
             <PurposeInputStep
                 onPurposeSubmit={jest.fn()}
@@ -142,34 +132,17 @@ describe('PurposeInputStep', () => {
         // Click purpose card
         fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
 
-        // Wait for recommendation card to appear
+        // Wait for Guided Questions UI to appear (new flow)
         await waitFor(() => {
-            // Use data-testid to get the specific element
-            expect(screen.getByTestId('recommendation-card')).toBeInTheDocument()
+            // GuidedQuestions shows "데이터 조건을 알려주세요" header
+            expect(screen.getByText('데이터 조건을 알려주세요')).toBeInTheDocument()
         }, { timeout: 3000 })
 
-        // Verify recommended method name within the recommendation card
-        const recommendationCard = screen.getByTestId('recommendation-card')
-        expect(within(recommendationCard).getByTestId('recommended-method-name')).toHaveTextContent('Independent t-test')
-
-        // Verify Badge shows Rule-based (confidence < 0.95)
-        expect(within(recommendationCard).getByText('Rule-based')).toBeInTheDocument()
-
-        // Verify final selected method bar also shows the method
-        expect(screen.getByTestId('final-selected-method-name')).toHaveTextContent('Independent t-test')
+        // Verify first question is displayed
+        expect(screen.getByText(/비교할 그룹이 몇 개인가요/)).toBeInTheDocument()
     })
 
-    it('shows LLM badge when confidence is high', async () => {
-        // Mock recommendation with high confidence (LLM)
-        const mockResult = {
-            method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
-            confidence: 0.98, // >= 0.95 shows LLM
-            reasoning: ['LLM analyzed data pattern']
-        }
-
-        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
-        recommendMock.mockReturnValue(mockResult)
-
+    it('shows back button in Guided Questions step', async () => {
         render(
             <PurposeInputStep
                 onPurposeSubmit={jest.fn()}
@@ -181,38 +154,14 @@ describe('PurposeInputStep', () => {
         fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
 
         await waitFor(() => {
-            const recommendationCard = screen.getByTestId('recommendation-card')
-            expect(within(recommendationCard).getByText('LLM')).toBeInTheDocument()
+            expect(screen.getByText('뒤로')).toBeInTheDocument()
         }, { timeout: 3000 })
     })
 
-    it('calls onPurposeSubmit when confirm button is clicked', async () => {
-        const mockOnPurposeSubmit = jest.fn()
-        const mockSetSelectedMethod = jest.fn()
-        const mockSetDetectedVariables = jest.fn()
-
-        // Mock store with selector support
-        const mockStoreState = {
-            assumptionResults: {},
-            setSelectedMethod: mockSetSelectedMethod,
-            setDetectedVariables: mockSetDetectedVariables
-        }
-        ;(useSmartFlowStore as unknown as jest.Mock).mockImplementation(
-            (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState)
-        )
-
-        const mockResult = {
-            method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
-            confidence: 0.9,
-            reasoning: ['Reason']
-        }
-
-        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
-        recommendMock.mockReturnValue(mockResult)
-
+    it('can go back to purpose selection from questions', async () => {
         render(
             <PurposeInputStep
-                onPurposeSubmit={mockOnPurposeSubmit}
+                onPurposeSubmit={jest.fn()}
                 validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                 data={mockData}
             />
@@ -221,36 +170,22 @@ describe('PurposeInputStep', () => {
         // Select purpose
         fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
 
-        // Wait for recommendation card AND selected method bar to appear
+        // Wait for questions to appear
         await waitFor(() => {
-            expect(screen.getByTestId('recommendation-card')).toBeInTheDocument()
-            expect(screen.getByTestId('selected-method-bar')).toBeInTheDocument()
+            expect(screen.getByText('데이터 조건을 알려주세요')).toBeInTheDocument()
         }, { timeout: 3000 })
 
-        // Verify confirm button exists and is enabled
-        const confirmButton = screen.getByRole('button', { name: /이 방법으로 분석하기/i })
-        expect(confirmButton).toBeInTheDocument()
-        expect(confirmButton).not.toBeDisabled()
+        // Click back button
+        fireEvent.click(screen.getByText('뒤로'))
 
-        // Click confirm button using userEvent-like interaction
-        await fireEvent.click(confirmButton)
-
-        // The callback should be called synchronously after click
-        expect(mockSetSelectedMethod).toHaveBeenCalledWith(mockResult.method)
-        expect(mockSetDetectedVariables).toHaveBeenCalled()
-        expect(mockOnPurposeSubmit).toHaveBeenCalledWith('그룹 간 차이 비교', mockResult.method)
+        // Should return to purpose selection
+        await waitFor(() => {
+            expect(screen.getByText('어떤 분석을 하고 싶으신가요?')).toBeInTheDocument()
+            expect(screen.getByTestId('purpose-card-그룹 간 차이 비교')).toBeInTheDocument()
+        })
     })
 
-    it('shows reasoning list in recommendation card', async () => {
-        const mockResult = {
-            method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
-            confidence: 0.85,
-            reasoning: ['Two groups detected', 'Numeric variable present', 'Sample size sufficient']
-        }
-
-        const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
-        recommendMock.mockReturnValue(mockResult)
-
+    it('does not show legacy recommendation card in questions step', async () => {
         render(
             <PurposeInputStep
                 onPurposeSubmit={jest.fn()}
@@ -259,14 +194,158 @@ describe('PurposeInputStep', () => {
             />
         )
 
+        // Select purpose
         fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
 
+        // Wait for questions
         await waitFor(() => {
-            const recommendationCard = screen.getByTestId('recommendation-card')
-            // Check reasoning items are displayed (up to 3)
-            expect(within(recommendationCard).getByText(/Two groups detected/)).toBeInTheDocument()
-            expect(within(recommendationCard).getByText(/Numeric variable present/)).toBeInTheDocument()
-            expect(within(recommendationCard).getByText(/Sample size sufficient/)).toBeInTheDocument()
+            expect(screen.getByText('데이터 조건을 알려주세요')).toBeInTheDocument()
         }, { timeout: 3000 })
+
+        // Legacy recommendation card should NOT appear
+        expect(screen.queryByTestId('recommendation-card')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('selected-method-bar')).not.toBeInTheDocument()
+    })
+
+    it('shows initial guidance when no purpose is selected', () => {
+        render(
+            <PurposeInputStep
+                onPurposeSubmit={jest.fn()}
+                validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                data={mockData}
+            />
+        )
+
+        expect(screen.getByText(/분석 목적을 선택하면 단계별 질문을 통해 최적의 통계 방법을 추천합니다/)).toBeInTheDocument()
+    })
+
+    // ========================================
+    // Browse Mode Tests (Legacy UI)
+    // ========================================
+    describe('Browse Mode (전체 방법 보기)', () => {
+        it('shows legacy recommendation card when clicking "전체 방법에서 직접 선택"', async () => {
+            // Mock AI recommendation
+            const mockResult = {
+                method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
+                confidence: 0.9,
+                reasoning: ['Two groups detected']
+            }
+            const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
+            recommendMock.mockReturnValue(mockResult)
+
+            render(
+                <PurposeInputStep
+                    onPurposeSubmit={jest.fn()}
+                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                    data={mockData}
+                />
+            )
+
+            // Step 1: Select purpose
+            fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
+
+            // Step 2: Wait for Guided Questions
+            await waitFor(() => {
+                expect(screen.getByText('데이터 조건을 알려주세요')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // Step 3: Click "전체 방법에서 직접 선택" to enter browse mode
+            fireEvent.click(screen.getByText('전체 방법에서 직접 선택'))
+
+            // Step 4: Legacy UI should appear
+            await waitFor(() => {
+                expect(screen.getByText('분석 방법 선택')).toBeInTheDocument()
+                expect(screen.getByTestId('method-browser')).toBeInTheDocument()
+            }, { timeout: 3000 })
+        })
+
+        it('shows MethodBrowser with recommended method in browse mode', async () => {
+            const mockResult = {
+                method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
+                confidence: 0.9,
+                reasoning: ['Two groups detected', 'Numeric variable']
+            }
+            const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
+            recommendMock.mockReturnValue(mockResult)
+
+            render(
+                <PurposeInputStep
+                    onPurposeSubmit={jest.fn()}
+                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                    data={mockData}
+                />
+            )
+
+            // Select purpose → questions → browse
+            fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
+            await waitFor(() => {
+                expect(screen.getByText('데이터 조건을 알려주세요')).toBeInTheDocument()
+            }, { timeout: 3000 })
+            fireEvent.click(screen.getByText('전체 방법에서 직접 선택'))
+
+            // Browse mode shows MethodBrowser with AI recommended method ID
+            await waitFor(() => {
+                expect(screen.getByTestId('method-browser')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // Verify recommended method ID is passed to MethodBrowser
+            expect(screen.getByTestId('method-browser-recommended')).toHaveTextContent('t-test')
+        })
+
+        it('shows selected-method-bar and calls onPurposeSubmit in browse mode', async () => {
+            const mockOnPurposeSubmit = jest.fn()
+            const mockSetSelectedMethod = jest.fn()
+            const mockSetDetectedVariables = jest.fn()
+
+            // Mock store
+            const mockStoreState = {
+                assumptionResults: {},
+                setSelectedMethod: mockSetSelectedMethod,
+                setDetectedVariables: mockSetDetectedVariables
+            }
+            ;(useSmartFlowStore as unknown as jest.Mock).mockImplementation(
+                (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState)
+            )
+
+            const mockResult = {
+                method: { id: 't-test', name: 'Independent t-test', description: 'Compare means', category: 'compare' },
+                confidence: 0.9,
+                reasoning: ['Reason']
+            }
+            const recommendMock = DecisionTreeRecommender.recommend as jest.Mock
+            recommendMock.mockReturnValue(mockResult)
+
+            render(
+                <PurposeInputStep
+                    onPurposeSubmit={mockOnPurposeSubmit}
+                    validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
+                    data={mockData}
+                />
+            )
+
+            // Navigate to browse mode
+            fireEvent.click(screen.getByTestId('purpose-card-그룹 간 차이 비교'))
+            await waitFor(() => {
+                expect(screen.getByText('데이터 조건을 알려주세요')).toBeInTheDocument()
+            }, { timeout: 3000 })
+            fireEvent.click(screen.getByText('전체 방법에서 직접 선택'))
+
+            // Wait for selected-method-bar
+            await waitFor(() => {
+                expect(screen.getByTestId('selected-method-bar')).toBeInTheDocument()
+            }, { timeout: 3000 })
+
+            // Verify final selected method
+            expect(screen.getByTestId('final-selected-method-name')).toHaveTextContent('Independent t-test')
+
+            // Click confirm button
+            const confirmButton = screen.getByRole('button', { name: /이 방법으로 분석하기/i })
+            await fireEvent.click(confirmButton)
+
+            // Verify callbacks
+            expect(mockSetSelectedMethod).toHaveBeenCalledWith(mockResult.method)
+            expect(mockSetDetectedVariables).toHaveBeenCalled()
+            expect(mockOnPurposeSubmit).toHaveBeenCalledWith('그룹 간 차이 비교', mockResult.method)
+        })
     })
 })

@@ -24,7 +24,19 @@ interface AutoAnswerContext {
  * 정규성 질문 자동 응답
  */
 function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
-  const { assumptionResults } = context
+  const { assumptionResults, validationResults } = context
+
+  // 샘플 크기가 30 이상이면 CLT에 의해 정규성 가정 가능
+  const sampleSize = validationResults?.totalRows ?? 0
+  if (sampleSize >= 30 && !assumptionResults?.normality) {
+    return {
+      value: 'yes',
+      confidence: 'medium',
+      source: 'heuristic',
+      evidence: `n=${sampleSize} ≥ 30 (중심극한정리에 의해 정규성 가정 가능)`,
+      requiresConfirmation: false
+    }
+  }
 
   // 가정 검정 결과가 없으면 unknown
   if (!assumptionResults?.normality) {
@@ -309,6 +321,83 @@ function getAutoAnswerCovariateCount(context: AutoAnswerContext): AutoAnswerResu
   }
 }
 
+
+/**
+ * 등분산성 질문 자동 응답
+ */
+function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult {
+  const { assumptionResults } = context
+
+  // 가정 검정 결과가 없으면 unknown
+  if (!assumptionResults?.homogeneity) {
+    return {
+      value: 'check',
+      confidence: 'unknown',
+      source: 'none',
+      evidence: '등분산성 검정 결과가 없습니다',
+      requiresConfirmation: true
+    }
+  }
+
+  const homogeneity = assumptionResults.homogeneity
+
+  // Levene 검정 결과 확인 (우선)
+  if (homogeneity.levene) {
+    const { pValue, equalVariance } = homogeneity.levene
+    const pValueStr = pValue !== undefined ? pValue.toFixed(3) : 'N/A'
+
+    if (equalVariance) {
+      return {
+        value: 'yes',
+        confidence: pValue !== undefined && pValue > 0.1 ? 'high' : 'medium',
+        source: 'assumptionResults',
+        evidence: `Levene p=${pValueStr} > 0.05 (등분산 충족)`,
+        requiresConfirmation: false
+      }
+    } else {
+      return {
+        value: 'no',
+        confidence: 'high',
+        source: 'assumptionResults',
+        evidence: `Levene p=${pValueStr} ≤ 0.05 (등분산 미충족 → Welch 권장)`,
+        requiresConfirmation: false
+      }
+    }
+  }
+
+  // Bartlett 검정 결과 확인 (대안)
+  if (homogeneity.bartlett) {
+    const { pValue, equalVariance } = homogeneity.bartlett
+    const pValueStr = pValue !== undefined ? pValue.toFixed(3) : 'N/A'
+
+    if (equalVariance) {
+      return {
+        value: 'yes',
+        confidence: pValue !== undefined && pValue > 0.1 ? 'high' : 'medium',
+        source: 'assumptionResults',
+        evidence: `Bartlett p=${pValueStr} > 0.05 (등분산 충족)`,
+        requiresConfirmation: false
+      }
+    } else {
+      return {
+        value: 'no',
+        confidence: 'high',
+        source: 'assumptionResults',
+        evidence: `Bartlett p=${pValueStr} ≤ 0.05 (등분산 미충족 → Welch 권장)`,
+        requiresConfirmation: false
+      }
+    }
+  }
+
+  return {
+    value: 'check',
+    confidence: 'unknown',
+    source: 'none',
+    evidence: '등분산성을 확인할 수 없습니다',
+    requiresConfirmation: true
+  }
+}
+
 /**
  * 계절성 자동 감지 (시계열용)
  * TODO: 실제 ACF/PACF 분석 결과 활용
@@ -350,6 +439,9 @@ export function getAutoAnswer(
 
     case 'covariate_count':
       return getAutoAnswerCovariateCount(context)
+
+    case 'homogeneity':
+      return getAutoAnswerHomogeneity(context)
 
     case 'seasonality':
       return getAutoAnswerSeasonality(context)

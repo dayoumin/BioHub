@@ -34,6 +34,16 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
       { value: 'check', label: '확인 필요', hint: 'AI가 데이터 검사' }
     ],
     autoAnswer: true
+  },
+  {
+    id: 'homogeneity',
+    question: '그룹 간 분산이 동일한가요?',
+    options: [
+      { value: 'yes', label: '예 (등분산)', hint: 'Student t-test / 일반 ANOVA' },
+      { value: 'no', label: '아니오 (이분산)', hint: 'Welch t-test / Welch ANOVA 권장' },
+      { value: 'check', label: '확인 필요', hint: 'AI가 Levene 검정 결과 확인' }
+    ],
+    autoAnswer: true
   }
 ]
 
