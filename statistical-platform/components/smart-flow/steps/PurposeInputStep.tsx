@@ -17,7 +17,7 @@ import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
-import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod } from '@/types/smart-flow'
+import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useSettingsStore } from '@/lib/stores/settings-store'
@@ -123,6 +123,66 @@ const mergeMethodGroups = (primary: MethodGroup[], fallback: MethodGroup[]): Met
   return merged
 }
 
+
+/**
+ * Extract detected variables based on method and validation results
+ */
+function extractDetectedVariables(
+  methodId: string,
+  validationResults: { columns?: ColumnStatistics[] } | null | undefined,
+  recommendation?: AIRecommendation | null
+): {
+  groupVariable?: string
+  dependentCandidate?: string
+  numericVars?: string[]
+  factors?: string[]
+  pairedVars?: [string, string]
+} {
+  const numericCols = validationResults?.columns
+    ?.filter((col: ColumnStatistics) => col.type === 'numeric')
+    ?.map((col: ColumnStatistics) => col.name) || []
+  const categoricalCols = validationResults?.columns
+    ?.filter((col: ColumnStatistics) => col.type === 'categorical')
+    ?.map((col: ColumnStatistics) => col.name) || []
+
+  const detectedVars: {
+    groupVariable?: string
+    dependentCandidate?: string
+    numericVars?: string[]
+    factors?: string[]
+    pairedVars?: [string, string]
+  } = {}
+
+  // Group variable from recommendation or first categorical
+  if (recommendation?.detectedVariables?.groupVariable?.name) {
+    detectedVars.groupVariable = recommendation.detectedVariables.groupVariable.name
+  } else if (categoricalCols.length > 0) {
+    detectedVars.groupVariable = categoricalCols[0]
+  }
+
+  // Dependent candidate from recommendation or first numeric
+  if (recommendation?.detectedVariables?.dependentVariables?.[0]) {
+    detectedVars.dependentCandidate = recommendation.detectedVariables.dependentVariables[0]
+  } else if (numericCols.length > 0) {
+    detectedVars.dependentCandidate = numericCols[0]
+  }
+
+  // Method-specific detection
+  if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
+    detectedVars.factors = categoricalCols.slice(0, 2)
+  } else if (methodId === 'paired-t-test' || methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
+    if (numericCols.length >= 2) {
+      detectedVars.pairedVars = [numericCols[0], numericCols[1]]
+    }
+  } else if (methodId === 'pearson-correlation' || methodId === 'spearman-correlation' || methodId === 'correlation') {
+    detectedVars.numericVars = numericCols
+  } else {
+    detectedVars.numericVars = numericCols
+  }
+
+  return detectedVars
+}
+
 export function PurposeInputStep({
   onPurposeSubmit,
   validationResults,
@@ -132,9 +192,7 @@ export function PurposeInputStep({
   const [flowState, flowDispatch] = useReducer(flowReducer, initialFlowState)
 
   const [selectedPurpose, setSelectedPurpose] = useState<AnalysisPurpose | null>(null)
-  const [selectedGroupVariable, setSelectedGroupVariable] = useState<string | null>(null)
-  const [selectedDependentVariable, setSelectedDependentVariable] = useState<string | null>(null)
-  const [selectedVariables, setSelectedVariables] = useState<string[]>([])
+  // Note: Variable selection is handled in VariableSelectionStep
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [aiProgress, setAiProgress] = useState(0)
   const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null)
@@ -304,11 +362,6 @@ export function PurposeInputStep({
     setAnalysisError(false)
     setActiveTab('recommended')
 
-    // Reset variable selections
-    setSelectedGroupVariable(null)
-    setSelectedDependentVariable(null)
-    setSelectedVariables([])
-
     logger.info('Analysis purpose selected', { purpose })
 
     // Run AI recommendation
@@ -336,7 +389,7 @@ export function PurposeInputStep({
   }, [])
 
   // Confirm and proceed
-  const handleConfirmMethod = useCallback(() => {
+  const handleConfirmMethod = useCallback(async () => {
     if (!finalSelectedMethod || !selectedPurpose || isNavigating || isAnalyzing) return
 
     setIsNavigating(true)
@@ -345,68 +398,25 @@ export function PurposeInputStep({
       // Save to store
       setSelectedMethod(finalSelectedMethod)
 
-      // Detect variables
-      const numericCols = validationResults?.columns
-        ?.filter((col: ColumnStatistics) => col.type === 'numeric')
-        ?.map((col: ColumnStatistics) => col.name) || []
-      const categoricalCols = validationResults?.columns
-        ?.filter((col: ColumnStatistics) => col.type === 'categorical')
-        ?.map((col: ColumnStatistics) => col.name) || []
-
-      const detectedVars: {
-        groupVariable?: string
-        dependentCandidate?: string
-        numericVars?: string[]
-        factors?: string[]
-        pairedVars?: [string, string]
-      } = {}
-
-      // Group variable
-      if (recommendation?.detectedVariables?.groupVariable?.name) {
-        detectedVars.groupVariable = recommendation.detectedVariables.groupVariable.name
-      } else if (categoricalCols.length > 0) {
-        detectedVars.groupVariable = categoricalCols[0]
-      }
-
-      // Dependent candidate
-      if (recommendation?.detectedVariables?.dependentVariables?.[0]) {
-        detectedVars.dependentCandidate = recommendation.detectedVariables.dependentVariables[0]
-      } else if (numericCols.length > 0) {
-        detectedVars.dependentCandidate = numericCols[0]
-      }
-
-      // Method-specific detection
-      const methodId = finalSelectedMethod.id
-      if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
-        detectedVars.factors = categoricalCols.slice(0, 2)
-      } else if (methodId === 'paired-t-test' || methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
-        if (numericCols.length >= 2) {
-          detectedVars.pairedVars = [numericCols[0], numericCols[1]]
-        }
-      } else if (methodId === 'pearson-correlation' || methodId === 'spearman-correlation' || methodId === 'correlation') {
-        detectedVars.numericVars = numericCols
-      } else {
-        detectedVars.numericVars = numericCols
-      }
-
+      // Extract and save detected variables
+      const detectedVars = extractDetectedVariables(
+        finalSelectedMethod.id,
+        validationResults,
+        recommendation
+      )
       setDetectedVariables(detectedVars)
-      logger.info('Detected variables saved to store', { methodId, detectedVars })
+      logger.info('Detected variables saved to store', { methodId: finalSelectedMethod.id, detectedVars })
 
       // Call parent callback
       if (onPurposeSubmit) {
-        onPurposeSubmit(
+        await onPurposeSubmit(
           ANALYSIS_PURPOSES.find(p => p.id === selectedPurpose)?.title || '',
           finalSelectedMethod
         )
       }
-
-      // Reset navigation state after callback (in case navigation doesn't happen)
-      // Use setTimeout to allow parent to navigate first
-      setTimeout(() => {
-        setIsNavigating(false)
-      }, 1000)
     } catch (error) {
       logger.error('Navigation failed', { error })
+    } finally {
       setIsNavigating(false)
     }
   }, [finalSelectedMethod, selectedPurpose, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
@@ -420,7 +430,7 @@ export function PurposeInputStep({
     flowDispatch(flowActions.answerQuestion(questionId, value))
   }, [])
 
-  const handleSetAutoAnswer = useCallback((questionId: string, result: import('@/types/smart-flow').AutoAnswerResult) => {
+  const handleSetAutoAnswer = useCallback((questionId: string, result: AutoAnswerResult) => {
     flowDispatch(flowActions.setAutoAnswer(questionId, result))
   }, [])
 
@@ -443,7 +453,7 @@ export function PurposeInputStep({
     flowDispatch(flowActions.selectMethod(method))
   }, [])
 
-  const handleGuidedConfirm = useCallback(() => {
+  const handleGuidedConfirm = useCallback(async () => {
     if (!flowState.result?.method || !flowState.selectedPurpose || isNavigating) return
 
     setIsNavigating(true)
@@ -452,56 +462,19 @@ export function PurposeInputStep({
       const method = flowState.result.method
       setSelectedMethod(method)
 
-      // Detect variables (same logic as handleConfirmMethod)
-      const numericCols = validationResults?.columns
-        ?.filter((col: ColumnStatistics) => col.type === 'numeric')
-        ?.map((col: ColumnStatistics) => col.name) || []
-      const categoricalCols = validationResults?.columns
-        ?.filter((col: ColumnStatistics) => col.type === 'categorical')
-        ?.map((col: ColumnStatistics) => col.name) || []
-
-      const detectedVars: {
-        groupVariable?: string
-        dependentCandidate?: string
-        numericVars?: string[]
-        factors?: string[]
-        pairedVars?: [string, string]
-      } = {}
-
-      if (categoricalCols.length > 0) {
-        detectedVars.groupVariable = categoricalCols[0]
-      }
-      if (numericCols.length > 0) {
-        detectedVars.dependentCandidate = numericCols[0]
-      }
-
-      const methodId = method.id
-      if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
-        detectedVars.factors = categoricalCols.slice(0, 2)
-      } else if (methodId === 'paired-t-test' || methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
-        if (numericCols.length >= 2) {
-          detectedVars.pairedVars = [numericCols[0], numericCols[1]]
-        }
-      } else if (methodId === 'pearson-correlation' || methodId === 'spearman-correlation' || methodId === 'correlation') {
-        detectedVars.numericVars = numericCols
-      } else {
-        detectedVars.numericVars = numericCols
-      }
-
+      // Extract and save detected variables (using shared helper)
+      const detectedVars = extractDetectedVariables(method.id, validationResults)
       setDetectedVariables(detectedVars)
 
       if (onPurposeSubmit) {
-        onPurposeSubmit(
+        await onPurposeSubmit(
           ANALYSIS_PURPOSES.find(p => p.id === flowState.selectedPurpose)?.title || '',
           method
         )
       }
-
-      setTimeout(() => {
-        setIsNavigating(false)
-      }, 1000)
     } catch (error) {
       logger.error('Navigation failed', { error })
+    } finally {
       setIsNavigating(false)
     }
   }, [flowState, isNavigating, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
