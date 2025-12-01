@@ -128,7 +128,9 @@ export type AnalysisPurpose =
   | 'distribution'  // 분포와 빈도 분석
   | 'prediction'    // 예측 모델링
   | 'timeseries'    // 시계열 분석
-  | 'survival'      // survival analysis
+  | 'survival'      // 생존 분석
+  | 'multivariate'  // 다변량 분석 (PCA, 요인분석, 군집, 판별)
+  | 'utility'       // 유틸리티 (검정력 분석, 신뢰도 분석)
 
 /**
  * 변수 선택 정보 (Step 3에서 사용)

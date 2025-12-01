@@ -36,7 +36,36 @@ import {
   getMethodByIdOrAlias,
   getMethodRoute,
   getAllMethods,
+  type StatisticalMethodWithAliases,
 } from '@/lib/constants/statistical-methods'
+
+// DecisionTree에서 지원하는 메서드 목록 (KOREAN_NAMES에서 추출)
+// 49개 실제 분석 메서드 (개요 페이지 제외: non-parametric, chi-square)
+const DECISION_TREE_SUPPORTED = new Set([
+  // T-Test (4)
+  't-test', 'paired-t', 'welch-t', 'one-sample-t',
+  // ANOVA (6)
+  'anova', 'welch-anova', 'repeated-measures-anova', 'ancova', 'manova', 'mixed-model',
+  // Nonparametric (12) - non-parametric overview excluded
+  'wilcoxon', 'mann-whitney', 'friedman', 'kruskal-wallis',
+  'sign-test', 'mcnemar', 'cochran-q', 'binomial-test', 'runs-test', 'ks-test', 'mood-median', 'proportion-test',
+  // Correlation (2)
+  'correlation', 'partial-correlation',
+  // Regression (7)
+  'regression', 'logistic-regression', 'poisson', 'ordinal-regression', 'stepwise', 'dose-response', 'response-surface',
+  // Chi-Square (2) - chi-square overview excluded
+  'chi-square-independence', 'chi-square-goodness',
+  // Descriptive (4)
+  'descriptive', 'normality-test', 'explore-data', 'means-plot',
+  // Time Series (4)
+  'arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall',
+  // Survival (2)
+  'kaplan-meier', 'cox-regression',
+  // Multivariate (4)
+  'pca', 'factor-analysis', 'cluster', 'discriminant',
+  // Other (2)
+  'power-analysis', 'reliability',
+])
 
 // ============================================
 // Flow Diagram Component
@@ -470,6 +499,195 @@ function IdNamingRules() {
 }
 
 // ============================================
+// DecisionTree Coverage Table (NEW)
+// ============================================
+
+function DecisionTreeCoverageTable() {
+  const allMethods = useMemo(() => getAllMethods(), [])
+
+  // 독립 페이지가 있는 메서드만 필터링 (hasOwnPage !== false)
+  const independentMethods = useMemo(() => {
+    return allMethods.filter(m => {
+      const full = STATISTICAL_METHODS[m.id]
+      return full?.hasOwnPage !== false
+    })
+  }, [allMethods])
+
+  // 카테고리별 그룹화
+  const methodsByCategory = useMemo(() => {
+    const grouped: Record<string, StatisticalMethodWithAliases[]> = {}
+    for (const method of independentMethods) {
+      const cat = method.category
+      if (!grouped[cat]) grouped[cat] = []
+      grouped[cat].push(STATISTICAL_METHODS[method.id])
+    }
+    return grouped
+  }, [independentMethods])
+
+  // 통계
+  const stats = useMemo(() => {
+    const total = independentMethods.length
+    const supported = independentMethods.filter(m => DECISION_TREE_SUPPORTED.has(m.id)).length
+    const missing = total - supported
+    return { total, supported, missing, percent: Math.round((supported / total) * 100) }
+  }, [independentMethods])
+
+  // 카테고리 순서 및 한글 이름
+  const categoryOrder = [
+    { key: 't-test', name: 'T-Test', korean: 'T-검정' },
+    { key: 'anova', name: 'ANOVA', korean: '분산분석' },
+    { key: 'nonparametric', name: 'Nonparametric', korean: '비모수' },
+    { key: 'correlation', name: 'Correlation', korean: '상관분석' },
+    { key: 'regression', name: 'Regression', korean: '회귀분석' },
+    { key: 'chi-square', name: 'Chi-Square', korean: '카이제곱' },
+    { key: 'descriptive', name: 'Descriptive', korean: '기술통계' },
+    { key: 'timeseries', name: 'Time Series', korean: '시계열' },
+    { key: 'survival', name: 'Survival', korean: '생존분석' },
+    { key: 'pca', name: 'PCA', korean: '주성분분석' },
+    { key: 'clustering', name: 'Clustering', korean: '군집분석' },
+    { key: 'advanced', name: 'Advanced', korean: '고급분석' },
+    { key: 'psychometrics', name: 'Psychometrics', korean: '심리측정' },
+  ]
+
+  let globalIndex = 0
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base">DecisionTree Coverage</CardTitle>
+            <CardDescription>48개 통계 페이지 중 DecisionTree 안내 가능 여부</CardDescription>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{stats.supported}</div>
+              <div className="text-xs text-muted-foreground">지원</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-red-600">{stats.missing}</div>
+              <div className="text-xs text-muted-foreground">미지원</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{stats.percent}%</div>
+              <div className="text-xs text-muted-foreground">커버리지</div>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {/* Progress Bar */}
+        <div className="mb-6">
+          <div className="h-3 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 transition-all duration-500"
+              style={{ width: `${stats.percent}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>0</span>
+            <span>{stats.total} methods</span>
+          </div>
+        </div>
+
+        {/* Category Tables */}
+        <div className="space-y-6 max-h-[600px] overflow-y-auto">
+          {categoryOrder.map(cat => {
+            const methods = methodsByCategory[cat.key]
+            if (!methods || methods.length === 0) return null
+
+            const supportedInCat = methods.filter(m => DECISION_TREE_SUPPORTED.has(m.id)).length
+
+            return (
+              <div key={cat.key} className="border rounded-lg overflow-hidden">
+                <div className="bg-muted/50 px-4 py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm">{cat.name}</span>
+                    <span className="text-xs text-muted-foreground">({cat.korean})</span>
+                  </div>
+                  <Badge variant={supportedInCat === methods.length ? 'default' : 'secondary'}>
+                    {supportedInCat}/{methods.length}
+                  </Badge>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[50px]">#</TableHead>
+                      <TableHead className="w-[180px]">ID</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead className="w-[100px] text-center">DecisionTree</TableHead>
+                      <TableHead className="w-[100px] text-center">Page</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {methods.map(method => {
+                      globalIndex++
+                      const isSupported = DECISION_TREE_SUPPORTED.has(method.id)
+                      const hasPage = method.hasOwnPage !== false
+
+                      return (
+                        <TableRow key={method.id} className={!isSupported ? 'bg-red-50/50 dark:bg-red-950/10' : ''}>
+                          <TableCell className="text-muted-foreground font-mono text-xs">
+                            {String(globalIndex).padStart(2, '0')}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            <code className="bg-muted px-1 rounded">{method.id}</code>
+                          </TableCell>
+                          <TableCell className="text-sm">{method.name}</TableCell>
+                          <TableCell className="text-center">
+                            {isSupported ? (
+                              <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-red-500 mx-auto" />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {hasPage ? (
+                              <a
+                                href={`/statistics/${method.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline text-xs"
+                              >
+                                Open
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Missing Methods Summary */}
+        <div className="mt-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg">
+          <h4 className="font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            미지원 메서드 ({stats.missing}개)
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {independentMethods
+              .filter(m => !DECISION_TREE_SUPPORTED.has(m.id))
+              .map(m => (
+                <code key={m.id} className="text-xs bg-red-100 dark:bg-red-900/30 px-2 py-1 rounded">
+                  {m.id}
+                </code>
+              ))
+            }
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ============================================
 // Main Export
 // ============================================
 
@@ -496,6 +714,9 @@ export function StatisticalMethodsSection() {
         </CardContent>
       </Card>
 
+      {/* DecisionTree Coverage - NEW */}
+      <DecisionTreeCoverageTable />
+
       {/* Two column layout */}
       <div className="grid md:grid-cols-2 gap-6">
         <AliasLookupTester />
@@ -508,6 +729,55 @@ export function StatisticalMethodsSection() {
       {/* All Methods Table */}
       <AllMethodsTable />
 
+      {/* Method Count Summary */}
+      <Card className="border-amber-200 dark:border-amber-900 bg-amber-50/50 dark:bg-amber-950/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600" />
+            Method Count Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-4 text-center mb-4">
+            <div className="p-3 bg-background rounded-lg border">
+              <div className="text-2xl font-bold">51</div>
+              <div className="text-xs text-muted-foreground">Total Definitions</div>
+            </div>
+            <div className="p-3 bg-background rounded-lg border">
+              <div className="text-2xl font-bold text-green-600">48</div>
+              <div className="text-xs text-muted-foreground">Independent Pages</div>
+            </div>
+            <div className="p-3 bg-background rounded-lg border">
+              <div className="text-2xl font-bold text-amber-600">3</div>
+              <div className="text-xs text-muted-foreground">Embedded Methods</div>
+            </div>
+          </div>
+          <div className="text-sm">
+            <p className="font-medium mb-2">Embedded Methods (hasOwnPage: false):</p>
+            <div className="space-y-1 text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <code className="bg-muted px-1 rounded text-xs">paired-t</code>
+                <ArrowRight className="w-3 h-3" />
+                <code className="bg-muted px-1 rounded text-xs">t-test</code>
+                <span className="text-xs">page</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="bg-muted px-1 rounded text-xs">welch-anova</code>
+                <ArrowRight className="w-3 h-3" />
+                <code className="bg-muted px-1 rounded text-xs">anova</code>
+                <span className="text-xs">page</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="bg-muted px-1 rounded text-xs">logistic-regression</code>
+                <ArrowRight className="w-3 h-3" />
+                <code className="bg-muted px-1 rounded text-xs">regression</code>
+                <span className="text-xs">page</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Source File Info */}
       <Card className="bg-muted/30">
         <CardContent className="pt-6">
@@ -516,7 +786,7 @@ export function StatisticalMethodsSection() {
             <div className="space-y-2 text-sm">
               <p className="font-medium">Source Files:</p>
               <ul className="text-muted-foreground space-y-1">
-                <li><code className="bg-muted px-1 rounded">lib/constants/statistical-methods.ts</code> - Single source of truth (48 methods)</li>
+                <li><code className="bg-muted px-1 rounded">lib/constants/statistical-methods.ts</code> - Single source of truth (51 definitions, 48 pages)</li>
                 <li><code className="bg-muted px-1 rounded">components/smart-flow/steps/purpose/DecisionTree.ts</code> - Decision logic</li>
                 <li><code className="bg-muted px-1 rounded">components/smart-flow/steps/purpose/auto-answer.ts</code> - Auto-answer from data</li>
                 <li><code className="bg-muted px-1 rounded">components/smart-flow/steps/purpose/guided-flow-questions.ts</code> - Questions per purpose</li>

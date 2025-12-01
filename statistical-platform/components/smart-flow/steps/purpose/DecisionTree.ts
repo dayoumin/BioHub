@@ -22,48 +22,98 @@ import {
 // ============================================
 
 const KOREAN_NAMES: Record<string, { name: string; description: string }> = {
-  // T-Test
+  // ============================================
+  // T-Test (4)
+  // ============================================
   't-test': { name: '독립표본 t-검정', description: '두 독립 그룹의 평균 차이 검정' },
   'paired-t': { name: '대응표본 t-검정', description: '같은 대상을 전/후 측정하여 평균 차이 검정' },
   'welch-t': { name: 'Welch t-검정', description: '등분산 가정 없이 두 그룹 평균 비교' },
+  'one-sample-t': { name: '단일표본 t-검정', description: '표본 평균과 모집단 평균 비교' },
 
-  // ANOVA
+  // ============================================
+  // ANOVA (6)
+  // ============================================
   'anova': { name: '일원분산분석 (ANOVA)', description: '3개 이상 독립 그룹의 평균 차이 검정' },
   'welch-anova': { name: 'Welch ANOVA', description: '등분산 가정 없이 3개 이상 그룹 비교' },
   'repeated-measures-anova': { name: '반복측정 분산분석', description: '같은 대상을 여러 시점에서 측정' },
+  'ancova': { name: '공분산분석 (ANCOVA)', description: '공변량 통제 후 그룹 비교' },
+  'manova': { name: '다변량 분산분석 (MANOVA)', description: '여러 종속변수의 그룹 간 차이' },
+  'mixed-model': { name: '혼합효과 모형', description: '고정효과와 랜덤효과 포함 분석' },
 
-  // Nonparametric
+  // ============================================
+  // Nonparametric (13)
+  // ============================================
   'wilcoxon': { name: 'Wilcoxon 부호순위 검정', description: '대응표본의 비모수 검정' },
   'mann-whitney': { name: 'Mann-Whitney U 검정', description: '두 독립 그룹의 비모수 비교' },
   'friedman': { name: 'Friedman 검정', description: '반복측정의 비모수 대안' },
   'kruskal-wallis': { name: 'Kruskal-Wallis 검정', description: '3개 이상 그룹의 비모수 비교' },
+  'sign-test': { name: '부호 검정', description: '대응표본의 방향성 검정' },
+  'mcnemar': { name: 'McNemar 검정', description: '대응 이진 데이터 비교' },
+  'cochran-q': { name: 'Cochran Q 검정', description: '다중 대응 이진 비교' },
+  'binomial-test': { name: '이항 검정', description: '이진 결과 확률 검정' },
+  'runs-test': { name: '런 검정', description: '무작위성 검정' },
+  'ks-test': { name: 'Kolmogorov-Smirnov 검정', description: '두 분포 비교' },
+  'mood-median': { name: 'Mood 중앙값 검정', description: '그룹 간 중앙값 비교' },
+  'proportion-test': { name: '비율 검정', description: '단일/두 표본 비율 비교' },
 
-  // Correlation
+  // ============================================
+  // Correlation (2)
+  // ============================================
   'correlation': { name: 'Pearson 상관분석', description: '두 연속형 변수의 선형 상관관계' },
   'partial-correlation': { name: '편상관분석', description: '제3변수 통제 후 상관관계' },
 
-  // Regression
+  // ============================================
+  // Regression (7)
+  // ============================================
   'regression': { name: '선형 회귀', description: '예측 변수로 결과 예측' },
   'logistic-regression': { name: '로지스틱 회귀', description: '이진 결과 예측' },
   'poisson': { name: '포아송 회귀', description: '빈도/개수 데이터 예측' },
   'ordinal-regression': { name: '순서형 로지스틱 회귀', description: '순서형 범주 예측' },
+  'stepwise': { name: '단계적 회귀', description: '자동 변수 선택 회귀' },
+  'dose-response': { name: '용량-반응 분석', description: 'EC50/IC50 곡선 피팅' },
+  'response-surface': { name: '반응표면 분석', description: '최적화 실험 분석' },
 
-  // Chi-Square
+  // ============================================
+  // Chi-Square (2) - chi-square overview excluded (hasOwnPage: false)
+  // ============================================
   'chi-square-independence': { name: '카이제곱 독립성 검정', description: '두 범주형 변수의 독립성 검정' },
   'chi-square-goodness': { name: '카이제곱 적합도 검정', description: '관찰 빈도와 기대 빈도 비교' },
 
-  // Descriptive
+  // ============================================
+  // Descriptive (4)
+  // ============================================
   'descriptive': { name: '기술통계량', description: '평균, 표준편차, 분위수 등 요약' },
   'normality-test': { name: '정규성 검정', description: 'Shapiro-Wilk, K-S 검정' },
+  'explore-data': { name: '데이터 탐색', description: '데이터 탐색 및 시각화' },
+  'means-plot': { name: '평균 도표', description: '그룹별 평균과 신뢰구간 시각화' },
 
-  // Time Series
+  // ============================================
+  // Time Series (4)
+  // ============================================
   'arima': { name: 'ARIMA', description: '시계열 예측 모형' },
   'seasonal-decompose': { name: 'STL 분해', description: '추세, 계절성, 잔차 분리' },
   'stationarity-test': { name: 'ADF 정상성 검정', description: 'Augmented Dickey-Fuller 검정' },
+  'mann-kendall': { name: 'Mann-Kendall 추세 검정', description: '시계열 추세 탐지' },
 
-  // Survival
+  // ============================================
+  // Survival (2)
+  // ============================================
   'kaplan-meier': { name: 'Kaplan-Meier 추정', description: '생존 곡선 추정' },
   'cox-regression': { name: 'Cox 비례위험 회귀', description: '생존에 영향을 미치는 요인 분석' },
+
+  // ============================================
+  // Multivariate (4)
+  // ============================================
+  'pca': { name: '주성분 분석 (PCA)', description: '차원 축소' },
+  'factor-analysis': { name: '요인 분석', description: '잠재 요인 추출' },
+  'cluster': { name: '군집 분석', description: 'K-means, 계층적 군집화' },
+  'discriminant': { name: '판별 분석', description: '그룹 분류' },
+
+  // ============================================
+  // Other (2)
+  // ============================================
+  'power-analysis': { name: '검정력 분석', description: '표본 크기 및 검정력 계산' },
+  'reliability': { name: '신뢰도 분석', description: 'Cronbach 알파, 내적 일관성' },
 }
 
 // ============================================
@@ -141,8 +191,61 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
   const sampleType = answers.sample_type
   const normality = answers.normality
   const homogeneity = answers.homogeneity
+  const comparisonTarget = answers.comparison_target
+  const hasCovariate = answers.has_covariate
+  const outcomeCount = answers.outcome_count
+  const designType = answers.design_type
+  const variableType = answers.variable_type
 
   const reasoning: ReasoningStep[] = []
+
+  // 단일 표본 비교 (vs 모집단)
+  if (comparisonTarget === 'population' || groupCount === '1') {
+    reasoning.push({ step: '비교 대상', description: '표본 vs 모집단' })
+
+    if (variableType === 'binary') {
+      reasoning.push({ step: '변수 유형', description: '이진형 → 비율 검정' })
+      return {
+        method: getMethod('proportion-test'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('binomial-test'), reason: '정확 검정이 필요할 때' }
+        ]
+      }
+    }
+
+    if (normality === 'yes') {
+      reasoning.push({ step: '정규성', description: '정규분포 충족 → 단일표본 t-검정' })
+      return {
+        method: getMethod('one-sample-t'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('wilcoxon'), reason: '정규성 미충족시 부호순위 검정' }
+        ]
+      }
+    } else {
+      reasoning.push({ step: '정규성', description: '정규분포 미충족 → 비모수 검정' })
+      return {
+        method: getMethod('sign-test'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('one-sample-t'), reason: 'n>=30이면 중심극한정리로 강건' }
+        ]
+      }
+    }
+  }
+
+  // 비율 비교
+  if (comparisonTarget === 'proportion') {
+    reasoning.push({ step: '비교 대상', description: '비율 비교' })
+    return {
+      method: getMethod('proportion-test'),
+      reasoning,
+      alternatives: [
+        { method: getMethod('chi-square-independence'), reason: '교차표 형태일 때' }
+      ]
+    }
+  }
 
   // 2개 그룹
   if (groupCount === '2') {
@@ -151,6 +254,18 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
     // 대응표본
     if (sampleType === 'paired') {
       reasoning.push({ step: '표본 유형', description: '대응표본 (같은 대상 전/후)' })
+
+      // 이진 범주형 대응 데이터 → McNemar
+      if (variableType === 'binary') {
+        reasoning.push({ step: '변수 유형', description: '이진 범주형 → McNemar 검정' })
+        return {
+          method: getMethod('mcnemar'),
+          reasoning,
+          alternatives: [
+            { method: getMethod('sign-test'), reason: '순서형 데이터일 때' }
+          ]
+        }
+      }
 
       if (normality === 'yes') {
         reasoning.push({ step: '정규성', description: '정규분포 충족 → 모수 검정' })
@@ -167,6 +282,7 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
           method: getMethodWithLegacyId('wilcoxon'),
           reasoning,
           alternatives: [
+            { method: getMethod('sign-test'), reason: '순서형 또는 방향성만 중요할 때' },
             { method: getMethodWithLegacyId('paired-t'), reason: 'n>=30이면 중심극한정리로 강건' }
           ]
         }
@@ -221,6 +337,18 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
   if (sampleType === 'paired') {
     reasoning.push({ step: '표본 유형', description: '반복측정 (같은 대상 여러 시점)' })
 
+    // 이진 범주형 반복측정 → Cochran Q
+    if (variableType === 'binary') {
+      reasoning.push({ step: '변수 유형', description: '이진 범주형 → Cochran Q 검정' })
+      return {
+        method: getMethod('cochran-q'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('mcnemar'), reason: '2시점만 비교할 때' }
+        ]
+      }
+    }
+
     if (normality === 'yes') {
       reasoning.push({ step: '정규성', description: '정규분포 충족' })
       return {
@@ -245,6 +373,45 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
 
   // 독립 그룹
   reasoning.push({ step: '표본 유형', description: '독립 그룹' })
+
+  // 혼합 설계 (고정효과 + 랜덤효과)
+  if (designType === 'mixed') {
+    reasoning.push({ step: '설계 유형', description: '혼합 설계 → 혼합효과 모형' })
+    return {
+      method: getMethod('mixed-model'),
+      reasoning,
+      alternatives: [
+        { method: getMethodWithLegacyId('repeated-anova'), reason: '단순 반복측정일 때' }
+      ],
+      warnings: ['랜덤효과 구조를 신중히 선택해야 합니다']
+    }
+  }
+
+  // 다변량 종속변수 → MANOVA
+  if (outcomeCount === '2+') {
+    reasoning.push({ step: '종속변수', description: '다변량 → MANOVA' })
+    return {
+      method: getMethod('manova'),
+      reasoning,
+      alternatives: [
+        { method: getMethodWithLegacyId('one-way-anova'), reason: '종속변수 개별 분석시' }
+      ],
+      warnings: ['다변량 정규성, Box M 검정 확인 필요']
+    }
+  }
+
+  // 공변량 존재 → ANCOVA
+  if (hasCovariate === 'yes') {
+    reasoning.push({ step: '공변량', description: '공변량 통제 → ANCOVA' })
+    return {
+      method: getMethod('ancova'),
+      reasoning,
+      alternatives: [
+        { method: getMethodWithLegacyId('one-way-anova'), reason: '공변량 통제 불필요시' }
+      ],
+      warnings: ['회귀 기울기 동질성 가정 확인 필요']
+    }
+  }
 
   if (normality === 'yes') {
     reasoning.push({ step: '정규성', description: '정규분포 충족' })
@@ -274,10 +441,24 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
     }
   } else {
     reasoning.push({ step: '정규성', description: '정규분포 미충족 → 비모수 검정' })
+
+    // 중앙값 비교가 목적이면 Mood 중앙값 검정
+    if (comparisonTarget === 'median') {
+      reasoning.push({ step: '비교 대상', description: '중앙값 비교 → Mood 검정' })
+      return {
+        method: getMethod('mood-median'),
+        reasoning,
+        alternatives: [
+          { method: getMethodWithLegacyId('kruskal-wallis'), reason: '분포 전체 비교시' }
+        ]
+      }
+    }
+
     return {
       method: getMethodWithLegacyId('kruskal-wallis'),
       reasoning,
       alternatives: [
+        { method: getMethod('mood-median'), reason: '중앙값 비교가 목적일 때' },
         { method: getMethodWithLegacyId('welch-anova'), reason: 'n/그룹>=30이면 강건' }
       ]
     }
@@ -359,8 +540,67 @@ function decideRelationship(answers: Record<string, string>): DecisionResult {
 function decideDistribution(answers: Record<string, string>): DecisionResult {
   const analysisType = answers.analysis_type
   const variableType = answers.variable_type
+  const distributionGoal = answers.distribution_goal
 
   const reasoning: ReasoningStep[] = []
+
+  // 데이터 탐색
+  if (analysisType === 'explore' || distributionGoal === 'explore') {
+    reasoning.push({ step: '분석 유형', description: '데이터 탐색' })
+    return {
+      method: getMethod('explore-data'),
+      reasoning,
+      alternatives: [
+        { method: getMethod('descriptive'), reason: '기술통계만 필요할 때' }
+      ]
+    }
+  }
+
+  // 평균 시각화
+  if (distributionGoal === 'visualize_means') {
+    reasoning.push({ step: '분석 유형', description: '평균 시각화' })
+    return {
+      method: getMethod('means-plot'),
+      reasoning,
+      alternatives: [
+        { method: getMethod('descriptive'), reason: '기술통계표로 대체' }
+      ]
+    }
+  }
+
+  // 이항 확률 검정
+  if (analysisType === 'test_probability' || distributionGoal === 'test_probability') {
+    reasoning.push({ step: '분석 유형', description: '이진 확률 검정' })
+    return {
+      method: getMethod('binomial-test'),
+      reasoning,
+      alternatives: [
+        { method: getMethod('proportion-test'), reason: '대표본 근사 사용시' }
+      ]
+    }
+  }
+
+  // 무작위성 검정
+  if (distributionGoal === 'randomness') {
+    reasoning.push({ step: '분석 유형', description: '무작위성 검정' })
+    return {
+      method: getMethod('runs-test'),
+      reasoning,
+      alternatives: []
+    }
+  }
+
+  // 두 분포 비교
+  if (distributionGoal === 'distribution_compare') {
+    reasoning.push({ step: '분석 유형', description: '두 분포 비교' })
+    return {
+      method: getMethod('ks-test'),
+      reasoning,
+      alternatives: [
+        { method: getMethod('mann-whitney'), reason: '중앙값 차이가 관심일 때' }
+      ]
+    }
+  }
 
   if (analysisType === 'describe') {
     reasoning.push({ step: '분석 유형', description: '기술통계' })
@@ -370,7 +610,9 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
       return {
         method: getMethod('descriptive'),
         reasoning,
-        alternatives: []
+        alternatives: [
+          { method: getMethod('explore-data'), reason: '상세 탐색 필요시' }
+        ]
       }
     } else {
       reasoning.push({ step: '변수 유형', description: '범주형 → 빈도, 비율' })
@@ -387,7 +629,9 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
     return {
       method: getMethod('normality-test'),
       reasoning,
-      alternatives: []
+      alternatives: [
+        { method: getMethod('ks-test'), reason: '비교 분포가 있을 때' }
+      ]
     }
   }
 
@@ -399,7 +643,8 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
       method: getMethod('descriptive'),
       reasoning,
       alternatives: [
-        { method: getMethod('chi-square-goodness'), reason: '기대 빈도와 비교시' }
+        { method: getMethod('chi-square-goodness'), reason: '기대 빈도와 비교시' },
+        { method: getMethod('binomial-test'), reason: '이진 비율 검정시' }
       ]
     }
   }
@@ -407,7 +652,9 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
   return {
     method: getMethod('descriptive'),
     reasoning,
-    alternatives: []
+    alternatives: [
+      { method: getMethod('explore-data'), reason: '시각화 포함 탐색시' }
+    ]
   }
 }
 
@@ -417,8 +664,49 @@ function decideDistribution(answers: Record<string, string>): DecisionResult {
 function decidePrediction(answers: Record<string, string>): DecisionResult {
   const outcomeType = answers.outcome_type
   const predictorCount = answers.predictor_count
+  const variableSelection = answers.variable_selection
+  const modelType = answers.model_type
 
   const reasoning: ReasoningStep[] = []
+
+  // 특수 모형 유형 분기
+  if (modelType === 'dose_response') {
+    reasoning.push({ step: '모형 유형', description: '용량-반응 분석' })
+    return {
+      method: getMethod('dose-response'),
+      reasoning,
+      alternatives: [
+        { method: getMethod('regression'), reason: '선형 관계 가정시' }
+      ],
+      warnings: ['EC50/IC50 계산에 충분한 농도 범위 필요']
+    }
+  }
+
+  if (modelType === 'optimization') {
+    reasoning.push({ step: '모형 유형', description: '최적화 실험' })
+    return {
+      method: getMethod('response-surface'),
+      reasoning,
+      alternatives: [
+        { method: getMethod('regression'), reason: '단순 예측만 필요시' }
+      ],
+      warnings: ['실험 설계(CCD, BBD 등)가 적절해야 합니다']
+    }
+  }
+
+  // 자동 변수 선택 → 단계적 회귀
+  if (variableSelection === 'automatic' && predictorCount === '2+') {
+    reasoning.push({ step: '변수 선택', description: '자동 변수 선택 → 단계적 회귀' })
+    return {
+      method: getMethod('stepwise'),
+      reasoning,
+      alternatives: [
+        { method: getMethod('regression'), reason: '모든 변수 포함시' }
+      ],
+      warnings: ['과적합 주의, 교차검증 권장']
+    }
+  }
+
   reasoning.push({ step: '예측 변수 수', description: predictorCount === '1' ? '단순 모형' : '다중 모형' })
 
   switch (outcomeType) {
@@ -427,7 +715,9 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
       return {
         method: getMethod('regression'),
         reasoning,
-        alternatives: [],
+        alternatives: [
+          { method: getMethod('stepwise'), reason: '변수 선택이 필요할 때' }
+        ],
         warnings: predictorCount === '2+' ? ['다중공선성(VIF), 잔차 정규성 확인 필요'] : undefined
       }
 
@@ -436,7 +726,9 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
       return {
         method: getMethod('logistic-regression'),
         reasoning,
-        alternatives: [],
+        alternatives: [
+          { method: getMethod('discriminant'), reason: '판별 분석 대안' }
+        ],
         warnings: ['ROC-AUC, Hosmer-Lemeshow 검정으로 적합도 확인']
       }
 
@@ -455,7 +747,18 @@ function decidePrediction(answers: Record<string, string>): DecisionResult {
         method: getMethod('logistic-regression'),
         reasoning,
         alternatives: [
-          { method: getMethod('ordinal-regression'), reason: '순서형 범주일 때' }
+          { method: getMethod('ordinal-regression'), reason: '순서형 범주일 때' },
+          { method: getMethod('discriminant'), reason: '판별 분석 대안' }
+        ]
+      }
+
+    case 'ordinal':
+      reasoning.push({ step: '결과 변수', description: '순서형 → 순서형 로지스틱' })
+      return {
+        method: getMethod('ordinal-regression'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('logistic-regression'), reason: '순서 무시시' }
         ]
       }
 
@@ -514,6 +817,17 @@ function decideTimeseries(answers: Record<string, string>): DecisionResult {
         reasoning,
         alternatives: [],
         warnings: ['KPSS 검정도 함께 수행하면 더 신뢰할 수 있습니다']
+      }
+
+    case 'trend_test':
+      reasoning.push({ step: '분석 목적', description: '추세 검정' })
+      return {
+        method: getMethod('mann-kendall'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('regression'), reason: '선형 추세 검정시' }
+        ],
+        warnings: ['자기상관이 있으면 Modified MK 사용 권장']
       }
 
     default:
@@ -586,6 +900,107 @@ function decideSurvival(answers: Record<string, string>): DecisionResult {
   }
 }
 
+/**
+ * 다변량 분석 결정 트리
+ */
+function decideMultivariate(answers: Record<string, string>): DecisionResult {
+  const goal = answers.goal
+  const reasoning: ReasoningStep[] = []
+
+  switch (goal) {
+    case 'dimension_reduction':
+      reasoning.push({ step: '분석 목적', description: '차원 축소' })
+      return {
+        method: getMethod('pca'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('factor-analysis'), reason: '잠재 요인 해석이 필요할 때' }
+        ]
+      }
+
+    case 'latent_factors':
+      reasoning.push({ step: '분석 목적', description: '잠재 요인 추출' })
+      return {
+        method: getMethod('factor-analysis'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('pca'), reason: '차원 축소만 필요할 때' }
+        ]
+      }
+
+    case 'grouping':
+      reasoning.push({ step: '분석 목적', description: '유사 대상 그룹화' })
+      return {
+        method: getMethod('cluster'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('discriminant'), reason: '그룹이 이미 정의되어 있을 때' }
+        ]
+      }
+
+    case 'classification':
+      reasoning.push({ step: '분석 목적', description: '그룹 분류/예측' })
+      return {
+        method: getMethod('discriminant'),
+        reasoning,
+        alternatives: [
+          { method: getMethod('logistic-regression'), reason: '이진 분류일 때' },
+          { method: getMethod('cluster'), reason: '그룹이 정의되지 않았을 때' }
+        ]
+      }
+
+    default:
+      return {
+        method: getMethod('pca'),
+        reasoning: [{ step: '기본', description: '다변량 분석' }],
+        alternatives: []
+      }
+  }
+}
+
+/**
+ * 유틸리티 분석 결정 트리
+ */
+function decideUtility(answers: Record<string, string>): DecisionResult {
+  const goal = answers.goal
+  const reasoning: ReasoningStep[] = []
+
+  switch (goal) {
+    case 'sample_size':
+      reasoning.push({ step: '분석 목적', description: '표본 크기 계산' })
+      return {
+        method: getMethod('power-analysis'),
+        reasoning,
+        alternatives: [],
+        warnings: ['연구 설계, 효과 크기, 유의수준을 미리 정해야 합니다']
+      }
+
+    case 'power':
+      reasoning.push({ step: '분석 목적', description: '검정력 계산' })
+      return {
+        method: getMethod('power-analysis'),
+        reasoning,
+        alternatives: []
+      }
+
+    case 'reliability':
+      reasoning.push({ step: '분석 목적', description: '측정 도구 신뢰도' })
+      return {
+        method: getMethod('reliability'),
+        reasoning,
+        alternatives: [],
+        warnings: ['항목이 3개 이상 필요합니다']
+      }
+
+    default:
+      return {
+        method: getMethod('power-analysis'),
+        reasoning: [{ step: '기본', description: '유틸리티 분석' }],
+        alternatives: []
+      }
+  }
+}
+
 // ============================================
 // 메인 결정 함수
 // ============================================
@@ -612,6 +1027,10 @@ export function decide(path: DecisionPath): DecisionResult {
       return decideTimeseries(path.answers)
     case 'survival':
       return decideSurvival(path.answers)
+    case 'multivariate':
+      return decideMultivariate(path.answers)
+    case 'utility':
+      return decideUtility(path.answers)
     default:
       // Fallback
       return {

@@ -4,8 +4,18 @@
  * All statistical methods are defined here.
  * ID = page route (e.g., 't-test' -> /statistics/t-test)
  *
+ * ============================================
+ * SUMMARY
+ * ============================================
+ * - Total definitions: 51
+ * - Independent pages: 48 (hasOwnPage !== false)
+ * - Embedded methods:   3 (hasOwnPage: false)
+ *   - paired-t         -> t-test page
+ *   - welch-anova      -> anova page
+ *   - logistic-regression -> regression page
+ *
  * @see docs/STATISTICAL_METHODS_UNIFICATION_PLAN.md
- * @see design-system/coding-patterns/statistical-methods.json
+ * @see design-system -> Dev Tools -> Statistical Methods
  */
 
 import type { StatisticalMethod } from '@/types/smart-flow'
@@ -13,13 +23,16 @@ import type { StatisticalMethod } from '@/types/smart-flow'
 // Extended type with aliases for backward compatibility
 export interface StatisticalMethodWithAliases extends StatisticalMethod {
   aliases?: string[]
+  /** false = no dedicated page, uses parentPageId instead */
   hasOwnPage?: boolean
+  /** Parent page for embedded methods */
   parentPageId?: string
 }
 
 /**
- * 48 Statistical Methods
- * Organized by category
+ * 51 Statistical Method Definitions
+ * - 48 independent pages
+ * - 3 embedded (paired-t, welch-anova, logistic-regression)
  */
 export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> = {
   // ============================================
@@ -190,6 +203,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Overview of nonparametric statistical methods',
     category: 'nonparametric',
     aliases: ['nonparametric-overview'],
+    hasOwnPage: false,  // Category overview, not an analysis method
   },
 
   // ============================================
@@ -274,6 +288,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     description: 'Chi-square test overview',
     category: 'chi-square',
     aliases: ['chi-squared', 'chi2'],
+    hasOwnPage: false,  // Category overview, not an analysis method
   },
   'chi-square-goodness': {
     id: 'chi-square-goodness',
