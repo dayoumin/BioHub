@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect, useReducer } from 'react'
-import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, AlertTriangle, AlertCircle, List, Sparkles } from 'lucide-react'
+import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, AlertTriangle, AlertCircle, List, Sparkles, Layers, Calculator } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Accordion,
@@ -86,6 +86,20 @@ const ANALYSIS_PURPOSES = [
     title: '생존 분석',
     description: '시간에 따른 사건 발생까지의 기간을 분석하고 위험 요인을 파악합니다.',
     examples: '예: 치어 생존기간, 양식 시설 내구연수, 질병 발생 후 폐사까지 시간'
+  },
+  {
+    id: 'multivariate' as AnalysisPurpose,
+    icon: <Layers className="w-5 h-5" />,
+    title: '다변량 분석',
+    description: '여러 변수를 동시에 분석하여 차원 축소, 요인 추출, 군집화를 수행합니다.',
+    examples: '예: 수질 지표 차원 축소(PCA), 양식장 유형화(군집), 어종 분류(판별분석)'
+  },
+  {
+    id: 'utility' as AnalysisPurpose,
+    icon: <Calculator className="w-5 h-5" />,
+    title: '연구 설계 도구',
+    description: '표본 크기 계산, 검정력 분석, 측정 도구 신뢰도 평가를 수행합니다.',
+    examples: '예: 실험 설계 시 필요 표본수, 설문지 신뢰도(Cronbach α), 검정력 계산'
   }
 ]
 

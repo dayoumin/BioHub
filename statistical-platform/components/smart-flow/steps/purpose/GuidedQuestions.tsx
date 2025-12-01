@@ -21,7 +21,9 @@ const PURPOSE_NAMES: Record<AnalysisPurpose, string> = {
   distribution: '분포와 빈도 분석',
   prediction: '예측 모델링',
   timeseries: '시계열 분석',
-  survival: '생존 분석'
+  survival: '생존 분석',
+  multivariate: '다변량 분석',
+  utility: '연구 설계 도구'
 }
 
 interface GuidedQuestionsProps {
