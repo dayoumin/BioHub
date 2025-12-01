@@ -26,20 +26,62 @@ interface AutoAnswerContext {
 function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
   const { assumptionResults, validationResults } = context
 
-  // 샘플 크기가 30 이상이면 CLT에 의해 정규성 가정 가능
-  const sampleSize = validationResults?.totalRows ?? 0
-  if (sampleSize >= 30 && !assumptionResults?.normality) {
-    return {
-      value: 'yes',
-      confidence: 'medium',
-      source: 'heuristic',
-      evidence: `n=${sampleSize} ≥ 30 (중심극한정리에 의해 정규성 가정 가능)`,
-      requiresConfirmation: false
-    }
-  }
+  // 정규성 검정 결과가 있는지 확인 (빈 객체 {} 체크)
+  const hasNormalityResult = assumptionResults?.normality &&
+    Object.keys(assumptionResults.normality).length > 0
 
-  // 가정 검정 결과가 없으면 unknown
-  if (!assumptionResults?.normality) {
+  // 샘플 크기 기반 CLT 판단 (검정 결과가 없을 때만)
+  if (!hasNormalityResult) {
+    // columns 또는 columnStats 중 존재하는 것 사용 (backward compatibility)
+    const columns = validationResults?.columns ?? validationResults?.columnStats ?? []
+    const sampleSize = validationResults?.totalRows ?? 0
+
+    // 1. 선택된 그룹 변수가 있으면 우선 사용
+    const selectedGroupName = context.selectedVariables?.group
+    let groupColumn: ColumnStatistics | undefined
+
+    if (selectedGroupName) {
+      groupColumn = columns.find(col => col.name === selectedGroupName)
+    }
+
+    // 2. 선택된 그룹이 없으면 휴리스틱으로 추정
+    // categorical이면서 uniqueValues가 2~10개 (너무 많으면 ID일 가능성)
+    if (!groupColumn) {
+      groupColumn = columns.find(col =>
+        col.type === 'categorical' &&
+        col.uniqueValues >= 2 &&
+        col.uniqueValues <= 10
+      )
+    }
+
+    const hasGroups = !!groupColumn
+
+    if (hasGroups && groupColumn) {
+      // 그룹이 있으면 보수적으로: 전체/그룹수로 추정
+      const estimatedGroupCount = groupColumn.uniqueValues
+      const estimatedMinGroupSize = Math.floor(sampleSize / estimatedGroupCount)
+
+      if (estimatedMinGroupSize >= 30) {
+        return {
+          value: 'yes',
+          confidence: 'low',  // 추정치이므로 low
+          source: 'heuristic',
+          evidence: `추정 최소 그룹 크기 ≈ ${estimatedMinGroupSize} ≥ 30 (CLT 적용 가능, 확인 권장)`,
+          requiresConfirmation: true  // 사용자 확인 필요
+        }
+      }
+    } else if (sampleSize >= 30) {
+      // 그룹 없으면 전체 샘플 크기로 판단
+      return {
+        value: 'yes',
+        confidence: 'medium',
+        source: 'heuristic',
+        evidence: `n=${sampleSize} ≥ 30 (중심극한정리에 의해 정규성 가정 가능)`,
+        requiresConfirmation: false
+      }
+    }
+
+    // 샘플 크기도 작고 검정 결과도 없으면 unknown
     return {
       value: 'check',
       confidence: 'unknown',
@@ -49,7 +91,19 @@ function getAutoAnswerNormality(context: AutoAnswerContext): AutoAnswerResult {
     }
   }
 
-  const normality = assumptionResults.normality
+  // 가정 검정 결과가 있으면 진행 (hasNormalityResult가 true인 경우)
+  const normality = assumptionResults?.normality
+  if (!normality || Object.keys(normality).length === 0) {
+    // 이 분기는 hasNormalityResult가 false일 때 위에서 이미 처리됨
+    // 하지만 TypeScript 타입 가드를 위해 명시적으로 체크
+    return {
+      value: 'check',
+      confidence: 'unknown',
+      source: 'none',
+      evidence: '정규성 검정 결과가 없습니다',
+      requiresConfirmation: true
+    }
+  }
 
   // Shapiro-Wilk 결과 확인
   if (normality.shapiroWilk) {
@@ -344,12 +398,24 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
   // Levene 검정 결과 확인 (우선)
   if (homogeneity.levene) {
     const { pValue, equalVariance } = homogeneity.levene
-    const pValueStr = pValue !== undefined ? pValue.toFixed(3) : 'N/A'
+
+    // pValue가 없으면 신뢰도 낮춤
+    if (pValue === undefined) {
+      return {
+        value: equalVariance ? 'yes' : 'no',
+        confidence: 'low',  // pValue 없으면 low confidence
+        source: 'assumptionResults',
+        evidence: 'Levene 검정 결과 있음 (p-value 정보 없음)',
+        requiresConfirmation: true  // 사용자 확인 필요
+      }
+    }
+
+    const pValueStr = pValue.toFixed(3)
 
     if (equalVariance) {
       return {
         value: 'yes',
-        confidence: pValue !== undefined && pValue > 0.1 ? 'high' : 'medium',
+        confidence: pValue > 0.1 ? 'high' : 'medium',
         source: 'assumptionResults',
         evidence: `Levene p=${pValueStr} > 0.05 (등분산 충족)`,
         requiresConfirmation: false
@@ -368,12 +434,24 @@ function getAutoAnswerHomogeneity(context: AutoAnswerContext): AutoAnswerResult 
   // Bartlett 검정 결과 확인 (대안)
   if (homogeneity.bartlett) {
     const { pValue, equalVariance } = homogeneity.bartlett
-    const pValueStr = pValue !== undefined ? pValue.toFixed(3) : 'N/A'
+
+    // pValue가 없으면 신뢰도 낮춤
+    if (pValue === undefined) {
+      return {
+        value: equalVariance ? 'yes' : 'no',
+        confidence: 'low',
+        source: 'assumptionResults',
+        evidence: 'Bartlett 검정 결과 있음 (p-value 정보 없음)',
+        requiresConfirmation: true
+      }
+    }
+
+    const pValueStr = pValue.toFixed(3)
 
     if (equalVariance) {
       return {
         value: 'yes',
-        confidence: pValue !== undefined && pValue > 0.1 ? 'high' : 'medium',
+        confidence: pValue > 0.1 ? 'high' : 'medium',
         source: 'assumptionResults',
         evidence: `Bartlett p=${pValueStr} > 0.05 (등분산 충족)`,
         requiresConfirmation: false

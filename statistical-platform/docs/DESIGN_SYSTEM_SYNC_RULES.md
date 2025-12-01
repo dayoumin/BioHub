@@ -201,6 +201,34 @@ statistical-platform/app/(dashboard)/design-system/
 }
 ```
 
+
+
+### 트리거 5: Statistical Methods
+
+**파일**: `lib/constants/statistical-methods.ts`
+
+**메타데이터**: `coding-patterns/statistical-methods.json`
+
+**업데이트 조건**:
+- ✅ 새 통계 방법 추가 시
+- ✅ 기존 방법 ID/별칭 변경 시
+- ✅ 카테고리 구조 변경 시
+
+**업데이트 필드**:
+```json
+{
+  "lastUpdated": "2025-12-01",
+  "totalMethods": 48,
+  "categories": [
+    {
+      "name": "t-test",
+      "methods": ["t-test", "welch-t", "one-sample-t", "paired-t"]
+    }
+  ],
+  "idNamingRules": [...]
+}
+```
+
 ---
 
 ## 3. 업데이트 체크리스트

@@ -1245,3 +1245,45 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 - [ ] 효과 크기 표시 시 EffectSizeCard 사용
 - [ ] 통계 결과 카드 시 StatisticalResultCard 사용
 - [ ] 필요한 공통 컴포넌트가 없을 경우 `components/statistics/common/`에 추가 후 재사용
+
+---
+
+## 20. 통계 방법 ID 규칙 (CRITICAL) 🚨
+
+### 20.1 단일 진실 공급원
+
+**실제 코드**: `lib/constants/statistical-methods.ts`
+**메타데이터**: `design-system/coding-patterns/statistical-methods.json`
+
+### 20.2 핵심 규칙 요약
+
+| 규칙 | 설명 |
+|------|------|
+| ID = 페이지 경로 | `t-test` → `/statistics/t-test` |
+| kebab-case | `mann-whitney` ✅, `mann_whitney` ❌ |
+| aliases로 호환 | 기존 ID는 aliases에 추가 |
+| 임의 ID 금지 | 공통 파일에서만 정의 |
+
+### 20.3 상세 규칙
+
+**⚠️ 상세 내용은 메타데이터 파일 참조:**
+
+```
+app/(dashboard)/design-system/coding-patterns/statistical-methods.json
+```
+
+이 JSON 파일에 다음 내용이 정의되어 있습니다:
+- 48개 통계 방법 카테고리 구조
+- ID 명명 규칙 (idNamingRules)
+- 금지 패턴 (forbiddenPatterns)
+- 관련 문서 링크
+
+### 20.4 새 방법 추가 시
+
+1. `lib/constants/statistical-methods.ts`에 코드 추가
+2. `statistical-methods.json` 메타데이터 업데이트 (lastUpdated 필수)
+3. 기존 ID가 있다면 `aliases` 필드 활용
+
+---
+
+**참조**: [STATISTICAL_METHODS_UNIFICATION_PLAN.md](./STATISTICAL_METHODS_UNIFICATION_PLAN.md)

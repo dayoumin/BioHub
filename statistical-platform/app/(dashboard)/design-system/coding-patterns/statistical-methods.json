@@ -1,0 +1,173 @@
+{
+  "lastUpdated": "2025-12-01",
+  "version": "1.0.0",
+  "description": "통계 방법 ID 및 카테고리 정의. Single Source of Truth.",
+  "sourceFile": "lib/constants/statistical-methods.ts",
+  "totalMethods": 48,
+  "idNamingRules": [
+    {
+      "rule": "ID = 페이지 경로",
+      "example": "t-test → /statistics/t-test",
+      "rationale": "라우팅 일관성 확보"
+    },
+    {
+      "rule": "kebab-case 사용",
+      "correct": "mann-whitney",
+      "forbidden": "mann_whitney, mannWhitney",
+      "rationale": "URL 친화적"
+    },
+    {
+      "rule": "의미 명확한 이름",
+      "correct": "one-way-anova",
+      "forbidden": "anova (모호)",
+      "rationale": "혼동 방지"
+    },
+    {
+      "rule": "aliases로 하위 호환",
+      "example": "aliases: ['independent-t', 'independent-t-test']",
+      "rationale": "기존 코드 깨지지 않음"
+    }
+  ],
+  "categories": [
+    {
+      "name": "t-test",
+      "description": "평균 비교 검정",
+      "methods": [
+        "t-test",
+        "welch-t",
+        "one-sample-t",
+        "paired-t"
+      ]
+    },
+    {
+      "name": "anova",
+      "description": "분산 분석",
+      "methods": [
+        "one-way-anova",
+        "welch-anova",
+        "two-way-anova",
+        "repeated-anova",
+        "ancova",
+        "manova",
+        "mixed-model"
+      ]
+    },
+    {
+      "name": "nonparametric",
+      "description": "비모수 검정",
+      "methods": [
+        "mann-whitney",
+        "wilcoxon",
+        "kruskal-wallis",
+        "friedman",
+        "sign-test",
+        "mcnemar",
+        "cochran-q",
+        "binomial-test",
+        "runs-test",
+        "ks-test",
+        "mood-median"
+      ]
+    },
+    {
+      "name": "correlation",
+      "description": "상관 분석",
+      "methods": [
+        "correlation",
+        "partial-correlation",
+        "spearman-correlation"
+      ]
+    },
+    {
+      "name": "regression",
+      "description": "회귀 분석",
+      "methods": [
+        "regression",
+        "multiple-regression",
+        "logistic-regression",
+        "poisson-regression",
+        "ordinal-regression",
+        "stepwise-regression"
+      ]
+    },
+    {
+      "name": "chi-square",
+      "description": "카이제곱 검정",
+      "methods": [
+        "chi-square-goodness",
+        "chi-square-independence",
+        "fisher-exact"
+      ]
+    },
+    {
+      "name": "descriptive",
+      "description": "기술 통계",
+      "methods": [
+        "descriptive",
+        "frequency-table",
+        "explore-data",
+        "normality-test"
+      ]
+    },
+    {
+      "name": "timeseries",
+      "description": "시계열 분석",
+      "methods": [
+        "arima",
+        "seasonal-decompose",
+        "stationarity-test",
+        "mann-kendall"
+      ]
+    },
+    {
+      "name": "survival",
+      "description": "생존 분석",
+      "methods": [
+        "kaplan-meier",
+        "cox-regression",
+        "log-rank"
+      ]
+    },
+    {
+      "name": "multivariate",
+      "description": "다변량 분석",
+      "methods": [
+        "pca",
+        "factor-analysis",
+        "cluster-analysis",
+        "discriminant-analysis"
+      ]
+    },
+    {
+      "name": "other",
+      "description": "기타 분석",
+      "methods": [
+        "power-analysis",
+        "reliability-analysis",
+        "proportion-test",
+        "means-plot"
+      ]
+    }
+  ],
+  "forbiddenPatterns": [
+    {
+      "pattern": "코드 내 직접 ID 정의",
+      "example": "const METHODS = { 'my-custom-id': {...} }",
+      "fix": "lib/constants/statistical-methods.ts에서 import"
+    },
+    {
+      "pattern": "여러 파일에서 다른 ID 사용",
+      "example": "DecisionTree: 'independent-t' vs Recommender: 'independent-t-test'",
+      "fix": "공통 METHODS에서 aliases 활용"
+    },
+    {
+      "pattern": "snake_case ID",
+      "example": "mann_whitney",
+      "fix": "mann-whitney (kebab-case)"
+    }
+  ],
+  "relatedDocs": [
+    "docs/STATISTICAL_METHODS_UNIFICATION_PLAN.md",
+    "docs/STATISTICS_CODING_STANDARDS.md#section-20"
+  ]
+}

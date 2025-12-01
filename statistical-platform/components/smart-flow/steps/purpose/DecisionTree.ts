@@ -227,6 +227,7 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
   const groupCount = answers.group_count
   const sampleType = answers.sample_type
   const normality = answers.normality
+  const homogeneity = answers.homogeneity
 
   const reasoning: ReasoningStep[] = []
 
@@ -264,14 +265,29 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
 
     if (normality === 'yes') {
       reasoning.push({ step: '정규성', description: '정규분포 충족' })
-      return {
-        method: METHODS['welch-t'],
-        reasoning,
-        alternatives: [
-          { method: METHODS['independent-t'], reason: '등분산 확인 후 사용 가능' },
-          { method: METHODS['mann-whitney'], reason: '비모수 대안' }
-        ],
-        warnings: ['등분산 검정(Levene)을 추가로 확인하세요']
+
+      // 등분산성에 따른 분기
+      if (homogeneity === 'yes') {
+        reasoning.push({ step: '등분산성', description: '등분산 충족 → Student t-검정' })
+        return {
+          method: METHODS['independent-t'],
+          reasoning,
+          alternatives: [
+            { method: METHODS['welch-t'], reason: '등분산 가정 없이도 사용 가능' },
+            { method: METHODS['mann-whitney'], reason: '비모수 대안' }
+          ]
+        }
+      } else {
+        // homogeneity === 'no' 또는 'check' (보수적 접근)
+        reasoning.push({ step: '등분산성', description: homogeneity === 'no' ? '등분산 미충족 → Welch t-검정' : '등분산 미확인 → Welch t-검정 (안전)' })
+        return {
+          method: METHODS['welch-t'],
+          reasoning,
+          alternatives: [
+            { method: METHODS['independent-t'], reason: '등분산 확인시 사용 가능' },
+            { method: METHODS['mann-whitney'], reason: '비모수 대안' }
+          ]
+        }
       }
     } else {
       reasoning.push({ step: '정규성', description: '정규분포 미충족 → 비모수 검정' })
@@ -319,14 +335,29 @@ function decideCompare(answers: Record<string, string>): DecisionResult {
 
   if (normality === 'yes') {
     reasoning.push({ step: '정규성', description: '정규분포 충족' })
-    return {
-      method: METHODS['welch-anova'],
-      reasoning,
-      alternatives: [
-        { method: METHODS['one-way-anova'], reason: '등분산 확인시' },
-        { method: METHODS['kruskal-wallis'], reason: '비모수 대안' }
-      ],
-      warnings: ['등분산 검정(Levene)을 확인하세요']
+
+    // 등분산성에 따른 분기
+    if (homogeneity === 'yes') {
+      reasoning.push({ step: '등분산성', description: '등분산 충족 → 일원분산분석' })
+      return {
+        method: METHODS['one-way-anova'],
+        reasoning,
+        alternatives: [
+          { method: METHODS['welch-anova'], reason: '등분산 가정 없이도 사용 가능' },
+          { method: METHODS['kruskal-wallis'], reason: '비모수 대안' }
+        ]
+      }
+    } else {
+      // homogeneity === 'no' 또는 'check' (보수적 접근)
+      reasoning.push({ step: '등분산성', description: homogeneity === 'no' ? '등분산 미충족 → Welch ANOVA' : '등분산 미확인 → Welch ANOVA (안전)' })
+      return {
+        method: METHODS['welch-anova'],
+        reasoning,
+        alternatives: [
+          { method: METHODS['one-way-anova'], reason: '등분산 확인시 사용 가능' },
+          { method: METHODS['kruskal-wallis'], reason: '비모수 대안' }
+        ]
+      }
     }
   } else {
     reasoning.push({ step: '정규성', description: '정규분포 미충족 → 비모수 검정' })

@@ -37,6 +37,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 3. ✅ **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard, VariableSelectorSimple 등 사용
 
+4. ✅ **통계 방법 ID 일관성**: `lib/constants/statistical-methods.ts`에서만 정의
+   - ID = 페이지 경로 (예: `t-test` → `/statistics/t-test`)
+   - 임의로 새 ID 생성 금지 → 기존 `aliases` 활용
+   - **상세**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - Section 20
+
 **상세**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - Section 17-19
 
 ---
