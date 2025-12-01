@@ -32,20 +32,19 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
     localStorageMock.clear()
   })
 
-  describe('0. 홈페이지 레이아웃 및 UI 테스트 (2025-11-24 추가)', () => {
-    it('스마트 분석 버튼이 표시되어야 함', () => {
+  describe('0. 홈페이지 레이아웃 및 UI 테스트', () => {
+    it('스마트 데이터 분석 제목이 표시되어야 함', () => {
       render(<HomePage />)
 
-      // 변경된 버튼 텍스트 확인: "스마트 분석 시작하기" → "스마트 분석"
-      const smartAnalysisButton = screen.getByText('스마트 분석')
-      expect(smartAnalysisButton).toBeInTheDocument()
+      const heading = screen.getByText('스마트 데이터 분석')
+      expect(heading).toBeInTheDocument()
     })
 
-    it('통계 분석 카테고리가 표시되어야 함', () => {
+    it('분석 시작하기 버튼이 표시되어야 함', () => {
       render(<HomePage />)
 
-      const categoryHeading = screen.getByText('통계 분석 카테고리')
-      expect(categoryHeading).toBeInTheDocument()
+      const startButton = screen.getByText('분석 시작하기')
+      expect(startButton).toBeInTheDocument()
     })
 
     it('내 통계 도구 섹션이 표시되어야 함', () => {
@@ -62,11 +61,19 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       expect(footerText).toBeInTheDocument()
     })
 
-    it('스마트 분석 버튼 클릭 시 /smart-flow로 이동해야 함', () => {
+    it('분석 시작하기 버튼이 /smart-flow로 링크되어야 함', () => {
       render(<HomePage />)
 
-      const smartAnalysisLink = screen.getByText('스마트 분석').closest('a')
-      expect(smartAnalysisLink).toHaveAttribute('href', '/smart-flow')
+      const startButton = screen.getByText('분석 시작하기')
+      const link = startButton.closest('a')
+      expect(link).toHaveAttribute('href', '/smart-flow')
+    })
+
+    it('추가 버튼이 표시되어야 함', () => {
+      render(<HomePage />)
+
+      const addButton = screen.getByText('추가')
+      expect(addButton).toBeInTheDocument()
     })
   })
 
@@ -74,13 +81,21 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
     it('즐겨찾기 추가 시 localStorage에 저장되어야 함', async () => {
       render(<HomePage />)
 
-      // 카테고리 선택
+      // 추가 버튼 클릭하여 모달 열기
+      const addButton = screen.getByText('추가')
+      fireEvent.click(addButton)
+
+      // 모달에서 카테고리 선택
       const categoryButton = screen.getByText('평균 비교')
       fireEvent.click(categoryButton)
 
-      // 즐겨찾기 버튼 찾기 (첫 번째 분석 방법)
-      const favoriteButtons = screen.getAllByLabelText(/즐겨찾기/)
-      fireEvent.click(favoriteButtons[0])
+      // 분석 방법 클릭하여 즐겨찾기 추가
+      await waitFor(() => {
+        const methodItems = screen.getAllByText('T-검정')
+        if (methodItems.length > 0) {
+          fireEvent.click(methodItems[0])
+        }
+      })
 
       // localStorage에 저장되었는지 확인
       await waitFor(() => {
@@ -101,8 +116,8 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       const myToolsSection = screen.getByText('내 통계 도구')
       expect(myToolsSection).toBeInTheDocument()
 
-      // "즐겨찾기한 통계가 없습니다" 메시지가 없어야 함
-      expect(screen.queryByText('즐겨찾기한 통계가 없습니다')).not.toBeInTheDocument()
+      // 즐겨찾기가 있으면 안내 메시지가 없어야 함
+      expect(screen.queryByText(/자주 쓰는 도구를 추가하세요/)).not.toBeInTheDocument()
     })
 
     it('즐겨찾기 해제 시 localStorage에서 제거되어야 함', async () => {
@@ -122,41 +137,70 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
     })
   })
 
-  describe('2. 카테고리 선택 시 상단 표시 테스트', () => {
-    it('카테고리 선택 시 "내 통계 도구" 위에 표시되어야 함', () => {
+  describe('2. 모달에서 카테고리 선택 테스트', () => {
+    it('추가 버튼 클릭 시 모달이 열려야 함', async () => {
       render(<HomePage />)
 
-      // 카테고리 선택
-      const categoryButton = screen.getByText('평균 비교')
-      fireEvent.click(categoryButton)
+      // 추가 버튼 클릭
+      const addButton = screen.getByText('추가')
+      fireEvent.click(addButton)
 
-      // 선택된 카테고리 섹션이 표시되어야 함 (UI 개선: "분석 방법" 텍스트 제거됨)
-      // 버튼과 제목 두 곳에 나타나므로 getAllByText 사용
-      const categoryTitles = screen.getAllByText('평균 비교')
-      expect(categoryTitles.length).toBeGreaterThanOrEqual(2)
-      expect(screen.getByText('닫기')).toBeInTheDocument()
-
-      // 내 통계 도구 섹션도 존재해야 함
-      expect(screen.getByText('내 통계 도구')).toBeInTheDocument()
+      // 모달 제목 확인
+      await waitFor(() => {
+        expect(screen.getByText('통계 도구 추가')).toBeInTheDocument()
+      })
     })
 
-    it('닫기 버튼 클릭 시 카테고리 섹션이 숨겨져야 함', () => {
+    it('모달에서 카테고리 선택 시 분석 방법이 표시되어야 함', async () => {
       render(<HomePage />)
 
+      // 모달 열기
+      const addButton = screen.getByText('추가')
+      fireEvent.click(addButton)
+
+      // 모달이 열릴 때까지 대기
+      await waitFor(() => {
+        expect(screen.getByText('통계 도구 추가')).toBeInTheDocument()
+      })
+
       // 카테고리 선택
-      const categoryButton = screen.getByText('평균 비교')
+      const categoryButton = screen.getByRole('button', { name: /평균 비교/ })
       fireEvent.click(categoryButton)
 
-      // 카테고리 섹션이 표시됨을 확인
-      const categoryTitle = screen.getAllByText('평균 비교')
-      expect(categoryTitle.length).toBeGreaterThan(0)
+      // 분석 방법이 표시되어야 함
+      await waitFor(() => {
+        expect(screen.getByText('T-검정')).toBeInTheDocument()
+      }, { timeout: 3000 })
+    })
 
-      // 닫기 버튼 클릭
-      const closeButton = screen.getByText('닫기')
-      fireEvent.click(closeButton)
+    it('카테고리 재클릭 시 접혀야 함', async () => {
+      render(<HomePage />)
 
-      // 닫기 버튼이 사라져야 함 (카테고리 섹션이 숨겨짐)
-      expect(screen.queryByText('닫기')).not.toBeInTheDocument()
+      // 모달 열기
+      const addButton = screen.getByText('추가')
+      fireEvent.click(addButton)
+
+      // 모달이 열릴 때까지 대기
+      await waitFor(() => {
+        expect(screen.getByText('통계 도구 추가')).toBeInTheDocument()
+      })
+
+      // 카테고리 선택
+      const categoryButton = screen.getByRole('button', { name: /평균 비교/ })
+      fireEvent.click(categoryButton)
+
+      // 분석 방법이 표시됨 확인
+      await waitFor(() => {
+        expect(screen.getByText('T-검정')).toBeInTheDocument()
+      }, { timeout: 3000 })
+
+      // 같은 카테고리 다시 클릭 (선택 해제)
+      fireEvent.click(categoryButton)
+
+      // 안내 메시지가 표시되어야 함 (분석 방법 숨겨짐)
+      await waitFor(() => {
+        expect(screen.getByText('카테고리를 선택하여 통계 도구를 추가하세요')).toBeInTheDocument()
+      }, { timeout: 3000 })
     })
   })
 
@@ -164,9 +208,7 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
     it('즐겨찾기가 없을 때 안내 메시지 표시', () => {
       render(<HomePage />)
 
-      expect(screen.getByText('즐겨찾기한 통계가 없습니다')).toBeInTheDocument()
-      // UI 개선: "별표" → "핀 아이콘"으로 변경됨
-      expect(screen.getByText(/카테고리에서 분석 방법을 선택하고 핀 아이콘을 클릭하세요/)).toBeInTheDocument()
+      expect(screen.getByText(/자주 쓰는 도구를 추가하세요/)).toBeInTheDocument()
     })
 
     it('즐겨찾기가 있을 때 목록 표시', () => {
@@ -175,7 +217,7 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       render(<HomePage />)
 
       // 안내 메시지가 없어야 함
-      expect(screen.queryByText('즐겨찾기한 통계가 없습니다')).not.toBeInTheDocument()
+      expect(screen.queryByText(/자주 쓰는 도구를 추가하세요/)).not.toBeInTheDocument()
 
       // 즐겨찾기 해제 버튼이 보여야 함
       expect(screen.getByLabelText('즐겨찾기 해제')).toBeInTheDocument()
@@ -193,7 +235,7 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       render(<HomePage />)
 
       // 에러가 발생했지만 페이지는 정상 렌더링되어야 함
-      expect(screen.getByText('통계 분석 카테고리')).toBeInTheDocument()
+      expect(screen.getByText('내 통계 도구')).toBeInTheDocument()
       expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load favorites:', expect.any(Error))
 
       consoleErrorSpy.mockRestore()

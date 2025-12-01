@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
-import { Upload, AlertCircle, Loader2 } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { Upload, AlertCircle, Loader2, Clock, FileSpreadsheet, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUserFriendlyErrorMessage } from '@/lib/constants/error-messages'
 import { Button } from '@/components/ui/button'
@@ -9,8 +9,7 @@ import { Progress } from '@/components/ui/progress'
 import { useDropzone } from 'react-dropzone'
 import Papa from 'papaparse'
 import { cn } from '@/lib/utils'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card'
-import { ChevronRight } from 'lucide-react'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { DataValidationService, DATA_LIMITS } from '@/lib/services/data-validation-service'
 import { LargeFileProcessor, ProcessingProgress } from '@/lib/services/large-file-processor'
 import { ExcelProcessor, SheetInfo } from '@/lib/services/excel-processor'
@@ -24,8 +23,19 @@ import {
 } from '@/components/ui/select'
 
 import type { DataUploadStepProps } from '@/types/smart-flow-navigation'
-import { UI_TEXT } from '@/lib/constants/ui-text'
 import { RefreshCw } from 'lucide-react'
+
+// 최근 파일 타입
+interface RecentFile {
+  name: string
+  size: number
+  rows: number
+  uploadedAt: number
+}
+
+// localStorage 키
+const RECENT_FILES_KEY = 'statPlatform_recentFiles'
+const MAX_RECENT_FILES = 5
 
 export function DataUploadStep({
   onUploadComplete,
@@ -44,6 +54,45 @@ export function DataUploadStep({
   const [excelSheets, setExcelSheets] = useState<SheetInfo[] | null>(null)
   const [selectedSheet, setSelectedSheet] = useState<number>(0)
   const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null)
+  const [recentFiles, setRecentFiles] = useState<RecentFile[]>([])
+
+  // 최근 파일 목록 로드
+  useEffect(() => {
+    const saved = localStorage.getItem(RECENT_FILES_KEY)
+    if (saved) {
+      try {
+        setRecentFiles(JSON.parse(saved))
+      } catch {
+        // 파싱 실패 시 무시
+      }
+    }
+  }, [])
+
+  // 최근 파일 목록에 추가
+  const addToRecentFiles = useCallback((fileName: string, fileSize: number, rowCount: number) => {
+    setRecentFiles(prev => {
+      const newFile: RecentFile = {
+        name: fileName,
+        size: fileSize,
+        rows: rowCount,
+        uploadedAt: Date.now()
+      }
+      // 중복 제거 후 최신 파일 앞에 추가
+      const filtered = prev.filter(f => f.name !== fileName)
+      const updated = [newFile, ...filtered].slice(0, MAX_RECENT_FILES)
+      localStorage.setItem(RECENT_FILES_KEY, JSON.stringify(updated))
+      return updated
+    })
+  }, [])
+
+  // 최근 파일 삭제
+  const removeRecentFile = useCallback((fileName: string) => {
+    setRecentFiles(prev => {
+      const updated = prev.filter(f => f.name !== fileName)
+      localStorage.setItem(RECENT_FILES_KEY, JSON.stringify(updated))
+      return updated
+    })
+  }, [])
 
   const handleFileProcess = useCallback(async (file: File) => {
     setIsUploading(true)
@@ -121,6 +170,7 @@ export function DataUploadStep({
           }
 
           setUploadedFileName(file.name)
+          addToRecentFiles(file.name, file.size, dataRows.length)
           onUploadComplete(file, dataRows)
           toast.success('파일 업로드 성공', {
             description: `${dataRows.length.toLocaleString()}행의 데이터를 불러왔습니다`
@@ -158,6 +208,7 @@ export function DataUploadStep({
               }
 
               setUploadedFileName(file.name)
+              addToRecentFiles(file.name, file.size, dataRows.length)
               onUploadComplete(file, dataRows)
               toast.success('파일 업로드 성공', {
                 description: `${dataRows.length.toLocaleString()}행의 데이터를 불러왔습니다`
@@ -203,6 +254,7 @@ export function DataUploadStep({
           })
 
           setUploadedFileName(file.name)
+          addToRecentFiles(file.name, file.size, data.length)
           onUploadComplete(file, data)
           toast.success('Excel 파일 업로드 성공', {
             description: `${data.length.toLocaleString()}행의 데이터를 불러왔습니다`
@@ -250,6 +302,7 @@ export function DataUploadStep({
       })
 
       setUploadedFileName(pendingExcelFile.name)
+      addToRecentFiles(pendingExcelFile.name, pendingExcelFile.size, data.length)
       onUploadComplete(pendingExcelFile, data)
       toast.success('Excel 시트 로드 성공', {
         description: `${data.length.toLocaleString()}행의 데이터를 불러왔습니다`
@@ -313,36 +366,54 @@ export function DataUploadStep({
     )
   }
 
-  return (
-    <div className="space-y-6">
+  // 파일 크기 포맷
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes}B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
+    return `${(bytes / 1024 / 1024).toFixed(1)}MB`
+  }
 
-      {/* 조건부 렌더링: 업로드 전/후 */}
+  // 상대 시간 포맷
+  const formatRelativeTime = (timestamp: number) => {
+    const diff = Date.now() - timestamp
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return '방금 전'
+    if (minutes < 60) return `${minutes}분 전`
+    if (hours < 24) return `${hours}시간 전`
+    if (days < 7) return `${days}일 전`
+    return new Date(timestamp).toLocaleDateString()
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* 업로드 영역 (컴팩트) */}
       {!uploadedFileName ? (
         <div
           {...getRootProps()}
           className={cn(
-            "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+            "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer",
             isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50",
             isUploading && "pointer-events-none opacity-50"
           )}
         >
           <input {...getInputProps()} />
-          <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-          <h3 className="text-base font-semibold mb-2">
+          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+          <h3 className="text-sm font-medium mb-1">
             {isDragActive ? '파일을 놓으세요' : '파일을 드래그하거나 클릭하여 업로드'}
           </h3>
-          <div className="space-y-0.5 text-xs text-muted-foreground mb-3">
-            <p>최대 100,000행 | 지원 형식: CSV, Excel</p>
-          </div>
+          <p className="text-xs text-muted-foreground mb-2">최대 100,000행 | 지원 형식: CSV, Excel</p>
           <Button variant="outline" size="sm" disabled={isUploading}>
             {isUploading ? '업로드 중...' : '파일 선택'}
           </Button>
         </div>
       ) : (
-        <div className="border rounded-lg p-4 flex items-center justify-between">
+        <div className="border rounded-lg p-3 flex items-center justify-between bg-muted/30">
           <div className="flex items-center gap-2">
-            <span className="text-success font-medium">✓</span>
-            <span className="text-sm">업로드 완료: <strong>{uploadedFileName}</strong></span>
+            <FileSpreadsheet className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{uploadedFileName}</span>
           </div>
           <div {...getRootProps()}>
             <input {...getInputProps()} />
@@ -350,6 +421,49 @@ export function DataUploadStep({
               파일 변경
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* 최근 업로드 파일 (업로드 전에만 표시) */}
+      {!uploadedFileName && recentFiles.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Clock className="h-3.5 w-3.5" />
+            <span>최근 업로드한 파일</span>
+          </div>
+          <div className="grid gap-1.5">
+            {recentFiles.map((file) => (
+              <div
+                key={file.name}
+                className="group flex items-center justify-between p-2 rounded-md border bg-background hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileSpreadsheet className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {file.rows.toLocaleString()}행 · {formatFileSize(file.size)} · {formatRelativeTime(file.uploadedAt)}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    removeRecentFile(file.name)
+                  }}
+                  aria-label="최근 파일 삭제"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            * 최근 파일 목록은 참고용입니다. 파일을 다시 업로드해주세요.
+          </p>
         </div>
       )}
 
@@ -449,14 +563,13 @@ export function DataUploadStep({
         </div>
       )}
 
-      {/* 도움말 (업로드 전에만 표시) */}
+      {/* 도움말 (업로드 전에만 표시, 컴팩트) */}
       {!uploadedFileName && (
-        <div className="bg-muted/50 rounded-lg p-4">
-          <h4 className="font-medium mb-2">💡 도움말</h4>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• 첫 번째 행은 변수명(헤더)이어야 합니다</li>
-            <li>• Excel 파일의 경우 여러 시트가 있으면 선택할 수 있습니다</li>
-          </ul>
+        <div className="bg-muted/50 rounded-lg p-3">
+          <p className="text-xs text-muted-foreground flex items-start gap-1.5">
+            <span>💡</span>
+            <span>첫 번째 행은 변수명(헤더)이어야 합니다. Excel 파일의 경우 여러 시트가 있으면 선택할 수 있습니다.</span>
+          </p>
         </div>
       )}
     </div>
