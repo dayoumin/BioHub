@@ -763,21 +763,59 @@ export const DataExplorationStep = memo(function DataExplorationStep({
     }
   }, [numericVariables.length])
 
-  // 데이터 없을 때: 업로드 영역 표시
+  // 데이터 없을 때: 컴팩트한 업로드 영역 + 안내 메시지
   if (!validationResults || !data || data.length === 0) {
     return (
       <div className="space-y-6">
+        {/* 헤더 */}
         <div className="flex items-center gap-2">
           <ChartScatter className="h-5 w-5 text-primary" />
           <h2 className="text-xl font-semibold">데이터 탐색</h2>
         </div>
 
-        {onUploadComplete && (
-          <DataUploadStep
-            onUploadComplete={onUploadComplete}
-            existingFileName={existingFileName}
-          />
-        )}
+        {/* 안내 카드 + 업로드 영역 (컴팩트 레이아웃) */}
+        <Card className="border-dashed border-2 border-muted-foreground/25">
+          <CardContent className="py-8">
+            <div className="text-center space-y-4">
+              <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <ChartScatter className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-1">데이터를 업로드하여 시작하세요</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  CSV 또는 Excel 파일을 업로드하면 데이터 요약, 분포 시각화, 상관관계 분석을 자동으로 수행합니다.
+                </p>
+              </div>
+              {onUploadComplete && (
+                <div className="pt-2">
+                  <DataUploadStep
+                    onUploadComplete={onUploadComplete}
+                    existingFileName={existingFileName}
+                  />
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 지원 기능 안내 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-muted/30 rounded-lg">
+            <ListOrdered className="h-5 w-5 text-primary mb-2" />
+            <h4 className="font-medium text-sm">기초 통계량</h4>
+            <p className="text-xs text-muted-foreground mt-1">평균, 표준편차, 사분위수, 왜도/첨도 등</p>
+          </div>
+          <div className="p-4 bg-muted/30 rounded-lg">
+            <BarChart3 className="h-5 w-5 text-primary mb-2" />
+            <h4 className="font-medium text-sm">분포 시각화</h4>
+            <p className="text-xs text-muted-foreground mt-1">히스토그램, 박스플롯, 이상치 탐지</p>
+          </div>
+          <div className="p-4 bg-muted/30 rounded-lg">
+            <Flame className="h-5 w-5 text-primary mb-2" />
+            <h4 className="font-medium text-sm">상관관계 분석</h4>
+            <p className="text-xs text-muted-foreground mt-1">산점도, 상관 히트맵, 추세선</p>
+          </div>
+        </div>
       </div>
     )
   }

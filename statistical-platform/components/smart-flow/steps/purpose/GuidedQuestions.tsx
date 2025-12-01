@@ -1,12 +1,15 @@
 'use client'
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ArrowLeft, ArrowRight, List } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { ArrowLeft, List, LayoutGrid, MessageSquare } from 'lucide-react'
 import { QuestionCard } from './QuestionCard'
+import { QuestionFlow } from './QuestionFlow'
 import { getQuestionsForPurpose } from './guided-flow-questions'
 import { getAutoAnswer } from './auto-answer'
+import { cn } from '@/lib/utils'
 import type {
   AnalysisPurpose,
   AutoAnswerResult,
@@ -14,7 +17,10 @@ import type {
   StatisticalAssumptions
 } from '@/types/smart-flow'
 
-// 목적별 한글 이름
+// UI mode
+type UIMode = 'conversational' | 'classic'
+
+// Purpose display names
 const PURPOSE_NAMES: Record<AnalysisPurpose, string> = {
   compare: '그룹 간 차이 비교',
   relationship: '변수 간 관계 분석',
@@ -24,6 +30,34 @@ const PURPOSE_NAMES: Record<AnalysisPurpose, string> = {
   survival: '생존 분석',
   multivariate: '다변량 분석',
   utility: '연구 설계 도구'
+}
+
+// Conditional question logic
+const CONDITIONAL_QUESTIONS: Record<string, (answers: Record<string, string>) => boolean> = {
+  // sample_type: skip if comparing to population (group_count = 1)
+  'sample_type': (answers) => answers.group_count !== '1',
+
+  // normality/homogeneity: skip for proportion comparison
+  'normality': (answers) => answers.comparison_target !== 'proportion',
+  'homogeneity': (answers) => answers.comparison_target !== 'proportion' && answers.group_count !== '1',
+
+  // has_covariate: only for 3+ groups
+  'has_covariate': (answers) => answers.group_count === '3+',
+
+  // outcome_count: only for 3+ groups
+  'outcome_count': (answers) => answers.group_count === '3+',
+
+  // design_type: only for 3+ groups
+  'design_type': (answers) => answers.group_count === '3+',
+
+  // variable_selection: only for multiple predictors
+  'variable_selection': (answers) => answers.predictor_count === '2+',
+
+  // model_type: only for continuous outcome
+  'model_type': (answers) => answers.outcome_type === 'continuous',
+
+  // distribution_goal: only for frequency analysis
+  'distribution_goal': (answers) => answers.analysis_type === 'frequency' || answers.analysis_type === 'explore',
 }
 
 interface GuidedQuestionsProps {
@@ -52,11 +86,22 @@ export function GuidedQuestions({
   assumptionResults
 }: GuidedQuestionsProps) {
   const questions = getQuestionsForPurpose(purpose)
+  const [uiMode, setUIMode] = useState<UIMode>('conversational')
 
-  // 모든 질문에 응답했는지 확인
-  const allAnswered = questions.every(q => q.id in answers)
+  // Check if question should be shown
+  const shouldShowQuestion = useCallback((questionId: string, currentAnswers: Record<string, string>) => {
+    const condition = CONDITIONAL_QUESTIONS[questionId]
+    if (!condition) return true
+    return condition(currentAnswers)
+  }, [])
 
-  // Auto-answer 생성 (mount 시 한 번)
+  // Filter visible questions
+  const visibleQuestions = questions.filter(q => shouldShowQuestion(q.id, answers))
+
+  // Check if all visible questions are answered
+  const allAnswered = visibleQuestions.every(q => q.id in answers)
+
+  // Auto-answer generation (on mount)
   useEffect(() => {
     questions.forEach(q => {
       if (q.autoAnswer && !(q.id in autoAnswers)) {
@@ -67,7 +112,7 @@ export function GuidedQuestions({
         if (result) {
           onSetAutoAnswer(q.id, result)
 
-          // High confidence면 자동으로 답변 설정
+          // Auto-fill for high confidence
           if (result.confidence === 'high' && !result.requiresConfirmation) {
             onAnswerQuestion(q.id, result.value)
           }
@@ -82,9 +127,61 @@ export function GuidedQuestions({
     }
   }, [allAnswered, onComplete])
 
+  // Conversational mode (Typeform style)
+  if (uiMode === 'conversational') {
+    return (
+      <div className="space-y-4">
+        {/* Header with mode toggle */}
+        <div className="flex items-center justify-between">
+          <Badge variant="outline" className="gap-1.5">
+            {PURPOSE_NAMES[purpose]}
+          </Badge>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBrowseAll}
+              className="gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <List className="h-4 w-4" />
+              직접 선택
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setUIMode('classic')}
+              className="text-muted-foreground hover:text-foreground"
+              title="클래식 모드로 전환"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Question Flow */}
+        <Card className="border-0 shadow-none bg-transparent">
+          <CardContent className="p-0">
+            <QuestionFlow
+              questions={questions}
+              answers={answers}
+              autoAnswers={autoAnswers}
+              onAnswerQuestion={onAnswerQuestion}
+              onComplete={onComplete}
+              onBack={onBack}
+              shouldShowQuestion={shouldShowQuestion}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Classic mode (all questions visible)
   return (
     <div className="space-y-6">
-      {/* 헤더 */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
@@ -96,12 +193,24 @@ export function GuidedQuestions({
           뒤로
         </Button>
 
-        <div className="text-sm text-muted-foreground">
-          {PURPOSE_NAMES[purpose]}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            {PURPOSE_NAMES[purpose]}
+          </span>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setUIMode('conversational')}
+            className="text-muted-foreground hover:text-foreground"
+            title="대화형 모드로 전환"
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      {/* 질문 카드 */}
+      {/* Questions Card */}
       <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg">
@@ -113,20 +222,31 @@ export function GuidedQuestions({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {questions.map((question, index) => (
-            <QuestionCard
-              key={question.id}
-              question={question}
-              questionNumber={index + 1}
-              selectedValue={answers[question.id] ?? null}
-              onSelect={(value) => onAnswerQuestion(question.id, value)}
-              autoAnswer={autoAnswers[question.id]}
-            />
-          ))}
+          {questions.map((question, index) => {
+            const isVisible = shouldShowQuestion(question.id, answers)
+
+            return (
+              <div
+                key={question.id}
+                className={cn(
+                  'transition-all duration-300',
+                  !isVisible && 'hidden'
+                )}
+              >
+                <QuestionCard
+                  question={question}
+                  questionNumber={index + 1}
+                  selectedValue={answers[question.id] ?? null}
+                  onSelect={(value) => onAnswerQuestion(question.id, value)}
+                  autoAnswer={autoAnswers[question.id]}
+                />
+              </div>
+            )
+          })}
         </CardContent>
       </Card>
 
-      {/* 하단 버튼 */}
+      {/* Footer buttons */}
       <div className="flex items-center justify-between pt-2">
         <Button
           variant="ghost"
@@ -144,7 +264,6 @@ export function GuidedQuestions({
           className="gap-1.5"
         >
           다음
-          <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
     </div>
