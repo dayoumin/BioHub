@@ -41,7 +41,8 @@
       "Bash(npm install:*)",
       "Bash(head:*)",
       "Bash(git diff:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(comm -23:*)"
     ],
     "deny": [],
     "ask": []

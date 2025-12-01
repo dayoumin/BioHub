@@ -8,10 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 트리거 파일 | 메타데이터 | 업데이트 조건 |
 |------------|----------|-------------|
-| `lib/utils/type-guards.ts` | `metadata/type-guards.json` | 함수 추가/변경 시 |
-| `components/rag/*.tsx`<br>`lib/rag/*.ts` | `metadata/rag-components.json` | 컴포넌트/서비스 추가/변경 시 |
-| `docs/STATISTICS_CODING_STANDARDS.md`<br>`hooks/use-statistics-page.ts` | `metadata/statistics-page-pattern.json` | 규칙/버그 추가 시 |
-| `__tests__/**/*.test.tsx` | `metadata/test-snippets.json` | 새 패턴 발견 시 |
+| `lib/utils/type-guards.ts` | `coding-patterns/type-guards.json` | 함수 추가/변경 시 |
+| `components/rag/*.tsx`<br>`lib/rag/*.ts` | `coding-patterns/rag-components.json` | 컴포넌트/서비스 추가/변경 시 |
+| `docs/STATISTICS_CODING_STANDARDS.md`<br>`hooks/use-statistics-page.ts` | `coding-patterns/statistics-page-pattern.json` | 규칙/버그 추가 시 |
+| `__tests__/**/*.test.tsx` | `coding-patterns/test-snippets.json` | 새 패턴 발견 시 |
+| `lib/constants/statistical-methods.ts`<br>`components/smart-flow/steps/purpose/DecisionTree.ts` | `coding-patterns/statistical-methods.json` | 메서드 추가/변경 시 |
 
 **상세 규칙**: [DESIGN_SYSTEM_SYNC_RULES.md](statistical-platform/docs/DESIGN_SYSTEM_SYNC_RULES.md)
 

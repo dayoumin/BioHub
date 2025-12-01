@@ -31,11 +31,13 @@
 ### 메타데이터 위치
 ```
 statistical-platform/app/(dashboard)/design-system/
-├── metadata/
+├── coding-patterns/
 │   ├── type-guards.json              (18개 타입 가드 함수)
 │   ├── rag-components.json           (9개 RAG 컴포넌트 + 서비스)
 │   ├── statistics-page-pattern.json  (통계 페이지 코딩 표준)
-│   └── test-snippets.json            (12개 테스트 패턴)
+│   ├── test-snippets.json            (12개 테스트 패턴)
+│   ├── statistical-methods.json      (51개 통계 방법 정의)
+│   └── statistical-formatting.json   (통계 포맷팅 규칙)
 ├── sections/
 │   ├── TypeGuardsSection.tsx
 │   ├── RAGComponentsSection.tsx
@@ -52,7 +54,7 @@ statistical-platform/app/(dashboard)/design-system/
 
 **파일**: `lib/utils/type-guards.ts`
 
-**메타데이터**: `metadata/type-guards.json`
+**메타데이터**: `coding-patterns/type-guards.json`
 
 **업데이트 조건**:
 - ✅ 새 타입 가드 함수 추가 시
@@ -89,7 +91,7 @@ statistical-platform/app/(dashboard)/design-system/
 - `lib/rag/*.ts`
 - `docs/RAG_ARCHITECTURE.md`
 
-**메타데이터**: `metadata/rag-components.json`
+**메타데이터**: `coding-patterns/rag-components.json`
 
 **업데이트 조건**:
 - ✅ 새 RAG 컴포넌트 추가 시
@@ -134,7 +136,7 @@ statistical-platform/app/(dashboard)/design-system/
 - `docs/TROUBLESHOOTING_ISANALYZING_BUG.md`
 - `hooks/use-statistics-page.ts`
 
-**메타데이터**: `metadata/statistics-page-pattern.json`
+**메타데이터**: `coding-patterns/statistics-page-pattern.json`
 
 **업데이트 조건**:
 - ✅ 새 필수 규칙 추가 시 (mandatory rules)
@@ -172,7 +174,7 @@ statistical-platform/app/(dashboard)/design-system/
 
 **파일**: `__tests__/**/*.test.{ts,tsx}`
 
-**메타데이터**: `metadata/test-snippets.json`
+**메타데이터**: `coding-patterns/test-snippets.json`
 
 **업데이트 조건**:
 - ✅ 새 테스트 패턴 발견 시 (특히 반복 사용되는 패턴)
@@ -239,12 +241,13 @@ statistical-platform/app/(dashboard)/design-system/
 ```typescript
 // AI 내부 로직 (개념적)
 const TRIGGERS = {
-  'lib/utils/type-guards.ts': 'metadata/type-guards.json',
-  'components/rag/*.tsx': 'metadata/rag-components.json',
-  'lib/rag/*.ts': 'metadata/rag-components.json',
-  'docs/STATISTICS_CODING_STANDARDS.md': 'metadata/statistics-page-pattern.json',
-  'hooks/use-statistics-page.ts': 'metadata/statistics-page-pattern.json',
-  '__tests__/**/*.test.tsx': 'metadata/test-snippets.json'
+  'lib/utils/type-guards.ts': 'coding-patterns/type-guards.json',
+  'components/rag/*.tsx': 'coding-patterns/rag-components.json',
+  'lib/rag/*.ts': 'coding-patterns/rag-components.json',
+  'docs/STATISTICS_CODING_STANDARDS.md': 'coding-patterns/statistics-page-pattern.json',
+  'hooks/use-statistics-page.ts': 'coding-patterns/statistics-page-pattern.json',
+  '__tests__/**/*.test.tsx': 'coding-patterns/test-snippets.json',
+  'lib/constants/statistical-methods.ts': 'coding-patterns/statistical-methods.json'
 };
 
 if (modifiedFile matches TRIGGERS) {
@@ -305,7 +308,7 @@ export function isValidEmail(value: unknown): value is string {
 }
 ```
 
-**메타데이터 업데이트** (`metadata/type-guards.json`):
+**메타데이터 업데이트** (`coding-patterns/type-guards.json`):
 ```json
 {
   "lastUpdated": "2025-11-24",  // ✅ 날짜 업데이트
@@ -360,7 +363,7 @@ interface RAGAssistantCompactProps {
 }
 ```
 
-**메타데이터 업데이트** (`metadata/rag-components.json`):
+**메타데이터 업데이트** (`coding-patterns/rag-components.json`):
 ```json
 {
   "lastUpdated": "2025-11-24",
@@ -390,7 +393,7 @@ interface RAGAssistantCompactProps {
 
 **After**: Runs Test에서 median 계산 버그 발견
 
-**메타데이터 업데이트** (`metadata/statistics-page-pattern.json`):
+**메타데이터 업데이트** (`coding-patterns/statistics-page-pattern.json`):
 ```json
 {
   "lastUpdated": "2025-11-24",
@@ -750,11 +753,12 @@ npm run dev
 
 **AI가 지켜야 할 핵심 규칙**:
 
-1. **트리거 파일 수정 시 즉시 메타데이터 업데이트**
+1. **트리거 파일 수정 시 즉시 메타데이터 업데이트** (`coding-patterns/` 폴더)
    - `lib/utils/type-guards.ts` → `type-guards.json`
    - `components/rag/*.tsx` → `rag-components.json`
    - `docs/STATISTICS_CODING_STANDARDS.md` → `statistics-page-pattern.json`
    - `__tests__/**/*.test.tsx` (새 패턴) → `test-snippets.json`
+   - `lib/constants/statistical-methods.ts` → `statistical-methods.json`
 
 2. **항상 `lastUpdated` 필드 업데이트** (YYYY-MM-DD 형식)
 
@@ -771,4 +775,4 @@ npm run dev
 
 ---
 
-**Updated**: 2025-11-25 | **Version**: 1.1.0
+**Updated**: 2025-12-01 | **Version**: 1.2.0
