@@ -456,3 +456,94 @@ export interface SmartFlowState {
   isLoading: boolean
   error: string | null
 }
+
+// ============================================
+// Guided Flow Types (Step 2 재설계)
+// ============================================
+
+/**
+ * Guided Flow 단계
+ */
+export type GuidedFlowStep =
+  | 'purpose'      // 목적 선택
+  | 'questions'    // 조건 질문
+  | 'result'       // 추천 결과
+  | 'browse'       // 직접 선택 (전체 목록)
+
+/**
+ * 질문 옵션
+ */
+export interface QuestionOption {
+  value: string
+  label: string
+  hint?: string
+}
+
+/**
+ * 조건 질문 정의
+ */
+export interface GuidedQuestion {
+  id: string
+  question: string
+  options: QuestionOption[]
+  /** true면 데이터에서 자동 감지 시도 */
+  autoAnswer?: boolean
+}
+
+/**
+ * Auto-Answer 결과
+ */
+export interface AutoAnswerResult {
+  value: string
+  confidence: 'high' | 'medium' | 'low' | 'unknown'
+  source: 'assumptionResults' | 'validationResults' | 'heuristic' | 'none'
+  evidence?: string
+  requiresConfirmation: boolean
+}
+
+/**
+ * 결정 트리 추론 단계
+ */
+export interface ReasoningStep {
+  step: string
+  description: string
+}
+
+/**
+ * 결정 트리 결과
+ */
+export interface DecisionResult {
+  method: StatisticalMethod
+  reasoning: ReasoningStep[]
+  alternatives: {
+    method: StatisticalMethod
+    reason: string
+  }[]
+  warnings?: string[]
+}
+
+/**
+ * Guided Flow 상태
+ */
+export interface GuidedFlowState {
+  step: GuidedFlowStep
+  selectedPurpose: AnalysisPurpose | null
+  answers: Record<string, string>
+  autoAnswers: Record<string, AutoAnswerResult>
+  result: DecisionResult | null
+  previousStep: GuidedFlowStep | null
+}
+
+/**
+ * Guided Flow 액션
+ */
+export type GuidedFlowAction =
+  | { type: 'SELECT_PURPOSE'; purpose: AnalysisPurpose }
+  | { type: 'ANSWER_QUESTION'; questionId: string; value: string }
+  | { type: 'SET_AUTO_ANSWER'; questionId: string; result: AutoAnswerResult }
+  | { type: 'COMPLETE_QUESTIONS' }
+  | { type: 'BROWSE_ALL' }
+  | { type: 'GO_BACK' }
+  | { type: 'SELECT_METHOD'; method: StatisticalMethod }
+  | { type: 'CONFIRM' }
+  | { type: 'RESET' }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useReducer } from 'react'
 import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, AlertTriangle, AlertCircle, List, Sparkles } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -15,24 +15,24 @@ import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { cn } from '@/lib/utils'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
-import { GuidanceCard } from '@/components/common/analysis/GuidanceCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
-import type { AnalysisPurpose, AIRecommendation, VariableSelection, ColumnStatistics, StatisticalMethod } from '@/types/smart-flow'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
+import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 import { ollamaRecommender } from '@/lib/services/ollama-recommender'
-import { ConfidenceGauge } from '@/components/smart-flow/visualization/ConfidenceGauge'
 import { FitScoreIndicator } from '@/components/smart-flow/visualization/FitScoreIndicator'
-import { AssumptionResultChart } from '@/components/smart-flow/visualization/AssumptionResultChart'
 import { MethodBrowser } from './purpose/MethodBrowser'
 import { getMethodsGroupedByCategory, getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
 import type { MethodGroup } from '@/lib/statistics/method-catalog'
+
+// NEW: Guided Flow imports
+import { GuidedQuestions } from './purpose/GuidedQuestions'
+import { RecommendationResult } from './purpose/RecommendationResult'
+import { flowReducer, initialFlowState, flowActions } from './purpose/FlowStateMachine'
 
 /**
  * Phase 5: PurposeInputStep with Method Browser
@@ -128,6 +128,9 @@ export function PurposeInputStep({
   validationResults,
   data
 }: PurposeInputStepProps) {
+  // NEW: Guided Flow state
+  const [flowState, flowDispatch] = useReducer(flowReducer, initialFlowState)
+
   const [selectedPurpose, setSelectedPurpose] = useState<AnalysisPurpose | null>(null)
   const [selectedGroupVariable, setSelectedGroupVariable] = useState<string | null>(null)
   const [selectedDependentVariable, setSelectedDependentVariable] = useState<string | null>(null)
@@ -408,6 +411,101 @@ export function PurposeInputStep({
     }
   }, [finalSelectedMethod, selectedPurpose, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
 
+  // NEW: Guided Flow handlers
+  const handleGuidedPurposeSelect = useCallback((purpose: AnalysisPurpose) => {
+    flowDispatch(flowActions.selectPurpose(purpose))
+  }, [])
+
+  const handleAnswerQuestion = useCallback((questionId: string, value: string) => {
+    flowDispatch(flowActions.answerQuestion(questionId, value))
+  }, [])
+
+  const handleSetAutoAnswer = useCallback((questionId: string, result: import('@/types/smart-flow').AutoAnswerResult) => {
+    flowDispatch(flowActions.setAutoAnswer(questionId, result))
+  }, [])
+
+  const handleGuidedComplete = useCallback(() => {
+    if (!flowState.selectedPurpose) return
+    flowDispatch(flowActions.completeQuestions())
+  }, [flowState.selectedPurpose])
+
+  const handleBrowseAll = useCallback(() => {
+    flowDispatch(flowActions.browseAll())
+    // Also set the tab to browse for the existing UI
+    setActiveTab('browse')
+  }, [])
+
+  const handleGuidedBack = useCallback(() => {
+    flowDispatch(flowActions.goBack())
+  }, [])
+
+  const handleSelectAlternative = useCallback((method: StatisticalMethod) => {
+    flowDispatch(flowActions.selectMethod(method))
+  }, [])
+
+  const handleGuidedConfirm = useCallback(() => {
+    if (!flowState.result?.method || !flowState.selectedPurpose || isNavigating) return
+
+    setIsNavigating(true)
+
+    try {
+      const method = flowState.result.method
+      setSelectedMethod(method)
+
+      // Detect variables (same logic as handleConfirmMethod)
+      const numericCols = validationResults?.columns
+        ?.filter((col: ColumnStatistics) => col.type === 'numeric')
+        ?.map((col: ColumnStatistics) => col.name) || []
+      const categoricalCols = validationResults?.columns
+        ?.filter((col: ColumnStatistics) => col.type === 'categorical')
+        ?.map((col: ColumnStatistics) => col.name) || []
+
+      const detectedVars: {
+        groupVariable?: string
+        dependentCandidate?: string
+        numericVars?: string[]
+        factors?: string[]
+        pairedVars?: [string, string]
+      } = {}
+
+      if (categoricalCols.length > 0) {
+        detectedVars.groupVariable = categoricalCols[0]
+      }
+      if (numericCols.length > 0) {
+        detectedVars.dependentCandidate = numericCols[0]
+      }
+
+      const methodId = method.id
+      if (methodId === 'two-way-anova' || methodId === 'three-way-anova') {
+        detectedVars.factors = categoricalCols.slice(0, 2)
+      } else if (methodId === 'paired-t-test' || methodId === 'paired-t' || methodId === 'wilcoxon' || methodId === 'wilcoxon-signed-rank') {
+        if (numericCols.length >= 2) {
+          detectedVars.pairedVars = [numericCols[0], numericCols[1]]
+        }
+      } else if (methodId === 'pearson-correlation' || methodId === 'spearman-correlation' || methodId === 'correlation') {
+        detectedVars.numericVars = numericCols
+      } else {
+        detectedVars.numericVars = numericCols
+      }
+
+      setDetectedVariables(detectedVars)
+
+      if (onPurposeSubmit) {
+        onPurposeSubmit(
+          ANALYSIS_PURPOSES.find(p => p.id === flowState.selectedPurpose)?.title || '',
+          method
+        )
+      }
+
+      setTimeout(() => {
+        setIsNavigating(false)
+      }, 1000)
+    } catch (error) {
+      logger.error('Navigation failed', { error })
+      setIsNavigating(false)
+    }
+  }, [flowState, isNavigating, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -418,6 +516,36 @@ export function PurposeInputStep({
   return (
     <div className="w-full h-full flex flex-col space-y-6">
 
+      {/* NEW: Guided Flow - Questions step */}
+      {flowState.step === 'questions' && flowState.selectedPurpose && (
+        <GuidedQuestions
+          purpose={flowState.selectedPurpose}
+          answers={flowState.answers}
+          autoAnswers={flowState.autoAnswers}
+          onAnswerQuestion={handleAnswerQuestion}
+          onSetAutoAnswer={handleSetAutoAnswer}
+          onComplete={handleGuidedComplete}
+          onBrowseAll={handleBrowseAll}
+          onBack={handleGuidedBack}
+          validationResults={validationResults}
+          assumptionResults={assumptionResults}
+        />
+      )}
+
+      {/* NEW: Guided Flow - Result step */}
+      {flowState.step === 'result' && flowState.result && (
+        <RecommendationResult
+          result={flowState.result}
+          onConfirm={handleGuidedConfirm}
+          onBrowseAll={handleBrowseAll}
+          onBack={handleGuidedBack}
+          onSelectAlternative={handleSelectAlternative}
+        />
+      )}
+
+      {/* Purpose Selection - Only show when in 'purpose' or 'browse' step */}
+      {(flowState.step === 'purpose' || flowState.step === 'browse') && (
+      <>
       {/* Purpose Selection */}
       <div>
         <h3 className="text-lg font-semibold mb-3" id="purpose-selection-label">
@@ -443,8 +571,13 @@ export function PurposeInputStep({
                 title={purpose.title}
                 description={purpose.description}
                 examples={purpose.examples}
-                selected={selectedPurpose === purpose.id}
-                onClick={() => handlePurposeSelect(purpose.id)}
+                selected={selectedPurpose === purpose.id || flowState.selectedPurpose === purpose.id}
+                onClick={() => {
+                  // Use Guided Flow for purpose selection
+                  handleGuidedPurposeSelect(purpose.id)
+                  // Also run existing AI recommendation for Browse tab
+                  handlePurposeSelect(purpose.id)
+                }}
                 disabled={isAnalyzing}
               />
             </div>
@@ -656,13 +789,14 @@ export function PurposeInputStep({
       )}
 
       {/* Initial guidance */}
-      {!selectedPurpose && !isAnalyzing && (
+      {!selectedPurpose && !isAnalyzing && flowState.step === 'purpose' && (
         <Alert>
           <AlertDescription>
-            위에서 분석 목적을 선택하면 AI가 최적의 통계 방법을 추천합니다.
-            추천을 무시하고 원하는 방법을 직접 선택할 수도 있습니다.
+            위에서 분석 목적을 선택하면 단계별 질문을 통해 최적의 통계 방법을 추천합니다.
           </AlertDescription>
         </Alert>
+      )}
+      </>
       )}
     </div>
   )
