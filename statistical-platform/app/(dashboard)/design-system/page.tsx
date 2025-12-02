@@ -17,7 +17,7 @@ import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
   ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft,
-  ChevronDown, Settings, Vote, Server, Route
+  ChevronDown, Settings, Vote, Server, Route, CheckCircle2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -149,6 +149,14 @@ const DeploymentLogSection = dynamic(
   { ssr: false, loading: LoadingSpinner }
 )
 
+// Validation Dashboard Section (개발 전용 - 검증 현황 대시보드)
+const ValidationDashboardSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/ValidationDashboardSection').then(mod => ({ default: mod.ValidationDashboardSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
+
 // 네비게이션 카테고리 정의 (그룹화)
 interface NavItem {
   id: string
@@ -237,6 +245,7 @@ const DEV_CATEGORIES: NavCategory[] = [
         { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
         { id: 'rag-components', label: 'RAG Components', icon: MessageCircle, devOnly: true },
         { id: 'test-snippets', label: 'Test Snippets', icon: FlaskConical, devOnly: true },
+        { id: 'validation-dashboard', label: 'Validation Dashboard', icon: CheckCircle2, isNew: true, devOnly: true },
       ] : [])
     ]
   }
@@ -1385,6 +1394,13 @@ const handleOpenNewWindow = useCallback(() => {
           ======================================== */}
           {activeSection === 'deployment-log' && (
             <DeploymentLogSection />
+          )}
+
+          {/* ========================================
+              16. Validation Dashboard (개발 전용)
+          ======================================== */}
+          {activeSection === 'validation-dashboard' && ValidationDashboardSection && (
+            <ValidationDashboardSection />
           )}
         </div>
       </main>
