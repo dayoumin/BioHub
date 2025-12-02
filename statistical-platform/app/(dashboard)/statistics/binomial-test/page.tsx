@@ -13,7 +13,7 @@
  *
  * **Architecture**:
  * - TwoPanelLayout (데이터 하단 배치)
- * - PyodideCore 직접 연결 (worker2:binomial_test)
+ * - pyodideStats 래퍼 사용 (binomialTestWorker)
  * - useStatisticsPage hook (useState 금지)
  * - useCallback (모든 이벤트 핸들러)
  *
@@ -50,7 +50,7 @@ import type { UploadedData } from '@/hooks/use-statistics-page'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 import type { BinomialTestVariables } from '@/types/statistics'
-import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { pyodideStats } from '@/lib/services/pyodide-statistics'
 
 // ============================================================================
 // 타입 정의
@@ -213,24 +213,12 @@ export default function BinomialTestPage(): React.ReactElement {
         throw new Error('이항 검정은 최소 1개 이상의 관측값이 필요합니다.')
       }
 
-      // 2️⃣ PyodideCore 호출
-      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
-      const pyodideCore = PyodideCoreService.getInstance()
-      await pyodideCore.initialize()
-
-      const pythonResult = await pyodideCore.callWorkerMethod<{
-        pValue: number
-        successCount: number
-        totalCount: number
-      }>(
-        PyodideWorker.Hypothesis, // worker2-hypothesis
-        'binomial_test',
-        {
-          success_count: successCount,
-          total_count: totalCount,
-          probability: analysisOptions.probability,
-          alternative: analysisOptions.alternative
-        }
+      // 2️⃣ pyodideStats 래퍼 호출
+      const pythonResult = await pyodideStats.binomialTestWorker(
+        successCount,
+        totalCount,
+        analysisOptions.probability,
+        analysisOptions.alternative
       )
 
       // 3️⃣ 결과 매핑

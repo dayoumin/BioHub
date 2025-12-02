@@ -1852,12 +1852,14 @@ export class PyodideStatisticsService {
     pValue: number
     nPositive: number
     nNegative: number
+    nTies: number
   }> {
     return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
       nPositive: number
       nNegative: number
+      nTies: number
     }>(
       3,
       'sign_test',
@@ -1869,12 +1871,16 @@ export class PyodideStatisticsService {
   async runsTestWorker(sequence: (number | string)[]): Promise<{
     nRuns: number
     expectedRuns: number
+    n1: number
+    n2: number
     zStatistic: number
     pValue: number
   }> {
     return this.core.callWorkerMethod<{
       nRuns: number
       expectedRuns: number
+      n1: number
+      n2: number
       zStatistic: number
       pValue: number
     }>(
@@ -1888,10 +1894,14 @@ export class PyodideStatisticsService {
   async mcnemarTestWorker(contingencyTable: number[][]): Promise<{
     statistic: number
     pValue: number
+    continuityCorrection: boolean
+    discordantPairs: { b: number; c: number }
   }> {
     return this.core.callWorkerMethod<{
       statistic: number
       pValue: number
+      continuityCorrection: boolean
+      discordantPairs: { b: number; c: number }
     }>(
       3,
       'mcnemar_test',

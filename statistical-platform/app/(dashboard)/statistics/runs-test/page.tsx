@@ -24,7 +24,7 @@ import {
   BarChart3
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { openDataWindow } from '@/lib/utils/open-data-window'
 
 // 런 검정 관련 타입 정의
@@ -159,25 +159,8 @@ export default function RunsTestPage() {
         throw new Error('런 검정은 최소 10개 이상의 관측값이 필요합니다.')
       }
 
-      // 2️⃣ PyodideCore 호출
-      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
-      const pyodideCore = PyodideCoreService.getInstance()
-      await pyodideCore.initialize()
-
-      const pythonResult = await pyodideCore.callWorkerMethod<{
-        nRuns: number
-        expectedRuns: number
-        n1: number
-        n2: number
-        zStatistic: number
-        pValue: number
-      }>(
-        PyodideWorker.NonparametricAnova, // worker3-nonparametric-anova.py
-        'runs_test',
-        {
-          sequence: sequence
-        }
-      )
+      // 2️⃣ pyodideStats 래퍼 호출
+      const pythonResult = await pyodideStats.runsTestWorker(sequence)
 
       // 3️⃣ 결과 매핑 및 런 시퀀스 재구성 (UI 표시용)
       // 중앙값 계산 (Python np.median()과 동일하게)

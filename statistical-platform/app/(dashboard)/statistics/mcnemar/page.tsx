@@ -29,7 +29,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 // McNemar 검정 결과 타입
@@ -164,23 +164,8 @@ export default function McNemarTestPage() {
         [first_negative_second_positive, both_negative]
       ]
 
-      // 2️⃣ PyodideCore 호출
-      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
-      const pyodideCore = PyodideCoreService.getInstance()
-      await pyodideCore.initialize()
-
-      const pythonResult = await pyodideCore.callWorkerMethod<{
-        statistic: number
-        pValue: number
-        continuityCorrection: boolean
-        discordantPairs: { b: number; c: number }
-      }>(
-        PyodideWorker.NonparametricAnova, // worker3-nonparametric-anova.py
-        'mcnemar_test',
-        {
-          contingency_table: contingencyTable
-        }
-      )
+      // 2️⃣ pyodideStats 래퍼 호출
+      const pythonResult = await pyodideStats.mcnemarTestWorker(contingencyTable)
 
       // 3️⃣ 결과 매핑 (Python → TypeScript)
       const b = pythonResult.discordantPairs.b

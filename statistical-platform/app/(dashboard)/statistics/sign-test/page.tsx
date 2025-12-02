@@ -21,7 +21,7 @@ import {
   Cell
 } from 'recharts'
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import { pyodideStats } from '@/lib/services/pyodide-statistics'
 import { openDataWindow } from '@/lib/utils/open-data-window'
 import {
   Calculator,
@@ -184,24 +184,8 @@ export default function SignTestPage() {
         throw new Error('부호 검정은 최소 5개 이상의 쌍이 필요합니다.')
       }
 
-      // 2️⃣ PyodideCore 호출
-      const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
-      const pyodideCore = PyodideCoreService.getInstance()
-      await pyodideCore.initialize()
-
-      const pythonResult = await pyodideCore.callWorkerMethod<{
-        nPositive: number
-        nNegative: number
-        nTies: number
-        pValue: number
-      }>(
-        PyodideWorker.NonparametricAnova, // worker3-nonparametric-anova.py
-        'sign_test',
-        {
-          before: beforeData,
-          after: afterData
-        }
-      )
+      // 2️⃣ pyodideStats 래퍼 호출
+      const pythonResult = await pyodideStats.signTestWorker(beforeData, afterData)
 
       // 3️⃣ 결과 매핑 (Python → TypeScript)
       const nTotal = pythonResult.nPositive + pythonResult.nNegative
