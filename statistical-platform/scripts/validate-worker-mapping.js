@@ -4,14 +4,17 @@
  * - Worker 파일에서 사용 가능한 메서드 목록 추출
  * - 각 페이지에서 호출하는 메서드 추출
  * - 매핑 유효성 검증
- * 
+ *
  * ⚠️ 하이브리드 전략 참고:
  * - pyodideStats 래퍼 사용 페이지 (4개): binomial-test, sign-test, runs-test, mcnemar
  *   → 래퍼 내부에서 Worker 호출하므로 직접 매핑 감지 안됨 (정상)
- * - 직접 callWorkerMethod 사용 페이지 (41개): 나머지 모든 페이지
+ * - 직접 callWorkerMethod 사용 페이지 (44개): 나머지 모든 페이지
  *   → 이 스크립트로 매핑 검증 가능
- * 
+ *
  * 상세: lib/services/pyodide-statistics.ts 파일 상단 주석 참고
+ *
+ * 업데이트: 2025-12-02
+ * - 신규 3개 페이지 추가: cox-regression, kaplan-meier, repeated-measures-anova
  */
 const fs = require('fs');
 const path = require('path');
@@ -19,13 +22,18 @@ const path = require('path');
 const STATISTICS_PAGES = [
   'ancova', 'anova', 'arima', 'binomial-test', 'chi-square', 'chi-square-goodness',
   'chi-square-independence', 'cluster', 'cochran-q', 'correlation',
+  'cox-regression',  // 신규 추가
   'descriptive', 'discriminant', 'dose-response', 'explore-data',
-  'factor-analysis', 'friedman', 'kruskal-wallis', 'ks-test',
+  'factor-analysis', 'friedman',
+  'kaplan-meier',  // 신규 추가
+  'kruskal-wallis', 'ks-test',
   'mann-kendall', 'mann-whitney', 'manova', 'mcnemar', 'means-plot',
   'mixed-model', 'mood-median', 'non-parametric', 'normality-test',
   'one-sample-t', 'ordinal-regression', 'partial-correlation', 'pca',
   'poisson', 'power-analysis', 'proportion-test', 'regression',
-  'reliability', 'response-surface', 'runs-test', 'seasonal-decompose',
+  'reliability',
+  'repeated-measures-anova',  // 신규 추가
+  'response-surface', 'runs-test', 'seasonal-decompose',
   'sign-test', 'stationarity-test', 'stepwise', 't-test', 'welch-t', 'wilcoxon'
 ];
 

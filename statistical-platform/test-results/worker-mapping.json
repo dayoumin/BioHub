@@ -1,0 +1,609 @@
+{
+  "timestamp": "2025-12-02T07:45:47.018Z",
+  "summary": {
+    "totalPages": 48,
+    "pagesWithWorker": 43,
+    "pagesWithoutWorker": 5,
+    "totalWorkerMethods": 92,
+    "validMappings": 56,
+    "invalidMappings": 0,
+    "unusedMethods": 47
+  },
+  "workerMethods": {
+    "worker1-descriptive": [
+      "_safe_bool",
+      "descriptive_stats",
+      "normality_test",
+      "outlier_detection",
+      "frequency_analysis",
+      "crosstab_analysis",
+      "one_sample_proportion_test",
+      "cronbach_alpha",
+      "kolmogorov_smirnov_test",
+      "ks_test_one_sample",
+      "ks_test_two_sample",
+      "mann_kendall_test",
+      "bonferroni_correction",
+      "means_plot_data"
+    ],
+    "worker2-hypothesis": [
+      "_safe_float",
+      "_safe_bool",
+      "t_test_two_sample",
+      "t_test_paired",
+      "t_test_one_sample",
+      "z_test",
+      "chi_square_test",
+      "binomial_test",
+      "correlation_test",
+      "partial_correlation",
+      "levene_test",
+      "bartlett_test",
+      "chi_square_goodness_test",
+      "chi_square_independence_test",
+      "fisher_exact_test",
+      "partial_correlation_analysis",
+      "stepwise_regression_forward",
+      "response_surface_analysis",
+      "ancova_analysis",
+      "poisson_regression",
+      "ordinal_regression",
+      "mixed_model",
+      "manova",
+      "power_analysis"
+    ],
+    "worker3-nonparametric-anova": [
+      "_safe_bool",
+      "_to_float_list",
+      "mann_whitney_test",
+      "wilcoxon_test",
+      "kruskal_wallis_test",
+      "friedman_test",
+      "get_t_critical",
+      "calculate_statistical_power",
+      "test_assumptions",
+      "one_way_anova",
+      "two_way_anova",
+      "tukey_hsd",
+      "sign_test",
+      "runs_test",
+      "mcnemar_test",
+      "cochran_q_test",
+      "mood_median_test",
+      "repeated_measures_anova",
+      "ancova",
+      "manova",
+      "scheffe_test",
+      "dunn_test",
+      "games_howell_test",
+      "three_way_anova",
+      "friedman_posthoc",
+      "repeated_measures_posthoc",
+      "cochran_q_posthoc"
+    ],
+    "worker4-regression-advanced": [
+      "_safe_bool",
+      "linear_regression",
+      "multiple_regression",
+      "logistic_regression",
+      "pca_analysis",
+      "curve_estimation",
+      "nonlinear_regression",
+      "stepwise_regression",
+      "binary_logistic",
+      "multinomial_logistic",
+      "ordinal_logistic",
+      "probit_regression",
+      "poisson_regression",
+      "negative_binomial_regression",
+      "factor_analysis_method",
+      "factor_analysis",
+      "cluster_analysis",
+      "_cluster_analysis",
+      "kmeans_clustering",
+      "hierarchical_clustering",
+      "time_series_analysis",
+      "time_series_decomposition",
+      "arima_forecast",
+      "sarima_forecast",
+      "var_model",
+      "mixed_effects_model",
+      "kaplan_meier_survival",
+      "cox_regression",
+      "durbin_watson_test",
+      "discriminant_analysis",
+      "dose_response_analysis",
+      "stationarity_test"
+    ]
+  },
+  "pageResults": [
+    {
+      "success": true,
+      "pageName": "ancova",
+      "methods": [
+        "ancova_analysis"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "anova",
+      "methods": [
+        "one_way_anova",
+        "tukey_hsd",
+        "test_assumptions"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "arima",
+      "methods": [
+        "arima_forecast"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "binomial-test",
+      "methods": [
+        "binomialTestWorker"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "chi-square",
+      "methods": [
+        "fisher_exact_test"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "chi-square-goodness",
+      "methods": [
+        "chi_square_goodness_test"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "chi-square-independence",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "cluster",
+      "methods": [
+        "cluster_analysis"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "cochran-q",
+      "methods": [
+        "cochran_q_posthoc"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "correlation",
+      "methods": [
+        "correlation_test"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "cox-regression",
+      "methods": [
+        "cox_regression"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "descriptive",
+      "methods": [
+        "descriptive_stats"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "discriminant",
+      "methods": [
+        "discriminant_analysis"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "dose-response",
+      "methods": [
+        "dose_response_analysis"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "explore-data",
+      "methods": [
+        "descriptive_stats"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "factor-analysis",
+      "methods": [
+        "factor_analysis_method"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "friedman",
+      "methods": [
+        "friedman_test",
+        "friedman_posthoc"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "kaplan-meier",
+      "methods": [
+        "kaplan_meier_survival"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "kruskal-wallis",
+      "methods": [
+        "kruskal_wallis_test",
+        "descriptive_stats",
+        "dunn_test"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "ks-test",
+      "methods": [
+        "ks_test_one_sample",
+        "ks_test_two_sample"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "mann-kendall",
+      "methods": [
+        "mann_kendall_test"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "mann-whitney",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "manova",
+      "methods": [
+        "manova"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "mcnemar",
+      "methods": [
+        "mcnemarTestWorker"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "means-plot",
+      "methods": [
+        "means_plot_data"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "mixed-model",
+      "methods": [
+        "mixed_model"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "mood-median",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "non-parametric",
+      "methods": [
+        "mann_whitney_test",
+        "wilcoxon_test",
+        "kruskal_wallis_test",
+        "friedman_test"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "normality-test",
+      "methods": [
+        "normality_test"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "one-sample-t",
+      "methods": [
+        "t_test_one_sample"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "ordinal-regression",
+      "methods": [
+        "ordinal_regression"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "partial-correlation",
+      "methods": [
+        "partial_correlation_analysis"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "pca",
+      "methods": [
+        "pca_analysis"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "poisson",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "power-analysis",
+      "methods": [
+        "power_analysis"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "proportion-test",
+      "methods": [],
+      "usesWorker": false
+    },
+    {
+      "success": true,
+      "pageName": "regression",
+      "methods": [
+        "linear_regression",
+        "multiple_regression",
+        "logistic_regression"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "reliability",
+      "methods": [
+        "cronbach_alpha"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "repeated-measures-anova",
+      "methods": [
+        "repeated_measures_posthoc"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "response-surface",
+      "methods": [
+        "response_surface_analysis"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "runs-test",
+      "methods": [
+        "runsTestWorker"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "seasonal-decompose",
+      "methods": [
+        "time_series_decomposition"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "sign-test",
+      "methods": [
+        "signTestWorker"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "stationarity-test",
+      "methods": [
+        "stationarity_test"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "stepwise",
+      "methods": [
+        "stepwise_regression_forward"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "t-test",
+      "methods": [
+        "t_test_one_sample",
+        "t_test_two_sample",
+        "t_test_paired"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "welch-t",
+      "methods": [
+        "t_test_two_sample"
+      ],
+      "usesWorker": true
+    },
+    {
+      "success": true,
+      "pageName": "wilcoxon",
+      "methods": [
+        "wilcoxon_test"
+      ],
+      "usesWorker": true
+    }
+  ],
+  "invalidMappings": [],
+  "unusedMethods": [
+    "_cluster_analysis",
+    "_safe_bool",
+    "_safe_float",
+    "_to_float_list",
+    "ancova",
+    "bartlett_test",
+    "binary_logistic",
+    "binomial_test",
+    "bonferroni_correction",
+    "calculate_statistical_power",
+    "chi_square_independence_test",
+    "chi_square_test",
+    "cochran_q_test",
+    "crosstab_analysis",
+    "curve_estimation",
+    "durbin_watson_test",
+    "factor_analysis",
+    "frequency_analysis",
+    "games_howell_test",
+    "get_t_critical",
+    "hierarchical_clustering",
+    "kmeans_clustering",
+    "kolmogorov_smirnov_test",
+    "levene_test",
+    "mcnemar_test",
+    "mixed_effects_model",
+    "mood_median_test",
+    "multinomial_logistic",
+    "negative_binomial_regression",
+    "nonlinear_regression",
+    "one_sample_proportion_test",
+    "ordinal_logistic",
+    "outlier_detection",
+    "partial_correlation",
+    "poisson_regression",
+    "probit_regression",
+    "repeated_measures_anova",
+    "runs_test",
+    "sarima_forecast",
+    "scheffe_test",
+    "sign_test",
+    "stepwise_regression",
+    "three_way_anova",
+    "time_series_analysis",
+    "two_way_anova",
+    "var_model",
+    "z_test"
+  ],
+  "methodUsage": {
+    "ancova_analysis": 1,
+    "one_way_anova": 1,
+    "tukey_hsd": 1,
+    "test_assumptions": 1,
+    "arima_forecast": 1,
+    "binomialTestWorker": 1,
+    "fisher_exact_test": 1,
+    "chi_square_goodness_test": 1,
+    "cluster_analysis": 1,
+    "cochran_q_posthoc": 1,
+    "correlation_test": 1,
+    "cox_regression": 1,
+    "descriptive_stats": 3,
+    "discriminant_analysis": 1,
+    "dose_response_analysis": 1,
+    "factor_analysis_method": 1,
+    "friedman_test": 2,
+    "friedman_posthoc": 1,
+    "kaplan_meier_survival": 1,
+    "kruskal_wallis_test": 2,
+    "dunn_test": 1,
+    "ks_test_one_sample": 1,
+    "ks_test_two_sample": 1,
+    "mann_kendall_test": 1,
+    "manova": 1,
+    "mcnemarTestWorker": 1,
+    "means_plot_data": 1,
+    "mixed_model": 1,
+    "mann_whitney_test": 1,
+    "wilcoxon_test": 2,
+    "normality_test": 1,
+    "t_test_one_sample": 2,
+    "ordinal_regression": 1,
+    "partial_correlation_analysis": 1,
+    "pca_analysis": 1,
+    "power_analysis": 1,
+    "linear_regression": 1,
+    "multiple_regression": 1,
+    "logistic_regression": 1,
+    "cronbach_alpha": 1,
+    "repeated_measures_posthoc": 1,
+    "response_surface_analysis": 1,
+    "runsTestWorker": 1,
+    "time_series_decomposition": 1,
+    "signTestWorker": 1,
+    "stationarity_test": 1,
+    "stepwise_regression_forward": 1,
+    "t_test_two_sample": 2,
+    "t_test_paired": 1
+  }
+}

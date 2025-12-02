@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
- * 45개 통계 페이지의 필수 구조 검증
+ * 48개 통계 페이지의 필수 구조 검증
  * - useStatisticsPage hook 사용 여부
  * - TwoPanelLayout or StatisticsPageLayout 사용
  * - runAnalysis 또는 handleAnalyze 함수 존재
  * - Worker 메서드 호출 확인
  * - setTimeout 패턴 없음 (Phase 1 완료)
  * - any 타입 없음 (Phase 2 완료)
+ *
+ * 업데이트: 2025-12-02
+ * - 신규 3개 페이지 추가: cox-regression, kaplan-meier, repeated-measures-anova
  */
 const fs = require('fs');
 const path = require('path');
@@ -14,13 +17,18 @@ const path = require('path');
 const STATISTICS_PAGES = [
   'ancova', 'anova', 'arima', 'binomial-test', 'chi-square', 'chi-square-goodness',
   'chi-square-independence', 'cluster', 'cochran-q', 'correlation',
+  'cox-regression',  // 신규 추가
   'descriptive', 'discriminant', 'dose-response', 'explore-data',
-  'factor-analysis', 'friedman', 'kruskal-wallis', 'ks-test',
+  'factor-analysis', 'friedman',
+  'kaplan-meier',  // 신규 추가
+  'kruskal-wallis', 'ks-test',
   'mann-kendall', 'mann-whitney', 'manova', 'mcnemar', 'means-plot',
   'mixed-model', 'mood-median', 'non-parametric', 'normality-test',
   'one-sample-t', 'ordinal-regression', 'partial-correlation', 'pca',
   'poisson', 'power-analysis', 'proportion-test', 'regression',
-  'reliability', 'response-surface', 'runs-test', 'seasonal-decompose',
+  'reliability',
+  'repeated-measures-anova',  // 신규 추가
+  'response-surface', 'runs-test', 'seasonal-decompose',
   'sign-test', 'stationarity-test', 'stepwise', 't-test', 'welch-t', 'wilcoxon'
 ];
 

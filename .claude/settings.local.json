@@ -46,7 +46,11 @@
       "Bash(cmd /c \"taskkill /F /IM node.exe\")",
       "Bash(copy /Y \"d:\\Projects\\Statics\\statistical-platform\\public\\workers\\python\\worker1-descriptive.py\" \"d:\\Projects\\Statics\\statistical-platform\\out\\workers\\python\\worker1-descriptive.py\")",
       "Bash(findstr:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(npm run:*)",
+      "Bash(npm run test:pyodide-golden:*)",
+      "Bash(npm run test:golden-values:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAG DB Generation Flow</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #e4e4e7;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #9ca3af;
+      margin-bottom: 40px;
+      font-size: 1.1rem;
+    }
+
+    .flow-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .step {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .step:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateX(5px);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .step-number {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .step-1 .step-number { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .step-2 .step-number { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .step-3 .step-number { background: linear-gradient(135deg, #ec4899, #be185d); }
+    .step-4 .step-number { background: linear-gradient(135deg, #10b981, #047857); }
+
+    .step-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .step-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-left: auto;
+      font-weight: 500;
+    }
+
+    .badge-manual {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .badge-auto {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .step-content {
+      margin-left: 64px;
+    }
+
+    .step-desc {
+      color: #9ca3af;
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .commands {
+      background: #0d1117;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Fira Code', 'Consolas', monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+
+    .commands code {
+      display: block;
+      color: #7ee787;
+      line-height: 1.8;
+    }
+
+    .commands .comment {
+      color: #8b949e;
+    }
+
+    .commands .path {
+      color: #79c0ff;
+    }
+
+    .output {
+      margin-top: 12px;
+      padding: 12px 16px;
+      background: rgba(59, 130, 246, 0.1);
+      border-left: 3px solid #3b82f6;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.9rem;
+    }
+
+    .output-label {
+      color: #60a5fa;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .output-path {
+      color: #9ca3af;
+      font-family: monospace;
+    }
+
+    .arrow {
+      display: flex;
+      justify-content: center;
+      padding: 10px 0;
+    }
+
+    .arrow svg {
+      width: 24px;
+      height: 24px;
+      color: #6b7280;
+    }
+
+    .files-section {
+      margin-top: 40px;
+    }
+
+    .files-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .file-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .file-card h3 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-card p {
+      color: #9ca3af;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .file-icon {
+      font-size: 1.2rem;
+    }
+
+    .npm-scripts {
+      margin-top: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .npm-scripts h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    .script-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .script-row:last-child {
+      border-bottom: none;
+    }
+
+    .script-cmd {
+      font-family: monospace;
+      background: #0d1117;
+      padding: 6px 12px;
+      border-radius: 6px;
+      color: #7ee787;
+      min-width: 280px;
+    }
+
+    .script-desc {
+      color: #9ca3af;
+      margin-left: 20px;
+    }
+
+    .warning-box {
+      margin-top: 40px;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .warning-box h3 {
+      color: #fbbf24;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .warning-box p {
+      color: #d1d5db;
+      line-height: 1.6;
+    }
+
+    .warning-box code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>RAG DB Generation Flow</h1>
+    <p class="subtitle">Statistical Platform - RAG System Database Build Process</p>
+
+    <div class="flow-container">
+      <!-- Step 1 -->
+      <div class="step step-1">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div class="step-title">Document Collection</div>
+          <span class="step-badge badge-manual">Manual</span>
+        </div>
+        <div class="step-content">
+          <p class="step-desc">Crawl documentation from SciPy, statsmodels, NumPy, OpenIntro, and Pingouin.</p>
+          <div class="commands">
+            <code><span class="comment"># Navigate to scripts directory</span></code>
+            <code>cd <span class="path">rag-system/scripts</span></code>
+            <code></code>
+            <code><span class="comment"># Run crawlers</span></code>
+            <code>python crawl_scipy_batch.py</code>
+            <code>python crawl_statsmodels_batch.py</code>
+            <code>python crawl_numpy_batch.py</code>
+            <code>python crawl_openintro_batch.py</code>
+            <code>python crawl_pingouin_batch.py</code>
+          </div>
+          <div class="output">
+            <div class="output-label">Output</div>
+            <div class="output-path">rag-system/data/{scipy,statsmodels,numpy,openintro,pingouin}/*.md</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+        </svg>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step step-2">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <div class="step-title">SQLite DB Build</div>
+          <span class="step-badge badge-manual">Manual</span>
+        </div>
+        <div class="step-content">
+          <p class="step-desc">Parse markdown files and create SQLite database with documents table.</p>
+          <div class="commands">
+            <code>cd <span class="path">rag-system/scripts</span></code>
+            <code>python build_sqlite_db.py</code>
+          </div>
+          <div class="output">
+            <div class="output-label">Output</div>
+            <div class="output-path">rag-system/data/rag.db (111 documents, ~5.4 MB)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+        </svg>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step step-3">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <div class="step-title">Embedding Generation</div>
+          <span class="step-badge badge-manual">Manual</span>
+        </div>
+        <div class="step-content">
+          <p class="step-desc">Generate vector embeddings using Ollama models (qwen3-embedding, mxbai-embed-large).</p>
+          <div class="commands">
+            <code>cd <span class="path">rag-system/scripts</span></code>
+            <code>python generate_embeddings.py</code>
+          </div>
+          <div class="output">
+            <div class="output-label">Output</div>
+            <div class="output-path">rag-system/data/vector-qwen3-embedding-0.6b.db (~5.4 MB)</div>
+            <div class="output-path">rag-system/data/vector-mxbai-embed-large.db</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+        </svg>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step step-4">
+        <div class="step-header">
+          <div class="step-number">4</div>
+          <div class="step-title">Build Time (Automatic)</div>
+          <span class="step-badge badge-auto">Auto</span>
+        </div>
+        <div class="step-content">
+          <p class="step-desc">Prebuild hooks automatically copy DB files and generate metadata JSON.</p>
+          <div class="commands">
+            <code><span class="comment"># This runs automatically during npm run build</span></code>
+            <code>npm run build</code>
+            <code></code>
+            <code><span class="comment"># Prebuild executes:</span></code>
+            <code><span class="comment"># 1. copy-db.js: rag-system/data/*.db → public/rag-data/</span></code>
+            <code><span class="comment"># 2. generate-metadata.js: creates vector-stores.json</span></code>
+          </div>
+          <div class="output">
+            <div class="output-label">Output</div>
+            <div class="output-path">public/rag-data/rag.db</div>
+            <div class="output-path">public/rag-data/vector-*.db</div>
+            <div class="output-path">public/rag-data/vector-stores.json</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Files Section -->
+    <div class="files-section">
+      <h2>📁 File Locations</h2>
+      <div class="file-grid">
+        <div class="file-card">
+          <h3><span class="file-icon">📂</span> rag-system/data/</h3>
+          <p>Source files (Git ignored). Contains crawled markdown documents and generated DB files.</p>
+        </div>
+        <div class="file-card">
+          <h3><span class="file-icon">📂</span> public/rag-data/</h3>
+          <p>Build output (Git ignored). DB files copied here during prebuild for web access.</p>
+        </div>
+        <div class="file-card">
+          <h3><span class="file-icon">📄</span> vector-stores.json</h3>
+          <p>Auto-generated metadata containing vector store info (dimensions, doc count, file size).</p>
+        </div>
+        <div class="file-card">
+          <h3><span class="file-icon">📄</span> scripts/rag/README.md</h3>
+          <p>Documentation for build scripts with detailed instructions and troubleshooting.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- NPM Scripts -->
+    <div class="npm-scripts">
+      <h2>📋 NPM Scripts</h2>
+      <div class="script-row">
+        <code class="script-cmd">npm run build</code>
+        <span class="script-desc">Full build (prebuild runs automatically)</span>
+      </div>
+      <div class="script-row">
+        <code class="script-cmd">npm run generate:vector-stores</code>
+        <span class="script-desc">Regenerate vector-stores.json manually</span>
+      </div>
+      <div class="script-row">
+        <code class="script-cmd">npm run verify:rag</code>
+        <span class="script-desc">Verify vector store data integrity</span>
+      </div>
+      <div class="script-row">
+        <code class="script-cmd">npm run rag:semantic-rechunk</code>
+        <span class="script-desc">Semantic-based document rechunking</span>
+      </div>
+    </div>
+
+    <!-- Warning Box -->
+    <div class="warning-box">
+      <h3>⚠️ Build Warning: "rag.db not found"</h3>
+      <p>
+        This warning is <strong>normal</strong> for fresh clones or if RAG is not being used.
+        The build will continue successfully (exit 0). To create the RAG database, follow Steps 1-3 above.
+        All DB files are <code>.gitignore</code>d and must be generated locally.
+      </p>
+    </div>
+
+    <footer>
+      <p>Statistical Platform &copy; 2025 | <a href="/design-system">Design System</a> | <a href="https://github.com">GitHub</a></p>
+    </footer>
+  </div>
+</body>
+</html>

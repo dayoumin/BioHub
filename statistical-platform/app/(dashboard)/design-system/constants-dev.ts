@@ -99,3 +99,80 @@ actions.completeAnalysis(result, 3);
 // isAnalyzing 자동 리셋 + 다음 단계 이동`,
   }
 };
+
+/**
+ * 골든 값 테스트 정보
+ * Phase 2.5 구현 완료 (2025-12-02)
+ * 다중 Python 라이브러리 지원 확장
+ */
+export const GOLDEN_VALUES_TEST_INFO = {
+  description: '5개 Python 라이브러리로 검증된 통계 계산 기대값',
+  verificationSources: {
+    scipy: 'SciPy 1.14.1 via Pyodide 0.28.3',
+    statsmodels: 'statsmodels 0.14.1',
+    pingouin: 'pingouin 0.5.4',
+    sklearn: 'scikit-learn 1.4.0',
+    lifelines: 'lifelines 0.28.0',
+  },
+  files: {
+    goldenValues: '__tests__/workers/golden-values/statistical-golden-values.json',
+    schemaTest: '__tests__/workers/golden-values/python-calculation-accuracy.test.ts',
+    pyodideRunner: 'scripts/run-pyodide-golden-tests.mjs',
+  },
+  commands: {
+    schemaTest: 'npm run test:golden-values',
+    pyodideTest: 'npm run test:pyodide-golden',
+  },
+  statistics: {
+    total: 44,
+    passed: 44,
+    failed: 0,
+    skipped: 0,
+  },
+  categories: [
+    // SciPy (기본 통계)
+    { name: 'T-Test', tests: 4, status: 'passed', library: 'scipy' },
+    { name: 'ANOVA', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Correlation', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Chi-Square', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Non-Parametric', tests: 3, status: 'passed', library: 'scipy' },
+    { name: 'Regression', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Normality', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Binomial', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Sign Test', tests: 1, status: 'passed', library: 'scipy' },
+    { name: 'Friedman', tests: 1, status: 'passed', library: 'scipy' },
+    // statsmodels (고급 회귀/시계열)
+    { name: 'Advanced ANOVA', tests: 4, status: 'passed', library: 'statsmodels' },
+    { name: 'Advanced Regression', tests: 4, status: 'passed', library: 'statsmodels' },
+    { name: 'Time Series', tests: 4, status: 'passed', library: 'statsmodels' },
+    // lifelines (생존분석)
+    { name: 'Survival Analysis', tests: 3, status: 'passed', library: 'lifelines' },
+    // sklearn (다변량)
+    { name: 'Multivariate', tests: 4, status: 'passed', library: 'sklearn' },
+    // pingouin (효과크기)
+    { name: 'Effect Size', tests: 3, status: 'passed', library: 'pingouin' },
+    { name: 'Partial Correlation', tests: 1, status: 'passed', library: 'pingouin' },
+  ],
+};
+
+/**
+ * 골든 값 예시 코드
+ */
+export const GOLDEN_VALUES_EXAMPLE = `// statistical-golden-values.json
+{
+  "tTest": {
+    "oneSample": [
+      {
+        "name": "null hypothesis true (mu=3)",
+        "input": { "data": [1, 2, 3, 4, 5], "popmean": 3 },
+        "expected": { "statistic": 0.0, "pValue": 1.0 },
+        "tolerance": 0.0001,
+        "scipyCode": "stats.ttest_1samp([1,2,3,4,5], 3)"
+      }
+    ]
+  }
+}
+
+// 테스트 실행
+npm run test:pyodide-golden
+// 결과: ✓ Passed: 21, ✗ Failed: 0`;

@@ -17,7 +17,7 @@ import dynamic from 'next/dynamic'
 import {
   Copy, Check, Menu, X, Palette, Type, SquareStack, Cpu,
   ExternalLink, Table, Zap, GitCompare, Code, Shield, MessageCircle, FlaskConical, Layout, Calculator, ToggleLeft,
-  ChevronDown, Settings, Vote, Server, Route, CheckCircle2
+  ChevronDown, Settings, Vote, Server, Route, CheckCircle2, TestTube2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -157,6 +157,14 @@ const ValidationDashboardSection = process.env.NODE_ENV !== 'production'
     })
   : null
 
+// Test Automation Dashboard Section (개발 전용 - 테스트 자동화 현황)
+const TestAutomationDashboardSection = process.env.NODE_ENV !== 'production'
+  ? dynamic(() => import('./sections/TestAutomationDashboardSection').then(mod => ({ default: mod.TestAutomationDashboardSection })), {
+      ssr: false,
+      loading: LoadingSpinner
+    })
+  : null
+
 // 네비게이션 카테고리 정의 (그룹화)
 interface NavItem {
   id: string
@@ -245,7 +253,8 @@ const DEV_CATEGORIES: NavCategory[] = [
         { id: 'type-guards', label: 'Type Guards', icon: Shield, devOnly: true },
         { id: 'rag-components', label: 'RAG Components', icon: MessageCircle, devOnly: true },
         { id: 'test-snippets', label: 'Test Snippets', icon: FlaskConical, devOnly: true },
-        { id: 'validation-dashboard', label: 'Validation Dashboard', icon: CheckCircle2, isNew: true, devOnly: true },
+        { id: 'validation-dashboard', label: 'Validation Dashboard', icon: CheckCircle2, devOnly: true },
+        { id: 'test-automation', label: 'Test Automation', icon: TestTube2, isNew: true, devOnly: true },
       ] : [])
     ]
   }
@@ -1401,6 +1410,13 @@ const handleOpenNewWindow = useCallback(() => {
           ======================================== */}
           {activeSection === 'validation-dashboard' && ValidationDashboardSection && (
             <ValidationDashboardSection />
+          )}
+
+          {/* ========================================
+              17. Test Automation Dashboard (개발 전용)
+          ======================================== */}
+          {activeSection === 'test-automation' && TestAutomationDashboardSection && (
+            <TestAutomationDashboardSection />
           )}
         </div>
       </main>

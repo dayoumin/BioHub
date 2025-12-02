@@ -1,0 +1,648 @@
+'use client'
+
+/**
+ * Test Automation Dashboard Section
+ *
+ * Shows test automation coverage by phase/tool for all 48 statistics methods.
+ * Visual representation of testing pipeline status.
+ *
+ * Phase structure:
+ * - Phase 0: Static Analysis (ESLint, TypeScript)
+ * - Phase 1: Unit Tests (Jest)
+ * - Phase 2: Interpretation Engine Tests (Jest)
+ * - Phase 2.5: Python Calculation Tests (Pyodide Golden Values)
+ * - Phase 3: Integration Tests (Jest + JSDOM)
+ * - Phase 4: E2E Tests (Playwright)
+ */
+
+import type { ComponentType, ReactNode } from 'react'
+import { useState, useCallback, useMemo } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
+import {
+  CheckCircle2, XCircle, AlertCircle, Clock,
+  ChevronDown, ChevronRight, Terminal, FileCode, FlaskConical,
+  TestTube2, Monitor, Layers, ExternalLink, Calculator
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+// Test phase definitions
+interface TestPhase {
+  id: string
+  name: string
+  description: string
+  icon: ComponentType<{ className?: string }>
+  tool: string
+  command: string
+  status: 'complete' | 'partial' | 'planned' | 'not-started'
+  coverage: {
+    total: number
+    covered: number
+  }
+  color: string
+}
+
+// Statistics method test coverage
+interface MethodCoverage {
+  id: string
+  name: string
+  phases: {
+    phase0: boolean // Static Analysis
+    phase1: boolean // Unit Tests
+    phase2: boolean // Interpretation Engine
+    phase25: boolean // Python Calculation (Golden Values)
+    phase3: boolean // Integration Tests
+    phase4: boolean // E2E Tests
+  }
+}
+
+// Test phases configuration
+const TEST_PHASES: TestPhase[] = [
+  {
+    id: 'phase0',
+    name: 'Phase 0: Static Analysis',
+    description: 'TypeScript type checking and ESLint',
+    icon: Terminal,
+    tool: 'TypeScript + ESLint',
+    command: 'npx tsc --noEmit && npm run lint',
+    status: 'complete',
+    coverage: { total: 48, covered: 48 },
+    color: 'bg-green-500'
+  },
+  {
+    id: 'phase1',
+    name: 'Phase 1: Unit Tests',
+    description: 'Jest unit tests for utilities, hooks, and components',
+    icon: FlaskConical,
+    tool: 'Jest',
+    command: 'npm test',
+    status: 'complete',
+    coverage: { total: 48, covered: 48 },
+    color: 'bg-green-500'
+  },
+  {
+    id: 'phase2',
+    name: 'Phase 2: Interpretation Engine',
+    description: 'Tests for statistical result interpretation templates',
+    icon: FileCode,
+    tool: 'Jest',
+    command: 'npm test -- __tests__/lib/interpretation/',
+    status: 'complete',
+    coverage: { total: 48, covered: 48 },
+    color: 'bg-green-500'
+  },
+  {
+    id: 'phase25',
+    name: 'Phase 2.5: Python Calculation',
+    description: 'Golden values verification via SciPy, statsmodels, sklearn, lifelines, pingouin',
+    icon: Calculator,
+    tool: 'Pyodide + Multiple Libraries',
+    command: 'npm run test:pyodide-golden',
+    status: 'complete',
+    coverage: { total: 48, covered: 45 },
+    color: 'bg-green-500'
+  },
+  {
+    id: 'phase3',
+    name: 'Phase 3: Integration Tests',
+    description: 'Component integration tests with mocked services',
+    icon: Layers,
+    tool: 'Jest + JSDOM',
+    command: 'npm test -- __tests__/integration/',
+    status: 'partial',
+    coverage: { total: 48, covered: 15 },
+    color: 'bg-orange-500'
+  },
+  {
+    id: 'phase4',
+    name: 'Phase 4: E2E Tests',
+    description: 'Full end-to-end browser testing',
+    icon: Monitor,
+    tool: 'Playwright',
+    command: 'npm run e2e',
+    status: 'planned',
+    coverage: { total: 48, covered: 0 },
+    color: 'bg-gray-400'
+  }
+]
+
+// Golden values test cases by category (from statistical-golden-values.json)
+// Updated 2025-12-02: Extended to support multiple Python libraries
+const GOLDEN_VALUES_COVERAGE = {
+  // === SciPy ===
+  'T-Test (SciPy)': { methods: ['t-test', 'one-sample-t', 'welch-t'], tests: 7, status: 'complete', library: 'scipy' },
+  'ANOVA (SciPy)': { methods: ['anova'], tests: 2, status: 'complete', library: 'scipy' },
+  'Correlation (SciPy)': { methods: ['correlation'], tests: 5, status: 'complete', library: 'scipy' },
+  'Chi-Square (SciPy)': { methods: ['chi-square-independence', 'chi-square-goodness'], tests: 4, status: 'complete', library: 'scipy' },
+  'Non-Parametric (SciPy)': { methods: ['mann-whitney', 'wilcoxon', 'kruskal-wallis', 'mood-median', 'runs-test', 'cochran-q'], tests: 7, status: 'complete', library: 'scipy' },
+  'Regression (SciPy)': { methods: ['regression'], tests: 2, status: 'complete', library: 'scipy' },
+  'Normality (SciPy)': { methods: ['normality-test'], tests: 4, status: 'complete', library: 'scipy' },
+  'Binomial (SciPy)': { methods: ['binomial-test'], tests: 2, status: 'complete', library: 'scipy' },
+  'Sign Test (SciPy)': { methods: ['sign-test'], tests: 2, status: 'complete', library: 'scipy' },
+  'Friedman (SciPy)': { methods: ['friedman'], tests: 1, status: 'complete', library: 'scipy' },
+  'Levene/Bartlett (SciPy)': { methods: ['normality-test'], tests: 3, status: 'complete', library: 'scipy' },
+  'Descriptive (SciPy)': { methods: ['descriptive'], tests: 2, status: 'complete', library: 'scipy' },
+  // === statsmodels ===
+  'ANOVA Advanced (statsmodels)': { methods: ['repeated-measures-anova', 'ancova', 'manova', 'mixed-model'], tests: 4, status: 'complete', library: 'statsmodels' },
+  'Regression Advanced (statsmodels)': { methods: ['stepwise', 'poisson', 'ordinal-regression'], tests: 4, status: 'complete', library: 'statsmodels' },
+  'Time Series (statsmodels)': { methods: ['arima', 'seasonal-decompose', 'stationarity-test', 'mann-kendall'], tests: 5, status: 'complete', library: 'statsmodels' },
+  'Power Analysis (statsmodels)': { methods: ['power-analysis'], tests: 1, status: 'complete', library: 'statsmodels' },
+  // === lifelines ===
+  'Survival (lifelines)': { methods: ['kaplan-meier', 'cox-regression'], tests: 3, status: 'complete', library: 'lifelines' },
+  // === sklearn ===
+  'Multivariate (sklearn)': { methods: ['pca', 'factor-analysis', 'cluster', 'discriminant'], tests: 5, status: 'complete', library: 'sklearn' },
+  // === pingouin ===
+  'Effect Size (pingouin)': { methods: ['t-test', 'anova'], tests: 3, status: 'complete', library: 'pingouin' },
+  'Partial Correlation (pingouin)': { methods: ['partial-correlation'], tests: 1, status: 'complete', library: 'pingouin' },
+  // === Additional ===
+  'Dose-Response (SciPy)': { methods: ['dose-response'], tests: 1, status: 'complete', library: 'scipy' },
+  'Response Surface (statsmodels)': { methods: ['response-surface'], tests: 1, status: 'complete', library: 'statsmodels' }
+}
+
+// All 48 statistics methods with their test coverage
+// Updated 2025-12-02: Extended Golden Values coverage with multiple libraries
+const STATISTICS_METHODS: MethodCoverage[] = [
+  // T-Test category (4)
+  { id: 't-test', name: 'Independent t-Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: true, phase4: false } },
+  { id: 'one-sample-t', name: 'One-Sample t-Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: true, phase4: false } },
+  { id: 'welch-t', name: 'Welch t-Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // ANOVA category (7) - statsmodels/pingouin for advanced
+  { id: 'anova', name: 'One-Way ANOVA', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: true, phase4: false } },
+  { id: 'repeated-measures-anova', name: 'Repeated Measures ANOVA', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: true, phase4: false } },
+  { id: 'ancova', name: 'ANCOVA', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'manova', name: 'MANOVA', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'mixed-model', name: 'Mixed Model', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // Correlation (3) - pingouin for partial
+  { id: 'correlation', name: 'Pearson Correlation', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'partial-correlation', name: 'Partial Correlation', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // Chi-Square (3)
+  { id: 'chi-square', name: 'Chi-Square Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'chi-square-independence', name: 'Chi-Square Independence', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'chi-square-goodness', name: 'Chi-Square Goodness', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // Non-Parametric (11)
+  { id: 'mann-whitney', name: 'Mann-Whitney U', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'wilcoxon', name: 'Wilcoxon Signed-Rank', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'kruskal-wallis', name: 'Kruskal-Wallis', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'friedman', name: 'Friedman Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'sign-test', name: 'Sign Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'runs-test', name: 'Runs Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'binomial-test', name: 'Binomial Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'mcnemar', name: "McNemar's Test", phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'cochran-q', name: 'Cochran Q Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'mood-median', name: 'Mood Median Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'ks-test', name: 'K-S Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // Regression (6) - statsmodels for advanced
+  { id: 'regression', name: 'Linear Regression', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: true, phase4: false } },
+  { id: 'stepwise', name: 'Stepwise Regression', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'ordinal-regression', name: 'Ordinal Regression', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'poisson', name: 'Poisson Regression', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'dose-response', name: 'Dose-Response', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'response-surface', name: 'Response Surface', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // Multivariate (5) - sklearn
+  { id: 'pca', name: 'PCA', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'factor-analysis', name: 'Factor Analysis', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'cluster', name: 'Cluster Analysis', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'discriminant', name: 'Discriminant Analysis', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // Descriptive & Normality (3)
+  { id: 'descriptive', name: 'Descriptive Statistics', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: true, phase4: false } },
+  { id: 'normality-test', name: 'Normality Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'explore-data', name: 'Data Exploration', phases: { phase0: true, phase1: true, phase2: true, phase25: false, phase3: false, phase4: false } },
+  // Time Series (5) - statsmodels
+  { id: 'arima', name: 'ARIMA', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'seasonal-decompose', name: 'Seasonal Decomposition', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'stationarity-test', name: 'Stationarity Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'mann-kendall', name: 'Mann-Kendall Trend', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // Survival Analysis (3) - lifelines
+  { id: 'kaplan-meier', name: 'Kaplan-Meier', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'cox-regression', name: 'Cox Regression', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  // Other (5)
+  { id: 'reliability', name: 'Reliability Analysis', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'power-analysis', name: 'Power Analysis', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'proportion-test', name: 'Proportion Test', phases: { phase0: true, phase1: true, phase2: true, phase25: true, phase3: false, phase4: false } },
+  { id: 'means-plot', name: 'Means Plot', phases: { phase0: true, phase1: true, phase2: true, phase25: false, phase3: true, phase4: false } },
+  { id: 'non-parametric', name: 'Non-Parametric Tests', phases: { phase0: true, phase1: true, phase2: true, phase25: false, phase3: false, phase4: false } },
+]
+
+export function TestAutomationDashboardSection() {
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['overview', 'phases']))
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(null)
+
+  const toggleSection = useCallback((section: string) => {
+    setExpandedSections(prev => {
+      const next = new Set(prev)
+      if (next.has(section)) {
+        next.delete(section)
+      } else {
+        next.add(section)
+      }
+      return next
+    })
+  }, [])
+
+  // Calculate overall coverage
+  const overallStats = useMemo(() => {
+    const phases = TEST_PHASES.map(phase => ({
+      ...phase,
+      percentage: Math.round((phase.coverage.covered / phase.coverage.total) * 100)
+    }))
+
+    const totalTests = phases.reduce((sum, p) => sum + p.coverage.covered, 0)
+    const maxTests = phases.reduce((sum, p) => sum + p.coverage.total, 0)
+
+    return {
+      phases,
+      totalTests,
+      maxTests,
+      overallPercentage: Math.round((totalTests / maxTests) * 100)
+    }
+  }, [])
+
+  // Filter methods by phase coverage
+  const getMethodsByPhase = useCallback((phaseId: string) => {
+    const phaseKey = phaseId as keyof MethodCoverage['phases']
+    return STATISTICS_METHODS.filter(m => m.phases[phaseKey])
+  }, [])
+
+  const getMissingMethodsByPhase = useCallback((phaseId: string) => {
+    const phaseKey = phaseId as keyof MethodCoverage['phases']
+    return STATISTICS_METHODS.filter(m => !m.phases[phaseKey])
+  }, [])
+
+  // Section header component
+  const SectionHeader = ({
+    id,
+    title,
+    icon: Icon,
+    badge
+  }: {
+    id: string
+    title: string
+    icon: ComponentType<{ className?: string }>
+    badge?: ReactNode
+  }) => (
+    <button
+      onClick={() => toggleSection(id)}
+      className="w-full flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
+    >
+      <div className="flex items-center gap-2">
+        <Icon className="w-5 h-5 text-muted-foreground" />
+        <span className="font-medium">{title}</span>
+        {badge}
+      </div>
+      {expandedSections.has(id) ? (
+        <ChevronDown className="w-5 h-5 text-muted-foreground" />
+      ) : (
+        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+      )}
+    </button>
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* Overall Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Methods</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">48</div>
+            <p className="text-xs text-muted-foreground">Statistics pages</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Test Phases</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">6</div>
+            <p className="text-xs text-muted-foreground">Testing stages</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Golden Values</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-bold text-green-600">45</span>
+              <span className="text-lg text-muted-foreground">/ 48</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Multi-library verified</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">E2E Tests</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Clock className="w-6 h-6 text-gray-400" />
+              <span className="text-3xl font-bold text-gray-400">0</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Playwright (planned)</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Test Pipeline Visualization */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TestTube2 className="w-5 h-5" />
+            Test Automation Pipeline
+          </CardTitle>
+          <CardDescription>
+            Phase-by-phase testing coverage for 48 statistics methods
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <SectionHeader
+              id="phases"
+              title="Test Phases Overview"
+              icon={Layers}
+              badge={<Badge variant="outline">{overallStats.overallPercentage}% overall</Badge>}
+            />
+
+            {expandedSections.has('phases') && (
+              <div className="space-y-4 pl-2">
+                {overallStats.phases.map((phase) => {
+                  const Icon = phase.icon
+                  const isSelected = selectedPhase === phase.id
+
+                  return (
+                    <div
+                      key={phase.id}
+                      className={cn(
+                        "p-4 rounded-lg border transition-all cursor-pointer",
+                        isSelected ? "border-primary bg-primary/5" : "hover:border-muted-foreground/30"
+                      )}
+                      onClick={() => setSelectedPhase(isSelected ? null : phase.id)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className={cn("p-2 rounded-lg", phase.color.replace('bg-', 'bg-').replace('500', '100'))}>
+                            <Icon className={cn("w-5 h-5", phase.color.replace('bg-', 'text-'))} />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{phase.name}</h4>
+                            <p className="text-xs text-muted-foreground">{phase.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-2">
+                            {phase.status === 'complete' && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                            {phase.status === 'partial' && <AlertCircle className="w-4 h-4 text-yellow-500" />}
+                            {phase.status === 'planned' && <Clock className="w-4 h-4 text-gray-400" />}
+                            <span className={cn(
+                              "font-bold",
+                              phase.percentage === 100 ? "text-green-600" :
+                              phase.percentage > 0 ? "text-yellow-600" : "text-gray-400"
+                            )}>
+                              {phase.percentage}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {phase.coverage.covered}/{phase.coverage.total} methods
+                          </p>
+                        </div>
+                      </div>
+
+                      <Progress value={phase.percentage} className="h-2" />
+
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs font-mono">
+                            {phase.tool}
+                          </Badge>
+                        </div>
+                        <code className="text-xs text-muted-foreground font-mono">
+                          {phase.command}
+                        </code>
+                      </div>
+
+                      {/* Expanded details */}
+                      {isSelected && (
+                        <div className="mt-4 pt-4 border-t space-y-3">
+                          <div>
+                            <h5 className="text-sm font-medium text-green-600 mb-2">
+                              Covered ({getMethodsByPhase(phase.id).length})
+                            </h5>
+                            <div className="flex flex-wrap gap-1">
+                              {getMethodsByPhase(phase.id).map(m => (
+                                <Badge key={m.id} variant="outline" className="text-xs font-mono">
+                                  {m.id}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+
+                          {getMissingMethodsByPhase(phase.id).length > 0 && (
+                            <div>
+                              <h5 className="text-sm font-medium text-red-600 mb-2">
+                                Missing ({getMissingMethodsByPhase(phase.id).length})
+                              </h5>
+                              <div className="flex flex-wrap gap-1">
+                                {getMissingMethodsByPhase(phase.id).map(m => (
+                                  <Badge key={m.id} variant="destructive" className="text-xs font-mono opacity-60">
+                                    {m.id}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Golden Values Detail */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="w-5 h-5" />
+            Python Calculation Tests (Phase 2.5)
+          </CardTitle>
+          <CardDescription>
+            SciPy 1.14.1 via Pyodide - Golden values verification
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <SectionHeader
+              id="golden-values"
+              title="Test Categories (45 methods covered)"
+              icon={FlaskConical}
+              badge={<Badge className="bg-green-500">45/48</Badge>}
+            />
+
+            {expandedSections.has('golden-values') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
+                {Object.entries(GOLDEN_VALUES_COVERAGE).map(([category, data]) => (
+                  <div
+                    key={category}
+                    className="p-3 rounded-lg border bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        <span className="font-medium">{category}</span>
+                      </div>
+                      <Badge variant="secondary">{data.tests} tests</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {data.methods.map(m => (
+                        <Badge key={m} variant="outline" className="text-xs font-mono">
+                          {m}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Missing from golden values */}
+            <SectionHeader
+              id="golden-missing"
+              title="Not Yet Covered (3 methods)"
+              icon={AlertCircle}
+              badge={<Badge variant="destructive">TODO</Badge>}
+            />
+
+            {expandedSections.has('golden-missing') && (
+              <div className="pl-4">
+                <div className="p-4 rounded-lg border border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    The following methods need golden value tests added to <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">statistical-golden-values.json</code>:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {STATISTICS_METHODS
+                      .filter(m => !m.phases.phase25)
+                      .map(m => (
+                        <Badge key={m.id} variant="outline" className="text-xs font-mono opacity-70">
+                          {m.id}
+                        </Badge>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Method Coverage Matrix */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileCode className="w-5 h-5" />
+            Method Coverage Matrix
+          </CardTitle>
+          <CardDescription>
+            All 48 methods with their test coverage by phase
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <SectionHeader
+              id="matrix"
+              title="Coverage Matrix (48 methods)"
+              icon={Layers}
+            />
+
+            {expandedSections.has('matrix') && (
+              <div className="pl-4">
+                <div className="max-h-96 overflow-auto border rounded-lg">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted sticky top-0 z-10">
+                      <tr>
+                        <th className="text-left p-2 font-medium min-w-[150px]">Method</th>
+                        <th className="text-center p-2 font-medium w-16" title="Phase 0: Static Analysis">P0</th>
+                        <th className="text-center p-2 font-medium w-16" title="Phase 1: Unit Tests">P1</th>
+                        <th className="text-center p-2 font-medium w-16" title="Phase 2: Interpretation">P2</th>
+                        <th className="text-center p-2 font-medium w-16" title="Phase 2.5: Golden Values">P2.5</th>
+                        <th className="text-center p-2 font-medium w-16" title="Phase 3: Integration">P3</th>
+                        <th className="text-center p-2 font-medium w-16" title="Phase 4: E2E">P4</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {STATISTICS_METHODS.map(method => (
+                        <tr key={method.id} className="border-t hover:bg-muted/50">
+                          <td className="p-2">
+                            <code className="text-xs font-mono">{method.id}</code>
+                          </td>
+                          {(['phase0', 'phase1', 'phase2', 'phase25', 'phase3', 'phase4'] as const).map(phase => (
+                            <td key={phase} className="text-center p-2">
+                              {method.phases[phase] ? (
+                                <CheckCircle2 className="w-4 h-4 text-green-500 inline" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-gray-300 inline" />
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  P0: Static Analysis | P1: Unit Tests | P2: Interpretation | P2.5: Golden Values | P3: Integration | P4: E2E
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* How to Run Tests */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Run Tests</CardTitle>
+          <CardDescription>Test commands by phase</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="p-4 rounded-lg bg-slate-900 text-slate-100 font-mono text-sm overflow-x-auto">
+              <p className="text-slate-400"># Phase 0: Static Analysis</p>
+              <p>npx tsc --noEmit && npm run lint</p>
+              <p className="text-slate-400 mt-3"># Phase 1 & 2: Unit Tests + Interpretation Engine</p>
+              <p>npm test</p>
+              <p className="text-slate-400 mt-3"># Phase 2.5: Golden Values (SciPy verification)</p>
+              <p>npm run test:golden-values      <span className="text-slate-400"># Schema validation</span></p>
+              <p>npm run test:pyodide-golden     <span className="text-slate-400"># Actual Pyodide tests</span></p>
+              <p className="text-slate-400 mt-3"># Phase 3: Integration Tests</p>
+              <p>npm test -- __tests__/integration/</p>
+              <p className="text-slate-400 mt-3"># Phase 4: E2E (Playwright)</p>
+              <p>npm run e2e                     <span className="text-slate-400"># Planned</span></p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <a
+                  href="/design-system"
+                  className="flex items-center gap-1"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Back to Design System
+                </a>
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

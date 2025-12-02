@@ -21,7 +21,11 @@ try {
   // DB 파일 존재 확인
   if (!fs.existsSync(SOURCE)) {
     console.warn('⚠️ Warning: rag.db not found at', SOURCE);
-    console.log('   Build DB first: cd rag-system && python scripts/build_sqlite_db.py');
+    console.log('');
+    console.log('   This is normal for fresh clones or if RAG is not being used.');
+    console.log('   To build RAG DB (optional):');
+    console.log('     cd rag-system/scripts');
+    console.log('     python build_sqlite_db.py');
     process.exit(0); // 경고만 표시하고 계속 진행
   }
 
