@@ -51,9 +51,14 @@ export interface StatisticalExecutorResult {
     }
     assumptions?: {
       passed: boolean
-      details: any[]
+      details: unknown[]
     }
-    postHoc?: any
+    postHoc?: unknown
+    discriminantFunctions?: {
+      count: number
+      totalVariance: number
+      firstFunctionVariance: number
+    }
   }
 
   // 시각화용 데이터
@@ -231,6 +236,9 @@ export class StatisticalExecutor {
       const groups = [...new Set(data.map(row => row[group]))]
       prepared.groups = groups
       arrays.byGroup = {} as Record<string, number[]>
+
+      // Group labels array for discriminant analysis (aligned with row indices)
+      arrays.group = data.map(row => row[group])
 
       const byGroup = arrays.byGroup as Record<string, number[]>
       groups.forEach(grp => {
@@ -865,6 +873,109 @@ export class StatisticalExecutor {
       case 'chi-square':
         result = await pyodideStats.chiSquare(data.data)
         break
+      case 'sign-test': {
+        const signResult = await pyodideStats.signTestWorker(
+          data.arrays.dependent || [],
+          data.arrays.independent?.[0] || []
+        )
+        result = {
+          statistic: signResult.statistic,
+          pvalue: signResult.pValue,
+          nPositive: signResult.nPositive,
+          nNegative: signResult.nNegative
+        }
+        break
+      }
+      case 'mcnemar': {
+        // 2x2 분할표 필요
+        const contingencyTable = data.arrays.contingencyTable || [[0, 0], [0, 0]]
+        const mcnemarResult = await pyodideStats.mcnemarTestWorker(contingencyTable)
+        result = {
+          statistic: mcnemarResult.statistic,
+          pvalue: mcnemarResult.pValue
+        }
+        break
+      }
+      case 'cochran-q': {
+        // 이진 데이터 행렬 필요
+        const dataMatrix = data.arrays.independent || []
+        const cochranResult = await pyodideStats.cochranQTestWorker(dataMatrix)
+        result = {
+          statistic: cochranResult.qStatistic,
+          pvalue: cochranResult.pValue,
+          df: cochranResult.df
+        }
+        break
+      }
+      case 'binomial-test': {
+        const successCount = data.variables?.successCount as number || 0
+        const totalCount = data.totalN || 1
+        const probability = data.variables?.probability as number || 0.5
+        const binomialResult = await pyodideStats.binomialTestWorker(
+          successCount,
+          totalCount,
+          probability
+        )
+        result = {
+          statistic: binomialResult.successCount,
+          pvalue: binomialResult.pValue,
+          proportion: binomialResult.successCount / binomialResult.totalCount
+        }
+        break
+      }
+      case 'runs-test': {
+        const sequence = data.arrays.dependent || []
+        const runsResult = await pyodideStats.runsTestWorker(sequence)
+        result = {
+          statistic: runsResult.zStatistic,
+          pvalue: runsResult.pValue,
+          nRuns: runsResult.nRuns,
+          expectedRuns: runsResult.expectedRuns
+        }
+        break
+      }
+      case 'ks-test': {
+        // pyodideStats 래퍼 사용
+        const values1 = data.arrays.dependent || []
+        const values2 = data.arrays.independent?.[0]
+
+        if (values2 && values2.length > 0) {
+          // 이표본 K-S 검정
+          const ksResult = await pyodideStats.ksTestTwoSample(values1, values2)
+          result = { statistic: ksResult.statisticKS, pvalue: ksResult.pValue }
+        } else {
+          // 일표본 K-S 검정 (정규성)
+          const ksResult = await pyodideStats.ksTestOneSample(values1)
+          result = { statistic: ksResult.statisticKS, pvalue: ksResult.pValue }
+        }
+        break
+      }
+      case 'mood-median': {
+        const moodGroups = Object.values(data.arrays.byGroup || {}) as number[][]
+        const moodResult = await pyodideStats.moodMedianTestWorker(moodGroups)
+        result = {
+          statistic: moodResult.statistic,
+          pvalue: moodResult.pValue,
+          grandMedian: moodResult.grandMedian
+        }
+        break
+      }
+      case 'proportion-test': {
+        const successCount = data.variables?.successCount as number || 0
+        const totalCount = data.totalN || 1
+        const nullProportion = data.variables?.nullProportion as number || 0.5
+        const propResult = await pyodideStats.oneSampleProportionTest(
+          successCount,
+          totalCount,
+          nullProportion
+        )
+        result = {
+          statistic: propResult.zStatistic,
+          pvalue: propResult.pValueExact,
+          proportion: propResult.sampleProportion
+        }
+        break
+      }
       default:
         throw new Error(`지원되지 않는 비모수 검정: ${method.id}`)
     }
@@ -917,10 +1028,113 @@ export class StatisticalExecutor {
       case 'cluster-analysis':
         result = await pyodideStats.clusterAnalysis(data.arrays.independent || [])
         break
+      case 'discriminant': {
+        // Build row-major matrix from raw data, filtering rows jointly
+        // This ensures features and group labels are aligned
+        const rawData = data.data as Array<Record<string, unknown>>
+        const indVars = (data.variables?.independent || data.variables?.independentVar) as string | string[] | undefined
+        const groupVar = (data.variables?.group || data.variables?.groupVar) as string | undefined
+        const indNames = indVars ? (Array.isArray(indVars) ? indVars : [indVars]) : []
+
+        // Build aligned arrays from raw data - filter rows where all features AND group are valid
+        const alignedRows: { features: number[]; group: unknown }[] = []
+
+        for (const row of rawData) {
+          const features: number[] = []
+          let allValid = true
+
+          // Check all feature values
+          for (const varName of indNames) {
+            const val = Number(row[varName])
+            if (isNaN(val)) {
+              allValid = false
+              break
+            }
+            features.push(val)
+          }
+
+          // Check group value
+          const groupVal = groupVar ? row[groupVar] : undefined
+          if (groupVar && (groupVal === undefined || groupVal === null || groupVal === '')) {
+            allValid = false
+          }
+
+          if (allValid) {
+            alignedRows.push({ features, group: groupVal })
+          }
+        }
+
+        if (alignedRows.length === 0) {
+          throw new Error('Discriminant analysis requires feature data')
+        }
+
+        const rowMajorMatrix = alignedRows.map(r => r.features)
+        const groupLabels = alignedRows.map(r => r.group)
+
+        if (groupLabels.some(g => g === undefined || g === null)) {
+          throw new Error('Discriminant analysis requires a group variable')
+        }
+
+        const ldaResult = await pyodideStats.discriminantAnalysis(rowMajorMatrix, groupLabels as (string | number)[])
+
+        result = {
+          ...ldaResult,
+          accuracy: ldaResult.accuracy || 0
+        }
+        break
+      }
       default:
         throw new Error(`지원되지 않는 다변량 분석: ${method.id}`)
     }
 
+    // Build result based on method type
+    if (method.id === 'discriminant') {
+      // LDA-specific result mapping
+      const ldaAccuracy = result.accuracy || 0
+      const ldaTotalVariance = result.totalVariance || 0
+      const ldaFunctions = result.functions || []
+      const firstFunctionVariance = ldaFunctions.length > 0 ? ldaFunctions[0].varianceExplained || 0 : 0
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: data.totalN,
+            missingRemoved: 0
+          }
+        },
+        mainResults: {
+          statistic: ldaAccuracy,
+          pvalue: 1, // LDA does not produce p-value directly
+          significant: ldaAccuracy > 0.5,
+          interpretation: result.interpretation || `Classification accuracy: ${(ldaAccuracy * 100).toFixed(1)}%`
+        },
+        additionalInfo: {
+          effectSize: {
+            type: 'Classification Accuracy',
+            value: ldaAccuracy,
+            interpretation: ldaAccuracy >= 0.9 ? 'Excellent' :
+                           ldaAccuracy >= 0.8 ? 'Good' :
+                           ldaAccuracy >= 0.7 ? 'Acceptable' : 'Poor'
+          },
+          discriminantFunctions: {
+            count: ldaFunctions.length,
+            totalVariance: ldaTotalVariance,
+            firstFunctionVariance: firstFunctionVariance
+          }
+        },
+        visualizationData: {
+          type: 'discriminant-plot',
+          data: result
+        },
+        rawResults: result
+      }
+    }
+
+    // PCA, Factor Analysis, Cluster Analysis - use explainedVariance fields
     return {
       metadata: {
         method: method.id,
@@ -1042,19 +1256,231 @@ export class StatisticalExecutor {
     method: StatisticalMethod,
     data: any
   ): Promise<AnalysisResult> {
-    // TODO: 생존 분석 구현 (kaplan-meier, cox-regression)
-    throw new Error(`생존 분석 '${method.id}'은 아직 구현되지 않았습니다.`)
+    switch (method.id) {
+      case 'kaplan-meier': {
+        const rawTimes = data.arrays.dependent || []
+        const rawEvents = data.arrays.event || []
+
+        // Validate event variable is provided
+        if (rawEvents.length === 0) {
+          throw new Error('Kaplan-Meier analysis requires an event variable (0=censored, 1=event)')
+        }
+
+        // Build aligned arrays - filter NaN values while keeping indices aligned
+        const alignedData: { time: number; event: number }[] = []
+        const rawData = data.data as Array<Record<string, unknown>>
+        const depVar = (data.variables?.dependent || data.variables?.dependentVar) as string | string[] | undefined
+        const eventVar = data.variables?.event as string | undefined
+        const depName = Array.isArray(depVar) ? depVar[0] : depVar
+
+        if (depName && eventVar && rawData) {
+          for (const row of rawData) {
+            const time = Number(row[depName])
+            const event = Number(row[eventVar])
+            if (!isNaN(time) && !isNaN(event)) {
+              alignedData.push({ time, event })
+            }
+          }
+        } else {
+          // Missing variable names - cannot align properly
+          throw new Error('Kaplan-Meier requires time (dependent) and event variable names')
+        }
+
+        if (alignedData.length === 0) {
+          throw new Error('No valid time-event pairs found')
+        }
+
+        const times = alignedData.map(d => d.time)
+        const events = alignedData.map(d => d.event)
+
+        // Validate events are binary (0 or 1)
+        const uniqueEvents = [...new Set(events)]
+        if (!uniqueEvents.every(e => e === 0 || e === 1)) {
+          throw new Error('Event variable must be binary (0=censored, 1=event)')
+        }
+
+        // pyodideStats 래퍼 사용
+        const result = await pyodideStats.kaplanMeierSurvival(times, events)
+
+        const totalEvents = events.filter((e: number) => e === 1).length
+
+        return {
+          metadata: {
+            method: method.id,
+            methodName: method.name,
+            timestamp: '',
+            duration: 0,
+            dataInfo: {
+              totalN: times.length,
+              missingRemoved: 0
+            }
+          },
+          mainResults: {
+            statistic: result.medianSurvival || 0,
+            pvalue: 1, // Kaplan-Meier는 p-value 없음
+            significant: false,
+            interpretation: result.medianSurvival
+              ? `중앙 생존 시간: ${result.medianSurvival.toFixed(2)}`
+              : '중앙 생존 시간을 계산할 수 없습니다'
+          },
+          additionalInfo: {},
+          visualizationData: {
+            type: 'survival-curve',
+            data: {
+              timePoints: result.times,
+              survivalProbabilities: result.survivalFunction
+            }
+          },
+          rawResults: { ...result, totalEvents, sampleSize: times.length }
+        }
+      }
+      case 'cox-regression': {
+        const rawEvents = data.arrays.event || []
+
+        // Validate event variable is provided
+        if (rawEvents.length === 0) {
+          throw new Error('Cox regression requires an event variable (0=censored, 1=event)')
+        }
+
+        const rawData = data.data as Array<Record<string, unknown>>
+        const depVar = (data.variables?.dependent || data.variables?.dependentVar) as string | string[] | undefined
+        const eventVar = data.variables?.event as string | undefined
+        const indVars = (data.variables?.independent || data.variables?.independentVar) as string | string[] | undefined
+        const depName = Array.isArray(depVar) ? depVar[0] : depVar
+        const indNames = indVars ? (Array.isArray(indVars) ? indVars : [indVars]) : []
+
+        // Build aligned arrays from raw data
+        const alignedData: { time: number; event: number; covariates: number[] }[] = []
+
+        if (depName && eventVar && indNames.length > 0) {
+          for (const row of rawData) {
+            const time = Number(row[depName])
+            const event = Number(row[eventVar])
+            const covs = indNames.map(name => Number(row[name]))
+
+            if (!isNaN(time) && !isNaN(event) && covs.every(c => !isNaN(c))) {
+              alignedData.push({ time, event, covariates: covs })
+            }
+          }
+        }
+
+        if (alignedData.length === 0) {
+          throw new Error('No valid time-event-covariate tuples found')
+        }
+
+        const times = alignedData.map(d => d.time)
+        const events = alignedData.map(d => d.event)
+
+        // Validate events are binary
+        const uniqueEvents = [...new Set(events)]
+        if (!uniqueEvents.every(e => e === 0 || e === 1)) {
+          throw new Error('Event variable must be binary (0=censored, 1=event)')
+        }
+
+        // Build covariate matrix (column-major for pyodideStats)
+        const nCovariates = indNames.length
+        const covariateData: number[][] = []
+        for (let j = 0; j < nCovariates; j++) {
+          covariateData.push(alignedData.map(d => d.covariates[j]))
+        }
+
+        const covariateNames = (data.variables?.independentNames as string[]) ||
+          (indNames.length > 0 ? indNames : covariateData.map((_: unknown, i: number) => `X${i + 1}`))
+
+        // pyodideStats 래퍼 사용
+        const result = await pyodideStats.coxRegression(times, events, covariateData, covariateNames)
+
+        // 가장 유의한 변수의 p-value
+        const minPValue = Math.min(...result.pValues)
+
+        return {
+          metadata: {
+            method: method.id,
+            methodName: method.name,
+            timestamp: '',
+            duration: 0,
+            dataInfo: {
+              totalN: times.length,
+              missingRemoved: 0
+            }
+          },
+          mainResults: {
+            statistic: result.concordance || 0,
+            pvalue: minPValue,
+            significant: minPValue < 0.05,
+            interpretation: `Concordance: ${(result.concordance || 0).toFixed(3)}, ${result.pValues.filter(p => p < 0.05).length}개 변수가 유의함`
+          },
+          additionalInfo: {},
+          visualizationData: {
+            type: 'forest-plot',
+            data: {
+              covariateNames,
+              hazardRatios: result.hazardRatios,
+              confidenceIntervals: result.confidenceIntervals
+            }
+          },
+          rawResults: { ...result, covariateNames, sampleSize: times.length }
+        }
+      }
+      default:
+        throw new Error(`지원되지 않는 생존 분석: ${method.id}`)
+    }
   }
 
   /**
-   * 실험 설계 분석 실행
+   * 실험 설계 분석 실행 (검정력 분석 등)
    */
   private async executeDesign(
     method: StatisticalMethod,
     data: any
   ): Promise<AnalysisResult> {
-    // TODO: 실험 설계 분석 구현
-    throw new Error(`실험 설계 분석 '${method.id}'은 아직 구현되지 않았습니다.`)
+    switch (method.id) {
+      case 'power-analysis': {
+        // pyodideStats 래퍼 사용
+        const testType = (data.variables?.testType as string) || 't-test'
+        const analysisType = (data.variables?.analysisType as string) || 'a-priori'
+        const alpha = (data.variables?.alpha as number) || 0.05
+        const power = (data.variables?.power as number) || 0.8
+        const effectSize = (data.variables?.effectSize as number) || 0.5
+        const sampleSize = data.totalN || 30
+        const sides = (data.variables?.sides as string) || 'two-sided'
+
+        const result = await pyodideStats.powerAnalysis(
+          testType as 't-test' | 'anova' | 'correlation' | 'chi-square' | 'regression',
+          analysisType as 'a-priori' | 'post-hoc' | 'compromise' | 'criterion',
+          { alpha, power, effectSize, sampleSize, sides: sides as 'two-sided' | 'one-sided' }
+        )
+
+        return {
+          metadata: {
+            method: method.id,
+            methodName: method.name,
+            timestamp: '',
+            duration: 0,
+            dataInfo: {
+              totalN: sampleSize,
+              missingRemoved: 0
+            }
+          },
+          mainResults: {
+            statistic: result.achievedPower || result.requiredSampleSize || 0,
+            pvalue: result.alpha,
+            significant: (result.achievedPower || 0) >= 0.8,
+            interpretation: `${analysisType} 분석 완료: ${result.requiredSampleSize ? `필요 표본 크기 ${result.requiredSampleSize}` : `검정력 ${(result.achievedPower || 0).toFixed(3)}`}`
+          },
+          additionalInfo: {
+            effectSize: result.effectSize ? {
+              type: "Cohen's d",
+              value: result.effectSize,
+              interpretation: this.interpretCohensD(result.effectSize)
+            } : undefined
+          },
+          rawResults: result
+        }
+      }
+      default:
+        throw new Error(`지원되지 않는 실험 설계 분석: ${method.id}`)
+    }
   }
 
   /**
