@@ -1140,10 +1140,10 @@ json.dumps(result)
   ): Promise<StatisticsResult> {
     await this.ensureWorker2Loaded()
     return this.callWorkerMethod<StatisticsResult>(2, 'partial_correlation', {
-      data_matrix: dataMatrix,
-      x_idx: xIdx,
-      y_idx: yIdx,
-      control_indices: controlIndices
+      dataMatrix,
+      xIdx,
+      yIdx,
+      controlIndices
     })
   }
 
@@ -1202,7 +1202,7 @@ json.dumps(result)
     tableCells: number[][]
   ): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'mcnemar_test', { contingency_table: tableCells })
+    return this.callWorkerMethod<StatisticsResult>(3, 'mcnemar_test', { contingencyTable: tableCells })
   }
 
   /**
@@ -1262,7 +1262,7 @@ json.dumps(result)
    */
   async twoWayAnova(dataValues: number[], factor1Values: string[], factor2Values: string[]): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'two_way_anova', { data_values: dataValues, factor1_values: factor1Values, factor2_values: factor2Values })
+    return this.callWorkerMethod<StatisticsResult>(3, 'two_way_anova', { dataValues, factor1Values, factor2Values })
   }
 
   /**
@@ -1270,7 +1270,7 @@ json.dumps(result)
    */
   async repeatedMeasuresAnovaWorker(dataMatrix: number[][], subjectIds: string[], timeLabels: string[]): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'repeated_measures_anova', { data_matrix: dataMatrix, subject_ids: subjectIds, time_labels: timeLabels })
+    return this.callWorkerMethod<StatisticsResult>(3, 'repeated_measures_anova', { dataMatrix, subjectIds, timeLabels })
   }
 
   /**
@@ -1278,7 +1278,7 @@ json.dumps(result)
    */
   async ancovaWorker(yValues: number[], groupValues: string[], covariates: number[][]): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'ancova', { y_values: yValues, group_values: groupValues, covariates: covariates })
+    return this.callWorkerMethod<StatisticsResult>(3, 'ancova', { yValues, groupValues, covariates })
   }
 
   /**
@@ -1286,7 +1286,7 @@ json.dumps(result)
    */
   async manovaWorker(dataMatrix: number[][], groupValues: string[], varNames: string[]): Promise<StatisticsResult> {
     await this.ensureWorker3Loaded()
-    return this.callWorkerMethod<StatisticsResult>(3, 'manova', { data_matrix: dataMatrix, group_values: groupValues, var_names: varNames })
+    return this.callWorkerMethod<StatisticsResult>(3, 'manova', { dataMatrix, groupValues, varNames })
   }
 
   /**
@@ -1310,7 +1310,7 @@ json.dumps(result)
    */
   async performBonferroni(pValues: number[], alpha?: number): Promise<StatisticsResult> {
     await this.ensureWorker1Loaded()
-    return this.callWorkerMethod<StatisticsResult>(1, 'bonferroni_correction', { p_values: pValues, alpha: alpha ?? 0.05 })
+    return this.callWorkerMethod<StatisticsResult>(1, 'bonferroni_correction', { pValues, alpha: alpha ?? 0.05 })
   }
 
   /**
@@ -1375,7 +1375,7 @@ json.dumps(result)
    */
   async cronbachAlpha(itemsMatrix: number[][]): Promise<StatisticsResult> {
     await this.ensureWorker1Loaded()
-    return this.callWorkerMethod<StatisticsResult>(1, 'cronbach_alpha', { items_matrix: itemsMatrix })
+    return this.callWorkerMethod<StatisticsResult>(1, 'cronbach_alpha', { itemsMatrix })
   }
 
   // ============================================================================
@@ -1387,7 +1387,7 @@ json.dumps(result)
    */
   async pca(data: number[][], nComponents?: number): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'pca_analysis', { data, n_components: nComponents ?? 2 })
+    return this.callWorkerMethod<StatisticsResult>(4, 'pca_analysis', { data, nComponents: nComponents ?? 2 })
   }
 
   /**
@@ -1395,7 +1395,7 @@ json.dumps(result)
    */
   async factorAnalysis(data: number[][], nFactors?: number): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'factor_analysis', { data, n_factors: nFactors ?? 2 })
+    return this.callWorkerMethod<StatisticsResult>(4, 'factor_analysis', { data, nFactors: nFactors ?? 2 })
   }
 
   /**
@@ -1403,6 +1403,6 @@ json.dumps(result)
    */
   async clusterAnalysis(data: number[][], numClusters?: number): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, num_clusters: numClusters ?? 3 })
+    return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, numClusters: numClusters ?? 3 })
   }
 }

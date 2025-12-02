@@ -30,7 +30,7 @@ describe('Survival Analysis Pages', () => {
       const method = STATISTICAL_METHODS.find(m => m.id === 'kaplan-meier')
       expect(method).toBeDefined()
       expect(method?.category).toBe('survival')
-      expect(method?.requirements.minSampleSize).toBeGreaterThanOrEqual(10)
+      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(10)
     })
 
     it('should have variable requirements defined', () => {
@@ -63,7 +63,7 @@ describe('Survival Analysis Pages', () => {
       const method = STATISTICAL_METHODS.find(m => m.id === 'cox-regression')
       expect(method).toBeDefined()
       expect(method?.category).toBe('survival')
-      expect(method?.requirements.minSampleSize).toBeGreaterThanOrEqual(30)
+      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(30)
     })
 
     it('should have variable requirements defined', () => {
@@ -95,7 +95,7 @@ describe('Time Series Pages', () => {
       const method = STATISTICAL_METHODS.find(m => m.id === 'arima')
       expect(method).toBeDefined()
       expect(method?.category).toBe('timeseries')
-      expect(method?.requirements.minSampleSize).toBeGreaterThanOrEqual(50)
+      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(50)
     })
 
     it('should have variable requirements defined', () => {
@@ -124,7 +124,7 @@ describe('Time Series Pages', () => {
       const method = STATISTICAL_METHODS.find(m => m.id === 'seasonal-decompose')
       expect(method).toBeDefined()
       expect(method?.category).toBe('timeseries')
-      expect(method?.requirements.minSampleSize).toBeGreaterThanOrEqual(24)
+      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(24)
     })
 
     it('should have variable requirements defined', () => {
@@ -149,7 +149,7 @@ describe('Time Series Pages', () => {
       const method = STATISTICAL_METHODS.find(m => m.id === 'stationarity-test')
       expect(method).toBeDefined()
       expect(method?.category).toBe('timeseries')
-      expect(method?.requirements.minSampleSize).toBeGreaterThanOrEqual(20)
+      expect(method?.requirements?.minSampleSize).toBeGreaterThanOrEqual(20)
     })
 
     it('should have variable requirements defined', () => {

@@ -6,14 +6,14 @@
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals'
 
-// Mock @vercel/kv
+// Mock @vercel/kv with proper types
 const mockKv = {
-  hgetall: jest.fn(),
-  lrange: jest.fn(),
-  hincrby: jest.fn(),
-  lpush: jest.fn(),
-  hget: jest.fn(),
-  del: jest.fn(),
+  hgetall: jest.fn<(_key: string) => Promise<Record<string, number> | null>>(),
+  lrange: jest.fn<(_key: string, _start: number, _end: number) => Promise<unknown[]>>(),
+  hincrby: jest.fn<(_key: string, _field: string, _increment: number) => Promise<number>>(),
+  lpush: jest.fn<(_key: string, _value: unknown) => Promise<number>>(),
+  hget: jest.fn<(_key: string, _field: string) => Promise<number | null>>(),
+  del: jest.fn<(_key: string) => Promise<number>>(),
 }
 
 jest.mock('@vercel/kv', () => ({

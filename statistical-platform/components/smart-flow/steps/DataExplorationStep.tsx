@@ -564,7 +564,7 @@ export const DataExplorationStep = memo(function DataExplorationStep({
       isActive = false
       clearTimeout(timer)
     }
-  }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables, assumptionResults]) // assumptionResults 추가 (null 체크로 무한 루프 방지)
+  }, [data, validationResults, pyodideLoaded, pyodideService, numericVariables, categoricalVariables]) // assumptionResults 제거 (무한 루프 원인)
 
   // 산점도 상태 추적용 ref (무한 루프 방지)
   const scatterplotsRef = useRef(scatterplots)

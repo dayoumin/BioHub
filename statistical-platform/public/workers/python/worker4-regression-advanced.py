@@ -314,7 +314,7 @@ def logistic_regression(X, y):
     }
 
 
-def pca_analysis(data, n_components=None):
+def pca_analysis(data, nComponents=None):
     """
     Comprehensive PCA analysis with sklearn
     Returns detailed PCA metrics matching PCAResult interface
@@ -328,8 +328,8 @@ def pca_analysis(data, n_components=None):
 
     n_samples, n_variables = X.shape
 
-    if n_components is None:
-        n_components = min(n_samples, n_variables)
+    if nComponents is None:
+        n_comp = min(n_samples, n_variables)
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
@@ -379,7 +379,7 @@ def pca_analysis(data, n_components=None):
             # Keep default None values but add error info
             bartlett_result['error'] = f'Calculation failed: {str(e)}'
 
-    pca = PCA(n_components=n_components)
+    pca = PCA(n_components=nComponents if nComponents else n_comp)
     pca.fit(X_scaled)
 
     transformed = pca.transform(X_scaled)
@@ -437,22 +437,22 @@ def pca_analysis(data, n_components=None):
 
 # Priority 2 Methods - Regression (9 methods)
 
-def curve_estimation(x_values, y_values, model_type='linear'):
-    x, y = clean_xy_regression(x_values, y_values)
+def curve_estimation(xValues, yValues, modelType='linear'):
+    x, y = clean_xy_regression(xValues, yValues)
 
     if len(x) < 3:
         raise ValueError(f"Curve estimation requires at least 3 valid pairs, got {len(x)}")
 
-    if model_type == 'linear':
+    if modelType == 'linear':
         coeffs = np.polyfit(x, y, 1)
         predictions = np.polyval(coeffs, x)
-    elif model_type == 'quadratic':
+    elif modelType == 'quadratic':
         coeffs = np.polyfit(x, y, 2)
         predictions = np.polyval(coeffs, x)
-    elif model_type == 'cubic':
+    elif modelType == 'cubic':
         coeffs = np.polyfit(x, y, 3)
         predictions = np.polyval(coeffs, x)
-    elif model_type == 'exponential':
+    elif modelType == 'exponential':
         # y = a * exp(bx)
         if np.any(y <= 0):
             raise ValueError("Exponential model requires all y > 0")
@@ -462,14 +462,14 @@ def curve_estimation(x_values, y_values, model_type='linear'):
         b = coeffs_linear[0]
         coeffs = [a, b]
         predictions = a * np.exp(b * x)
-    elif model_type == 'logarithmic':
+    elif modelType == 'logarithmic':
         # y = a + b*ln(x)
         if np.any(x <= 0):
             raise ValueError("Logarithmic model requires all x > 0")
         log_x = np.log(x)
         coeffs = np.polyfit(log_x, y, 1)
         predictions = coeffs[0] * np.log(x) + coeffs[1]
-    elif model_type == 'power':
+    elif modelType == 'power':
         # y = a * x^b
         if np.any(x <= 0) or np.any(y <= 0):
             raise ValueError("Power model requires all x > 0 and y > 0")
@@ -481,7 +481,7 @@ def curve_estimation(x_values, y_values, model_type='linear'):
         coeffs = [a, b]
         predictions = a * (x ** b)
     else:
-        raise ValueError(f"Unknown model type: {model_type}")
+        raise ValueError(f"Unknown model type: {modelType}")
 
     # R-squared
     ss_res = np.sum((y - predictions) ** 2)
@@ -489,7 +489,7 @@ def curve_estimation(x_values, y_values, model_type='linear'):
     r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
 
     return {
-        'modelType': model_type,
+        'modelType': modelType,
         'coefficients': [float(c) for c in coeffs],
         'rSquared': float(r_squared),
         'predictions': [float(p) for p in predictions],
@@ -498,44 +498,44 @@ def curve_estimation(x_values, y_values, model_type='linear'):
     }
 
 
-def nonlinear_regression(x_values, y_values, model_type='exponential', initial_guess=None):
+def nonlinear_regression(xValues, yValues, modelType='exponential', initialGuess=None):
     from scipy.optimize import curve_fit
 
-    x, y = clean_xy_regression(x_values, y_values)
+    x, y = clean_xy_regression(xValues, yValues)
 
     if len(x) < 3:
         raise ValueError(f"Nonlinear regression requires at least 3 valid pairs, got {len(x)}")
 
-    if model_type == 'exponential':
+    if modelType == 'exponential':
         def model_func(x, a, b):
             return a * np.exp(b * x)
-        if initial_guess is None:
+        if initialGuess is None:
             initial_guess = [1.0, 0.1]
-    elif model_type == 'logistic':
+    elif modelType == 'logistic':
         def model_func(x, L, k, x0):
             return L / (1 + np.exp(-k * (x - x0)))
-        if initial_guess is None:
+        if initialGuess is None:
             initial_guess = [max(y), 1.0, np.mean(x)]
-    elif model_type == 'gompertz':
+    elif modelType == 'gompertz':
         def model_func(x, a, b, c):
             return a * np.exp(-b * np.exp(-c * x))
-        if initial_guess is None:
+        if initialGuess is None:
             initial_guess = [max(y), 1.0, 0.1]
-    elif model_type == 'power':
+    elif modelType == 'power':
         def model_func(x, a, b):
             return a * np.power(x, b)
-        if initial_guess is None:
+        if initialGuess is None:
             initial_guess = [1.0, 1.0]
-    elif model_type == 'hyperbolic':
+    elif modelType == 'hyperbolic':
         def model_func(x, a, b):
             return (a * x) / (b + x)
-        if initial_guess is None:
+        if initialGuess is None:
             initial_guess = [max(y), 1.0]
     else:
-        raise ValueError(f"Unknown model type: {model_type}")
+        raise ValueError(f"Unknown model type: {modelType}")
 
     try:
-        popt, pcov = curve_fit(model_func, x, y, p0=initial_guess)
+        popt, pcov = curve_fit(model_func, x, y, p0=initialGuess)
     except RuntimeError as e:
         raise ValueError(f"Curve fitting failed: {str(e)}")
 
@@ -550,7 +550,7 @@ def nonlinear_regression(x_values, y_values, model_type='exponential', initial_g
     param_errors = np.sqrt(np.diag(pcov))
 
     return {
-        'modelType': model_type,
+        'modelType': modelType,
         'parameters': [float(p) for p in popt],
         'parameterErrors': [float(e) for e in param_errors],
         'rSquared': float(r_squared),
@@ -560,11 +560,11 @@ def nonlinear_regression(x_values, y_values, model_type='exponential', initial_g
     }
 
 
-def stepwise_regression(y_values, x_matrix, variable_names=None,
+def stepwise_regression(yValues, xMatrix, variableNames=None,
                        method='forward', entry_threshold=0.05, stay_threshold=0.10):
     import statsmodels.api as sm
 
-    y = np.array(y_values)
+    y = np.array(yValues)
     X = np.array(x_matrix)
 
     if len(y) < 3:
@@ -651,11 +651,11 @@ def stepwise_regression(y_values, x_matrix, variable_names=None,
         return {'selectedVariables': [], 'rSquared': 0.0}
 
 
-def binary_logistic(x_matrix, y_values):
+def binary_logistic(xMatrix, yValues):
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
-    y = np.array(y_values)
+    y = np.array(yValues)
 
     model = sm.Logit(y, X).fit(disp=0)
 
@@ -676,11 +676,11 @@ def binary_logistic(x_matrix, y_values):
     }
 
 
-def multinomial_logistic(x_matrix, y_values):
+def multinomial_logistic(xMatrix, yValues):
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
-    y = np.array(y_values)
+    y = np.array(yValues)
 
     model = sm.MNLogit(y, X).fit(disp=0)
 
@@ -698,11 +698,11 @@ def multinomial_logistic(x_matrix, y_values):
     }
 
 
-def ordinal_logistic(x_matrix, y_values):
+def ordinal_logistic(xMatrix, yValues):
     from statsmodels.miscmodels.ordinal_model import OrderedModel
 
     X = np.array(x_matrix)
-    y = np.array(y_values)
+    y = np.array(yValues)
 
     model = OrderedModel(y, X, distr='logit').fit(disp=0)
 
@@ -716,11 +716,11 @@ def ordinal_logistic(x_matrix, y_values):
     }
 
 
-def probit_regression(x_matrix, y_values):
+def probit_regression(xMatrix, yValues):
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
-    y = np.array(y_values)
+    y = np.array(yValues)
 
     model = sm.Probit(y, X).fit(disp=0)
 
@@ -740,11 +740,11 @@ def probit_regression(x_matrix, y_values):
     }
 
 
-def poisson_regression(x_matrix, y_values):
+def poisson_regression(xMatrix, yValues):
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
-    y = np.array(y_values)
+    y = np.array(yValues)
 
     model = sm.GLM(y, X, family=sm.families.Poisson()).fit()
 
@@ -760,11 +760,11 @@ def poisson_regression(x_matrix, y_values):
     }
 
 
-def negative_binomial_regression(x_matrix, y_values):
+def negative_binomial_regression(xMatrix, yValues):
     import statsmodels.api as sm
 
     X = sm.add_constant(np.array(x_matrix))
-    y = np.array(y_values)
+    y = np.array(yValues)
 
     model = sm.GLM(y, X, family=sm.families.NegativeBinomial()).fit()
 
@@ -778,7 +778,7 @@ def negative_binomial_regression(x_matrix, y_values):
     }
 
 
-def factor_analysis_method(data, n_factors=2, rotation='varimax', extraction='principal'):
+def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='principal'):
     """
     Comprehensive Factor Analysis with sklearn
     Returns detailed factor metrics matching FactorAnalysisResult interface
@@ -903,18 +903,18 @@ def factor_analysis_method(data, n_factors=2, rotation='varimax', extraction='pr
 
 
 # Legacy factor_analysis method (kept for compatibility)
-def factor_analysis(data_matrix, n_factors=2, rotation='varimax'):
+def factor_analysis(dataMatrix, nFactors=2, rotation='varimax'):
     from sklearn.decomposition import FactorAnalysis
 
-    data = np.array(data_matrix)
+    data = np.array(dataMatrix)
 
     if data.shape[0] < 3:
         raise ValueError("Factor analysis requires at least 3 observations")
 
-    if data.shape[1] < n_factors:
-        raise ValueError(f"Cannot extract {n_factors} factors from {data.shape[1]} variables")
+    if data.shape[1] < nFactors:
+        raise ValueError(f"Cannot extract {nFactors} factors from {data.shape[1]} variables")
 
-    fa = FactorAnalysis(n_components=n_factors, random_state=42)
+    fa = FactorAnalysis(n_components=nFactors, random_state=42)
     fa.fit(data)
 
     loadings = fa.components_.T
@@ -931,11 +931,11 @@ def factor_analysis(data_matrix, n_factors=2, rotation='varimax'):
         'explainedVariance': explained_variance.tolist(),
         'explainedVarianceRatio': explained_variance_ratio.tolist(),
         'totalVarianceExplained': float(np.sum(explained_variance_ratio)),
-        'nFactors': int(n_factors)
+        'nFactors': int(nFactors)
     }
 
 
-def cluster_analysis(data, method='kmeans', num_clusters=3, linkage='ward', distance='euclidean'):
+def cluster_analysis(data, method='kmeans', numClusters=3, linkage='ward', distance='euclidean'):
     """
     Comprehensive K-means clustering analysis with sklearn
     Returns detailed clustering metrics matching ClusterAnalysisResult interface
@@ -949,18 +949,18 @@ def cluster_analysis(data, method='kmeans', num_clusters=3, linkage='ward', dist
         X = X.reshape(-1, 1)
 
     n_samples, n_features = X.shape
-    if n_samples < num_clusters:
-        raise ValueError(f'Number of samples ({n_samples}) must be >= num_clusters ({num_clusters})')
+    if n_samples < numClusters:
+        raise ValueError(f'Number of samples ({n_samples}) must be >= numClusters ({numClusters})')
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    model = KMeans(n_clusters=num_clusters, random_state=42, n_init=10)
+    model = KMeans(n_clusters=numClusters, random_state=42, n_init=10)
     labels = model.fit_predict(X_scaled)
     centroids = model.cluster_centers_
     inertia = float(model.inertia_)
 
-    if n_samples > num_clusters and num_clusters > 1:
+    if n_samples > numClusters and numClusters > 1:
         silhouette = float(silhouette_score(X_scaled, labels))
         calinski = float(calinski_harabasz_score(X_scaled, labels))
         davies = float(davies_bouldin_score(X_scaled, labels))
@@ -970,7 +970,7 @@ def cluster_analysis(data, method='kmeans', num_clusters=3, linkage='ward', dist
         davies = 0.0
 
     within_ss = []
-    for k in range(num_clusters):
+    for k in range(numClusters):
         cluster_points = X_scaled[labels == k]
         if len(cluster_points) > 0:
             centroid_k = centroids[k]
@@ -983,7 +983,7 @@ def cluster_analysis(data, method='kmeans', num_clusters=3, linkage='ward', dist
 
     overall_centroid = np.mean(X_scaled, axis=0)
     between_ss = 0.0
-    for k in range(num_clusters):
+    for k in range(numClusters):
         n_k = np.sum(labels == k)
         if n_k > 0:
             centroid_k = centroids[k]
@@ -991,10 +991,10 @@ def cluster_analysis(data, method='kmeans', num_clusters=3, linkage='ward', dist
     between_ss = float(between_ss)
 
     total_ss = float(total_within_ss + between_ss)
-    cluster_sizes = [int(np.sum(labels == k)) for k in range(num_clusters)]
+    cluster_sizes = [int(np.sum(labels == k)) for k in range(numClusters)]
 
     cluster_stats = []
-    for k in range(num_clusters):
+    for k in range(numClusters):
         cluster_points = X_scaled[labels == k]
         if len(cluster_points) > 0:
             cluster_stats.append({
@@ -1007,7 +1007,7 @@ def cluster_analysis(data, method='kmeans', num_clusters=3, linkage='ward', dist
 
     return {
         'method': method,
-        'numClusters': num_clusters,
+        'numClusters': numClusters,
         'clusterAssignments': labels.tolist(),
         'centroids': centroids.tolist(),
         'inertia': inertia,
@@ -1023,7 +1023,7 @@ def cluster_analysis(data, method='kmeans', num_clusters=3, linkage='ward', dist
     }
 
 
-def _cluster_analysis(data_matrix, n_clusters=3, method='kmeans', metric='euclidean'):
+def _cluster_analysis(dataMatrix, nClusters=3, method='kmeans', metric='euclidean'):
     from sklearn.cluster import KMeans, AgglomerativeClustering
     from sklearn.metrics import silhouette_score, calinski_harabasz_score
 
@@ -1037,7 +1037,7 @@ def _cluster_analysis(data_matrix, n_clusters=3, method='kmeans', metric='euclid
         raise ValueError(f"Number of samples ({data.shape[0]}) must be >= n_clusters ({n_clusters})")
 
     if method == 'kmeans':
-        clusterer = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        clusterer = KMeans(n_clusters=nClusters, random_state=42, n_init=10)
         labels = clusterer.fit_predict(data)
         inertia = float(clusterer.inertia_)
         centers = clusterer.cluster_centers_.tolist()
@@ -1083,7 +1083,7 @@ def _cluster_analysis(data_matrix, n_clusters=3, method='kmeans', metric='euclid
     }
 
 
-def kmeans_clustering(data_matrix, n_clusters=3, column_names=None):
+def kmeans_clustering(dataMatrix, nClusters=3, columnNames=None):
     result = _cluster_analysis(data_matrix, n_clusters=n_clusters, method='kmeans')
     inertia = float(result['inertia']) if result['inertia'] is not None else 0.0
 
@@ -1096,7 +1096,7 @@ def kmeans_clustering(data_matrix, n_clusters=3, column_names=None):
     }
 
 
-def hierarchical_clustering(data_matrix, n_clusters=3, method='ward', metric='euclidean', column_names=None):
+def hierarchical_clustering(dataMatrix, nClusters=3, method='ward', metric='euclidean', columnNames=None):
     result = _cluster_analysis(data_matrix, n_clusters=n_clusters, method=method, metric=metric)
 
     return {
@@ -1109,17 +1109,17 @@ def hierarchical_clustering(data_matrix, n_clusters=3, method='ward', metric='eu
     }
 
 
-def time_series_analysis(data_values, seasonal_periods=12):
+def time_series_analysis(dataValues, seasonalPeriods=12):
     from statsmodels.tsa.seasonal import seasonal_decompose
     from statsmodels.tsa.stattools import adfuller, acf, pacf
 
-    data = np.array(data_values)
+    data = np.array(dataValues)
 
-    if len(data) < seasonal_periods * 2:
-        raise ValueError(f"Time series must have at least {seasonal_periods * 2} observations for seasonal decomposition")
+    if len(data) < seasonalPeriods * 2:
+        raise ValueError(f"Time series must have at least {seasonalPeriods * 2} observations for seasonal decomposition")
 
     try:
-        decomposition = seasonal_decompose(data, model='additive', period=seasonal_periods, extrapolate_trend='freq')
+        decomposition = seasonal_decompose(data, model='additive', period=seasonalPeriods, extrapolate_trend='freq')
 
         trend = decomposition.trend
         seasonal = decomposition.seasonal
@@ -1146,7 +1146,7 @@ def time_series_analysis(data_values, seasonal_periods=12):
         'isStationary': _safe_bool(is_stationary),
         'acf': [float(v) for v in acf_values],
         'pacf': [float(v) for v in pacf_values],
-        'seasonalPeriods': int(seasonal_periods)
+        'seasonalPeriods': int(seasonalPeriods)
     }
 
 
@@ -1173,7 +1173,7 @@ def time_series_decomposition(values, period=12, model='additive'):
     }
 
 
-def arima_forecast(values, order=(1, 1, 1), n_forecast=10):
+def arima_forecast(values, order=(1, 1, 1), nForecast=10):
     from statsmodels.tsa.arima.model import ARIMA
 
     data = np.array(values, dtype=float)
@@ -1200,7 +1200,7 @@ def arima_forecast(values, order=(1, 1, 1), n_forecast=10):
     }
 
 
-def sarima_forecast(values, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12), n_forecast=10):
+def sarima_forecast(values, order=(1, 1, 1), seasonalOrder=(1, 1, 1, 12), nForecast=10):
     from statsmodels.tsa.statespace.sarimax import SARIMAX
 
     data = np.array(values, dtype=float)
@@ -1233,7 +1233,7 @@ def sarima_forecast(values, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12), n_for
     }
 
 
-def var_model(data_matrix, max_lags=1, column_names=None):
+def var_model(dataMatrix, maxLags=1, columnNames=None):
     from statsmodels.tsa.api import VAR
 
     data = np.array(data_matrix, dtype=float)
@@ -1241,7 +1241,7 @@ def var_model(data_matrix, max_lags=1, column_names=None):
         raise ValueError("data_matrix must be a 2D array")
 
     model = VAR(data)
-    results = model.fit(maxlags=max_lags)
+    results = model.fit(maxlags=maxLags)
 
     coefs = results.coefs  # shape (lag_order, neqs, neqs)
     lag_order = coefs.shape[0]
@@ -1270,7 +1270,7 @@ def var_model(data_matrix, max_lags=1, column_names=None):
     }
 
 
-def mixed_effects_model(data, dependent_column, fixed_effects=None, random_effects=None):
+def mixed_effects_model(data, dependentColumn, fixedEffects=None, randomEffects=None):
     import pandas as pd
     import statsmodels.api as sm
     from statsmodels.regression.mixed_linear_model import MixedLM
@@ -1285,16 +1285,16 @@ def mixed_effects_model(data, dependent_column, fixed_effects=None, random_effec
 
     df = pd.DataFrame(records)
 
-    fixed_effects = fixed_effects or []
-    random_effects = random_effects or []
+    fixed_effects = fixedEffects or []
+    random_effects = randomEffects or []
 
-    if dependent_column not in df.columns:
-        raise ValueError(f"dependent_column '{dependent_column}' not found in data")
+    if dependentColumn not in df.columns:
+        raise ValueError(f"dependentColumn '{dependentColumn}' not found in data")
 
     exog = df[fixed_effects] if fixed_effects else pd.DataFrame(index=df.index)
     exog = sm.add_constant(exog, has_constant='add')
 
-    if random_effects:
+    if randomEffects:
         group_col = random_effects[0]
         if group_col not in df.columns:
             raise ValueError(f"random effect column '{group_col}' not found in data")
@@ -1302,7 +1302,7 @@ def mixed_effects_model(data, dependent_column, fixed_effects=None, random_effec
     else:
         groups = pd.Series(np.ones(len(df)), index=df.index)
 
-    model = MixedLM(endog=df[dependent_column], exog=exog, groups=groups)
+    model = MixedLM(endog=df[dependentColumn], exog=exog, groups=groups)
     result = model.fit()
 
     fe_names = result.model.exog_names
@@ -1369,18 +1369,18 @@ def kaplan_meier_survival(times, events):
     }
 
 
-def cox_regression(times, events, covariate_data, covariate_names):
+def cox_regression(times, events, covariateData, covariateNames):
     import pandas as pd
     from statsmodels.duration.hazard_regression import PHReg
 
-    if covariate_data and len(covariate_data) != len(covariate_names):
-        raise ValueError("covariate_data length must match covariate_names length")
+    if covariateData and len(covariateData) != len(covariateNames):
+        raise ValueError("covariateData length must match covariateNames length")
 
-    df = pd.DataFrame({name: covariate_data[idx] for idx, name in enumerate(covariate_names)})
+    df = pd.DataFrame({name: covariateData[idx] for idx, name in enumerate(covariateNames)})
     df['time'] = np.array(times, dtype=float)
     df['event'] = np.array(events, dtype=int)
 
-    model = PHReg(endog=df['time'], exog=df[covariate_names], status=df['event'])
+    model = PHReg(endog=df['time'], exog=df[covariateNames], status=df['event'])
     result = model.fit()
 
     coefficients = [float(coeff) for coeff in result.params]
@@ -1486,7 +1486,7 @@ def discriminant_analysis(data, groups):
     accuracy = float(np.mean(y == y_pred))
 
     # Discriminant functions
-    n_components = min(n_groups - 1, n_features)
+    n_comp = min(n_groups - 1, n_features)
     functions = []
     for i in range(n_components):
         if i < lda.scalings_.shape[1]:
@@ -1546,7 +1546,7 @@ def discriminant_analysis(data, groups):
     }
 
 
-def dose_response_analysis(dose_data, response_data, model_type='logistic4', constraints=None):
+def dose_response_analysis(doseData, responseData, modelType='logistic4', constraints=None):
     """
     Dose-response curve fitting using scipy.optimize.curve_fit
 
@@ -1603,31 +1603,31 @@ def dose_response_analysis(dose_data, response_data, model_type='logistic4', con
     x_max = float(np.max(dose_array))
 
     # Model selection and parameter setup
-    if model_type == 'logistic4':
+    if modelType == 'logistic4':
         model_func = logistic4_model
         initial_guess = [y_max, 1.0, x_mid, y_min]
         bounds = ([0, 0.1, x_min, 0], [2*y_max, 10, x_max, y_max])
         param_names = ['top', 'hill_slope', 'ec50', 'bottom']
 
-    elif model_type == 'logistic3':
+    elif modelType == 'logistic3':
         model_func = logistic3_model
         initial_guess = [y_max, 1.0, x_mid]
         bounds = ([0, 0.1, x_min], [2*y_max, 10, x_max])
         param_names = ['top', 'hill_slope', 'ec50']
 
-    elif model_type == 'weibull':
+    elif modelType == 'weibull':
         model_func = weibull_model
         initial_guess = [y_max, 1.0, x_mid, y_min]
         bounds = ([0, 0.1, x_min, 0], [2*y_max, 5, x_max, y_max])
         param_names = ['top', 'slope', 'inflection', 'bottom']
 
-    elif model_type == 'gompertz':
+    elif modelType == 'gompertz':
         model_func = gompertz_model
         initial_guess = [y_max, 1.0, x_mid]
         bounds = ([0, 0.1, x_min], [2*y_max, 5, x_max])
         param_names = ['asymptote', 'growth_rate', 'inflection']
 
-    elif model_type == 'biphasic':
+    elif modelType == 'biphasic':
         model_func = biphasic_model
         initial_guess = [y_max*0.6, 1.0, x_mid*0.5, y_max*0.4, 1.0, x_mid*2, y_min]
         bounds = ([0, 0.1, x_min, 0, 0.1, x_min, 0],
@@ -1635,7 +1635,7 @@ def dose_response_analysis(dose_data, response_data, model_type='logistic4', con
         param_names = ['top1', 'hill1', 'ec50_1', 'top2', 'hill2', 'ec50_2', 'bottom']
 
     else:
-        raise ValueError(f"Unknown model type: {model_type}")
+        raise ValueError(f"Unknown model type: {modelType}")
 
     # Apply constraints if provided
     if constraints:
@@ -1660,7 +1660,7 @@ def dose_response_analysis(dose_data, response_data, model_type='logistic4', con
     try:
         popt, pcov = optimize.curve_fit(
             model_func, dose_array, response_array,
-            p0=initial_guess, bounds=bounds, maxfev=5000
+            p0=initialGuess, bounds=bounds, maxfev=5000
         )
     except Exception as e:
         raise ValueError(f"Model fitting failed: {str(e)}")
@@ -1701,7 +1701,7 @@ def dose_response_analysis(dose_data, response_data, model_type='logistic4', con
 
     # Special parameters (EC50, IC50, etc.)
     result_dict = {
-        'model': model_type,
+        'model': modelType,
         'parameters': parameters,
         'fitted_values': fitted_values.tolist(),
         'residuals': residuals.tolist(),

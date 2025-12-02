@@ -57,6 +57,8 @@
 ### 우선순위 높음
 | 작업 | 설명 |
 |------|------|
+| **QuestionFlow 버그 수정** | 버튼 클릭 시 타이머 클린업 누락 (handlePrev/handleNext/처음부터) |
+| **ConversationalQuestion lint** | isEditableElement 의존성 배열 누락 (useCallback 또는 외부 이동) |
 | 분석 히스토리 UX | "새 분석 시작" 버튼, 전체 삭제 확인 다이얼로그 |
 
 ### 선택적 (필요시)

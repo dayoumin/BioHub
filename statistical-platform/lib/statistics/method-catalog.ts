@@ -20,7 +20,9 @@ export const PURPOSE_CATEGORY_MAP: Record<AnalysisPurpose, string[]> = {
   distribution: ['descriptive', 'nonparametric', 'chi-square'],
   prediction: ['regression', 'advanced'],
   timeseries: ['timeseries', 'regression'],
-  survival: ['survival']
+  survival: ['survival'],
+  multivariate: ['pca', 'clustering', 'advanced'],
+  utility: ['design', 'advanced']
 }
 
 const uniqueCategoriesForPurpose = (purpose: AnalysisPurpose): string[] =>

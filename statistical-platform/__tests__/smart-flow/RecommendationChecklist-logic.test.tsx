@@ -80,7 +80,7 @@ describe('RecommendationChecklist 로직 테스트', () => {
     id: 't-test',
     name: 'T-Test',
     description: '두 그룹 평균 비교',
-    category: 't-test',
+    category: 't-test' as const,
     requirements: {
       minSampleSize: 30,
       variableTypes: ['numeric', 'categorical'],

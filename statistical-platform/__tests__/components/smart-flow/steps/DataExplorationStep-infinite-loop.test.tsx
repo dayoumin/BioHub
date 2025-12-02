@@ -12,7 +12,7 @@
  * - useEffect 의존성에서 상태 변수 제거
  */
 
-import { renderHook, act } from '@testing-library/react'
+import { renderHook } from '@testing-library/react'
 import { useState, useRef, useEffect } from 'react'
 
 describe('DataExplorationStep 무한 루프 수정', () => {
@@ -41,7 +41,7 @@ describe('DataExplorationStep 무한 루프 수정', () => {
   it('✅ 수정 패턴: ref 사용 시 무한 루프 없음', () => {
     let renderCount = 0
 
-    const { result, rerender } = renderHook(() => {
+    const { result } = renderHook(() => {
       renderCount++
 
       const [selectedVar, setSelectedVar] = useState('')
@@ -287,5 +287,87 @@ describe('SmartFlowPage Zustand 의존성 수정', () => {
     rerender()
 
     expect(callCount).toBe(1) // 여전히 1
+  })
+})
+
+describe('DataExplorationStep assumptionResults 무한 루프 수정', () => {
+  /**
+   * assumptionResults가 useEffect 의존성에 있으면서
+   * setLocalAssumptionResults 호출 시 무한 루프 발생
+   *
+   * 문제 패턴:
+   * useEffect(() => {
+   *   ...
+   *   setLocalAssumptionResults(assumptions) // 상태 변경
+   * }, [..., assumptionResults]) // 무한 루프!
+   *
+   * 해결: assumptionResults를 의존성 배열에서 제거
+   */
+  it('✅ assumptionResults 의존성 제거 시 무한 루프 없음', () => {
+    let effectRunCount = 0
+    let renderCount = 0
+
+    const { rerender } = renderHook(() => {
+      renderCount++
+      const [assumptionResults, setAssumptionResults] = useState<{ isNormal: boolean } | null>(null)
+      const [data] = useState([{ a: 1 }, { a: 2 }])
+      const [pyodideLoaded] = useState(true)
+
+      // 가정 검정 자동 실행 (수정된 패턴)
+      useEffect(() => {
+        effectRunCount++
+
+        if (!data || !pyodideLoaded) {
+          if (assumptionResults !== null) {
+            setAssumptionResults(null)
+          }
+          return
+        }
+
+        // 비동기 작업 시뮬레이션
+        const timer = setTimeout(() => {
+          setAssumptionResults({ isNormal: true })
+        }, 0)
+
+        return () => clearTimeout(timer)
+      }, [data, pyodideLoaded]) // assumptionResults 의존성 제거
+
+      return { assumptionResults, effectRunCount, renderCount }
+    })
+
+    // useEffect는 마운트 시 한 번만 실행
+    expect(effectRunCount).toBe(1)
+
+    // 리렌더링해도 effect는 다시 실행되지 않음
+    rerender()
+    rerender()
+
+    // 무한 루프라면 renderCount가 매우 높아짐
+    expect(renderCount).toBeLessThan(10)
+    expect(effectRunCount).toBe(1)
+  })
+
+  /**
+   * 문제가 있던 패턴 검증 (의존성에 상태 포함)
+   * 실제로 실행하면 무한 루프 발생하므로 패턴만 문서화
+   */
+  it('문서화: assumptionResults가 의존성에 있으면 무한 루프 발생', () => {
+    // 이 패턴은 실행하지 않음 (무한 루프 발생)
+    //
+    // useEffect(() => {
+    //   if (assumptionResults !== null) {
+    //     setLocalAssumptionResults(null) // 상태 변경
+    //   }
+    //   ...
+    //   setLocalAssumptionResults(assumptions) // 상태 변경
+    // }, [..., assumptionResults]) // 무한 루프!
+    //
+    // 원인:
+    // 1. useEffect 실행 -> setLocalAssumptionResults() 호출
+    // 2. assumptionResults 상태 변경
+    // 3. 의존성 배열에 assumptionResults 있음 -> useEffect 재실행
+    // 4. 1번으로 돌아감 -> 무한 반복
+
+    expect(true).toBe(true) // 패턴 문서화 목적
   })
 })

@@ -369,42 +369,42 @@ describe('Worker-Function Mapping Verification', () => {
 
     // 핵심 ANOVA 메서드 파라미터 검증
     describe('ANOVA 메서드 파라미터', () => {
-      it('twoWayAnova: data_values, factor1_values, factor2_values 파라미터가 일치해야 함', () => {
+      it('twoWayAnova: dataValues, factor1Values, factor2Values 파라미터가 일치해야 함', () => {
         const pyParams = extractPythonFunctionParams(3, 'two_way_anova')
-        expect(pyParams).toContain('data_values')
-        expect(pyParams).toContain('factor1_values')
-        expect(pyParams).toContain('factor2_values')
+        expect(pyParams).toContain('dataValues')
+        expect(pyParams).toContain('factor1Values')
+        expect(pyParams).toContain('factor2Values')
       })
 
-      it('repeatedMeasuresAnovaWorker: data_matrix, subject_ids, time_labels 파라미터가 일치해야 함', () => {
+      it('repeatedMeasuresAnovaWorker: dataMatrix, subjectIds, timeLabels 파라미터가 일치해야 함', () => {
         const pyParams = extractPythonFunctionParams(3, 'repeated_measures_anova')
-        expect(pyParams).toContain('data_matrix')
-        expect(pyParams).toContain('subject_ids')
-        expect(pyParams).toContain('time_labels')
+        expect(pyParams).toContain('dataMatrix')
+        expect(pyParams).toContain('subjectIds')
+        expect(pyParams).toContain('timeLabels')
       })
 
-      it('ancovaWorker: y_values, group_values, covariates 파라미터가 일치해야 함', () => {
+      it('ancovaWorker: yValues, groupValues, covariates 파라미터가 일치해야 함', () => {
         const pyParams = extractPythonFunctionParams(3, 'ancova')
-        expect(pyParams).toContain('y_values')
-        expect(pyParams).toContain('group_values')
+        expect(pyParams).toContain('yValues')
+        expect(pyParams).toContain('groupValues')
         expect(pyParams).toContain('covariates')
       })
 
-      it('manovaWorker: data_matrix, group_values, var_names 파라미터가 일치해야 함', () => {
+      it('manovaWorker: dataMatrix, groupValues, varNames 파라미터가 일치해야 함', () => {
         const pyParams = extractPythonFunctionParams(3, 'manova')
-        expect(pyParams).toContain('data_matrix')
-        expect(pyParams).toContain('group_values')
-        expect(pyParams).toContain('var_names')
+        expect(pyParams).toContain('dataMatrix')
+        expect(pyParams).toContain('groupValues')
+        expect(pyParams).toContain('varNames')
       })
     })
 
     // 서비스에서 실제로 보내는 파라미터 키 검증
     describe('서비스 callWorkerMethod 파라미터 키 검증', () => {
       const criticalMethods = [
-        { tsMethod: 'twoWayAnova', expectedKeys: ['data_values', 'factor1_values', 'factor2_values'] },
-        { tsMethod: 'repeatedMeasuresAnovaWorker', expectedKeys: ['data_matrix', 'subject_ids', 'time_labels'] },
-        { tsMethod: 'ancovaWorker', expectedKeys: ['y_values', 'group_values', 'covariates'] },
-        { tsMethod: 'manovaWorker', expectedKeys: ['data_matrix', 'group_values', 'var_names'] },
+        { tsMethod: 'twoWayAnova', expectedKeys: ['dataValues', 'factor1Values', 'factor2Values'] },
+        { tsMethod: 'repeatedMeasuresAnovaWorker', expectedKeys: ['dataMatrix', 'subjectIds', 'timeLabels'] },
+        { tsMethod: 'ancovaWorker', expectedKeys: ['yValues', 'groupValues', 'covariates'] },
+        { tsMethod: 'manovaWorker', expectedKeys: ['dataMatrix', 'groupValues', 'varNames'] },
       ]
 
       criticalMethods.forEach(({ tsMethod, expectedKeys }) => {

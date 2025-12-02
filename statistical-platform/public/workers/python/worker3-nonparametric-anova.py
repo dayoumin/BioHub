@@ -340,25 +340,25 @@ def one_way_anova(groups):
     }
 
 
-def two_way_anova(data_values, factor1_values, factor2_values):
+def two_way_anova(dataValues, factor1Values, factor2Values):
     import statsmodels.api as sm
     from statsmodels.formula.api import ols
     import pandas as pd
 
-    if len(data_values) != len(factor1_values) or len(data_values) != len(factor2_values):
+    if len(dataValues) != len(factor1Values) or len(dataValues) != len(factor2Values):
         raise ValueError(
-            f"All inputs must have same length: data({len(data_values)}), "
-            f"factor1({len(factor1_values)}), factor2({len(factor2_values)})"
+            f"All inputs must have same length: data({len(dataValues)}), "
+            f"factor1({len(factor1Values)}), factor2({len(factor2Values)})"
         )
 
-    n_samples = len(data_values)
+    n_samples = len(dataValues)
     if n_samples < 4:
         raise ValueError(f"Two-way ANOVA requires at least 4 observations, got {n_samples}")
 
     df = pd.DataFrame({
-        'value': data_values,
-        'factor1': factor1_values,
-        'factor2': factor2_values
+        'value': dataValues,
+        'factor1': factor1Values,
+        'factor2': factor2Values
     })
 
     formula = 'value ~ C(factor1) + C(factor2) + C(factor1):C(factor2)'
@@ -563,10 +563,10 @@ def runs_test(sequence):
     }
 
 
-def mcnemar_test(contingency_table):
+def mcnemar_test(contingencyTable):
     from statsmodels.stats.contingency_tables import mcnemar
 
-    table = np.array(contingency_table)
+    table = np.array(contingencyTable)
 
     if table.shape != (2, 2):
         raise ValueError("McNemar test requires 2x2 contingency table")
@@ -587,18 +587,18 @@ def mcnemar_test(contingency_table):
     }
 
 
-def cochran_q_test(data_matrix):
+def cochran_q_test(dataMatrix):
     from statsmodels.stats.contingency_tables import cochrans_q
 
-    data_matrix = np.array(data_matrix)
+    data_arr = np.array(dataMatrix)
 
-    if data_matrix.size == 0:
+    if data_arr.size == 0:
         raise ValueError("Empty data matrix")
 
-    if len(data_matrix.shape) != 2:
+    if len(data_arr.shape) != 2:
         raise ValueError("Data must be a 2D matrix")
 
-    n, k = data_matrix.shape  # n subjects, k conditions
+    n, k = data_arr.shape  # n subjects, k conditions
 
     if n < 2:
         raise ValueError(f"Cochran Q requires at least 2 subjects, got {n}")
@@ -607,7 +607,7 @@ def cochran_q_test(data_matrix):
         raise ValueError(f"Cochran Q requires at least 3 conditions, got {k}")
 
     # Use statsmodels for Cochran Q test
-    result = cochrans_q(data_matrix)
+    result = cochrans_q(data_arr)
 
     return {
         'qStatistic': float(result.statistic),
@@ -632,11 +632,11 @@ def mood_median_test(groups):
 
 # Priority 2 Methods - ANOVA (4 methods)
 
-def repeated_measures_anova(data_matrix, subject_ids, time_labels):
+def repeated_measures_anova(dataMatrix, subjectIds, timeLabels):
     from statsmodels.stats.anova import AnovaRM
     import pandas as pd
 
-    data_array = np.array(data_matrix)
+    data_array = np.array(dataMatrix)
 
     if data_array.size == 0:
         raise ValueError("Empty data matrix")
@@ -652,19 +652,19 @@ def repeated_measures_anova(data_matrix, subject_ids, time_labels):
     if n_timepoints < 2:
         raise ValueError(f"Repeated measures ANOVA requires at least 2 timepoints, got {n_timepoints}")
 
-    if len(subject_ids) != n_subjects:
-        raise ValueError(f"Subject IDs length {len(subject_ids)} must match number of subjects {n_subjects}")
+    if len(subjectIds) != n_subjects:
+        raise ValueError(f"Subject IDs length {len(subjectIds)} must match number of subjects {n_subjects}")
 
-    if len(time_labels) != n_timepoints:
-        raise ValueError(f"Time labels length {len(time_labels)} must match number of timepoints {n_timepoints}")
+    if len(timeLabels) != n_timepoints:
+        raise ValueError(f"Time labels length {len(timeLabels)} must match number of timepoints {n_timepoints}")
 
     data_long = []
-    for i, subject_id in enumerate(subject_ids):
-        for j, time_label in enumerate(time_labels):
+    for i, subject_id in enumerate(subjectIds):
+        for j, time_label in enumerate(timeLabels):
             data_long.append({
                 'subject': subject_id,
                 'time': time_label,
-                'value': data_matrix[i][j]
+                'value': dataMatrix[i][j]
             })
 
     df = pd.DataFrame(data_long)
@@ -768,7 +768,7 @@ def repeated_measures_anova(data_matrix, subject_ids, time_labels):
     }
 
 
-def ancova(y_values, group_values, covariates):
+def ancova(yValues, groupValues, covariates):
     import statsmodels.formula.api as smf
     import statsmodels.api as sm
     import pandas as pd
@@ -776,20 +776,20 @@ def ancova(y_values, group_values, covariates):
     if not covariates or len(covariates) == 0:
         raise ValueError("ANCOVA requires at least 1 covariate")
 
-    if len(y_values) != len(group_values):
-        raise ValueError(f"y_values ({len(y_values)}) and group_values ({len(group_values)}) must have same length")
+    if len(yValues) != len(groupValues):
+        raise ValueError(f"yValues ({len(yValues)}) and groupValues ({len(groupValues)}) must have same length")
 
     for i, cov in enumerate(covariates):
-        if len(cov) != len(y_values):
-            raise ValueError(f"Covariate {i} length ({len(cov)}) must match y_values length ({len(y_values)})")
+        if len(cov) != len(yValues):
+            raise ValueError(f"Covariate {i} length ({len(cov)}) must match yValues length ({len(yValues)})")
 
-    n_samples = len(y_values)
+    n_samples = len(yValues)
     if n_samples < 3:
         raise ValueError(f"ANCOVA requires at least 3 observations, got {n_samples}")
 
     data = {
-        'y': y_values,
-        'group': group_values
+        'y': yValues,
+        'group': groupValues
     }
 
     for i, cov in enumerate(covariates):
@@ -815,37 +815,37 @@ def ancova(y_values, group_values, covariates):
     }
 
 
-def manova(data_matrix, group_values, var_names):
+def manova(dataMatrix, groupValues, varNames):
     from statsmodels.multivariate.manova import MANOVA
     import pandas as pd
 
-    if not data_matrix or len(data_matrix) == 0:
+    if not dataMatrix or len(dataMatrix) == 0:
         raise ValueError("Empty data matrix")
 
-    n_obs = len(data_matrix)
-    n_vars = len(data_matrix[0]) if n_obs > 0 else 0
+    n_obs = len(dataMatrix)
+    n_vars = len(dataMatrix[0]) if n_obs > 0 else 0
 
     if n_vars < 2:
         raise ValueError(f"MANOVA requires at least 2 variables, got {n_vars}")
 
-    if len(group_values) != n_obs:
-        raise ValueError(f"group_values length ({len(group_values)}) must match data_matrix rows ({n_obs})")
+    if len(groupValues) != n_obs:
+        raise ValueError(f"groupValues length ({len(groupValues)}) must match data_matrix rows ({n_obs})")
 
-    if len(var_names) != n_vars:
-        raise ValueError(f"var_names length ({len(var_names)}) must match data_matrix columns ({n_vars})")
+    if len(varNames) != n_vars:
+        raise ValueError(f"var_names length ({len(varNames)}) must match data_matrix columns ({n_vars})")
 
-    for i, row in enumerate(data_matrix):
+    for i, row in enumerate(dataMatrix):
         if len(row) != n_vars:
             raise ValueError(f"Row {i} has {len(row)} values, expected {n_vars}")
 
-    df_dict = {'group': group_values}
-    for i, var_name in enumerate(var_names):
-        df_dict[var_name] = [row[i] for row in data_matrix]
+    df_dict = {'group': groupValues}
+    for i, var_name in enumerate(varNames):
+        df_dict[var_name] = [row[i] for row in dataMatrix]
 
     df = pd.DataFrame(df_dict)
 
     # MANOVA
-    formula = ' + '.join(var_names) + ' ~ group'
+    formula = ' + '.join(varNames) + ' ~ group'
     maov = MANOVA.from_formula(formula, data=df)
     result = maov.mv_test()
 
@@ -925,7 +925,7 @@ def scheffe_test(groups):
     }
 
 
-def dunn_test(groups, p_adjust='holm'):
+def dunn_test(groups, pAdjust='holm'):
     try:
         import scikit_posthocs as sp
         import pandas as pd
@@ -952,7 +952,7 @@ def dunn_test(groups, p_adjust='holm'):
         'group': group_labels
     })
 
-    dunn_result = sp.posthoc_dunn(df, val_col='data', group_col='group', p_adjust=p_adjust)
+    dunn_result = sp.posthoc_dunn(df, val_col='data', group_col='group', p_adjust=pAdjust)
 
     comparisons = []
     n_groups = len(clean_groups)
@@ -968,7 +968,7 @@ def dunn_test(groups, p_adjust='holm'):
 
     return {
         'comparisons': comparisons,
-        'pAdjustMethod': p_adjust,
+        'pAdjustMethod': pAdjust,
         'nComparisons': len(comparisons)
     }
 
@@ -1062,7 +1062,7 @@ def games_howell_test(groups):
     }
 
 
-def three_way_anova(data_values, factor1_values, factor2_values, factor3_values):
+def three_way_anova(dataValues, factor1Values, factor2Values, factor3Values):
     """
     Three-Way ANOVA using statsmodels
 
@@ -1080,25 +1080,25 @@ def three_way_anova(data_values, factor1_values, factor2_values, factor3_values)
     import pandas as pd
 
     # Input validation
-    if len(data_values) != len(factor1_values) or \
-       len(data_values) != len(factor2_values) or \
-       len(data_values) != len(factor3_values):
+    if len(dataValues) != len(factor1Values) or \
+       len(dataValues) != len(factor2Values) or \
+       len(dataValues) != len(factor3Values):
         raise ValueError(
-            f"All inputs must have same length: data({len(data_values)}), "
-            f"factor1({len(factor1_values)}), factor2({len(factor2_values)}), "
-            f"factor3({len(factor3_values)})"
+            f"All inputs must have same length: data({len(dataValues)}), "
+            f"factor1({len(factor1Values)}), factor2({len(factor2Values)}), "
+            f"factor3({len(factor3Values)})"
         )
 
-    n_samples = len(data_values)
+    n_samples = len(dataValues)
     if n_samples < 8:
         raise ValueError(f"Three-way ANOVA requires at least 8 observations, got {n_samples}")
 
     # Create DataFrame
     df = pd.DataFrame({
-        'value': data_values,
-        'factor1': factor1_values,
-        'factor2': factor2_values,
-        'factor3': factor3_values
+        'value': dataValues,
+        'factor1': factor1Values,
+        'factor2': factor2Values,
+        'factor3': factor3Values
     })
 
     # Build formula with all main effects and interactions
@@ -1155,7 +1155,7 @@ def three_way_anova(data_values, factor1_values, factor2_values, factor3_values)
     return result
 
 
-def friedman_posthoc(groups, p_adjust='holm'):
+def friedman_posthoc(groups, pAdjust='holm'):
     """
     Friedman 검정의 사후검정 (Nemenyi test)
 
@@ -1196,10 +1196,10 @@ def friedman_posthoc(groups, p_adjust='holm'):
         raise ValueError("Need at least 2 valid observations for Friedman post-hoc test")
 
     # Create data matrix for Nemenyi test
-    data_matrix = np.array(clean_groups).T  # Transpose: rows=subjects, cols=conditions
+    dataArr = np.array(clean_groups).T  # Transpose: rows=subjects, cols=conditions
 
     # Use posthoc_nemenyi_friedman for Friedman post-hoc
-    nemenyi_result = sp.posthoc_nemenyi_friedman(data_matrix)
+    nemenyi_result = sp.posthoc_nemenyi_friedman(dataArr)
 
     comparisons = []
     n_groups = len(clean_groups)
@@ -1216,12 +1216,12 @@ def friedman_posthoc(groups, p_adjust='holm'):
     return {
         'method': 'Nemenyi test',
         'comparisons': comparisons,
-        'pAdjustMethod': p_adjust,
+        'pAdjustMethod': pAdjust,
         'nComparisons': len(comparisons)
     }
 
 
-def repeated_measures_posthoc(data_matrix, time_labels, p_adjust='bonferroni'):
+def repeated_measures_posthoc(dataMatrix, timeLabels, pAdjust='bonferroni'):
     """
     Repeated Measures ANOVA post-hoc test: Pairwise paired t-tests with correction.
 
@@ -1236,7 +1236,7 @@ def repeated_measures_posthoc(data_matrix, time_labels, p_adjust='bonferroni'):
     from scipy.stats import ttest_rel
     from itertools import combinations
 
-    data = np.array(data_matrix, dtype=float)
+    data = np.array(dataMatrix, dtype=float)
     n_subjects_orig, n_timepoints = data.shape
 
     if n_timepoints < 2:
@@ -1284,8 +1284,8 @@ def repeated_measures_posthoc(data_matrix, time_labels, p_adjust='bonferroni'):
         ci_upper = float(mean_diff + t_crit * se_diff)
 
         comparisons.append({
-            'timepoint1': time_labels[i] if i < len(time_labels) else f'Time {i + 1}',
-            'timepoint2': time_labels[j] if j < len(time_labels) else f'Time {j + 1}',
+            'timepoint1': timeLabels[i] if i < len(timeLabels) else f'Time {i + 1}',
+            'timepoint2': timeLabels[j] if j < len(timeLabels) else f'Time {j + 1}',
             'meanDiff': mean_diff,
             'tStatistic': float(t_stat),
             'pValue': float(p_value),
@@ -1299,9 +1299,9 @@ def repeated_measures_posthoc(data_matrix, time_labels, p_adjust='bonferroni'):
 
     # Apply p-value correction
     n_comparisons = len(comparisons)
-    if p_adjust == 'bonferroni':
+    if pAdjust == 'bonferroni':
         adjusted_p_values = [min(p * n_comparisons, 1.0) for p in raw_p_values]
-    elif p_adjust == 'holm':
+    elif pAdjust == 'holm':
         # Holm-Bonferroni method
         sorted_indices = sorted(range(n_comparisons), key=lambda k: raw_p_values[k])
         adjusted_p_values = [0.0] * n_comparisons
@@ -1322,14 +1322,14 @@ def repeated_measures_posthoc(data_matrix, time_labels, p_adjust='bonferroni'):
         comp['significant'] = adjusted_p_values[idx] < 0.05
 
     return {
-        'method': f'Paired t-test with {p_adjust.capitalize()} correction',
+        'method': f'Paired t-test with {pAdjust.capitalize()} correction',
         'comparisons': comparisons,
-        'pAdjustMethod': p_adjust,
+        'pAdjustMethod': pAdjust,
         'nComparisons': n_comparisons
     }
 
 
-def cochran_q_posthoc(data_matrix, p_adjust='holm'):
+def cochran_q_posthoc(dataMatrix, pAdjust='holm'):
     """
     Cochran Q post-hoc test: Pairwise McNemar tests with correction.
 
@@ -1343,7 +1343,7 @@ def cochran_q_posthoc(data_matrix, p_adjust='holm'):
     from itertools import combinations
     from scipy.stats import binom
 
-    data = np.array(data_matrix, dtype=float)
+    data = np.array(dataMatrix, dtype=float)
     n_subjects, n_conditions = data.shape
 
     if n_conditions < 3:
@@ -1413,9 +1413,9 @@ def cochran_q_posthoc(data_matrix, p_adjust='holm'):
 
     # Apply p-value correction
     n_comparisons = len(comparisons)
-    if p_adjust == 'bonferroni':
+    if pAdjust == 'bonferroni':
         adjusted_p_values = [min(p * n_comparisons, 1.0) for p in raw_p_values]
-    elif p_adjust == 'holm':
+    elif pAdjust == 'holm':
         sorted_indices = sorted(range(n_comparisons), key=lambda k: raw_p_values[k])
         adjusted_p_values = [0.0] * n_comparisons
         for rank, idx in enumerate(sorted_indices):
@@ -1434,9 +1434,9 @@ def cochran_q_posthoc(data_matrix, p_adjust='holm'):
         comp['significant'] = adjusted_p_values[idx] < 0.05
 
     return {
-        'method': f'McNemar pairwise with {p_adjust.capitalize()} correction',
+        'method': f'McNemar pairwise with {pAdjust.capitalize()} correction',
         'comparisons': comparisons,
-        'pAdjustMethod': p_adjust,
+        'pAdjustMethod': pAdjust,
         'nComparisons': n_comparisons
     }
 

@@ -325,8 +325,8 @@ describe('Contract Tests: Integration with getInterpretation', () => {
         method: 'One-way ANOVA',
         statistic: 5.3,
         pValue: 0.01,
-      interpretation: 'Test interpretation',
-      df: [2, 57],
+        interpretation: 'Test interpretation',
+        df: 2,
         effectSize: { value: 0.15, type: 'Eta-squared' },
         groupStats: [
           { mean: 50, std: 10, n: 20 },
@@ -361,10 +361,10 @@ describe('Contract Tests: Integration with getInterpretation', () => {
         method: 'Linear Regression',
         statistic: 15.3,  // F-statistic
         pValue: 0.001,
-      interpretation: 'Test interpretation',
-      coefficients: [
-          { variable: 'Intercept', value: 10.5 },
-          { variable: 'X1', value: 2.3 }
+        interpretation: 'Test interpretation',
+        coefficients: [
+          { name: 'Intercept', value: 10.5, stdError: 0.5, tValue: 21, pvalue: 0.001 },
+          { name: 'X1', value: 2.3, stdError: 0.3, tValue: 7.67, pvalue: 0.001 }
         ],
         additional: { rSquared: 0.75 }
       } as AnalysisResult, '예측')

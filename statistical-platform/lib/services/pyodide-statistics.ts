@@ -12,6 +12,21 @@
  *
  * 모든 통계 계산은 Python의 SciPy/statsmodels를 통해 수행됩니다.
  * JavaScript로 통계 알고리즘을 직접 구현하지 마세요!
+ *
+ * ========================================
+ * pyodideStats 래퍼 사용 범위 (하이브리드 전략)
+ * ========================================
+ *
+ * ✅ 래퍼 사용 권장 (단일 Worker 호출 + 단순 타입):
+ *    - binomial-test, sign-test, runs-test, mcnemar
+ *    - 테스트 코드에서 Worker 호출 시
+ *
+ * ❌ 직접 callWorkerMethod 사용 (복잡 페이지):
+ *    - anova (다중 Worker 호출 + JS 후처리)
+ *    - ancova, arima (복잡한 타입 변환 필요)
+ *    - 페이지에서 결과 타입을 세밀하게 제어해야 할 때
+ *
+ * 이유: 래퍼 타입과 페이지 기대 타입 불일치 시 이중 유지보수 발생
  */
 
 import type {

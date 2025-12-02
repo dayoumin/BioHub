@@ -144,24 +144,25 @@ def chi_square_test(
 
 
 def binomial_test(
-    success_count: int,
-    total_count: int,
+    successCount: int,
+    totalCount: int,
     probability: float = 0.5,
     alternative: Literal['two-sided', 'less', 'greater'] = 'two-sided'
 ) -> Dict[str, Union[float, int, None]]:
-    if total_count < 1:
+    if totalCount < 1:
         raise ValueError("Total count must be at least 1")
 
-    if success_count < 0 or success_count > total_count:
-        raise ValueError(f"Invalid success_count: must be 0 <= {success_count} <= {total_count}")
+    if successCount < 0 or successCount > totalCount:
+        raise ValueError(f"Invalid successCount: must be 0 <= {successCount} <= {totalCount}")
 
-    binom_result = binomtest(success_count, total_count, probability, alternative=alternative)
+    binom_result = binomtest(successCount, totalCount, probability, alternative=alternative)
     p_value = binom_result.pvalue
 
     return {
         'pValue': _safe_float(p_value),
-        'successCount': int(success_count),
-        'totalCount': int(total_count)
+        'successCount': int(successCount),
+        'totalCount': int(totalCount),
+        'proportion': _safe_float(successCount / totalCount) if totalCount > 0 else None
     }
 
 
@@ -192,10 +193,10 @@ def correlation_test(
 
 
 def partial_correlation(
-    data_matrix: List[List[Union[float, int, None]]],
-    x_idx: int,
-    y_idx: int,
-    control_indices: List[int]
+    dataMatrix: List[List[Union[float, int, None]]],
+    xIdx: int,
+    yIdx: int,
+    controlIndices: List[int]
 ) -> Dict[str, Union[float, int, Dict[str, float], None]]:
     try:
         import statsmodels.api as sm
@@ -204,12 +205,12 @@ def partial_correlation(
 
     import pandas as pd
 
-    data_matrix = np.array(data_matrix)
+    data_matrix = np.array(dataMatrix)
 
     if data_matrix.shape[0] < 3:
         raise ValueError("Partial correlation requires at least 3 complete cases")
 
-    required_cols = [x_idx, y_idx] + list(control_indices)
+    required_cols = [xIdx, yIdx] + list(controlIndices)
     valid_rows = []
 
     for i in range(data_matrix.shape[0]):
@@ -223,16 +224,16 @@ def partial_correlation(
     data_clean = data_matrix[valid_rows]
 
     df_data = {
-        'x': data_clean[:, x_idx],
-        'y': data_clean[:, y_idx]
+        'x': data_clean[:, xIdx],
+        'y': data_clean[:, yIdx]
     }
-    for i, ctrl_idx in enumerate(control_indices):
+    for i, ctrl_idx in enumerate(controlIndices):
         df_data[f'control{i}'] = data_clean[:, ctrl_idx]
 
     df = pd.DataFrame(df_data)
 
     n = len(df)
-    k = len(control_indices)
+    k = len(controlIndices)
 
     if n < k + 3:
         raise ValueError(f"Sample size ({n}) must be greater than number of control variables ({k}) + 2")
@@ -253,6 +254,7 @@ def partial_correlation(
     r = corr_result.statistic
     z = np.arctanh(r)
     se = 1 / np.sqrt(df_residual - 1)
+    z_crit = 1.96  # 95% confidence interval
     lower_z = z - z_crit * se
     upper_z = z + z_crit * se
 
@@ -443,7 +445,7 @@ def fisher_exact_test(
         'sampleSize': int(n)
     }
 
-def partial_correlation_analysis(data, analysis_vars, control_vars=None):
+def partial_correlation_analysis(data, analysisVars, controlVars=None):
     """
     편상관 분석 (Partial Correlation Analysis)
 
@@ -463,11 +465,11 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
     df = pd.DataFrame(data)
 
     # 기본값 처리
-    if control_vars is None:
-        control_vars = []
+    if controlVars is None:
+        controlVars = []
 
     # 결측값 제거
-    all_vars = analysis_vars + control_vars
+    all_vars = analysisVars + controlVars
     df_clean = df[all_vars].dropna()
 
     def compute_partial_corr(df, x, y, controls):
@@ -500,9 +502,9 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
     correlations = []
     zero_order_correlations = []
 
-    for x, y in combinations(analysis_vars, 2):
+    for x, y in combinations(analysisVars, 2):
         # 편상관
-        partial_corr, p_val, t_stat, df_val = compute_partial_corr(df_clean, x, y, control_vars)
+        partial_corr, p_val, t_stat, df_val = compute_partial_corr(df_clean, x, y, controlVars)
 
         correlations.append({
             'variable1': x,
@@ -511,7 +513,7 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
             'pValue': float(p_val),
             'tStat': float(t_stat),
             'df': int(df_val),
-            'controlVars': control_vars.copy()
+            'controlVars': controlVars.copy()
         })
 
         # 단순상관 (비교용)
@@ -543,7 +545,7 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
     all_normal = True
     any_tested = False
     any_untested = False
-    for var in analysis_vars:
+    for var in analysisVars:
         if len(df_clean[var]) >= 3 and len(df_clean[var]) <= 5000:
             stat, p_val = stats.shapiro(df_clean[var])
             passed = bool(p_val > 0.05)
@@ -609,12 +611,12 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
     }
 
     # 3. 다중공선성 진단 (통제변수에 대해)
-    if len(control_vars) >= 2:
+    if len(controlVars) >= 2:
         # 통제변수 간 상관행렬로 다중공선성 추정
         control_corrs = []
         high_multicollinearity = False
-        for i, var1 in enumerate(control_vars):
-            for var2 in control_vars[i+1:]:
+        for i, var1 in enumerate(controlVars):
+            for var2 in controlVars[i+1:]:
                 corr, _ = stats.pearsonr(df_clean[var1], df_clean[var2])
                 if abs(corr) > 0.8:
                     high_multicollinearity = True
@@ -640,9 +642,9 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
         }
 
     # 해석 생성
-    control_text = f" (통제변수: {', '.join(control_vars)})" if control_vars else ""
+    control_text = f" (통제변수: {', '.join(controlVars)})" if controlVars else ""
     interpretation = {
-        'summary': f'{len(analysis_vars)}개 변수 간 {summary["nPairs"]}개 쌍의 편상관을 분석했습니다{control_text}. {significant_count}개 쌍이 통계적으로 유의했습니다.',
+        'summary': f'{len(analysisVars)}개 변수 간 {summary["nPairs"]}개 쌍의 편상관을 분석했습니다{control_text}. {significant_count}개 쌍이 통계적으로 유의했습니다.',
         'recommendations': [
             '편상관계수는 통제변수의 영향을 제거한 순수한 관계를 나타냅니다.',
             '절대값이 0.7 이상이면 강한 상관, 0.5-0.7은 중간 상관입니다.',
@@ -660,7 +662,7 @@ def partial_correlation_analysis(data, analysis_vars, control_vars=None):
         'assumptions': assumptions
     }
 
-def stepwise_regression_forward(data, dependent_var, predictor_vars, significance_level=0.05):
+def stepwise_regression_forward(data, dependentVar, predictorVars, significanceLevel=0.05):
     """
     전진선택법 기반 단계적 회귀분석
 
@@ -687,11 +689,11 @@ def stepwise_regression_forward(data, dependent_var, predictor_vars, significanc
     df = pd.DataFrame(data)
 
     # 결측값 제거
-    all_vars = [dependent_var] + predictor_vars
+    all_vars = [dependentVar] + predictorVars
     df_clean = df[all_vars].dropna()
 
-    y = df_clean[dependent_var].values
-    X_full = df_clean[predictor_vars]
+    y = df_clean[dependentVar].values
+    X_full = df_clean[predictorVars]
 
     def forward_selection(X, y, sig_level):
         """전진선택법 구현"""
@@ -757,7 +759,7 @@ def stepwise_regression_forward(data, dependent_var, predictor_vars, significanc
         return initial_features, step_history
 
     # 단계적 회귀분석 실행
-    selected_features, step_history = forward_selection(X_full, y, significance_level)
+    selected_features, step_history = forward_selection(X_full, y, significanceLevel)
 
     # 최종 모델
     if selected_features:
@@ -820,7 +822,7 @@ def stepwise_regression_forward(data, dependent_var, predictor_vars, significanc
             condition_num = 1.0
 
         # 제외된 변수들
-        excluded_vars = [var for var in predictor_vars if var not in selected_features]
+        excluded_vars = [var for var in predictorVars if var not in selected_features]
         excluded_variables = []
 
         for var in excluded_vars:
@@ -911,7 +913,7 @@ def stepwise_regression_forward(data, dependent_var, predictor_vars, significanc
 
 
 
-def response_surface_analysis(data, dependent_var, predictor_vars, model_type='second_order', include_interaction=True, include_quadratic=True):
+def response_surface_analysis(data, dependentVar, predictorVars, modelType='second_order', includeInteraction=True, includeQuadratic=True):
     """
     반응표면 분석 (statsmodels 기반 - 검증된 통계 라이브러리 사용)
 
@@ -936,14 +938,14 @@ def response_surface_analysis(data, dependent_var, predictor_vars, model_type='s
     df = pd.DataFrame(data)
 
     # 데이터 준비
-    all_vars = [dependent_var] + predictor_vars
+    all_vars = [dependentVar] + predictorVars
     df_clean = df[all_vars].dropna()
 
     if len(df_clean) < 10:
         raise ValueError("반응표면 분석에는 최소 10개의 관측값이 필요합니다.")
 
-    y = df_clean[dependent_var].values
-    X_original = df_clean[predictor_vars].values
+    y = df_clean[dependentVar].values
+    X_original = df_clean[predictorVars].values
     n_obs, n_predictors = X_original.shape
 
     # 변수명 생성
@@ -959,17 +961,17 @@ def response_surface_analysis(data, dependent_var, predictor_vars, model_type='s
     formula_terms.extend(var_names)
 
     # 2차 항 생성
-    if model_type == "first_order":
+    if modelType == "first_order":
         # 1차 항만
         pass
-    elif model_type == "first_order_interaction":
+    elif modelType == "first_order_interaction":
         # 1차 항 + 교호작용
         if n_predictors >= 2:
             for i in range(n_predictors):
                 for j in range(i+1, n_predictors):
                     X_df[f'{var_names[i]}_{var_names[j]}'] = X_df[var_names[i]] * X_df[var_names[j]]
                     formula_terms.append(f'{var_names[i]}_{var_names[j]}')
-    elif model_type == "second_order":
+    elif modelType == "second_order":
         # 1차 항 + 교호작용 + 제곱항
         if n_predictors >= 2:
             for i in range(n_predictors):
@@ -980,12 +982,12 @@ def response_surface_analysis(data, dependent_var, predictor_vars, model_type='s
             X_df[f'{var_names[i]}_sq'] = X_df[var_names[i]] ** 2
             formula_terms.append(f'{var_names[i]}_sq')
     else:  # custom
-        if include_interaction and n_predictors >= 2:
+        if includeInteraction and n_predictors >= 2:
             for i in range(n_predictors):
                 for j in range(i+1, n_predictors):
                     X_df[f'{var_names[i]}_{var_names[j]}'] = X_df[var_names[i]] * X_df[var_names[j]]
                     formula_terms.append(f'{var_names[i]}_{var_names[j]}')
-        if include_quadratic:
+        if includeQuadratic:
             for i in range(n_predictors):
                 X_df[f'{var_names[i]}_sq'] = X_df[var_names[i]] ** 2
                 formula_terms.append(f'{var_names[i]}_sq')
@@ -1058,7 +1060,7 @@ def response_surface_analysis(data, dependent_var, predictor_vars, model_type='s
         }
     }
 
-    if (model_type == "second_order" or (model_type == "custom" and include_quadratic)) and n_predictors == 2:
+    if (modelType == "second_order" or (modelType == "custom" and includeQuadratic)) and n_predictors == 2:
         try:
             # 계수 추출
             b1 = coefficients.get('X1', 0)
@@ -1111,7 +1113,7 @@ def response_surface_analysis(data, dependent_var, predictor_vars, model_type='s
     }
 
     return {
-        'modelType': model_type,
+        'modelType': modelType,
         'coefficients': coefficients,
         'fittedValues': y_pred.tolist(),
         'residuals': residuals.tolist(),
@@ -1377,7 +1379,7 @@ def ancova_analysis(
     cov_effect = covariates[0]
 
     sig_level = "유의한" if main_effect['pValue'] < 0.05 else "유의하지 않은"
-    effect_size = "큰" if main_effect['partialEtaSquared'] >= 0.14 else "중간" if main_effect['partialEtaSquared'] >= 0.06 else "작은"
+    effectSize = "큰" if main_effect['partialEtaSquared'] >= 0.14 else "중간" if main_effect['partialEtaSquared'] >= 0.06 else "작은"
 
     interpretation = {
         'summary': f"공변량 통제 후 집단 간 {sig_level} 차이가 있습니다 (F({main_effect['degreesOfFreedom'][0]},{main_effect['degreesOfFreedom'][1]}) = {main_effect['statistic']:.2f}, p = {main_effect['pValue']:.3f}, η²p = {main_effect['partialEtaSquared']:.3f}).",
@@ -1921,7 +1923,7 @@ def mixed_model(
     icc = random_var / total_var if total_var > 0 else 0
 
     # Marginal and Conditional R-squared (approximation)
-    y = df_clean[dependent_var].values
+    y = df_clean[dependentVar].values
     y_mean = np.mean(y)
     tss = np.sum((y - y_mean) ** 2)
     fitted = result.fittedvalues
@@ -2259,7 +2261,7 @@ def manova(
     }
 
 
-def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=0.5, sample_size=30, sides='two-sided'):
+def power_analysis(testType, analysisType, alpha=0.05, power=0.8, effectSize=0.5, sampleSize=30, sides='two-sided'):
     """
     Statistical power analysis using statsmodels.stats.power
 
@@ -2284,11 +2286,11 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
     warnings.filterwarnings('ignore')
 
     # Determine analysis object based on test type
-    if test_type in ['t-test', 't_test']:
+    if testType in ['t-test', 't_test']:
         power_obj = smp.TTestIndPower()
-    elif test_type == 'anova':
+    elif testType == 'anova':
         power_obj = smp.FTestAnovaPower()
-    elif test_type in ['correlation', 'regression']:
+    elif testType in ['correlation', 'regression']:
         power_obj = smp.FTestPower()
     else:
         # Default to t-test
@@ -2298,11 +2300,11 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
     alternative = 'two-sided' if sides == 'two-sided' else 'larger'
 
     # Perform analysis based on type
-    if analysis_type == 'a-priori':
+    if analysisType == 'a-priori':
         # Calculate required sample size
         try:
             calculated_sample = power_obj.solve_power(
-                effect_size=effect_size,
+                effectSize=effectSize,
                 alpha=alpha,
                 power=power,
                 alternative=alternative
@@ -2316,7 +2318,7 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
         for n in range(10, 120, 5):
             try:
                 p = power_obj.solve_power(
-                    effect_size=effect_size,
+                    effectSize=effectSize,
                     nobs=n,
                     alpha=alpha,
                     alternative=alternative
@@ -2329,12 +2331,12 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
                 pass
 
         return {
-            'testType': test_type,
-            'analysisType': analysis_type,
+            'testType': testType,
+            'analysisType': analysisType,
             'inputParameters': {
                 'alpha': float(alpha),
                 'power': float(power),
-                'effectSize': float(effect_size)
+                'effectSize': float(effectSize)
             },
             'results': {
                 'sampleSize': calculated_sample
@@ -2348,12 +2350,12 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
             'powerCurve': power_curve
         }
 
-    elif analysis_type == 'post-hoc':
+    elif analysisType == 'post-hoc':
         # Calculate achieved power
         try:
             calculated_power = power_obj.solve_power(
-                effect_size=effect_size,
-                nobs=sample_size,
+                effectSize=effectSize,
+                nobs=sampleSize,
                 alpha=alpha,
                 alternative=alternative
             )
@@ -2375,12 +2377,12 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
             ]
 
         return {
-            'testType': test_type,
-            'analysisType': analysis_type,
+            'testType': testType,
+            'analysisType': analysisType,
             'inputParameters': {
                 'alpha': float(alpha),
-                'effectSize': float(effect_size),
-                'sampleSize': int(sample_size)
+                'effectSize': float(effectSize),
+                'sampleSize': int(sampleSize)
             },
             'results': {
                 'power': calculated_power
@@ -2389,12 +2391,12 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
             'recommendations': recommendations
         }
 
-    elif analysis_type == 'compromise':
+    elif analysisType == 'compromise':
         # Find balance between power and sample size
         balanced_sample = 25
         try:
             balanced_power = power_obj.solve_power(
-                effect_size=effect_size,
+                effectSize=effectSize,
                 nobs=balanced_sample,
                 alpha=alpha,
                 alternative=alternative
@@ -2404,11 +2406,11 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
             balanced_power = 0.75
 
         return {
-            'testType': test_type,
-            'analysisType': analysis_type,
+            'testType': testType,
+            'analysisType': analysisType,
             'inputParameters': {
                 'alpha': float(alpha),
-                'effectSize': float(effect_size)
+                'effectSize': float(effectSize)
             },
             'results': {
                 'sampleSize': balanced_sample,
@@ -2422,11 +2424,11 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
             ]
         }
 
-    elif analysis_type == 'criterion':
+    elif analysisType == 'criterion':
         # Calculate minimum detectable effect size
         try:
             min_effect = power_obj.solve_power(
-                nobs=sample_size,
+                nobs=sampleSize,
                 alpha=alpha,
                 power=power,
                 alternative=alternative
@@ -2436,17 +2438,17 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
             min_effect = 0.5
 
         return {
-            'testType': test_type,
-            'analysisType': analysis_type,
+            'testType': testType,
+            'analysisType': analysisType,
             'inputParameters': {
                 'alpha': float(alpha),
                 'power': float(power),
-                'sampleSize': int(sample_size)
+                'sampleSize': int(sampleSize)
             },
             'results': {
                 'criticalEffect': min_effect
             },
-            'interpretation': f'Minimum detectable effect size is {min_effect:.3f} with {sample_size} samples',
+            'interpretation': f'Minimum detectable effect size is {min_effect:.3f} with {sampleSize} samples',
             'recommendations': [
                 'Compare this to expected effect size in your field',
                 'Smaller effect sizes require larger samples',
@@ -2455,4 +2457,4 @@ def power_analysis(test_type, analysis_type, alpha=0.05, power=0.8, effect_size=
         }
 
     else:
-        raise ValueError(f"Unknown analysis type: {analysis_type}")
+        raise ValueError(f"Unknown analysis type: {analysisType}")

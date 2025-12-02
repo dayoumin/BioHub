@@ -426,7 +426,7 @@ export const STATISTICAL_METHODS: Record<string, StatisticalMethodWithAliases> =
     id: 'power-analysis',
     name: 'Power Analysis',
     description: 'Sample size and power calculation',
-    category: 'advanced',
+    category: 'design',
     aliases: ['sample-size', 'statistical-power'],
   },
   'reliability': {

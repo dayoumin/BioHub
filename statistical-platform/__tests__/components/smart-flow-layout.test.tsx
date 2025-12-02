@@ -10,6 +10,7 @@
 
 import { describe, it, beforeEach, jest } from '@jest/globals'
 import { render, screen, fireEvent } from '@testing-library/react'
+import '@testing-library/jest-dom'
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
 
 // Mock TwoPanelLayout
@@ -231,25 +232,7 @@ describe('SmartFlowLayout', () => {
     })
   })
 
-  describe('하단 데이터 미리보기', () => {
-    it('bottomPreview가 제공되면 TwoPanelLayout에 전달되어야 함', () => {
-      const bottomPreview = {
-        data: [{ col1: 'value1', col2: 'value2' }],
-        fileName: 'test.csv',
-        maxRows: 100
-      }
-
-      render(
-        <SmartFlowLayout
-          {...defaultProps}
-          bottomPreview={bottomPreview}
-        />
-      )
-
-      // TwoPanelLayout이 렌더링되었는지 확인
-      expect(screen.getByTestId('two-panel-layout')).toBeInTheDocument()
-    })
-  })
+  // Note: bottomPreview prop이 SmartFlowLayoutProps에서 제거되어 테스트 삭제됨
 
   describe('접근성', () => {
     it('버튼에 아이콘과 텍스트가 모두 있어야 함', () => {

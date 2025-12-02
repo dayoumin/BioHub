@@ -155,24 +155,24 @@ def crosstab_analysis(
 
 
 def one_sample_proportion_test(
-    success_count: int,
-    total_count: int,
-    null_proportion: float = 0.5,
+    successCount: int,
+    totalCount: int,
+    nullProportion: float = 0.5,
     alternative: Literal['two-sided', 'less', 'greater'] = 'two-sided',
     alpha: float = 0.05
 ) -> Dict[str, Union[float, bool]]:
-    if total_count < 10:
+    if totalCount < 10:
         raise ValueError("Proportion test requires at least 10 observations")
 
-    if success_count < 0 or success_count > total_count:
-        raise ValueError(f"Invalid success_count: must be 0 <= {success_count} <= {total_count}")
+    if successCount < 0 or successCount > totalCount:
+        raise ValueError(f"Invalid successCount: must be 0 <= {successCount} <= {totalCount}")
 
-    sample_proportion = success_count / total_count
+    sample_proportion = successCount / totalCount
 
-    binom_result = binomtest(success_count, total_count, null_proportion, alternative=alternative)
+    binom_result = binomtest(successCount, totalCount, nullProportion, alternative=alternative)
     p_value_exact = binom_result.pvalue
 
-    z_statistic = (sample_proportion - null_proportion) / np.sqrt(null_proportion * (1 - null_proportion) / total_count)
+    z_statistic = (sample_proportion - nullProportion) / np.sqrt(nullProportion * (1 - nullProportion) / totalCount)
 
     if alternative == 'two-sided':
         p_value_approx = 2 * (1 - stats.norm.cdf(abs(z_statistic)))
@@ -183,7 +183,7 @@ def one_sample_proportion_test(
 
     return {
         'sampleProportion': float(sample_proportion),
-        'nullProportion': float(null_proportion),
+        'nullProportion': float(nullProportion),
         'zStatistic': float(z_statistic),
         'pValueExact': float(p_value_exact),
         'pValueApprox': float(p_value_approx),
@@ -192,26 +192,26 @@ def one_sample_proportion_test(
     }
 
 
-def cronbach_alpha(items_matrix: List[List[Union[float, int]]]) -> Dict[str, Union[float, int]]:
+def cronbach_alpha(itemsMatrix: List[List[Union[float, int]]]) -> Dict[str, Union[float, int]]:
     try:
         import pingouin as pg
         import pandas as pd
     except ImportError:
         raise ImportError("pingouin library is required for Cronbach's alpha. Install with: pip install pingouin")
 
-    items_matrix = np.array(items_matrix)
+    itemsMatrix = np.array(itemsMatrix)
 
-    if items_matrix.shape[0] < 2:
+    if itemsMatrix.shape[0] < 2:
         raise ValueError("Cronbach's alpha requires at least 2 respondents")
 
-    if items_matrix.shape[1] < 2:
+    if itemsMatrix.shape[1] < 2:
         raise ValueError("Cronbach's alpha requires at least 2 items")
 
-    n_items = items_matrix.shape[1]
-    n_respondents = items_matrix.shape[0]
+    n_items = itemsMatrix.shape[1]
+    n_respondents = itemsMatrix.shape[0]
 
     # Convert to DataFrame for pingouin
-    df = pd.DataFrame(items_matrix, columns=[f'item_{i}' for i in range(n_items)])
+    df = pd.DataFrame(itemsMatrix, columns=[f'item_{i}' for i in range(n_items)])
 
     # Use pingouin for Cronbach's alpha
     alpha_result = pg.cronbach_alpha(df)
@@ -384,7 +384,7 @@ def mann_kendall_test(data: List[Union[float, int]]) -> Dict[str, Union[str, flo
         'n': int(n)
     }
 
-def bonferroni_correction(p_values, alpha=0.05):
+def bonferroni_correction(pValues, alpha=0.05):
     """
     Bonferroni correction for multiple comparisons
 
@@ -397,16 +397,16 @@ def bonferroni_correction(p_values, alpha=0.05):
     """
     import numpy as np
 
-    if not p_values or len(p_values) == 0:
+    if not pValues or len(pValues) == 0:
         return {
-            'original_p_values': [],
-            'corrected_p_values': [],
-            'adjusted_alpha': float(alpha),
-            'n_comparisons': 0,
+            'originalPValues': [],
+            'correctedPValues': [],
+            'adjustedAlpha': float(alpha),
+            'nComparisons': 0,
             'significant': []
         }
 
-    p_arr = np.array(p_values)
+    p_arr = np.array(pValues)
     n = len(p_arr)
 
     # Bonferroni correction: multiply p-values by number of tests
@@ -416,14 +416,14 @@ def bonferroni_correction(p_values, alpha=0.05):
     adjusted_alpha = alpha / n
 
     return {
-        'original_p_values': [float(p) for p in p_values],
-        'corrected_p_values': [float(p) for p in corrected],
-        'adjusted_alpha': float(adjusted_alpha),
-        'n_comparisons': int(n),
+        'originalPValues': [float(p) for p in pValues],
+        'correctedPValues': [float(p) for p in corrected],
+        'adjustedAlpha': float(adjusted_alpha),
+        'nComparisons': int(n),
         'significant': [bool(p < adjusted_alpha) for p in p_arr]
     }
 
-def means_plot_data(data, dependent_var, factor_var):
+def means_plot_data(data, dependentVar, factorVar):
     """
     집단별 평균 플롯 데이터 생성
 
@@ -442,10 +442,10 @@ def means_plot_data(data, dependent_var, factor_var):
     df = pd.DataFrame(data)
 
     # 결측값 제거
-    df_clean = df[[dependent_var, factor_var]].dropna()
+    df_clean = df[[dependentVar, factorVar]].dropna()
 
     # 집단별 기술통계량 계산
-    groups = df_clean.groupby(factor_var)[dependent_var]
+    groups = df_clean.groupby(factorVar)[dependentVar]
 
     descriptives = {}
     plot_data = []

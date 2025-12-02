@@ -98,7 +98,7 @@ describe('SmartFlowPage Integration Tests', () => {
     reset: jest.fn(),
     navigateToStep: jest.fn(),
     canNavigateToStep: jest.fn().mockReturnValue(true),
-    loadHistoryFromDB: jest.fn().mockResolvedValue(undefined)
+    loadHistoryFromDB: jest.fn<() => Promise<void>>().mockResolvedValue(undefined)
   }
 
   beforeEach(() => {

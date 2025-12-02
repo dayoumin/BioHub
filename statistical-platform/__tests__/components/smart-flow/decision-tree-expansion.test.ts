@@ -6,7 +6,7 @@
  * - utility: power-analysis, reliability
  * - 기존 Purpose 확장: compare, distribution, prediction, timeseries
  */
-import { decide } from '@/components/smart-flow/steps/purpose/DecisionTree'
+import { decide, type DecisionPath } from '@/components/smart-flow/steps/purpose/DecisionTree'
 
 describe('DecisionTree - 확장된 Purpose', () => {
   // ============================================
@@ -368,15 +368,15 @@ describe('DecisionTree - 확장된 Purpose', () => {
 
 describe('DecisionTree - KOREAN_NAMES 검증', () => {
   it('모든 반환 메서드에 한글 이름이 있어야 함', () => {
-    const testCases = [
-      { purpose: 'compare' as const, answers: { group_count: '2', sample_type: 'independent', normality: 'yes', homogeneity: 'yes' } },
-      { purpose: 'multivariate' as const, answers: { goal: 'dimension_reduction' } },
-      { purpose: 'utility' as const, answers: { goal: 'reliability' } },
-      { purpose: 'distribution' as const, answers: { analysis_type: 'describe', variable_type: 'numeric' } },
-      { purpose: 'prediction' as const, answers: { outcome_type: 'continuous' } },
-      { purpose: 'timeseries' as const, answers: { goal: 'forecast' } },
-      { purpose: 'survival' as const, answers: { goal: 'curve' } },
-      { purpose: 'relationship' as const, answers: { relationship_type: 'correlation', variable_type: 'numeric', variable_count: '2' } },
+    const testCases: DecisionPath[] = [
+      { purpose: 'compare', answers: { group_count: '2', sample_type: 'independent', normality: 'yes', homogeneity: 'yes' } },
+      { purpose: 'multivariate', answers: { goal: 'dimension_reduction' } },
+      { purpose: 'utility', answers: { goal: 'reliability' } },
+      { purpose: 'distribution', answers: { analysis_type: 'describe', variable_type: 'numeric' } },
+      { purpose: 'prediction', answers: { outcome_type: 'continuous' } },
+      { purpose: 'timeseries', answers: { goal: 'forecast' } },
+      { purpose: 'survival', answers: { goal: 'curve' } },
+      { purpose: 'relationship', answers: { relationship_type: 'correlation', variable_type: 'numeric', variable_count: '2' } },
     ]
 
     for (const testCase of testCases) {

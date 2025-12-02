@@ -14,6 +14,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('p < 0.001 → "< 0.001" 포맷', () => {
       const results: AnalysisResult = {
         method: '독립표본 t-검정',
+        interpretation: 'Test interpretation',
         groupStats: [
           { name: 'A', mean: 10, std: 2, n: 30 },
           { name: 'B', mean: 15, std: 3, n: 30 }
@@ -32,6 +33,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('p = 0.023 → "0.023" 포맷 (3자리)', () => {
       const results: AnalysisResult = {
         method: '독립표본 t-검정',
+        interpretation: 'Test interpretation',
         groupStats: [
           { name: 'A', mean: 10, std: 2, n: 30 },
           { name: 'B', mean: 12, std: 3, n: 30 }
@@ -49,6 +51,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('p = 0.05678 → "0.057" 포맷 (반올림)', () => {
       const results: AnalysisResult = {
         method: '독립표본 t-검정',
+        interpretation: 'Test interpretation',
         groupStats: [
           { name: 'A', mean: 10, std: 2, n: 30 },
           { name: 'B', mean: 11, std: 3, n: 30 }
@@ -68,11 +71,10 @@ describe('Interpretation Engine Helper Functions', () => {
     it('R² = 0.456 → "45.6%" 포맷', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 2.5, std: 0.5, pValue: 0.001,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 1.2, std: 0.3, pValue: 0.001,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 2.5, stdError: 0.5, tValue: 5, pvalue: 0.001 },
+          { name: 'X', value: 1.2, stdError: 0.3, tValue: 4, pvalue: 0.001 }
         ],
         additional: {
           rSquared: 0.456
@@ -90,11 +92,10 @@ describe('Interpretation Engine Helper Functions', () => {
     it('R² = 0.789 → "78.9%" 포맷', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 2.5, std: 0.5, pValue: 0.001,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 1.2, std: 0.3, pValue: 0.001,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 2.5, stdError: 0.5, tValue: 5, pvalue: 0.001 },
+          { name: 'X', value: 1.2, stdError: 0.3, tValue: 4, pvalue: 0.001 }
         ],
         additional: {
           rSquared: 0.789
@@ -112,9 +113,10 @@ describe('Interpretation Engine Helper Functions', () => {
     it('r² (상관) = 0.64 → "64.0%" 포맷 (r=0.8)', () => {
       const results: AnalysisResult = {
         method: 'Pearson 상관분석',
+        interpretation: 'Test interpretation',
         statistic: 0.8,  // r = 0.8
-        pValue: 0.001,
-      interpretation: 'Test interpretation'}
+        pValue: 0.001
+      }
 
       const interpretation = getInterpretation(results, '관계')
 
@@ -128,6 +130,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('p = 0.049 → 유의함 (< 0.05)', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
+        interpretation: 'Test interpretation',
         pValue: 0.049,
         statistic: 5.2
       }
@@ -141,6 +144,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('p = 0.051 → 유의하지 않음 (>= 0.05)', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
+        interpretation: 'Test interpretation',
         pValue: 0.051,
         statistic: 3.8
       }
@@ -154,6 +158,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('p = 0.05 → 경계값은 유의하지 않음으로 처리', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
+        interpretation: 'Test interpretation',
         pValue: 0.05,
         statistic: 3.84
       }
@@ -170,6 +175,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('ANOVA: isSignificant + formatPValue 함께 사용', () => {
       const results: AnalysisResult = {
         method: '일원분산분석 (ANOVA)',
+        interpretation: 'Test interpretation',
         groupStats: [
           { name: 'A', mean: 10, std: 2, n: 30 },
           { name: 'B', mean: 15, std: 3, n: 30 },
@@ -209,6 +215,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('p = 0 → "< 0.001"로 표시', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
+        interpretation: 'Test interpretation',
         pValue: 0,
         statistic: 50
       }
@@ -222,6 +229,7 @@ describe('Interpretation Engine Helper Functions', () => {
     it('p = 1 → "1.000"로 표시', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
+        interpretation: 'Test interpretation',
         pValue: 1,
         statistic: 0
       }
@@ -235,11 +243,10 @@ describe('Interpretation Engine Helper Functions', () => {
     it('R² = 0 → "0.0%" 표시', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 5, std: 0.5, pValue: 0.001,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 0, std: 0.3, pValue: 0.5,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 5, stdError: 0.5, tValue: 10, pvalue: 0.001 },
+          { name: 'X', value: 0, stdError: 0.3, tValue: 0, pvalue: 0.5 }
         ],
         additional: {
           rSquared: 0
@@ -257,11 +264,10 @@ describe('Interpretation Engine Helper Functions', () => {
     it('R² = 1 → "100.0%" 표시', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 1, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 0, stdError: 0, tValue: 0, pvalue: 0 },
+          { name: 'X', value: 1, stdError: 0, tValue: Infinity, pvalue: 0 }
         ],
         additional: {
           rSquared: 1

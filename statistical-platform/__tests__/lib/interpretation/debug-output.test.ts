@@ -13,7 +13,7 @@ describe('Debug: 실제 출력 확인', () => {
       statistic: 15.3,
       pValue: 0.0001,
       interpretation: 'Test interpretation',
-      df: [2, 87],
+      df: 2,
       effectSize: { value: 0.15, type: 'Eta-squared' },
       groupStats: [
         { name: 'Group A', mean: 45, std: 8, n: 30 },
@@ -207,7 +207,7 @@ describe('Debug: 실제 출력 확인', () => {
       statistic: 1.8,
       pValue: 0.172,
       interpretation: 'Test interpretation',
-      df: [2, 87],
+      df: 2,
       effectSize: { value: 0.02, type: 'Eta-squared' },
       groupStats: [
         { name: 'Group A', mean: 50, std: 10, n: 30 },
@@ -228,10 +228,8 @@ describe('Debug: 실제 출력 확인', () => {
       interpretation: 'Test interpretation',
       additional: { rSquared: 0.75 },
       coefficients: [
-        { name: 'Intercept', value: 10.0, pValue: 0.001,
-      interpretation: 'Test interpretation'},
-        { name: 'X', value: 2.5, pValue: 0.001,
-      interpretation: 'Test interpretation'}
+        { name: 'Intercept', value: 10.0, stdError: 1.0, tValue: 10, pvalue: 0.001 },
+        { name: 'X', value: 2.5, stdError: 0.5, tValue: 5, pvalue: 0.001 }
       ]
     } as AnalysisResult, '예측')
 

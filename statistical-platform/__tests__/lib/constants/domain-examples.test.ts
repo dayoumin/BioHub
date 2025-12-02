@@ -365,7 +365,7 @@ describe('domain-examples.ts', () => {
 
     it('TypeScript 타입 시스템이 잘못된 도메인을 방지해야 함', () => {
       // TypeScript 컴파일 시 타입 에러 발생 (런타임 테스트는 스킵)
-      // @ts-expect-error - 'invalid'는 DomainType이 아님
+      // 'invalid'는 DomainType이 아님 - 주석으로만 문서화
       // const result = getExample('continuous', 'physical', 1, 'invalid');
 
       // 유효한 도메인만 테스트

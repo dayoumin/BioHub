@@ -13,7 +13,8 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
         pValue: NaN,
-        statistic: 0
+        statistic: 0,
+        interpretation: 'Test interpretation'
       }
 
       const interpretation = getInterpretation(results)
@@ -26,7 +27,8 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
         pValue: Infinity,
-        statistic: 0
+        statistic: 0,
+        interpretation: 'Test interpretation'
       }
 
       const interpretation = getInterpretation(results)
@@ -39,7 +41,8 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
         pValue: -Infinity,
-        statistic: 0
+        statistic: 0,
+        interpretation: 'Test interpretation'
       }
 
       const interpretation = getInterpretation(results)
@@ -52,7 +55,8 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
         pValue: -0.5,
-        statistic: 0
+        statistic: 0,
+        interpretation: 'Test interpretation'
       }
 
       const interpretation = getInterpretation(results)
@@ -65,7 +69,8 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
         pValue: 1.5,
-        statistic: 0
+        statistic: 0,
+        interpretation: 'Test interpretation'
       }
 
       const interpretation = getInterpretation(results)
@@ -78,7 +83,8 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
         pValue: 2,
-        statistic: 0
+        statistic: 0,
+        interpretation: 'Test interpretation'
       }
 
       const interpretation = getInterpretation(results)
@@ -92,11 +98,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('R² = NaN → "N/A" 표시', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 0, std: 0, pValue: 1,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 0, stdError: 0, tValue: 0, pvalue: 0 },
+          { name: 'X', value: 0, stdError: 0, tValue: 0, pvalue: 1 }
         ],
         additional: {
           rSquared: NaN
@@ -114,11 +119,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('R² = Infinity → "N/A" 표시', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 1, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 0, stdError: 0, tValue: 0, pvalue: 0 },
+          { name: 'X', value: 1, stdError: 0, tValue: 0, pvalue: 0 }
         ],
         additional: {
           rSquared: Infinity
@@ -136,11 +140,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('R² = -0.5 (음수) → "0.0%" 클램핑', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 0, std: 0, pValue: 1,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 0, stdError: 0, tValue: 0, pvalue: 0 },
+          { name: 'X', value: 0, stdError: 0, tValue: 0, pvalue: 1 }
         ],
         additional: {
           rSquared: -0.5
@@ -159,11 +162,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('R² = 1.5 (>1) → "100.0%" 클램핑', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 1, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 0, stdError: 0, tValue: 0, pvalue: 0 },
+          { name: 'X', value: 1, stdError: 0, tValue: 0, pvalue: 0 }
         ],
         additional: {
           rSquared: 1.5
@@ -214,9 +216,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('p = NaN + R² = NaN → 모두 "N/A"', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: NaN },
-          { variable: 'X', value: 0, std: 0, pValue: NaN }
+          { name: 'Intercept', value: 0, stdError: 0, tValue: 0, pvalue: NaN },
+          { name: 'X', value: 0, stdError: 0, tValue: 0, pvalue: NaN }
         ],
         additional: {
           rSquared: NaN
@@ -239,6 +242,7 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('ANOVA: 모든 평균이 NaN → null 반환', () => {
       const results: AnalysisResult = {
         method: '일원분산분석 (ANOVA)',
+        interpretation: 'Test interpretation',
         groupStats: [
           { name: 'A', mean: NaN, std: 2, n: 30 },
           { name: 'B', mean: NaN, std: 3, n: 30 },
@@ -257,6 +261,7 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('ANOVA: 일부 평균만 NaN → 유효한 평균만 사용', () => {
       const results: AnalysisResult = {
         method: '일원분산분석 (ANOVA)',
+        interpretation: 'Test interpretation',
         groupStats: [
           { name: 'A', mean: 10, std: 2, n: 30 },
           { name: 'B', mean: NaN, std: 3, n: 30 },  // NaN 제거됨
@@ -281,6 +286,7 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('p = 0.0000001 (매우 작은 값) → "< 0.001"', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
+        interpretation: 'Test interpretation',
         pValue: 0.0000001,
         statistic: 100
       }
@@ -294,6 +300,7 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('p = 0.9999999 (거의 1) → "1.000"', () => {
       const results: AnalysisResult = {
         method: 'Chi-Square',
+        interpretation: 'Test interpretation',
         pValue: 0.9999999,
         statistic: 0.001
       }
@@ -307,11 +314,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('R² = 0.0000001 (거의 0) → "0.0%"', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 5, std: 0.5, pValue: 0.001,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 0.001, std: 0.3, pValue: 0.5,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 5, stdError: 0.5, tValue: 10, pvalue: 0.001 },
+          { name: 'X', value: 0.001, stdError: 0.3, tValue: 0.003, pvalue: 0.5 }
         ],
         additional: {
           rSquared: 0.0000001
@@ -329,11 +335,10 @@ describe('Interpretation Engine Edge Cases (비정상 입력)', () => {
     it('R² = 0.9999999 (거의 1) → "100.0%"', () => {
       const results: AnalysisResult = {
         method: '선형 회귀',
+        interpretation: 'Test interpretation',
         coefficients: [
-          { variable: 'Intercept', value: 0, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'},
-          { variable: 'X', value: 1, std: 0, pValue: 0,
-      interpretation: 'Test interpretation'}
+          { name: 'Intercept', value: 0, stdError: 0, tValue: 0, pvalue: 0 },
+          { name: 'X', value: 1, stdError: 0, tValue: Infinity, pvalue: 0 }
         ],
         additional: {
           rSquared: 0.9999999
