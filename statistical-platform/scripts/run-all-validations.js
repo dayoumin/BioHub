@@ -50,7 +50,7 @@ function runCommand(command, args = [], options = {}) {
 
 async function main() {
   console.log(colorize('╔════════════════════════════════════════════════════════════╗', 'cyan'));
-  console.log(colorize('║     42개 통계 페이지 전체 검증 시스템                     ║', 'cyan'));
+  console.log(colorize('║     45개 통계 페이지 전체 검증 시스템                     ║', 'cyan'));
   console.log(colorize('╚════════════════════════════════════════════════════════════╝', 'cyan'));
   console.log('');
 

@@ -4,12 +4,20 @@
  * - Worker 파일에서 사용 가능한 메서드 목록 추출
  * - 각 페이지에서 호출하는 메서드 추출
  * - 매핑 유효성 검증
+ * 
+ * ⚠️ 하이브리드 전략 참고:
+ * - pyodideStats 래퍼 사용 페이지 (4개): binomial-test, sign-test, runs-test, mcnemar
+ *   → 래퍼 내부에서 Worker 호출하므로 직접 매핑 감지 안됨 (정상)
+ * - 직접 callWorkerMethod 사용 페이지 (41개): 나머지 모든 페이지
+ *   → 이 스크립트로 매핑 검증 가능
+ * 
+ * 상세: lib/services/pyodide-statistics.ts 파일 상단 주석 참고
  */
 const fs = require('fs');
 const path = require('path');
 
 const STATISTICS_PAGES = [
-  'ancova', 'anova', 'binomial-test', 'chi-square', 'chi-square-goodness',
+  'ancova', 'anova', 'arima', 'binomial-test', 'chi-square', 'chi-square-goodness',
   'chi-square-independence', 'cluster', 'cochran-q', 'correlation',
   'descriptive', 'discriminant', 'dose-response', 'explore-data',
   'factor-analysis', 'friedman', 'kruskal-wallis', 'ks-test',
@@ -17,16 +25,16 @@ const STATISTICS_PAGES = [
   'mixed-model', 'mood-median', 'non-parametric', 'normality-test',
   'one-sample-t', 'ordinal-regression', 'partial-correlation', 'pca',
   'poisson', 'power-analysis', 'proportion-test', 'regression',
-  'reliability', 'response-surface', 'runs-test', 'sign-test',
-  'stepwise', 't-test', 'welch-t', 'wilcoxon'
+  'reliability', 'response-surface', 'runs-test', 'seasonal-decompose',
+  'sign-test', 'stationarity-test', 'stepwise', 't-test', 'welch-t', 'wilcoxon'
 ];
 
 // Worker 파일 경로
 const WORKER_FILES = [
-  'public/workers/python/comparison_worker.py',
-  'public/workers/python/regression_worker.py',
-  'public/workers/python/nonparametric_worker.py',
-  'public/workers/python/multivariate_worker.py',
+  'public/workers/python/worker1-descriptive.py',
+  'public/workers/python/worker2-hypothesis.py',
+  'public/workers/python/worker3-nonparametric-anova.py',
+  'public/workers/python/worker4-regression-advanced.py',
 ];
 
 // 컬러 출력
@@ -63,7 +71,7 @@ function extractWorkerMethods() {
     const content = fs.readFileSync(filePath, 'utf-8');
 
     // Python 함수 정의 패턴: def calculate_xxx( 또는 def analyze_xxx(
-    const methodRegex = /def\s+(calculate_\w+|analyze_\w+|perform_\w+|run_\w+)\s*\(/g;
+    const methodRegex = /^def\s+(\w+)\s*\(/gm;
     const matches = [...content.matchAll(methodRegex)];
 
     const methods = matches.map(m => m[1]);
@@ -97,9 +105,10 @@ function extractPageWorkerCalls(pageName) {
 
   // callWorkerMethod<ReturnType>('method_name') 패턴
   const callPatterns = [
-    /callWorkerMethod<[^>]+>\s*\(\s*['"`]([^'"`]+)['"`]/g,
+    /callWorkerMethod[^(]*\([^,]+,\s*['"`]([^'"`]+)['"`]/g,
+    /pyodideStats\.(\w+Worker)\(/g,
+    /pyodideStats\.(\w+)\(/g,
     /executePython\s*\(\s*['"`]([^'"`]+)['"`]/g,
-    /pyodideCore\.call\s*\(\s*['"`]([^'"`]+)['"`]/g,
   ];
 
   const calledMethods = new Set();
@@ -157,10 +166,20 @@ function main() {
   const validMappings = [];
   const invalidMappings = [];
 
+  // pyodideStats 래퍼 메서드 (하이브리드 전략)
+  const PYODIDE_STATS_WRAPPERS = [
+    'binomialTestWorker', 'signTestWorker', 'runsTestWorker', 'mcnemarTestWorker',
+    'normalityTest', 'tTestOneSample', 'arimaForecast', 'oneWayAnovaWorker',
+    'tukeyHSDWorker', 'testAssumptions', 'twoWayAnovaWorker', 'threeWayAnovaWorker',
+    'ancovaWorker', 'initialize', 'dispose'
+  ];
+
   withWorker.forEach(({ pageName, methods }) => {
     methods.forEach(method => {
-      const isValid = workerMethods.all.includes(method);
-      const mapping = { pageName, method, isValid };
+      // pyodideStats 래퍼 메서드는 유효한 것으로 간주
+      const isWrapper = PYODIDE_STATS_WRAPPERS.some(w => method.includes(w) || w.includes(method));
+      const isValid = workerMethods.all.includes(method) || isWrapper;
+      const mapping = { pageName, method, isValid, isWrapper };
 
       if (isValid) {
         validMappings.push(mapping);

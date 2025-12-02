@@ -29,8 +29,16 @@ function createMockData(method: string, significant: boolean) {
     const statistic = randomStat(significant);
     const methodLower = method.toLowerCase();
 
-    // Base structure
-    const base = {
+    // Base structure with extended type for dynamic properties
+    const base: {
+        method: string;
+        statistic: number;
+        pValue: number;
+        groupStats: { name: string; mean: number; std: number; n: number }[];
+        additional: Record<string, unknown>;
+        coefficients?: { name: string; value: number; pvalue: number }[];
+        postHoc?: { comparison: string; pValue: number; significant: boolean }[];
+    } = {
         method,
         statistic,
         pValue,
@@ -38,7 +46,7 @@ function createMockData(method: string, significant: boolean) {
             { name: 'Group A', mean: 50, std: 10, n: 30 },
             { name: 'Group B', mean: significant ? 60 : 51, std: 10, n: 30 }
         ],
-        additional: {} as any
+        additional: {}
     };
 
     // Specific adjustments based on method type
