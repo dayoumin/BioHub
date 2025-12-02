@@ -104,6 +104,9 @@ actions.completeAnalysis(result, 3);
  * 골든 값 테스트 정보
  * Phase 2.5 구현 완료 (2025-12-02)
  * 다중 Python 라이브러리 지원 확장
+ *
+ * ⚠️ 주의: 이 숫자는 statistical-golden-values.json과 동기화 필요
+ * JSON 파일의 실제 테스트 케이스 수: 74개
  */
 export const GOLDEN_VALUES_TEST_INFO = {
   description: '5개 Python 라이브러리로 검증된 통계 계산 기대값',
@@ -124,34 +127,47 @@ export const GOLDEN_VALUES_TEST_INFO = {
     pyodideTest: 'npm run test:pyodide-golden',
   },
   statistics: {
-    total: 44,
+    // JSON 파일 기준 실제 테스트 케이스 수
+    totalTestCases: 74,
+    // Jest 스키마 검증 테스트 수 (카테고리별 검증)
+    jestSchemaTests: 44,
     passed: 44,
     failed: 0,
     skipped: 0,
   },
   categories: [
-    // SciPy (기본 통계)
-    { name: 'T-Test', tests: 4, status: 'passed', library: 'scipy' },
+    // SciPy (기본 통계) - 36 cases
+    { name: 'T-Test', tests: 7, status: 'passed', library: 'scipy' },
     { name: 'ANOVA', tests: 2, status: 'passed', library: 'scipy' },
-    { name: 'Correlation', tests: 2, status: 'passed', library: 'scipy' },
-    { name: 'Chi-Square', tests: 2, status: 'passed', library: 'scipy' },
-    { name: 'Non-Parametric', tests: 3, status: 'passed', library: 'scipy' },
+    { name: 'Correlation', tests: 5, status: 'passed', library: 'scipy' },
+    { name: 'Chi-Square', tests: 4, status: 'passed', library: 'scipy' },
+    { name: 'Non-Parametric', tests: 7, status: 'passed', library: 'scipy' },
     { name: 'Regression', tests: 2, status: 'passed', library: 'scipy' },
-    { name: 'Normality', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Normality', tests: 4, status: 'passed', library: 'scipy' },
     { name: 'Binomial', tests: 2, status: 'passed', library: 'scipy' },
-    { name: 'Sign Test', tests: 1, status: 'passed', library: 'scipy' },
+    { name: 'Sign Test', tests: 2, status: 'passed', library: 'scipy' },
     { name: 'Friedman', tests: 1, status: 'passed', library: 'scipy' },
-    // statsmodels (고급 회귀/시계열)
+    { name: 'Levene/Bartlett', tests: 3, status: 'passed', library: 'scipy' },
+    { name: 'Descriptive', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Variance Tests', tests: 2, status: 'passed', library: 'scipy' },
+    { name: 'Dose-Response', tests: 1, status: 'passed', library: 'scipy' },
+    // statsmodels (고급 회귀/시계열) - 15 cases
     { name: 'Advanced ANOVA', tests: 4, status: 'passed', library: 'statsmodels' },
     { name: 'Advanced Regression', tests: 4, status: 'passed', library: 'statsmodels' },
-    { name: 'Time Series', tests: 4, status: 'passed', library: 'statsmodels' },
-    // lifelines (생존분석)
+    { name: 'Time Series', tests: 5, status: 'passed', library: 'statsmodels' },
+    { name: 'Power Analysis', tests: 1, status: 'passed', library: 'statsmodels' },
+    { name: 'Response Surface', tests: 1, status: 'passed', library: 'statsmodels' },
+    // lifelines (생존분석) - 3 cases
     { name: 'Survival Analysis', tests: 3, status: 'passed', library: 'lifelines' },
-    // sklearn (다변량)
-    { name: 'Multivariate', tests: 4, status: 'passed', library: 'sklearn' },
-    // pingouin (효과크기)
+    // sklearn (다변량) - 5 cases
+    { name: 'Multivariate', tests: 5, status: 'passed', library: 'sklearn' },
+    // pingouin (효과크기) - 5 cases
     { name: 'Effect Size', tests: 3, status: 'passed', library: 'pingouin' },
     { name: 'Partial Correlation', tests: 1, status: 'passed', library: 'pingouin' },
+    { name: 'Reliability', tests: 1, status: 'passed', library: 'pingouin' },
+    // 기타 - 4 cases
+    { name: 'Proportion Test', tests: 1, status: 'passed', library: 'statsmodels' },
+    { name: 'McNemar Test', tests: 1, status: 'passed', library: 'scipy' },
   ],
 };
 
