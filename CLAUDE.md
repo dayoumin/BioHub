@@ -43,6 +43,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - 임의로 새 ID 생성 금지 → 기존 `aliases` 활용
    - **상세**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - Section 20
 
+5. ✅ **pyodideStats 래퍼 하이브리드 전략**:
+   - **래퍼 사용** (단순 페이지): binomial-test, sign-test, runs-test, mcnemar, 테스트 코드
+   - **직접 callWorkerMethod 사용** (복잡 페이지): anova, ancova, arima, 나머지 41개
+   - ❌ 무리한 래퍼 통합 금지 → 타입 불일치 시 이중 유지보수 발생
+   - **상세**: `lib/services/pyodide-statistics.ts` 파일 상단 주석
+
 **상세**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md) - Section 17-19
 
 ---
