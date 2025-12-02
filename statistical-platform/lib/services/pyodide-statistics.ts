@@ -2429,6 +2429,196 @@ export class PyodideStatisticsService {
     return this.repeatedMeasuresAnovaWorker(...args)
   }
 
+
+  // ========================================
+  // K-S 검정 (Kolmogorov-Smirnov Test)
+  // ========================================
+
+  /**
+   * K-S 일표본 검정 (정규성 검정) - Worker 1
+   */
+  async ksTestOneSample(data: number[], distribution: string = 'norm'): Promise<{
+    statisticKS: number
+    pValue: number
+    interpretation: string
+  }> {
+    return this.core.callWorkerMethod<{
+      statisticKS: number
+      pValue: number
+      interpretation: string
+    }>(
+      1,
+      'ks_test_one_sample',
+      { data, distribution },
+      { errorMessage: 'K-S one sample test 실행 실패' }
+    )
+  }
+
+  /**
+   * K-S 이표본 검정 - Worker 1
+   */
+  async ksTestTwoSample(data1: number[], data2: number[]): Promise<{
+    statisticKS: number
+    pValue: number
+    interpretation: string
+  }> {
+    return this.core.callWorkerMethod<{
+      statisticKS: number
+      pValue: number
+      interpretation: string
+    }>(
+      1,
+      'ks_test_two_sample',
+      { data1, data2 },
+      { errorMessage: 'K-S two sample test 실행 실패' }
+    )
+  }
+
+  // ========================================
+  // 판별분석 (Discriminant Analysis)
+  // ========================================
+
+  /**
+   * 선형 판별분석 (LDA) - Worker 4
+   */
+  async discriminantAnalysis(
+    dataMatrix: number[][],
+    groupLabels: (string | number)[]
+  ): Promise<{
+    coefficients: number[][]
+    eigenvalues: number[]
+    explainedVariance: number[]
+    accuracy: number
+    totalVariance: number
+    functions: Array<{ varianceExplained: number }>
+    predictions: (string | number)[]
+    confusionMatrix: number[][]
+    interpretation: string
+  }> {
+    return this.core.callWorkerMethod<{
+      coefficients: number[][]
+      eigenvalues: number[]
+      explainedVariance: number[]
+      accuracy: number
+      totalVariance: number
+      functions: Array<{ varianceExplained: number }>
+      predictions: (string | number)[]
+      confusionMatrix: number[][]
+      interpretation: string
+    }>(
+      4,
+      'discriminant_analysis',
+      { data_matrix: dataMatrix, group_labels: groupLabels },
+      { errorMessage: 'Discriminant analysis 실행 실패' }
+    )
+  }
+
+  // ========================================
+  // 생존 분석 (Survival Analysis)
+  // ========================================
+
+  /**
+   * Kaplan-Meier 생존 분석 - Worker 4
+   */
+  async kaplanMeierSurvival(
+    times: number[],
+    events: number[]
+  ): Promise<{
+    survivalFunction: number[]
+    times: number[]
+    events: number[]
+    nRisk: number[]
+    medianSurvival: number | null
+  }> {
+    return this.core.callWorkerMethod<{
+      survivalFunction: number[]
+      times: number[]
+      events: number[]
+      nRisk: number[]
+      medianSurvival: number | null
+    }>(
+      4,
+      'kaplan_meier_survival',
+      { times, events },
+      { errorMessage: 'Kaplan-Meier survival analysis 실행 실패' }
+    )
+  }
+
+  /**
+   * Cox 비례위험 회귀분석 - Worker 4
+   */
+  async coxRegression(
+    times: number[],
+    events: number[],
+    covariates: number[][],
+    covariateNames: string[]
+  ): Promise<{
+    coefficients: number[]
+    hazardRatios: number[]
+    pValues: number[]
+    confidenceIntervals: Array<{ lower: number; upper: number }>
+    concordance: number | null
+  }> {
+    return this.core.callWorkerMethod<{
+      coefficients: number[]
+      hazardRatios: number[]
+      pValues: number[]
+      confidenceIntervals: Array<{ lower: number; upper: number }>
+      concordance: number | null
+    }>(
+      4,
+      'cox_regression',
+      { times, events, covariates, covariate_names: covariateNames },
+      { errorMessage: 'Cox regression 실행 실패' }
+    )
+  }
+
+  // ========================================
+  // 검정력 분석 (Power Analysis)
+  // ========================================
+
+  /**
+   * 검정력 분석 - Worker 2
+   */
+  async powerAnalysis(
+    testType: 't-test' | 'anova' | 'correlation' | 'chi-square' | 'regression',
+    analysisType: 'a-priori' | 'post-hoc' | 'compromise' | 'criterion',
+    params: {
+      alpha: number
+      power: number
+      effectSize: number
+      sampleSize?: number
+      sides?: 'two-sided' | 'one-sided'
+    }
+  ): Promise<{
+    requiredSampleSize: number | null
+    achievedPower: number | null
+    effectSize: number
+    alpha: number
+    interpretation: string
+  }> {
+    return this.core.callWorkerMethod<{
+      requiredSampleSize: number | null
+      achievedPower: number | null
+      effectSize: number
+      alpha: number
+      interpretation: string
+    }>(
+      2,
+      'power_analysis',
+      {
+        test_type: testType,
+        analysis_type: analysisType,
+        alpha: params.alpha,
+        power: params.power,
+        effect_size: params.effectSize,
+        sample_size: params.sampleSize ?? 30,
+        sides: params.sides || 'two-sided'
+      },
+      { errorMessage: 'Power analysis 실행 실패' }
+    )
+  }
+
   isInitialized(): boolean {
     return this.core.isInitialized()
   }
