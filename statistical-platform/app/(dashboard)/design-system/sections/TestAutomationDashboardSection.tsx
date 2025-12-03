@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   CheckCircle2, XCircle, AlertCircle, Clock,
   ChevronDown, ChevronRight, Terminal, FileCode, FlaskConical,
@@ -234,6 +235,55 @@ const TEST_DATA_INFO = {
     'effectSizes (cohensD, etaSquared)',
     'descriptive (basic)'
   ]
+}
+
+// Playwright MCP Settings for Claude Code
+const PLAYWRIGHT_MCP_SETTINGS = {
+  description: 'Claude Code settings for Playwright auto-approval',
+  settingsPath: {
+    user: '~/.claude/settings.json',
+    project: '.claude/settings.json',
+    local: '.claude/settings.local.json'
+  },
+  tools: {
+    safe: [
+      { name: 'playwright_navigate', desc: 'URL navigation', risk: 'low' },
+      { name: 'playwright_screenshot', desc: 'Screen capture', risk: 'low' },
+      { name: 'playwright_click', desc: 'Element click', risk: 'low' },
+      { name: 'playwright_iframe_click', desc: 'Click in iframe', risk: 'low' },
+      { name: 'playwright_fill', desc: 'Form input', risk: 'medium' },
+      { name: 'playwright_select', desc: 'Select option', risk: 'low' },
+      { name: 'playwright_hover', desc: 'Hover element', risk: 'low' },
+      { name: 'playwright_console_logs', desc: 'View logs', risk: 'low' },
+      { name: 'playwright_close', desc: 'Close browser', risk: 'low' },
+      { name: 'playwright_expect_response', desc: 'Wait for response', risk: 'low' },
+      { name: 'playwright_assert_response', desc: 'Verify response', risk: 'low' },
+    ],
+    risky: [
+      { name: 'playwright_evaluate', desc: 'Execute arbitrary JS', risk: 'high' },
+      { name: 'playwright_get', desc: 'HTTP GET request', risk: 'medium' },
+      { name: 'playwright_post', desc: 'HTTP POST (data send)', risk: 'high' },
+      { name: 'playwright_put', desc: 'HTTP PUT (data modify)', risk: 'high' },
+      { name: 'playwright_patch', desc: 'HTTP PATCH (data modify)', risk: 'high' },
+      { name: 'playwright_delete', desc: 'HTTP DELETE (data delete)', risk: 'high' },
+      { name: 'playwright_custom_user_agent', desc: 'Spoof identity', risk: 'medium' },
+    ]
+  },
+  recommendedConfig: `{
+  "allowedTools": [
+    "mcp__playwright__playwright_navigate",
+    "mcp__playwright__playwright_screenshot",
+    "mcp__playwright__playwright_click",
+    "mcp__playwright__playwright_iframe_click",
+    "mcp__playwright__playwright_fill",
+    "mcp__playwright__playwright_select",
+    "mcp__playwright__playwright_hover",
+    "mcp__playwright__playwright_console_logs",
+    "mcp__playwright__playwright_close",
+    "mcp__playwright__playwright_expect_response",
+    "mcp__playwright__playwright_assert_response"
+  ]
+}`
 }
 
 // E2E Test scenarios for other AI assistants
@@ -857,68 +907,149 @@ export function TestAutomationDashboardSection() {
         </CardContent>
       </Card>
 
-      {/* E2E Test Guide */}
+      {/* E2E Test Guide with Tabs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Monitor className="w-5 h-5" />
-            E2E Test Scenarios (Phase 4)
+            E2E Test & Playwright Setup (Phase 4)
           </CardTitle>
           <CardDescription>
-            Browser-based test scenarios for Playwright or AI-assisted testing
+            Browser-based test scenarios and Claude Code MCP settings
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <SectionHeader
-              id="e2e-scenarios"
-              title="Planned E2E Test Scenarios"
-              icon={Monitor}
-              badge={<Badge variant="outline" className="text-gray-500">5 scenarios</Badge>}
-            />
+          <Tabs defaultValue="scenarios" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="scenarios">Test Scenarios</TabsTrigger>
+              <TabsTrigger value="settings">Claude Code Settings</TabsTrigger>
+            </TabsList>
 
-            {expandedSections.has('e2e-scenarios') && (
-              <div className="space-y-4 pl-4">
-                {E2E_TEST_SCENARIOS.scenarios.map((scenario) => (
-                  <div
-                    key={scenario.id}
-                    className="p-4 rounded-lg border"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{scenario.name}</h4>
-                      <Badge variant="outline" className="text-xs">{scenario.id}</Badge>
+            {/* Test Scenarios Tab */}
+            <TabsContent value="scenarios" className="space-y-4 mt-4">
+              {E2E_TEST_SCENARIOS.scenarios.map((scenario) => (
+                <div
+                  key={scenario.id}
+                  className="p-4 rounded-lg border"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">{scenario.name}</h4>
+                    <Badge variant="outline" className="text-xs">{scenario.id}</Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-sm text-muted-foreground">
+                      {scenario.steps.map((step, idx) => (
+                        <p key={idx} className="font-mono text-xs">{step}</p>
+                      ))}
                     </div>
-                    <div className="space-y-2">
-                      <div className="text-sm text-muted-foreground">
-                        {scenario.steps.map((step, idx) => (
-                          <p key={idx} className="font-mono text-xs">{step}</p>
-                        ))}
-                      </div>
-                      <div className="pt-2 border-t">
-                        <span className="text-xs font-medium text-green-600">Expected: </span>
-                        <span className="text-xs text-muted-foreground">{scenario.expectedResult}</span>
-                      </div>
+                    <div className="pt-2 border-t">
+                      <span className="text-xs font-medium text-green-600">Expected: </span>
+                      <span className="text-xs text-muted-foreground">{scenario.expectedResult}</span>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
 
-                {/* AI Testing Instructions */}
-                <div className="p-4 rounded-lg border bg-purple-50 dark:bg-purple-950/20">
-                  <h4 className="font-medium mb-2">AI-Assisted E2E Testing</h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    These scenarios can be executed by AI assistants with browser automation capabilities:
-                  </p>
-                  <div className="space-y-2 text-xs font-mono">
-                    <p>1. Open browser to http://localhost:3000</p>
-                    <p>2. Follow scenario steps sequentially</p>
-                    <p>3. Take screenshots at key steps</p>
-                    <p>4. Verify expected results</p>
-                    <p>5. Report pass/fail status</p>
+              {/* AI Testing Instructions */}
+              <div className="p-4 rounded-lg border bg-purple-50 dark:bg-purple-950/20">
+                <h4 className="font-medium mb-2">AI-Assisted E2E Testing</h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  These scenarios can be executed by AI assistants with browser automation capabilities:
+                </p>
+                <div className="space-y-2 text-xs font-mono">
+                  <p>1. Open browser to http://localhost:3000</p>
+                  <p>2. Follow scenario steps sequentially</p>
+                  <p>3. Take screenshots at key steps</p>
+                  <p>4. Verify expected results</p>
+                  <p>5. Report pass/fail status</p>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Claude Code Settings Tab */}
+            <TabsContent value="settings" className="space-y-4 mt-4">
+              {/* Settings File Locations */}
+              <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-950/20">
+                <h4 className="font-medium mb-3">Settings File Locations</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                  <div className="p-3 bg-white dark:bg-background rounded border">
+                    <div className="font-medium text-blue-600">User (PC-wide)</div>
+                    <code className="text-xs text-muted-foreground">~/.claude/settings.json</code>
+                    <p className="text-xs text-muted-foreground mt-1">All projects on this PC</p>
+                  </div>
+                  <div className="p-3 bg-white dark:bg-background rounded border">
+                    <div className="font-medium text-green-600">Project</div>
+                    <code className="text-xs text-muted-foreground">.claude/settings.json</code>
+                    <p className="text-xs text-muted-foreground mt-1">Git tracked, team shared</p>
+                  </div>
+                  <div className="p-3 bg-white dark:bg-background rounded border">
+                    <div className="font-medium text-purple-600">Local</div>
+                    <code className="text-xs text-muted-foreground">.claude/settings.local.json</code>
+                    <p className="text-xs text-muted-foreground mt-1">Git ignored, personal</p>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+
+              {/* Safe Tools */}
+              <div className="p-4 rounded-lg border bg-green-50 dark:bg-green-950/20">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  Safe Tools (Recommended)
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {PLAYWRIGHT_MCP_SETTINGS.tools.safe.map((tool) => (
+                    <div key={tool.name} className="flex items-center gap-2 p-2 bg-white dark:bg-background rounded border">
+                      <Badge variant="outline" className={cn(
+                        "text-xs",
+                        tool.risk === 'low' ? 'border-green-500 text-green-600' : 'border-yellow-500 text-yellow-600'
+                      )}>
+                        {tool.risk}
+                      </Badge>
+                      <div>
+                        <code className="text-xs font-mono">{tool.name}</code>
+                        <p className="text-xs text-muted-foreground">{tool.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Risky Tools */}
+              <div className="p-4 rounded-lg border bg-red-50 dark:bg-red-950/20">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                  Risky Tools (Use with Caution)
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {PLAYWRIGHT_MCP_SETTINGS.tools.risky.map((tool) => (
+                    <div key={tool.name} className="flex items-center gap-2 p-2 bg-white dark:bg-background rounded border">
+                      <Badge variant="outline" className={cn(
+                        "text-xs",
+                        tool.risk === 'high' ? 'border-red-500 text-red-600' : 'border-yellow-500 text-yellow-600'
+                      )}>
+                        {tool.risk}
+                      </Badge>
+                      <div>
+                        <code className="text-xs font-mono">{tool.name}</code>
+                        <p className="text-xs text-muted-foreground">{tool.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recommended Config */}
+              <div className="p-4 rounded-lg border">
+                <h4 className="font-medium mb-3">Recommended Configuration</h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Add to <code className="bg-muted px-1 py-0.5 rounded text-xs">~/.claude/settings.json</code> for auto-approval:
+                </p>
+                <pre className="p-4 rounded-lg bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto">
+                  {PLAYWRIGHT_MCP_SETTINGS.recommendedConfig}
+                </pre>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

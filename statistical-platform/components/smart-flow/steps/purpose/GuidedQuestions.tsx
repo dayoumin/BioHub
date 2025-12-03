@@ -112,8 +112,9 @@ export function GuidedQuestions({
         if (result) {
           onSetAutoAnswer(q.id, result)
 
-          // Auto-fill for high confidence
-          if (result.confidence === 'high' && !result.requiresConfirmation) {
+          // Auto-fill: high confidence 또는 medium confidence (requiresConfirmation 포함)
+          // requiresConfirmation이 true여도 초기 값을 설정하여 UI 진행이 가능하도록 함
+          if (result.confidence === 'high' || result.confidence === 'medium') {
             onAnswerQuestion(q.id, result.value)
           }
         }

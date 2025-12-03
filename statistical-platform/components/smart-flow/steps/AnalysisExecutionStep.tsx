@@ -90,9 +90,17 @@ export function AnalysisExecutionStep({
 
       // Stage 1: 환경 준비
       updateStage('prepare', 5)
-      addLog('통계 엔진을 불러오는 중... (3-5초 소요)')
-      await pyodideStats.initialize()
-      addLog('통계 엔진 준비 완료')
+
+      // Pyodide가 이미 초기화되어 있으면 빠르게 진행
+      const isAlreadyInitialized = pyodideStats.isInitialized()
+      if (isAlreadyInitialized) {
+        addLog('통계 엔진 준비 완료 (캐시됨)')
+        setProgress(15) // 빠르게 진행
+      } else {
+        addLog('통계 엔진을 불러오는 중... (3-5초 소요)')
+        await pyodideStats.initialize()
+        addLog('통계 엔진 준비 완료')
+      }
 
       if (isCancelled) return
 
