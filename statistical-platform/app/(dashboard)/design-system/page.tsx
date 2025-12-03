@@ -344,6 +344,29 @@ const COLOR_CATEGORIES = {
 }
 
 export default function ComponentsShowcasePage() {
+  // 개발 환경 전용 페이지 - Production에서는 접근 불가
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
+  if (!isDevelopment) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Development Only</CardTitle>
+            <CardDescription>
+              This page is only available in development mode.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <a href="/">Go to Home</a>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   // 상단 탭 상태
   const [activeTab, setActiveTab] = useState<TopTab>('design')
 

@@ -179,14 +179,20 @@ export class StatisticalExecutor {
 
   /**
    * 데이터 준비
-   * VariableMapping (dependentVar, independentVar, groupVar) 호환
+   * VariableMapping (dependentVar, independentVar, groupVar, variables) 호환
+   *
+   * 지원하는 변수 매핑 형식:
+   * - groupVar/group: 그룹 변수 (t-test, ANOVA)
+   * - dependentVar/dependent: 종속 변수
+   * - independentVar/independent: 독립 변수
+   * - variables: [var1, var2, ...] (PairedSelector, CorrelationSelector)
    */
   private prepareData(
     data: Array<Record<string, unknown>>,
     variables: Record<string, unknown>,
     method: StatisticalMethod
   ): Record<string, unknown> {
-    // VariableMapping 호환 - 두 가지 네이밍 컨벤션 지원
+    // VariableMapping 호환 - 여러 네이밍 컨벤션 지원
     const getDependent = (): string[] => {
       const dep = variables.dependent || variables.dependentVar
       if (!dep) return []
@@ -203,9 +209,17 @@ export class StatisticalExecutor {
       return (variables.group || variables.groupVar) as string | undefined
     }
 
+    // PairedSelector, CorrelationSelector에서 사용하는 variables 배열 지원
+    const getVariablesArray = (): string[] => {
+      const vars = variables.variables
+      if (!vars) return []
+      return Array.isArray(vars) ? vars as string[] : []
+    }
+
     const dependent = getDependent()
     const independent = getIndependent()
     const group = getGroup()
+    const variablesArray = getVariablesArray()
 
     // 변수 추출
     const prepared: Record<string, unknown> = {
@@ -229,6 +243,46 @@ export class StatisticalExecutor {
       arrays.independent = independent.map((col: string) =>
         data.map(row => Number(row[col])).filter(v => !isNaN(v))
       )
+    }
+
+    // variables 배열 처리 (PairedSelector, CorrelationSelector)
+    // dependent/independent가 없고 variables가 있으면 자동 변환
+    if (variablesArray.length > 0 && dependent.length === 0 && independent.length === 0) {
+      // 대응표본 검정 (paired-t, wilcoxon, mcnemar): variables[0] -> dependent, variables[1] -> independent
+      if (variablesArray.length === 2 && (method.id === 'paired-t' || method.id === 'paired-t-test' || method.id === 'wilcoxon' || method.id === 'wilcoxon-signed-rank' || method.id === 'sign-test' || method.id === 'mcnemar')) {
+        arrays.dependent = data.map(row =>
+          Number(row[variablesArray[0]])
+        ).filter(v => !isNaN(v))
+        arrays.independent = [data.map(row =>
+          Number(row[variablesArray[1]])
+        ).filter(v => !isNaN(v))]
+      }
+      // 상관분석 (correlation): 최소 2개 변수 필요
+      else if (method.category === 'correlation') {
+        if (variablesArray.length < 2) {
+          throw new Error('상관분석을 위해 최소 2개의 변수가 필요합니다')
+        }
+        arrays.independent = variablesArray.map((col: string) =>
+          data.map(row => Number(row[col])).filter(v => !isNaN(v))
+        )
+        // 첫 두 변수를 dependent/independent로도 설정 (executeCorrelation 호환)
+        arrays.dependent = data.map(row =>
+          Number(row[variablesArray[0]])
+        ).filter(v => !isNaN(v))
+      }
+      // 기타: 첫 변수를 dependent, 나머지를 independent로
+      else {
+        if (variablesArray.length >= 1) {
+          arrays.dependent = data.map(row =>
+            Number(row[variablesArray[0]])
+          ).filter(v => !isNaN(v))
+        }
+        if (variablesArray.length >= 2) {
+          arrays.independent = variablesArray.slice(1).map((col: string) =>
+            data.map(row => Number(row[col])).filter(v => !isNaN(v))
+          )
+        }
+      }
     }
 
     // 그룹변수로 데이터 분할
@@ -795,7 +849,8 @@ export class StatisticalExecutor {
 
     if (methodId === 'partial-correlation') {
       // 편상관분석: 공변량(통제변수) 처리
-      const covariates = data.arrays.covariates || []
+      // Note: prepareData에서 arrays.covariate로 저장됨 (covariates 아님)
+      const covariates = data.arrays.covariate || []
       const dataMatrix = [var1, var2, ...covariates]
       const controlIndices = covariates.length > 0
         ? Array.from({ length: covariates.length }, (_, i) => i + 2)
