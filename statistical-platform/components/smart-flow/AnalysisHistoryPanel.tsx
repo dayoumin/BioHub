@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { startNewAnalysis } from '@/lib/services/data-management'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import {
@@ -117,8 +118,14 @@ export function AnalysisHistoryPanel() {
     }
   }
 
-  const handleNewAnalysis = () => {
-    reset()
+  const handleNewAnalysis = async () => {
+    try {
+      await startNewAnalysis()
+    } catch (error) {
+      console.error('Failed to start new analysis:', error)
+      // Fallback to basic reset
+      reset()
+    }
   }
 
   if (analysisHistory.length === 0) {

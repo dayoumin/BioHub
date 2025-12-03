@@ -157,6 +157,8 @@ interface SmartFlowState {
   goToNextStep: () => void
   goToPreviousStep: () => void
   reset: () => void
+  /** Reset session data only (preserves analysisHistory) */
+  resetSession: () => void
 }
 
 const initialState = {
@@ -553,6 +555,30 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       },
       
       reset: () => set(initialState),
+
+      // Reset session data only - preserves analysisHistory for "새 분석 시작"
+      resetSession: () => set((state) => ({
+        currentStep: 1,
+        completedSteps: [],
+        uploadedFile: null,
+        uploadedData: null,
+        uploadedFileName: null,
+        dataCharacteristics: null,
+        validationResults: null,
+        assumptionResults: null,
+        dataSummary: null,
+        methodCompatibility: null,
+        analysisPurpose: '',
+        selectedMethod: null,
+        variableMapping: null,
+        detectedVariables: null,
+        results: null,
+        currentHistoryId: null,
+        isLoading: false,
+        error: null,
+        // Preserve history
+        analysisHistory: state.analysisHistory
+      })),
     }),
     {
       name: 'smart-flow-storage',

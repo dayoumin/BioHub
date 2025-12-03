@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { AnalysisResult } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { PDFReportService } from '@/lib/services/pdf-report-service'
+import { startNewAnalysis } from '@/lib/services/data-management'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
@@ -103,9 +104,18 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
     }
   }
 
-  const handleNewAnalysis = () => {
-    reset()
-    toast.info('새 분석을 시작합니다')
+  const handleNewAnalysis = async () => {
+    try {
+      await startNewAnalysis()
+      toast.info('새 분석을 시작합니다', {
+        description: '데이터와 캐시가 초기화되었습니다'
+      })
+    } catch (error) {
+      console.error('Failed to start new analysis:', error)
+      // Fallback to basic reset
+      reset()
+      toast.info('새 분석을 시작합니다')
+    }
   }
 
   const handleGeneratePDF = async () => {
