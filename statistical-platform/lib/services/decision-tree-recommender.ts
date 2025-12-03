@@ -30,6 +30,7 @@ import {
   getMethodByIdOrAlias
 } from '@/lib/constants/statistical-methods'
 import type { CompatibilityResult, DataSummary } from '@/lib/statistics/data-method-compatibility'
+import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatibility'
 
 // ============================================
 // 헬퍼: 공통 메서드 조회 + 한글 이름 오버라이드
@@ -946,9 +947,9 @@ export class DecisionTreeRecommender {
       return recommendation
     }
 
-    // 추천된 메서드의 호환성 확인
+    // 추천된 메서드의 호환성 확인 (ID 매핑 적용)
     const methodId = recommendation.method.id
-    const compatibility = compatibilityMap.get(methodId)
+    const compatibility = getCompatibilityForMethod(compatibilityMap, methodId)
 
     if (!compatibility) {
       return recommendation
@@ -967,7 +968,7 @@ export class DecisionTreeRecommender {
       if (compatibility.alternatives && compatibility.alternatives.length > 0) {
         const compatibleAlternatives = compatibility.alternatives
           .map(altId => {
-            const altCompat = compatibilityMap.get(altId)
+            const altCompat = getCompatibilityForMethod(compatibilityMap, altId)
             return altCompat && altCompat.status !== 'incompatible' ? altId : null
           })
           .filter((id): id is string => id !== null)

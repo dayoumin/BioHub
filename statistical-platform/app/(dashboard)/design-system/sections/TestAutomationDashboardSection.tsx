@@ -27,7 +27,7 @@ import {
   TestTube2, Monitor, Layers, ExternalLink, Calculator
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Database } from 'lucide-react'
+import { Database, FolderOpen } from 'lucide-react'
 
 // Test phase definitions
 interface TestPhase {
@@ -201,6 +201,117 @@ const COMPATIBILITY_COVERAGE = {
     status: 'complete',
     description: 'recommendWithCompatibility function'
   }
+}
+
+// Test data files info (2025-12-03)
+const TEST_DATA_INFO = {
+  location: 'test-data/',
+  datasets: {
+    'standard-datasets.ts': {
+      description: 'Iris, mtcars, Anscombe, ANOVA, paired, timeseries, etc.',
+      count: 9,
+      purpose: 'Standard statistical test datasets'
+    },
+    'r-reference-results.ts': {
+      description: 'R-calculated golden values for 18 test cases',
+      count: 18,
+      purpose: 'Reference values for accuracy verification'
+    },
+    'CSV files (28)': {
+      description: 'Korean-named sample datasets',
+      count: 28,
+      purpose: 'Real-world usage examples'
+    }
+  },
+  referenceResults: [
+    'tTest (oneSample, independent, paired, welch)',
+    'anova (oneWay, tukeyHSD)',
+    'correlation (pearson, spearman)',
+    'regression (simple)',
+    'normality (shapiroWilk, levene)',
+    'nonparametric (mannWhitneyU, wilcoxonSignedRank, kruskalWallis)',
+    'chiSquare (independence)',
+    'effectSizes (cohensD, etaSquared)',
+    'descriptive (basic)'
+  ]
+}
+
+// E2E Test scenarios for other AI assistants
+const E2E_TEST_SCENARIOS = {
+  description: 'Browser-based E2E test scenarios for Playwright',
+  status: 'planned',
+  scenarios: [
+    {
+      id: 'smart-flow-basic',
+      name: 'Smart Flow Basic Workflow',
+      steps: [
+        '1. Navigate to /smart-flow',
+        '2. Upload CSV file (test-data/t-test.csv)',
+        '3. Select analysis purpose: "Compare groups"',
+        '4. Verify compatible methods shown (t-test, Mann-Whitney)',
+        '5. Select t-test method',
+        '6. Configure variables (group, value)',
+        '7. Run analysis',
+        '8. Verify results display (p-value, effect size)'
+      ],
+      expectedResult: 'Analysis completes with valid statistics'
+    },
+    {
+      id: 'compatibility-filter',
+      name: 'Compatibility Filter Test',
+      steps: [
+        '1. Navigate to /smart-flow',
+        '2. Upload small sample CSV (n < 30)',
+        '3. Verify non-parametric methods highlighted',
+        '4. Upload normal distribution CSV',
+        '5. Verify parametric methods available'
+      ],
+      expectedResult: 'Methods filtered based on data characteristics'
+    },
+    {
+      id: 'statistics-page-direct',
+      name: 'Direct Statistics Page Access',
+      steps: [
+        '1. Navigate to /statistics/t-test',
+        '2. Upload test-data/t-test.csv',
+        '3. Select group variable',
+        '4. Select value variable',
+        '5. Click Analyze button',
+        '6. Verify results table appears',
+        '7. Verify interpretation text generated'
+      ],
+      expectedResult: 'Page renders results without errors'
+    },
+    {
+      id: 'anova-posthoc',
+      name: 'ANOVA with Post-hoc Tests',
+      steps: [
+        '1. Navigate to /statistics/anova',
+        '2. Upload test-data/anova data (3+ groups)',
+        '3. Run one-way ANOVA',
+        '4. Verify F-statistic and p-value',
+        '5. If significant, verify post-hoc options appear',
+        '6. Run Tukey HSD',
+        '7. Verify pairwise comparisons displayed'
+      ],
+      expectedResult: 'ANOVA + post-hoc results complete'
+    },
+    {
+      id: 'regression-analysis',
+      name: 'Regression Analysis Flow',
+      steps: [
+        '1. Navigate to /statistics/regression',
+        '2. Upload dataset with numeric variables',
+        '3. Select dependent variable (Y)',
+        '4. Select independent variable(s) (X)',
+        '5. Run regression',
+        '6. Verify coefficients table',
+        '7. Verify R-squared displayed',
+        '8. Verify scatter plot with regression line'
+      ],
+      expectedResult: 'Regression model with diagnostics'
+    }
+  ]
 }
 
 // All 48 statistics methods with their test coverage
@@ -614,7 +725,7 @@ export function TestAutomationDashboardSection() {
           <div className="space-y-4">
             <SectionHeader
               id="compatibility-tests"
-              title="Compatibility Test Coverage (67 tests total)"
+              title="Compatibility Test Coverage (83 tests total)"
               icon={Database}
               badge={<Badge className="bg-blue-500">NEW</Badge>}
             />
@@ -664,13 +775,145 @@ export function TestAutomationDashboardSection() {
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-3 h-3 text-green-500" />
                       <code>__tests__/lib/statistics/data-method-compatibility.test.ts</code>
-                      <Badge variant="outline">38 tests</Badge>
+                      <Badge variant="outline">83 tests</Badge>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-3 h-3 text-green-500" />
                       <code>__tests__/lib/services/decision-tree-recommender.test.ts</code>
                       <Badge variant="outline">29 tests</Badge>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+
+      {/* Test Data Files */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen className="w-5 h-5" />
+            Test Data Files
+          </CardTitle>
+          <CardDescription>
+            Standard datasets and R reference values for verification
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <SectionHeader
+              id="test-data"
+              title="test-data/ Directory"
+              icon={FolderOpen}
+              badge={<Badge variant="outline">55 files</Badge>}
+            />
+
+            {expandedSections.has('test-data') && (
+              <div className="space-y-4 pl-4">
+                {/* Dataset Files */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {Object.entries(TEST_DATA_INFO.datasets).map(([file, info]) => (
+                    <div
+                      key={file}
+                      className="p-3 rounded-lg border bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <FolderOpen className="w-4 h-4 text-amber-600" />
+                        <code className="text-xs font-mono font-medium">{file}</code>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{info.description}</p>
+                      <Badge variant="secondary" className="mt-2 text-xs">{info.count} items</Badge>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Reference Results */}
+                <div className="p-4 rounded-lg border bg-green-50 dark:bg-green-950/20">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    R Reference Results (Golden Values)
+                  </h4>
+                  <div className="flex flex-wrap gap-1">
+                    {TEST_DATA_INFO.referenceResults.map(item => (
+                      <Badge key={item} variant="outline" className="text-xs font-mono">
+                        {item}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* File Locations */}
+                <div className="p-3 bg-muted/50 rounded-lg font-mono text-xs">
+                  <p><span className="text-muted-foreground">Datasets:</span> test-data/datasets/standard-datasets.ts</p>
+                  <p><span className="text-muted-foreground">Golden Values:</span> test-data/reference-results/r-reference-results.ts</p>
+                  <p><span className="text-muted-foreground">R Script:</span> test-data/reference-results/generate-r-references.R</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* E2E Test Guide */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Monitor className="w-5 h-5" />
+            E2E Test Scenarios (Phase 4)
+          </CardTitle>
+          <CardDescription>
+            Browser-based test scenarios for Playwright or AI-assisted testing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <SectionHeader
+              id="e2e-scenarios"
+              title="Planned E2E Test Scenarios"
+              icon={Monitor}
+              badge={<Badge variant="outline" className="text-gray-500">5 scenarios</Badge>}
+            />
+
+            {expandedSections.has('e2e-scenarios') && (
+              <div className="space-y-4 pl-4">
+                {E2E_TEST_SCENARIOS.scenarios.map((scenario) => (
+                  <div
+                    key={scenario.id}
+                    className="p-4 rounded-lg border"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium">{scenario.name}</h4>
+                      <Badge variant="outline" className="text-xs">{scenario.id}</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        {scenario.steps.map((step, idx) => (
+                          <p key={idx} className="font-mono text-xs">{step}</p>
+                        ))}
+                      </div>
+                      <div className="pt-2 border-t">
+                        <span className="text-xs font-medium text-green-600">Expected: </span>
+                        <span className="text-xs text-muted-foreground">{scenario.expectedResult}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* AI Testing Instructions */}
+                <div className="p-4 rounded-lg border bg-purple-50 dark:bg-purple-950/20">
+                  <h4 className="font-medium mb-2">AI-Assisted E2E Testing</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    These scenarios can be executed by AI assistants with browser automation capabilities:
+                  </p>
+                  <div className="space-y-2 text-xs font-mono">
+                    <p>1. Open browser to http://localhost:3000</p>
+                    <p>2. Follow scenario steps sequentially</p>
+                    <p>3. Take screenshots at key steps</p>
+                    <p>4. Verify expected results</p>
+                    <p>5. Report pass/fail status</p>
                   </div>
                 </div>
               </div>

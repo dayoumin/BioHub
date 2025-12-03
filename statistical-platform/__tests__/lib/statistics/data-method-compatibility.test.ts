@@ -29,6 +29,12 @@ import {
 
 import { STATISTICAL_METHOD_REQUIREMENTS } from '@/lib/statistics/variable-requirements'
 
+import {
+  METHOD_ID_MAPPING,
+  resolveMethodId,
+  getCompatibilityForMethod
+} from '@/lib/statistics/data-method-compatibility'
+
 // ============================================================================
 // Test Fixtures
 // ============================================================================
@@ -1532,5 +1538,269 @@ describe('Edge Cases and Boundary Conditions', () => {
       // three-way-anova requires 3 factors - should pass with 5 factors
       expect(result.status).toBe('compatible')
     })
+  })
+})
+
+// ============================================================================
+// ID Mapping Layer Tests
+// ============================================================================
+
+describe('ID Mapping Layer', () => {
+  describe('METHOD_ID_MAPPING', () => {
+    it('should map UI method IDs to requirements IDs', () => {
+      // T-tests
+      expect(METHOD_ID_MAPPING['t-test']).toBe('two-sample-t')
+      expect(METHOD_ID_MAPPING['paired-t']).toBe('paired-t')
+
+      // ANOVA
+      expect(METHOD_ID_MAPPING['anova']).toBe('one-way-anova')
+
+      // Non-parametric
+      expect(METHOD_ID_MAPPING['wilcoxon']).toBe('wilcoxon-signed-rank')
+      expect(METHOD_ID_MAPPING['mann-whitney']).toBe('mann-whitney')
+
+      // Correlation
+      expect(METHOD_ID_MAPPING['correlation']).toBe('pearson-correlation')
+
+      // Chi-square
+      expect(METHOD_ID_MAPPING['chi-square']).toBe('chi-square-independence')
+
+      // Descriptive
+      expect(METHOD_ID_MAPPING['descriptive']).toBe('descriptive-stats')
+    })
+
+    it('should include all common UI method IDs', () => {
+      const commonUIIds = [
+        't-test', 'paired-t', 'welch-t', 'one-sample-t',
+        'anova', 'mann-whitney', 'wilcoxon', 'kruskal-wallis',
+        'correlation', 'regression', 'chi-square', 'descriptive'
+      ]
+
+      for (const id of commonUIIds) {
+        expect(METHOD_ID_MAPPING[id]).toBeDefined()
+      }
+    })
+  })
+
+  describe('resolveMethodId', () => {
+    it('should resolve mapped IDs', () => {
+      expect(resolveMethodId('t-test')).toBe('two-sample-t')
+      expect(resolveMethodId('anova')).toBe('one-way-anova')
+      expect(resolveMethodId('wilcoxon')).toBe('wilcoxon-signed-rank')
+    })
+
+    it('should return input for unmapped IDs (identity mapping)', () => {
+      expect(resolveMethodId('two-sample-t')).toBe('two-sample-t')
+      expect(resolveMethodId('some-unknown-id')).toBe('some-unknown-id')
+    })
+  })
+
+  describe('getCompatibilityForMethod', () => {
+    it('should find compatibility by UI method ID', () => {
+      const data = createDataSummary({
+        sampleSize: 50,
+        continuousCount: 1,
+        binaryCount: 1,
+        groupLevels: new Map([['group', 2]])
+      })
+
+      const map = getStructuralCompatibilityMap(data)
+
+      // Direct lookup by requirements ID should work
+      const directResult = map.get('two-sample-t')
+      expect(directResult).toBeDefined()
+
+      // Lookup by UI ID should also work via getCompatibilityForMethod
+      const uiResult = getCompatibilityForMethod(map, 't-test')
+      expect(uiResult).toBeDefined()
+      expect(uiResult?.methodId).toBe('two-sample-t')
+    })
+
+    it('should return undefined for non-existent methods', () => {
+      const data = createDataSummary()
+      const map = getStructuralCompatibilityMap(data)
+
+      const result = getCompatibilityForMethod(map, 'non-existent-method')
+      expect(result).toBeUndefined()
+    })
+
+    it('should resolve ANOVA compatibility correctly', () => {
+      const data = createDataSummary({
+        sampleSize: 50,
+        continuousCount: 1,
+        categoricalCount: 1,
+        groupLevels: new Map([['treatment', 4]])
+      })
+
+      const map = getStructuralCompatibilityMap(data)
+
+      // UI uses 'anova', requirements uses 'one-way-anova'
+      const result = getCompatibilityForMethod(map, 'anova')
+      expect(result).toBeDefined()
+      expect(result?.status).toBe('compatible')
+    })
+
+    it('should resolve Mann-Whitney compatibility correctly', () => {
+      const data = createDataSummary({
+        sampleSize: 30,
+        continuousCount: 1,
+        binaryCount: 1,
+        groupLevels: new Map([['group', 2]])
+      })
+
+      const map = getStructuralCompatibilityMap(data)
+
+      const result = getCompatibilityForMethod(map, 'mann-whitney')
+      expect(result).toBeDefined()
+      expect(result?.status).toBe('compatible')
+    })
+  })
+})
+
+// ============================================================================
+// extractDataSummary columns alias Tests
+// ============================================================================
+
+describe('extractDataSummary with columns alias', () => {
+  it('should work with columnStats property', () => {
+    const validationResults = {
+      totalRows: 50,
+      missingValues: 5,
+      columnStats: [
+        { name: 'weight', type: 'numeric' as const, uniqueValues: 45 },
+        { name: 'group', type: 'categorical' as const, uniqueValues: 2 }
+      ]
+    }
+
+    const summary = extractDataSummary(validationResults)
+
+    expect(summary.sampleSize).toBe(50)
+    expect(summary.continuousCount).toBe(1)
+    expect(summary.binaryCount).toBe(1)
+  })
+
+  it('should work with columns property (alias)', () => {
+    const validationResults = {
+      totalRows: 50,
+      missingValues: 5,
+      columns: [
+        { name: 'weight', type: 'numeric' as const, uniqueValues: 45 },
+        { name: 'group', type: 'categorical' as const, uniqueValues: 2 }
+      ]
+    }
+
+    const summary = extractDataSummary(validationResults)
+
+    expect(summary.sampleSize).toBe(50)
+    expect(summary.continuousCount).toBe(1)
+    expect(summary.binaryCount).toBe(1)
+  })
+
+  it('should prefer columnStats over columns when both exist', () => {
+    const validationResults = {
+      totalRows: 50,
+      missingValues: 5,
+      columnStats: [
+        { name: 'var1', type: 'numeric' as const, uniqueValues: 45 },
+        { name: 'var2', type: 'numeric' as const, uniqueValues: 40 }
+      ],
+      columns: [
+        { name: 'different', type: 'categorical' as const, uniqueValues: 3 }
+      ]
+    }
+
+    const summary = extractDataSummary(validationResults)
+
+    // Should use columnStats
+    expect(summary.continuousCount).toBe(2)
+    expect(summary.categoricalCount).toBe(0)
+  })
+
+  it('should handle empty columns gracefully', () => {
+    const validationResults = {
+      totalRows: 50,
+      missingValues: 0,
+      columns: []
+    }
+
+    const summary = extractDataSummary(validationResults)
+
+    expect(summary.sampleSize).toBe(50)
+    expect(summary.continuousCount).toBe(0)
+    expect(summary.categoricalCount).toBe(0)
+  })
+
+  it('should handle missing both columnStats and columns', () => {
+    const validationResults = {
+      totalRows: 50,
+      missingValues: 0
+    }
+
+    const summary = extractDataSummary(validationResults)
+
+    expect(summary.sampleSize).toBe(50)
+    expect(summary.continuousCount).toBe(0)
+    expect(summary.categoricalCount).toBe(0)
+  })
+})
+
+// ============================================================================
+// Integration: Decision Tree Recommender with Compatibility Map
+// ============================================================================
+
+describe('Integration: Recommendation with Compatibility Map', () => {
+  it('should correctly look up compatibility for recommended methods', () => {
+    // Simulates what happens in DecisionTreeRecommender.recommendWithCompatibility
+    const data = createDataSummary({
+      sampleSize: 50,
+      continuousCount: 1,
+      binaryCount: 1,
+      groupLevels: new Map([['group', 2]])
+    })
+
+    const map = getStructuralCompatibilityMap(data)
+
+    // Recommender returns method with UI ID like 't-test'
+    const recommendedMethodId = 't-test'
+
+    // Lookup should work with getCompatibilityForMethod
+    const compatibility = getCompatibilityForMethod(map, recommendedMethodId)
+
+    expect(compatibility).toBeDefined()
+    expect(compatibility?.status).toBe('compatible')
+  })
+
+  it('should detect incompatibility for recommended methods', () => {
+    const data = createDataSummary({
+      sampleSize: 50,
+      continuousCount: 0, // No continuous variables
+      categoricalCount: 2
+    })
+
+    const map = getStructuralCompatibilityMap(data)
+
+    // t-test recommended but data has no continuous variables
+    const compatibility = getCompatibilityForMethod(map, 't-test')
+
+    expect(compatibility).toBeDefined()
+    expect(compatibility?.status).toBe('incompatible')
+  })
+
+  it('should correctly handle alternative method lookups', () => {
+    const data = createDataSummary({
+      sampleSize: 30,
+      continuousCount: 1,
+      binaryCount: 1,
+      groupLevels: new Map([['group', 2]])
+    })
+
+    const map = getStructuralCompatibilityMap(data)
+
+    // Both t-test and mann-whitney should be found
+    const tTest = getCompatibilityForMethod(map, 't-test')
+    const mannWhitney = getCompatibilityForMethod(map, 'mann-whitney')
+
+    expect(tTest).toBeDefined()
+    expect(mannWhitney).toBeDefined()
   })
 })

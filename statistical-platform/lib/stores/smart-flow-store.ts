@@ -570,6 +570,19 @@ export const useSmartFlowStore = create<SmartFlowState>()(
             }
           }
         }
+
+        // Recalculate compatibility map if validationResults exists but methodCompatibility is null
+        if (state?.validationResults && !state.methodCompatibility) {
+          try {
+            const dataSummary = extractDataSummary(state.validationResults)
+            const compatibilityMap = getStructuralCompatibilityMap(dataSummary)
+            state.dataSummary = dataSummary
+            state.methodCompatibility = compatibilityMap
+            console.log('[Rehydrate] Recalculated compatibility map from validationResults')
+          } catch (error) {
+            console.error('[Rehydrate] Failed to recalculate compatibility:', error)
+          }
+        }
       },
       partialize: (state) => ({
         currentStep: state.currentStep,

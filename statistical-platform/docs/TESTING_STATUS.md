@@ -126,7 +126,7 @@ npm test -- __tests__/statistics/
 - ✅ `checkStructuralCompatibility` - 구조적 호환성 (Pyodide 불필요)
 - ✅ `mergeAssumptionResults` - 가정 결과 병합
 
-**테스트 파일**: `__tests__/lib/statistics/data-method-compatibility.test.ts` (38 tests)
+**테스트 파일**: `__tests__/lib/statistics/data-method-compatibility.test.ts` (83 tests)
 
 #### DecisionTree + Compatibility 통합
 - ✅ `recommendWithCompatibility` - 호환성 필터 적용 추천
@@ -140,7 +140,7 @@ npm test -- __tests__/statistics/
 - ✅ 데이터-메서드 호환성 레이어 추가 (53개 메서드 정의)
 - ✅ 구조적 호환성 체크 (Pyodide 없이 즉시 계산)
 - ✅ 가정 검정 결과 병합 기능
-- ✅ DecisionTree + Compatibility 통합 테스트 (67 tests)
+- ✅ DecisionTree + Compatibility 통합 테스트 (112 tests = 83 + 29)
 
 ### 2025-01-18
 - ✅ NIST 데이터셋 8개 추가 (기존 2개 → 10개)
@@ -171,5 +171,5 @@ npm test -- __tests__/statistics/
 ---
 
 **작성자**: Statistical Platform 개발팀
-**최종 업데이트**: 2025-11-27
+**최종 업데이트**: 2025-12-03
 **상태**: Production Ready ✅

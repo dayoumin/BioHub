@@ -19,6 +19,133 @@ import {
   STATISTICAL_METHOD_REQUIREMENTS
 } from './variable-requirements'
 
+
+// ============================================================================
+// ID Mapping Layer
+// ============================================================================
+
+/**
+ * Mapping from STATISTICAL_METHODS IDs (used in UI/recommendations)
+ * to STATISTICAL_METHOD_REQUIREMENTS IDs (used in compatibility checking)
+ *
+ * This resolves the mismatch between:
+ * - decision-tree-recommender.ts using createMethod('t-test')
+ * - variable-requirements.ts defining 'two-sample-t'
+ */
+export const METHOD_ID_MAPPING: Record<string, string> = {
+  // T-tests
+  't-test': 'two-sample-t',
+  'welch-t': 'welch-t',
+  'one-sample-t': 'one-sample-t',
+  'paired-t': 'paired-t',
+
+  // ANOVA
+  'anova': 'one-way-anova',
+  'welch-anova': 'one-way-anova', // Falls back to one-way
+  'repeated-measures-anova': 'repeated-measures-anova',
+  'ancova': 'ancova',
+  'manova': 'manova',
+  'mixed-model': 'mixed-model',
+
+  // Non-parametric
+  'mann-whitney': 'mann-whitney',
+  'wilcoxon': 'wilcoxon-signed-rank',
+  'kruskal-wallis': 'kruskal-wallis',
+  'friedman': 'friedman',
+  'sign-test': 'sign-test',
+  'mcnemar': 'mcnemar',
+  'cochran-q': 'cochran-q',
+  'binomial-test': 'binomial-test',
+  'runs-test': 'runs-test',
+  'ks-test': 'kolmogorov-smirnov',
+  'mood-median': 'mood-median',
+
+  // Correlation
+  'correlation': 'pearson-correlation', // Default to Pearson
+  'partial-correlation': 'partial-correlation',
+
+  // Regression
+  'regression': 'simple-regression', // Default to simple
+  'logistic-regression': 'logistic-regression',
+  'poisson': 'poisson-regression',
+  'ordinal-regression': 'ordinal-regression',
+  'stepwise': 'stepwise-regression',
+  'response-surface': 'response-surface',
+
+  // Chi-square
+  'chi-square': 'chi-square-independence',
+  'chi-square-goodness': 'chi-square-goodness',
+  'chi-square-independence': 'chi-square-independence',
+  'fisher-exact': 'fisher-exact',
+
+  // Descriptive
+  'descriptive': 'descriptive-stats',
+  'normality-test': 'explore-data',
+  'explore-data': 'explore-data',
+  'means-plot': 'means-plot',
+
+  // Time series
+  'arima': 'arima',
+  'seasonal-decompose': 'seasonal-decompose',
+  'stationarity-test': 'stationarity-test',
+  'mann-kendall': 'mann-kendall-test',
+
+  // Survival
+  'kaplan-meier': 'kaplan-meier',
+  'cox-regression': 'cox-regression',
+
+  // Multivariate
+  'pca': 'pca',
+  'factor-analysis': 'factor-analysis',
+  'cluster': 'cluster-analysis',
+  'discriminant': 'discriminant-analysis',
+
+  // Other
+  'reliability': 'reliability-analysis',
+  'frequency': 'frequency-table',
+  'crosstab': 'cross-tabulation',
+  'proportion-test': 'one-sample-proportion',
+  'power-analysis': 'one-sample-t', // Falls back to one-sample-t (no specific requirements)
+  'dose-response': 'simple-regression', // Falls back to regression
+  'non-parametric': 'mann-whitney', // Generic non-parametric falls back to Mann-Whitney
+
+  // Multi-way ANOVA (explicit mappings for clarity)
+  'two-way-anova': 'two-way-anova',
+  'three-way-anova': 'three-way-anova',
+
+  // Additional correlation types
+  'spearman': 'spearman-correlation',
+  'kendall': 'kendall-correlation',
+
+  // Multiple regression
+  'multiple-regression': 'multiple-regression',
+}
+
+/**
+ * Resolve a UI method ID to a requirements ID
+ * Returns the input if no mapping exists (identity mapping)
+ */
+export function resolveMethodId(uiMethodId: string): string {
+  return METHOD_ID_MAPPING[uiMethodId] ?? uiMethodId
+}
+
+/**
+ * Get compatibility result for a UI method ID
+ * Automatically resolves ID mapping
+ */
+export function getCompatibilityForMethod(
+  compatibilityMap: Map<string, CompatibilityResult>,
+  uiMethodId: string
+): CompatibilityResult | undefined {
+  // Try direct lookup first
+  const direct = compatibilityMap.get(uiMethodId)
+  if (direct) return direct
+
+  // Try mapped ID
+  const mappedId = resolveMethodId(uiMethodId)
+  return compatibilityMap.get(mappedId)
+}
+
 // ============================================================================
 // Type Definitions
 // ============================================================================
@@ -843,11 +970,19 @@ export function extractDataSummary(
       uniqueValues: number
       idDetection?: { isId: boolean }
     }>
+    // Support 'columns' alias used in some code paths
+    columns?: Array<{
+      name: string
+      type: 'numeric' | 'categorical' | 'mixed'
+      uniqueValues: number
+      idDetection?: { isId: boolean }
+    }>
   },
   pairedFlag = false,
   repeatedMeasures = false
 ): DataSummary {
-  const columns = validationResults.columnStats ?? []
+  // Support both columnStats and columns (backward compatibility)
+  const columns = validationResults.columnStats ?? validationResults.columns ?? []
 
   // Filter out ID columns
   const nonIdColumns = columns.filter(col => !col.idDetection?.isId)

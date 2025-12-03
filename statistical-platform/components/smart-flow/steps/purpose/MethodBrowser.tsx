@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import type { StatisticalMethod } from '@/types/smart-flow'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import type { CompatibilityResult, CompatibilityStatus } from '@/lib/statistics/data-method-compatibility'
+import { getCompatibilityForMethod } from '@/lib/statistics/data-method-compatibility'
 
 interface MethodGroup {
   category: string
@@ -97,7 +98,8 @@ export function MethodBrowser({
 
   // Get compatibility info for a method
   const getCompatibility = useCallback((methodId: string): CompatibilityResult | null => {
-    return methodCompatibility?.get(methodId) ?? null
+    if (!methodCompatibility) return null
+    return getCompatibilityForMethod(methodCompatibility, methodId) ?? null
   }, [methodCompatibility])
 
   // Expand all categories by default on mount or when methodGroups changes
