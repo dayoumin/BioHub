@@ -240,6 +240,70 @@ export interface StatisticalAssumptions {
       isIndependent: boolean
     }
   }
+  // 선형성 (회귀분석)
+  linearity?: {
+    passed: boolean
+    statistic?: number
+    pValue?: number
+    interpretation?: string
+  }
+  // 구형성 (반복측정 ANOVA)
+  sphericity?: {
+    mauchly?: {
+      statistic?: number
+      pValue?: number
+      passed: boolean
+    }
+    epsilonGG?: number // Greenhouse-Geisser epsilon
+    epsilonHF?: number // Huynh-Feldt epsilon
+  }
+  // 비례 오즈 가정 (순서형 로지스틱 회귀)
+  proportionalOdds?: {
+    brant?: {
+      statistic?: number
+      pValue?: number
+      passed: boolean
+    }
+  }
+  // 과분산 검정 (포아송/음이항 회귀)
+  overdispersion?: {
+    dispersionRatio?: number // variance/mean ratio
+    detected: boolean
+  }
+  // 비례위험 가정 (Cox 회귀)
+  proportionalHazards?: {
+    schoenfeld?: {
+      statistic?: number
+      pValue?: number
+      passed: boolean
+    }
+  }
+  // 정상성 (시계열)
+  stationarity?: {
+    adf?: {
+      statistic?: number
+      pValue?: number
+      isStationary: boolean
+    }
+    kpss?: {
+      statistic?: number
+      pValue?: number
+      isStationary: boolean
+    }
+  }
+  // 백색잡음 (시계열 잔차)
+  whiteNoise?: {
+    ljungBox?: {
+      statistic?: number
+      pValue?: number
+      isWhiteNoise: boolean
+    }
+  }
+  // 계절성 (시계열)
+  seasonality?: {
+    detected: boolean
+    period?: number
+  }
   summary?: StatisticalAssumptionsSummary
 }
 

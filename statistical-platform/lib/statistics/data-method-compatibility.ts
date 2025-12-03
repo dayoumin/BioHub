@@ -636,6 +636,62 @@ function checkAssumptions(
         // These are structural requirements, not testable assumptions
         // Already handled by variable type checks
         break
+
+      // ============================================================
+      // Structural assumptions - verified by data/variable type checks
+      // These are not statistically testable but validated elsewhere
+      // ============================================================
+
+      // Proportion test: np >= 5, n(1-p) >= 5
+      case 'np ≥ 5, n(1-p) ≥ 5':
+        // Structural: checked at analysis time with actual proportion
+        // Cannot pre-validate without knowing the hypothesized proportion
+        warnings.push('비율 검정 조건 확인 필요 (np ≥ 5, n(1-p) ≥ 5)')
+        break
+
+      // Spearman correlation: monotonicity
+      case '단조성':
+        // Structural: Spearman is robust to non-monotonic relationships
+        // Just gives lower correlation, not a hard violation
+        break
+
+      // Kolmogorov-Smirnov: continuous distribution
+      case '연속 분포':
+        // Structural: already validated by variable type check (continuous)
+        break
+
+      // McNemar test: paired samples, binary data
+      case '대응 표본':
+        // Structural: requires study design confirmation
+        warnings.push('대응 표본(짝지은 자료) 구조 확인 필요')
+        break
+
+      case '이진 자료':
+        // Structural: already validated by variable type check (binary)
+        break
+
+      // Factor analysis: adequate correlation, KMO
+      case '적절한 상관':
+        // Checked during analysis via correlation matrix inspection
+        warnings.push('변수 간 적절한 상관관계 확인 필요 (상관행렬 검토)')
+        break
+
+      case 'KMO > 0.5':
+        // Checked during factor analysis execution
+        warnings.push('KMO 표본 적절성 검정 필요 (KMO > 0.5)')
+        break
+
+      // Survival analysis: non-informative censoring
+      case '비정보적 중도절단':
+        // Structural: requires study design confirmation
+        // Cannot be tested statistically, assumption of study design
+        warnings.push('비정보적 중도절단 가정 확인 필요 (중도절단이 생존과 무관해야 함)')
+        break
+
+      default:
+        // Log unhandled assumptions for debugging
+        console.warn(`[checkAssumptions] Unhandled assumption: "${assumption}" for method`)
+        break
     }
   }
 
@@ -1044,22 +1100,23 @@ export function extractDataSummary(
 export function extractAssumptionResults(
   assumptions?: {
     normality?: {
-      shapiroWilk?: { pValue?: number; isNormal: boolean }
-      group1?: { isNormal: boolean }
-      group2?: { isNormal: boolean }
+      shapiroWilk?: { statistic?: number; pValue?: number; isNormal: boolean }
+      group1?: { statistic?: number; pValue?: number; isNormal: boolean }
+      group2?: { statistic?: number; pValue?: number; isNormal: boolean }
     }
     homogeneity?: {
-      levene?: { pValue?: number; equalVariance: boolean }
+      levene?: { statistic?: number; pValue?: number; equalVariance: boolean }
     }
     independence?: {
-      durbin?: { isIndependent: boolean }
+      durbin?: { statistic?: number; pValue?: number; isIndependent: boolean }
     }
     linearity?: {
-      isLinear: boolean
-      rSquared?: number
+      passed: boolean
+      statistic?: number
+      pValue?: number
     }
     sphericity?: {
-      mauchly?: { pValue?: number; isSpherical: boolean }
+      mauchly?: { statistic?: number; pValue?: number; passed: boolean }
     }
     expectedFrequency?: {
       allCellsValid: boolean
@@ -1071,21 +1128,21 @@ export function extractAssumptionResults(
     }
     // New assumption fields
     proportionalOdds?: {
-      brantTest?: { pValue?: number; isProportional: boolean }
+      brant?: { statistic?: number; pValue?: number; passed: boolean }
     }
     overdispersion?: {
-      ratio?: number
-      hasOverdispersion: boolean
+      dispersionRatio?: number
+      detected: boolean
     }
     proportionalHazards?: {
-      schoenfeld?: { pValue?: number; isProportional: boolean }
+      schoenfeld?: { statistic?: number; pValue?: number; passed: boolean }
     }
     stationarity?: {
-      adf?: { pValue?: number; isStationary: boolean }
-      kpss?: { pValue?: number; isStationary: boolean }
+      adf?: { statistic?: number; pValue?: number; isStationary: boolean }
+      kpss?: { statistic?: number; pValue?: number; isStationary: boolean }
     }
     whiteNoise?: {
-      ljungBox?: { pValue?: number; isWhiteNoise: boolean }
+      ljungBox?: { statistic?: number; pValue?: number; isWhiteNoise: boolean }
     }
     seasonality?: {
       detected: boolean
@@ -1129,13 +1186,13 @@ export function extractAssumptionResults(
   // Determine linearity (for regression)
   let linearity: boolean | 'unknown' = 'unknown'
   if (assumptions.linearity !== undefined) {
-    linearity = assumptions.linearity.isLinear
+    linearity = assumptions.linearity.passed
   }
 
   // Determine sphericity (for repeated measures)
   let sphericity: boolean | 'unknown' = 'unknown'
   if (assumptions.sphericity?.mauchly !== undefined) {
-    sphericity = assumptions.sphericity.mauchly.isSpherical
+    sphericity = assumptions.sphericity.mauchly.passed
   }
 
   // Determine expected frequency validity (for chi-square)
@@ -1152,20 +1209,20 @@ export function extractAssumptionResults(
 
   // Determine proportional odds (for ordinal regression)
   let proportionalOdds: boolean | 'unknown' = 'unknown'
-  if (assumptions.proportionalOdds?.brantTest !== undefined) {
-    proportionalOdds = assumptions.proportionalOdds.brantTest.isProportional
+  if (assumptions.proportionalOdds?.brant !== undefined) {
+    proportionalOdds = assumptions.proportionalOdds.brant.passed
   }
 
   // Determine overdispersion (for Poisson regression)
   let overdispersion: boolean | 'unknown' = 'unknown'
   if (assumptions.overdispersion !== undefined) {
-    overdispersion = !assumptions.overdispersion.hasOverdispersion
+    overdispersion = !assumptions.overdispersion.detected
   }
 
   // Determine proportional hazards (for Cox regression)
   let proportionalHazards: boolean | 'unknown' = 'unknown'
   if (assumptions.proportionalHazards?.schoenfeld !== undefined) {
-    proportionalHazards = assumptions.proportionalHazards.schoenfeld.isProportional
+    proportionalHazards = assumptions.proportionalHazards.schoenfeld.passed
   }
 
   // Determine stationarity (for time series)
@@ -1208,13 +1265,13 @@ export function extractAssumptionResults(
     details: {
       shapiroWilk: assumptions.normality?.shapiroWilk
         ? {
-            statistic: assumptions.normality.shapiroWilk.pValue ?? 0,
+            statistic: assumptions.normality.shapiroWilk.statistic ?? 0,
             pValue: assumptions.normality.shapiroWilk.pValue ?? 0
           }
         : undefined,
       levene: assumptions.homogeneity?.levene
         ? {
-            statistic: assumptions.homogeneity.levene.pValue ?? 0,
+            statistic: assumptions.homogeneity.levene.statistic ?? 0,
             pValue: assumptions.homogeneity.levene.pValue ?? 0
           }
         : undefined
