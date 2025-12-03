@@ -113,7 +113,34 @@ npm test -- __tests__/statistics/
 - **NIST Average**: 100% 통과
 - **NIST Higher**: 80% 통과 (극한값에서 정밀도 감소)
 
+
+### ⚠️ 새로 추가된 테스트 영역 (2025-12-03)
+
+#### 데이터-메서드 호환성 레이어 (NEW)
+- ✅ `checkMethodCompatibility` - 단일 메서드 호환성 체크
+- ✅ `filterCompatibleMethods` - 전체 메서드 필터링
+- ✅ `getCompatibleMethods` - 호환 메서드만 반환
+- ✅ `getCompatibilityMap` - 호환성 맵 생성
+- ✅ `extractDataSummary` - ValidationResults → DataSummary 변환
+- ✅ `extractAssumptionResults` - 가정 결과 추출
+- ✅ `checkStructuralCompatibility` - 구조적 호환성 (Pyodide 불필요)
+- ✅ `mergeAssumptionResults` - 가정 결과 병합
+
+**테스트 파일**: `__tests__/lib/statistics/data-method-compatibility.test.ts` (38 tests)
+
+#### DecisionTree + Compatibility 통합
+- ✅ `recommendWithCompatibility` - 호환성 필터 적용 추천
+- ✅ `getCompatibleMethods` - 호환 메서드 목록
+
+**테스트 파일**: `__tests__/lib/services/decision-tree-recommender.test.ts` (29 tests)
+
 ## 🔄 테스트 업데이트 이력
+
+### 2025-12-03
+- ✅ 데이터-메서드 호환성 레이어 추가 (53개 메서드 정의)
+- ✅ 구조적 호환성 체크 (Pyodide 없이 즉시 계산)
+- ✅ 가정 검정 결과 병합 기능
+- ✅ DecisionTree + Compatibility 통합 테스트 (67 tests)
 
 ### 2025-01-18
 - ✅ NIST 데이터셋 8개 추가 (기존 2개 → 10개)
@@ -135,7 +162,8 @@ npm test -- __tests__/statistics/
 
 ## 🚀 다음 단계
 
-1. **CI/CD 통합**: GitHub Actions에 테스트 자동화
+1. **호환성 레이어 E2E 테스트**: Smart Flow에서 실제 데이터로 검증
+2. **CI/CD 통합**: GitHub Actions에 테스트 자동화
 2. **성능 벤치마크**: 대용량 데이터 테스트
 3. **추가 NIST 데이터셋**: 비선형회귀 등 추가
 4. **사용자 가이드**: 일반 사용자용 문서 작성

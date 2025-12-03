@@ -227,6 +227,7 @@ export function PurposeInputStep({
   const assumptionResults = useSmartFlowStore(state => state.assumptionResults)
   const setSelectedMethod = useSmartFlowStore(state => state.setSelectedMethod)
   const setDetectedVariables = useSmartFlowStore(state => state.setDetectedVariables)
+  const methodCompatibility = useSmartFlowStore(state => state.methodCompatibility)
 
   // Data profile for MethodBrowser
   const dataProfile = useMemo(() => {
@@ -342,13 +343,14 @@ export function PurposeInputStep({
         setAiProgress(50)
       }
 
-      // Step 2: DecisionTree
+      // Step 2: DecisionTree with compatibility filtering
       setAiProgress(80)
-      const decisionTreeResult = DecisionTreeRecommender.recommend(
+      const decisionTreeResult = DecisionTreeRecommender.recommendWithCompatibility(
         purpose,
         assumptionResults,
         validationResults,
-        data
+        data,
+        methodCompatibility
       )
 
       setAiProgress(100)
@@ -366,7 +368,7 @@ export function PurposeInputStep({
       setIsAnalyzing(false)
       setAiProgress(0)
     }
-  }, [assumptionResults, validationResults, data, useOllamaForRecommendation])
+  }, [assumptionResults, validationResults, data, useOllamaForRecommendation, methodCompatibility])
 
   // Purpose selection handler
   const handlePurposeSelect = useCallback(async (purpose: AnalysisPurpose) => {

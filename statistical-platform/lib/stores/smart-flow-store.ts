@@ -9,6 +9,17 @@ import {
 } from '@/types/smart-flow'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 import { DataCharacteristics } from '@/lib/statistics/data-type-detector'
+import type {
+  CompatibilityResult,
+  DataSummary,
+  AssumptionResults
+} from '@/lib/statistics/data-method-compatibility'
+import {
+  extractDataSummary,
+  getStructuralCompatibilityMap,
+  mergeAssumptionResults,
+  extractAssumptionResults
+} from '@/lib/statistics/data-method-compatibility'
 import {
   saveHistory,
   getAllHistory,
@@ -86,6 +97,10 @@ interface SmartFlowState {
   // 통계적 가정 검정 결과 (새로 추가)
   assumptionResults: StatisticalAssumptions | null
 
+  // 데이터-방법 호환성 (NEW)
+  dataSummary: DataSummary | null
+  methodCompatibility: Map<string, CompatibilityResult> | null
+
   // 분석 설정
   analysisPurpose: string
   selectedMethod: StatisticalMethod | null
@@ -114,6 +129,9 @@ interface SmartFlowState {
   setDataCharacteristics: (characteristics: DataCharacteristics | null) => void
   setValidationResults: (results: ValidationResults | null) => void
   setAssumptionResults: (results: StatisticalAssumptions | null) => void
+  setDataSummary: (summary: DataSummary | null) => void
+  setMethodCompatibility: (compatibility: Map<string, CompatibilityResult> | null) => void
+  updateCompatibility: () => void  // Recalculate compatibility based on current data/assumptions
   setAnalysisPurpose: (purpose: string) => void
   setSelectedMethod: (method: StatisticalMethod | null) => void
   setVariableMapping: (mapping: VariableMapping | null) => void
@@ -150,6 +168,8 @@ const initialState = {
   dataCharacteristics: null,
   validationResults: null,
   assumptionResults: null,
+  dataSummary: null,
+  methodCompatibility: null,
   analysisPurpose: '',
   selectedMethod: null,
   variableMapping: null,
@@ -177,8 +197,73 @@ export const useSmartFlowStore = create<SmartFlowState>()(
       setUploadedData: (data) => set({ uploadedData: data }),
       setUploadedFileName: (name) => set({ uploadedFileName: name }),
       setDataCharacteristics: (characteristics) => set({ dataCharacteristics: characteristics }),
-      setValidationResults: (results) => set({ validationResults: results }),
-      setAssumptionResults: (results) => set({ assumptionResults: results }),
+      setValidationResults: (results) => {
+        // Clear compatibility when validation results change
+        if (!results) {
+          set({
+            validationResults: null,
+            dataSummary: null,
+            methodCompatibility: null,
+            assumptionResults: null
+          })
+          return
+        }
+
+        // Extract data summary and compute structural compatibility immediately
+        const dataSummary = extractDataSummary(results)
+        const structuralCompatibility = getStructuralCompatibilityMap(dataSummary)
+
+        set({
+          validationResults: results,
+          dataSummary,
+          methodCompatibility: structuralCompatibility,
+          // Clear assumption results when data changes (will be recalculated by Pyodide)
+          assumptionResults: null
+        })
+      },
+      setAssumptionResults: (results) => {
+        // When assumption results arrive, merge with existing structural compatibility
+        const state = get()
+        if (!results || !state.methodCompatibility || !state.dataSummary) {
+          set({ assumptionResults: results })
+          return
+        }
+
+        const assumptions = extractAssumptionResults(results)
+        const mergedCompatibility = mergeAssumptionResults(
+          state.methodCompatibility,
+          assumptions,
+          state.dataSummary
+        )
+
+        set({
+          assumptionResults: results,
+          methodCompatibility: mergedCompatibility
+        })
+      },
+      setDataSummary: (summary) => set({ dataSummary: summary }),
+      setMethodCompatibility: (compatibility) => set({ methodCompatibility: compatibility }),
+      updateCompatibility: () => {
+        // Recalculate compatibility based on current data/assumptions
+        // This is typically called after assumption tests complete
+        const state = get()
+        if (!state.validationResults) {
+          set({ dataSummary: null, methodCompatibility: null })
+          return
+        }
+
+        const dataSummary = extractDataSummary(state.validationResults)
+        const structuralMap = getStructuralCompatibilityMap(dataSummary)
+
+        // If we have assumption results, merge them
+        if (state.assumptionResults) {
+          const assumptions = extractAssumptionResults(state.assumptionResults)
+          const mergedMap = mergeAssumptionResults(structuralMap, assumptions, dataSummary)
+          set({ dataSummary, methodCompatibility: mergedMap })
+        } else {
+          set({ dataSummary, methodCompatibility: structuralMap })
+        }
+      },
       setAnalysisPurpose: (purpose) => set({ analysisPurpose: purpose }),
       setSelectedMethod: (method) => set({ selectedMethod: method }),
       setVariableMapping: (mapping) => set({ variableMapping: mapping }),

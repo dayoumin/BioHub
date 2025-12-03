@@ -541,6 +541,8 @@ export const DataExplorationStep = memo(function DataExplorationStep({
         // 언마운트 체크: isActive가 false면 상태 업데이트 스킵
         if (isActive && currentRunId === assumptionRunId.current) {
           setLocalAssumptionResults(assumptions)
+          // setAssumptionResults now automatically merges assumption results
+          // with structural compatibility (no need to call updateCompatibility separately)
           useSmartFlowStore.getState().setAssumptionResults(assumptions)
           logger.info('[DataExploration] 통계 가정 검정 완료', { summary: assumptions.summary })
         }

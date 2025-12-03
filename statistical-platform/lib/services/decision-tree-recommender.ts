@@ -29,6 +29,7 @@ import { KeywordBasedRecommender } from './keyword-based-recommender'
 import {
   getMethodByIdOrAlias
 } from '@/lib/constants/statistical-methods'
+import type { CompatibilityResult, DataSummary } from '@/lib/statistics/data-method-compatibility'
 
 // ============================================
 // 헬퍼: 공통 메서드 조회 + 한글 이름 오버라이드
@@ -910,5 +911,110 @@ export class DecisionTreeRecommender {
         recommendation.method.id
       )
     }
+  }
+
+  /**
+   * 호환성 필터가 적용된 추천
+   *
+   * @param purpose - 분석 목적
+   * @param assumptionResults - 가정 검정 결과
+   * @param validationResults - 데이터 검증 결과
+   * @param data - 데이터
+   * @param compatibilityMap - 호환성 맵 (from smart-flow-store)
+   * @param variableSelection - 변수 선택 (선택적)
+   * @returns 호환성이 적용된 AI 추천
+   */
+  static recommendWithCompatibility(
+    purpose: AnalysisPurpose,
+    assumptionResults: StatisticalAssumptions,
+    validationResults: ValidationResults,
+    data: DataRow[],
+    compatibilityMap: Map<string, CompatibilityResult> | null,
+    variableSelection?: VariableSelection
+  ): AIRecommendation & { compatibilityWarnings?: string[] } {
+    // 기본 추천 수행
+    const recommendation = this.recommend(
+      purpose,
+      assumptionResults,
+      validationResults,
+      data,
+      variableSelection
+    )
+
+    // 호환성 맵이 없으면 기본 추천 반환
+    if (!compatibilityMap) {
+      return recommendation
+    }
+
+    // 추천된 메서드의 호환성 확인
+    const methodId = recommendation.method.id
+    const compatibility = compatibilityMap.get(methodId)
+
+    if (!compatibility) {
+      return recommendation
+    }
+
+    // 호환성 경고/불가 정보 추가
+    const compatibilityWarnings: string[] = []
+
+    if (compatibility.status === 'incompatible') {
+      compatibilityWarnings.push(
+        `⚠ ${recommendation.method.name}은(는) 현재 데이터와 호환되지 않습니다.`
+      )
+      compatibilityWarnings.push(...compatibility.reasons)
+
+      // 대안 메서드 확인
+      if (compatibility.alternatives && compatibility.alternatives.length > 0) {
+        const compatibleAlternatives = compatibility.alternatives
+          .map(altId => {
+            const altCompat = compatibilityMap.get(altId)
+            return altCompat && altCompat.status !== 'incompatible' ? altId : null
+          })
+          .filter((id): id is string => id !== null)
+
+        if (compatibleAlternatives.length > 0) {
+          compatibilityWarnings.push(
+            `💡 대안: ${compatibleAlternatives.join(', ')}`
+          )
+        }
+      }
+    } else if (compatibility.status === 'warning') {
+      compatibilityWarnings.push(...compatibility.reasons)
+    }
+
+    // 추론 이유에 호환성 정보 추가
+    const enhancedReasoning = [
+      ...recommendation.reasoning,
+      ...compatibilityWarnings.map(w => `[호환성] ${w}`)
+    ]
+
+    return {
+      ...recommendation,
+      reasoning: enhancedReasoning,
+      compatibilityWarnings: compatibilityWarnings.length > 0 ? compatibilityWarnings : undefined
+    }
+  }
+
+  /**
+   * 호환되는 메서드만 필터링하여 대안 목록 반환
+   *
+   * @param compatibilityMap - 호환성 맵
+   * @param purpose - 분석 목적 (선택적 필터)
+   * @returns 호환되는 메서드 목록
+   */
+  static getCompatibleMethods(
+    compatibilityMap: Map<string, CompatibilityResult> | null,
+    purpose?: AnalysisPurpose
+  ): CompatibilityResult[] {
+    if (!compatibilityMap) return []
+
+    const compatible = Array.from(compatibilityMap.values())
+      .filter(r => r.status !== 'incompatible')
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+
+    // 목적별 필터링 (TODO: 메서드-목적 매핑 추가 시 구현)
+    void purpose // Reserved for future use
+
+    return compatible
   }
 }

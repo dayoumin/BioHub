@@ -1,14 +1,17 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Search, Check, Sparkles, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react'
+import { Search, Check, Sparkles, ChevronDown, ChevronRight, AlertCircle, AlertTriangle, Info } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { StatisticalMethod } from '@/types/smart-flow'
+import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import type { CompatibilityResult, CompatibilityStatus } from '@/lib/statistics/data-method-compatibility'
 
 interface MethodGroup {
   category: string
@@ -89,6 +92,14 @@ export function MethodBrowser({
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
+  // Get compatibility map from store
+  const methodCompatibility = useSmartFlowStore(state => state.methodCompatibility)
+
+  // Get compatibility info for a method
+  const getCompatibility = useCallback((methodId: string): CompatibilityResult | null => {
+    return methodCompatibility?.get(methodId) ?? null
+  }, [methodCompatibility])
+
   // Expand all categories by default on mount or when methodGroups changes
   useEffect(() => {
     const allCategories = new Set(methodGroups.map(g => g.category))
@@ -158,9 +169,25 @@ export function MethodBrowser({
   }, [])
 
   // Check if method can be used with current data
-  const checkRequirements = useCallback((method: StatisticalMethod): { canUse: boolean; warnings: string[] } => {
+  // Now uses compatibility layer from store
+  const checkRequirements = useCallback((method: StatisticalMethod): {
+    canUse: boolean
+    warnings: string[]
+    status: CompatibilityStatus
+  } => {
+    // Try to get from compatibility map first (more accurate)
+    const compat = getCompatibility(method.id)
+    if (compat) {
+      return {
+        canUse: compat.status !== 'incompatible',
+        warnings: compat.reasons,
+        status: compat.status
+      }
+    }
+
+    // Fallback to basic dataProfile check if compatibility not available
     if (!dataProfile || !method.requirements) {
-      return { canUse: true, warnings: [] }
+      return { canUse: true, warnings: [], status: 'compatible' }
     }
 
     const warnings: string[] = []
@@ -181,8 +208,12 @@ export function MethodBrowser({
       canUse = false
     }
 
-    return { canUse, warnings }
-  }, [dataProfile])
+    return {
+      canUse,
+      warnings,
+      status: canUse ? 'compatible' : 'incompatible'
+    }
+  }, [dataProfile, getCompatibility])
 
   // Total method count
   const totalMethods = useMemo(() =>
@@ -306,63 +337,126 @@ export function MethodBrowser({
 
               <CollapsibleContent>
                 <div className="pl-6 pt-2 space-y-1">
-                  {group.methods.map(method => {
-                    const isRecommended = method.id === recommendedMethodId
-                    const isSelected = selectedMethod?.id === method.id
-                    const requirements = checkRequirements(method)
+                  <TooltipProvider delayDuration={300}>
+                    {group.methods.map(method => {
+                      const isRecommended = method.id === recommendedMethodId
+                      const isSelected = selectedMethod?.id === method.id
+                      const requirements = checkRequirements(method)
 
-                    return (
-                      <button
-                        key={method.id}
-                        onClick={() => onMethodSelect(method)}
-                        disabled={!requirements.canUse}
-                        className={cn(
-                          "w-full text-left p-3 rounded-lg border transition-all",
-                          "hover:border-primary/50 hover:bg-accent/30",
-                          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
-                          isSelected && "border-primary bg-primary/5 ring-2 ring-primary/20",
-                          isRecommended && !isSelected && "border-amber-300 bg-amber-50/50 dark:bg-amber-950/20",
-                          !requirements.canUse && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className={cn(
-                                "font-medium text-sm",
-                                isSelected && "text-primary"
+                      // Determine status icon and colors
+                      const statusConfig = {
+                        compatible: {
+                          icon: null,
+                          badge: null,
+                          borderClass: ''
+                        },
+                        warning: {
+                          icon: <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />,
+                          badge: <Badge variant="outline" className="text-xs border-amber-300 text-amber-600 bg-amber-50 dark:bg-amber-950/30">주의</Badge>,
+                          borderClass: 'border-amber-200 dark:border-amber-800'
+                        },
+                        incompatible: {
+                          icon: <AlertCircle className="w-3.5 h-3.5 text-destructive" />,
+                          badge: <Badge variant="destructive" className="text-xs">불가</Badge>,
+                          borderClass: 'border-destructive/30'
+                        }
+                      }
+
+                      const config = statusConfig[requirements.status]
+                      const hasWarnings = requirements.warnings.length > 0
+
+                      const methodButton = (
+                        <button
+                          key={method.id}
+                          onClick={() => requirements.canUse && onMethodSelect(method)}
+                          disabled={!requirements.canUse}
+                          className={cn(
+                            "w-full text-left p-3 rounded-lg border transition-all",
+                            requirements.canUse && "hover:border-primary/50 hover:bg-accent/30",
+                            "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
+                            isSelected && "border-primary bg-primary/5 ring-2 ring-primary/20",
+                            isRecommended && !isSelected && requirements.canUse && "border-amber-300 bg-amber-50/50 dark:bg-amber-950/20",
+                            !requirements.canUse && "opacity-40 cursor-not-allowed bg-muted/30",
+                            config.borderClass
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {config.icon}
+                                <span className={cn(
+                                  "font-medium text-sm",
+                                  isSelected && "text-primary",
+                                  !requirements.canUse && "text-muted-foreground"
+                                )}>
+                                  {method.name}
+                                </span>
+                                {isRecommended && requirements.canUse && (
+                                  <Badge className="text-xs bg-amber-500 hover:bg-amber-600">
+                                    <Sparkles className="w-3 h-3 mr-1" />
+                                    AI
+                                  </Badge>
+                                )}
+                                {config.badge}
+                                {method.subcategory && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {method.subcategory}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className={cn(
+                                "text-xs mt-1 line-clamp-2",
+                                requirements.canUse ? "text-muted-foreground" : "text-muted-foreground/60"
                               )}>
-                                {method.name}
-                              </span>
-                              {isRecommended && (
-                                <Badge className="text-xs bg-amber-500 hover:bg-amber-600">
-                                  <Sparkles className="w-3 h-3 mr-1" />
-                                  AI
-                                </Badge>
-                              )}
-                              {method.subcategory && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {method.subcategory}
-                                </Badge>
+                                {method.description}
+                              </p>
+                              {/* Show first warning inline for quick info */}
+                              {hasWarnings && requirements.warnings.length <= 2 && (
+                                <div className={cn(
+                                  "flex items-center gap-1 mt-1.5 text-xs",
+                                  requirements.status === 'incompatible' ? "text-destructive" : "text-amber-600"
+                                )}>
+                                  <Info className="w-3 h-3 shrink-0" />
+                                  <span className="line-clamp-1">{requirements.warnings[0]}</span>
+                                </div>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                              {method.description}
-                            </p>
-                            {requirements.warnings.length > 0 && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-amber-600">
-                                <AlertCircle className="w-3 h-3" />
-                                <span>{requirements.warnings.join(', ')}</span>
-                              </div>
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-primary shrink-0" />
                             )}
                           </div>
-                          {isSelected && (
-                            <Check className="w-5 h-5 text-primary shrink-0" />
-                          )}
-                        </div>
-                      </button>
-                    )
-                  })}
+                        </button>
+                      )
+
+                      // Wrap with tooltip if there are warnings
+                      if (hasWarnings) {
+                        return (
+                          <Tooltip key={method.id}>
+                            <TooltipTrigger asChild>
+                              {methodButton}
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">
+                                  {requirements.status === 'incompatible' ? '사용 불가' : '주의 필요'}
+                                </p>
+                                <ul className="text-xs space-y-0.5">
+                                  {requirements.warnings.map((w, i) => (
+                                    <li key={i} className="flex items-start gap-1">
+                                      <span className="text-muted-foreground">•</span>
+                                      <span>{w}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        )
+                      }
+
+                      return methodButton
+                    })}
+                  </TooltipProvider>
                 </div>
               </CollapsibleContent>
             </Collapsible>

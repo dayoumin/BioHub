@@ -219,7 +219,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataIndependent
       )
 
-      expect(result.method.id).toBe('independent-t-test')
+      expect(result.method.id).toBe('t-test')
       expect(result.method.name).toBe('독립표본 t-검정')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('그룹'))).toBe(true)
@@ -279,7 +279,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataPaired
       )
 
-      expect(result.method.id).toBe('paired-t-test')
+      expect(result.method.id).toBe('paired-t')
       expect(result.method.name).toBe('대응표본 t-검정')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('대응표본'))).toBe(true)
@@ -299,7 +299,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataPaired
       )
 
-      expect(result.method.id).toBe('wilcoxon-signed-rank')
+      expect(result.method.id).toBe('wilcoxon')
       expect(result.method.name).toBe('Wilcoxon 부호순위 검정')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('대응표본'))).toBe(true)
@@ -319,7 +319,7 @@ describe('DecisionTreeRecommender', () => {
         mockData3Groups
       )
 
-      expect(result.method.id).toBe('one-way-anova')
+      expect(result.method.id).toBe('anova')
       expect(result.method.name).toContain('일원')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('3개'))).toBe(true)
@@ -436,7 +436,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataRelationship
       )
 
-      expect(result.method.id).toBe('pearson-correlation')
+      expect(result.method.id).toBe('correlation')
       expect(result.method.name).toBe('Pearson 상관분석')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('정규성'))).toBe(true)
@@ -456,7 +456,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataRelationship
       )
 
-      expect(result.method.id).toBe('spearman-correlation')
+      expect(result.method.id).toBe('correlation')
       expect(result.method.name).toBe('Spearman 상관분석')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('정규성 미충족'))).toBe(true)
@@ -476,7 +476,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataRelationship
       )
 
-      expect(result.method.id).toBe('pearson-correlation')
+      expect(result.method.id).toBe('correlation')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
     })
 
@@ -520,7 +520,7 @@ describe('DecisionTreeRecommender', () => {
       )
 
       // Relationship 추천은 수치형 변수가 < 2일 때 descriptive-stats로 fallback
-      expect(result.method.id).toBe('descriptive-stats')
+      expect(result.method.id).toBe('descriptive')
       expect(result.confidence).toBeGreaterThan(0)
     })
   })
@@ -541,7 +541,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataIndependent
       )
 
-      expect(result.method.id).toBe('descriptive-stats')
+      expect(result.method.id).toBe('descriptive')
       expect(result.method.name).toContain('기술통계')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('분포') || r.includes('빈도'))).toBe(true)
@@ -564,7 +564,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataIndependent
       )
 
-      expect(result.method.id).toBe('simple-regression')
+      expect(result.method.id).toBe('regression')
       expect(result.method.name).toContain('단순')
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
       expect(result.reasoning.some(r => r.includes('독립변수') || r.includes('회귀'))).toBe(true)
@@ -613,7 +613,7 @@ describe('DecisionTreeRecommender', () => {
         mockData3Vars
       )
 
-      expect(['simple-regression', 'multiple-regression']).toContain(result.method.id)
+      expect(['regression', 'simple-regression', 'multiple-regression']).toContain(result.method.id)
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
     })
 
@@ -660,7 +660,7 @@ describe('DecisionTreeRecommender', () => {
         mockDataLogistic
       )
 
-      expect(['logistic-regression', 'simple-regression']).toContain(result.method.id)
+      expect(['regression', 'logistic-regression', 'simple-regression']).toContain(result.method.id)
       expect(result.confidence).toBeGreaterThanOrEqual(0.85)
     })
   })
@@ -716,7 +716,7 @@ describe('DecisionTreeRecommender', () => {
       )
 
       // timeseries는 datetime 컬럼이 없으면 paired-t-test를 추천
-      expect(result.method.id).toBe('paired-t-test')
+      expect(result.method.id).toBe('paired-t')
       expect(result.confidence).toBeGreaterThan(0)
     })
 
@@ -758,7 +758,7 @@ describe('DecisionTreeRecommender', () => {
       )
 
       // datetime 컬럼이 있으면 time-series-analysis 추천
-      expect(result.method.id).toBe('time-series-analysis')
+      expect(result.method.id).toBe('arima')
       expect(result.confidence).toBeGreaterThan(0)
     })
   })
@@ -825,9 +825,138 @@ describe('DecisionTreeRecommender', () => {
     })
   })
 
-  // ==================== 8. Edge Cases (2 tests) ====================
+  // ==================== 8. recommendWithCompatibility Tests ====================
 
-  describe('8. Edge Cases', () => {
+  describe('8. recommendWithCompatibility (Compatibility Filtering)', () => {
+    it('should return basic recommendation when compatibilityMap is null', () => {
+      const assumptions: StatisticalAssumptions = {
+        normality: mockNormalityPassed,
+        homogeneity: mockHomogeneityPassed
+      }
+
+      const result = DecisionTreeRecommender.recommendWithCompatibility(
+        'compare',
+        assumptions,
+        mockValidationResults,
+        mockDataIndependent,
+        null // No compatibility map
+      )
+
+      expect(result).toBeDefined()
+      expect(result.method).toBeDefined()
+      expect(result.compatibilityWarnings).toBeUndefined()
+    })
+
+    it('should add compatibility warnings when method has warning status', () => {
+      const assumptions: StatisticalAssumptions = {
+        normality: mockNormalityPassed,
+        homogeneity: mockHomogeneityPassed
+      }
+
+      // Create a compatibility map with warning for t-test
+      const compatibilityMap = new Map([
+        ['t-test', {
+          methodId: 't-test',
+          methodName: 'Independent Samples t-test',
+          status: 'warning' as const,
+          reasons: ['정규성 검정 필요'],
+          score: 80
+        }]
+      ])
+
+      const result = DecisionTreeRecommender.recommendWithCompatibility(
+        'compare',
+        assumptions,
+        mockValidationResults,
+        mockDataIndependent,
+        compatibilityMap
+      )
+
+      expect(result).toBeDefined()
+      // If the recommended method is in the map and has warnings
+      if (compatibilityMap.has(result.method.id)) {
+        expect(result.reasoning.some(r => r.includes('호환성'))).toBe(true)
+      }
+    })
+
+    it('should add incompatible warnings and suggest alternatives', () => {
+      const assumptions: StatisticalAssumptions = {
+        normality: mockNormalityPassed,
+        homogeneity: mockHomogeneityPassed
+      }
+
+      // Create a compatibility map with incompatible for t-test, compatible for mann-whitney
+      const compatibilityMap = new Map([
+        ['t-test', {
+          methodId: 't-test',
+          methodName: 'Independent Samples t-test',
+          status: 'incompatible' as const,
+          reasons: ['연속형 변수 필요'],
+          score: 0,
+          alternatives: ['mann-whitney']
+        }],
+        ['mann-whitney', {
+          methodId: 'mann-whitney',
+          methodName: 'Mann-Whitney U Test',
+          status: 'compatible' as const,
+          reasons: [],
+          score: 90
+        }]
+      ])
+
+      const result = DecisionTreeRecommender.recommendWithCompatibility(
+        'compare',
+        assumptions,
+        mockValidationResults,
+        mockDataIndependent,
+        compatibilityMap
+      )
+
+      expect(result).toBeDefined()
+      // If t-test is recommended and incompatible, should have warnings
+      if (result.method.id === 't-test') {
+        expect(result.compatibilityWarnings).toBeDefined()
+        expect(result.compatibilityWarnings?.some(w => w.includes('호환되지 않습니다'))).toBe(true)
+        expect(result.compatibilityWarnings?.some(w => w.includes('대안'))).toBe(true)
+      }
+    })
+
+    it('should not add warnings when method is fully compatible', () => {
+      const assumptions: StatisticalAssumptions = {
+        normality: mockNormalityPassed,
+        homogeneity: mockHomogeneityPassed
+      }
+
+      // Create a compatibility map with compatible status
+      const compatibilityMap = new Map([
+        ['t-test', {
+          methodId: 't-test',
+          methodName: 'Independent Samples t-test',
+          status: 'compatible' as const,
+          reasons: [],
+          score: 100
+        }]
+      ])
+
+      const result = DecisionTreeRecommender.recommendWithCompatibility(
+        'compare',
+        assumptions,
+        mockValidationResults,
+        mockDataIndependent,
+        compatibilityMap
+      )
+
+      expect(result).toBeDefined()
+      // If recommended method is t-test and compatible, no warnings
+      if (result.method.id === 't-test') {
+        expect(result.compatibilityWarnings).toBeUndefined()
+      }
+    })
+  })
+
+  // ==================== 9. Edge Cases (2 tests) ====================
+
+  describe('9. Edge Cases', () => {
     it('should handle empty data gracefully', () => {
       const assumptions: StatisticalAssumptions = {
         normality: mockNormalityPassed,

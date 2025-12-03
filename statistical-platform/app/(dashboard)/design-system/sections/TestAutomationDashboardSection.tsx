@@ -27,6 +27,7 @@ import {
   TestTube2, Monitor, Layers, ExternalLink, Calculator
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Database } from 'lucide-react'
 
 // Test phase definitions
 interface TestPhase {
@@ -125,6 +126,17 @@ const TEST_PHASES: TestPhase[] = [
     status: 'planned',
     coverage: { total: 48, covered: 0 },
     color: 'bg-gray-400'
+  },
+  {
+    id: 'compatibility',
+    name: 'Phase 5: Compatibility Layer',
+    description: 'Data-method compatibility filtering (53 methods)',
+    icon: Database,
+    tool: 'Jest + Compatibility Engine',
+    command: 'npm test -- data-method-compatibility',
+    status: 'complete',
+    coverage: { total: 53, covered: 53 },
+    color: 'bg-blue-500'
   }
 ]
 
@@ -159,6 +171,36 @@ const GOLDEN_VALUES_COVERAGE = {
   // === Additional ===
   'Dose-Response (SciPy)': { methods: ['dose-response'], tests: 1, status: 'complete', library: 'scipy' },
   'Response Surface (statsmodels)': { methods: ['response-surface'], tests: 1, status: 'complete', library: 'statsmodels' }
+}
+
+
+// Data-Method Compatibility test coverage (2025-12-03)
+const COMPATIBILITY_COVERAGE = {
+  'Variable Requirements': { 
+    tests: 12, 
+    status: 'complete',
+    description: 'Variable type/count validation for each method'
+  },
+  'Sample Size Checks': { 
+    tests: 5, 
+    status: 'complete',
+    description: 'Minimum sample size requirements'
+  },
+  'Group Structure': { 
+    tests: 8, 
+    status: 'complete',
+    description: 'Factor levels, paired design detection'
+  },
+  'Assumption Tests': { 
+    tests: 15, 
+    status: 'complete',
+    description: 'Normality, homogeneity, linearity, etc.'
+  },
+  'DecisionTree Integration': { 
+    tests: 8, 
+    status: 'complete',
+    description: 'recommendWithCompatibility function'
+  }
 }
 
 // All 48 statistics methods with their test coverage
@@ -318,7 +360,7 @@ export function TestAutomationDashboardSection() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Test Phases</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">6</div>
+            <div className="text-3xl font-bold">7</div>
             <p className="text-xs text-muted-foreground">Testing stages</p>
           </CardContent>
         </Card>
@@ -346,6 +388,18 @@ export function TestAutomationDashboardSection() {
               <span className="text-3xl font-bold text-gray-400">0</span>
             </div>
             <p className="text-xs text-muted-foreground">Playwright (planned)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Compatibility</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-6 h-6 text-blue-500" />
+              <span className="text-3xl font-bold text-blue-600">53</span>
+            </div>
+            <p className="text-xs text-muted-foreground">Methods filtered</p>
           </CardContent>
         </Card>
       </div>
@@ -536,6 +590,87 @@ export function TestAutomationDashboardSection() {
                           {m.id}
                         </Badge>
                       ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+
+      {/* Compatibility Layer Tests */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="w-5 h-5" />
+            Data-Method Compatibility (Phase 5)
+          </CardTitle>
+          <CardDescription>
+            Pre-filters 53 statistical methods based on data characteristics
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <SectionHeader
+              id="compatibility-tests"
+              title="Compatibility Test Coverage (67 tests total)"
+              icon={Database}
+              badge={<Badge className="bg-blue-500">NEW</Badge>}
+            />
+
+            {expandedSections.has('compatibility-tests') && (
+              <div className="space-y-4 pl-4">
+                {/* Architecture */}
+                <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-950/20">
+                  <h4 className="font-medium mb-2">2-Stage Compatibility Check</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div className="p-3 bg-white dark:bg-background rounded border">
+                      <div className="font-medium text-blue-600">Stage 1: Structural</div>
+                      <p className="text-xs text-muted-foreground">Variable types, sample size, group structure</p>
+                      <Badge variant="outline" className="mt-1 text-xs">Instant (no Pyodide)</Badge>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-background rounded border">
+                      <div className="font-medium text-purple-600">Stage 2: Assumptions</div>
+                      <p className="text-xs text-muted-foreground">Normality, homogeneity, linearity</p>
+                      <Badge variant="outline" className="mt-1 text-xs">After Pyodide tests</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Test Categories */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {Object.entries(COMPATIBILITY_COVERAGE).map(([category, data]) => (
+                    <div
+                      key={category}
+                      className="p-3 rounded-lg border bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <span className="font-medium">{category}</span>
+                        </div>
+                        <Badge variant="secondary">{data.tests} tests</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{data.description}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Test Files */}
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <h5 className="text-sm font-medium mb-2">Test Files</h5>
+                  <div className="space-y-1 font-mono text-xs">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3 h-3 text-green-500" />
+                      <code>__tests__/lib/statistics/data-method-compatibility.test.ts</code>
+                      <Badge variant="outline">38 tests</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3 h-3 text-green-500" />
+                      <code>__tests__/lib/services/decision-tree-recommender.test.ts</code>
+                      <Badge variant="outline">29 tests</Badge>
+                    </div>
                   </div>
                 </div>
               </div>
