@@ -217,7 +217,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Please upload data first.
+          먼저 데이터를 업로드해주세요.
         </AlertDescription>
       </Alert>
     )
@@ -238,8 +238,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <TwoWayAnovaSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="Two-way ANOVA Variable Selection"
-            description="Select 2 categorical factors and 1 numeric dependent variable"
+            title="이원분산분석 변수 선택"
+            description="2개의 범주형 요인과 1개의 수치형 종속변수를 선택하세요"
           />
         )
 
@@ -248,8 +248,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <CorrelationSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="Correlation Variable Selection"
-            description="Select 2 or more numeric variables for correlation analysis"
+            title="상관분석 변수 선택"
+            description="상관분석을 위해 2개 이상의 수치형 변수를 선택하세요"
             minVariables={2}
             maxVariables={10}
           />
@@ -260,11 +260,11 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <PairedSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="Paired Samples Selection"
-            description="Select two related measurements to compare"
+            title="대응표본 선택"
+            description="비교할 두 개의 관련 측정값을 선택하세요"
             labels={{
-              first: 'Time 1 / Before',
-              second: 'Time 2 / After'
+              first: '시점 1 / 사전',
+              second: '시점 2 / 사후'
             }}
           />
         )
@@ -274,8 +274,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <MultipleRegressionSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="Multiple Regression Variables"
-            description="Select dependent (Y) and multiple independent (X) variables"
+            title="다중회귀분석 변수 선택"
+            description="종속변수(Y)와 여러 독립변수(X)를 선택하세요"
             minIndependent={2}
             maxIndependent={10}
           />
@@ -286,8 +286,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
           <GroupComparisonSelector
             {...commonProps}
             onComplete={handleComplete}
-            title="Group Comparison Variables"
-            description="Select a group variable and a dependent variable"
+            title="집단비교 변수 선택"
+            description="집단변수와 종속변수를 선택하세요"
             requireTwoGroups={
               selectedMethod?.id === 't-test' ||
               selectedMethod?.id === 'two-sample-t' ||
@@ -305,8 +305,8 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
             data={uploadedData}
             onComplete={handleLegacyComplete}
             onBack={handleBack}
-            title="Variable Selection"
-            description="Select dependent and independent variables for analysis"
+            title="변수 선택"
+            description="분석을 위한 종속변수와 독립변수를 선택하세요"
           />
         )
     }
@@ -317,7 +317,7 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       {/* Header */}
       <div className="flex items-center gap-3">
         <Settings2 className="h-5 w-5 text-primary" />
-        <div className="text-xl font-semibold">Variable Selection</div>
+        <div className="text-xl font-semibold">변수 선택</div>
         {selectedMethod && (
           <Badge variant="secondary" className="ml-auto">
             {selectedMethod.name}
@@ -329,15 +329,15 @@ export function VariableSelectionStep({ onComplete, onBack }: VariableSelectionS
       {detectedVariables && (
         <Alert className="bg-blue-50 dark:bg-blue-950/30 border-blue-200">
           <AlertDescription className="text-sm">
-            <span className="font-medium">AI suggested variables: </span>
+            <span className="font-medium">AI 추천 변수: </span>
             {detectedVariables.factors && (
-              <span>Factors: {detectedVariables.factors.join(', ')} </span>
+              <span>요인: {detectedVariables.factors.join(', ')} </span>
             )}
             {detectedVariables.groupVariable && (
-              <span>Group: {detectedVariables.groupVariable} </span>
+              <span>집단: {detectedVariables.groupVariable} </span>
             )}
             {detectedVariables.dependentCandidate && (
-              <span>Dependent: {detectedVariables.dependentCandidate}</span>
+              <span>종속: {detectedVariables.dependentCandidate}</span>
             )}
           </AlertDescription>
         </Alert>
