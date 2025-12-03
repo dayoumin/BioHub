@@ -137,17 +137,35 @@ export function GroupComparisonSelector({
 
   return (
     <div className={cn('space-y-6', className)}>
-      {/* Header */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <CardTitle className="text-xl">{title}</CardTitle>
-            {methodName && <Badge variant="outline">{methodName}</Badge>}
+      {/* Header with Action Buttons */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Users className="h-5 w-5 text-primary" />
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold">{title}</h2>
+              {methodName && <Badge variant="outline">{methodName}</Badge>}
+            </div>
+            <p className="text-sm text-muted-foreground">{description}</p>
           </div>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-      </Card>
+        </div>
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <Button onClick={onBack} variant="outline" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          )}
+          <Button
+            onClick={handleSubmit}
+            disabled={!validation.isValid}
+            className="gap-2"
+          >
+            Start Analysis
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Group Variable */}
@@ -294,23 +312,7 @@ export function GroupComparisonSelector({
         </Alert>
       )}
 
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between pt-2">
-        {onBack && (
-          <Button onClick={onBack} variant="outline" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-        )}
-        <Button
-          onClick={handleSubmit}
-          disabled={!validation.isValid}
-          className="gap-2 ml-auto"
-        >
-          Start Analysis
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+
     </div>
   )
 }

@@ -535,11 +535,35 @@ export function PurposeInputStep({
       {/* Purpose Selection - Only show when in 'purpose' or 'browse' step */}
       {(flowState.step === 'purpose' || flowState.step === 'browse') && (
       <>
-      {/* Purpose Selection */}
-      <div>
-        <h3 className="text-lg font-semibold mb-3" id="purpose-selection-label">
+      {/* Header with Action Button (상단 배치) */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold" id="purpose-selection-label">
           어떤 분석을 하고 싶으신가요?
         </h3>
+        {/* Action Button - browse step에서 상단에 표시 */}
+        {flowState.step === 'browse' && finalSelectedMethod && selectedPurpose && !isAnalyzing && (
+          <div data-testid="selected-method-bar" className="flex items-center gap-3">
+            <div className="text-sm">
+              <span className="text-muted-foreground">선택:</span>
+              <span data-testid="final-selected-method-name" className="ml-1 font-semibold">{finalSelectedMethod.name}</span>
+              {manualSelectedMethod && (
+                <Badge variant="outline" className="ml-2 text-xs">직접 선택</Badge>
+              )}
+            </div>
+            <Button
+              onClick={handleConfirmMethod}
+              disabled={isNavigating}
+              className="gap-2"
+            >
+              이 방법으로 분석하기
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Purpose Selection */}
+      <div>
         <div
           role="radiogroup"
           aria-labelledby="purpose-selection-label"
@@ -754,27 +778,6 @@ export function PurposeInputStep({
             </ContentTabsContent>
           </CardContent>
         </Card>
-      )}
-
-      {/* Action Button - Only shows in 'browse' step (legacy mode) */}
-      {flowState.step === 'browse' && finalSelectedMethod && selectedPurpose && !isAnalyzing && (
-        <div data-testid="selected-method-bar" className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-          <div>
-            <span className="text-sm text-muted-foreground">선택된 방법:</span>
-            <span data-testid="final-selected-method-name" className="ml-2 font-semibold">{finalSelectedMethod.name}</span>
-            {manualSelectedMethod && (
-              <Badge variant="outline" className="ml-2 text-xs">직접 선택</Badge>
-            )}
-          </div>
-          <Button
-            onClick={handleConfirmMethod}
-            disabled={isNavigating}
-            className="gap-2"
-          >
-            이 방법으로 분석하기
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
       )}
 
       {/* Initial guidance */}

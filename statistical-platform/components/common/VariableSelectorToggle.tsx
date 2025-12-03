@@ -109,13 +109,29 @@ export function VariableSelectorToggle({
 
   return (
     <div className={cn('space-y-6', className)}>
-      {/* 헤더 */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-2xl">{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-      </Card>
+      {/* 헤더 + 상단 액션 버튼 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold">{title}</h2>
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <Button onClick={onBack} variant="outline" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              이전
+            </Button>
+          )}
+          <Button
+            onClick={handleSubmit}
+            disabled={!isValid}
+            className="gap-2"
+          >
+            분석 시작
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
       {/* 변수 선택 영역 (좌우 분할) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -231,28 +247,7 @@ export function VariableSelectorToggle({
         </Alert>
       )}
 
-      {/* 하단 버튼 */}
-      <div className="flex items-center justify-between pt-2">
-        {onBack && (
-          <Button
-            onClick={onBack}
-            variant="outline"
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            이전
-          </Button>
-        )}
 
-        <Button
-          onClick={handleSubmit}
-          disabled={!isValid}
-          className="gap-2 ml-auto"
-        >
-          분석 시작
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
     </div>
   )
 }
