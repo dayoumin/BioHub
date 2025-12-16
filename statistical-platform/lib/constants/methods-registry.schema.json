@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "methods-registry.schema.json",
+  "title": "Methods Registry",
+  "description": "Python Worker 메서드 레지스트리 스키마 - Single Source of Truth",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema 참조"
+    },
+    "_meta": {
+      "type": "object",
+      "description": "메타데이터",
+      "properties": {
+        "description": { "type": "string" },
+        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+        "updated": { "type": "string", "format": "date" },
+        "purpose": { "type": "string" }
+      },
+      "required": ["version", "updated"]
+    },
+    "worker1": { "$ref": "#/definitions/workerDefinition" },
+    "worker2": { "$ref": "#/definitions/workerDefinition" },
+    "worker3": { "$ref": "#/definitions/workerDefinition" },
+    "worker4": { "$ref": "#/definitions/workerDefinition" }
+  },
+  "required": ["worker1", "worker2", "worker3", "worker4"],
+  "additionalProperties": false,
+  "definitions": {
+    "workerDefinition": {
+      "type": "object",
+      "description": "Worker 정의",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Worker 이름 (예: descriptive, hypothesis)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Worker 설명"
+        },
+        "packages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "필요한 Python 패키지 목록"
+        },
+        "methods": {
+          "type": "object",
+          "description": "메서드 정의 맵",
+          "additionalProperties": { "$ref": "#/definitions/methodDefinition" }
+        }
+      },
+      "required": ["name", "description", "packages", "methods"],
+      "additionalProperties": false
+    },
+    "methodDefinition": {
+      "type": "object",
+      "description": "메서드 정의",
+      "properties": {
+        "params": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "파라미터 이름 목록 (? 접미사 = 옵셔널)"
+        },
+        "returns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "반환값 키 목록"
+        },
+        "description": {
+          "type": "string",
+          "description": "메서드 설명"
+        }
+      },
+      "required": ["params", "returns", "description"],
+      "additionalProperties": false
+    }
+  }
+}

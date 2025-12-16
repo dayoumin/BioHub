@@ -70,6 +70,11 @@ function extractServiceMethods(): Array<{ tsMethod: string; worker: number; pyFu
 
 /**
  * Python Worker 파일에서 함수의 파라미터 목록 추출
+ *
+ * 개선된 파서:
+ * - 여러 줄에 걸친 함수 정의 지원
+ * - List[Union[int, float]], Optional[List[int]] 등 복잡한 타입 힌트 처리
+ * - 괄호 균형을 고려한 안전한 파싱
  */
 function extractPythonFunctionParams(workerNum: number, funcName: string): string[] {
   const workerFiles: Record<number, string> = {
@@ -82,22 +87,57 @@ function extractPythonFunctionParams(workerNum: number, funcName: string): strin
   const filePath = join(WORKER_DIR, workerFiles[workerNum])
   const content = readFileSync(filePath, 'utf8')
 
-  // "def function_name(param1, param2, ...)" 패턴 매칭
-  const pattern = new RegExp(`def ${funcName}\\(([^)]*)\\)`, 'm')
+  // 여러 줄에 걸친 함수 정의 지원 (def funcname(...):)
+  const pattern = new RegExp(`def ${funcName}\\s*\\(([\\s\\S]*?)\\)\\s*(?:->\\s*[^:]+)?:`, 'm')
   const match = content.match(pattern)
 
   if (!match) return []
 
-  // 파라미터 문자열 파싱 (기본값 제거, 타입 힌트 제거)
-  const paramStr = match[1]
-  if (!paramStr.trim()) return []
+  // 파라미터 문자열에서 줄바꿈과 공백 정리
+  const paramStr = match[1].replace(/\s+/g, ' ').trim()
+  if (!paramStr) return []
 
-  return paramStr
-    .split(',')
-    .map(p => p.trim())
-    .map(p => p.split('=')[0].trim())  // 기본값 제거
-    .map(p => p.split(':')[0].trim())  // 타입 힌트 제거
-    .filter(p => p.length > 0)
+  // 괄호 균형을 고려한 파라미터 분리
+  const params: string[] = []
+  let current = ''
+  let bracketDepth = 0
+
+  for (let i = 0; i < paramStr.length; i++) {
+    const char = paramStr[i]
+    if (char === '[' || char === '(') {
+      bracketDepth++
+      current += char
+    } else if (char === ']' || char === ')') {
+      bracketDepth--
+      current += char
+    } else if (char === ',' && bracketDepth === 0) {
+      if (current.trim()) {
+        params.push(current.trim())
+      }
+      current = ''
+    } else {
+      current += char
+    }
+  }
+  if (current.trim()) {
+    params.push(current.trim())
+  }
+
+  // 파라미터 이름만 추출 (타입 힌트와 기본값 제거)
+  return params
+    .map(p => {
+      // "param: Type = default" -> "param"
+      const colonIdx = p.indexOf(':')
+      const eqIdx = p.indexOf('=')
+
+      if (colonIdx !== -1) {
+        return p.substring(0, colonIdx).trim()
+      } else if (eqIdx !== -1) {
+        return p.substring(0, eqIdx).trim()
+      }
+      return p.trim()
+    })
+    .filter(p => p.length > 0 && !p.includes('[') && !p.includes(']'))
 }
 
 /**
@@ -431,6 +471,116 @@ describe('Worker-Function Mapping Verification', () => {
         it(`${func}()는 최소 ${minParams}개의 파라미터가 필요해야 함`, () => {
           const params = extractPythonFunctionParams(worker, func)
           expect(params.length).toBeGreaterThanOrEqual(minParams)
+        })
+      })
+    })
+  })
+
+  describe('Methods Registry ↔ Python Worker 자동 동기화 검증', () => {
+    /**
+     * methods-registry.json의 파라미터가 실제 Python Worker 파일과 일치하는지 자동 검증
+     *
+     * 취약점 설명:
+     * - 현재 Python 파라미터 파싱은 단순 split(',')을 사용
+     * - Dict[str, Any], Literal['a', 'b'] 같은 복잡한 타입 힌트는 파싱 불가
+     * - 현재 프로젝트는 simple types만 사용하므로 문제없음
+     * - 향후 복잡한 타입 사용 시 proper Python parser 필요
+     */
+
+    // Registry import
+    const registryPath = join(__dirname, '../../lib/constants/methods-registry.json')
+    const registry = JSON.parse(readFileSync(registryPath, 'utf8'))
+
+    const workerConfigs = [
+      { num: 1, key: 'worker1' },
+      { num: 2, key: 'worker2' },
+      { num: 3, key: 'worker3' },
+      { num: 4, key: 'worker4' },
+    ] as const
+
+    describe('레지스트리 메서드가 Python Worker에 존재해야 함', () => {
+      workerConfigs.forEach(({ num, key }) => {
+        const workerMethods = Object.keys(registry[key].methods)
+        const workerFunctions = extractFunctionsFromWorker(num)
+
+        workerMethods.forEach(methodName => {
+          it(`Worker ${num}: ${methodName}() 함수가 Python에 존재해야 함`, () => {
+            expect(workerFunctions).toContain(methodName)
+          })
+        })
+      })
+    })
+
+    describe('레지스트리 파라미터가 Python 함수 파라미터와 일치해야 함', () => {
+      workerConfigs.forEach(({ num, key }) => {
+        const workerMethods = registry[key].methods as Record<string, { params: string[] }>
+
+        Object.entries(workerMethods).forEach(([methodName, definition]) => {
+          it(`Worker ${num}: ${methodName}() 파라미터 일치 검증`, () => {
+            const pyParams = extractPythonFunctionParams(num, methodName)
+            const registryParams = definition.params.map(p =>
+              p.endsWith('?') ? p.slice(0, -1) : p
+            )
+
+            // 레지스트리의 모든 필수 파라미터가 Python에 있어야 함
+            const requiredParams = definition.params.filter(p => !p.endsWith('?'))
+            requiredParams.forEach(param => {
+              expect(pyParams).toContain(param)
+            })
+
+            // 레지스트리의 모든 파라미터가 Python에 있어야 함 (optional 포함)
+            registryParams.forEach(param => {
+              expect(pyParams).toContain(param)
+            })
+          })
+        })
+      })
+    })
+
+    describe('Python 함수 파라미터가 레지스트리에 등록되어 있어야 함', () => {
+      workerConfigs.forEach(({ num, key }) => {
+        const workerMethods = registry[key].methods as Record<string, { params: string[] }>
+
+        Object.entries(workerMethods).forEach(([methodName, definition]) => {
+          it(`Worker ${num}: ${methodName}() - Python 파라미터가 레지스트리에 누락되지 않아야 함`, () => {
+            const pyParams = extractPythonFunctionParams(num, methodName)
+            const registryParams = definition.params.map(p =>
+              p.endsWith('?') ? p.slice(0, -1) : p
+            )
+
+            // Python의 모든 파라미터가 레지스트리에 있어야 함
+            pyParams.forEach(pyParam => {
+              const found = registryParams.includes(pyParam) ||
+                           registryParams.includes(`${pyParam}?`)
+              if (!found) {
+                throw new Error(
+                  `Python 함수 ${methodName}()의 파라미터 '${pyParam}'가 methods-registry.json에 누락됨`
+                )
+              }
+            })
+          })
+        })
+      })
+    })
+
+    describe('파라미터 명명 규칙 검증 (camelCase)', () => {
+      workerConfigs.forEach(({ num, key }) => {
+        const workerMethods = registry[key].methods as Record<string, { params: string[] }>
+
+        Object.entries(workerMethods).forEach(([methodName, definition]) => {
+          it(`Worker ${num}: ${methodName}() - 모든 파라미터가 camelCase여야 함`, () => {
+            definition.params.forEach(param => {
+              const cleanParam = param.endsWith('?') ? param.slice(0, -1) : param
+              // snake_case 패턴 검사 (언더스코어가 있으면 안됨)
+              const hasSnakeCase = cleanParam.includes('_')
+              if (hasSnakeCase) {
+                throw new Error(
+                  `파라미터 '${cleanParam}'가 snake_case입니다. camelCase로 변경하세요. ` +
+                  `(${methodName} in Worker ${num})`
+                )
+              }
+            })
+          })
         })
       })
     })

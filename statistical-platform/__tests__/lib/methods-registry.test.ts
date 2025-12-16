@@ -184,4 +184,54 @@ describe('Methods Registry', () => {
       expect(methodExists('cox_regression')).toBe(true)
     })
   })
+
+  describe('JSON Schema 검증', () => {
+    it('스키마 파일이 존재해야 함', () => {
+      const fs = require('fs')
+      const path = require('path')
+      const schemaPath = path.join(__dirname, '../../lib/constants/methods-registry.schema.json')
+      expect(fs.existsSync(schemaPath)).toBe(true)
+    })
+
+    it('레지스트리가 스키마 구조를 준수해야 함', () => {
+      // 필수 Worker 키 확인
+      expect(methodsRegistry).toHaveProperty('worker1')
+      expect(methodsRegistry).toHaveProperty('worker2')
+      expect(methodsRegistry).toHaveProperty('worker3')
+      expect(methodsRegistry).toHaveProperty('worker4')
+
+      // 각 Worker 구조 확인
+      for (const workerKey of ['worker1', 'worker2', 'worker3', 'worker4'] as const) {
+        const worker = methodsRegistry[workerKey]
+        expect(worker).toHaveProperty('name')
+        expect(worker).toHaveProperty('description')
+        expect(worker).toHaveProperty('packages')
+        expect(worker).toHaveProperty('methods')
+        expect(Array.isArray(worker.packages)).toBe(true)
+        expect(typeof worker.methods).toBe('object')
+      }
+    })
+
+    it('모든 메서드가 스키마 구조를 준수해야 함', () => {
+      const all = getAllMethods()
+      for (const { methodName, definition } of all) {
+        // 필수 필드 확인
+        expect(definition).toHaveProperty('params')
+        expect(definition).toHaveProperty('returns')
+        expect(definition).toHaveProperty('description')
+
+        // 타입 확인
+        expect(Array.isArray(definition.params)).toBe(true)
+        expect(Array.isArray(definition.returns)).toBe(true)
+        expect(typeof definition.description).toBe('string')
+
+        // params 형식 확인 (문자열 배열, 옵셔널은 ? 접미사)
+        for (const param of definition.params) {
+          expect(typeof param).toBe('string')
+          // camelCase 또는 camelCase? 형식
+          expect(param).toMatch(/^[a-zA-Z][a-zA-Z0-9]*\??$/)
+        }
+      }
+    })
+  })
 })

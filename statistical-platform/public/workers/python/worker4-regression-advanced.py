@@ -561,11 +561,11 @@ def nonlinear_regression(xValues, yValues, modelType='exponential', initialGuess
 
 
 def stepwise_regression(yValues, xMatrix, variableNames=None,
-                       method='forward', entry_threshold=0.05, stay_threshold=0.10):
+                       method='forward', entryThreshold=0.05, stayThreshold=0.10):
     import statsmodels.api as sm
 
     y = np.array(yValues)
-    X = np.array(x_matrix)
+    X = np.array(xMatrix)
 
     if len(y) < 3:
         raise ValueError(f"Stepwise regression requires at least 3 observations, got {len(y)}")
@@ -575,8 +575,10 @@ def stepwise_regression(yValues, xMatrix, variableNames=None,
 
     n_vars = X.shape[1]
 
-    if variable_names is None:
-        variable_names = [f'X{i}' for i in range(n_vars)]
+    # 내부 변수는 snake_case (PEP8)
+    var_names = variableNames
+    if var_names is None:
+        var_names = [f'X{i}' for i in range(n_vars)]
 
     if method == 'forward':
         selected = []
@@ -597,7 +599,7 @@ def stepwise_regression(yValues, xMatrix, variableNames=None,
                     best_pval = pval
                     best_var = var
 
-            if best_pval < entry_threshold:
+            if best_pval < entryThreshold:
                 selected.append(best_var)
                 remaining.remove(best_var)
 
@@ -619,7 +621,7 @@ def stepwise_regression(yValues, xMatrix, variableNames=None,
             max_pval_idx = np.argmax(pvalues)
             max_pval = pvalues[max_pval_idx]
 
-            if max_pval > stay_threshold:
+            if max_pval > stayThreshold:
                 selected.pop(max_pval_idx)
 
                 if selected:
@@ -637,7 +639,7 @@ def stepwise_regression(yValues, xMatrix, variableNames=None,
         final_model = sm.OLS(y, X_final).fit()
 
         return {
-            'selectedVariables': [variable_names[i] for i in selected],
+            'selectedVariables': [var_names[i] for i in selected],
             'selectedIndices': selected,
             'rSquaredHistory': r_squared_history,
             'coefficients': [float(c) for c in final_model.params],

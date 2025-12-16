@@ -12,7 +12,7 @@
     "packages": ["numpy", "scipy"],
     "methods": {
       "descriptive_stats": {
-        "params": ["data"],
+        "params": ["data", "confidenceLevel?"],
         "returns": ["mean", "median", "mode", "std", "variance", "min", "max", "q1", "q3", "iqr", "skewness", "kurtosis", "n"],
         "description": "기술통계량 계산"
       },
@@ -134,7 +134,7 @@
         "description": "Bartlett 등분산 검정"
       },
       "chi_square_goodness_test": {
-        "params": ["observed", "expected?"],
+        "params": ["observed", "expected?", "alpha?"],
         "returns": ["statistic", "pValue", "df"],
         "description": "카이제곱 적합도 검정"
       },
@@ -144,7 +144,7 @@
         "description": "카이제곱 독립성 검정"
       },
       "fisher_exact_test": {
-        "params": ["contingencyTable"],
+        "params": ["table", "alternative?", "alpha?"],
         "returns": ["pValue", "oddsRatio"],
         "description": "Fisher 정확검정"
       },
@@ -273,7 +273,7 @@
         "description": "로지스틱 회귀"
       },
       "pca_analysis": {
-        "params": ["dataMatrix", "nComponents?"],
+        "params": ["data", "nComponents?"],
         "returns": ["components", "explainedVariance", "explainedVarianceRatio", "cumulativeVariance", "loadings", "scores"],
         "description": "주성분 분석"
       },
@@ -328,12 +328,12 @@
         "description": "요인분석"
       },
       "cluster_analysis": {
-        "params": ["data", "nClusters?", "method?", "linkage?"],
+        "params": ["data", "method?", "numClusters?", "linkage?", "distance?"],
         "returns": ["clusters", "centers", "silhouetteScore", "inertia"],
         "description": "군집분석"
       },
       "time_series_analysis": {
-        "params": ["dataValues", "seasonalPeriods?", "forecastPeriods?", "method?"],
+        "params": ["dataValues", "seasonalPeriods?"],
         "returns": ["trend", "seasonal", "residual", "forecast", "acf", "pacf"],
         "description": "시계열 분석"
       },
@@ -343,7 +343,7 @@
         "description": "Durbin-Watson 자기상관 검정"
       },
       "discriminant_analysis": {
-        "params": ["dataMatrix", "groupLabels"],
+        "params": ["data", "groups"],
         "returns": ["coefficients", "totalVariance", "functions", "predictions", "confusionMatrix", "interpretation"],
         "description": "판별분석"
       },
@@ -353,7 +353,7 @@
         "description": "Kaplan-Meier 생존분석"
       },
       "cox_regression": {
-        "params": ["times", "events", "covariates", "covariateNames"],
+        "params": ["times", "events", "covariateData", "covariateNames"],
         "returns": ["coefficients", "hazardRatios", "pValues", "confidenceIntervals", "concordance"],
         "description": "Cox 비례위험모형"
       }

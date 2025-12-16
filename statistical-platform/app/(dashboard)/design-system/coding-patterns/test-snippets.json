@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "lastUpdated": "2025-12-16",
   "sources": [
     "statistical-platform/__tests__/",
@@ -390,7 +390,7 @@
         {
           "name": "검증 테스트 요약 (Verification Summary)",
           "purpose": "Worker 매핑 테스트가 검증하는 항목 일람",
-          "code": "// Worker-Function 매핑 검증 테스트 (61개)\n// 파일: __tests__/pyodide/worker-function-mapping.test.ts\n\n// ┌─────────────────────────────────────────────────────────┐\n// │ 검증 항목                    │ 테스트 수 │ 자동 감지   │\n// ├─────────────────────────────────────────────────────────┤\n// │ 1. 함수 존재 여부            │ 38개     │ ✅ Python에 │\n// │    - Python Worker에 함수가 있는지                      │\n// │                                                         │\n// │ 2. Worker 번호               │ 4개      │ ✅ 최적화   │\n// │    - 올바른 Worker를 호출하는지                         │\n// │                                                         │\n// │ 3. 양방향 동기화             │ 2개      │ ✅ 추가/삭제│\n// │    - 서비스 ↔ EXPECTED_MAPPINGS 일치                    │\n// │                                                         │\n// │ 4. 파라미터 시그니처          │ 13개     │ ✅ TypeError│\n// │    - 파라미터 이름 일치 (snake_case)                    │\n// │    - 필수 파라미터 개수                                 │\n// │    - 서비스가 보내는 키 vs Python 기대 파라미터         │\n// └─────────────────────────────────────────────────────────┘\n\n// 검증되지 않는 항목 (런타임에서만 확인 가능):\n// - 파라미터 타입 (number[] vs string[])\n// - 실제 Python 함수 실행 결과\n// - 반환값 구조",
+          "code": "// Worker-Function 매핑 검증 테스트 (321개)\n// 파일: __tests__/pyodide/worker-function-mapping.test.ts\n\n// ┌─────────────────────────────────────────────────────────┐\n// │ 검증 항목                    │ 테스트 수 │ 자동 감지   │\n// ├─────────────────────────────────────────────────────────┤\n// │ 1. 함수 존재 여부            │ 38개     │ ✅ Python에 │\n// │    - Python Worker에 함수가 있는지                      │\n// │                                                         │\n// │ 2. Worker 번호               │ 4개      │ ✅ 최적화   │\n// │    - 올바른 Worker를 호출하는지                         │\n// │                                                         │\n// │ 3. 양방향 동기화             │ 2개      │ ✅ 추가/삭제│\n// │    - 서비스 ↔ EXPECTED_MAPPINGS 일치                    │\n// │                                                         │\n// │ 4. 파라미터 시그니처          │ 13개     │ ✅ TypeError│\n// │    - 파라미터 이름 일치 (camelCase)                     │\n// │    - 필수 파라미터 개수                                 │\n// │    - 서비스가 보내는 키 vs Python 기대 파라미터         │\n// │                                                         │\n// │ 5. Registry ↔ Python 자동 동기화 │ 260+개 │ ✅ Phase2  │\n// │    - 레지스트리 메서드 → Python 존재 여부               │\n// │    - 레지스트리 파라미터 → Python 일치 여부             │\n// │    - Python 파라미터 → 레지스트리 누락 여부             │\n// │    - 파라미터 명명 규칙 (camelCase) 검증                │\n// └─────────────────────────────────────────────────────────┘\n\n// 검증되지 않는 항목 (런타임에서만 확인 가능):\n// - 파라미터 타입 (number[] vs string[])\n// - 실제 Python 함수 실행 결과\n// - 반환값 구조",
           "keywords": [
             "verification",
             "summary",
