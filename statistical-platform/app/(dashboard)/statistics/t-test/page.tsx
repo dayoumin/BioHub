@@ -189,7 +189,7 @@ export default function TTestPage() {
           std2: number
           n1: number
           n2: number
-        }>(PyodideWorker.Hypothesis, 't_test_two_sample', { group1: group1Data, group2: group2Data, equal_var: true })
+        }>(PyodideWorker.Hypothesis, 't_test_two_sample', { group1: group1Data, group2: group2Data, equalVar: true })
 
       } else if (testType === 'paired') {
         // 대응표본 t-검정

@@ -160,7 +160,7 @@ const EXPECTED_PARAM_SIGNATURES: Array<{
 
   // Worker 2
   { tsMethod: 'twoSampleTTest', worker: 2, pyFunc: 't_test_two_sample',
-    tsParams: ['group1', 'group2', 'equal_var'], pyParams: ['group1', 'group2', 'equal_var', 'alternative'] },
+    tsParams: ['group1', 'group2', 'equalVar'], pyParams: ['group1', 'group2', 'equalVar', 'alternative'] },
   { tsMethod: 'pairedTTest', worker: 2, pyFunc: 't_test_paired',
     tsParams: ['group1', 'group2'], pyParams: ['group1', 'group2', 'alternative'] },
   { tsMethod: 'oneSampleTTest', worker: 2, pyFunc: 't_test_one_sample',

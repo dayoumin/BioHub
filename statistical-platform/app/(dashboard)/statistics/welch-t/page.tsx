@@ -219,7 +219,7 @@ export default function WelchTPage() {
         {
           group1: group1Data,
           group2: group2Data,
-          equal_var: false, // Welch t-test는 등분산 가정 안함
+          equalVar: false, // Welch t-test는 등분산 가정 안함
           alpha: 1 - parseFloat(confidenceLevel) / 100
         }
       )

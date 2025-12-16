@@ -1065,7 +1065,7 @@ json.dumps(result)
     return this.callWorkerMethod<StatisticsResult>(2, 't_test_two_sample', {
       group1,
       group2,
-      equal_var: equalVar
+      equalVar
     })
   }
 
