@@ -1,7 +1,7 @@
 {
   "id": "test-snippets",
   "version": "1.13.0",
-  "lastUpdated": "2025-12-02",
+  "lastUpdated": "2025-12-16",
   "sources": [
     "statistical-platform/__tests__/",
     "statistical-platform/jest.config.js"
@@ -529,6 +529,34 @@
             "StatisticalExecutorResult",
             "결과 타입",
             "mainResults"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Methods Registry Tests",
+      "description": "Methods Registry SSOT 검증 테스트 패턴",
+      "patterns": [
+        {
+          "name": "Registry 유틸리티 함수 테스트",
+          "purpose": "getWorkerForMethod, methodExists 등 유틸리티 검증",
+          "code": "import {\n  getWorkerForMethod,\n  getMethodDefinition,\n  methodExists,\n  getAllMethods\n} from '@/lib/constants/methods-registry.types'\n\ndescribe('Methods Registry', () => {\n  it('Worker 번호를 올바르게 찾아야 함', () => {\n    expect(getWorkerForMethod('t_test_two_sample')).toBe(2)\n    expect(getWorkerForMethod('one_way_anova')).toBe(3)\n    expect(getWorkerForMethod('non_existent')).toBeNull()\n  })\n\n  it('메서드 존재 여부 확인', () => {\n    expect(methodExists('descriptive_stats')).toBe(true)\n    expect(methodExists('fake_method')).toBe(false)\n  })\n\n  it('메서드 정의를 반환해야 함', () => {\n    const def = getMethodDefinition('t_test_two_sample')\n    expect(def?.params).toContain('group1')\n    expect(def?.returns).toContain('pValue')\n  })\n})",
+          "keywords": [
+            "methods-registry",
+            "getWorkerForMethod",
+            "methodExists",
+            "SSOT"
+          ]
+        },
+        {
+          "name": "Registry-Python 동기화 검증",
+          "purpose": "Registry의 메서드가 Python Worker에 실제 존재하는지 확인",
+          "code": "import { readFileSync } from 'fs'\nimport { getAllMethods, WorkerNumber } from '@/lib/constants/methods-registry.types'\n\nfunction extractPythonFunctions(workerNum: WorkerNumber): string[] {\n  const filePath = `public/workers/python/worker${workerNum}-*.py`\n  const content = readFileSync(filePath, 'utf8')\n  const pattern = /^def ([a-z][a-z0-9_]*)\\(/gm\n  const functions: string[] = []\n  let match\n  while ((match = pattern.exec(content)) !== null) {\n    functions.push(match[1])\n  }\n  return functions\n}\n\ndescribe('Registry SSOT 검증', () => {\n  const allMethods = getAllMethods()\n\n  it.each(allMethods.map(m => [m.methodName, m.workerNum]))(\n    '%s가 Worker %d에 존재해야 함',\n    (methodName, workerNum) => {\n      const pythonFunctions = extractPythonFunctions(workerNum as WorkerNumber)\n      expect(pythonFunctions).toContain(methodName)\n    }\n  )\n})",
+          "keywords": [
+            "SSOT guardrail",
+            "Python sync",
+            "extractPythonFunctions",
+            "동기화 검증"
           ]
         }
       ]
