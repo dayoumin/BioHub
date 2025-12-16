@@ -621,7 +621,7 @@ export class PyodideStatisticsService {
     }>(
       1,
       'crosstab_analysis',
-      { row_values: rowValues, col_values: colValues },
+      { rowValues, colValues },
       { errorMessage: 'Crosstab analysis 실행 실패' }
     )
   }
@@ -655,7 +655,7 @@ export class PyodideStatisticsService {
     }>(
       1,
       'one_sample_proportion_test',
-      { success_count: successCount, total_count: totalCount, null_proportion: nullProportion, alternative, alpha },
+      { successCount, totalCount, nullProportion, alternative, alpha },
       { errorMessage: 'One-sample proportion test 실행 실패' }
     )
   }
@@ -675,7 +675,7 @@ export class PyodideStatisticsService {
     }>(
       1,
       'cronbach_alpha',
-      { items_matrix: itemsMatrix },
+      { itemsMatrix },
       { errorMessage: "Cronbach's alpha 실행 실패" }
     )
   }
@@ -757,7 +757,7 @@ export class PyodideStatisticsService {
     }>(
       2,
       't_test_two_sample',
-      { group1, group2, equal_var: equalVar },
+      { group1, group2, equalVar },
       { errorMessage: 'Two-sample t-test 실행 실패' }
     )
   }
@@ -940,7 +940,7 @@ export class PyodideStatisticsService {
     }>(
       2,
       'chi_square_test',
-      { observed_matrix: observedMatrix, yates_correction: yatesCorrection },
+      { observedMatrix, yatesCorrection },
       { errorMessage: 'Chi-square test 실행 실패' }
     )
   }
@@ -966,8 +966,8 @@ export class PyodideStatisticsService {
       2,
       'binomial_test',
       {
-        success_count: successCount,
-        total_count: totalCount,
+        successCount,
+        totalCount,
         probability,
         alternative
       },
@@ -1006,10 +1006,10 @@ export class PyodideStatisticsService {
       2,
       'partial_correlation',
       {
-        data_matrix: dataMatrix,
-        x_idx: xIdx,
-        y_idx: yIdx,
-        control_indices: controlIndices
+        dataMatrix,
+        xIdx,
+        yIdx,
+        controlIndices
       },
       { errorMessage: 'Partial correlation 실행 실패' }
     )
@@ -1277,7 +1277,7 @@ export class PyodideStatisticsService {
     }>(
       4,
       'factor_analysis',
-      { data_matrix: data, n_factors: nFactors, rotation },
+      { data, nFactors, rotation },
       { errorMessage: 'Factor analysis 실행 실패' }
     )
   }
@@ -1304,7 +1304,7 @@ export class PyodideStatisticsService {
     }>(
       4,
       'cluster_analysis',
-      { data_matrix: data, n_clusters: nClusters, method, linkage },
+      { data, nClusters, method, linkage },
       { errorMessage: 'Cluster analysis 실행 실패' }
     )
   }
@@ -1335,7 +1335,7 @@ export class PyodideStatisticsService {
     }>(
       4,
       'time_series_analysis',
-      { data_values: data, seasonal_periods: seasonalPeriod, forecast_periods: forecastPeriods, method },
+      { dataValues: data, seasonalPeriods: seasonalPeriod, forecastPeriods, method },
       { errorMessage: 'Time series analysis 실행 실패' }
     )
   }
@@ -1503,7 +1503,7 @@ export class PyodideStatisticsService {
     }>(
       3,
       'two_way_anova',
-      { data_values: dataValues, factor1_values: factor1Values, factor2_values: factor2Values },
+      { dataValues, factor1Values, factor2Values },
       { errorMessage: 'Two-way ANOVA 실행 실패' }
     )
   }
@@ -1613,7 +1613,7 @@ export class PyodideStatisticsService {
     const baseResult = await this.core.callWorkerMethod<any>(
       3,
       'dunn_test',
-      { groups, p_adjust: pAdjust },
+      { groups, pAdjust },
       { errorMessage: 'Dunn test 실행 실패' }
     )
 
@@ -1832,7 +1832,7 @@ export class PyodideStatisticsService {
     }>(
       3,
       'two_way_anova',
-      { data_values: dataValues, factor1_values: factor1Values, factor2_values: factor2Values },
+      { dataValues, factor1Values, factor2Values },
       { errorMessage: 'Two-way ANOVA 실행 실패' }
     )
   }
@@ -1920,7 +1920,7 @@ export class PyodideStatisticsService {
     }>(
       3,
       'mcnemar_test',
-      { contingency_table: contingencyTable },
+      { contingencyTable },
       { errorMessage: 'McNemar test 실행 실패' }
     )
   }
@@ -1937,7 +1937,7 @@ export class PyodideStatisticsService {
     }>(
       3,
       'cochran_q_test',
-      { data_matrix: dataMatrix },
+      { dataMatrix },
       { errorMessage: 'Cochran Q test 실행 실패' }
     )
   }
@@ -1975,7 +1975,7 @@ export class PyodideStatisticsService {
     }>(
       3,
       'repeated_measures_anova',
-      { data_matrix: dataMatrix, subject_ids: subjectIds, time_labels: timeLabels },
+      { dataMatrix, subjectIds, timeLabels },
       { errorMessage: 'Repeated measures ANOVA 실행 실패' }
     )
   }
@@ -1992,7 +1992,7 @@ export class PyodideStatisticsService {
     }>(
       3,
       'ancova',
-      { y_values: yValues, group_values: groupValues, covariates },
+      { yValues, groupValues, covariates },
       { errorMessage: 'ANCOVA 실행 실패' }
     )
   }
@@ -2013,7 +2013,7 @@ export class PyodideStatisticsService {
     }>(
       3,
       'manova',
-      { data_matrix: dataMatrix, group_values: groupValues, var_names: varNames },
+      { dataMatrix, groupValues, varNames },
       { errorMessage: 'MANOVA 실행 실패' }
     )
   }
@@ -2073,7 +2073,7 @@ export class PyodideStatisticsService {
     return this.core.callWorkerMethod<CurveEstimationResult>(
       4,
       'curve_estimation',
-      { x_values: xValues, y_values: yValues, model_type: modelType },
+      { xValues, yValues, modelType },
       { errorMessage: 'Curve estimation 실행 실패' }
     )
   }
@@ -2104,10 +2104,10 @@ export class PyodideStatisticsService {
       4,
       'nonlinear_regression',
       {
-        x_values: xValues,
-        y_values: yValues,
-        model_type: modelType,
-        initial_guess: initialGuess
+        xValues,
+        yValues,
+        modelType,
+        initialGuess
       },
       { errorMessage: 'Nonlinear regression 실행 실패' }
     )
@@ -2140,12 +2140,12 @@ export class PyodideStatisticsService {
       4,
       'stepwise_regression',
       {
-        y_values: yValues,
-        x_matrix: xMatrix,
-        variable_names: variableNames,
+        yValues,
+        xMatrix,
+        variableNames,
         method,
-        entry_threshold: entryThreshold,
-        stay_threshold: stayThreshold
+        entryThreshold,
+        stayThreshold
       },
       { errorMessage: 'Stepwise regression 실행 실패' }
     )
@@ -2168,7 +2168,7 @@ export class PyodideStatisticsService {
     return this.core.callWorkerMethod<BinaryLogisticResult>(
       4,
       'binary_logistic',
-      { x_matrix: xMatrix, y_values: yValues },
+      { xMatrix, yValues },
       { errorMessage: 'Binary logistic regression 실행 실패' }
     )
   }
@@ -2190,7 +2190,7 @@ export class PyodideStatisticsService {
     return this.core.callWorkerMethod<MultinomialLogisticResult>(
       4,
       'multinomial_logistic',
-      { x_matrix: xMatrix, y_values: yValues },
+      { xMatrix, yValues },
       { errorMessage: 'Multinomial logistic regression 실행 실패' }
     )
   }
@@ -2212,7 +2212,7 @@ export class PyodideStatisticsService {
     return this.core.callWorkerMethod<OrdinalLogisticResult>(
       4,
       'ordinal_logistic',
-      { x_matrix: xMatrix, y_values: yValues },
+      { xMatrix, yValues },
       { errorMessage: 'Ordinal logistic regression 실행 실패' }
     )
   }
@@ -2234,7 +2234,7 @@ export class PyodideStatisticsService {
     return this.core.callWorkerMethod<ProbitRegressionResult>(
       4,
       'probit_regression',
-      { x_matrix: xMatrix, y_values: yValues },
+      { xMatrix, yValues },
       { errorMessage: 'Probit regression 실행 실패' }
     )
   }
@@ -2256,7 +2256,7 @@ export class PyodideStatisticsService {
     return this.core.callWorkerMethod<PoissonRegressionResult>(
       4,
       'poisson_regression',
-      { x_matrix: xMatrix, y_values: yValues },
+      { xMatrix, yValues },
       { errorMessage: 'Poisson regression 실행 실패' }
     )
   }
@@ -2278,7 +2278,7 @@ export class PyodideStatisticsService {
     return this.core.callWorkerMethod<NegativeBinomialRegressionResult>(
       4,
       'negative_binomial_regression',
-      { x_matrix: xMatrix, y_values: yValues },
+      { xMatrix, yValues },
       { errorMessage: 'Negative binomial regression 실행 실패' }
     )
   }
@@ -2329,7 +2329,7 @@ export class PyodideStatisticsService {
     return this.core.callWorkerMethod<PCAAnalysisResult>(
       4,
       'pca_analysis',
-      { data_matrix: dataMatrix, n_components: nComponents },
+      { dataMatrix, nComponents },
       { errorMessage: 'PCA analysis 실행 실패' }
     )
   }
@@ -2422,7 +2422,7 @@ export class PyodideStatisticsService {
     }>(
       2,
       'chi_square_independence_test',
-      { observed_matrix: observedMatrix, yates_correction: yatesCorrection, alpha },
+      { observedMatrix, yatesCorrection, alpha },
       { errorMessage: 'Chi-square independence test 실행 실패' }
     )
   }
@@ -2533,7 +2533,7 @@ export class PyodideStatisticsService {
     }>(
       4,
       'discriminant_analysis',
-      { data_matrix: dataMatrix, group_labels: groupLabels },
+      { dataMatrix, groupLabels },
       { errorMessage: 'Discriminant analysis 실행 실패' }
     )
   }
@@ -2593,7 +2593,7 @@ export class PyodideStatisticsService {
     }>(
       4,
       'cox_regression',
-      { times, events, covariates, covariate_names: covariateNames },
+      { times, events, covariates, covariateNames },
       { errorMessage: 'Cox regression 실행 실패' }
     )
   }
@@ -2632,12 +2632,12 @@ export class PyodideStatisticsService {
       2,
       'power_analysis',
       {
-        test_type: testType,
-        analysis_type: analysisType,
+        testType,
+        analysisType,
         alpha: params.alpha,
         power: params.power,
-        effect_size: params.effectSize,
-        sample_size: params.sampleSize ?? 30,
+        effectSize: params.effectSize,
+        sampleSize: params.sampleSize ?? 30,
         sides: params.sides || 'two-sided'
       },
       { errorMessage: 'Power analysis 실행 실패' }

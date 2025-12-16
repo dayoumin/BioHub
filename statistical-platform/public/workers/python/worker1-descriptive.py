@@ -118,11 +118,11 @@ def frequency_analysis(values: List[Any]) -> Dict[str, Union[List[str], List[int
 
 
 def crosstab_analysis(
-    row_values: List[Any],
-    col_values: List[Any]
+    rowValues: List[Any],
+    colValues: List[Any]
 ) -> Dict[str, Union[List[str], List[List[int]], List[int], int]]:
-    row_values = np.array(row_values)
-    col_values = np.array(col_values)
+    row_values = np.array(rowValues)
+    col_values = np.array(colValues)
 
     if len(row_values) != len(col_values):
         raise ValueError(f"Row and column must have same length: {len(row_values)} != {len(col_values)}")

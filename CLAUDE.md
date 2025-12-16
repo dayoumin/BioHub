@@ -339,6 +339,8 @@ callWorkerMethod(2, 'binomialTest', {
 | `rSquared` | `r_squared`, `rsquared` | 결정계수 |
 | `fStatistic` | `f_statistic` | F 통계량 |
 
+**📋 상세 수정 이력**: [PARAMETER_NAMING_FIX_CHECKLIST.md](statistical-platform/docs/PARAMETER_NAMING_FIX_CHECKLIST.md)
+
 ---
 
 ## 🏗️ 아키텍처

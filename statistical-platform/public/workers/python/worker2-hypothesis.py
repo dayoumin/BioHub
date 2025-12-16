@@ -33,23 +33,28 @@ def _safe_bool(value: Union[bool, np.bool_]) -> bool:
 def t_test_two_sample(
     group1: List[Union[float, int, None]],
     group2: List[Union[float, int, None]],
-    equal_var: bool = True
+    equalVar: bool = True
 ) -> Dict[str, Union[float, int, None]]:
-    try:
-        import pingouin as pg
-    except ImportError:
-        raise ImportError("pingouin library is required for effect size calculation. Install with: pip install pingouin")
-
     group1 = clean_array(group1)
     group2 = clean_array(group2)
 
     if len(group1) < 2 or len(group2) < 2:
         raise ValueError("Each group must have at least 2 observations")
 
-    statistic, p_value = stats.ttest_ind(group1, group2, equal_var=equal_var)
+    statistic, p_value = stats.ttest_ind(group1, group2, equal_var=equalVar)
 
-    # Use pingouin for Cohen's d
-    cohens_d = pg.compute_effsize(group1, group2, eftype='cohen')
+    # Calculate Cohen's d manually to avoid heavy pingouin dependency
+    n1, n2 = len(group1), len(group2)
+    var1, var2 = np.var(group1, ddof=1), np.var(group2, ddof=1)
+    
+    # Pooled standard deviation
+    pooled_se = np.sqrt(((n1 - 1) * var1 + (n2 - 1) * var2) / (n1 + n2 - 2))
+    
+    # Cohen's d
+    if pooled_se == 0:
+        cohens_d = 0.0
+    else:
+        cohens_d = (np.mean(group1) - np.mean(group2)) / pooled_se
 
     return {
         'statistic': _safe_float(statistic),
@@ -59,8 +64,8 @@ def t_test_two_sample(
         'mean2': float(np.mean(group2)),
         'std1': float(np.std(group1, ddof=1)),
         'std2': float(np.std(group2, ddof=1)),
-        'n1': int(len(group1)),
-        'n2': int(len(group2))
+        'n1': int(n1),
+        'n2': int(n2)
     }
 
 
@@ -125,15 +130,15 @@ def z_test(
 
 
 def chi_square_test(
-    observed_matrix: List[List[int]],
-    yates_correction: bool = False
+    observedMatrix: List[List[int]],
+    yatesCorrection: bool = False
 ) -> Dict[str, Union[float, int, List[List[float]], None]]:
-    observed = np.array(observed_matrix)
+    observed = np.array(observedMatrix)
 
     if observed.size == 0:
         raise ValueError("Empty observed matrix")
 
-    chi2, p_value, dof, expected = stats.chi2_contingency(observed, correction=yates_correction)
+    chi2, p_value, dof, expected = stats.chi2_contingency(observed, correction=yatesCorrection)
 
     return {
         'statistic': float(chi2),
@@ -345,11 +350,11 @@ def chi_square_goodness_test(
 
 
 def chi_square_independence_test(
-    observed_matrix: List[List[Union[float, int]]],
-    yates_correction: bool = False,
+    observedMatrix: List[List[Union[float, int]]],
+    yatesCorrection: bool = False,
     alpha: float = 0.05
 ) -> Dict[str, Union[float, int, bool, List[List[float]], None]]:
-    observed = np.array(observed_matrix, dtype=float)
+    observed = np.array(observedMatrix, dtype=float)
 
     if observed.size == 0:
         raise ValueError("Empty observed matrix")
@@ -359,7 +364,7 @@ def chi_square_independence_test(
 
     chi2_stat, p_value, dof, expected = stats.chi2_contingency(
         observed,
-        correction=yates_correction
+        correction=yatesCorrection
     )
 
     critical_value = stats.chi2.ppf(1 - alpha, dof)
