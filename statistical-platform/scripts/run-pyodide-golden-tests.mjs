@@ -43,11 +43,50 @@ let skipped = 0;
 const failures = [];
 
 // Tolerance를 고려한 비교 함수
-function isCloseEnough(actual, expected, tolerance) {
-  if (expected === 0) {
-    return Math.abs(actual) <= tolerance;
+function canonicalizeSpecial(value) {
+  if (typeof value === 'number') {
+    if (Number.isNaN(value)) return 'NaN';
+    if (value === Infinity) return 'POSITIVE_INFINITY';
+    if (value === -Infinity) return 'NEGATIVE_INFINITY';
+    return value;
   }
-  return Math.abs(actual - expected) <= tolerance;
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toUpperCase();
+    if (normalized === 'NAN') return 'NaN';
+    if (normalized === 'POSITIVE_INFINITY' || normalized === 'INFINITY' || normalized === '+INFINITY') return 'POSITIVE_INFINITY';
+    if (normalized === 'NEGATIVE_INFINITY' || normalized === '-INFINITY') return 'NEGATIVE_INFINITY';
+    return value;
+  }
+
+  return value;
+}
+
+function getTolerances(tolerance) {
+  if (typeof tolerance === 'number') {
+    return { abs: tolerance, rel: 0 };
+  }
+  if (tolerance && typeof tolerance === 'object') {
+    return { abs: tolerance.abs ?? 0, rel: tolerance.rel ?? 0 };
+  }
+  return { abs: 0, rel: 0 };
+}
+
+function isCloseEnough(actual, expected, tolerance) {
+  const a = canonicalizeSpecial(actual);
+  const e = canonicalizeSpecial(expected);
+
+  if (typeof e === 'string' && (e === 'NaN' || e === 'POSITIVE_INFINITY' || e === 'NEGATIVE_INFINITY')) {
+    return a === e;
+  }
+  if (typeof a === 'string') return false;
+
+  const { abs: absTol, rel: relTol } = getTolerances(tolerance);
+  if (e === 0) {
+    return Math.abs(a) <= absTol;
+  }
+  const diff = Math.abs(a - e);
+  return diff <= Math.max(absTol, relTol * Math.abs(e));
 }
 
 // 테스트 실행
@@ -137,20 +176,39 @@ json.dumps({'statistic': float(result.statistic), 'pValue': float(result.pvalue)
     });
   }
 
-  // T-Test: Paired (skip special cases)
+  // T-Test: Paired
   console.log(colorize('\n📊 T-Test: Paired', 'cyan'));
   for (const tc of goldenValues.tTest.paired) {
-    if (typeof tc.expected.statistic === 'string') {
-      skipped++;
-      console.log(colorize(`  ⊘ ${tc.name} (special value)`, 'yellow'));
-      continue;
-    }
     await runTest(tc.name, async () => {
       const code = `
 from scipy import stats
 import json
+import math
+import warnings
+warnings.filterwarnings('ignore')
 result = stats.ttest_rel(${JSON.stringify(tc.input.before)}, ${JSON.stringify(tc.input.after)})
-json.dumps({'statistic': float(result.statistic), 'pValue': float(result.pvalue)})
+
+stat = float(result.statistic)
+if math.isfinite(stat):
+    stat_out = stat
+elif math.isnan(stat):
+    stat_out = "NaN"
+elif stat > 0:
+    stat_out = "POSITIVE_INFINITY"
+else:
+    stat_out = "NEGATIVE_INFINITY"
+
+pval = float(result.pvalue)
+if math.isfinite(pval):
+    pval_out = pval
+elif math.isnan(pval):
+    pval_out = "NaN"
+elif pval > 0:
+    pval_out = "POSITIVE_INFINITY"
+else:
+    pval_out = "NEGATIVE_INFINITY"
+
+json.dumps({'statistic': stat_out, 'pValue': pval_out})
 `;
       const resultJson = await pyodide.runPythonAsync(code);
       const result = JSON.parse(resultJson);
@@ -422,15 +480,17 @@ json.dumps({'statistic': float(result.statistic), 'pValue': float(result.pvalue)
   // Load additional packages for advanced analysis
   console.log(colorize('\n📦 Loading sklearn for advanced analysis...', 'yellow'));
   const advancedStart = Date.now();
+  let sklearnLoaded = false;
   try {
     await pyodide.loadPackage(['scikit-learn']);
     console.log(colorize(`  ✓ sklearn loaded (${((Date.now() - advancedStart) / 1000).toFixed(1)}s)`, 'green'));
+    sklearnLoaded = true;
   } catch (error) {
     console.log(colorize(`  ⚠ sklearn loading failed, skipping advanced tests: ${error.message}`, 'yellow'));
   }
 
   // PCA (Principal Component Analysis)
-  if (goldenValues.multivariate?.pca) {
+  if (sklearnLoaded && goldenValues.multivariate?.pca) {
     console.log(colorize('\n📊 Multivariate: PCA', 'cyan'));
     for (const tc of goldenValues.multivariate.pca) {
       await runTest(tc.name, async () => {
@@ -458,6 +518,10 @@ json.dumps(result)
         }
       });
     }
+  } else if (goldenValues.multivariate?.pca) {
+    skipped += goldenValues.multivariate.pca.length;
+    console.log(colorize('\n📊 Multivariate: PCA', 'cyan'));
+    console.log(colorize(`  ⊘ Skipped (sklearn not loaded)`, 'yellow'));
   }
 
   // Cluster Analysis (K-Means)
@@ -465,6 +529,11 @@ json.dumps(result)
     console.log(colorize('\n📊 Multivariate: Cluster Analysis', 'cyan'));
     for (const tc of goldenValues.multivariate.cluster) {
       if (tc.name === 'k-means clustering') {
+        if (!sklearnLoaded) {
+          skipped++;
+          console.log(colorize(`  ⊘ ${tc.name} (sklearn not loaded)`, 'yellow'));
+          continue;
+        }
         await runTest(tc.name, async () => {
           const code = `
 from sklearn.cluster import KMeans
@@ -496,9 +565,32 @@ json.dumps(result)
             throw new Error(`silhouetteScore: expected ${tc.expected.silhouetteScore}, got ${result.silhouetteScore}`);
           }
         });
+      } else if (tc.name === 'hierarchical clustering') {
+        await runTest(tc.name, async () => {
+          const code = `
+from scipy.cluster.hierarchy import linkage, cophenet
+from scipy.spatial.distance import pdist
+import numpy as np
+import json
+
+data = np.array(${JSON.stringify(tc.input.data)})
+method = "${tc.input.method}"
+
+Z = linkage(data, method=method)
+c, _ = cophenet(Z, pdist(data))
+
+json.dumps({'copheneticCorr': float(c)})
+`;
+          const resultJson = await pyodide.runPythonAsync(code);
+          const result = JSON.parse(resultJson);
+
+          if (!isCloseEnough(result.copheneticCorr, tc.expected.copheneticCorr, tc.tolerance)) {
+            throw new Error(`copheneticCorr: expected ${tc.expected.copheneticCorr}, got ${result.copheneticCorr}`);
+          }
+        });
       } else {
         skipped++;
-        console.log(colorize(`  ⊘ ${tc.name} (hierarchical - structure only)`, 'yellow'));
+        console.log(colorize(`  ⊘ ${tc.name} (unsupported)`, 'yellow'));
       }
     }
   }
@@ -636,7 +728,7 @@ json.dumps({
   }
 
   // Discriminant Analysis
-  if (goldenValues.multivariate?.discriminant) {
+  if (sklearnLoaded && goldenValues.multivariate?.discriminant) {
     console.log(colorize('\n📊 Multivariate: Discriminant Analysis', 'cyan'));
     for (const tc of goldenValues.multivariate.discriminant) {
       await runTest(tc.name, async () => {
@@ -664,6 +756,10 @@ json.dumps({
         }
       });
     }
+  } else if (goldenValues.multivariate?.discriminant) {
+    skipped += goldenValues.multivariate.discriminant.length;
+    console.log(colorize('\n📊 Multivariate: Discriminant Analysis', 'cyan'));
+    console.log(colorize(`  ⊘ Skipped (sklearn not loaded)`, 'yellow'));
   }
 
   // Effect Size: Hedges' g
@@ -788,7 +884,7 @@ json.dumps({'fStatistic': float(f_stat), 'pValue': float(p_value)})
   }
 
   // Factor Analysis (using sklearn FactorAnalysis)
-  if (goldenValues.multivariate?.factorAnalysis) {
+  if (sklearnLoaded && goldenValues.multivariate?.factorAnalysis) {
     console.log(colorize('\n📊 Multivariate: Factor Analysis', 'cyan'));
     for (const tc of goldenValues.multivariate.factorAnalysis) {
       await runTest(tc.name, async () => {
@@ -821,6 +917,10 @@ json.dumps({
         }
       });
     }
+  } else if (goldenValues.multivariate?.factorAnalysis) {
+    skipped += goldenValues.multivariate.factorAnalysis.length;
+    console.log(colorize('\n📊 Multivariate: Factor Analysis', 'cyan'));
+    console.log(colorize(`  ⊘ Skipped (sklearn not loaded)`, 'yellow'));
   }
 
   // Time Series: ARIMA

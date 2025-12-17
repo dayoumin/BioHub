@@ -204,7 +204,7 @@ npm run test:golden-values
 
 ### 테스트 현황 요약
 
-**✅ 구현 완료**: 38개 테스트 (40개 중 2개 skip)
+**✅ 구현 완료**: 40개 테스트 (40개 중 0개 skip)
 - 기본 통계: T-Test, ANOVA, Chi-Square, Non-Parametric
 - 상관분석: Pearson, Spearman, Kendall
 - 회귀분석: Linear Regression
