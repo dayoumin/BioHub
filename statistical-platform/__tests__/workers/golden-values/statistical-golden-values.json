@@ -1,7 +1,7 @@
 {
   "$schema": "./golden-values-schema.json",
   "description": "Python 통계 라이브러리로 검증된 통계 검증용 기대값",
-  "lastUpdated": "2025-12-02",
+  "lastUpdated": "2025-12-17",
   "verificationSources": {
     "scipy": "SciPy 1.14.1 via Pyodide 0.28.3",
     "statsmodels": "statsmodels 0.14.1",
@@ -192,7 +192,7 @@
         "input": {
           "observed": [[10, 20, 30], [30, 20, 10], [20, 20, 20]]
         },
-        "expected": { "statistic": 13.333, "pValue": 0.0097 },
+        "expected": { "statistic": 20.0, "pValue": 0.0005 },
         "tolerance": 0.5,
         "scipyCode": "stats.chi2_contingency([[10,20,30], [30,20,10], [20,20,20]])"
       }
@@ -214,7 +214,7 @@
           "observed": [30, 25, 20, 15, 10],
           "expected": [20, 20, 20, 20, 20]
         },
-        "expected": { "statistic": 7.5, "pValue": 0.112 },
+        "expected": { "statistic": 12.5, "pValue": 0.014 },
         "tolerance": 0.1,
         "scipyCode": "stats.chisquare([30,25,20,15,10], [20,20,20,20,20])"
       }

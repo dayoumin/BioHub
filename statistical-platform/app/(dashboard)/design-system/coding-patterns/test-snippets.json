@@ -192,19 +192,33 @@
           "name": "Schema Validation Test",
           "purpose": "golden-values.json 스키마 구조 검증",
           "code": "import * as fs from 'fs';\nimport * as path from 'path';\n\nconst goldenValues = JSON.parse(fs.readFileSync(\n  path.join(__dirname, 'statistical-golden-values.json'), 'utf-8'\n));\n\ndescribe('Golden Values Schema Validation', () => {\n  it('should have valid schema structure', () => {\n    expect(goldenValues).toHaveProperty('$schema');\n    expect(goldenValues).toHaveProperty('verificationSources');\n    expect(goldenValues).toHaveProperty('lastUpdated');\n  });\n\n  it('should have multiple verification sources', () => {\n    const sources = goldenValues.verificationSources;\n    expect(sources).toHaveProperty('scipy');\n    expect(sources).toHaveProperty('statsmodels');\n    expect(sources).toHaveProperty('pingouin');\n    expect(sources).toHaveProperty('sklearn');\n    expect(sources).toHaveProperty('lifelines');\n  });\n});",
-          "keywords": ["golden values", "schema", "verification", "scipy"]
+          "keywords": [
+            "golden values",
+            "schema",
+            "verification",
+            "scipy"
+          ]
         },
         {
           "name": "Category Test Cases Validation",
           "purpose": "카테고리별 테스트 케이스 필수 필드 검증",
           "code": "describe('T-Test Golden Values', () => {\n  describe('One-Sample T-Test', () => {\n    it('should have valid test cases', () => {\n      const testCases = goldenValues.tTest.oneSample;\n      expect(testCases.length).toBeGreaterThan(0);\n\n      for (const tc of testCases) {\n        expect(tc).toHaveProperty('name');\n        expect(tc).toHaveProperty('input');\n        expect(tc).toHaveProperty('expected');\n        expect(tc).toHaveProperty('tolerance');\n        expect(tc.input).toHaveProperty('data');\n        expect(Array.isArray(tc.input.data)).toBe(true);\n      }\n    });\n  });\n});",
-          "keywords": ["golden values", "test cases", "validation"]
+          "keywords": [
+            "golden values",
+            "test cases",
+            "validation"
+          ]
         },
         {
           "name": "Multi-Library Test Pattern",
           "purpose": "다중 Python 라이브러리 검증 패턴",
           "code": "describe('Survival Analysis Golden Values', () => {\n  describe('Kaplan-Meier', () => {\n    it('should have valid test cases', () => {\n      const testCases = goldenValues.survival.kaplanMeier;\n      expect(testCases.length).toBeGreaterThan(0);\n\n      for (const tc of testCases) {\n        expect(tc.input).toHaveProperty('times');\n        expect(tc.input).toHaveProperty('events');\n        expect(tc.library).toBe('lifelines');  // 라이브러리 명시\n      }\n    });\n  });\n});",
-          "keywords": ["lifelines", "survival", "kaplan-meier", "multi-library"]
+          "keywords": [
+            "lifelines",
+            "survival",
+            "kaplan-meier",
+            "multi-library"
+          ]
         }
       ]
     },
@@ -216,13 +230,21 @@
           "name": "createTestInput Helper",
           "purpose": "확장된 additional 필드로 테스트 입력 생성",
           "code": "import type { AnalysisResult } from '@/types/smart-flow';\n\n// eslint-disable-next-line @typescript-eslint/no-explicit-any\nfunction createTestInput(base: Omit<AnalysisResult, 'additional'>, additional: Record<string, any>): AnalysisResult {\n  return {\n    ...base,\n    additional: additional as AnalysisResult['additional']\n  };\n}",
-          "keywords": ["interpretation", "test helper", "type casting"]
+          "keywords": [
+            "interpretation",
+            "test helper",
+            "type casting"
+          ]
         },
         {
           "name": "Survival Analysis Interpretation",
           "purpose": "생존분석(Kaplan-Meier, Cox) 해석 테스트",
           "code": "describe('Kaplan-Meier Survival Analysis', () => {\n  it('should interpret significant survival difference', () => {\n    const result = getInterpretation(createTestInput({\n      method: 'Kaplan-Meier',\n      statistic: 8.5,  // Log-rank chi-square\n      pValue: 0.003,\n      interpretation: ''\n    }, {\n      medianSurvival1: 24,\n      medianSurvival2: 18,\n      logRankStatistic: 8.5,\n      hazardRatio: 0.65\n    }));\n\n    if (result) {\n      expect(result.title).toBeDefined();\n      expect(result.summary).toBeDefined();\n    }\n  });\n});",
-          "keywords": ["survival", "kaplan-meier", "interpretation"]
+          "keywords": [
+            "survival",
+            "kaplan-meier",
+            "interpretation"
+          ]
         }
       ]
     },

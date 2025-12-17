@@ -153,6 +153,132 @@ npm test -- __tests__/statistics/
 - ✅ 이원분산분석, 다중회귀, 로지스틱 회귀 추가
 - ✅ Games-Howell, Dunn, Bonferroni 사후검정 추가
 
+## 🔥 Golden Values 테스트 시스템 (Python 검증)
+
+### Golden Values란?
+**정의**: SciPy, statsmodels 등 검증된 Python 라이브러리로 미리 계산한 "정답지"
+
+**목적**: 우리 앱의 통계 계산 결과가 Python 라이브러리와 동일한지 검증
+
+**파일 위치**:
+- Golden Values JSON: `__tests__/workers/golden-values/statistical-golden-values.json`
+- 테스트 러너: `scripts/run-pyodide-golden-tests.mjs`
+- Jest 스키마 검증: `__tests__/workers/golden-values/python-calculation-accuracy.test.ts`
+
+### 테스트 실행 방법
+
+```bash
+# Golden Values 테스트 (Pyodide로 실제 Python 계산)
+npm run test:pyodide-golden
+
+# Jest 스키마 검증 (Golden Values JSON 구조 확인)
+npm run test:golden-values
+```
+
+### 현재 커버리지
+
+| 카테고리 | Golden Values (정답지) | 실제 테스트 실행 | 상태 |
+|----------|----------------------|-----------------|------|
+| T-Test | ✅ 4가지 | ✅ 실행됨 | 완료 |
+| ANOVA | ✅ 2가지 | ✅ 실행됨 | 완료 |
+| Correlation (Pearson) | ✅ 2가지 | ✅ 실행됨 | 완료 |
+| Correlation (Spearman) | ✅ 2가지 | ✅ 실행됨 | 완료 |
+| Correlation (Kendall) | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Chi-Square | ✅ 4가지 | ✅ 실행됨 | 완료 |
+| Non-Parametric | ✅ 6가지 | ✅ 실행됨 | 완료 |
+| Linear Regression | ✅ 2가지 | ✅ 실행됨 | 완료 |
+| Normality | ✅ 2가지 | ✅ 실행됨 | 완료 |
+| Binomial | ✅ 2가지 | ✅ 실행됨 | 완료 |
+| Friedman | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| PCA | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| K-Means Cluster | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Discriminant Analysis | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Cohen's d | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Hedges' g | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Eta Squared | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| F-Test (Variance) | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Brown-Forsythe | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Factor Analysis | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Time Series (ARIMA) | ✅ 1가지 | ✅ 실행됨 | 완료 |
+| Survival Analysis | ✅ 1가지 | ✅ 실행됨 | 완료 |
+
+### 테스트 현황 요약
+
+**✅ 구현 완료**: 38개 테스트 (40개 중 2개 skip)
+- 기본 통계: T-Test, ANOVA, Chi-Square, Non-Parametric
+- 상관분석: Pearson, Spearman, Kendall
+- 회귀분석: Linear Regression
+- 다변량: PCA, K-Means Cluster, Discriminant Analysis
+- 효과크기: Cohen's d, Hedges' g, Eta Squared
+- 분산검정: F-Test, Brown-Forsythe
+- 고급분석: Factor Analysis, ARIMA, Kaplan-Meier
+
+**✅ 모든 Golden Values 테스트 완료!**
+
+---
+
+## 🤔 CI/CD 필요성 검토
+
+### 이 프로젝트의 특성
+- **배포 방식**: 검증 완료 후 서버에 업로드
+- **업데이트 빈도**: 낮음 (기능 안정화 후)
+- **사용자**: 내부 연구자/분석가
+
+### CI (Continuous Integration) 필요한가?
+
+**결론: 현재는 불필요, 향후 선택적 도입**
+
+#### CI가 필요한 경우
+- 팀 개발 (여러 개발자가 동시 작업)
+- 빈번한 코드 변경
+- 자동 배포 파이프라인 필요
+- 외부 기여자 PR 검증
+
+#### 현재 상황 (CI 불필요)
+- 단일 개발자/소규모 팀
+- 수동 검증 후 배포
+- 배포 빈도 낮음
+- 로컬 테스트로 충분
+
+### 권장 워크플로우 (CI 없이)
+
+```bash
+# 1. 코드 수정 후 타입 체크
+npx tsc --noEmit
+
+# 2. 단위 테스트 실행
+npm test
+
+# 3. Golden Values 테스트 (통계 정확성 검증)
+npm run test:pyodide-golden
+
+# 4. 빌드 확인
+npm run build
+
+# 5. 수동 검증 완료 후 배포
+```
+
+### 향후 CI 도입 시
+
+```yaml
+# .github/workflows/test.yml (예시)
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run test:pyodide-golden  # Pyodide 테스트
+      - run: npm run build
+```
+
+---
+
 ## 📝 참고 문서
 
 - `/docs/technical/NIST_VALIDATION_GUIDE.md` - NIST 검증 가이드
@@ -171,5 +297,5 @@ npm test -- __tests__/statistics/
 ---
 
 **작성자**: Statistical Platform 개발팀
-**최종 업데이트**: 2025-12-03
+**최종 업데이트**: 2025-12-17
 **상태**: Production Ready ✅
