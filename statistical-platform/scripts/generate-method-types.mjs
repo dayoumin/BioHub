@@ -147,39 +147,175 @@ function returnsToInterface(methodName, returns) {
   const fields = returns.map(key => {
     let type = 'unknown'
 
-    // 반환값 키로 타입 추론
-    if (key === 'pValue' || key === 'statistic' || key === 'correlation') {
+    // ========================================
+    // 1. 숫자 스칼라 (number)
+    // ========================================
+
+    // 통계량/검정
+    if (key === 'pValue' || key === 'statistic' || key === 'correlation' || key === 'criticalValue') {
       type = 'number'
-    } else if (key === 'mean' || key === 'median' || key === 'std' || key === 'variance') {
+    } else if (key === 'pValueExact' || key === 'pValueApprox' || key === 'qStatistic') {
       type = 'number'
-    } else if (key === 'fStatistic' || key === 'chiSquare' || key === 'zStatistic') {
+    }
+    // 기술통계
+    else if (key === 'mean' || key === 'median' || key === 'std' || key === 'variance') {
       type = 'number'
-    } else if (key === 'df' || key === 'dfBetween' || key === 'dfWithin') {
+    } else if (key === 'mode' || key === 'min' || key === 'max' || key === 'q1' || key === 'q3' || key === 'iqr') {
       type = 'number'
-    } else if (key === 'cohensD' || key === 'etaSquared' || key === 'omegaSquared' || key === 'cramersV') {
+    } else if (key === 'skewness' || key === 'kurtosis') {
       type = 'number'
-    } else if (key === 'rSquared' || key === 'adjRSquared' || key === 'slope' || key === 'intercept') {
+    } else if (key === 'mean1' || key === 'mean2' || key === 'std1' || key === 'std2' || key === 'meanDiff') {
       type = 'number'
-    } else if (key === 'n' || key === 'n1' || key === 'n2' || key === 'nPairs') {
+    } else if (key === 'sampleMean' || key === 'sampleStd' || key === 'standardError') {
       type = 'number'
-    } else if (key === 'isNormal' || key === 'homogeneous' || key === 'significant' || key === 'reject') {
+    }
+    // F/Chi/Z 통계량
+    else if (key === 'fStatistic' || key === 'chiSquare' || key === 'zStatistic') {
+      type = 'number'
+    }
+    // 자유도
+    else if (key === 'df' || key === 'dfBetween' || key === 'dfWithin' || key === 'degreesOfFreedom') {
+      type = 'number'
+    }
+    // 효과 크기
+    else if (key === 'cohensD' || key === 'etaSquared' || key === 'omegaSquared' || key === 'cramersV') {
+      type = 'number'
+    } else if (key === 'effectSize' || key === 'oddsRatio' || key === 'inertia') {
+      type = 'number'
+    }
+    // 회귀
+    else if (key === 'rSquared' || key === 'adjRSquared' || key === 'slope' || key === 'intercept') {
+      type = 'number'
+    } else if (key === 'accuracy' || key === 'auc' || key === 'dispersion') {
+      type = 'number'
+    }
+    // 표본 크기
+    else if (key === 'n' || key === 'n1' || key === 'n2' || key === 'nPairs' || key === 'total') {
+      type = 'number'
+    } else if (key === 'nItems' || key === 'nRespondents' || key === 'uniqueCount') {
+      type = 'number'
+    } else if (key === 'grandTotal' || key === 'grandMedian') {
+      type = 'number'
+    }
+    // 비율/검정
+    else if (key === 'proportion' || key === 'sampleProportion' || key === 'nullProportion' || key === 'expectedProportion') {
+      type = 'number'
+    } else if (key === 'successCount' || key === 'totalCount') {
+      type = 'number'
+    }
+    // Runs test
+    else if (key === 'nRuns' || key === 'expectedRuns' || key === 'nPositive' || key === 'nNegative' || key === 'nTies') {
+      type = 'number'
+    }
+    // Cronbach Alpha
+    else if (key === 'alpha' || key === 'correctedAlpha') {
+      type = 'number'
+    }
+    // Kendall's Tau
+    else if (key === 'tau' || key === 'concordance' || key === 'discordantPairs') {
+      type = 'number'
+    }
+    // Power analysis
+    else if (key === 'achievedPower' || key === 'requiredSampleSize') {
+      type = 'number'
+    }
+    // Cluster
+    else if (key === 'silhouetteScore') {
+      type = 'number'
+    }
+    // Survival
+    else if (key === 'medianSurvival') {
+      type = 'number'
+    }
+    // MANOVA/Discriminant
+    else if (key === 'wilksLambda') {
+      type = 'number'
+    }
+    // Bounds
+    else if (key === 'lowerBound' || key === 'upperBound') {
+      type = 'number'
+    }
+
+    // ========================================
+    // 2. 불린 (boolean)
+    // ========================================
+    else if (key === 'isNormal' || key === 'homogeneous' || key === 'significant' || key === 'reject') {
       type = 'boolean'
-    } else if (key === 'interpretation' || key === 'method' || key === 'trend' || key === 'equation') {
+    } else if (key === 'equalVariance' || key === 'continuityCorrection') {
+      type = 'boolean'
+    }
+
+    // ========================================
+    // 3. 문자열 (string)
+    // ========================================
+    else if (key === 'interpretation' || key === 'method' || key === 'trend' || key === 'equation') {
       type = 'string'
-    } else if (key === 'coefficients' || key === 'loadings' || key === 'eigenvalues') {
+    }
+
+    // ========================================
+    // 4. 숫자 배열 (number[])
+    // ========================================
+    else if (key === 'coefficients' || key === 'loadings' || key === 'eigenvalues') {
       type = 'number[]'
-    } else if (key === 'expectedMatrix' || key === 'observedMatrix' || key === 'confusionMatrix') {
-      type = 'number[][]'
-    } else if (key === 'comparisons') {
-      type = 'unknown[]'
-    } else if (key === 'categories' || key === 'rowCategories' || key === 'colCategories') {
-      type = 'string[]'
-    } else if (key === 'clusters' || key === 'predictions') {
+    } else if (key === 'clusters' || key === 'predictions' || key === 'scores') {
       type = 'number[]'
     } else if (key.includes('forecast') || key === 'acf' || key === 'pacf' || key === 'seasonal' || key === 'residual') {
       type = 'number[]'
-    } else if (key === 'confidenceInterval' || key === 'confidenceIntervals') {
+    } else if (key === 'frequencies' || key === 'percentages' || key === 'cumulativePercentages') {
+      type = 'number[]'
+    } else if (key === 'rowTotals' || key === 'colTotals') {
+      type = 'number[]'
+    } else if (key === 'adjustedPValues' || key === 'pValues') {
+      type = 'number[]'
+    } else if (key === 'observed' || key === 'expected') {
+      type = 'number[]'
+    } else if (key === 'outlierIndices' || key === 'outlierValues') {
+      type = 'number[]'
+    } else if (key === 'communalities' || key === 'explainedVariance' || key === 'cumulativeVariance') {
+      type = 'number[]'
+    } else if (key === 'explainedVarianceRatio' || key === 'totalVariance') {
+      type = 'number[]'
+    } else if (key === 'hazardRatios' || key === 'oddsRatios' || key === 'incidenceRateRatios') {
+      type = 'number[]'
+    } else if (key === 'survivalProbabilities' || key === 'thresholds') {
+      type = 'number[]'
+    } else if (key === 'adjustedMeans') {
+      type = 'number[]'
+    }
+
+    // ========================================
+    // 5. 2D 배열 (number[][])
+    // ========================================
+    else if (key === 'expectedMatrix' || key === 'observedMatrix' || key === 'confusionMatrix') {
+      type = 'number[][]'
+    } else if (key === 'centers' || key === 'components') {
+      type = 'number[][]'
+    }
+
+    // ========================================
+    // 6. 문자열 배열 (string[])
+    // ========================================
+    else if (key === 'categories' || key === 'rowCategories' || key === 'colCategories') {
+      type = 'string[]'
+    } else if (key === 'selectedVariables') {
+      type = 'string[]'
+    }
+
+    // ========================================
+    // 7. 객체/복합 타입
+    // ========================================
+    else if (key === 'confidenceInterval' || key === 'confidenceIntervals') {
       type = '{ lower: number; upper: number }[]'
+    } else if (key === 'comparisons' || key === 'significantResults') {
+      type = 'Array<{ group1: string; group2: string; pValue: number; significant: boolean }>'
+    } else if (key === 'anovaTable' || key === 'descriptives') {
+      type = 'Record<string, unknown>'
+    } else if (key === 'factor1' || key === 'factor2' || key === 'interaction') {
+      type = '{ fStatistic: number; pValue: number; df: number }'
+    } else if (key === 'plotData') {
+      type = '{ x: number[]; y: number[]; labels?: string[] }'
+    } else if (key === 'steps' || key === 'functions' || key === 'marginalEffects' || key === 'parameters') {
+      type = 'unknown[]'
     }
 
     return `  ${key}: ${type}`

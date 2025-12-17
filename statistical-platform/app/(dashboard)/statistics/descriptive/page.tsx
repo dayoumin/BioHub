@@ -50,8 +50,8 @@ interface DescriptiveStats {
   skewness: number
   kurtosis: number
   se: number
-  ci_lower: number
-  ci_upper: number
+  ciLower: number
+  ciUpper: number
   missing: number
 }
 
@@ -215,14 +215,14 @@ export default function DescriptiveStatsPage() {
           skewness: number
           kurtosis: number
           se: number
-          ci_lower: number
-          ci_upper: number
+          ciLower: number
+          ciUpper: number
         }>(
           PyodideWorker.Descriptive,
           'descriptive_stats',
           {
             data: values,
-            confidence_level: parseFloat(confidenceLevel) / 100
+            confidenceLevel: parseFloat(confidenceLevel) / 100
           }
         )
 
@@ -312,8 +312,8 @@ export default function DescriptiveStatsPage() {
 
     const ciColumns = [
       { key: 'se', header: '표준오차', type: 'number' as const, precision: 3 },
-      { key: 'ci_lower', header: `CI 하한(${confidenceLevel}%)`, type: 'number' as const, precision: 2 },
-      { key: 'ci_upper', header: `CI 상한(${confidenceLevel}%)`, type: 'number' as const, precision: 2 }
+      { key: 'ciLower', header: `CI 하한(${confidenceLevel}%)`, type: 'number' as const, precision: 2 },
+      { key: 'ciUpper', header: `CI 상한(${confidenceLevel}%)`, type: 'number' as const, precision: 2 }
     ]
 
     const columns = [

@@ -38,8 +38,8 @@ interface TTestResult {
   statistic: number
   pvalue: number
   df: number
-  ci_lower?: number
-  ci_upper?: number
+  ciLower?: number
+  ciUpper?: number
   mean_diff?: number
   effect_size?: {
     cohens_d: number
@@ -235,8 +235,8 @@ export default function TTestPage() {
             statistic: res.statistic,
             pvalue: res.pValue,
             df: values.length - 1,
-            ci_lower: undefined,
-            ci_upper: undefined,
+            ciLower: undefined,
+            ciUpper: undefined,
             effect_size: {
               cohens_d: cohensD,
               interpretation: interpretEffectSize(cohensD)
@@ -374,10 +374,10 @@ export default function TTestPage() {
         value: testResult.effect_size.cohens_d,
         type: 'cohen_d'
       } : undefined,
-      confidenceInterval: testResult.ci_lower !== undefined && testResult.ci_upper !== undefined && testResult.mean_diff !== undefined ? {
+      confidenceInterval: testResult.ciLower !== undefined && testResult.ciUpper !== undefined && testResult.mean_diff !== undefined ? {
         estimate: testResult.mean_diff,
-        lower: testResult.ci_lower,
-        upper: testResult.ci_upper,
+        lower: testResult.ciLower,
+        upper: testResult.ciUpper,
         level: 0.95
       } : undefined,
       assumptions,
@@ -664,7 +664,7 @@ export default function TTestPage() {
             result={convertToStatisticalResult(results)}
             showAssumptions={!!results.assumptions}
             showEffectSize={!!results.effect_size}
-            showConfidenceInterval={results.ci_lower !== undefined && results.ci_upper !== undefined}
+            showConfidenceInterval={results.ciLower !== undefined && results.ciUpper !== undefined}
             showInterpretation={true}
             showActions={true}
             expandable={false}

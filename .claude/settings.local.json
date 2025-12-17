@@ -50,7 +50,17 @@
       "Bash(npm run:*)",
       "Bash(npm run test:pyodide-golden:*)",
       "Bash(npm run test:golden-values:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(grep:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(lib/constants/methods-registry.json )",
+      "Bash(lib/constants/methods-registry.schema.json )",
+      "Bash(lib/generated/method-types.generated.ts )",
+      "Bash(scripts/generate-method-types.mjs:*)",
+      "Bash(__tests__/lib/methods-registry.test.ts )",
+      "Bash(__tests__/pyodide/worker-function-mapping.test.ts )",
+      "Bash(public/workers/python/worker4-regression-advanced.py)",
+      "Bash(__tests__/pyodide/worker-function-mapping.test.ts)"
     ],
     "deny": [],
     "ask": []

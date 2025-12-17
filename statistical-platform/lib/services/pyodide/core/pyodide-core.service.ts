@@ -1364,9 +1364,9 @@ json.dumps(result)
   async oneSampleProportionTest(successCount: number, totalCount: number, nullProportion?: number): Promise<StatisticsResult> {
     await this.ensureWorker1Loaded()
     return this.callWorkerMethod<StatisticsResult>(1, 'one_sample_proportion_test', {
-      success_count: successCount,
-      total_count: totalCount,
-      null_proportion: nullProportion ?? 0.5
+      successCount,
+      totalCount,
+      nullProportion: nullProportion ?? 0.5
     })
   }
 

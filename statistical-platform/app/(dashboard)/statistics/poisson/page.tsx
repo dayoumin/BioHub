@@ -66,11 +66,11 @@ interface PoissonRegressionResult {
     std_error: number
     z_value: number
     p_value: number
-    ci_lower: number
-    ci_upper: number
+    ciLower: number
+    ciUpper: number
     exp_coefficient: number
-    irr_ci_lower: number
-    irr_ci_upper: number
+    irrCiLower: number
+    irrCiUpper: number
   }[]
   model_fit: {
     deviance: number
@@ -122,8 +122,8 @@ interface PoissonRegressionResult {
   rate_ratios: {
     variable: string
     rate_ratio: number
-    ci_lower: number
-    ci_upper: number
+    ciLower: number
+    ciUpper: number
     interpretation: string
   }[]
 }
@@ -560,9 +560,9 @@ export default function PoissonRegressionPage() {
                       { key: 'std_error', header: '표준오차', type: 'number', formatter: (v) => v.toFixed(4) },
                       { key: 'z_value', header: 'z', type: 'number', formatter: (v) => v.toFixed(3) },
                       { key: 'p_value', header: 'p-value', type: 'pvalue' },
-                      { key: 'ci', header: '95% CI', type: 'custom', formatter: (_, row) => `[${row.ci_lower.toFixed(3)}, ${row.ci_upper.toFixed(3)}]` },
+                      { key: 'ci', header: '95% CI', type: 'custom', formatter: (_, row) => `[${row.ciLower.toFixed(3)}, ${row.ciUpper.toFixed(3)}]` },
                       { key: 'exp_coefficient', header: 'exp(β)', type: 'number', formatter: (v) => v.toFixed(3) },
-                      { key: 'irr_ci', header: 'IRR CI', type: 'custom', formatter: (_, row) => `[${row.irr_ci_lower.toFixed(3)}, ${row.irr_ci_upper.toFixed(3)}]` }
+                      { key: 'irr_ci', header: 'IRR CI', type: 'custom', formatter: (_, row) => `[${row.irrCiLower.toFixed(3)}, ${row.irrCiUpper.toFixed(3)}]` }
                     ] as TableColumn[]}
                     data={results.coefficients}
                     compactMode
@@ -722,7 +722,7 @@ export default function PoissonRegressionPage() {
                     columns={[
                       { key: 'variable', header: '변수', type: 'text' },
                       { key: 'rate_ratio', header: '발생률비', type: 'number', formatter: (v) => v.toFixed(3) },
-                      { key: 'ci', header: '95% CI', type: 'custom', formatter: (_, row) => `[${row.ci_lower.toFixed(3)}, ${row.ci_upper.toFixed(3)}]` },
+                      { key: 'ci', header: '95% CI', type: 'custom', formatter: (_, row) => `[${row.ciLower.toFixed(3)}, ${row.ciUpper.toFixed(3)}]` },
                       { key: 'interpretation', header: '해석', type: 'text' }
                     ] as TableColumn[]}
                     data={results.rate_ratios}

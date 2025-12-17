@@ -125,8 +125,8 @@ export default function CoxRegressionPage() {
         {
           times,
           events,
-          covariate_data: covariateData,
-          covariate_names: vars.covariates
+          covariateData,
+          covariateNames: vars.covariates
         }
       )
 

@@ -65,11 +65,11 @@ interface OrdinalRegressionResult {
     std_error: number
     z_value: number
     p_value: number
-    ci_lower: number
-    ci_upper: number
+    ciLower: number
+    ciUpper: number
     odds_ratio: number
-    or_ci_lower: number
-    or_ci_upper: number
+    orCiLower: number
+    orCiUpper: number
   }[]
   thresholds: {
     threshold: string
@@ -77,8 +77,8 @@ interface OrdinalRegressionResult {
     std_error: number
     z_value: number
     p_value: number
-    ci_lower: number
-    ci_upper: number
+    ciLower: number
+    ciUpper: number
   }[]
   model_fit: {
     deviance: number
@@ -607,10 +607,10 @@ export default function OrdinalRegressionPage() {
                         header: '95% CI',
                         type: 'custom',
                         formatter: (_value: unknown, row: StatTableRow) => {
-                          const ci_lower = row?.ci_lower as number | undefined
-                          const ci_upper = row?.ci_upper as number | undefined
-                          if (ci_lower !== undefined && ci_upper !== undefined) {
-                            return `[${ci_lower.toFixed(3)}, ${ci_upper.toFixed(3)}]`
+                          const ciLower = row?.ciLower as number | undefined
+                          const ciUpper = row?.ciUpper as number | undefined
+                          if (ciLower !== undefined && ciUpper !== undefined) {
+                            return `[${ciLower.toFixed(3)}, ${ciUpper.toFixed(3)}]`
                           }
                           return '-'
                         }
@@ -621,10 +621,10 @@ export default function OrdinalRegressionPage() {
                         header: '오즈비 CI',
                         type: 'custom',
                         formatter: (_value: unknown, row: StatTableRow) => {
-                          const or_ci_lower = row?.or_ci_lower as number | undefined
-                          const or_ci_upper = row?.or_ci_upper as number | undefined
-                          if (or_ci_lower !== undefined && or_ci_upper !== undefined) {
-                            return `[${or_ci_lower.toFixed(3)}, ${or_ci_upper.toFixed(3)}]`
+                          const orCiLower = row?.orCiLower as number | undefined
+                          const orCiUpper = row?.orCiUpper as number | undefined
+                          if (orCiLower !== undefined && orCiUpper !== undefined) {
+                            return `[${orCiLower.toFixed(3)}, ${orCiUpper.toFixed(3)}]`
                           }
                           return '-'
                         }
@@ -636,11 +636,11 @@ export default function OrdinalRegressionPage() {
                       std_error: coef.std_error,
                       z_value: coef.z_value,
                       p_value: coef.p_value,
-                      ci_lower: coef.ci_lower,
-                      ci_upper: coef.ci_upper,
+                      ciLower: coef.ciLower,
+                      ciUpper: coef.ciUpper,
                       odds_ratio: coef.odds_ratio,
-                      or_ci_lower: coef.or_ci_lower,
-                      or_ci_upper: coef.or_ci_upper
+                      orCiLower: coef.orCiLower,
+                      orCiUpper: coef.orCiUpper
                     }))}
                     compactMode
                   />
@@ -680,10 +680,10 @@ export default function OrdinalRegressionPage() {
                         header: '95% CI',
                         type: 'custom',
                         formatter: (_value: unknown, row: StatTableRow) => {
-                          const ci_lower = row?.ci_lower as number | undefined
-                          const ci_upper = row?.ci_upper as number | undefined
-                          if (ci_lower !== undefined && ci_upper !== undefined) {
-                            return `[${ci_lower.toFixed(3)}, ${ci_upper.toFixed(3)}]`
+                          const ciLower = row?.ciLower as number | undefined
+                          const ciUpper = row?.ciUpper as number | undefined
+                          if (ciLower !== undefined && ciUpper !== undefined) {
+                            return `[${ciLower.toFixed(3)}, ${ciUpper.toFixed(3)}]`
                           }
                           return '-'
                         }
@@ -695,8 +695,8 @@ export default function OrdinalRegressionPage() {
                       std_error: threshold.std_error,
                       z_value: threshold.z_value,
                       p_value: threshold.p_value,
-                      ci_lower: threshold.ci_lower,
-                      ci_upper: threshold.ci_upper
+                      ciLower: threshold.ciLower,
+                      ciUpper: threshold.ciUpper
                     }))}
                     compactMode
                   />

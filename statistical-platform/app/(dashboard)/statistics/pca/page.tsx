@@ -364,7 +364,7 @@ export default function PCAPage() {
         'pca_analysis',
         {
           data: numericData,
-          n_components: null  // null = extract all components
+          nComponents: null  // null = extract all components
         }
       )
 

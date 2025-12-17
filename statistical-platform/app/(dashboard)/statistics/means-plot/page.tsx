@@ -38,8 +38,8 @@ interface MeansPlotResults {
       std: number
       sem: number
       count: number
-      ci_lower: number
-      ci_upper: number
+      ciLower: number
+      ciUpper: number
     }
   }
   plot_data: Array<{
@@ -152,8 +152,8 @@ export default function MeansPlotPage() {
           std: value.std,
           sem: value.sem,
           count: value.count,
-          ci_lower: value.ciLower,
-          ci_upper: value.ciUpper
+          ciLower: value.ciLower,
+          ciUpper: value.ciUpper
         }
       }
 
@@ -377,8 +377,8 @@ export default function MeansPlotPage() {
                     mean: desc.mean.toFixed(3),
                     std: desc.std.toFixed(3),
                     sem: desc.sem.toFixed(3),
-                    ciLower: desc.ci_lower.toFixed(3),
-                    ciUpper: desc.ci_upper.toFixed(3)
+                    ciLower: desc.ciLower.toFixed(3),
+                    ciUpper: desc.ciUpper.toFixed(3)
                   }))}
                 />
               </CardContent>

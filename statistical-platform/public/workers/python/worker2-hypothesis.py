@@ -1482,11 +1482,11 @@ def poisson_regression(
             'std_error': se,
             'z_value': z_val,
             'p_value': p_val,
-            'ci_lower': float(ci[0]),
-            'ci_upper': float(ci[1]),
+            'ciLower': float(ci[0]),
+            'ciUpper': float(ci[1]),
             'exp_coefficient': float(exp_coef),
-            'irr_ci_lower': float(irr_ci_lower),
-            'irr_ci_upper': float(irr_ci_upper)
+            'irrCiLower': float(irr_ci_lower),
+            'irrCiUpper': float(irr_ci_upper)
         })
 
     # Model fit
@@ -1681,11 +1681,11 @@ def ordinal_regression(
             'std_error': se,
             'z_value': z,
             'p_value': p,
-            'ci_lower': ci_lower,
-            'ci_upper': ci_upper,
+            'ciLower': ci_lower,
+            'ciUpper': ci_upper,
             'odds_ratio': odds_ratio,
-            'or_ci_lower': or_ci_lower,
-            'or_ci_upper': or_ci_upper
+            'orCiLower': or_ci_lower,
+            'orCiUpper': or_ci_upper
         })
 
     # Thresholds
@@ -1704,8 +1704,8 @@ def ordinal_regression(
             'std_error': float(threshold_std_errors[i]),
             'z_value': float(threshold_z_values[i]),
             'p_value': float(threshold_p_values[i]),
-            'ci_lower': float(ci[0]),
-            'ci_upper': float(ci[1])
+            'ciLower': float(ci[0]),
+            'ciUpper': float(ci[1])
         })
 
     # Model fit

@@ -179,7 +179,7 @@ class TestCohensD:
         group1 = [10, 12, 11, 13, 10, 12]
         group2 = [15, 17, 16, 18, 15, 17]
 
-        result = t_test_two_sample(group1, group2, equal_var=True)
+        result = t_test_two_sample(group1, group2, equalVar=True)
 
         assert 'cohensD' in result
         assert isinstance(result['cohensD'], float)
@@ -262,7 +262,7 @@ class TestPCA:
         np.random.seed(42)
         data_matrix = np.random.randn(10, 5).tolist()
 
-        result = pca_analysis(data_matrix, n_components=2)
+        result = pca_analysis(data_matrix, nComponents=2)
 
         assert 'components' in result
         assert 'explainedVariance' in result
@@ -286,7 +286,7 @@ class TestPCA:
         data_matrix = [[1, 2], [3, 4], [5, 6]]
 
         with pytest.raises(ValueError, match="Cannot extract 3 components from 2 features"):
-            pca_analysis(data_matrix, n_components=3)
+            pca_analysis(data_matrix, nComponents=3)
 
 
 class TestDurbinWatson:
@@ -392,7 +392,7 @@ class TestLibraryComplianceSummary:
 
         try:
             pca_analysis = worker4.pca_analysis
-            result = pca_analysis([[1, 2, 3], [4, 5, 6], [7, 8, 9]], n_components=2)
+            result = pca_analysis([[1, 2, 3], [4, 5, 6], [7, 8, 9]], nComponents=2)
             test_results['PCA'] = 'components' in result
         except Exception:
             pass

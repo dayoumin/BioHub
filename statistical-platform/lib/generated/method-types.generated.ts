@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2025-12-17T03:13:58.383Z
+ * Generated: 2025-12-17T03:19:29.095Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -56,16 +56,16 @@ async function callWorkerMethod<T>(
 export interface DescriptiveStatsResult {
   mean: number
   median: number
-  mode: unknown
+  mode: number
   std: number
   variance: number
-  min: unknown
-  max: unknown
-  q1: unknown
-  q3: unknown
-  iqr: unknown
-  skewness: unknown
-  kurtosis: unknown
+  min: number
+  max: number
+  q1: number
+  q3: number
+  iqr: number
+  skewness: number
+  kurtosis: number
   n: number
 }
 
@@ -77,46 +77,46 @@ export interface NormalityTestResult {
 }
 
 export interface OutlierDetectionResult {
-  outlierIndices: unknown
-  outlierValues: unknown
-  lowerBound: unknown
-  upperBound: unknown
+  outlierIndices: number[]
+  outlierValues: number[]
+  lowerBound: number
+  upperBound: number
   method: string
 }
 
 export interface FrequencyAnalysisResult {
   categories: string[]
-  frequencies: unknown
-  percentages: unknown
-  cumulativePercentages: unknown
-  total: unknown
-  uniqueCount: unknown
+  frequencies: number[]
+  percentages: number[]
+  cumulativePercentages: number[]
+  total: number
+  uniqueCount: number
 }
 
 export interface CrosstabAnalysisResult {
   rowCategories: string[]
   colCategories: string[]
   observedMatrix: number[][]
-  rowTotals: unknown
-  colTotals: unknown
-  grandTotal: unknown
+  rowTotals: number[]
+  colTotals: number[]
+  grandTotal: number
 }
 
 export interface OneSampleProportionTestResult {
-  sampleProportion: unknown
-  nullProportion: unknown
+  sampleProportion: number
+  nullProportion: number
   pValue: number
   zStatistic: number
-  pValueExact: unknown
-  pValueApprox: unknown
+  pValueExact: number
+  pValueApprox: number
   significant: boolean
-  alpha: unknown
+  alpha: number
 }
 
 export interface CronbachAlphaResult {
-  alpha: unknown
-  nItems: unknown
-  nRespondents: unknown
+  alpha: number
+  nItems: number
+  nRespondents: number
 }
 
 export interface KolmogorovSmirnovTestResult {
@@ -145,21 +145,21 @@ export interface MannKendallTestResult {
   trend: string
   statistic: number
   pValue: number
-  tau: unknown
+  tau: number
   slope: number
   intercept: number
 }
 
 export interface BonferroniCorrectionResult {
-  adjustedPValues: unknown
-  significantResults: unknown
-  alpha: unknown
-  correctedAlpha: unknown
+  adjustedPValues: number[]
+  significantResults: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
+  alpha: number
+  correctedAlpha: number
 }
 
 export interface MeansPlotDataResult {
-  descriptives: unknown
-  plotData: unknown
+  descriptives: Record<string, unknown>
+  plotData: { x: number[]; y: number[]; labels?: string[] }
   interpretation: string
 }
 
@@ -277,10 +277,10 @@ export interface TTestTwoSampleResult {
   statistic: number
   pValue: number
   cohensD: number
-  mean1: unknown
-  mean2: unknown
-  std1: unknown
-  std2: unknown
+  mean1: number
+  mean2: number
+  std1: number
+  std2: number
   n1: number
   n2: number
 }
@@ -288,22 +288,22 @@ export interface TTestTwoSampleResult {
 export interface TTestPairedResult {
   statistic: number
   pValue: number
-  meanDiff: unknown
+  meanDiff: number
   nPairs: number
 }
 
 export interface TTestOneSampleResult {
   statistic: number
   pValue: number
-  sampleMean: unknown
-  sampleStd: unknown
+  sampleMean: number
+  sampleStd: number
   n: number
 }
 
 export interface ZTestResult {
   statistic: number
   pValue: number
-  sampleMean: unknown
+  sampleMean: number
   n: number
 }
 
@@ -316,10 +316,10 @@ export interface ChiSquareTestResult {
 
 export interface BinomialTestResult {
   pValue: number
-  successCount: unknown
-  totalCount: unknown
-  proportion: unknown
-  expectedProportion: unknown
+  successCount: number
+  totalCount: number
+  proportion: number
+  expectedProportion: number
 }
 
 export interface CorrelationTestResult {
@@ -338,30 +338,30 @@ export interface PartialCorrelationResult {
 export interface LeveneTestResult {
   statistic: number
   pValue: number
-  equalVariance: unknown
+  equalVariance: boolean
 }
 
 export interface BartlettTestResult {
   statistic: number
   pValue: number
-  equalVariance: unknown
+  equalVariance: boolean
 }
 
 export interface ChiSquareGoodnessTestResult {
   chiSquare: number
   pValue: number
-  degreesOfFreedom: unknown
-  criticalValue: unknown
+  degreesOfFreedom: number
+  criticalValue: number
   reject: boolean
-  observed: unknown
-  expected: unknown
+  observed: number[]
+  expected: number[]
 }
 
 export interface ChiSquareIndependenceTestResult {
   chiSquare: number
   pValue: number
   df: number
-  criticalValue: unknown
+  criticalValue: number
   reject: boolean
   cramersV: number
   observedMatrix: number[][]
@@ -370,14 +370,14 @@ export interface ChiSquareIndependenceTestResult {
 
 export interface FisherExactTestResult {
   pValue: number
-  oddsRatio: unknown
+  oddsRatio: number
 }
 
 export interface PowerAnalysisResult {
-  requiredSampleSize: unknown
-  achievedPower: unknown
-  effectSize: unknown
-  alpha: unknown
+  requiredSampleSize: number
+  achievedPower: number
+  effectSize: number
+  alpha: number
   interpretation: string
 }
 
@@ -502,13 +502,13 @@ export async function powerAnalysis(testType: string, analysisType: string, alph
 export interface MannWhitneyTestResult {
   statistic: number
   pValue: number
-  effectSize: unknown
+  effectSize: number
 }
 
 export interface WilcoxonTestResult {
   statistic: number
   pValue: number
-  effectSize: unknown
+  effectSize: number
 }
 
 export interface KruskalWallisTestResult {
@@ -533,41 +533,41 @@ export interface OneWayAnovaResult {
 }
 
 export interface TwoWayAnovaResult {
-  factor1: unknown
-  factor2: unknown
-  interaction: unknown
+  factor1: { fStatistic: number; pValue: number; df: number }
+  factor2: { fStatistic: number; pValue: number; df: number }
+  interaction: { fStatistic: number; pValue: number; df: number }
   residual: number[]
-  anovaTable: unknown
+  anovaTable: Record<string, unknown>
 }
 
 export interface TukeyHsdResult {
-  comparisons: unknown[]
+  comparisons: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
 }
 
 export interface SignTestResult {
   statistic: number
   pValue: number
-  nPositive: unknown
-  nNegative: unknown
-  nTies: unknown
+  nPositive: number
+  nNegative: number
+  nTies: number
 }
 
 export interface RunsTestResult {
   statistic: number
   pValue: number
-  nRuns: unknown
-  expectedRuns: unknown
+  nRuns: number
+  expectedRuns: number
 }
 
 export interface McnemarTestResult {
   statistic: number
   pValue: number
-  continuityCorrection: unknown
-  discordantPairs: unknown
+  continuityCorrection: boolean
+  discordantPairs: number
 }
 
 export interface CochranQTestResult {
-  qStatistic: unknown
+  qStatistic: number
   pValue: number
   df: number
 }
@@ -575,7 +575,7 @@ export interface CochranQTestResult {
 export interface MoodMedianTestResult {
   statistic: number
   pValue: number
-  grandMedian: unknown
+  grandMedian: number
 }
 
 export interface RepeatedMeasuresAnovaResult {
@@ -587,25 +587,25 @@ export interface RepeatedMeasuresAnovaResult {
 export interface AncovaResult {
   fStatistic: number
   pValue: number
-  adjustedMeans: unknown
+  adjustedMeans: number[]
 }
 
 export interface ManovaResult {
-  wilksLambda: unknown
+  wilksLambda: number
   fStatistic: number
   pValue: number
 }
 
 export interface ScheffeTestResult {
-  comparisons: unknown[]
+  comparisons: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
 }
 
 export interface DunnTestResult {
-  comparisons: unknown[]
+  comparisons: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
 }
 
 export interface GamesHowellTestResult {
-  comparisons: unknown[]
+  comparisons: Array<{ group1: string; group2: string; pValue: number; significant: boolean }>
 }
 
 
@@ -764,7 +764,7 @@ export interface LinearRegressionResult {
   rSquared: number
   adjRSquared: number
   pValue: number
-  standardError: unknown
+  standardError: number
 }
 
 export interface MultipleRegressionResult {
@@ -777,89 +777,89 @@ export interface MultipleRegressionResult {
 
 export interface LogisticRegressionResult {
   coefficients: number[]
-  accuracy: unknown
-  auc: unknown
+  accuracy: number
+  auc: number
   confusionMatrix: number[][]
 }
 
 export interface PcaAnalysisResult {
-  components: unknown
-  explainedVariance: unknown
-  explainedVarianceRatio: unknown
-  cumulativeVariance: unknown
+  components: number[][]
+  explainedVariance: number[]
+  explainedVarianceRatio: number[]
+  cumulativeVariance: number[]
   loadings: number[]
-  scores: unknown
+  scores: number[]
 }
 
 export interface CurveEstimationResult {
-  parameters: unknown
+  parameters: unknown[]
   rSquared: number
   equation: string
   predictions: number[]
 }
 
 export interface NonlinearRegressionResult {
-  parameters: unknown
+  parameters: unknown[]
   rSquared: number
   equation: string
   predictions: number[]
 }
 
 export interface StepwiseRegressionResult {
-  selectedVariables: unknown
+  selectedVariables: string[]
   coefficients: number[]
   rSquared: number
-  steps: unknown
+  steps: unknown[]
 }
 
 export interface BinaryLogisticResult {
   coefficients: number[]
-  oddsRatios: unknown
-  pValues: unknown
-  accuracy: unknown
-  auc: unknown
+  oddsRatios: number[]
+  pValues: number[]
+  accuracy: number
+  auc: number
 }
 
 export interface MultinomialLogisticResult {
   coefficients: number[]
-  accuracy: unknown
+  accuracy: number
 }
 
 export interface OrdinalLogisticResult {
   coefficients: number[]
-  thresholds: unknown
+  thresholds: number[]
 }
 
 export interface ProbitRegressionResult {
   coefficients: number[]
-  pValues: unknown
-  marginalEffects: unknown
+  pValues: number[]
+  marginalEffects: unknown[]
 }
 
 export interface PoissonRegressionResult {
   coefficients: number[]
-  pValues: unknown
-  incidenceRateRatios: unknown
+  pValues: number[]
+  incidenceRateRatios: number[]
 }
 
 export interface NegativeBinomialRegressionResult {
   coefficients: number[]
-  pValues: unknown
-  dispersion: unknown
+  pValues: number[]
+  dispersion: number
 }
 
 export interface FactorAnalysisResult {
   loadings: number[]
-  communalities: unknown
-  explainedVariance: unknown
+  communalities: number[]
+  explainedVariance: number[]
   eigenvalues: number[]
 }
 
 export interface ClusterAnalysisResult {
   clusters: number[]
-  centers: unknown
-  silhouetteScore: unknown
-  inertia: unknown
+  centers: number[][]
+  silhouetteScore: number
+  inertia: number
 }
 
 export interface TimeSeriesAnalysisResult {
@@ -878,25 +878,25 @@ export interface DurbinWatsonTestResult {
 
 export interface DiscriminantAnalysisResult {
   coefficients: number[]
-  totalVariance: unknown
-  functions: unknown
+  totalVariance: number[]
+  functions: unknown[]
   predictions: number[]
   confusionMatrix: number[][]
   interpretation: string
 }
 
 export interface KaplanMeierSurvivalResult {
-  survivalProbabilities: unknown
+  survivalProbabilities: number[]
   confidenceIntervals: { lower: number; upper: number }[]
-  medianSurvival: unknown
+  medianSurvival: number
 }
 
 export interface CoxRegressionResult {
   coefficients: number[]
-  hazardRatios: unknown
-  pValues: unknown
+  hazardRatios: number[]
+  pValues: number[]
   confidenceIntervals: { lower: number; upper: number }[]
-  concordance: unknown
+  concordance: number
 }
 
 

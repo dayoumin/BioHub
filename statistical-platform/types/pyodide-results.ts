@@ -88,8 +88,8 @@ export interface OneSampleTTestResult {
   df: number
   sampleMean: number
   std: number
-  ci_lower: number
-  ci_upper: number
+  ciLower: number
+  ciUpper: number
   cohensD: number
 }
 
@@ -104,8 +104,8 @@ export interface TwoSampleTTestResult {
   mean2: number
   std1: number
   std2: number
-  ci_lower: number
-  ci_upper: number
+  ciLower: number
+  ciUpper: number
   cohensD: number
 }
 
@@ -122,8 +122,8 @@ export interface PairedTTestResult {
   std2: number
   meanDiff: number
   stdDiff: number
-  ci_lower: number
-  ci_upper: number
+  ciLower: number
+  ciUpper: number
   cohensD: number
 }
 
@@ -146,8 +146,8 @@ export interface ZTestResult {
   sampleMean: number
   populationMean: number
   standardError: number
-  ci_lower: number
-  ci_upper: number
+  ciLower: number
+  ciUpper: number
 }
 
 /**
@@ -159,8 +159,8 @@ export interface BinomialTestResult {
   observedProportion: number
   expectedProportion: number
   sampleSize: number
-  ci_lower: number
-  ci_upper: number
+  ciLower: number
+  ciUpper: number
 }
 
 /**
@@ -293,8 +293,8 @@ export interface PostHocTestResult {
     group2: string
     meanDiff: number
     pValue: number
-    ci_lower: number
-    ci_upper: number
+    ciLower: number
+    ciUpper: number
     significant: boolean
   }>
 }

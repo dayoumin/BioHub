@@ -357,7 +357,7 @@ def test_pca_kmo_bartlett():
     # pca_analysis는 2D array를 기대함 (n_samples x n_variables)
     data = np.column_stack([var1, var2, var3, var4])
 
-    result = pca_analysis(data, n_components=2)
+    result = pca_analysis(data, nComponents=2)
 
     # KMO 검정 (qualityMetrics 안에 있음)
     assert 'qualityMetrics' in result, "qualityMetrics 필드 없음"
@@ -398,7 +398,7 @@ def test_pca_kmo_low_correlation():
         np.random.normal(0, 1, n)
     ])
 
-    result = pca_analysis(data, n_components=2)
+    result = pca_analysis(data, nComponents=2)
 
     kmo = result['qualityMetrics']['kmo']
 

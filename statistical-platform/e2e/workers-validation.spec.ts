@@ -212,7 +212,7 @@ json.dumps(result)
       const testCode = `
 import json
 data = [[1, 2, 3], [2, 3, 4], [3, 4, 5], [4, 5, 6]]
-result = pca_analysis(data, n_components=2)
+ result = pca_analysis(data, nComponents=2)
 json.dumps(result)
       `;
 

@@ -21,7 +21,10 @@ def _safe_bool(value: Union[bool, np.bool_]) -> bool:
         return bool(value)
 
 
-def descriptive_stats(data: List[Union[float, int, None]]) -> Dict[str, Union[float, int]]:
+def descriptive_stats(
+    data: List[Union[float, int, None]],
+    confidenceLevel: float = 0.95
+) -> Dict[str, Union[float, int]]:
     clean_data = clean_array(data)
 
     if len(clean_data) == 0:
@@ -33,8 +36,24 @@ def descriptive_stats(data: List[Union[float, int, None]]) -> Dict[str, Union[fl
     q1 = np.percentile(clean_data, 25)
     q3 = np.percentile(clean_data, 75)
 
+    # Confidence interval calculation
+    if not (0 < confidenceLevel < 1):
+        raise ValueError("confidenceLevel must be between 0 and 1")
+
+    n = len(clean_data)
+    mean = float(np.mean(clean_data))
+
+    sem = float(stats.sem(clean_data)) if n >= 2 else 0.0
+    if n >= 2 and sem > 0:
+        ci = stats.t.interval(confidenceLevel, df=n - 1, loc=mean, scale=sem)
+        ci_lower = float(ci[0])
+        ci_upper = float(ci[1])
+    else:
+        ci_lower = mean
+        ci_upper = mean
+
     return {
-        'mean': float(np.mean(clean_data)),
+        'mean': mean,
         'median': float(np.median(clean_data)),
         'mode': mode_value,
         'std': float(np.std(clean_data, ddof=1)),
@@ -46,7 +65,12 @@ def descriptive_stats(data: List[Union[float, int, None]]) -> Dict[str, Union[fl
         'iqr': float(q3 - q1),
         'skewness': float(stats.skew(clean_data)),
         'kurtosis': float(stats.kurtosis(clean_data)),
-        'n': int(len(clean_data))
+        'n': int(n),
+        'se': sem,
+        'sem': sem,
+        'confidenceLevel': float(confidenceLevel),
+        'ciLower': ci_lower,
+        'ciUpper': ci_upper
     }
 
 
@@ -501,4 +525,3 @@ def means_plot_data(data, dependentVar, factorVar):
         'plotData': plot_data,
         'interpretation': interpretation
     }
-
