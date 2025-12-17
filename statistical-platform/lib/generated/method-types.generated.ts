@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2025-12-17T03:19:29.095Z
+ * Generated: 2025-12-17T11:41:20.237Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -168,7 +168,7 @@ export interface MeansPlotDataResult {
  * 기술통계량 계산
  * @worker Worker 1
  */
-export async function descriptiveStats(data: number[], confidenceLevel?: number): Promise<DescriptiveStatsResult> {
+export async function descriptiveStats(data: number[] | number[][], confidenceLevel?: number): Promise<DescriptiveStatsResult> {
   return callWorkerMethod<DescriptiveStatsResult>(1, 'descriptive_stats', { data, confidenceLevel })
 }
 
@@ -176,7 +176,7 @@ export async function descriptiveStats(data: number[], confidenceLevel?: number)
  * Shapiro-Wilk 정규성 검정
  * @worker Worker 1
  */
-export async function normalityTest(data: number[], alpha?: number): Promise<NormalityTestResult> {
+export async function normalityTest(data: number[] | number[][], alpha?: number): Promise<NormalityTestResult> {
   return callWorkerMethod<NormalityTestResult>(1, 'normality_test', { data, alpha })
 }
 
@@ -184,7 +184,7 @@ export async function normalityTest(data: number[], alpha?: number): Promise<Nor
  * 이상치 탐지 (IQR/Z-score)
  * @worker Worker 1
  */
-export async function outlierDetection(data: number[], method?: string): Promise<OutlierDetectionResult> {
+export async function outlierDetection(data: number[] | number[][], method?: string): Promise<OutlierDetectionResult> {
   return callWorkerMethod<OutlierDetectionResult>(1, 'outlier_detection', { data, method })
 }
 
@@ -224,7 +224,7 @@ export async function cronbachAlpha(itemsMatrix: number[][]): Promise<CronbachAl
  * K-S 정규성 검정
  * @worker Worker 1
  */
-export async function kolmogorovSmirnovTest(data: number[]): Promise<KolmogorovSmirnovTestResult> {
+export async function kolmogorovSmirnovTest(data: number[] | number[][]): Promise<KolmogorovSmirnovTestResult> {
   return callWorkerMethod<KolmogorovSmirnovTestResult>(1, 'kolmogorov_smirnov_test', { data })
 }
 
@@ -248,7 +248,7 @@ export async function ksTestTwoSample(values1: number[], values2: number[]): Pro
  * Mann-Kendall 추세 검정
  * @worker Worker 1
  */
-export async function mannKendallTest(data: number[]): Promise<MannKendallTestResult> {
+export async function mannKendallTest(data: number[] | number[][]): Promise<MannKendallTestResult> {
   return callWorkerMethod<MannKendallTestResult>(1, 'mann_kendall_test', { data })
 }
 
@@ -264,7 +264,7 @@ export async function bonferroniCorrection(pValues: number[], alpha?: number): P
  * 평균 플롯 데이터
  * @worker Worker 1
  */
-export async function meansPlotData(data: number[], dependentVar: string, factorVar: string): Promise<MeansPlotDataResult> {
+export async function meansPlotData(data: number[] | number[][], dependentVar: string, factorVar: string): Promise<MeansPlotDataResult> {
   return callWorkerMethod<MeansPlotDataResult>(1, 'means_plot_data', { data, dependentVar, factorVar })
 }
 
@@ -402,7 +402,7 @@ export async function tTestPaired(values1: number[], values2: number[]): Promise
  * 일표본 t-검정
  * @worker Worker 2
  */
-export async function tTestOneSample(data: number[], popmean?: number): Promise<TTestOneSampleResult> {
+export async function tTestOneSample(data: number[] | number[][], popmean?: number): Promise<TTestOneSampleResult> {
   return callWorkerMethod<TTestOneSampleResult>(2, 't_test_one_sample', { data, popmean })
 }
 
@@ -410,7 +410,7 @@ export async function tTestOneSample(data: number[], popmean?: number): Promise<
  * Z-검정
  * @worker Worker 2
  */
-export async function zTest(data: number[], popmean: number, popstd: number): Promise<ZTestResult> {
+export async function zTest(data: number[] | number[][], popmean: number, popstd: number): Promise<ZTestResult> {
   return callWorkerMethod<ZTestResult>(2, 'z_test', { data, popmean, popstd })
 }
 
@@ -856,19 +856,23 @@ export interface FactorAnalysisResult {
 }
 
 export interface ClusterAnalysisResult {
-  clusters: number[]
-  centers: number[][]
-  silhouetteScore: number
+  nClusters: unknown
+  clusterAssignments: unknown
+  centroids: unknown
   inertia: number
+  silhouetteScore: number
+  clusterSizes: unknown
 }
 
 export interface TimeSeriesAnalysisResult {
   trend: string
   seasonal: number[]
   residual: number[]
-  forecast: number[]
   acf: number[]
   pacf: number[]
+  adfStatistic: unknown
+  adfPValue: unknown
+  isStationary: unknown
 }
 
 export interface DurbinWatsonTestResult {
@@ -928,7 +932,7 @@ export async function logisticRegression(X: number[][], y: number[]): Promise<Lo
  * 주성분 분석
  * @worker Worker 4
  */
-export async function pcaAnalysis(data: number[], nComponents?: number): Promise<PcaAnalysisResult> {
+export async function pcaAnalysis(data: number[] | number[][], nComponents?: number): Promise<PcaAnalysisResult> {
   return callWorkerMethod<PcaAnalysisResult>(4, 'pca_analysis', { data, nComponents })
 }
 
@@ -1016,8 +1020,8 @@ export async function factorAnalysis(dataMatrix: number[][], nFactors?: number, 
  * 군집분석
  * @worker Worker 4
  */
-export async function clusterAnalysis(data: number[], method?: string, numClusters?: number, linkage?: string, distance?: string): Promise<ClusterAnalysisResult> {
-  return callWorkerMethod<ClusterAnalysisResult>(4, 'cluster_analysis', { data, method, numClusters, linkage, distance })
+export async function clusterAnalysis(data: number[] | number[][], method?: string, nClusters?: number, linkage?: string, distance?: string): Promise<ClusterAnalysisResult> {
+  return callWorkerMethod<ClusterAnalysisResult>(4, 'cluster_analysis', { data, method, nClusters, linkage, distance })
 }
 
 /**
@@ -1040,7 +1044,7 @@ export async function durbinWatsonTest(residuals: number[]): Promise<DurbinWatso
  * 판별분석
  * @worker Worker 4
  */
-export async function discriminantAnalysis(data: number[], groups: number[][] | number[]): Promise<DiscriminantAnalysisResult> {
+export async function discriminantAnalysis(data: number[] | number[][], groups: number[][] | number[]): Promise<DiscriminantAnalysisResult> {
   return callWorkerMethod<DiscriminantAnalysisResult>(4, 'discriminant_analysis', { data, groups })
 }
 

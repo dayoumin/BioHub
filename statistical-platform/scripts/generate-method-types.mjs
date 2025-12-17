@@ -67,7 +67,10 @@ function paramToType(param) {
     type = 'string[]'
   }
   // 숫자 배열 (1D)
-  else if (name === 'data' || name === 'x' || name === 'y' || name === 'residuals') {
+  else if (name === 'data') {
+    type = 'number[] | number[][]'
+  }
+  else if (name === 'x' || name === 'y' || name === 'residuals') {
     type = 'number[]'
   }
   else if (name === 'group1' || name === 'group2' || name === 'values1' || name === 'values2') {
@@ -89,7 +92,7 @@ function paramToType(param) {
   else if (name === 'alpha' || name === 'probability' || name === 'popmean' || name === 'popstd') {
     type = 'number'
   }
-  else if (name === 'nComponents' || name === 'nFactors' || name === 'numClusters') {
+  else if (name === 'nComponents' || name === 'nFactors' || name === 'numClusters' || name === 'nClusters') {
     type = 'number'
   }
   else if (name === 'successCount' || name === 'totalCount' || name === 'xIdx' || name === 'yIdx') {

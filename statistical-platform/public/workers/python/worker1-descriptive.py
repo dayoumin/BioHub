@@ -286,12 +286,22 @@ def ks_test_one_sample(values: List[Union[float, int]]) -> Dict[str, Union[float
     # Critical value at α = 0.05
     critical_value = 1.36 / np.sqrt(n)
 
+    significant = _safe_bool(statistic > critical_value)
+    interpretation = (
+        "Reject H0: sample differs from expected distribution"
+        if significant
+        else "Fail to reject H0: no evidence sample differs from expected distribution"
+    )
+
     return {
         'testType': 'one-sample',
+        'statistic': float(statistic),
         'statisticKS': float(statistic),
         'pValue': float(pvalue),
+        'n': int(n),
         'criticalValue': float(critical_value),
-        'significant': _safe_bool(statistic > critical_value),
+        'significant': significant,
+        'interpretation': interpretation,
         'sampleSizes': {
             'n1': int(n)
         },
@@ -323,6 +333,8 @@ def ks_test_two_sample(values1: List[Union[float, int]], values2: List[Union[flo
     # Critical value at α = 0.05
     critical_value = 1.36 * np.sqrt((n1 + n2) / (n1 * n2))
 
+    significant = _safe_bool(statistic > critical_value)
+
     # Effect size (Cohen's d)
     mean1 = float(np.mean(clean_values1))
     mean2 = float(np.mean(clean_values2))
@@ -331,10 +343,13 @@ def ks_test_two_sample(values1: List[Union[float, int]], values2: List[Union[flo
 
     return {
         'testType': 'two-sample',
+        'statistic': float(statistic),
         'statisticKS': float(statistic),
         'pValue': float(pvalue),
+        'n1': int(n1),
+        'n2': int(n2),
         'criticalValue': float(critical_value),
-        'significant': _safe_bool(statistic > critical_value),
+        'significant': significant,
         'effectSize': float(effect_size),
         'sampleSizes': {
             'n1': int(n1),

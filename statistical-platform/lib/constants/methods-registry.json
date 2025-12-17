@@ -328,13 +328,13 @@
         "description": "요인분석"
       },
       "cluster_analysis": {
-        "params": ["data", "method?", "numClusters?", "linkage?", "distance?"],
-        "returns": ["clusters", "centers", "silhouetteScore", "inertia"],
+        "params": ["data", "method?", "nClusters?", "linkage?", "distance?"],
+        "returns": ["nClusters", "clusterAssignments", "centroids", "inertia", "silhouetteScore", "clusterSizes"],
         "description": "군집분석"
       },
       "time_series_analysis": {
         "params": ["dataValues", "seasonalPeriods?"],
-        "returns": ["trend", "seasonal", "residual", "forecast", "acf", "pacf"],
+        "returns": ["trend", "seasonal", "residual", "acf", "pacf", "adfStatistic", "adfPValue", "isStationary"],
         "description": "시계열 분석"
       },
       "durbin_watson_test": {

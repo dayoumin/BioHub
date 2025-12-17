@@ -12,7 +12,11 @@
  * - Phase 2: Interpretation Engine Tests (Jest)
  * - Phase 2.5: Python Calculation Tests (Pyodide Golden Values)
  * - Phase 3: Integration Tests (Jest + JSDOM)
- * - Phase 4: E2E Tests (Playwright)
+ * - Phase 4: E2E Tests (Playwright) - IN PROGRESS
+ * - Phase 5: Compatibility Layer
+ * - Methods Registry SSOT (NEW 2025-12-17)
+ *
+ * Updated: 2025-12-17
  */
 
 import type { ComponentType, ReactNode } from 'react'
@@ -25,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   CheckCircle2, XCircle, AlertCircle, Clock,
   ChevronDown, ChevronRight, Terminal, FileCode, FlaskConical,
-  TestTube2, Monitor, Layers, ExternalLink, Calculator
+  TestTube2, Monitor, Layers, ExternalLink, Calculator, FileJson, Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Database, FolderOpen } from 'lucide-react'
@@ -120,13 +124,13 @@ const TEST_PHASES: TestPhase[] = [
   {
     id: 'phase4',
     name: 'Phase 4: E2E Tests',
-    description: 'Full end-to-end browser testing',
+    description: 'Full end-to-end browser testing with Playwright',
     icon: Monitor,
     tool: 'Playwright',
-    command: 'npm run e2e',
-    status: 'planned',
-    coverage: { total: 48, covered: 0 },
-    color: 'bg-gray-400'
+    command: 'npx playwright test',
+    status: 'partial',
+    coverage: { total: 48, covered: 2 },
+    color: 'bg-orange-500'
   },
   {
     id: 'compatibility',
@@ -286,6 +290,53 @@ const PLAYWRIGHT_MCP_SETTINGS = {
 }`
 }
 
+
+
+// Methods Registry SSOT Info (2025-12-17)
+const METHODS_REGISTRY_INFO = {
+  description: 'Single Source of Truth for Python Worker methods',
+  version: '1.0.0',
+  updated: '2025-12-17',
+  files: {
+    registry: 'lib/constants/methods-registry.json',
+    schema: 'lib/constants/methods-registry.schema.json',
+    types: 'lib/constants/methods-registry.types.ts',
+    generated: 'lib/generated/method-types.generated.ts',
+    generator: 'scripts/generate-method-types.mjs'
+  },
+  workers: [
+    { id: 1, name: 'descriptive', methods: 13, packages: ['numpy', 'scipy'] },
+    { id: 2, name: 'hypothesis', methods: 14, packages: ['numpy', 'scipy', 'statsmodels', 'pandas'] },
+    { id: 3, name: 'nonparametric-anova', methods: 18, packages: ['numpy', 'scipy', 'statsmodels', 'pandas', 'scikit-learn'] },
+    { id: 4, name: 'regression-advanced', methods: 19, packages: ['numpy', 'scipy', 'statsmodels', 'scikit-learn'] }
+  ],
+  totalMethods: 64,
+  features: [
+    'TypeScript-Python contract definition',
+    'Auto-generated type-safe wrapper functions',
+    'Parameter validation at compile time',
+    'camelCase naming convention enforced'
+  ],
+  testFiles: [
+    { file: '__tests__/lib/methods-registry.test.ts', tests: 25, desc: 'Registry API tests' },
+    { file: '__tests__/lib/methods-registry-sync.test.ts', tests: 12, desc: 'Python-TS sync validation' },
+    { file: '__tests__/pyodide/worker-function-mapping.test.ts', tests: 64, desc: 'Worker method existence' }
+  ]
+}
+
+// E2E Test Files Info (2025-12-17)
+const E2E_TEST_FILES = {
+  status: 'in-progress',
+  files: [
+    { file: 'e2e/comprehensive/run-all.spec.ts', tests: 2, status: 'working', desc: 'ANOVA + T-Test full flow' },
+    { file: 'e2e/comprehensive/anova.spec.ts', tests: 1, status: 'working', desc: 'ANOVA dedicated test' },
+    { file: 'e2e/core-calculation.spec.ts', tests: 2, status: 'debug', desc: 'Core calculation verification' },
+    { file: 'e2e/pyodide-worker.spec.ts', tests: 3, status: 'debug', desc: 'Pyodide worker tests' },
+    { file: 'e2e/workers-validation.spec.ts', tests: 4, status: 'planned', desc: 'All workers validation' }
+  ],
+  totalTests: 12,
+  workingTests: 3
+}
 // E2E Test scenarios for other AI assistants
 const E2E_TEST_SCENARIOS = {
   description: 'Browser-based E2E test scenarios for Playwright',
@@ -545,10 +596,23 @@ export function TestAutomationDashboardSection() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Clock className="w-6 h-6 text-gray-400" />
-              <span className="text-3xl font-bold text-gray-400">0</span>
+              <AlertCircle className="w-6 h-6 text-orange-500" />
+              <span className="text-3xl font-bold text-orange-600">2</span>
+              <span className="text-lg text-muted-foreground">/ 48</span>
             </div>
-            <p className="text-xs text-muted-foreground">Playwright (planned)</p>
+            <p className="text-xs text-muted-foreground">Playwright (in progress)</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Registry Methods</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <FileJson className="w-6 h-6 text-purple-500" />
+              <span className="text-3xl font-bold text-purple-600">64</span>
+            </div>
+            <p className="text-xs text-muted-foreground">SSOT defined</p>
           </CardContent>
         </Card>
         <Card>
@@ -1050,6 +1114,120 @@ export function TestAutomationDashboardSection() {
               </div>
             </TabsContent>
           </Tabs>
+        </CardContent>
+      </Card>
+
+
+      {/* Methods Registry SSOT */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileJson className="w-5 h-5" />
+            Methods Registry (SSOT)
+            <Badge className="bg-purple-500">NEW</Badge>
+          </CardTitle>
+          <CardDescription>
+            Single Source of Truth for TypeScript-Python Worker contract
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <SectionHeader
+              id="methods-registry"
+              title="Registry Overview (64 methods across 4 workers)"
+              icon={FileJson}
+              badge={<Badge variant="outline">v{METHODS_REGISTRY_INFO.version}</Badge>}
+            />
+
+            {expandedSections.has('methods-registry') && (
+              <div className="space-y-4 pl-4">
+                {/* Architecture */}
+                <div className="p-4 rounded-lg border bg-purple-50 dark:bg-purple-950/20">
+                  <h4 className="font-medium mb-3">SSOT Architecture</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                    <div className="p-3 bg-white dark:bg-background rounded border">
+                      <div className="font-medium text-purple-600">1. Registry JSON</div>
+                      <code className="text-xs text-muted-foreground block mt-1">methods-registry.json</code>
+                      <p className="text-xs text-muted-foreground mt-1">Method definitions, params, returns</p>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-background rounded border">
+                      <div className="font-medium text-blue-600">2. Type Generator</div>
+                      <code className="text-xs text-muted-foreground block mt-1">generate-method-types.mjs</code>
+                      <p className="text-xs text-muted-foreground mt-1">Auto-generates TypeScript types</p>
+                    </div>
+                    <div className="p-3 bg-white dark:bg-background rounded border">
+                      <div className="font-medium text-green-600">3. Generated Types</div>
+                      <code className="text-xs text-muted-foreground block mt-1">method-types.generated.ts</code>
+                      <p className="text-xs text-muted-foreground mt-1">Type-safe wrapper functions</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Workers */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {METHODS_REGISTRY_INFO.workers.map((worker) => (
+                    <div
+                      key={worker.id}
+                      className="p-3 rounded-lg border bg-slate-50 dark:bg-slate-950/20"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm">Worker {worker.id}</span>
+                        <Badge variant="secondary" className="text-xs">{worker.methods}</Badge>
+                      </div>
+                      <code className="text-xs text-muted-foreground">{worker.name}</code>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {worker.packages.slice(0, 2).map(pkg => (
+                          <Badge key={pkg} variant="outline" className="text-[10px]">{pkg}</Badge>
+                        ))}
+                        {worker.packages.length > 2 && (
+                          <Badge variant="outline" className="text-[10px]">+{worker.packages.length - 2}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Features */}
+                <div className="p-4 rounded-lg border bg-green-50 dark:bg-green-950/20">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-green-600" />
+                    Key Features
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {METHODS_REGISTRY_INFO.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                        <span className="text-muted-foreground">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Test Files */}
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <h5 className="text-sm font-medium mb-2">Test Coverage</h5>
+                  <div className="space-y-1 font-mono text-xs">
+                    {METHODS_REGISTRY_INFO.testFiles.map((tf) => (
+                      <div key={tf.file} className="flex items-center gap-2">
+                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                        <code>{tf.file}</code>
+                        <Badge variant="outline">{tf.tests} tests</Badge>
+                        <span className="text-muted-foreground">- {tf.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Commands */}
+                <div className="p-4 rounded-lg bg-slate-900 text-slate-100 font-mono text-xs">
+                  <p className="text-slate-400"># Generate types from registry</p>
+                  <p>node scripts/generate-method-types.mjs</p>
+                  <p className="text-slate-400 mt-2"># Run registry tests</p>
+                  <p>npm test -- methods-registry</p>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

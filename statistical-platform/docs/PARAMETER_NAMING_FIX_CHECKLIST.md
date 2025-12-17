@@ -1,108 +1,131 @@
 # Parameter Naming Fix Checklist
 
-**목적**: TypeScript 래퍼에서 불필요한 snake_case 변환 제거
-**원칙**: Python (camelCase) ↔ TypeScript (camelCase) 통일
-**상태**: ✅ **완료** (2025-12-17)
+**목적**: TypeScript-Python 간 파라미터 네이밍 통일 (camelCase)
+**원칙**:
+- 함수 파라미터: `camelCase` (외부 인터페이스)
+- 반환값 키: `camelCase` (외부 인터페이스)
+- Python 내부 로컬 변수: `snake_case` (PEP8 준수)
+
+**상태**: ✅ **Phase 2 완료** (2025-12-17)
 
 ---
 
-## Worker 1 (worker1-descriptive.py)
+## 수정 이력
 
-| # | TS Line | 함수명 | 현재 TS 전송 | Python 파라미터 | 상태 |
-|---|---------|--------|-------------|----------------|------|
-| 1 | 624 | `crosstab_analysis` | `row_values`, `col_values` | `row_values`, `col_values` | ⚠️ Python도 snake |
-| 2 | 658 | `one_sample_proportion_test` | `success_count`, `total_count`, `null_proportion` | `successCount`, `totalCount`, `nullProportion` | ❌ 수정필요 |
-| 3 | 678 | `cronbach_alpha` | `items_matrix` | `itemsMatrix` | ❌ 수정필요 |
+### Phase 1 (2025-12-17 이전)
+- TypeScript pyodide-statistics.ts: snake_case → camelCase 변환
+- Python Worker 1-2: 일부 함수 파라미터 camelCase 통일
 
----
+### Phase 2 (2025-12-17) - Critical 버그 수정
 
-## Worker 2 (worker2-hypothesis.py)
+**문제 발견**: Python 함수들이 camelCase 파라미터로 정의되었으나,
+내부에서 snake_case 변수명을 사용하여 `NameError` 발생
 
-| # | TS Line | 함수명 | 현재 TS 전송 | Python 파라미터 | 상태 |
-|---|---------|--------|-------------|----------------|------|
-| 4 | 760 | `t_test_two_sample` | `equal_var` | `equal_var` | ⚠️ Python도 snake |
-| 5 | 943 | `chi_square_test` | `observed_matrix`, `yates_correction` | `observed_matrix`, `yates_correction` | ⚠️ Python도 snake |
-| 6 | 967-972 | `binomial_test` | `success_count`, `total_count` | `successCount`, `totalCount` | ❌ 수정필요 |
-| 7 | 1009-1012 | `partial_correlation` | `data_matrix`, `x_idx`, `y_idx`, `control_indices` | `dataMatrix`, `xIdx`, `yIdx`, `controlIndices` | ❌ 수정필요 |
+**예시**:
+```python
+# 버그 (수정 전)
+def binary_logistic(xMatrix, yValues):
+    X = sm.add_constant(np.array(x_matrix))  # NameError: x_matrix 미정의
 
----
-
-## Worker 3 (worker3-nonparametric-anova.py)
-
-| # | TS Line | 함수명 | 현재 TS 전송 | Python 파라미터 | 상태 |
-|---|---------|--------|-------------|----------------|------|
-| 8 | 1506 | `two_way_anova` | `data_values`, `factor1_values`, `factor2_values` | `dataValues`, `factor1Values`, `factor2Values` | ❌ 수정필요 |
-| 9 | 1616 | `dunn_test` | `p_adjust` | `pAdjust` | ❌ 수정필요 |
-| 10 | 1835 | `two_way_anova` (중복?) | `data_values`, `factor1_values`, `factor2_values` | `dataValues`, `factor1Values`, `factor2Values` | ❌ 수정필요 |
-| 11 | 1923 | `mcnemar_test` | `contingency_table` | `contingencyTable` | ❌ 수정필요 |
-| 12 | 1940 | `cochran_q_test` | `data_matrix` | `dataMatrix` | ❌ 수정필요 |
-| 13 | 1978 | `repeated_measures_anova` | `data_matrix`, `subject_ids`, `time_labels` | `dataMatrix`, `subjectIds`, `timeLabels` | ❌ 수정필요 |
-| 14 | 1995 | `ancova` | `y_values`, `group_values` | `yValues`, `groupValues` | ❌ 수정필요 |
-| 15 | 2016 | `manova` | `data_matrix`, `group_values`, `var_names` | `dataMatrix`, `groupValues`, `varNames` | ❌ 수정필요 |
+# 수정 후
+def binary_logistic(xMatrix, yValues):
+    X = sm.add_constant(np.array(xMatrix))  # 올바른 파라미터 사용
+```
 
 ---
 
-## Worker 4 (worker4-regression-advanced.py)
+## Worker4 Critical 버그 수정 목록 (19개)
 
-| # | TS Line | 함수명 | 현재 TS 전송 | Python 파라미터 | 상태 |
-|---|---------|--------|-------------|----------------|------|
-| 16 | 1280 | `factor_analysis` | `data_matrix`, `n_factors` | `dataMatrix`, `nFactors` | ❌ 수정필요 |
-| 17 | 1307 | `cluster_analysis` | `data_matrix`, `n_clusters` | `data`, `numClusters` | ❌ 수정필요 |
-| 18 | 1338 | `time_series_analysis` | `data_values`, `seasonal_periods`, `forecast_periods` | `dataValues`, `seasonalPeriods` | ❌ 수정필요 |
-| 19 | 2076 | `curve_estimation` | `x_values`, `y_values`, `model_type` | `xValues`, `yValues`, `modelType` | ❌ 수정필요 |
-| 20 | 2107-2110 | `nonlinear_regression` | `x_values`, `y_values`, `model_type`, `initial_guess` | `xValues`, `yValues`, `modelType`, `initialGuess` | ❌ 수정필요 |
-| 21 | 2143-2148 | `stepwise_regression` | `y_values`, `x_matrix`, `variable_names`, `entry_threshold`, `stay_threshold` | `yValues`, `xMatrix`, `variableNames`, `entryThreshold`, `stayThreshold` | ❌ 수정필요 |
-| 22 | 2171 | `binary_logistic` | `x_matrix`, `y_values` | `xMatrix`, `yValues` | ❌ 수정필요 |
-| 23 | 2193 | `multinomial_logistic` | `x_matrix`, `y_values` | `xMatrix`, `yValues` | ❌ 수정필요 |
-| 24 | 2215 | `ordinal_logistic` | `x_matrix`, `y_values` | `xMatrix`, `yValues` | ❌ 수정필요 |
-| 25 | 2237 | `probit_regression` | `x_matrix`, `y_values` | `xMatrix`, `yValues` | ❌ 수정필요 |
-| 26 | 2259 | `poisson_regression` | `x_matrix`, `y_values` | `xMatrix`, `yValues` | ❌ 수정필요 |
-| 27 | 2281 | `negative_binomial_regression` | `x_matrix`, `y_values` | `xMatrix`, `yValues` | ❌ 수정필요 |
-| 28 | 2332 | `pca_analysis` | `data_matrix`, `n_components` | `data`, `nComponents` | ❌ 수정필요 |
-| 29 | 2425 | `chi_square_independence_test` | `observed_matrix`, `yates_correction` | `observed_matrix`, `yates_correction` | ⚠️ Python도 snake |
-| 30 | 2536 | `discriminant_analysis` | `data_matrix`, `group_labels` | `data`, `groups` | ❌ 수정필요 |
-| 31 | 2596 | `cox_regression` | `covariate_names` | `covariateNames` | ❌ 수정필요 |
-| 32 | 2635-2640 | `power_analysis` | `test_type`, `analysis_type`, `effect_size`, `sample_size` | `testType`, `analysisType`, `effectSize`, `sampleSize` | ❌ 수정필요 |
-
----
-
-## Python snake_case 함수 (별도 처리 필요)
-
-일부 Python 함수는 이미 snake_case 파라미터를 사용:
-- `crosstab_analysis(row_values, col_values)`
-- `t_test_two_sample(..., equal_var)`
-- `chi_square_test(observed_matrix, yates_correction)`
-- `chi_square_independence_test(observed_matrix, yates_correction)`
-
-**결정 필요**: 이들도 camelCase로 통일할지?
+| # | 함수명 | 수정 내용 | 상태 |
+|---|--------|----------|------|
+| 1 | `binary_logistic` | `x_matrix` → `xMatrix`, `y_values` → `yValues` | ✅ |
+| 2 | `multinomial_logistic` | `x_matrix` → `xMatrix`, `y_values` → `yValues` | ✅ |
+| 3 | `ordinal_logistic` | `x_matrix` → `xMatrix`, `y_values` → `yValues` | ✅ |
+| 4 | `probit_regression` | `x_matrix` → `xMatrix`, `y_values` → `yValues` | ✅ |
+| 5 | `poisson_regression` | `x_matrix` → `xMatrix`, `y_values` → `yValues` | ✅ |
+| 6 | `negative_binomial_regression` | `x_matrix` → `xMatrix`, `y_values` → `yValues` | ✅ |
+| 7 | `_cluster_analysis` | `n_clusters` → `nClusters` | ✅ |
+| 8 | `kmeans_clustering` | `n_clusters` → `nClusters` | ✅ |
+| 9 | `hierarchical_clustering` | `n_clusters` → `nClusters` | ✅ |
+| 10 | `var_model` | `max_lags` → `maxLags` | ✅ |
+| 11 | `arima_forecast` | `forecast_periods` → `forecastPeriods` | ✅ |
+| 12 | `sarima_forecast` | `forecast_periods` → `forecastPeriods`, `seasonal_period` → `seasonalPeriod` | ✅ |
+| 13 | `factor_analysis_method` | `n_factors` → `nFactors` | ✅ |
+| 14 | `discriminant_analysis` | `group_labels` → `groups` 및 내부 변수 | ✅ |
+| 15 | `dose_response_analysis` | `dose_values`, `response_values` → camelCase | ✅ |
+| 16 | `cluster_analysis` | `numClusters` → `nClusters` (일관성) | ✅ |
 
 ---
 
-## 진행 상황
+## TypeScript 파라미터 동기화 (pyodide-statistics.ts)
 
-- [x] Worker 1 수정 완료 (crosstab_analysis: rowValues, colValues)
-- [x] Worker 2 수정 완료 (chi_square_test, chi_square_independence_test: observedMatrix, yatesCorrection)
-- [x] Worker 3 수정 완료 (이미 camelCase)
-- [x] Worker 4 수정 완료 (이미 camelCase)
-- [x] TypeScript 컴파일 확인 (0 errors)
-- [x] 테스트 실행 및 검증 (PASS)
-- [x] 문서 업데이트
-
----
-
-## 수정 요약
-
-### Python 파일 수정
-| 파일 | 수정 내용 |
-|------|----------|
-| worker1-descriptive.py | `row_values` → `rowValues`, `col_values` → `colValues` |
-| worker2-hypothesis.py | `equal_var` → `equalVar`, `observed_matrix` → `observedMatrix`, `yates_correction` → `yatesCorrection` |
-
-### TypeScript 파일 수정
-| 파일 | 수정 수 | 내용 |
-|------|--------|------|
-| pyodide-statistics.ts | 32+ | 모든 snake_case → camelCase 파라미터 변환 |
+| # | 함수명 | 수정 내용 | 상태 |
+|---|--------|----------|------|
+| 1 | `timeSeriesAnalysis` | 불필요한 `forecastPeriods`, `method` 파라미터 제거 | ✅ |
+| 2 | `pcaAnalysis` | `dataMatrix` → `data` | ✅ |
+| 3 | `ksTestOneSample` | `data, distribution` → `values` | ✅ |
+| 4 | `ksTestTwoSample` | `data1, data2` → `values1, values2` | ✅ |
+| 5 | `discriminantAnalysis` | `dataMatrix, groupLabels` → `data, groups` | ✅ |
+| 6 | `coxRegression` | `covariates` → `covariateData` | ✅ |
 
 ---
 
-**Updated**: 2025-12-17
+## Methods Registry 동기화 (methods-registry.json)
+
+| 메서드 | 수정 내용 | 상태 |
+|--------|----------|------|
+| `cluster_analysis` | params: `numClusters` → `nClusters` | ✅ |
+| `time_series_analysis` | returns: 실제 Python 반환값과 일치 | ✅ |
+
+---
+
+## 검증 결과
+
+- [x] TypeScript 컴파일: `npx tsc --noEmit` → **0 errors** ✅
+- [x] Worker 함수 매핑 테스트: `npm test worker-function-mapping` → **PASS** ✅
+- [x] Methods Registry 테스트: `npm test methods-registry` → **PASS** ✅
+
+---
+
+## 규칙 요약 (CLAUDE.md 기준)
+
+```python
+# ✅ Python Worker 올바른 예시
+def binomialTest(successCount, totalCount, probability=0.5):  # 파라미터: camelCase
+    # 내부 변수: snake_case (PEP8)
+    p_value = binom_result.pvalue
+    success_rate = successCount / totalCount
+
+    # 반환 키: camelCase
+    return {
+        'pValue': float(p_value),
+        'successCount': int(successCount),
+        'proportion': float(success_rate)
+    }
+
+# ❌ 금지 (파라미터와 내부 사용 불일치)
+def binomialTest(successCount, totalCount):
+    p_value = binom_result.pvalue
+    return { 'successCount': success_count }  # NameError: success_count 미정의
+```
+
+```typescript
+// ✅ TypeScript 호출 예시
+callWorkerMethod(2, 'binomialTest', {
+  successCount: 10,  // camelCase - Python 파라미터와 일치
+  totalCount: 100,
+  probability: 0.5
+})
+```
+
+---
+
+## 향후 예방 조치
+
+1. **자동 테스트**: `worker-function-mapping.test.ts`가 TypeScript-Python 파라미터 일치 검증
+2. **코드 리뷰**: Python 함수 수정 시 파라미터명 = 내부 사용명 확인
+3. **Methods Registry**: SSOT로 모든 파라미터 정의 관리
+
+---
+
+**Updated**: 2025-12-17 | **Phase**: 2 Complete

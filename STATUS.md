@@ -1,6 +1,6 @@
 # 프로젝트 상태
 
-**최종 업데이트**: 2025-12-02
+**최종 업데이트**: 2025-12-17
 
 ---
 
@@ -17,10 +17,30 @@
 | **통계 신뢰성** | 98% (SciPy/statsmodels) |
 | **DecisionTree 커버리지** | 49/49 (100%) ✅ |
 | **Golden Values 테스트** | 44/44 (100%) ✅ - 5개 라이브러리 |
+| **Methods Registry** | 64개 메서드 (4 Workers) ✅ NEW |
+| **E2E 테스트** | 2/48 (Playwright) 🔄 |
 
 ---
 
 ## 📅 최근 작업 (7일)
+
+### 2025-12-17 (화)
+- ✅ **Methods Registry SSOT Phase 1.5 + Phase 2 완료** (8b0e614)
+  - `methods-registry.json`: 64개 메서드 정의 (4 Workers)
+  - `generate-method-types.mjs`: 자동 타입 생성기
+  - `method-types.generated.ts`: 30KB 타입-안전 래퍼 함수
+  - camelCase 네이밍 규칙 적용
+- ✅ **외부 리뷰 피드백 반영** (a73853d)
+  - 타입 추론 개선 및 파서 강화
+- ✅ **네이밍 통일** (736c8e7)
+  - `ci_lower/ci_upper` → `ciLower/ciUpper`
+- ✅ **Design System 업데이트**
+  - TestAutomationDashboardSection: Methods Registry 섹션 추가
+  - E2E 테스트 진행 상태 반영 (2/48)
+- ✅ **E2E 테스트 기반 구축**
+  - `e2e/comprehensive/run-all.spec.ts`: ANOVA, T-Test 풀플로우
+  - `e2e/comprehensive/anova.spec.ts`: ANOVA 전용 테스트
+  - `/test-calculation` 페이지: Pyodide 직접 테스트용
 
 ### 2025-12-02 (월)
 - ✅ **Golden Values 테스트 확장** - 5개 Python 라이브러리 지원
@@ -47,20 +67,27 @@
 - ✅ **p-value 해석 수정** + 상관계수 threshold 표준화 (728ddda)
 - ✅ **ResultContextHeader** - 43개 통계 페이지 적용 완료
 
-### 2025-11-26 (화)
-- ✅ **ResultContextHeader 컴포넌트** 생성 (분석 맥락 표시)
-- ✅ 결과 페이지 리팩토링 설계
+---
 
-### 2025-11-25 (월)
-- ✅ **Step 1-2 UX 재설계** - 자동 네비게이션 제거, 콘텐츠 재배치
-- ✅ 분석 히스토리 기능 점검
+## 🏗️ Methods Registry SSOT
 
-### 2025-11-23 (토)
-- ✅ **Discriminant Analysis 해석 엔진** + 가드 테스트 (Phase 4 완료)
+**Single Source of Truth** for TypeScript-Python Worker Contract
 
-### 2025-11-22 (금)
-- ✅ **Smart Flow UX 옵션 B 완료** - Tasks 1-7 구현
-  - p-value/효과크기 해석, 가설 문장화, 분석 추천 등
+| 파일 | 역할 |
+|------|------|
+| `lib/constants/methods-registry.json` | 메서드 정의 (params, returns) |
+| `lib/constants/methods-registry.schema.json` | JSON Schema 검증 |
+| `lib/constants/methods-registry.types.ts` | 타입 및 헬퍼 함수 |
+| `lib/generated/method-types.generated.ts` | 자동 생성 타입 래퍼 |
+| `scripts/generate-method-types.mjs` | 타입 생성 스크립트 |
+
+**Workers:**
+| Worker | 이름 | 메서드 | 패키지 |
+|--------|------|--------|--------|
+| 1 | descriptive | 13 | numpy, scipy |
+| 2 | hypothesis | 14 | numpy, scipy, statsmodels, pandas |
+| 3 | nonparametric-anova | 18 | numpy, scipy, statsmodels, pandas, sklearn |
+| 4 | regression-advanced | 19 | numpy, scipy, statsmodels, sklearn |
 
 ---
 
@@ -69,13 +96,12 @@
 ### 우선순위 높음
 | 작업 | 설명 |
 |------|------|
-| **QuestionFlow 버그 수정** | 버튼 클릭 시 타이머 클린업 누락 (handlePrev/handleNext/처음부터) |
-| **ConversationalQuestion lint** | isEditableElement 의존성 배열 누락 (useCallback 또는 외부 이동) |
-| 분석 히스토리 UX | "새 분석 시작" 버튼, 전체 삭제 확인 다이얼로그 |
+| **E2E 테스트 확장** | 현재 2개 → 10개 이상으로 확대 |
+| **QuestionFlow 버그 수정** | 버튼 클릭 시 타이머 클린업 누락 |
+| **ConversationalQuestion lint** | isEditableElement 의존성 배열 누락 |
 
 ### 선택적 (필요시)
-- Smart Flow UX 옵션 C: 목적별 결과 템플릿 (3h), 시각화 추가 (5h)
-- Phase 11: 자동화 테스트 시스템 (Golden Snapshot, E2E)
+- Smart Flow UX 옵션 C: 목적별 결과 템플릿, 시각화 추가
 - Phase 12: 수산과학 도메인 전환 (UI placeholder)
 
 ---
@@ -101,7 +127,15 @@ npm run dev          # 개발 서버
 npm run build        # 빌드
 npm test             # 테스트
 npx tsc --noEmit     # 타입 체크
+
+# Methods Registry
+node scripts/generate-method-types.mjs  # 타입 생성
+npm test -- methods-registry            # 레지스트리 테스트
+
+# E2E 테스트
+npx playwright test                     # 전체 E2E
+npx playwright test e2e/comprehensive   # 핵심 테스트
 ```
 
 - Design System: http://localhost:3000/design-system
-- Components: http://localhost:3000/components-showcase
+- Test Calculation: http://localhost:3000/test-calculation

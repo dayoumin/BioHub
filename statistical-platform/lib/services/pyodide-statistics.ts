@@ -1289,53 +1289,73 @@ export class PyodideStatisticsService {
     nClusters?: number
     method?: 'kmeans' | 'hierarchical' | 'dbscan'
     linkage?: 'ward' | 'complete' | 'average' | 'single'
+    distance?: 'euclidean' | 'manhattan' | 'cosine'
   } = {}): Promise<{
+    nClusters: number
+    clusterAssignments: number[]
+    centroids: number[][]
+
+    // Backward-compatible aliases used across the app
     clusters: number[]
-    centers?: number[][]
+    centers: number[][]
+
     silhouetteScore: number
-    inertia?: number
+    inertia: number
+    clusterSizes: number[]
   }> {
-    const { nClusters = 3, method = 'kmeans', linkage = 'ward' } = options
-    return this.core.callWorkerMethod<{
-      clusters: number[]
-      centers?: number[][]
+    const { nClusters = 3, method = 'kmeans', linkage = 'ward', distance = 'euclidean' } = options
+
+    const result = await this.core.callWorkerMethod<{
+      nClusters: number
+      clusterAssignments: number[]
+      centroids: number[][]
+      inertia: number
       silhouetteScore: number
-      inertia?: number
+      clusterSizes: number[]
     }>(
       4,
       'cluster_analysis',
-      { data, nClusters, method, linkage },
+      { data, nClusters, method, linkage, distance },
       { errorMessage: 'Cluster analysis 실행 실패' }
     )
+
+    return {
+      ...result,
+      clusters: result.clusterAssignments,
+      centers: result.centroids
+    }
   }
 
   /**
    * 시계열 분석 (Time Series Analysis) - Worker 4 사용
+   * Python time_series_analysis(dataValues, seasonalPeriods=12)
    */
   async timeSeriesAnalysis(data: number[], options: {
-    seasonalPeriod?: number
-    forecastPeriods?: number
-    method?: 'decomposition' | 'arima' | 'exponential'
+    seasonalPeriods?: number
   } = {}): Promise<{
     trend?: number[]
     seasonal?: number[]
     residual?: number[]
-    forecast?: number[]
     acf?: number[]
     pacf?: number[]
+    adfStatistic?: number
+    adfPValue?: number
+    isStationary?: boolean
   }> {
-    const { seasonalPeriod = 12, forecastPeriods = 6, method = 'decomposition' } = options
+    const { seasonalPeriods = 12 } = options
     return this.core.callWorkerMethod<{
       trend?: number[]
       seasonal?: number[]
       residual?: number[]
-      forecast?: number[]
       acf?: number[]
       pacf?: number[]
+      adfStatistic?: number
+      adfPValue?: number
+      isStationary?: boolean
     }>(
       4,
       'time_series_analysis',
-      { dataValues: data, seasonalPeriods: seasonalPeriod, forecastPeriods, method },
+      { dataValues: data, seasonalPeriods },
       { errorMessage: 'Time series analysis 실행 실패' }
     )
   }
@@ -2323,13 +2343,13 @@ export class PyodideStatisticsService {
    * @returns PCA 분석 결과
    */
   async pcaAnalysis(
-    dataMatrix: number[][],
+    data: number[][],
     nComponents: number = 2
   ): Promise<PCAAnalysisResult> {
     return this.core.callWorkerMethod<PCAAnalysisResult>(
       4,
       'pca_analysis',
-      { dataMatrix, nComponents },
+      { data, nComponents },
       { errorMessage: 'PCA analysis 실행 실패' }
     )
   }
@@ -2461,40 +2481,50 @@ export class PyodideStatisticsService {
 
   /**
    * K-S 일표본 검정 (정규성 검정) - Worker 1
+   * Python ks_test_one_sample(values)
    */
-  async ksTestOneSample(data: number[], distribution: string = 'norm'): Promise<{
-    statisticKS: number
+  async ksTestOneSample(values: number[]): Promise<{
+    statistic: number
     pValue: number
+    n: number
+    significant: boolean
     interpretation: string
   }> {
     return this.core.callWorkerMethod<{
-      statisticKS: number
+      statistic: number
       pValue: number
+      n: number
+      significant: boolean
       interpretation: string
     }>(
       1,
       'ks_test_one_sample',
-      { data, distribution },
+      { values },
       { errorMessage: 'K-S one sample test 실행 실패' }
     )
   }
 
   /**
    * K-S 이표본 검정 - Worker 1
+   * Python ks_test_two_sample(values1, values2)
    */
-  async ksTestTwoSample(data1: number[], data2: number[]): Promise<{
-    statisticKS: number
+  async ksTestTwoSample(values1: number[], values2: number[]): Promise<{
+    statistic: number
     pValue: number
-    interpretation: string
+    n1: number
+    n2: number
+    significant: boolean
   }> {
     return this.core.callWorkerMethod<{
-      statisticKS: number
+      statistic: number
       pValue: number
-      interpretation: string
+      n1: number
+      n2: number
+      significant: boolean
     }>(
       1,
       'ks_test_two_sample',
-      { data1, data2 },
+      { values1, values2 },
       { errorMessage: 'K-S two sample test 실행 실패' }
     )
   }
@@ -2505,35 +2535,58 @@ export class PyodideStatisticsService {
 
   /**
    * 선형 판별분석 (LDA) - Worker 4
+   * Python discriminant_analysis(data, groups)
    */
   async discriminantAnalysis(
-    dataMatrix: number[][],
-    groupLabels: (string | number)[]
+    data: number[][],
+    groups: (string | number)[]
   ): Promise<{
-    coefficients: number[][]
-    eigenvalues: number[]
-    explainedVariance: number[]
-    accuracy: number
+    functions: Array<{
+      functionNumber: number
+      eigenvalue: number
+      varianceExplained: number
+      cumulativeVariance: number
+      canonicalCorrelation: number
+      coefficients: Record<string, number>
+    }>
     totalVariance: number
-    functions: Array<{ varianceExplained: number }>
-    predictions: (string | number)[]
-    confusionMatrix: number[][]
+    selectedFunctions: number
+    groupCentroids: Array<{ group: string; centroids: Record<string, number> }>
+    classificationResults: Array<{
+      originalGroup: string
+      predictedGroup: string
+      probability: number
+      correct: boolean
+    }>
+    accuracy: number
+    confusionMatrix: Record<string, Record<string, number>>
     interpretation: string
   }> {
     return this.core.callWorkerMethod<{
-      coefficients: number[][]
-      eigenvalues: number[]
-      explainedVariance: number[]
-      accuracy: number
+      functions: Array<{
+        functionNumber: number
+        eigenvalue: number
+        varianceExplained: number
+        cumulativeVariance: number
+        canonicalCorrelation: number
+        coefficients: Record<string, number>
+      }>
       totalVariance: number
-      functions: Array<{ varianceExplained: number }>
-      predictions: (string | number)[]
-      confusionMatrix: number[][]
+      selectedFunctions: number
+      groupCentroids: Array<{ group: string; centroids: Record<string, number> }>
+      classificationResults: Array<{
+        originalGroup: string
+        predictedGroup: string
+        probability: number
+        correct: boolean
+      }>
+      accuracy: number
+      confusionMatrix: Record<string, Record<string, number>>
       interpretation: string
     }>(
       4,
       'discriminant_analysis',
-      { dataMatrix, groupLabels },
+      { data, groups },
       { errorMessage: 'Discriminant analysis 실행 실패' }
     )
   }
@@ -2571,11 +2624,12 @@ export class PyodideStatisticsService {
 
   /**
    * Cox 비례위험 회귀분석 - Worker 4
+   * Python cox_regression(times, events, covariateData, covariateNames)
    */
   async coxRegression(
     times: number[],
     events: number[],
-    covariates: number[][],
+    covariateData: number[][],
     covariateNames: string[]
   ): Promise<{
     coefficients: number[]
@@ -2593,7 +2647,7 @@ export class PyodideStatisticsService {
     }>(
       4,
       'cox_regression',
-      { times, events, covariates, covariateNames },
+      { times, events, covariateData, covariateNames },
       { errorMessage: 'Cox regression 실행 실패' }
     )
   }

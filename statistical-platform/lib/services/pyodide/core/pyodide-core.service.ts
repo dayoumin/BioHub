@@ -1403,6 +1403,6 @@ json.dumps(result)
    */
   async clusterAnalysis(data: number[][], numClusters?: number): Promise<StatisticsResult> {
     await this.ensureWorker4Loaded()
-    return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, numClusters: numClusters ?? 3 })
+    return this.callWorkerMethod<StatisticsResult>(4, 'cluster_analysis', { data, nClusters: numClusters ?? 3 })
   }
 }

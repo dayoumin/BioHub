@@ -158,18 +158,18 @@ export class AdvancedExecutor extends BaseExecutor {
           trend: result.trend,
           seasonal: result.seasonal,
           residual: result.residual,
-          forecast: result.forecast,
           acf: result.acf,
           pacf: result.pacf,
-          method: options?.method || 'decomposition'
+          adfStatistic: result.adfStatistic,
+          adfPValue: result.adfPValue,
+          isStationary: result.isStationary
         },
         visualizationData: {
           type: 'time-series',
           data: {
             original: data,
             trend: result.trend,
-            seasonal: result.seasonal,
-            forecast: result.forecast
+            seasonal: result.seasonal
           }
         }
       }

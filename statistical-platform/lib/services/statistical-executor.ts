@@ -44,6 +44,11 @@ export interface StatisticalExecutorResult {
       value: number
       interpretation: string
     }
+    clusters?: number[]
+    centers?: number[][]
+    silhouetteScore?: number
+    inertia?: number
+    nClusters?: number
     confidenceInterval?: {
       level: number
       lower: number
@@ -997,11 +1002,11 @@ export class StatisticalExecutor {
         if (values2 && values2.length > 0) {
           // 이표본 K-S 검정
           const ksResult = await pyodideStats.ksTestTwoSample(values1, values2)
-          result = { statistic: ksResult.statisticKS, pvalue: ksResult.pValue }
+          result = { statistic: ksResult.statistic, pvalue: ksResult.pValue }
         } else {
           // 일표본 K-S 검정 (정규성)
           const ksResult = await pyodideStats.ksTestOneSample(values1)
-          result = { statistic: ksResult.statisticKS, pvalue: ksResult.pValue }
+          result = { statistic: ksResult.statistic, pvalue: ksResult.pValue }
         }
         break
       }
@@ -1189,7 +1194,50 @@ export class StatisticalExecutor {
       }
     }
 
-    // PCA, Factor Analysis, Cluster Analysis - use explainedVariance fields
+    if (method.id === 'cluster-analysis') {
+      const clusters = (result.clusters || result.clusterAssignments || []) as number[]
+      const centers = (result.centers || result.centroids || []) as number[][]
+      const silhouetteScore = Number(result.silhouetteScore || 0)
+      const inertia = Number(result.inertia || 0)
+      const nClusters = Number(result.nClusters || new Set(clusters).size || 0)
+
+      return {
+        metadata: {
+          method: method.id,
+          methodName: method.name,
+          timestamp: '',
+          duration: 0,
+          dataInfo: {
+            totalN: data.totalN,
+            missingRemoved: 0
+          }
+        },
+        mainResults: {
+          statistic: silhouetteScore,
+          pvalue: 1,
+          significant: false,
+          interpretation: `${nClusters}개 군집 형성. Silhouette score: ${silhouetteScore.toFixed(3)}`
+        },
+        additionalInfo: {
+          clusters,
+          centers,
+          silhouetteScore,
+          inertia,
+          nClusters
+        },
+        visualizationData: {
+          type: 'cluster-plot',
+          data: {
+            points: data.arrays.independent || [],
+            clusters,
+            centers
+          }
+        },
+        rawResults: result
+      }
+    }
+
+    // PCA, Factor Analysis - use explainedVariance fields
     return {
       metadata: {
         method: method.id,
@@ -1232,10 +1280,9 @@ export class StatisticalExecutor {
     data: any
   ): Promise<AnalysisResult> {
     const timeData = data.arrays.dependent || []
-    const validMethods: ('decomposition' | 'arima' | 'exponential')[] = ['decomposition', 'arima', 'exponential']
-    const methodId = validMethods.includes(method.id as any) ? (method.id as 'decomposition' | 'arima' | 'exponential') : 'decomposition'
+    // time_series_analysis는 seasonalPeriods만 받음 (method 파라미터 없음)
     const result = await pyodideStats.timeSeriesAnalysis(timeData, {
-      method: methodId
+      seasonalPeriods: 12
     })
 
     return {

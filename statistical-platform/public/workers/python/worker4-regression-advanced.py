@@ -656,7 +656,7 @@ def stepwise_regression(yValues, xMatrix, variableNames=None,
 def binary_logistic(xMatrix, yValues):
     import statsmodels.api as sm
 
-    X = sm.add_constant(np.array(x_matrix))
+    X = sm.add_constant(np.array(xMatrix))
     y = np.array(yValues)
 
     model = sm.Logit(y, X).fit(disp=0)
@@ -681,7 +681,7 @@ def binary_logistic(xMatrix, yValues):
 def multinomial_logistic(xMatrix, yValues):
     import statsmodels.api as sm
 
-    X = sm.add_constant(np.array(x_matrix))
+    X = sm.add_constant(np.array(xMatrix))
     y = np.array(yValues)
 
     model = sm.MNLogit(y, X).fit(disp=0)
@@ -703,7 +703,7 @@ def multinomial_logistic(xMatrix, yValues):
 def ordinal_logistic(xMatrix, yValues):
     from statsmodels.miscmodels.ordinal_model import OrderedModel
 
-    X = np.array(x_matrix)
+    X = np.array(xMatrix)
     y = np.array(yValues)
 
     model = OrderedModel(y, X, distr='logit').fit(disp=0)
@@ -721,7 +721,7 @@ def ordinal_logistic(xMatrix, yValues):
 def probit_regression(xMatrix, yValues):
     import statsmodels.api as sm
 
-    X = sm.add_constant(np.array(x_matrix))
+    X = sm.add_constant(np.array(xMatrix))
     y = np.array(yValues)
 
     model = sm.Probit(y, X).fit(disp=0)
@@ -745,7 +745,7 @@ def probit_regression(xMatrix, yValues):
 def poisson_regression(xMatrix, yValues):
     import statsmodels.api as sm
 
-    X = sm.add_constant(np.array(x_matrix))
+    X = sm.add_constant(np.array(xMatrix))
     y = np.array(yValues)
 
     model = sm.GLM(y, X, family=sm.families.Poisson()).fit()
@@ -765,7 +765,7 @@ def poisson_regression(xMatrix, yValues):
 def negative_binomial_regression(xMatrix, yValues):
     import statsmodels.api as sm
 
-    X = sm.add_constant(np.array(x_matrix))
+    X = sm.add_constant(np.array(xMatrix))
     y = np.array(yValues)
 
     model = sm.GLM(y, X, family=sm.families.NegativeBinomial()).fit()
@@ -794,8 +794,8 @@ def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='pri
 
     n_samples, n_variables = X.shape
 
-    if n_samples < n_factors:
-        raise ValueError(f'Number of samples ({n_samples}) must be >= n_factors ({n_factors})')
+    if n_samples < nFactors:
+        raise ValueError(f'Number of samples ({n_samples}) must be >= nFactors ({nFactors})')
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
@@ -863,7 +863,7 @@ def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='pri
             'significant': False
         }
 
-    fa = FactorAnalysis(n_components=n_factors, random_state=42)
+    fa = FactorAnalysis(n_components=nFactors, random_state=42)
     fa.fit(X_scaled)
 
     loadings = fa.components_.T
@@ -873,16 +873,16 @@ def factor_analysis_method(data, nFactors=2, rotation='varimax', extraction='pri
 
     total_variance = float(np.sum(eigenvalues))
     variance_explained_pct = [float(ev / total_variance * 100) for ev in eigenvalues]
-    cumulative_variance = [float(np.sum(variance_explained_pct[:i+1])) for i in range(n_factors)]
+    cumulative_variance = [float(np.sum(variance_explained_pct[:i+1])) for i in range(nFactors)]
 
     factor_scores = fa.transform(X_scaled).tolist()
 
     variable_names = [f'Var{i+1}' for i in range(n_variables)]
-    factor_names = [f'Factor{i+1}' for i in range(n_factors)]
+    factor_names = [f'Factor{i+1}' for i in range(nFactors)]
 
     return {
         'method': 'exploratory',
-        'numFactors': n_factors,
+        'numFactors': nFactors,
         'extraction': extraction,
         'rotation': rotation,
         'factorLoadings': loadings.tolist(),
@@ -937,7 +937,7 @@ def factor_analysis(dataMatrix, nFactors=2, rotation='varimax'):
     }
 
 
-def cluster_analysis(data, method='kmeans', numClusters=3, linkage='ward', distance='euclidean'):
+def cluster_analysis(data, method='kmeans', nClusters=3, linkage='ward', distance='euclidean'):
     """
     Comprehensive K-means clustering analysis with sklearn
     Returns detailed clustering metrics matching ClusterAnalysisResult interface
@@ -951,18 +951,18 @@ def cluster_analysis(data, method='kmeans', numClusters=3, linkage='ward', dista
         X = X.reshape(-1, 1)
 
     n_samples, n_features = X.shape
-    if n_samples < numClusters:
-        raise ValueError(f'Number of samples ({n_samples}) must be >= numClusters ({numClusters})')
+    if n_samples < nClusters:
+        raise ValueError(f'Number of samples ({n_samples}) must be >= nClusters ({nClusters})')
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    model = KMeans(n_clusters=numClusters, random_state=42, n_init=10)
+    model = KMeans(n_clusters=nClusters, random_state=42, n_init=10)
     labels = model.fit_predict(X_scaled)
     centroids = model.cluster_centers_
     inertia = float(model.inertia_)
 
-    if n_samples > numClusters and numClusters > 1:
+    if n_samples > nClusters and nClusters > 1:
         silhouette = float(silhouette_score(X_scaled, labels))
         calinski = float(calinski_harabasz_score(X_scaled, labels))
         davies = float(davies_bouldin_score(X_scaled, labels))
@@ -972,7 +972,7 @@ def cluster_analysis(data, method='kmeans', numClusters=3, linkage='ward', dista
         davies = 0.0
 
     within_ss = []
-    for k in range(numClusters):
+    for k in range(nClusters):
         cluster_points = X_scaled[labels == k]
         if len(cluster_points) > 0:
             centroid_k = centroids[k]
@@ -985,7 +985,7 @@ def cluster_analysis(data, method='kmeans', numClusters=3, linkage='ward', dista
 
     overall_centroid = np.mean(X_scaled, axis=0)
     between_ss = 0.0
-    for k in range(numClusters):
+    for k in range(nClusters):
         n_k = np.sum(labels == k)
         if n_k > 0:
             centroid_k = centroids[k]
@@ -993,10 +993,10 @@ def cluster_analysis(data, method='kmeans', numClusters=3, linkage='ward', dista
     between_ss = float(between_ss)
 
     total_ss = float(total_within_ss + between_ss)
-    cluster_sizes = [int(np.sum(labels == k)) for k in range(numClusters)]
+    cluster_sizes = [int(np.sum(labels == k)) for k in range(nClusters)]
 
     cluster_stats = []
-    for k in range(numClusters):
+    for k in range(nClusters):
         cluster_points = X_scaled[labels == k]
         if len(cluster_points) > 0:
             cluster_stats.append({
@@ -1009,7 +1009,7 @@ def cluster_analysis(data, method='kmeans', numClusters=3, linkage='ward', dista
 
     return {
         'method': method,
-        'numClusters': numClusters,
+        'nClusters': nClusters,
         'clusterAssignments': labels.tolist(),
         'centroids': centroids.tolist(),
         'inertia': inertia,
@@ -1029,14 +1029,14 @@ def _cluster_analysis(dataMatrix, nClusters=3, method='kmeans', metric='euclidea
     from sklearn.cluster import KMeans, AgglomerativeClustering
     from sklearn.metrics import silhouette_score, calinski_harabasz_score
 
-    data = np.array(data_matrix, dtype=float)
+    data = np.array(dataMatrix, dtype=float)
     if data.ndim != 2:
-        raise ValueError("data_matrix must be a 2D array")
+        raise ValueError("dataMatrix must be a 2D array")
 
     n_samples, n_features = data.shape
 
-    if n_samples < n_clusters:
-        raise ValueError(f"Number of samples ({data.shape[0]}) must be >= n_clusters ({n_clusters})")
+    if n_samples < nClusters:
+        raise ValueError(f"Number of samples ({data.shape[0]}) must be >= nClusters ({nClusters})")
 
     if method == 'kmeans':
         clusterer = KMeans(n_clusters=nClusters, random_state=42, n_init=10)
@@ -1045,11 +1045,11 @@ def _cluster_analysis(dataMatrix, nClusters=3, method='kmeans', metric='euclidea
         centers = clusterer.cluster_centers_.tolist()
     elif method == 'hierarchical':
         # AgglomerativeClustering in sklearn 1.4+ uses 'metric' argument
-        clusterer = AgglomerativeClustering(n_clusters=n_clusters, linkage=method if method in {'ward', 'complete', 'average', 'single'} else 'ward', metric=metric)
+        clusterer = AgglomerativeClustering(n_clusters=nClusters, linkage=method if method in {'ward', 'complete', 'average', 'single'} else 'ward', metric=metric)
         labels = clusterer.fit_predict(data)
         inertia = None  # Inertia is not defined for hierarchical clustering
         centers = []
-        for i in range(n_clusters):
+        for i in range(nClusters):
             cluster_data = data[labels == i]
             if len(cluster_data) > 0:
                 centers.append(cluster_data.mean(axis=0).tolist())
@@ -1059,7 +1059,7 @@ def _cluster_analysis(dataMatrix, nClusters=3, method='kmeans', metric='euclidea
         raise ValueError(f"Unknown method: {method}. Use 'kmeans' or 'hierarchical'")
 
     unique_labels = np.unique(labels)
-    if len(unique_labels) > 1 and n_samples > n_clusters:
+    if len(unique_labels) > 1 and n_samples > nClusters:
         try:
             silhouette = float(silhouette_score(data, labels, metric='euclidean' if method == 'kmeans' else metric))
             calinski = float(calinski_harabasz_score(data, labels))
@@ -1070,7 +1070,7 @@ def _cluster_analysis(dataMatrix, nClusters=3, method='kmeans', metric='euclidea
         silhouette = 0.0
         calinski = 0.0
 
-    cluster_sizes = [int(np.sum(labels == i)) for i in range(n_clusters)]
+    cluster_sizes = [int(np.sum(labels == i)) for i in range(nClusters)]
 
     return {
         'labels': labels.tolist(),
@@ -1078,7 +1078,7 @@ def _cluster_analysis(dataMatrix, nClusters=3, method='kmeans', metric='euclidea
         'clusterSizes': cluster_sizes,
         'silhouetteScore': silhouette,
         'calinskiScore': calinski,
-        'nClusters': int(n_clusters),
+        'nClusters': int(nClusters),
         'method': method,
         'metric': metric,
         'inertia': inertia
@@ -1086,7 +1086,7 @@ def _cluster_analysis(dataMatrix, nClusters=3, method='kmeans', metric='euclidea
 
 
 def kmeans_clustering(dataMatrix, nClusters=3, columnNames=None):
-    result = _cluster_analysis(data_matrix, n_clusters=n_clusters, method='kmeans')
+    result = _cluster_analysis(dataMatrix, nClusters=nClusters, method='kmeans')
     inertia = float(result['inertia']) if result['inertia'] is not None else 0.0
 
     return {
@@ -1099,7 +1099,7 @@ def kmeans_clustering(dataMatrix, nClusters=3, columnNames=None):
 
 
 def hierarchical_clustering(dataMatrix, nClusters=3, method='ward', metric='euclidean', columnNames=None):
-    result = _cluster_analysis(data_matrix, n_clusters=n_clusters, method=method, metric=metric)
+    result = _cluster_analysis(dataMatrix, nClusters=nClusters, method=method, metric=metric)
 
     return {
         'labels': result['labels'],
@@ -1107,7 +1107,7 @@ def hierarchical_clustering(dataMatrix, nClusters=3, method='ward', metric='eucl
         'clusterSizes': result['clusterSizes'],
         'method': method,
         'metric': metric,
-        'nSamples': len(data_matrix)
+        'nSamples': len(dataMatrix)
     }
 
 
@@ -1185,7 +1185,7 @@ def arima_forecast(values, order=(1, 1, 1), nForecast=10):
     model = ARIMA(data, order=tuple(order))
     fitted = model.fit()
 
-    forecast_res = fitted.get_forecast(steps=int(n_forecast))
+    forecast_res = fitted.get_forecast(steps=int(nForecast))
     predicted = forecast_res.predicted_mean.tolist()
     conf_int = forecast_res.conf_int()
     lower = conf_int.iloc[:, 0].tolist() if hasattr(conf_int, "iloc") else [float(v[0]) for v in conf_int]
@@ -1212,13 +1212,13 @@ def sarima_forecast(values, order=(1, 1, 1), seasonalOrder=(1, 1, 1, 12), nForec
     model = SARIMAX(
         data,
         order=tuple(order),
-        seasonal_order=tuple(seasonal_order),
+        seasonal_order=tuple(seasonalOrder),
         enforce_stationarity=False,
         enforce_invertibility=False
     )
     fitted = model.fit(disp=False)
 
-    forecast_res = fitted.get_forecast(steps=int(n_forecast))
+    forecast_res = fitted.get_forecast(steps=int(nForecast))
     predicted = forecast_res.predicted_mean.tolist()
     conf_int = forecast_res.conf_int()
     lower = conf_int.iloc[:, 0].tolist() if hasattr(conf_int, "iloc") else [float(v[0]) for v in conf_int]
@@ -1238,9 +1238,9 @@ def sarima_forecast(values, order=(1, 1, 1), seasonalOrder=(1, 1, 1, 12), nForec
 def var_model(dataMatrix, maxLags=1, columnNames=None):
     from statsmodels.tsa.api import VAR
 
-    data = np.array(data_matrix, dtype=float)
+    data = np.array(dataMatrix, dtype=float)
     if data.ndim != 2:
-        raise ValueError("data_matrix must be a 2D array")
+        raise ValueError("dataMatrix must be a 2D array")
 
     model = VAR(data)
     results = model.fit(maxlags=maxLags)
@@ -1490,7 +1490,7 @@ def discriminant_analysis(data, groups):
     # Discriminant functions
     n_comp = min(n_groups - 1, n_features)
     functions = []
-    for i in range(n_components):
+    for i in range(n_comp):
         if i < lda.scalings_.shape[1]:
             eigenvalue = float(lda.explained_variance_ratio_[i]) if i < len(lda.explained_variance_ratio_) else 0.0
             functions.append({
@@ -1530,12 +1530,12 @@ def discriminant_analysis(data, groups):
             count = int(np.sum((y == true_group) & (y_pred == pred_group)))
             confusion[str(true_group)][str(pred_group)] = count
 
-    interpretation = f'LDA classified {accuracy*100:.1f}% of samples correctly with {n_components} discriminant function(s).'
+    interpretation = f'LDA classified {accuracy*100:.1f}% of samples correctly with {n_comp} discriminant function(s).'
 
     return {
         'functions': functions,
         'totalVariance': float(np.sum(lda.explained_variance_ratio_)) if hasattr(lda, 'explained_variance_ratio_') else 1.0,
-        'selectedFunctions': n_components,
+        'selectedFunctions': n_comp,
         'groupCentroids': group_centroids,
         'classificationResults': classification_results,
         'accuracy': accuracy,
@@ -1553,9 +1553,9 @@ def dose_response_analysis(doseData, responseData, modelType='logistic4', constr
     Dose-response curve fitting using scipy.optimize.curve_fit
 
     Parameters:
-    - dose_data: List of dose/concentration values
-    - response_data: List of corresponding response values
-    - model_type: Type of model ('logistic4', 'logistic3', 'weibull', 'gompertz', 'biphasic')
+    - doseData: List of dose/concentration values
+    - responseData: List of corresponding response values
+    - modelType: Type of model ('logistic4', 'logistic3', 'weibull', 'gompertz', 'biphasic')
     - constraints: Optional dict with 'bottom' and 'top' constraints
 
     Returns:
@@ -1566,8 +1566,8 @@ def dose_response_analysis(doseData, responseData, modelType='logistic4', constr
     warnings.filterwarnings('ignore')
 
     # Convert to numpy arrays
-    dose_array = np.array(dose_data, dtype=float)
-    response_array = np.array(response_data, dtype=float)
+    dose_array = np.array(doseData, dtype=float)
+    response_array = np.array(responseData, dtype=float)
 
     # Remove NaN values
     valid_indices = ~(np.isnan(dose_array) | np.isnan(response_array))
@@ -1662,7 +1662,7 @@ def dose_response_analysis(doseData, responseData, modelType='logistic4', constr
     try:
         popt, pcov = optimize.curve_fit(
             model_func, dose_array, response_array,
-            p0=initialGuess, bounds=bounds, maxfev=5000
+            p0=initial_guess, bounds=bounds, maxfev=5000
         )
     except Exception as e:
         raise ValueError(f"Model fitting failed: {str(e)}")
@@ -1837,4 +1837,3 @@ def stationarity_test(values, regression='c'):
             'std': std_val
         }
     }
-

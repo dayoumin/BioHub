@@ -1,14 +1,19 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum';
 
+interface TestResults {
+    anova?: unknown;
+    ttest?: unknown;
+}
+
 export default function TestCalculationPage() {
     const [status, setStatus] = useState('Idle');
-    const [results, setResults] = useState<any>({});
+    const [results, setResults] = useState<TestResults>({});
 
     const runOneWayAnova = async () => {
         try {
@@ -30,7 +35,7 @@ export default function TestCalculationPage() {
                 { groups }
             );
 
-            setResults(prev => ({ ...prev, anova: result }));
+            setResults((prev: TestResults) => ({ ...prev, anova: result }));
             setStatus('ANOVA Done');
         } catch (e) {
             console.error(e);
@@ -56,7 +61,7 @@ export default function TestCalculationPage() {
                 }
             );
 
-            setResults(prev => ({ ...prev, ttest: result }));
+            setResults((prev: TestResults) => ({ ...prev, ttest: result }));
             setStatus('T-Test Done');
         } catch (e) {
             console.error(e);

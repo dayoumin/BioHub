@@ -45,8 +45,8 @@ jest.mock('@/lib/services/pyodide-statistics', () => ({
     cochranQTestWorker: jest.fn().mockResolvedValue({ qStatistic: 8.0, pValue: 0.02, df: 2 }),
     binomialTestWorker: jest.fn().mockResolvedValue({ pValue: 0.05, successCount: 7, totalCount: 10 }),
     runsTestWorker: jest.fn().mockResolvedValue({ zStatistic: 1.5, pValue: 0.13, nRuns: 5, expectedRuns: 6 }),
-    ksTestOneSample: jest.fn().mockResolvedValue({ statisticKS: 0.15, pValue: 0.2 }),
-    ksTestTwoSample: jest.fn().mockResolvedValue({ statisticKS: 0.2, pValue: 0.1 }),
+    ksTestOneSample: jest.fn().mockResolvedValue({ statistic: 0.15, pValue: 0.2, n: 20, significant: false, interpretation: 'ok' }),
+    ksTestTwoSample: jest.fn().mockResolvedValue({ statistic: 0.2, pValue: 0.1, n1: 20, n2: 25, significant: false }),
     moodMedianTestWorker: jest.fn().mockResolvedValue({ statistic: 3.5, pValue: 0.06, grandMedian: 15 }),
     oneSampleProportionTest: jest.fn().mockResolvedValue({ zStatistic: 1.8, pValueExact: 0.07, sampleProportion: 0.6 }),
     // Chi-square methods (actual name)
@@ -61,7 +61,16 @@ jest.mock('@/lib/services/pyodide-statistics', () => ({
     // Multivariate methods
     pca: jest.fn().mockResolvedValue({ explainedVariance: [0.6, 0.3], totalExplainedVariance: 0.9 }),
     factorAnalysis: jest.fn().mockResolvedValue({ explainedVariance: [0.5, 0.3], totalExplainedVariance: 0.8 }),
-    clusterAnalysis: jest.fn().mockResolvedValue({ labels: [0, 1, 0, 1], centroids: [[1, 2], [3, 4]] }),
+    clusterAnalysis: jest.fn().mockResolvedValue({
+      nClusters: 2,
+      clusterAssignments: [0, 1, 0, 1],
+      centroids: [[1, 2], [3, 4]],
+      clusters: [0, 1, 0, 1],
+      centers: [[1, 2], [3, 4]],
+      silhouetteScore: 0.5,
+      inertia: 1.2,
+      clusterSizes: [2, 2]
+    }),
     discriminantAnalysis: jest.fn().mockResolvedValue({ accuracy: 0.85, functions: [{ varianceExplained: 0.9 }], totalVariance: 0.95 }),
     // Time series methods
     timeSeriesAnalysis: jest.fn().mockResolvedValue({ trend: [1, 2, 3], seasonal: [0.1, 0.2, 0.1] }),
