@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2025-12-16T23:56:17.223Z
+ * Generated: 2025-12-17T03:13:58.383Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -200,7 +200,7 @@ export async function frequencyAnalysis(values: number[] | number[][]): Promise<
  * 교차분석
  * @worker Worker 1
  */
-export async function crosstabAnalysis(rowValues: number[] | number[][], colValues: number[] | number[][]): Promise<CrosstabAnalysisResult> {
+export async function crosstabAnalysis(rowValues: (string | number)[], colValues: (string | number)[]): Promise<CrosstabAnalysisResult> {
   return callWorkerMethod<CrosstabAnalysisResult>(1, 'crosstab_analysis', { rowValues, colValues })
 }
 
@@ -256,7 +256,7 @@ export async function mannKendallTest(data: number[]): Promise<MannKendallTestRe
  * Bonferroni 다중비교 보정
  * @worker Worker 1
  */
-export async function bonferroniCorrection(pValues: number[] | number[][], alpha?: number): Promise<BonferroniCorrectionResult> {
+export async function bonferroniCorrection(pValues: number[], alpha?: number): Promise<BonferroniCorrectionResult> {
   return callWorkerMethod<BonferroniCorrectionResult>(1, 'bonferroni_correction', { pValues, alpha })
 }
 
@@ -338,19 +338,23 @@ export interface PartialCorrelationResult {
 export interface LeveneTestResult {
   statistic: number
   pValue: number
-  homogeneous: boolean
+  equalVariance: unknown
 }
 
 export interface BartlettTestResult {
   statistic: number
   pValue: number
-  homogeneous: boolean
+  equalVariance: unknown
 }
 
 export interface ChiSquareGoodnessTestResult {
-  statistic: number
+  chiSquare: number
   pValue: number
-  df: number
+  degreesOfFreedom: unknown
+  criticalValue: unknown
+  reject: boolean
+  observed: unknown
+  expected: unknown
 }
 
 export interface ChiSquareIndependenceTestResult {
@@ -446,7 +450,7 @@ export async function partialCorrelation(dataMatrix: number[][], xIdx: number, y
  * Levene 등분산 검정
  * @worker Worker 2
  */
-export async function leveneTest(groups: number[] | number[][]): Promise<LeveneTestResult> {
+export async function leveneTest(groups: number[][] | number[]): Promise<LeveneTestResult> {
   return callWorkerMethod<LeveneTestResult>(2, 'levene_test', { groups })
 }
 
@@ -454,7 +458,7 @@ export async function leveneTest(groups: number[] | number[][]): Promise<LeveneT
  * Bartlett 등분산 검정
  * @worker Worker 2
  */
-export async function bartlettTest(groups: number[] | number[][]): Promise<BartlettTestResult> {
+export async function bartlettTest(groups: number[][] | number[]): Promise<BartlettTestResult> {
   return callWorkerMethod<BartlettTestResult>(2, 'bartlett_test', { groups })
 }
 
@@ -625,7 +629,7 @@ export async function wilcoxonTest(values1: number[], values2: number[]): Promis
  * Kruskal-Wallis H 검정
  * @worker Worker 3
  */
-export async function kruskalWallisTest(groups: number[] | number[][]): Promise<KruskalWallisTestResult> {
+export async function kruskalWallisTest(groups: number[][] | number[]): Promise<KruskalWallisTestResult> {
   return callWorkerMethod<KruskalWallisTestResult>(3, 'kruskal_wallis_test', { groups })
 }
 
@@ -633,7 +637,7 @@ export async function kruskalWallisTest(groups: number[] | number[][]): Promise<
  * Friedman 검정
  * @worker Worker 3
  */
-export async function friedmanTest(groups: number[] | number[][]): Promise<FriedmanTestResult> {
+export async function friedmanTest(groups: number[][] | number[]): Promise<FriedmanTestResult> {
   return callWorkerMethod<FriedmanTestResult>(3, 'friedman_test', { groups })
 }
 
@@ -641,7 +645,7 @@ export async function friedmanTest(groups: number[] | number[][]): Promise<Fried
  * 일원 분산분석
  * @worker Worker 3
  */
-export async function oneWayAnova(groups: number[] | number[][]): Promise<OneWayAnovaResult> {
+export async function oneWayAnova(groups: number[][] | number[]): Promise<OneWayAnovaResult> {
   return callWorkerMethod<OneWayAnovaResult>(3, 'one_way_anova', { groups })
 }
 
@@ -649,7 +653,7 @@ export async function oneWayAnova(groups: number[] | number[][]): Promise<OneWay
  * 이원 분산분석
  * @worker Worker 3
  */
-export async function twoWayAnova(dataValues: number[] | number[][], factor1Values: number[] | number[][], factor2Values: number[] | number[][]): Promise<TwoWayAnovaResult> {
+export async function twoWayAnova(dataValues: number[] | number[][], factor1Values: (string | number)[], factor2Values: (string | number)[]): Promise<TwoWayAnovaResult> {
   return callWorkerMethod<TwoWayAnovaResult>(3, 'two_way_anova', { dataValues, factor1Values, factor2Values })
 }
 
@@ -657,7 +661,7 @@ export async function twoWayAnova(dataValues: number[] | number[][], factor1Valu
  * Tukey HSD 사후검정
  * @worker Worker 3
  */
-export async function tukeyHsd(groups: number[] | number[][]): Promise<TukeyHsdResult> {
+export async function tukeyHsd(groups: number[][] | number[]): Promise<TukeyHsdResult> {
   return callWorkerMethod<TukeyHsdResult>(3, 'tukey_hsd', { groups })
 }
 
@@ -697,7 +701,7 @@ export async function cochranQTest(dataMatrix: number[][]): Promise<CochranQTest
  * Mood 중앙값 검정
  * @worker Worker 3
  */
-export async function moodMedianTest(groups: number[] | number[][]): Promise<MoodMedianTestResult> {
+export async function moodMedianTest(groups: number[][] | number[]): Promise<MoodMedianTestResult> {
   return callWorkerMethod<MoodMedianTestResult>(3, 'mood_median_test', { groups })
 }
 
@@ -713,7 +717,7 @@ export async function repeatedMeasuresAnova(dataMatrix: number[][], subjectIds: 
  * 공분산분석
  * @worker Worker 3
  */
-export async function ancova(yValues: number[] | number[][], groupValues: number[] | number[][], covariates: number[]): Promise<AncovaResult> {
+export async function ancova(yValues: number[] | number[][], groupValues: (string | number)[], covariates: number[]): Promise<AncovaResult> {
   return callWorkerMethod<AncovaResult>(3, 'ancova', { yValues, groupValues, covariates })
 }
 
@@ -721,7 +725,7 @@ export async function ancova(yValues: number[] | number[][], groupValues: number
  * 다변량 분산분석
  * @worker Worker 3
  */
-export async function manova(dataMatrix: number[][], groupValues: number[] | number[][], varNames: string[]): Promise<ManovaResult> {
+export async function manova(dataMatrix: number[][], groupValues: (string | number)[], varNames: string[]): Promise<ManovaResult> {
   return callWorkerMethod<ManovaResult>(3, 'manova', { dataMatrix, groupValues, varNames })
 }
 
@@ -729,7 +733,7 @@ export async function manova(dataMatrix: number[][], groupValues: number[] | num
  * Scheffe 사후검정
  * @worker Worker 3
  */
-export async function scheffeTest(groups: number[] | number[][]): Promise<ScheffeTestResult> {
+export async function scheffeTest(groups: number[][] | number[]): Promise<ScheffeTestResult> {
   return callWorkerMethod<ScheffeTestResult>(3, 'scheffe_test', { groups })
 }
 
@@ -737,7 +741,7 @@ export async function scheffeTest(groups: number[] | number[][]): Promise<Scheff
  * Dunn 사후검정
  * @worker Worker 3
  */
-export async function dunnTest(groups: number[] | number[][], pAdjust?: string): Promise<DunnTestResult> {
+export async function dunnTest(groups: number[][] | number[], pAdjust?: string): Promise<DunnTestResult> {
   return callWorkerMethod<DunnTestResult>(3, 'dunn_test', { groups, pAdjust })
 }
 
@@ -745,7 +749,7 @@ export async function dunnTest(groups: number[] | number[][], pAdjust?: string):
  * Games-Howell 사후검정
  * @worker Worker 3
  */
-export async function gamesHowellTest(groups: number[] | number[][]): Promise<GamesHowellTestResult> {
+export async function gamesHowellTest(groups: number[][] | number[]): Promise<GamesHowellTestResult> {
   return callWorkerMethod<GamesHowellTestResult>(3, 'games_howell_test', { groups })
 }
 
@@ -1036,7 +1040,7 @@ export async function durbinWatsonTest(residuals: number[]): Promise<DurbinWatso
  * 판별분석
  * @worker Worker 4
  */
-export async function discriminantAnalysis(data: number[], groups: number[] | number[][]): Promise<DiscriminantAnalysisResult> {
+export async function discriminantAnalysis(data: number[], groups: number[][] | number[]): Promise<DiscriminantAnalysisResult> {
   return callWorkerMethod<DiscriminantAnalysisResult>(4, 'discriminant_analysis', { data, groups })
 }
 

@@ -71,9 +71,11 @@ function extractServiceMethods(): Array<{ tsMethod: string; worker: number; pyFu
 /**
  * Python Worker 파일에서 함수의 파라미터 목록 추출
  *
- * 개선된 파서:
+ * 개선된 파서 (v2):
  * - 여러 줄에 걸친 함수 정의 지원
  * - List[Union[int, float]], Optional[List[int]] 등 복잡한 타입 힌트 처리
+ * - 기본값에 튜플이 있는 경우 (order=(1, 1, 1)) 안전하게 처리
+ * - 문자열 리터럴 내 괄호/콤마 무시 ('a', "b")
  * - 괄호 균형을 고려한 안전한 파싱
  */
 function extractPythonFunctionParams(workerNum: number, funcName: string): string[] {
@@ -87,27 +89,81 @@ function extractPythonFunctionParams(workerNum: number, funcName: string): strin
   const filePath = join(WORKER_DIR, workerFiles[workerNum])
   const content = readFileSync(filePath, 'utf8')
 
-  // 여러 줄에 걸친 함수 정의 지원 (def funcname(...):)
-  const pattern = new RegExp(`def ${funcName}\\s*\\(([\\s\\S]*?)\\)\\s*(?:->\\s*[^:]+)?:`, 'm')
-  const match = content.match(pattern)
+  // Step 1: "def funcName(" 위치 찾기
+  const defPattern = new RegExp(`def\\s+${funcName}\\s*\\(`)
+  const defMatch = defPattern.exec(content)
+  if (!defMatch) return []
 
-  if (!match) return []
+  const startIdx = defMatch.index + defMatch[0].length
 
-  // 파라미터 문자열에서 줄바꿈과 공백 정리
-  const paramStr = match[1].replace(/\s+/g, ' ').trim()
+  // Step 2: 괄호 균형을 추적하여 파라미터 블록 끝 찾기
+  // 중괄호{}, 대괄호[], 소괄호(), 문자열 리터럴 모두 고려
+  let depth = 1  // 이미 '(' 하나를 지남
+  let inString: string | null = null  // 현재 문자열 리터럴 상태 (null, "'", '"')
+  let endIdx = startIdx
+
+  for (let i = startIdx; i < content.length && depth > 0; i++) {
+    const char = content[i]
+    const prevChar = i > 0 ? content[i - 1] : ''
+
+    // 문자열 리터럴 처리 (이스케이프 제외)
+    if ((char === '"' || char === "'") && prevChar !== '\\') {
+      if (inString === null) {
+        inString = char
+      } else if (inString === char) {
+        inString = null
+      }
+      continue
+    }
+
+    // 문자열 내부면 괄호 무시
+    if (inString !== null) continue
+
+    if (char === '(' || char === '[' || char === '{') {
+      depth++
+    } else if (char === ')' || char === ']' || char === '}') {
+      depth--
+    }
+
+    if (depth === 0) {
+      endIdx = i
+    }
+  }
+
+  // 파라미터 문자열 추출
+  const paramStr = content.substring(startIdx, endIdx).replace(/\s+/g, ' ').trim()
   if (!paramStr) return []
 
-  // 괄호 균형을 고려한 파라미터 분리
+  // Step 3: 괄호 균형을 고려한 파라미터 분리
   const params: string[] = []
   let current = ''
   let bracketDepth = 0
+  let paramInString: string | null = null
 
   for (let i = 0; i < paramStr.length; i++) {
     const char = paramStr[i]
-    if (char === '[' || char === '(') {
+    const prevChar = i > 0 ? paramStr[i - 1] : ''
+
+    // 문자열 리터럴 처리
+    if ((char === '"' || char === "'") && prevChar !== '\\') {
+      if (paramInString === null) {
+        paramInString = char
+      } else if (paramInString === char) {
+        paramInString = null
+      }
+      current += char
+      continue
+    }
+
+    if (paramInString !== null) {
+      current += char
+      continue
+    }
+
+    if (char === '[' || char === '(' || char === '{') {
       bracketDepth++
       current += char
-    } else if (char === ']' || char === ')') {
+    } else if (char === ']' || char === ')' || char === '}') {
       bracketDepth--
       current += char
     } else if (char === ',' && bracketDepth === 0) {
@@ -123,7 +179,7 @@ function extractPythonFunctionParams(workerNum: number, funcName: string): strin
     params.push(current.trim())
   }
 
-  // 파라미터 이름만 추출 (타입 힌트와 기본값 제거)
+  // Step 4: 파라미터 이름만 추출 (타입 힌트와 기본값 제거)
   return params
     .map(p => {
       // "param: Type = default" -> "param"

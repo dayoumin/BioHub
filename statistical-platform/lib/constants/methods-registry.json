@@ -125,17 +125,17 @@
       },
       "levene_test": {
         "params": ["groups"],
-        "returns": ["statistic", "pValue", "homogeneous"],
+        "returns": ["statistic", "pValue", "equalVariance"],
         "description": "Levene 등분산 검정"
       },
       "bartlett_test": {
         "params": ["groups"],
-        "returns": ["statistic", "pValue", "homogeneous"],
+        "returns": ["statistic", "pValue", "equalVariance"],
         "description": "Bartlett 등분산 검정"
       },
       "chi_square_goodness_test": {
         "params": ["observed", "expected?", "alpha?"],
-        "returns": ["statistic", "pValue", "df"],
+        "returns": ["chiSquare", "pValue", "degreesOfFreedom", "criticalValue", "reject", "observed", "expected"],
         "description": "카이제곱 적합도 검정"
       },
       "chi_square_independence_test": {

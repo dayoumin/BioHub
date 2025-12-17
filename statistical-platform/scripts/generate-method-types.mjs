@@ -33,73 +33,107 @@ function paramToType(param) {
   const name = optional ? param.slice(0, -1) : param
 
   // 파라미터 이름으로 타입 추론
+  // 주의: 구체적 규칙이 일반적 규칙보다 먼저 와야 함!
   let type = 'unknown'
 
-  // 배열 타입 추론
-  if (name.endsWith('Matrix') || name.endsWith('matrix')) {
+  // ========================================
+  // 1. 구체적 명시 매핑 (우선순위 높음)
+  // ========================================
+
+  // 2D 행렬 (number[][])
+  if (name === 'observedMatrix' || name === 'contingencyTable' ||
+      name === 'itemsMatrix' || name === 'table' || name === 'covariateData' ||
+      name === 'X') {
     type = 'number[][]'
-  } else if (name.endsWith('Values') || name.endsWith('values') || name === 'groups') {
-    type = 'number[] | number[][]'
-  } else if (name === 'data' || name === 'x' || name === 'y' || name === 'residuals') {
-    type = 'number[]'
-  } else if (name === 'X') {
-    type = 'number[][]'
-  } else if (name === 'group1' || name === 'group2' || name === 'values1' || name === 'values2') {
-    type = 'number[]'
-  } else if (name === 'before' || name === 'after' || name === 'sequence') {
-    type = 'number[]'
-  } else if (name === 'times' || name === 'events' || name === 'covariates') {
-    type = 'number[]'
-  } else if (name === 'pValues' || name === 'observed' || name === 'expected') {
+  }
+  // 그룹/요인 값 (string | number 혼합 가능)
+  else if (name === 'groupValues' || name === 'factor1Values' || name === 'factor2Values') {
+    type = '(string | number)[]'
+  }
+  // 교차분석 행/열 값
+  else if (name === 'rowValues' || name === 'colValues') {
+    type = '(string | number)[]'
+  }
+  // 그룹 배열 (Levene, Bartlett 등에서 사용)
+  else if (name === 'groups') {
+    type = 'number[][] | number[]'
+  }
+  // 식별자/레이블 배열
+  else if (name === 'controlIndices' || name === 'subjectIds' || name === 'timeLabels') {
+    type = '(string | number)[]'
+  }
+  // 문자열 배열
+  else if (name === 'groupLabels' || name === 'varNames' || name === 'variableNames' || name === 'covariateNames') {
+    type = 'string[]'
+  }
+  // 숫자 배열 (1D)
+  else if (name === 'data' || name === 'x' || name === 'y' || name === 'residuals') {
     type = 'number[]'
   }
-  // 숫자 타입 추론
+  else if (name === 'group1' || name === 'group2' || name === 'values1' || name === 'values2') {
+    type = 'number[]'
+  }
+  else if (name === 'before' || name === 'after' || name === 'sequence') {
+    type = 'number[]'
+  }
+  else if (name === 'times' || name === 'events' || name === 'covariates') {
+    type = 'number[]'
+  }
+  else if (name === 'pValues' || name === 'observed' || name === 'expected') {
+    type = 'number[]'
+  }
+  else if (name === 'initialGuess') {
+    type = 'number[] | null'
+  }
+  // 숫자 스칼라
   else if (name === 'alpha' || name === 'probability' || name === 'popmean' || name === 'popstd') {
     type = 'number'
-  } else if (name === 'nComponents' || name === 'nClusters' || name === 'nFactors') {
-    type = 'number'
-  } else if (name === 'successCount' || name === 'totalCount' || name === 'xIdx' || name === 'yIdx') {
-    type = 'number'
-  } else if (name === 'entryThreshold' || name === 'stayThreshold' || name === 'nullProportion') {
-    type = 'number'
-  } else if (name === 'seasonalPeriods' || name === 'forecastPeriods') {
-    type = 'number'
-  } else if (name === 'power' || name === 'effectSize' || name === 'sampleSize' || name === 'sides') {
-    type = 'number'
-  } else if (name === 'confidenceLevel' || name === 'numClusters') {
+  }
+  else if (name === 'nComponents' || name === 'nFactors' || name === 'numClusters') {
     type = 'number'
   }
-  // 불린 타입 추론
+  else if (name === 'successCount' || name === 'totalCount' || name === 'xIdx' || name === 'yIdx') {
+    type = 'number'
+  }
+  else if (name === 'entryThreshold' || name === 'stayThreshold' || name === 'nullProportion') {
+    type = 'number'
+  }
+  else if (name === 'seasonalPeriods' || name === 'forecastPeriods') {
+    type = 'number'
+  }
+  else if (name === 'power' || name === 'effectSize' || name === 'sampleSize' || name === 'sides') {
+    type = 'number'
+  }
+  else if (name === 'confidenceLevel') {
+    type = 'number'
+  }
+  // 불린
   else if (name === 'equalVar' || name === 'yatesCorrection') {
     type = 'boolean'
   }
-  // 문자열 타입 추론
-  else if (name === 'method' || name === 'alternative' || name === 'rotation' || name === 'linkage' || name === 'distance') {
-    type = 'string'
-  } else if (name === 'modelType' || name === 'testType' || name === 'analysisType' || name === 'pAdjust') {
-    type = 'string'
-  } else if (name === 'dependentVar' || name === 'factorVar') {
+  // 문자열
+  else if (name === 'method' || name === 'alternative' || name === 'rotation' ||
+           name === 'linkage' || name === 'distance') {
     type = 'string'
   }
-  // 배열(문자열) 타입 추론
-  else if (name === 'groupLabels' || name === 'varNames' || name === 'variableNames' || name === 'covariateNames') {
-    type = 'string[]'
-  } else if (name === 'controlIndices' || name === 'subjectIds' || name === 'timeLabels') {
-    type = '(string | number)[]'
+  else if (name === 'modelType' || name === 'testType' || name === 'analysisType' || name === 'pAdjust') {
+    type = 'string'
   }
-  // 복합 타입
-  else if (name === 'groupValues' || name === 'factor1Values' || name === 'factor2Values') {
-    type = '(string | number)[]'
-  } else if (name === 'rowValues' || name === 'colValues') {
-    type = '(string | number)[]'
-  } else if (name === 'observedMatrix' || name === 'contingencyTable' || name === 'itemsMatrix' || name === 'table') {
+  else if (name === 'dependentVar' || name === 'factorVar') {
+    type = 'string'
+  }
+
+  // ========================================
+  // 2. 일반적 패턴 매칭 (우선순위 낮음)
+  // ========================================
+
+  // Matrix로 끝나는 것은 2D 배열
+  else if (name.endsWith('Matrix') || name.endsWith('matrix')) {
     type = 'number[][]'
-  } else if (name === 'initialGuess') {
-    type = 'number[] | null'
-  } else if (name === 'groups') {
-    type = '(string | number)[]'
-  } else if (name === 'covariateData') {
-    type = 'number[][]'
+  }
+  // Values로 끝나는 것은 유연한 배열 (1D 또는 2D)
+  else if (name.endsWith('Values') || name.endsWith('values')) {
+    type = 'number[] | number[][]'
   }
 
   return { name, optional, type }
