@@ -1,6 +1,6 @@
 {
   "id": "test-snippets",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "lastUpdated": "2025-12-18",
   "sources": [
     "statistical-platform/__tests__/",
@@ -487,7 +487,7 @@
           ]
         },
         {
-          "name": "Service 계층 (pyodide-statistics.ts)",
+          "name": "Service 계�� (pyodide-statistics.ts)",
           "purpose": "Python Worker 호출 래퍼 레이어 이해",
           "code": "// === pyodide-statistics.ts ===\n// 파일: lib/services/pyodide-statistics.ts\n// 역할: TypeScript에서 Python 함수를 호출하기 위한 래퍼\n\n// ⚠️ 주의사항 (파일 상단 주석)\n// - 새 메서드를 이 파일에 직접 구현하지 말 것!\n// - Python Worker 파일에 함수 추가 후 래퍼만 추가\n\n// 예시: tTest 메서드\nasync tTest(group1: number[], group2: number[], options?) {\n  // 내부적으로 PyodideCoreService 호출\n  return this.core.callWorkerMethod<StatisticsResult>(\n    2,                    // Worker 2 (hypothesis)\n    't_test_two_sample',  // Python 함수명\n    { group1, group2, equal_var: options?.equalVar }\n  )\n}\n\n// pyodideStats 싱글톤 인스턴스\nexport const pyodideStats = PyodideStatistics.getInstance()\n\n// 사용 예시 (Executor에서)\nconst result = await pyodideStats.tTest(group1, group2, { paired: false })\nconst stats = await pyodideStats.descriptiveStats(values)\nconst anova = await pyodideStats.anova(groups, { type: 'one-way' })",
           "keywords": [
@@ -579,6 +579,54 @@
             "Python sync",
             "extractPythonFunctions",
             "동기화 검증"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Template System Tests",
+      "description": "분석 템플릿 저장/불러오기 테스트 패턴",
+      "patterns": [
+        {
+          "name": "AnalysisTemplate 타입 검증",
+          "purpose": "템플릿 구조가 올바른지 확인",
+          "code": "import type { AnalysisTemplate, VariableRoleMapping } from '@/types/smart-flow'\n\ndescribe('IndexedDB Templates', () => {\n  describe('AnalysisTemplate 타입', () => {\n    it('올바른 템플릿 구조를 가져야 함', () => {\n      const template: AnalysisTemplate = {\n        id: 'test-1',\n        name: '테스트 템플릿',\n        description: '설명',\n        createdAt: Date.now(),\n        updatedAt: Date.now(),\n        usageCount: 0,\n        lastUsedAt: null,\n        purpose: 'compare',\n        method: {\n          id: 't-test',\n          name: '독립표본 t-검정',\n          category: 't-test'\n        },\n        variableRoles: {\n          dependent: {\n            role: 'dependent',\n            type: 'numeric',\n            description: 'score'\n          }\n        }\n      }\n\n      expect(template.id).toBe('test-1')\n      expect(template.method.category).toBe('t-test')\n    })\n  })\n})",
+          "keywords": [
+            "AnalysisTemplate",
+            "IndexedDB",
+            "템플릿 구조"
+          ]
+        },
+        {
+          "name": "VariableMapping 변환 테스트",
+          "purpose": "string | string[] 타입 안전 변환 검증",
+          "code": "describe('VariableMapping -> VariableRoleMapping 변환', () => {\n  // toStringValue 헬퍼 함수 로직 테스트\n  it('string을 그대로 반환해야 함', () => {\n    const value: string | string[] = 'score'\n    const result = Array.isArray(value) ? value[0] : value\n    expect(result).toBe('score')\n  })\n\n  it('string[]의 첫 번째 요소를 반환해야 함', () => {\n    const value: string | string[] = ['score', 'value']\n    const result = Array.isArray(value) ? value[0] : value\n    expect(result).toBe('score')\n  })\n\n  // toArrayValue 헬퍼 함수 로직 테스트\n  it('string을 배열로 감싸야 함', () => {\n    const value: string | string[] = 'single'\n    const result = Array.isArray(value) ? value : [value]\n    expect(result).toEqual(['single'])\n  })\n})",
+          "keywords": [
+            "toStringValue",
+            "toArrayValue",
+            "타입 변환",
+            "VariableMapping"
+          ]
+        },
+        {
+          "name": "변수 자동 매칭 테스트",
+          "purpose": "템플릿 역할을 새 데이터 컬럼에 자동 매칭",
+          "code": "describe('변수 자동 매칭', () => {\n  it('수치형/범주형 변수를 역할에 매칭해야 함', () => {\n    const roles: VariableRoleMapping = {\n      dependent: { role: 'dependent', type: 'numeric' },\n      independent: { role: 'group', type: 'categorical' }\n    }\n\n    const numericCols = ['score', 'age', 'height']\n    const categoricalCols = ['group', 'gender']\n\n    const matched: Record<string, string> = {}\n    const unmatched: string[] = []\n\n    // 종속변수 매칭\n    if (roles.dependent && numericCols.length > 0) {\n      matched['dependent'] = numericCols[0]\n    }\n\n    // 독립변수 매칭\n    if (roles.independent?.type === 'categorical') {\n      const available = categoricalCols.filter(c => c !== matched['dependent'])\n      if (available.length > 0) matched['independent'] = available[0]\n      else unmatched.push('independent')\n    }\n\n    expect(matched['dependent']).toBe('score')\n    expect(matched['independent']).toBe('group')\n    expect(unmatched).toHaveLength(0)\n  })\n})",
+          "keywords": [
+            "matchVariables",
+            "자동 매칭",
+            "numeric",
+            "categorical"
+          ]
+        },
+        {
+          "name": "IndexedDB Mock 패턴",
+          "purpose": "IndexedDB 함수 모킹 방법",
+          "code": "// Mock IndexedDB 함수들\njest.mock('@/lib/utils/indexeddb-templates', () => ({\n  isIndexedDBAvailable: jest.fn(() => true),\n  getAllTemplates: jest.fn(async () => []),\n  getTemplate: jest.fn(async () => null),\n  saveTemplate: jest.fn(async () => {}),\n  updateTemplate: jest.fn(async () => {}),\n  deleteTemplate: jest.fn(async () => {}),\n  clearAllTemplates: jest.fn(async () => {}),\n  incrementTemplateUsage: jest.fn(async () => {}),\n  getRecentTemplates: jest.fn(async () => [])\n}))\n\ndescribe('Template Store', () => {\n  it('템플릿 ID가 올바른 형식이어야 함', () => {\n    const id = `template-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`\n    expect(id).toMatch(/^template-\\d+-[a-z0-9]+$/)\n  })\n})",
+          "keywords": [
+            "jest.mock",
+            "IndexedDB",
+            "template-store"
           ]
         }
       ]
