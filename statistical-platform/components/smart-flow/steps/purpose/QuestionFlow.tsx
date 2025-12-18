@@ -33,12 +33,16 @@ export function QuestionFlow({
   const [direction, setDirection] = useState<'forward' | 'backward'>('forward')
   // Auto-advance timeout ref (클린업용)
   const autoAdvanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasInteractedRef = useRef(false)
 
   // 조건에 맞는 질문만 필터링
   const filteredQuestions = useMemo(() => {
     if (!shouldShowQuestion) return questions
     return questions.filter(q => shouldShowQuestion(q.id, answers))
   }, [questions, answers, shouldShowQuestion])
+
+  const filteredQuestionsRef = useRef(filteredQuestions)
+  filteredQuestionsRef.current = filteredQuestions
 
   // 현재 질문
   const currentQuestion = filteredQuestions[currentIndex]
@@ -54,6 +58,7 @@ export function QuestionFlow({
 
   // 이전 질문으로
   const handlePrev = useCallback(() => {
+    hasInteractedRef.current = true
     if (currentIndex > 0) {
       setDirection('backward')
       setCurrentIndex(prev => prev - 1)
@@ -64,6 +69,7 @@ export function QuestionFlow({
 
   // 다음 질문으로
   const handleNext = useCallback(() => {
+    hasInteractedRef.current = true
     if (!hasCurrentAnswer) return
 
     if (isLastQuestion) {
@@ -84,6 +90,7 @@ export function QuestionFlow({
 
   // 질문에 답변하면 자동으로 다음으로 이동 (딜레이 포함)
   const handleAnswer = useCallback((questionId: string, value: string) => {
+    hasInteractedRef.current = true
     onAnswerQuestion(questionId, value)
 
     // 기존 timeout 클린업
@@ -95,14 +102,28 @@ export function QuestionFlow({
       setCurrentIndex(prev => {
         // filteredQuestions.length는 클로저이므로 여기서 재계산 필요
         // prev + 1이 마지막 인덱스보다 크면 진행하지 않음
-        if (prev < filteredQuestions.length - 1) {
+        if (prev < filteredQuestionsRef.current.length - 1) {
           setDirection('forward')
           return prev + 1
         }
         return prev
       })
     }, 300)
-  }, [onAnswerQuestion, clearAutoAdvanceTimeout, filteredQuestions.length])
+  }, [onAnswerQuestion, clearAutoAdvanceTimeout])
+
+  useEffect(() => {
+    if (hasInteractedRef.current) return
+    if (filteredQuestions.length === 0) return
+
+    const firstUnansweredIndex = filteredQuestions.findIndex(q => answers[q.id] === undefined)
+    const targetIndex = firstUnansweredIndex === -1
+      ? Math.max(0, filteredQuestions.length - 1)
+      : firstUnansweredIndex
+
+    if (targetIndex !== currentIndex) {
+      setCurrentIndex(targetIndex)
+    }
+  }, [answers, filteredQuestions, currentIndex])
 
   // 입력 필드에서 이벤트가 발생했는지 확인하는 헬퍼
   const isEditableElement = useCallback((target: EventTarget | null): boolean => {

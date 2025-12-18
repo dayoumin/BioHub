@@ -592,6 +592,7 @@ export interface GuidedQuestion {
   options: QuestionOption[]
   /** true면 데이터에서 자동 감지 시도 */
   autoAnswer?: boolean
+  required?: boolean
 }
 
 /**
@@ -658,3 +659,117 @@ export type GuidedFlowAction =
   | { type: 'SELECT_METHOD'; method: StatisticalMethod }
   | { type: 'CONFIRM' }
   | { type: 'RESET' }
+
+
+// ============================================
+// Analysis Template Types (재분석 간소화)
+// ============================================
+
+/**
+ * 변수 역할 매핑 (변수명 대신 역할 저장)
+ * 새 데이터에 동일 역할의 변수를 자동 매칭
+ */
+export interface VariableRoleMapping {
+  /** 종속변수 역할 */
+  dependent?: {
+    role: 'dependent'
+    type: 'numeric' | 'categorical'
+    description?: string
+  }
+  /** 독립변수/그룹변수 역할 */
+  independent?: {
+    role: 'independent' | 'group'
+    type: 'numeric' | 'categorical'
+    description?: string
+  }
+  /** 요인 변수들 (ANOVA 등) */
+  factors?: Array<{
+    role: 'factor'
+    type: 'categorical'
+    description?: string
+  }>
+  /** 공변량 (ANCOVA 등) */
+  covariates?: Array<{
+    role: 'covariate'
+    type: 'numeric'
+    description?: string
+  }>
+  /** 추가 변수들 (상관분석 등) */
+  additionalVariables?: Array<{
+    role: string
+    type: 'numeric' | 'categorical'
+    description?: string
+  }>
+}
+
+/**
+ * 분석 템플릿
+ * 데이터 없이 분석 설정만 저장하여 재사용
+ */
+export interface AnalysisTemplate {
+  /** 고유 ID */
+  id: string
+  /** 사용자 지정 이름 */
+  name: string
+  /** 설명 메모 */
+  description: string
+  /** 생성 시간 */
+  createdAt: number
+  /** 수정 시간 */
+  updatedAt: number
+  /** 사용 횟수 (정렬/추천용) */
+  usageCount: number
+  /** 마지막 사용 시간 */
+  lastUsedAt: number | null
+  
+  // === 분석 설정 ===
+  /** 분석 목적 */
+  purpose: string
+  /** 통계 방법 */
+  method: {
+    id: string
+    name: string
+    category: string
+    description?: string
+  }
+  /** 변수 역할 매핑 (변수명 대신 역할) */
+  variableRoles: VariableRoleMapping
+  /** 분석 옵션 (사후검정, 신뢰수준 등) */
+  options?: Record<string, unknown>
+  
+  // === 메타 정보 ===
+  /** 원본 데이터 정보 (참고용) */
+  originalData?: {
+    fileName?: string
+    rowCount?: number
+    columnCount?: number
+  }
+}
+
+/**
+ * 템플릿 목록 필터/정렬 옵션
+ */
+export interface TemplateListOptions {
+  /** 정렬 기준 */
+  sortBy: 'recent' | 'usage' | 'name' | 'created'
+  /** 정렬 방향 */
+  sortOrder: 'asc' | 'desc'
+  /** 카테고리 필터 */
+  categoryFilter?: string
+  /** 검색어 */
+  searchQuery?: string
+}
+
+/**
+ * 템플릿 적용 결과
+ */
+export interface TemplateApplyResult {
+  /** 적용 성공 여부 */
+  success: boolean
+  /** 자동 매칭된 변수 */
+  matchedVariables: Record<string, string>
+  /** 매칭 실패한 역할 */
+  unmatchedRoles: string[]
+  /** 경고 메시지 */
+  warnings: string[]
+}

@@ -13,6 +13,7 @@ import type { GuidedQuestion, AnalysisPurpose } from '@/types/smart-flow'
 export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   {
     id: 'comparison_target',
+    required: true,
     question: '무엇을 비교하려고 하나요?',
     options: [
       { value: 'mean', label: '평균 비교', hint: '그룹 간 평균 차이 검정' },
@@ -23,6 +24,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'group_count',
+    required: true,
     question: '비교할 그룹이 몇 개인가요?',
     options: [
       { value: '1', label: '1개 (모집단 비교)', hint: '예: 표본 평균 vs 기준값' },
@@ -32,6 +34,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'sample_type',
+    required: true,
     question: '표본은 어떤 유형인가요?',
     options: [
       { value: 'independent', label: '독립 표본', hint: '서로 다른 대상을 측정' },
@@ -40,6 +43,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'variable_type',
+    required: true,
     question: '종속변수의 유형은?',
     options: [
       { value: 'continuous', label: '연속형 (수치)', hint: '체중, 길이, 농도 등' },
@@ -50,6 +54,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'normality',
+    required: false,
     question: '데이터가 정규분포를 따르나요?',
     options: [
       { value: 'yes', label: '예 (또는 n>=30)', hint: '모수 검정 가능' },
@@ -60,6 +65,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'homogeneity',
+    required: false,
     question: '그룹 간 분산이 동일한가요?',
     options: [
       { value: 'yes', label: '예 (등분산)', hint: 'Student t-test / 일반 ANOVA' },
@@ -70,6 +76,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'has_covariate',
+    required: false,
     question: '통제할 공변량(covariate)이 있나요?',
     options: [
       { value: 'no', label: '없음', hint: '일반 ANOVA' },
@@ -78,6 +85,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'outcome_count',
+    required: false,
     question: '종속변수가 몇 개인가요?',
     options: [
       { value: '1', label: '1개', hint: '일반 ANOVA' },
@@ -86,6 +94,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'design_type',
+    required: false,
     question: '실험 설계 유형은?',
     options: [
       { value: 'simple', label: '단순 설계', hint: '하나의 독립변수' },
@@ -101,6 +110,7 @@ export const COMPARE_QUESTIONS: GuidedQuestion[] = [
 export const RELATIONSHIP_QUESTIONS: GuidedQuestion[] = [
   {
     id: 'relationship_type',
+    required: true,
     question: '어떤 관계를 알고 싶으신가요?',
     options: [
       { value: 'correlation', label: '상관관계', hint: '두 변수가 함께 변하는지' },
@@ -109,6 +119,7 @@ export const RELATIONSHIP_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'variable_count',
+    required: true,
     question: '분석할 변수가 몇 개인가요?',
     options: [
       { value: '2', label: '2개', hint: '단순 상관/회귀' },
@@ -117,6 +128,7 @@ export const RELATIONSHIP_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'variable_type',
+    required: true,
     question: '변수 유형은 무엇인가요?',
     options: [
       { value: 'numeric', label: '모두 수치형', hint: 'Pearson/회귀' },
@@ -132,6 +144,7 @@ export const RELATIONSHIP_QUESTIONS: GuidedQuestion[] = [
 export const DISTRIBUTION_QUESTIONS: GuidedQuestion[] = [
   {
     id: 'analysis_type',
+    required: true,
     question: '어떤 분석을 원하시나요?',
     options: [
       { value: 'describe', label: '기술통계', hint: '평균, 표준편차, 분위수' },
@@ -143,6 +156,7 @@ export const DISTRIBUTION_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'distribution_goal',
+    required: false,
     question: '구체적인 분석 목표는?',
     options: [
       { value: 'explore', label: '데이터 탐색', hint: '분포 확인' },
@@ -154,6 +168,7 @@ export const DISTRIBUTION_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'variable_type',
+    required: true,
     question: '분석할 변수 유형은?',
     options: [
       { value: 'numeric', label: '수치형', hint: '연속형 데이터' },
@@ -169,6 +184,7 @@ export const DISTRIBUTION_QUESTIONS: GuidedQuestion[] = [
 export const PREDICTION_QUESTIONS: GuidedQuestion[] = [
   {
     id: 'outcome_type',
+    required: true,
     question: '예측하려는 결과는 어떤 유형인가요?',
     options: [
       { value: 'continuous', label: '연속형 (수치)', hint: '선형 회귀' },
@@ -181,6 +197,7 @@ export const PREDICTION_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'predictor_count',
+    required: true,
     question: '예측 변수가 몇 개인가요?',
     options: [
       { value: '1', label: '1개', hint: '단순 회귀' },
@@ -190,6 +207,7 @@ export const PREDICTION_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'variable_selection',
+    required: false,
     question: '변수 선택 방법은?',
     options: [
       { value: 'manual', label: '직접 선택', hint: '모든 변수 포함' },
@@ -198,6 +216,7 @@ export const PREDICTION_QUESTIONS: GuidedQuestion[] = [
   },
   {
     id: 'model_type',
+    required: false,
     question: '특수한 모형 유형이 필요한가요?',
     options: [
       { value: 'standard', label: '표준 회귀', hint: '일반 선형/로지스틱' },

@@ -28,6 +28,9 @@ export const CATEGORIES: CategoryDefinition[] = [
         title: '그룹 간 평균 비교',
         description: '두 개 이상 그룹의 평균 차이를 검정합니다',
         mapsToPurpose: 'compare',
+        presetAnswers: {
+          comparison_target: 'mean',
+        },
         // 추가 질문 필요 (group_count, normality 등)
       },
       {
@@ -36,6 +39,7 @@ export const CATEGORIES: CategoryDefinition[] = [
         description: '같은 대상의 시점 간 변화를 분석합니다',
         mapsToPurpose: 'compare',
         presetAnswers: {
+          comparison_target: 'mean',
           sample_type: 'paired',
           group_count: '2',
         },
@@ -47,6 +51,7 @@ export const CATEGORIES: CategoryDefinition[] = [
         mapsToPurpose: 'compare',
         presetAnswers: {
           comparison_target: 'proportion',
+          variable_type: 'binary',
         },
       },
       {

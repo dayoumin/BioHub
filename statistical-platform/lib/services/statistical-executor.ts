@@ -432,17 +432,32 @@ export class StatisticalExecutor {
     data: any
   ): Promise<AnalysisResult> {
     let group1: number[], group2: number[]
+    let groupNames: string[] = []
 
     // 그룹 데이터 준비
     if (data.arrays.byGroup) {
-      const groups = Object.values(data.arrays.byGroup) as number[][]
+      const byGroup = data.arrays.byGroup as Record<string, number[]>
+      groupNames = Object.keys(byGroup)
+      const groups = Object.values(byGroup) as number[][]
       group1 = groups[0] || []
       group2 = groups[1] || []
     } else if (data.arrays.independent) {
       group1 = data.arrays.dependent || []
       group2 = data.arrays.independent[0] || []
+      groupNames = ['Group 1', 'Group 2']
     } else {
       throw new Error('t-검정을 위한 두 그룹 데이터가 필요합니다')
+    }
+
+    // 데이터 검증 - Python으로 보내기 전에 검증
+    if (group1.length < 2 || group2.length < 2) {
+      const groupInfo = groupNames.length >= 2
+        ? `그룹 "${groupNames[0]}": ${group1.length}개, 그룹 "${groupNames[1]}": ${group2.length}개`
+        : `그룹 1: ${group1.length}개, 그룹 2: ${group2.length}개`
+      throw new Error(
+        `각 그룹에 최소 2개 이상의 관측치가 필요합니다. 현재: ${groupInfo}. ` +
+        '그룹 변수와 종속 변수가 올바르게 선택되었는지 확인하세요.'
+      )
     }
 
     // Pyodide로 t-검정 실행
@@ -512,6 +527,16 @@ export class StatisticalExecutor {
 
     if (groups.length < 2) {
       throw new Error('ANOVA를 위해 최소 2개 그룹이 필요합니다')
+    }
+
+    // 각 그룹에 최소 2개 이상의 관측치 필요
+    const insufficientGroups = groupNames.filter((name, i) => groups[i].length < 2)
+    if (insufficientGroups.length > 0) {
+      const details = groupNames.map((name, i) => `"${name}": ${groups[i].length}개`).join(', ')
+      throw new Error(
+        `각 그룹에 최소 2개 이상의 관측치가 필요합니다. 현재: ${details}. ` +
+        '그룹 변수와 종속 변수가 올바르게 선택되었는지 확인하세요.'
+      )
     }
 
     // Games-Howell 직접 호출 (사후검정만)
@@ -913,20 +938,55 @@ export class StatisticalExecutor {
     let result: any
 
     switch (method.id) {
-      case 'mann-whitney':
-        const groups = Object.values(data.arrays.byGroup || {}) as number[][]
-        result = await pyodideStats.mannWhitneyU(groups[0], groups[1])
+      case 'mann-whitney': {
+        const byGroup = data.arrays.byGroup || {}
+        const mwGroupNames = Object.keys(byGroup)
+        const mwGroups = Object.values(byGroup) as number[][]
+
+        // 데이터 검증
+        if (mwGroups.length < 2) {
+          throw new Error('Mann-Whitney U 검정을 위해 2개 그룹이 필요합니다')
+        }
+        if (mwGroups[0].length < 2 || mwGroups[1].length < 2) {
+          const details = mwGroupNames.length >= 2
+            ? `그룹 "${mwGroupNames[0]}": ${mwGroups[0]?.length || 0}개, 그룹 "${mwGroupNames[1]}": ${mwGroups[1]?.length || 0}개`
+            : `그룹 1: ${mwGroups[0]?.length || 0}개, 그룹 2: ${mwGroups[1]?.length || 0}개`
+          throw new Error(
+            `각 그룹에 최소 2개 이상의 관측치가 필요합니다. 현재: ${details}. ` +
+            '그룹 변수와 종속 변수가 올바르게 선택되었는지 확인하세요.'
+          )
+        }
+
+        result = await pyodideStats.mannWhitneyU(mwGroups[0], mwGroups[1])
         break
+      }
       case 'wilcoxon':
         result = await pyodideStats.wilcoxon(
           data.arrays.dependent,
           data.arrays.independent?.[0]
         )
         break
-      case 'kruskal-wallis':
-        const allGroups = Object.values(data.arrays.byGroup || {}) as number[][]
-        result = await pyodideStats.kruskalWallis(allGroups)
+      case 'kruskal-wallis': {
+        const kwByGroup = data.arrays.byGroup || {}
+        const kwGroupNames = Object.keys(kwByGroup)
+        const kwGroups = Object.values(kwByGroup) as number[][]
+
+        // 데이터 검증
+        if (kwGroups.length < 2) {
+          throw new Error('Kruskal-Wallis 검정을 위해 최소 2개 그룹이 필요합니다')
+        }
+        const insufficientKwGroups = kwGroupNames.filter((_, i) => kwGroups[i].length < 2)
+        if (insufficientKwGroups.length > 0) {
+          const details = kwGroupNames.map((name, i) => `"${name}": ${kwGroups[i].length}개`).join(', ')
+          throw new Error(
+            `각 그룹에 최소 2개 이상의 관측치가 필요합니다. 현재: ${details}. ` +
+            '그룹 변수와 종속 변수가 올바르게 선택되었는지 확인하세요.'
+          )
+        }
+
+        result = await pyodideStats.kruskalWallis(kwGroups)
         break
+      }
       case 'friedman':
         result = await pyodideStats.friedman(data.arrays.independent || [])
         break
@@ -1011,7 +1071,23 @@ export class StatisticalExecutor {
         break
       }
       case 'mood-median': {
-        const moodGroups = Object.values(data.arrays.byGroup || {}) as number[][]
+        const moodByGroup = data.arrays.byGroup || {}
+        const moodGroupNames = Object.keys(moodByGroup)
+        const moodGroups = Object.values(moodByGroup) as number[][]
+
+        // 데이터 검증
+        if (moodGroups.length < 2) {
+          throw new Error('Mood Median 검정을 위해 최소 2개 그룹이 필요합니다')
+        }
+        const insufficientMoodGroups = moodGroupNames.filter((_, i) => moodGroups[i].length < 2)
+        if (insufficientMoodGroups.length > 0) {
+          const details = moodGroupNames.map((name, i) => `"${name}": ${moodGroups[i].length}개`).join(', ')
+          throw new Error(
+            `각 그룹에 최소 2개 이상의 관측치가 필요합니다. 현재: ${details}. ` +
+            '그룹 변수와 종속 변수가 올바르게 선택되었는지 확인하세요.'
+          )
+        }
+
         const moodResult = await pyodideStats.moodMedianTestWorker(moodGroups)
         result = {
           statistic: moodResult.statistic,

@@ -1,6 +1,6 @@
 'use client'
 
-import { Save, FileDown, Copy, RotateCcw } from 'lucide-react'
+import { Save, FileDown, Copy, RotateCcw, FileText, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { AnalysisResult } from '@/types/smart-flow'
@@ -11,6 +11,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import { StatisticalResultCard } from '@/components/statistics/common/StatisticalResultCard'
 import { convertToStatisticalResult } from '@/lib/statistics/result-converter'
 import { AnalysisInfoCard } from '@/components/smart-flow/components/AnalysisInfoCard'
+import { TemplateSaveModal } from '@/components/smart-flow/TemplateSaveModal'
 
 interface ResultsActionStepProps {
   results: AnalysisResult | null
@@ -20,10 +21,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
   const [isSaved, setIsSaved] = useState(false)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+  const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const chartRef = useRef<HTMLDivElement>(null)
   const {
     saveToHistory,
     reset,
+    setCurrentStep,
+    setUploadedData,
+    setUploadedFile,
+    setValidationResults,
+    setresults,
     uploadedData,
     variableMapping,
     uploadedFileName,
@@ -102,6 +109,20 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
         })
       }
     }
+  }
+
+  // 데이터 변경 후 재분석 (설정 유지)
+  const handleReanalyze = () => {
+    // 데이터만 초기화하고 설정은 유지
+    setUploadedData(null)
+    setUploadedFile(null)
+    setValidationResults(null)
+    setresults(null)
+    // Step 1로 이동
+    setCurrentStep(1)
+    toast.info('새 데이터를 업로드하세요', {
+      description: '이전 분석 설정이 유지됩니다'
+    })
   }
 
   const handleNewAnalysis = async () => {
@@ -215,6 +236,16 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
 
       {/* 액션 버튼 */}
       <div className="space-y-3">
+        {/* 템플릿 저장 버튼 */}
+        <Button
+          className="w-full"
+          variant="outline"
+          onClick={() => setTemplateModalOpen(true)}
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          템플릿으로 저장
+        </Button>
+
         <div className="flex gap-3">
           <Button
             className="flex-1"
@@ -264,6 +295,17 @@ export function ResultsActionStep({ results }: ResultsActionStepProps) {
           </Button>
         </div>
       </div>
+
+      {/* 템플릿 저장 모달 */}
+      <TemplateSaveModal
+        open={templateModalOpen}
+        onOpenChange={setTemplateModalOpen}
+        onSaved={() => {
+          toast.success('템플릿이 저장되었습니다', {
+            description: '다음 분석 시 템플릿을 불러올 수 있습니다'
+          })
+        }}
+      />
     </div>
   )
 }

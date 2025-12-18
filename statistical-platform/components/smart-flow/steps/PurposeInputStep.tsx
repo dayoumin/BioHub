@@ -293,8 +293,9 @@ export function PurposeInputStep({
         return null
       }
 
-      if (!assumptionResults) {
-        logger.warn('assumptionResults is null, using basic recommendation')
+      const hasAssumptions = !!assumptionResults && Object.keys(assumptionResults).length > 0
+      if (!hasAssumptions) {
+        logger.warn('assumptionResults is null or empty, using basic recommendation')
         setAiProgress(100)
         return DecisionTreeRecommender.recommendWithoutAssumptions(
           purpose,
@@ -468,7 +469,24 @@ export function PurposeInputStep({
     flowDispatch(flowActions.browseAll())
     // Also set the tab to browse for the existing UI
     setActiveTab('browse')
-  }, [])
+
+    // Entering browse from guided flow should still show an AI recommendation.
+    const purpose = flowState.selectedPurpose
+    if (purpose) {
+      setSelectedPurpose(purpose)
+
+      if (!recommendation && !isAnalyzing) {
+        analyzeAndRecommend(purpose).then((result) => {
+          if (result) {
+            setRecommendation(result)
+            setAnalysisError(false)
+          } else {
+            setAnalysisError(true)
+          }
+        })
+      }
+    }
+  }, [flowState.selectedPurpose, analyzeAndRecommend, isAnalyzing, recommendation])
 
   const handleGuidedBack = useCallback(() => {
     flowDispatch(flowActions.goBack())

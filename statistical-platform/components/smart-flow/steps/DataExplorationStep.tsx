@@ -29,6 +29,10 @@ import { StepNavigation } from '@/components/smart-flow/StepNavigation'
 import { CorrelationHeatmap } from '@/components/smart-flow/steps/validation/charts/CorrelationHeatmap'
 import { OutlierDetailPanel, OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
+import { TemplateSelector } from '@/components/smart-flow/TemplateSelector'
+import { TemplateManagePanel } from '@/components/smart-flow/TemplateManagePanel'
+import { useTemplateStore } from '@/lib/stores/template-store'
+import type { AnalysisTemplate } from '@/types/smart-flow'
 
 interface DataExplorationStepProps {
   validationResults: ValidationResults | null
@@ -37,6 +41,8 @@ interface DataExplorationStepProps {
   onPrevious: () => void
   onUploadComplete?: (file: File, data: DataRow[]) => void
   existingFileName?: string
+  /** 템플릿 선택 시 콜백 */
+  onTemplateSelect?: (template: AnalysisTemplate) => void
 }
 
 interface ScatterplotConfig {
@@ -86,13 +92,28 @@ export const DataExplorationStep = memo(function DataExplorationStep({
   onNext,
   onPrevious: _onPrevious, // Reserved for future use
   onUploadComplete,
-  existingFileName
+  existingFileName,
+  onTemplateSelect
 }: DataExplorationStepProps) {
   void _onPrevious // Suppress unused warning
   // Pyodide 및 Store
   const { isLoaded: pyodideLoaded, service: pyodideService } = usePyodide()
   const { uploadedFile, uploadedFileName } = useSmartFlowStore()
   // Note: setAssumptionResults는 useEffect에서 getState()로 직접 접근 (의존성 루프 방지)
+
+  // 템플릿 관련 상태
+  const { recentTemplates, loadTemplates: loadTemplatesFromDB } = useTemplateStore()
+  const [templatePanelOpen, setTemplatePanelOpen] = useState(false)
+
+  // 템플릿 목록 로드
+  useEffect(() => {
+    loadTemplatesFromDB()
+  }, [loadTemplatesFromDB])
+
+  // 템플릿 선택 핸들러
+  const handleTemplateSelect = useCallback((template: AnalysisTemplate) => {
+    onTemplateSelect?.(template)
+  }, [onTemplateSelect])
 
   // 새 창으로 데이터 보기
   const handleOpenDataInNewWindow = useCallback(() => {
@@ -799,6 +820,27 @@ export const DataExplorationStep = memo(function DataExplorationStep({
             </div>
           </CardContent>
         </Card>
+
+        {/* 템플릿 선택 영역 (저장된 템플릿이 있을 때만 표시) */}
+        {recentTemplates.length > 0 && (
+          <Card>
+            <CardContent className="py-4">
+              <TemplateSelector
+                compact
+                maxItems={3}
+                onSelect={handleTemplateSelect}
+                onViewAll={() => setTemplatePanelOpen(true)}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* 템플릿 관리 패널 */}
+        <TemplateManagePanel
+          open={templatePanelOpen}
+          onOpenChange={setTemplatePanelOpen}
+          onSelect={handleTemplateSelect}
+        />
 
         {/* 지원 기능 안내 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

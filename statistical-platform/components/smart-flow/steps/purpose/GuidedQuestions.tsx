@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, List, LayoutGrid, MessageSquare } from 'lucide-react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ArrowLeft, ChevronDown, List, LayoutGrid, MessageSquare } from 'lucide-react'
 import { QuestionCard } from './QuestionCard'
 import { QuestionFlow } from './QuestionFlow'
 import { getQuestionsForPurpose } from './guided-flow-questions'
@@ -19,6 +20,9 @@ import type {
 
 // UI mode
 type UIMode = 'conversational' | 'classic'
+
+const ASSUMPTION_QUESTION_IDS = ['normality', 'homogeneity'] as const
+type AssumptionQuestionId = typeof ASSUMPTION_QUESTION_IDS[number]
 
 // Purpose display names
 const PURPOSE_NAMES: Record<AnalysisPurpose, string> = {
@@ -35,11 +39,16 @@ const PURPOSE_NAMES: Record<AnalysisPurpose, string> = {
 // Conditional question logic
 const CONDITIONAL_QUESTIONS: Record<string, (answers: Record<string, string>) => boolean> = {
   // sample_type: skip if comparing to population (group_count = 1)
-  'sample_type': (answers) => answers.group_count !== '1',
+  'sample_type': (answers) => !!answers.group_count && answers.group_count !== '1',
 
   // normality/homogeneity: skip for proportion comparison
-  'normality': (answers) => answers.comparison_target !== 'proportion',
-  'homogeneity': (answers) => answers.comparison_target !== 'proportion' && answers.group_count !== '1',
+  'normality': (answers) => !!answers.comparison_target && answers.comparison_target !== 'proportion',
+  'homogeneity': (answers) => (
+    !!answers.comparison_target &&
+    answers.comparison_target !== 'proportion' &&
+    !!answers.group_count &&
+    answers.group_count !== '1'
+  ),
 
   // has_covariate: only for 3+ groups
   'has_covariate': (answers) => answers.group_count === '3+',
@@ -87,6 +96,8 @@ export function GuidedQuestions({
 }: GuidedQuestionsProps) {
   const questions = getQuestionsForPurpose(purpose)
   const [uiMode, setUIMode] = useState<UIMode>('conversational')
+  const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({})
+  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   // Check if question should be shown
   const shouldShowQuestion = useCallback((questionId: string, currentAnswers: Record<string, string>) => {
@@ -95,11 +106,61 @@ export function GuidedQuestions({
     return condition(currentAnswers)
   }, [])
 
-  // Filter visible questions
-  const visibleQuestions = questions.filter(q => shouldShowQuestion(q.id, answers))
+  const autoAnswerContext = useMemo(() => ({
+    validationResults,
+    assumptionResults
+  }), [validationResults, assumptionResults])
 
-  // Check if all visible questions are answered
-  const allAnswered = visibleQuestions.every(q => q.id in answers)
+  const assumptionAutoAnswers = useMemo(() => {
+    const result: Partial<Record<AssumptionQuestionId, AutoAnswerResult>> = {}
+    for (const id of ASSUMPTION_QUESTION_IDS) {
+      const auto = getAutoAnswer(id, autoAnswerContext)
+      if (auto) result[id] = auto
+    }
+    return result
+  }, [autoAnswerContext])
+
+  const shouldReplaceAssumptionQuestionWithBadge = useCallback((
+    questionId: string,
+    currentAnswers: Record<string, string>
+  ) => {
+    if (!ASSUMPTION_QUESTION_IDS.includes(questionId as AssumptionQuestionId)) return false
+    if (!shouldShowQuestion(questionId, currentAnswers)) return false
+    if (openOverrides[questionId]) return false
+
+    const auto = assumptionAutoAnswers[questionId as AssumptionQuestionId]
+    if (!auto || auto.source !== 'assumptionResults' || auto.confidence === 'unknown') return false
+
+    const currentValue = currentAnswers[questionId]
+    if (currentValue !== undefined && currentValue !== auto.value) return false // manual override
+
+    return true
+  }, [assumptionAutoAnswers, openOverrides, shouldShowQuestion])
+
+  const requiredQuestions = useMemo(
+    () => questions.filter(q => q.required !== false),
+    [questions]
+  )
+
+  const optionalQuestions = useMemo(
+    () => questions.filter(q => q.required === false),
+    [questions]
+  )
+
+  const questionNumberById = useMemo(() => {
+    const map: Record<string, number> = {}
+    questions.forEach((q, idx) => {
+      map[q.id] = idx + 1
+    })
+    return map
+  }, [questions])
+
+  const visibleRequiredQuestions = useMemo(
+    () => requiredQuestions.filter(q => shouldShowQuestion(q.id, answers)),
+    [requiredQuestions, shouldShowQuestion, answers]
+  )
+
+  const allRequiredAnswered = visibleRequiredQuestions.every(q => q.id in answers)
 
   // Auto-answer generation (on mount)
   useEffect(() => {
@@ -114,22 +175,120 @@ export function GuidedQuestions({
 
           // Auto-fill: high confidence 또는 medium confidence (requiresConfirmation 포함)
           // requiresConfirmation이 true여도 초기 값을 설정하여 UI 진행이 가능하도록 함
-          if (result.confidence === 'high' || result.confidence === 'medium') {
+          if ((result.confidence === 'high' || result.confidence === 'medium') && !(q.id in answers)) {
             onAnswerQuestion(q.id, result.value)
           }
         }
       }
     })
-  }, [questions, autoAnswers, validationResults, assumptionResults, onSetAutoAnswer, onAnswerQuestion])
+  }, [questions, autoAnswers, validationResults, assumptionResults, answers, onSetAutoAnswer, onAnswerQuestion])
+
+  useEffect(() => {
+    for (const id of ASSUMPTION_QUESTION_IDS) {
+      const auto = assumptionAutoAnswers[id]
+      if (!auto || auto.source !== 'assumptionResults' || auto.confidence === 'unknown') continue
+
+      if (shouldReplaceAssumptionQuestionWithBadge(id, answers) && !(id in answers)) {
+        onAnswerQuestion(id, auto.value)
+      }
+    }
+  }, [answers, assumptionAutoAnswers, onAnswerQuestion, shouldReplaceAssumptionQuestionWithBadge])
 
   const handleComplete = useCallback(() => {
-    if (allAnswered) {
+    if (allRequiredAnswered) {
       onComplete()
     }
-  }, [allAnswered, onComplete])
+  }, [allRequiredAnswered, onComplete])
+
+  const renderAssumptionBadges = useCallback(() => {
+    const items = ASSUMPTION_QUESTION_IDS
+      .filter((id) => shouldShowQuestion(id, answers))
+      .map((id) => {
+        const auto = assumptionAutoAnswers[id]
+        if (!auto || auto.source !== 'assumptionResults' || auto.confidence === 'unknown') return null
+
+        const isOverridden = answers[id] !== undefined && answers[id] !== auto.value
+        const title = id === 'normality' ? '정규성' : '등분산성'
+        const statusText =
+          auto.value === 'yes' ? '충족' : auto.value === 'no' ? '위반' : '확인 필요'
+
+        return (
+          <div key={id} className="flex items-start justify-between gap-3 p-3 rounded-lg border bg-background">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'shrink-0',
+                    statusText === '충족' && 'border-emerald-500/30 text-emerald-700 bg-emerald-500/10',
+                    statusText === '위반' && 'border-rose-500/30 text-rose-700 bg-rose-500/10',
+                    statusText === '확인 필요' && 'border-amber-500/30 text-amber-700 bg-amber-500/10'
+                  )}
+                >
+                  {title}: {statusText}
+                </Badge>
+                {isOverridden && (
+                  <Badge variant="secondary" className="shrink-0">
+                    수동 설정
+                  </Badge>
+                )}
+              </div>
+              {auto.evidence && (
+                <p className="text-xs text-muted-foreground mt-1 break-words">
+                  {auto.evidence}
+                </p>
+              )}
+            </div>
+
+            <div className="shrink-0 flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setOpenOverrides(prev => ({ ...prev, [id]: true }))
+                  setAdvancedOpen(true)
+                  setUIMode('classic')
+                }}
+              >
+                수정하기
+              </Button>
+
+              {openOverrides[id] && !isOverridden && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    onAnswerQuestion(id, auto.value)
+                    setOpenOverrides(prev => ({ ...prev, [id]: false }))
+                  }}
+                >
+                  자동 적용
+                </Button>
+              )}
+            </div>
+          </div>
+        )
+      })
+      .filter(Boolean)
+
+    if (items.length === 0) return null
+
+    return (
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-foreground">가정 검정 결과</div>
+        <div className="space-y-2">{items}</div>
+      </div>
+    )
+  }, [answers, assumptionAutoAnswers, onAnswerQuestion, openOverrides, shouldShowQuestion])
 
   // Conversational mode (Typeform style)
   if (uiMode === 'conversational') {
+    const shouldShowQuestionInConversation = (questionId: string, currentAnswers: Record<string, string>) => {
+      if (!shouldShowQuestion(questionId, currentAnswers)) return false
+      if (shouldReplaceAssumptionQuestionWithBadge(questionId, currentAnswers)) return false
+      return true
+    }
+
     return (
       <div className="space-y-4">
         {/* Header with mode toggle */}
@@ -164,14 +323,15 @@ export function GuidedQuestions({
         {/* Question Flow */}
         <Card className="border-0 shadow-none bg-transparent">
           <CardContent className="p-0">
+            {renderAssumptionBadges()}
             <QuestionFlow
-              questions={questions}
+              questions={requiredQuestions}
               answers={answers}
               autoAnswers={autoAnswers}
               onAnswerQuestion={onAnswerQuestion}
               onComplete={onComplete}
               onBack={onBack}
-              shouldShowQuestion={shouldShowQuestion}
+              shouldShowQuestion={shouldShowQuestionInConversation}
             />
           </CardContent>
         </Card>
@@ -223,27 +383,97 @@ export function GuidedQuestions({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {questions.map((question, index) => {
+          {renderAssumptionBadges()}
+
+          {requiredQuestions.map((question) => {
             const isVisible = shouldShowQuestion(question.id, answers)
+            const isReplacedByBadge = shouldReplaceAssumptionQuestionWithBadge(question.id, answers)
+            const isAssumptionQuestion = ASSUMPTION_QUESTION_IDS.includes(question.id as AssumptionQuestionId)
 
             return (
               <div
                 key={question.id}
                 className={cn(
                   'transition-all duration-300',
-                  !isVisible && 'hidden'
+                  (!isVisible || isReplacedByBadge) && 'hidden'
                 )}
               >
                 <QuestionCard
                   question={question}
-                  questionNumber={index + 1}
+                  questionNumber={questionNumberById[question.id] ?? 0}
                   selectedValue={answers[question.id] ?? null}
                   onSelect={(value) => onAnswerQuestion(question.id, value)}
                   autoAnswer={autoAnswers[question.id]}
                 />
+
+                {isAssumptionQuestion && openOverrides[question.id] && (
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setOpenOverrides(prev => ({ ...prev, [question.id]: false }))}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      닫기
+                    </Button>
+                  </div>
+                )}
               </div>
             )
           })}
+
+          {optionalQuestions.length > 0 && (
+            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-foreground">고급 옵션</div>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    {advancedOpen ? '숨기기' : '펴기'}
+                    <ChevronDown className={cn('h-4 w-4 transition-transform', advancedOpen && 'rotate-180')} />
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+
+              <CollapsibleContent className="mt-4 space-y-6">
+                {optionalQuestions.map((question) => {
+                  const isVisible = shouldShowQuestion(question.id, answers)
+                  const isReplacedByBadge = shouldReplaceAssumptionQuestionWithBadge(question.id, answers)
+                  const isAssumptionQuestion = ASSUMPTION_QUESTION_IDS.includes(question.id as AssumptionQuestionId)
+
+                  return (
+                    <div
+                      key={question.id}
+                      className={cn(
+                        'transition-all duration-300',
+                        (!isVisible || isReplacedByBadge) && 'hidden'
+                      )}
+                    >
+                      <QuestionCard
+                        question={question}
+                        questionNumber={questionNumberById[question.id] ?? 0}
+                        selectedValue={answers[question.id] ?? null}
+                        onSelect={(value) => onAnswerQuestion(question.id, value)}
+                        autoAnswer={autoAnswers[question.id]}
+                      />
+
+                      {isAssumptionQuestion && openOverrides[question.id] && (
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setOpenOverrides(prev => ({ ...prev, [question.id]: false }))}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            닫기
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </CardContent>
       </Card>
 
@@ -261,7 +491,7 @@ export function GuidedQuestions({
 
         <Button
           onClick={handleComplete}
-          disabled={!allAnswered}
+          disabled={!allRequiredAnswered}
           className="gap-1.5"
         >
           다음
