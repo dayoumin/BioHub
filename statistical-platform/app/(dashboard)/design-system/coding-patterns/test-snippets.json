@@ -115,6 +115,17 @@
             "validation",
             "TypeScript"
           ]
+        },
+        {
+          "name": "그룹 수 검증 테스트",
+          "purpose": "통계 분석 실행 전 그룹 수 및 관측치 수 검증",
+          "code": "import { StatisticalExecutor } from '@/lib/services/statistical-executor'\n\njest.mock('@/lib/services/pyodide-statistics', () => ({\n  pyodideStats: {\n    tTest: jest.fn(),\n    mannWhitneyU: jest.fn(),\n  }\n}))\n\ndescribe('StatisticalExecutor group validation', () => {\n  let executor: StatisticalExecutor\n\n  beforeEach(() => {\n    executor = new StatisticalExecutor()\n    jest.clearAllMocks()\n  })\n\n  it('t-test: rejects when group count is not exactly 2', async () => {\n    const method = { id: 'welch-t', name: 'Welch t', category: 't-test' } as any\n    const preparedData = {\n      arrays: {\n        byGroup: { A: [1, 2], B: [3, 4], C: [5, 6] }\n      }\n    } as any\n\n    await expect((executor as any).executeTTest(method, preparedData))\n      .rejects.toThrow(/정확히 2개 그룹/)\n  })\n\n  it('t-test: rejects when any group has <2 observations', async () => {\n    const preparedData = {\n      arrays: {\n        byGroup: { 'A': [1], 'B': [1, 2, 3] }\n      }\n    } as any\n\n    await expect((executor as any).executeTTest(method, preparedData))\n      .rejects.toThrow(/각 그룹에 최소 2개 이상/)\n  })\n})",
+          "keywords": [
+            "group validation",
+            "그룹 검증",
+            "observation count",
+            "StatisticalExecutor"
+          ]
         }
       ]
     },

@@ -438,13 +438,20 @@ export class StatisticalExecutor {
     if (data.arrays.byGroup) {
       const byGroup = data.arrays.byGroup as Record<string, number[]>
       groupNames = Object.keys(byGroup)
+      if (groupNames.length !== 2) {
+        const groupsLabel = groupNames.length > 0 ? groupNames.map(name => `"${name}"`).join(', ') : '(없음)'
+        throw new Error(
+          `t-검정을 위해 정확히 2개 그룹이 필요합니다. 현재: ${groupNames.length}개 (${groupsLabel}). ` +
+          '그룹 변수 선택이 올바른지 확인하세요.'
+        )
+      }
       const groups = Object.values(byGroup) as number[][]
       group1 = groups[0] || []
       group2 = groups[1] || []
     } else if (data.arrays.independent) {
       group1 = data.arrays.dependent || []
       group2 = data.arrays.independent[0] || []
-      groupNames = ['Group 1', 'Group 2']
+      groupNames = ['그룹 1', '그룹 2']
     } else {
       throw new Error('t-검정을 위한 두 그룹 데이터가 필요합니다')
     }
@@ -944,8 +951,12 @@ export class StatisticalExecutor {
         const mwGroups = Object.values(byGroup) as number[][]
 
         // 데이터 검증
-        if (mwGroups.length < 2) {
-          throw new Error('Mann-Whitney U 검정을 위해 2개 그룹이 필요합니다')
+        if (mwGroups.length !== 2) {
+          const groupsLabel = mwGroupNames.length > 0 ? mwGroupNames.map(name => `"${name}"`).join(', ') : '(없음)'
+          throw new Error(
+            `Mann-Whitney U 검정을 위해 정확히 2개 그룹이 필요합니다. 현재: ${mwGroups.length}개 (${groupsLabel}). ` +
+            '그룹 변수 선택이 올바른지 확인하세요.'
+          )
         }
         if (mwGroups[0].length < 2 || mwGroups[1].length < 2) {
           const details = mwGroupNames.length >= 2
