@@ -98,6 +98,21 @@
         "returns": ["statistic", "pValue", "sampleMean", "sampleStd", "n"],
         "description": "일표본 t-검정"
       },
+      "t_test_one_sample_summary": {
+        "params": ["mean", "std", "n", "popmean?", "alpha?"],
+        "returns": ["statistic", "pValue", "df", "meanDiff", "ciLower", "ciUpper", "cohensD", "n", "mean", "std", "reject"],
+        "description": "일표본 t-검정 (요약통계)"
+      },
+      "t_test_two_sample_summary": {
+        "params": ["mean1", "std1", "n1", "mean2", "std2", "n2", "equalVar?", "alpha?"],
+        "returns": ["statistic", "pValue", "df", "meanDiff", "ciLower", "ciUpper", "cohensD", "mean1", "mean2", "std1", "std2", "n1", "n2", "reject"],
+        "description": "독립표본 t-검정 (요약통계)"
+      },
+      "t_test_paired_summary": {
+        "params": ["meanDiff", "stdDiff", "nPairs", "alpha?"],
+        "returns": ["statistic", "pValue", "df", "meanDiff", "ciLower", "ciUpper", "cohensD", "nPairs", "stdDiff", "reject"],
+        "description": "대응표본 t-검정 (요약통계)"
+      },
       "z_test": {
         "params": ["data", "popmean", "popstd"],
         "returns": ["statistic", "pValue", "sampleMean", "n"],

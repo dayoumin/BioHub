@@ -5,6 +5,7 @@
 # - Cold start time: ~0.8s
 
 from typing import List, Dict, Union, Literal, Optional, Any
+import math
 import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
@@ -540,3 +541,540 @@ def means_plot_data(data, dependentVar, factorVar):
         'plotData': plot_data,
         'interpretation': interpretation
     }
+
+
+# =============================================================================
+# Effect Size Conversion Functions
+# =============================================================================
+# References:
+# - Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences
+# - Borenstein, M. et al. (2009). Introduction to Meta-Analysis
+# - Rosenthal, R. (1994). Parametric measures of effect size
+
+def _safe_float(value: Union[float, np.floating, None]) -> Optional[float]:
+    """Convert numpy float to Python float, handling None and special values."""
+    if value is None:
+        return None
+    try:
+        result = float(value)
+        if np.isnan(result) or np.isinf(result):
+            return None
+        return result
+    except (TypeError, ValueError):
+        return None
+
+
+def _hedges_correction_j(df: int) -> float:
+    """
+    Small-sample bias correction factor for standardized mean differences (Hedges' g).
+
+    Exact: J(df) = Γ(df/2) / (sqrt(df/2) * Γ((df-1)/2))
+    Approx: J(df) ≈ 1 - 3/(4df - 1)
+
+    References:
+    - Hedges, L. V., & Olkin, I. (1985). Statistical Methods for Meta-Analysis.
+    """
+    if df <= 1:
+        raise ValueError("df must be > 1 for Hedges' correction")
+
+    half_df = df / 2.0
+    log_j = math.lgamma(half_df) - (0.5 * math.log(half_df) + math.lgamma((df - 1) / 2.0))
+    return float(math.exp(log_j))
+
+
+def _interpret_cohens_d(d: float) -> str:
+    """Interpret Cohen's d effect size (Cohen, 1988)."""
+    abs_d = abs(d)
+    if abs_d < 0.2:
+        return "negligible"
+    elif abs_d < 0.5:
+        return "small"
+    elif abs_d < 0.8:
+        return "medium"
+    else:
+        return "large"
+
+
+def _interpret_r(r: float) -> str:
+    """Interpret correlation coefficient as effect size (Cohen, 1988)."""
+    abs_r = abs(r)
+    if abs_r < 0.1:
+        return "negligible"
+    elif abs_r < 0.3:
+        return "small"
+    elif abs_r < 0.5:
+        return "medium"
+    else:
+        return "large"
+
+
+def _interpret_eta_squared(eta2: float) -> str:
+    """Interpret eta-squared effect size (Cohen, 1988)."""
+    if eta2 < 0.01:
+        return "negligible"
+    elif eta2 < 0.06:
+        return "small"
+    elif eta2 < 0.14:
+        return "medium"
+    else:
+        return "large"
+
+
+def _interpret_odds_ratio(or_val: float) -> str:
+    """Interpret odds ratio (Chen et al., 2010)."""
+    if or_val < 1:
+        or_val = 1 / or_val  # Normalize to >= 1
+    if or_val < 1.5:
+        return "negligible"
+    elif or_val < 2.5:
+        return "small"
+    elif or_val < 4.3:
+        return "medium"
+    else:
+        return "large"
+
+
+def effect_size_from_t(
+    tValue: float,
+    df: float,
+    n1: Optional[int] = None,
+    n2: Optional[int] = None
+) -> Dict[str, Union[float, str, None]]:
+    """
+    Calculate Cohen's d from t-statistic.
+
+    For independent samples: d = t * sqrt(1/n1 + 1/n2)
+    For one-sample/paired: d = t / sqrt(df + 1)
+
+    References:
+    - Lakens, D. (2013). Calculating and reporting effect sizes.
+    - Rosenthal, R. (1994). Parametric measures of effect size.
+    """
+    if df <= 0:
+        raise ValueError("df must be positive")
+
+    if n1 is not None and n2 is not None:
+        if n1 <= 0 or n2 <= 0:
+            raise ValueError("n1 and n2 must be positive")
+        # Independent samples t-test
+        # d = t * sqrt(1/n1 + 1/n2)
+        cohens_d = tValue * np.sqrt(1/n1 + 1/n2)
+        n_total = n1 + n2
+    else:
+        # One-sample or paired t-test
+        # d = t / sqrt(n) where n = df + 1
+        n = df + 1
+        if n <= 1:
+            raise ValueError("df implies invalid sample size for one-sample/paired t")
+        cohens_d = tValue / np.sqrt(n)
+        n_total = n
+
+    # Convert t to r (correlation equivalent): r = t / sqrt(t^2 + df)
+    r = tValue / np.sqrt(tValue**2 + df)
+
+    # Convert to eta-squared: eta^2 = t^2 / (t^2 + df)
+    eta_squared = tValue**2 / (tValue**2 + df)
+
+    return {
+        'cohensD': _safe_float(cohens_d),
+        'r': _safe_float(r),
+        'etaSquared': _safe_float(eta_squared),
+        'dInterpretation': _interpret_cohens_d(cohens_d),
+        'rInterpretation': _interpret_r(r),
+        'inputType': 't-statistic',
+        'formula': 'd = t × sqrt(1/n1 + 1/n2)' if n1 is not None and n2 is not None else 'd = t / sqrt(n)'
+    }
+
+
+def effect_size_from_f(
+    fValue: float,
+    dfBetween: int,
+    dfWithin: int
+) -> Dict[str, Union[float, str, None]]:
+    """
+    Calculate effect sizes from F-statistic (ANOVA).
+
+    eta^2 = (df_between * F) / (df_between * F + df_within)
+    omega^2 = (df_between * (F - 1)) / (df_between * F + df_within + 1)
+    f = sqrt(eta^2 / (1 - eta^2))
+
+    References:
+    - Lakens, D. (2013). Calculating and reporting effect sizes.
+    """
+    # Eta-squared
+    eta_squared = (dfBetween * fValue) / (dfBetween * fValue + dfWithin)
+
+    # Omega-squared (less biased)
+    omega_squared = (dfBetween * (fValue - 1)) / (dfBetween * fValue + dfWithin + 1)
+    omega_squared = max(0, omega_squared)  # Can't be negative
+
+    # Cohen's f
+    if eta_squared < 1:
+        cohens_f = np.sqrt(eta_squared / (1 - eta_squared))
+    else:
+        cohens_f = float('inf')
+
+    # Approximate Cohen's d (for 2 groups only, using f)
+    cohens_d = 2 * cohens_f if dfBetween == 1 else None
+
+    return {
+        'etaSquared': _safe_float(eta_squared),
+        'omegaSquared': _safe_float(omega_squared),
+        'cohensF': _safe_float(cohens_f),
+        'cohensD': _safe_float(cohens_d) if cohens_d else None,
+        'etaInterpretation': _interpret_eta_squared(eta_squared),
+        'inputType': 'F-statistic',
+        'formula': 'η² = (df_b × F) / (df_b × F + df_w)'
+    }
+
+
+def effect_size_from_chi_square(
+    chiSquare: float,
+    n: int,
+    df: Optional[int] = None,
+    rows: Optional[int] = None,
+    cols: Optional[int] = None
+) -> Dict[str, Union[float, str, None]]:
+    """
+    Calculate effect sizes from chi-square statistic.
+
+    phi = sqrt(chi^2 / n)  (for 2x2 tables)
+    Cramer's V = sqrt(chi^2 / (n * min(r-1, c-1)))
+    w = sqrt(chi^2 / n)  (Cohen's w)
+
+    References:
+    - Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences.
+    """
+    if chiSquare < 0:
+        raise ValueError("Chi-square statistic must be non-negative")
+    if n <= 0:
+        raise ValueError("n must be positive")
+
+    min_dim_minus_1: Optional[int] = None
+    if rows is not None and cols is not None:
+        if rows < 2 or cols < 2:
+            raise ValueError("rows and cols must be >= 2")
+        min_dim_minus_1 = min(rows - 1, cols - 1)
+    elif df is not None:
+        # NOTE: `df` here represents min(r-1, c-1), not the chi-square test df (which is (r-1)(c-1)).
+        if df <= 0:
+            raise ValueError("df must be positive")
+        min_dim_minus_1 = df
+
+    if min_dim_minus_1 is None:
+        raise ValueError("Provide either df (= min(r-1, c-1)) or both rows and cols")
+
+    # Phi coefficient (same as w for df=1)
+    phi = np.sqrt(chiSquare / n)
+
+    # Cohen's w (same as phi)
+    cohens_w = phi
+
+    # Cramer's V
+    cramers_v = np.sqrt(chiSquare / (n * min_dim_minus_1)) if min_dim_minus_1 > 0 else None
+
+    # Chi-square alone does not determine the sign, so we do not report r here.
+    r = None
+
+    # Interpret Cohen's w
+    if cohens_w < 0.1:
+        w_interpretation = "negligible"
+    elif cohens_w < 0.3:
+        w_interpretation = "small"
+    elif cohens_w < 0.5:
+        w_interpretation = "medium"
+    else:
+        w_interpretation = "large"
+
+    return {
+        'phi': _safe_float(phi),
+        'cramersV': _safe_float(cramers_v) if cramers_v is not None else None,
+        'cohensW': _safe_float(cohens_w),
+        'r': _safe_float(r) if r is not None else None,
+        'wInterpretation': w_interpretation,
+        'inputType': 'chi-square',
+        'formula': 'phi = sqrt(chi^2 / n); V = sqrt(chi^2 / (n * min(r-1, c-1)))'
+    }
+
+
+def effect_size_from_r(
+    r: float,
+    n: Optional[int] = None
+) -> Dict[str, Union[float, str, None]]:
+    """
+    Convert correlation coefficient to other effect sizes.
+
+    d = 2r / sqrt(1 - r^2)
+    r^2 = coefficient of determination
+
+    References:
+    - Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences.
+    """
+    if abs(r) >= 1:
+        raise ValueError("Correlation coefficient must be between -1 and 1 (exclusive)")
+
+    # Cohen's d from r
+    cohens_d = (2 * r) / np.sqrt(1 - r**2)
+
+    # R-squared (coefficient of determination)
+    r_squared = r**2
+
+    # Fisher's z transformation (useful for meta-analysis)
+    fishers_z = 0.5 * np.log((1 + r) / (1 - r))
+
+    # Standard error of Fisher's z (if n provided)
+    se_z = 1 / np.sqrt(n - 3) if n and n > 3 else None
+
+    return {
+        'r': _safe_float(r),
+        'cohensD': _safe_float(cohens_d),
+        'rSquared': _safe_float(r_squared),
+        'fishersZ': _safe_float(fishers_z),
+        'seZ': _safe_float(se_z) if se_z is not None else None,
+        'rInterpretation': _interpret_r(r),
+        'dInterpretation': _interpret_cohens_d(cohens_d),
+        'inputType': 'correlation',
+        'formula': 'd = 2r / sqrt(1 - r^2)'
+    }
+
+
+def effect_size_from_d(
+    d: float,
+    n1: Optional[int] = None,
+    n2: Optional[int] = None
+) -> Dict[str, Union[float, str, None]]:
+    """
+    Convert Cohen's d to other effect sizes.
+
+    r = d / sqrt(d^2 + 4)  (approximate, assumes equal n)
+    r = d / sqrt(d^2 + (n1+n2)^2/(n1*n2))  (exact)
+    eta^2 ≈ d^2 / (d^2 + 4)  (for equal groups)
+
+    References:
+    - Borenstein, M. et al. (2009). Introduction to Meta-Analysis.
+    """
+    # Convert to r
+    if n1 and n2:
+        # Exact formula
+        a = (n1 + n2)**2 / (n1 * n2)
+        r = d / np.sqrt(d**2 + a)
+    else:
+        # Approximate formula (assumes equal n)
+        r = d / np.sqrt(d**2 + 4)
+
+    # Eta-squared (approximate)
+    eta_squared = d**2 / (d**2 + 4)
+
+    # Hedges' g correction (if sample sizes provided)
+    if n1 and n2:
+        df = n1 + n2 - 2
+        j = 1 - (3 / (4 * df - 1))  # Correction factor
+        hedges_g = d * j
+    else:
+        hedges_g = None
+
+    # Odds ratio (approximate): OR = exp(d * pi / sqrt(3))
+    odds_ratio = np.exp(d * np.pi / np.sqrt(3))
+
+    return {
+        'cohensD': _safe_float(d),
+        'r': _safe_float(r),
+        'etaSquared': _safe_float(eta_squared),
+        'hedgesG': _safe_float(hedges_g) if hedges_g else None,
+        'oddsRatio': _safe_float(odds_ratio),
+        'dInterpretation': _interpret_cohens_d(d),
+        'rInterpretation': _interpret_r(r),
+        'inputType': "Cohen's d",
+        'formula': 'r = d / √(d² + 4)'
+    }
+
+
+def effect_size_from_odds_ratio(
+    oddsRatio: float,
+    ciLower: Optional[float] = None,
+    ciUpper: Optional[float] = None
+) -> Dict[str, Union[float, str, None]]:
+    """
+    Convert odds ratio to other effect sizes.
+
+    log(OR) = d * pi / sqrt(3)
+    d = log(OR) * sqrt(3) / pi
+
+    References:
+    - Chinn, S. (2000). A simple method for converting odds ratio to effect size.
+    - Borenstein, M. et al. (2009). Introduction to Meta-Analysis.
+    """
+    if oddsRatio <= 0:
+        raise ValueError("Odds ratio must be positive")
+
+    # Cohen's d from OR
+    # d = ln(OR) * sqrt(3) / pi
+    log_or = np.log(oddsRatio)
+    cohens_d = log_or * np.sqrt(3) / np.pi
+
+    # Convert d to r
+    r = cohens_d / np.sqrt(cohens_d**2 + 4)
+
+    # Risk ratio approximation (only valid under certain conditions)
+    # RR ≈ OR when outcome is rare
+
+    # CI for Cohen's d (if OR CI provided)
+    d_ci_lower = None
+    d_ci_upper = None
+    if ciLower and ciLower > 0:
+        d_ci_lower = np.log(ciLower) * np.sqrt(3) / np.pi
+    if ciUpper and ciUpper > 0:
+        d_ci_upper = np.log(ciUpper) * np.sqrt(3) / np.pi
+
+    return {
+        'oddsRatio': _safe_float(oddsRatio),
+        'logOddsRatio': _safe_float(log_or),
+        'cohensD': _safe_float(cohens_d),
+        'r': _safe_float(r),
+        'dCiLower': _safe_float(d_ci_lower) if d_ci_lower else None,
+        'dCiUpper': _safe_float(d_ci_upper) if d_ci_upper else None,
+        'orInterpretation': _interpret_odds_ratio(oddsRatio),
+        'dInterpretation': _interpret_cohens_d(cohens_d),
+        'inputType': 'odds ratio',
+        'formula': 'd = ln(OR) × √3 / π'
+    }
+
+
+def effect_size_from_means(
+    mean1: float,
+    std1: float,
+    n1: int,
+    mean2: float,
+    std2: float,
+    n2: int,
+    pooled: bool = True
+) -> Dict[str, Union[float, str, None]]:
+    """
+    Calculate Cohen's d from group means and standard deviations.
+
+    Pooled SD: s_p = sqrt(((n1-1)*s1^2 + (n2-1)*s2^2) / (n1+n2-2))
+    Cohen's d = (M1 - M2) / s_p
+
+    References:
+    - Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences.
+    """
+    mean_diff = mean1 - mean2
+
+    if pooled:
+        # Pooled standard deviation
+        pooled_var = ((n1 - 1) * std1**2 + (n2 - 1) * std2**2) / (n1 + n2 - 2)
+        pooled_std = np.sqrt(pooled_var)
+        cohens_d = mean_diff / pooled_std if pooled_std > 0 else 0
+    else:
+        # Use control group SD (Glass's delta)
+        cohens_d = mean_diff / std2 if std2 > 0 else 0
+
+    # Hedges' g (bias-corrected d)
+    df = n1 + n2 - 2
+    j = 1 - (3 / (4 * df - 1))
+    hedges_g = cohens_d * j
+
+    # Standard error of d
+    se_d = np.sqrt((n1 + n2) / (n1 * n2) + cohens_d**2 / (2 * (n1 + n2)))
+
+    # 95% CI for d
+    z_crit = 1.96
+    d_ci_lower = cohens_d - z_crit * se_d
+    d_ci_upper = cohens_d + z_crit * se_d
+
+    # Convert to r
+    a = (n1 + n2)**2 / (n1 * n2)
+    r = cohens_d / np.sqrt(cohens_d**2 + a)
+
+    return {
+        'cohensD': _safe_float(cohens_d),
+        'hedgesG': _safe_float(hedges_g),
+        'seD': _safe_float(se_d),
+        'dCiLower': _safe_float(d_ci_lower),
+        'dCiUpper': _safe_float(d_ci_upper),
+        'r': _safe_float(r),
+        'meanDiff': _safe_float(mean_diff),
+        'pooledStd': _safe_float(pooled_std) if pooled else None,
+        'dInterpretation': _interpret_cohens_d(cohens_d),
+        'inputType': 'means and SDs',
+        'formula': 'd = (M₁ - M₂) / s_pooled'
+    }
+
+
+def convert_effect_sizes(
+    inputType: str,
+    value: float,
+    **kwargs
+) -> Dict[str, Union[float, str, None, Dict]]:
+    """
+    Universal effect size converter.
+
+    Parameters:
+    - inputType: 't', 'f', 'chi-square', 'r', 'd', 'odds-ratio', 'means'
+    - value: The primary value to convert
+    - **kwargs: Additional parameters depending on inputType
+
+    Returns all equivalent effect sizes with interpretations.
+    """
+    result: Dict[str, Union[float, str, None, Dict]] = {}
+
+    if inputType == 't':
+        df = kwargs.get('df')
+        n1 = kwargs.get('n1')
+        n2 = kwargs.get('n2')
+        if df is None:
+            raise ValueError("df is required for t-statistic conversion")
+        result = effect_size_from_t(value, df, n1, n2)
+
+    elif inputType == 'f':
+        dfBetween = kwargs.get('dfBetween')
+        dfWithin = kwargs.get('dfWithin')
+        if dfBetween is None or dfWithin is None:
+            raise ValueError("dfBetween and dfWithin are required for F-statistic conversion")
+        result = effect_size_from_f(value, dfBetween, dfWithin)
+
+    elif inputType == 'chi-square':
+        n = kwargs.get('n')
+        df = kwargs.get('df')
+        if n is None or df is None:
+            raise ValueError("n and df are required for chi-square conversion")
+        result = effect_size_from_chi_square(value, n, df)
+
+    elif inputType == 'r':
+        n = kwargs.get('n')
+        result = effect_size_from_r(value, n)
+
+    elif inputType == 'd':
+        n1 = kwargs.get('n1')
+        n2 = kwargs.get('n2')
+        result = effect_size_from_d(value, n1, n2)
+
+    elif inputType == 'odds-ratio':
+        ciLower = kwargs.get('ciLower')
+        ciUpper = kwargs.get('ciUpper')
+        result = effect_size_from_odds_ratio(value, ciLower, ciUpper)
+
+    elif inputType == 'means':
+        mean1 = value
+        std1 = kwargs.get('std1')
+        n1 = kwargs.get('n1')
+        mean2 = kwargs.get('mean2')
+        std2 = kwargs.get('std2')
+        n2 = kwargs.get('n2')
+        pooled = kwargs.get('pooled', True)
+        if any(v is None for v in [std1, n1, mean2, std2, n2]):
+            raise ValueError("std1, n1, mean2, std2, n2 are required for means conversion")
+        result = effect_size_from_means(mean1, std1, n1, mean2, std2, n2, pooled)
+
+    else:
+        raise ValueError(f"Unknown inputType: {inputType}. Valid types: t, f, chi-square, r, d, odds-ratio, means")
+
+    # Add interpretation guide
+    result['interpretationGuide'] = {
+        'cohensD': {'small': 0.2, 'medium': 0.5, 'large': 0.8},
+        'r': {'small': 0.1, 'medium': 0.3, 'large': 0.5},
+        'etaSquared': {'small': 0.01, 'medium': 0.06, 'large': 0.14},
+        'oddsRatio': {'small': 1.5, 'medium': 2.5, 'large': 4.3}
+    }
+
+    return result

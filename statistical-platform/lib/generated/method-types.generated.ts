@@ -2,7 +2,7 @@
  * Auto-generated from methods-registry.json
  * DO NOT EDIT MANUALLY
  *
- * Generated: 2025-12-17T11:41:20.237Z
+ * Generated: 2025-12-17T22:58:41.226Z
  */
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -300,6 +300,50 @@ export interface TTestOneSampleResult {
   n: number
 }
 
+export interface TTestOneSampleSummaryResult {
+  statistic: number
+  pValue: number
+  df: number
+  meanDiff: number
+  ciLower: unknown
+  ciUpper: unknown
+  cohensD: number
+  n: number
+  mean: number
+  std: number
+  reject: boolean
+}
+
+export interface TTestTwoSampleSummaryResult {
+  statistic: number
+  pValue: number
+  df: number
+  meanDiff: number
+  ciLower: unknown
+  ciUpper: unknown
+  cohensD: number
+  mean1: number
+  mean2: number
+  std1: number
+  std2: number
+  n1: number
+  n2: number
+  reject: boolean
+}
+
+export interface TTestPairedSummaryResult {
+  statistic: number
+  pValue: number
+  df: number
+  meanDiff: number
+  ciLower: unknown
+  ciUpper: unknown
+  cohensD: number
+  nPairs: number
+  stdDiff: unknown
+  reject: boolean
+}
+
 export interface ZTestResult {
   statistic: number
   pValue: number
@@ -404,6 +448,30 @@ export async function tTestPaired(values1: number[], values2: number[]): Promise
  */
 export async function tTestOneSample(data: number[] | number[][], popmean?: number): Promise<TTestOneSampleResult> {
   return callWorkerMethod<TTestOneSampleResult>(2, 't_test_one_sample', { data, popmean })
+}
+
+/**
+ * 일표본 t-검정 (요약통계)
+ * @worker Worker 2
+ */
+export async function tTestOneSampleSummary(mean: number, std: number, n: number, popmean?: number, alpha?: number): Promise<TTestOneSampleSummaryResult> {
+  return callWorkerMethod<TTestOneSampleSummaryResult>(2, 't_test_one_sample_summary', { mean, std, n, popmean, alpha })
+}
+
+/**
+ * 독립표본 t-검정 (요약통계)
+ * @worker Worker 2
+ */
+export async function tTestTwoSampleSummary(mean1: number, std1: number, n1: number, mean2: number, std2: number, n2: number, equalVar?: boolean, alpha?: number): Promise<TTestTwoSampleSummaryResult> {
+  return callWorkerMethod<TTestTwoSampleSummaryResult>(2, 't_test_two_sample_summary', { mean1, std1, n1, mean2, std2, n2, equalVar, alpha })
+}
+
+/**
+ * 대응표본 t-검정 (요약통계)
+ * @worker Worker 2
+ */
+export async function tTestPairedSummary(meanDiff: number, stdDiff: number, nPairs: number, alpha?: number): Promise<TTestPairedSummaryResult> {
+  return callWorkerMethod<TTestPairedSummaryResult>(2, 't_test_paired_summary', { meanDiff, stdDiff, nPairs, alpha })
 }
 
 /**
@@ -1069,7 +1137,7 @@ export async function coxRegression(times: number[], events: number[], covariate
 // ========================================
 
 export type Worker1Method = 'descriptive_stats' | 'normality_test' | 'outlier_detection' | 'frequency_analysis' | 'crosstab_analysis' | 'one_sample_proportion_test' | 'cronbach_alpha' | 'kolmogorov_smirnov_test' | 'ks_test_one_sample' | 'ks_test_two_sample' | 'mann_kendall_test' | 'bonferroni_correction' | 'means_plot_data'
-export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_sample' | 'z_test' | 'chi_square_test' | 'binomial_test' | 'correlation_test' | 'partial_correlation' | 'levene_test' | 'bartlett_test' | 'chi_square_goodness_test' | 'chi_square_independence_test' | 'fisher_exact_test' | 'power_analysis'
+export type Worker2Method = 't_test_two_sample' | 't_test_paired' | 't_test_one_sample' | 't_test_one_sample_summary' | 't_test_two_sample_summary' | 't_test_paired_summary' | 'z_test' | 'chi_square_test' | 'binomial_test' | 'correlation_test' | 'partial_correlation' | 'levene_test' | 'bartlett_test' | 'chi_square_goodness_test' | 'chi_square_independence_test' | 'fisher_exact_test' | 'power_analysis'
 export type Worker3Method = 'mann_whitney_test' | 'wilcoxon_test' | 'kruskal_wallis_test' | 'friedman_test' | 'one_way_anova' | 'two_way_anova' | 'tukey_hsd' | 'sign_test' | 'runs_test' | 'mcnemar_test' | 'cochran_q_test' | 'mood_median_test' | 'repeated_measures_anova' | 'ancova' | 'manova' | 'scheffe_test' | 'dunn_test' | 'games_howell_test'
 export type Worker4Method = 'linear_regression' | 'multiple_regression' | 'logistic_regression' | 'pca_analysis' | 'curve_estimation' | 'nonlinear_regression' | 'stepwise_regression' | 'binary_logistic' | 'multinomial_logistic' | 'ordinal_logistic' | 'probit_regression' | 'poisson_regression' | 'negative_binomial_regression' | 'factor_analysis' | 'cluster_analysis' | 'time_series_analysis' | 'durbin_watson_test' | 'discriminant_analysis' | 'kaplan_meier_survival' | 'cox_regression'
 

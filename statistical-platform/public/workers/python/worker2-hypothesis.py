@@ -107,6 +107,192 @@ def t_test_one_sample(
     }
 
 
+def t_test_one_sample_summary(
+    mean: float,
+    std: float,
+    n: int,
+    popmean: float = 0.0,
+    alpha: float = 0.05
+) -> Dict[str, Union[float, int, bool, None]]:
+    if n < 2:
+        raise ValueError("One-sample t-test requires at least 2 observations")
+    if std < 0:
+        raise ValueError("Standard deviation must be non-negative")
+    if alpha <= 0 or alpha >= 1:
+        raise ValueError("alpha must be between 0 and 1")
+
+    df = int(n - 1)
+    se = float(std) / math.sqrt(n) if n > 0 else 0.0
+    mean_diff = float(mean) - float(popmean)
+
+    if se == 0.0:
+        t_stat = 0.0
+        p_value = 1.0
+        ci_lower = mean_diff
+        ci_upper = mean_diff
+    else:
+        t_stat = mean_diff / se
+        p_value = float(2 * (1 - stats.t.cdf(abs(t_stat), df)))
+        t_crit = float(stats.t.ppf(1 - alpha / 2, df))
+        margin = t_crit * se
+        ci_lower = mean_diff - margin
+        ci_upper = mean_diff + margin
+
+    cohens_d = 0.0 if std == 0 else mean_diff / float(std)
+
+    return {
+        'statistic': _safe_float(t_stat),
+        'pValue': _safe_float(p_value),
+        'df': int(df),
+        'meanDiff': _safe_float(mean_diff),
+        'ciLower': _safe_float(ci_lower),
+        'ciUpper': _safe_float(ci_upper),
+        'cohensD': _safe_float(cohens_d),
+        'n': int(n),
+        'mean': _safe_float(float(mean)),
+        'std': _safe_float(float(std)),
+        'reject': _safe_bool(p_value < alpha)
+    }
+
+
+def t_test_two_sample_summary(
+    mean1: float,
+    std1: float,
+    n1: int,
+    mean2: float,
+    std2: float,
+    n2: int,
+    equalVar: bool = True,
+    alpha: float = 0.05
+) -> Dict[str, Union[float, int, bool, None]]:
+    if n1 < 2 or n2 < 2:
+        raise ValueError("Each group must have at least 2 observations")
+    if std1 < 0 or std2 < 0:
+        raise ValueError("Standard deviation must be non-negative")
+    if alpha <= 0 or alpha >= 1:
+        raise ValueError("alpha must be between 0 and 1")
+
+    mean_diff = float(mean1) - float(mean2)
+
+    if equalVar:
+        df = int(n1 + n2 - 2)
+        if df <= 0:
+            raise ValueError("Invalid degrees of freedom")
+
+        var1 = float(std1) ** 2
+        var2 = float(std2) ** 2
+        pooled_var = (((n1 - 1) * var1) + ((n2 - 1) * var2)) / df
+        pooled_std = math.sqrt(pooled_var) if pooled_var > 0 else 0.0
+        se = pooled_std * math.sqrt(1 / n1 + 1 / n2) if pooled_std > 0 else 0.0
+
+        if se == 0.0:
+            t_stat = 0.0
+            p_value = 1.0
+            ci_lower = mean_diff
+            ci_upper = mean_diff
+        else:
+            t_stat = mean_diff / se
+            p_value = float(2 * (1 - stats.t.cdf(abs(t_stat), df)))
+            t_crit = float(stats.t.ppf(1 - alpha / 2, df))
+            margin = t_crit * se
+            ci_lower = mean_diff - margin
+            ci_upper = mean_diff + margin
+
+        cohens_d = 0.0 if pooled_std == 0.0 else mean_diff / pooled_std
+        df_out: Union[int, float] = int(df)
+    else:
+        se_sq = (float(std1) ** 2) / n1 + (float(std2) ** 2) / n2
+        se = math.sqrt(se_sq) if se_sq > 0 else 0.0
+
+        # Welch–Satterthwaite df
+        num = se_sq ** 2
+        den = 0.0
+        if n1 > 1:
+            den += ((float(std1) ** 2) / n1) ** 2 / (n1 - 1)
+        if n2 > 1:
+            den += ((float(std2) ** 2) / n2) ** 2 / (n2 - 1)
+        df_welch = float(num / den) if den > 0 else float(n1 + n2 - 2)
+
+        if se == 0.0:
+            t_stat = 0.0
+            p_value = 1.0
+            ci_lower = mean_diff
+            ci_upper = mean_diff
+        else:
+            t_stat = mean_diff / se
+            p_value = float(2 * (1 - stats.t.cdf(abs(t_stat), df_welch)))
+            t_crit = float(stats.t.ppf(1 - alpha / 2, df_welch))
+            margin = t_crit * se
+            ci_lower = mean_diff - margin
+            ci_upper = mean_diff + margin
+
+        denom = math.sqrt(((float(std1) ** 2) + (float(std2) ** 2)) / 2) if (std1 > 0 or std2 > 0) else 0.0
+        cohens_d = 0.0 if denom == 0.0 else mean_diff / denom
+        df_out = float(df_welch)
+
+    return {
+        'statistic': _safe_float(t_stat),
+        'pValue': _safe_float(p_value),
+        'df': _safe_float(float(df_out)),
+        'meanDiff': _safe_float(mean_diff),
+        'ciLower': _safe_float(ci_lower),
+        'ciUpper': _safe_float(ci_upper),
+        'cohensD': _safe_float(cohens_d),
+        'mean1': _safe_float(float(mean1)),
+        'mean2': _safe_float(float(mean2)),
+        'std1': _safe_float(float(std1)),
+        'std2': _safe_float(float(std2)),
+        'n1': int(n1),
+        'n2': int(n2),
+        'reject': _safe_bool(p_value < alpha)
+    }
+
+
+def t_test_paired_summary(
+    meanDiff: float,
+    stdDiff: float,
+    nPairs: int,
+    alpha: float = 0.05
+) -> Dict[str, Union[float, int, bool, None]]:
+    if nPairs < 2:
+        raise ValueError("Paired test requires at least 2 valid pairs")
+    if stdDiff < 0:
+        raise ValueError("Standard deviation must be non-negative")
+    if alpha <= 0 or alpha >= 1:
+        raise ValueError("alpha must be between 0 and 1")
+
+    df = int(nPairs - 1)
+    se = float(stdDiff) / math.sqrt(nPairs) if nPairs > 0 else 0.0
+
+    if se == 0.0:
+        t_stat = 0.0
+        p_value = 1.0
+        ci_lower = float(meanDiff)
+        ci_upper = float(meanDiff)
+    else:
+        t_stat = float(meanDiff) / se
+        p_value = float(2 * (1 - stats.t.cdf(abs(t_stat), df)))
+        t_crit = float(stats.t.ppf(1 - alpha / 2, df))
+        margin = t_crit * se
+        ci_lower = float(meanDiff) - margin
+        ci_upper = float(meanDiff) + margin
+
+    cohens_d = 0.0 if stdDiff == 0 else float(meanDiff) / float(stdDiff)
+
+    return {
+        'statistic': _safe_float(t_stat),
+        'pValue': _safe_float(p_value),
+        'df': int(df),
+        'meanDiff': _safe_float(float(meanDiff)),
+        'ciLower': _safe_float(ci_lower),
+        'ciUpper': _safe_float(ci_upper),
+        'cohensD': _safe_float(cohens_d),
+        'nPairs': int(nPairs),
+        'stdDiff': _safe_float(float(stdDiff)),
+        'reject': _safe_bool(p_value < alpha)
+    }
+
+
 def z_test(
     data: List[Union[float, int, None]],
     popmean: float,

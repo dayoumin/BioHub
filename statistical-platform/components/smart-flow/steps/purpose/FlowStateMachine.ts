@@ -1,20 +1,27 @@
 /**
  * Guided Flow 상태 머신
  * useReducer와 함께 사용
+ *
+ * 2025 UI/UX 현대화:
+ * - 4개 대분류 → 중분류 → 세부 질문 → 결과
+ * - category → subcategory → questions → result
  */
 
 import type {
   GuidedFlowState,
   GuidedFlowAction,
-  StatisticalMethod
+  StatisticalMethod,
+  AnalysisCategory
 } from '@/types/smart-flow'
 import { decide } from './DecisionTree'
 
 /**
- * 초기 상태
+ * 초기 상태 (category부터 시작)
  */
 export const initialFlowState: GuidedFlowState = {
-  step: 'purpose',
+  step: 'category',
+  selectedCategory: null,
+  selectedSubcategory: null,
   selectedPurpose: null,
   answers: {},
   autoAnswers: {},
@@ -30,6 +37,35 @@ export function flowReducer(
   action: GuidedFlowAction
 ): GuidedFlowState {
   switch (action.type) {
+    // NEW: 대분류 선택
+    case 'SELECT_CATEGORY':
+      return {
+        ...state,
+        step: 'subcategory',
+        selectedCategory: action.category,
+        selectedSubcategory: null,
+        selectedPurpose: null,
+        answers: {},
+        autoAnswers: {},
+        result: null,
+        previousStep: 'category'
+      }
+
+    // NEW: 중분류 선택
+    case 'SELECT_SUBCATEGORY':
+      return {
+        ...state,
+        step: 'questions',
+        selectedSubcategory: action.subcategoryId,
+        selectedPurpose: action.mapsToPurpose,
+        // presetAnswers가 있으면 미리 설정
+        answers: action.presetAnswers || {},
+        autoAnswers: {},
+        result: null,
+        previousStep: 'subcategory'
+      }
+
+    // LEGACY: 직접 목적 선택 (호환성 유지)
     case 'SELECT_PURPOSE':
       return {
         ...state,
@@ -38,7 +74,7 @@ export function flowReducer(
         answers: {},
         autoAnswers: {},
         result: null,
-        previousStep: 'purpose'
+        previousStep: state.step // 이전 단계 유지
       }
 
     case 'ANSWER_QUESTION':
@@ -92,17 +128,38 @@ export function flowReducer(
         return state
       }
 
+      // category로 돌아갈 때는 모든 상태 초기화
+      if (state.previousStep === 'category') {
+        return {
+          ...initialFlowState
+        }
+      }
+
+      // subcategory로 돌아갈 때는 중분류 선택 초기화
+      if (state.previousStep === 'subcategory') {
+        return {
+          ...state,
+          step: 'subcategory',
+          selectedSubcategory: null,
+          selectedPurpose: null,
+          answers: {},
+          autoAnswers: {},
+          result: null,
+          previousStep: 'category'
+        }
+      }
+
       // questions로 돌아갈 때는 answers 유지
       if (state.previousStep === 'questions') {
         return {
           ...state,
           step: 'questions',
           result: null,
-          previousStep: 'purpose'
+          previousStep: 'subcategory'
         }
       }
 
-      // purpose로 돌아갈 때는 모든 상태 초기화
+      // purpose로 돌아갈 때 (legacy)
       if (state.previousStep === 'purpose') {
         return {
           ...state,
@@ -111,7 +168,7 @@ export function flowReducer(
           answers: {},
           autoAnswers: {},
           result: null,
-          previousStep: null
+          previousStep: 'category'
         }
       }
 
@@ -166,6 +223,10 @@ export function canProceed(
   requiredQuestionIds: string[]
 ): boolean {
   switch (state.step) {
+    case 'category':
+      return state.selectedCategory !== null
+    case 'subcategory':
+      return state.selectedSubcategory !== null
     case 'purpose':
       return state.selectedPurpose !== null
     case 'questions':
@@ -183,6 +244,25 @@ export function canProceed(
  * 액션 생성자들
  */
 export const flowActions = {
+  // NEW: 대분류 선택
+  selectCategory: (category: AnalysisCategory): GuidedFlowAction => ({
+    type: 'SELECT_CATEGORY',
+    category
+  }),
+
+  // NEW: 중분류 선택
+  selectSubcategory: (
+    subcategoryId: string,
+    mapsToPurpose: GuidedFlowState['selectedPurpose'],
+    presetAnswers?: Record<string, string>
+  ): GuidedFlowAction => ({
+    type: 'SELECT_SUBCATEGORY',
+    subcategoryId,
+    mapsToPurpose: mapsToPurpose!,
+    presetAnswers
+  }),
+
+  // LEGACY: 직접 목적 선택
   selectPurpose: (purpose: GuidedFlowState['selectedPurpose']): GuidedFlowAction => ({
     type: 'SELECT_PURPOSE',
     purpose: purpose!

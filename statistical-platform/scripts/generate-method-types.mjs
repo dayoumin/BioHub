@@ -89,13 +89,35 @@ function paramToType(param) {
     type = 'number[] | null'
   }
   // 숫자 스칼라
-  else if (name === 'alpha' || name === 'probability' || name === 'popmean' || name === 'popstd') {
+  else if (
+    name === 'alpha' ||
+    name === 'probability' ||
+    name === 'popmean' ||
+    name === 'popstd' ||
+    name === 'mean' ||
+    name === 'std' ||
+    name === 'mean1' ||
+    name === 'mean2' ||
+    name === 'std1' ||
+    name === 'std2' ||
+    name === 'meanDiff' ||
+    name === 'stdDiff'
+  ) {
     type = 'number'
   }
   else if (name === 'nComponents' || name === 'nFactors' || name === 'numClusters' || name === 'nClusters') {
     type = 'number'
   }
-  else if (name === 'successCount' || name === 'totalCount' || name === 'xIdx' || name === 'yIdx') {
+  else if (
+    name === 'successCount' ||
+    name === 'totalCount' ||
+    name === 'xIdx' ||
+    name === 'yIdx' ||
+    name === 'n' ||
+    name === 'n1' ||
+    name === 'n2' ||
+    name === 'nPairs'
+  ) {
     type = 'number'
   }
   else if (name === 'entryThreshold' || name === 'stayThreshold' || name === 'nullProportion') {

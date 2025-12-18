@@ -531,10 +531,48 @@ export interface SmartFlowState {
  * Guided Flow 단계
  */
 export type GuidedFlowStep =
-  | 'purpose'      // 목적 선택
+  | 'category'     // 대분류 선택 (NEW)
+  | 'subcategory'  // 중분류 선택 (NEW)
+  | 'purpose'      // 목적 선택 (legacy, 호환성 유지)
   | 'questions'    // 조건 질문
   | 'result'       // 추천 결과
   | 'browse'       // 직접 선택 (전체 목록)
+
+/**
+ * 분석 대분류 (4개)
+ */
+export type AnalysisCategory =
+  | 'compare'      // 차이/비교 분석
+  | 'relationship' // 관계 분석
+  | 'prediction'   // 예측 분석
+  | 'advanced'     // 고급 분석
+
+/**
+ * 중분류 정의
+ */
+export interface SubcategoryDefinition {
+  id: string
+  title: string
+  description: string
+  icon?: string
+  /** 매핑되는 기존 AnalysisPurpose */
+  mapsToPurpose: AnalysisPurpose
+  /** 자동 설정되는 답변 (preset) */
+  presetAnswers?: Record<string, string>
+  /** 바로 결과로 가는지, 추가 질문이 필요한지 */
+  skipQuestions?: boolean
+}
+
+/**
+ * 대분류 정의
+ */
+export interface CategoryDefinition {
+  id: AnalysisCategory
+  title: string
+  description: string
+  icon: string
+  subcategories: SubcategoryDefinition[]
+}
 
 /**
  * 질문 옵션
@@ -593,6 +631,11 @@ export interface DecisionResult {
  */
 export interface GuidedFlowState {
   step: GuidedFlowStep
+  /** 선택된 대분류 (NEW) */
+  selectedCategory: AnalysisCategory | null
+  /** 선택된 중분류 ID (NEW) */
+  selectedSubcategory: string | null
+  /** 선택된 목적 (기존, 중분류에서 자동 매핑) */
   selectedPurpose: AnalysisPurpose | null
   answers: Record<string, string>
   autoAnswers: Record<string, AutoAnswerResult>
@@ -604,6 +647,8 @@ export interface GuidedFlowState {
  * Guided Flow 액션
  */
 export type GuidedFlowAction =
+  | { type: 'SELECT_CATEGORY'; category: AnalysisCategory }
+  | { type: 'SELECT_SUBCATEGORY'; subcategoryId: string; mapsToPurpose: AnalysisPurpose; presetAnswers?: Record<string, string> }
   | { type: 'SELECT_PURPOSE'; purpose: AnalysisPurpose }
   | { type: 'ANSWER_QUESTION'; questionId: string; value: string }
   | { type: 'SET_AUTO_ANSWER'; questionId: string; result: AutoAnswerResult }

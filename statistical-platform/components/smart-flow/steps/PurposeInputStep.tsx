@@ -1,30 +1,22 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect, useReducer } from 'react'
-import { Check, TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, AlertTriangle, AlertCircle, List, Sparkles, Layers, Calculator } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import { TrendingUp, GitCompare, PieChart, LineChart, Clock, Heart, ArrowRight, List, Layers, Calculator } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { cn } from '@/lib/utils'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { AIAnalysisProgress } from '@/components/common/analysis/AIAnalysisProgress'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { PurposeInputStepProps } from '@/types/smart-flow-navigation'
-import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult } from '@/types/smart-flow'
+import type { AnalysisPurpose, AIRecommendation, ColumnStatistics, StatisticalMethod, AutoAnswerResult, AnalysisCategory, SubcategoryDefinition } from '@/types/smart-flow'
 import { logger } from '@/lib/utils/logger'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 import { ollamaRecommender } from '@/lib/services/ollama-recommender'
-import { FitScoreIndicator } from '@/components/smart-flow/visualization/FitScoreIndicator'
 import { MethodBrowser } from './purpose/MethodBrowser'
 import { getMethodsGroupedByCategory, getAllMethodsGrouped } from '@/lib/statistics/method-catalog'
 import type { MethodGroup } from '@/lib/statistics/method-catalog'
@@ -33,6 +25,10 @@ import type { MethodGroup } from '@/lib/statistics/method-catalog'
 import { GuidedQuestions } from './purpose/GuidedQuestions'
 import { RecommendationResult } from './purpose/RecommendationResult'
 import { flowReducer, initialFlowState, flowActions } from './purpose/FlowStateMachine'
+
+// NEW: Progressive Questions imports (2025 UI/UX)
+import { CategorySelector } from './purpose/CategorySelector'
+import { SubcategorySelector } from './purpose/SubcategorySelector'
 
 /**
  * Phase 5: PurposeInputStep with Method Browser
@@ -437,7 +433,20 @@ export function PurposeInputStep({
     }
   }, [finalSelectedMethod, selectedPurpose, isNavigating, isAnalyzing, recommendation, setSelectedMethod, setDetectedVariables, onPurposeSubmit, validationResults])
 
-  // NEW: Guided Flow handlers
+  // NEW: Progressive Questions handlers (2025 UI/UX)
+  const handleCategorySelect = useCallback((category: AnalysisCategory) => {
+    flowDispatch(flowActions.selectCategory(category))
+  }, [])
+
+  const handleSubcategorySelect = useCallback((subcategory: SubcategoryDefinition) => {
+    flowDispatch(flowActions.selectSubcategory(
+      subcategory.id,
+      subcategory.mapsToPurpose,
+      subcategory.presetAnswers
+    ))
+  }, [])
+
+  // LEGACY: Guided Flow handlers (kept for compatibility)
   const handleGuidedPurposeSelect = useCallback((purpose: AnalysisPurpose) => {
     flowDispatch(flowActions.selectPurpose(purpose))
   }, [])
@@ -504,36 +513,112 @@ export function PurposeInputStep({
 
   return (
     <div className="w-full h-full flex flex-col space-y-6">
+      <AnimatePresence mode="wait">
+        {/* NEW: Category Selection (2025 UI/UX) */}
+        {flowState.step === 'category' && (
+          <CategorySelector
+            key="category"
+            onSelect={handleCategorySelect}
+            disabled={isAnalyzing}
+          />
+        )}
 
-      {/* NEW: Guided Flow - Questions step */}
-      {flowState.step === 'questions' && flowState.selectedPurpose && (
-        <GuidedQuestions
-          purpose={flowState.selectedPurpose}
-          answers={flowState.answers}
-          autoAnswers={flowState.autoAnswers}
-          onAnswerQuestion={handleAnswerQuestion}
-          onSetAutoAnswer={handleSetAutoAnswer}
-          onComplete={handleGuidedComplete}
-          onBrowseAll={handleBrowseAll}
-          onBack={handleGuidedBack}
-          validationResults={validationResults}
-          assumptionResults={assumptionResults}
-        />
-      )}
+        {/* NEW: Subcategory Selection (2025 UI/UX) */}
+        {flowState.step === 'subcategory' && flowState.selectedCategory && (
+          <SubcategorySelector
+            key="subcategory"
+            categoryId={flowState.selectedCategory}
+            onSelect={handleSubcategorySelect}
+            onBack={handleGuidedBack}
+            onBrowseAll={handleBrowseAll}
+            disabled={isAnalyzing}
+          />
+        )}
 
-      {/* NEW: Guided Flow - Result step */}
-      {flowState.step === 'result' && flowState.result && (
-        <RecommendationResult
-          result={flowState.result}
-          onConfirm={handleGuidedConfirm}
-          onBrowseAll={handleBrowseAll}
-          onBack={handleGuidedBack}
-          onSelectAlternative={handleSelectAlternative}
-        />
-      )}
+        {/* Guided Flow - Questions step */}
+        {flowState.step === 'questions' && flowState.selectedPurpose && (
+          <GuidedQuestions
+            key="questions"
+            purpose={flowState.selectedPurpose}
+            answers={flowState.answers}
+            autoAnswers={flowState.autoAnswers}
+            onAnswerQuestion={handleAnswerQuestion}
+            onSetAutoAnswer={handleSetAutoAnswer}
+            onComplete={handleGuidedComplete}
+            onBrowseAll={handleBrowseAll}
+            onBack={handleGuidedBack}
+            validationResults={validationResults}
+            assumptionResults={assumptionResults}
+          />
+        )}
 
-      {/* Purpose Selection - Only show when in 'purpose' or 'browse' step */}
-      {(flowState.step === 'purpose' || flowState.step === 'browse') && (
+        {/* Guided Flow - Result step */}
+        {flowState.step === 'result' && flowState.result && (
+          <RecommendationResult
+            key="result"
+            result={flowState.result}
+            onConfirm={handleGuidedConfirm}
+            onBrowseAll={handleBrowseAll}
+            onBack={handleGuidedBack}
+            onSelectAlternative={handleSelectAlternative}
+          />
+        )}
+
+        {/* Browse All - Direct method selection */}
+        {flowState.step === 'browse' && (
+          <div key="browse">
+            {/* Header with back button */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGuidedBack}
+                  className="gap-1"
+                >
+                  <ArrowRight className="w-4 h-4 rotate-180" />
+                  뒤로
+                </Button>
+                <h3 className="text-lg font-semibold">
+                  전체 분석 방법
+                </h3>
+              </div>
+              {/* Action Button */}
+              {finalSelectedMethod && selectedPurpose && !isAnalyzing && (
+                <div data-testid="selected-method-bar" className="flex items-center gap-3">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">선택:</span>
+                    <span data-testid="final-selected-method-name" className="ml-1 font-semibold">{finalSelectedMethod.name}</span>
+                    {manualSelectedMethod && (
+                      <Badge variant="outline" className="ml-2 text-xs">직접 선택</Badge>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleConfirmMethod}
+                    disabled={isNavigating}
+                    className="gap-2"
+                  >
+                    이 방법으로 분석하기
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Method Browser */}
+            <MethodBrowser
+              methodGroups={browseMethodGroups}
+              selectedMethod={manualSelectedMethod}
+              recommendedMethodId={recommendation?.method?.id}
+              onMethodSelect={handleManualMethodSelect}
+              dataProfile={dataProfile}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* LEGACY: Purpose Selection - Only show when in 'purpose' step (for backward compatibility) */}
+      {flowState.step === 'purpose' && (
       <>
       {/* Header with Action Button (상단 배치) */}
       <div className="flex items-center justify-between">
@@ -541,7 +626,7 @@ export function PurposeInputStep({
           어떤 분석을 하고 싶으신가요?
         </h3>
         {/* Action Button - browse step에서 상단에 표시 */}
-        {flowState.step === 'browse' && finalSelectedMethod && selectedPurpose && !isAnalyzing && (
+        {finalSelectedMethod && selectedPurpose && !isAnalyzing && (
           <div data-testid="selected-method-bar" className="flex items-center gap-3">
             <div className="text-sm">
               <span className="text-muted-foreground">선택:</span>
@@ -607,177 +692,6 @@ export function PurposeInputStep({
           progress={aiProgress}
           title="데이터 분석 중..."
         />
-      )}
-
-      {/* Method Selection Area - Only shows in 'browse' step (legacy mode) */}
-      {flowState.step === 'browse' && selectedPurpose && !isAnalyzing && (
-        <Card className="border-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <List className="w-5 h-5" />
-              분석 방법 선택
-            </CardTitle>
-            <CardDescription>
-              AI 추천을 사용하거나 직접 원하는 방법을 선택하세요
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ContentTabs
-              tabs={[
-                { id: 'recommended', label: 'AI 추천', icon: Sparkles },
-                { id: 'browse', label: '전체 방법 보기', icon: List }
-              ]}
-              activeTab={activeTab}
-              onTabChange={(v) => setActiveTab(v as 'recommended' | 'browse')}
-              className="mb-4"
-            />
-
-            {/* AI Recommended Tab */}
-            <ContentTabsContent tabId="recommended" show={activeTab === 'recommended'}>
-                {recommendation ? (
-                  <div className="space-y-4">
-                    {/* Recommendation Card - 점진적 공개 패턴 적용 */}
-                    <div
-                      data-testid="recommendation-card"
-                      className={cn(
-                        "rounded-lg border-2 overflow-hidden",
-                        !manualSelectedMethod ? "border-primary bg-gradient-to-br from-primary/5 to-primary/10" : "border-border"
-                      )}
-                    >
-                      {/* 메인 카드 - 항상 표시 (간단 버전) */}
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap mb-2">
-                              <Sparkles className="w-5 h-5 text-amber-500" />
-                              <span data-testid="recommended-method-name" className="font-semibold text-lg">{recommendation.method.name}</span>
-                              <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                                {recommendation.confidence >= 0.95 ? 'LLM 추천' : 'AI 추천'}
-                              </Badge>
-                              {!manualSelectedMethod && (
-                                <Badge variant="default" className="text-xs">선택됨</Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {recommendation.method.description}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* 적합도 표시 (숫자 대신 언어 + 프로그레스 바) */}
-                        <div className="mt-4">
-                          <FitScoreIndicator score={recommendation.confidence * 100} />
-                        </div>
-
-                        {manualSelectedMethod && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-4"
-                            onClick={handleUseRecommendation}
-                          >
-                            AI 추천 사용하기
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* 추천 이유 - 점진적 공개 (Accordion) */}
-                      <Accordion type="single" collapsible className="border-t">
-                        <AccordionItem value="reasoning" className="border-0">
-                          <AccordionTrigger className="px-4 py-2 text-sm hover:no-underline">
-                            <span className="text-xs text-muted-foreground">왜 이 방법을 추천하나요?</span>
-                          </AccordionTrigger>
-                          <AccordionContent className="px-4 pb-4">
-                            <ul className="text-xs text-muted-foreground space-y-2">
-                              {recommendation.reasoning.map((reason, idx) => (
-                                <li key={idx} className="flex items-start gap-2">
-                                  <Check className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
-                                  <span>{reason}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </div>
-
-                    {/* Alternative methods */}
-                    {recommendation.alternatives && recommendation.alternatives.length > 0 && (
-                      <Accordion type="single" collapsible>
-                        <AccordionItem value="alternatives" className="border rounded-lg">
-                          <AccordionTrigger className="px-4 py-2 text-sm">
-                            다른 추천 방법 ({recommendation.alternatives.length}개)
-                          </AccordionTrigger>
-                          <AccordionContent className="px-4 pb-4">
-                            <div className="space-y-2">
-                              {recommendation.alternatives.map((alt, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => setManualSelectedMethod({
-                                    id: alt.id,
-                                    name: alt.name,
-                                    description: alt.description,
-                                    category: alt.category
-                                  })}
-                                  className={cn(
-                                    "w-full p-3 rounded-lg border text-left transition-all",
-                                    "hover:border-primary hover:bg-primary/5",
-                                    manualSelectedMethod?.id === alt.id && "border-primary bg-primary/5"
-                                  )}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium text-sm">{alt.name}</span>
-                                    {manualSelectedMethod?.id === alt.id && (
-                                      <Check className="w-4 h-4 text-primary" />
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {alt.description}
-                                  </p>
-                                </button>
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    )}
-
-                    {/* Link to browse all */}
-                    <div className="text-center pt-2">
-                      <button
-                        onClick={() => setActiveTab('browse')}
-                        className="text-sm text-primary hover:underline"
-                      >
-                        원하는 방법이 없나요? 전체 목록 보기 →
-                      </button>
-                    </div>
-                  </div>
-                ) : analysisError ? (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="w-4 h-4" />
-                    <AlertDescription>
-                      AI 분석 중 오류가 발생했습니다. "전체 방법 보기" 탭에서 직접 선택하세요.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    분석 중...
-                  </div>
-                )}
-            </ContentTabsContent>
-
-            {/* Browse All Tab */}
-            <ContentTabsContent tabId="browse" show={activeTab === 'browse'}>
-              <MethodBrowser
-                methodGroups={browseMethodGroups}
-                selectedMethod={manualSelectedMethod}
-                recommendedMethodId={recommendation?.method.id}
-                onMethodSelect={handleManualMethodSelect}
-                dataProfile={dataProfile}
-              />
-            </ContentTabsContent>
-          </CardContent>
-        </Card>
       )}
 
       {/* Initial guidance */}

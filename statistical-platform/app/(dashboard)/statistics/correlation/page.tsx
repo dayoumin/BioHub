@@ -3,7 +3,10 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { addToRecentStatistics } from '@/lib/utils/recent-statistics'
 import type { CorrelationVariables } from '@/types/statistics'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,15 +21,18 @@ import {
   Network,
   Activity,
   BarChart3,
-  ScatterChart as ScatterIcon
+  ScatterChart as ScatterIcon,
+  Upload,
+  Grid3X3,
+  FileSpreadsheet,
+  Trash2,
+  Plus
 } from 'lucide-react'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
-import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
-import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
@@ -116,6 +122,18 @@ export default function CorrelationPage() {
   // Page-specific state
   const [correlationType, setCorrelationType] = useState<'pearson' | 'spearman' | 'kendall' | 'partial' | ''>('')
 
+  // 입력 모드 (원시데이터 vs 상관행렬 직접 입력)
+  const [inputMode, setInputMode] = useState<'raw' | 'matrix'>('raw')
+
+  // 상관행렬 직접 입력용 상태
+  const [matrixVariables, setMatrixVariables] = useState<string[]>(['Var1', 'Var2', 'Var3'])
+  const [correlationMatrixInput, setCorrelationMatrixInput] = useState<number[][]>([
+    [1.00, 0.75, 0.50],
+    [0.75, 1.00, 0.30],
+    [0.50, 0.30, 1.00]
+  ])
+  const [matrixSampleSize, setMatrixSampleSize] = useState<number>(100)
+
   // 상관분석 유형별 정보
   const correlationTypeInfo = {
     pearson: {
@@ -160,6 +178,57 @@ export default function CorrelationPage() {
     }
   }
 
+  // 상관행렬 크기 조절 함수
+  const handleAddMatrixVariable = useCallback(() => {
+    if (matrixVariables.length >= 10) return
+    const newVarName = `Var${matrixVariables.length + 1}`
+    setMatrixVariables(prev => [...prev, newVarName])
+
+    // 행렬에 새 행/열 추가
+    setCorrelationMatrixInput(prev => {
+      const newMatrix = prev.map(row => [...row, 0])
+      const newRow = new Array(prev.length + 1).fill(0)
+      newRow[newRow.length - 1] = 1 // 대각선은 1
+      return [...newMatrix, newRow]
+    })
+  }, [matrixVariables.length])
+
+  const handleRemoveMatrixVariable = useCallback((index: number) => {
+    if (matrixVariables.length <= 2) return // 최소 2개 유지
+
+    setMatrixVariables(prev => prev.filter((_, i) => i !== index))
+    setCorrelationMatrixInput(prev =>
+      prev.filter((_, i) => i !== index).map(row => row.filter((_, j) => j !== index))
+    )
+  }, [matrixVariables.length])
+
+  const handleMatrixCellChange = useCallback((row: number, col: number, value: string) => {
+    if (row === col) return
+
+    const parsed = value === '' ? 0 : Number(value)
+    if (!Number.isFinite(parsed)) return
+
+    const numValue = Math.max(-1, Math.min(1, parsed))
+
+    setCorrelationMatrixInput(prev => {
+      const newMatrix = prev.map(r => [...r])
+      newMatrix[row][col] = numValue
+      // 대칭 행렬 유지
+      if (row !== col) {
+        newMatrix[col][row] = numValue
+      }
+      return newMatrix
+    })
+  }, [])
+
+  const handleVariableNameChange = useCallback((index: number, name: string) => {
+    setMatrixVariables(prev => {
+      const updated = [...prev]
+      updated[index] = name
+      return updated
+    })
+  }, [])
+
   const handleMethodSelect = useCallback((type: 'pearson' | 'spearman' | 'kendall' | 'partial') => {
     setCorrelationType(type)
     actions.setCurrentStep(2)
@@ -183,7 +252,116 @@ export default function CorrelationPage() {
     actions.setSelectedVariables?.({ all: updated })
   }, [actions, selectedVariables])
 
+  // 상관행렬 직접 입력 분석 함수
+  const handleMatrixAnalysis = useCallback(async () => {
+    try {
+      // 입력 검증
+      if (matrixVariables.length < 2) {
+        actions.setError?.('최소 2개의 변수가 필요합니다.')
+        return
+      }
+
+      const n = matrixSampleSize
+      if (!Number.isFinite(n) || n < 4) {
+        actions.setError?.("표본 크기(n)는 4 이상이어야 합니다. (Fisher's z 변환은 n>3 필요)")
+        return
+      }
+
+      actions.startAnalysis?.()
+
+      // 상관 행렬에서 pairwise correlation 생성
+      const pairwiseCorrelations: PairwiseCorrelation[] = []
+      const pValueMap = new Map<string, number>()
+
+      const clampR = (r: number) => Math.max(-0.999999, Math.min(0.999999, r))
+
+      for (let i = 0; i < matrixVariables.length - 1; i++) {
+        for (let j = i + 1; j < matrixVariables.length; j++) {
+          const r = clampR(correlationMatrixInput[i]?.[j] ?? 0)
+
+          // r 값에서 대략적인 p-value 계산 (Fisher's z transformation)
+          const z = 0.5 * Math.log((1 + r) / (1 - r))
+          const se = 1 / Math.sqrt(n - 3)
+          const zScore = Math.abs(z) / se
+          const pValue = 2 * (1 - normalCDF(zScore))
+          pValueMap.set(`${i}-${j}`, pValue)
+
+          // 95% CI 계산
+          const zLower = z - 1.96 * se
+          const zUpper = z + 1.96 * se
+          const rLower = Math.tanh(zLower)
+          const rUpper = Math.tanh(zUpper)
+
+          pairwiseCorrelations.push({
+            pair: `${matrixVariables[i]} - ${matrixVariables[j]}`,
+            r,
+            pValue,
+            n: matrixSampleSize,
+            ci: [Math.min(rLower, rUpper), Math.max(rLower, rUpper)] as [number, number],
+            interpretation: Math.abs(r) > 0.7 ? '강한 상관관계' :
+                          Math.abs(r) > 0.4 ? '중간 상관관계' : '약한 상관관계'
+          })
+        }
+      }
+
+      // 정렬 (상관계수 절대값 내림차순)
+      pairwiseCorrelations.sort((a, b) => Math.abs(b.r) - Math.abs(a.r))
+
+      // 결과 구성
+      const correlationMatrixResults: CorrelationResult[] = []
+      for (let i = 0; i < matrixVariables.length; i++) {
+        for (let j = 0; j < matrixVariables.length; j++) {
+          const key = `${Math.min(i, j)}-${Math.max(i, j)}`
+          const pValue = i === j ? 0 : (pValueMap.get(key) ?? 0)
+          correlationMatrixResults.push({
+            var1: matrixVariables[i],
+            var2: matrixVariables[j],
+            r: i === j ? 1 : correlationMatrixInput[i][j],
+            pValue,
+            significant: i !== j && pValue < 0.05,
+            strength: (Math.abs(correlationMatrixInput[i][j]) > 0.7 ? 'strong' :
+                     Math.abs(correlationMatrixInput[i][j]) > 0.4 ? 'moderate' : 'weak') as 'strong' | 'moderate' | 'weak'
+          })
+        }
+      }
+
+      const mockResults: CorrelationResults = {
+        correlationMatrix: correlationMatrixResults,
+        pairwiseCorrelations,
+        scatterPlots: [],
+        assumptions: {
+          normality: {
+            shapiroWilk: matrixVariables.map(v => ({
+              variable: v,
+              statistic: 0,
+              pValue: 0,
+              normal: true
+            }))
+          },
+          linearityTest: {
+            passed: true,
+            interpretation: '상관행렬 직접 입력 모드에서는 가정 검정이 제공되지 않습니다.'
+          }
+        },
+        sampleSize: matrixSampleSize,
+        method: correlationType || 'pearson',
+        partialCorrelation: null
+      }
+
+      setAnalysisTimestamp(new Date())
+      actions.completeAnalysis?.(mockResults, 4)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
+      actions.setError?.(errorMessage)
+    }
+  }, [matrixVariables, matrixSampleSize, correlationMatrixInput, correlationType, actions])
+
   const handleAnalysis = useCallback(async () => {
+    // matrix 모드인 경우 별도 처리
+    if (inputMode === 'matrix') {
+      return handleMatrixAnalysis()
+    }
+
     if (!uploadedData || !selectedVariables) {
       actions.setError?.('데이터와 변수를 확인해주세요.')
       return
@@ -324,14 +502,32 @@ export default function CorrelationPage() {
       const errorMessage = err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.'
       actions.setError?.(errorMessage)
     }
-  }, [uploadedData, selectedVariables, correlationType, actions])
+  }, [uploadedData, selectedVariables, correlationType, actions, inputMode, handleMatrixAnalysis])
+
+  // 표준 정규 분포 CDF (근사)
+  function normalCDF(x: number): number {
+    const a1 =  0.254829592
+    const a2 = -0.284496736
+    const a3 =  1.421413741
+    const a4 = -1.453152027
+    const a5 =  1.061405429
+    const p  =  0.3275911
+
+    const sign = x < 0 ? -1 : 1
+    x = Math.abs(x) / Math.sqrt(2)
+
+    const t = 1.0 / (1.0 + p * x)
+    const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x)
+
+    return 0.5 * (1.0 + sign * y)
+  }
 
   // Steps with completed state
   const stepsWithCompleted = STEPS.map(step => ({
     ...step,
     completed: step.id === 1 ? !!correlationType :
-              step.id === 2 ? !!uploadedData :
-              step.id === 3 ? !!selectedVariables :
+              step.id === 2 ? (inputMode === 'matrix' ? matrixVariables.length >= 2 : !!uploadedData) :
+              step.id === 3 ? (inputMode === 'matrix' ? true : !!selectedVariables) :
               step.id === 4 ? !!results : false
   }))
 
@@ -417,21 +613,183 @@ export default function CorrelationPage() {
         </div>
       )}
 
-      {/* Step 2: 데이터 업로드 */}
+      {/* Step 2: 데이터 업로드 또는 상관행렬 입력 */}
       {currentStep === 2 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
+            <h2 className="text-xl font-semibold mb-2">데이터 입력</h2>
             <p className="text-sm text-muted-foreground">
-              상관분석할 데이터 파일을 업로드하세요
+              파일 업로드 또는 상관행렬을 직접 입력하세요
             </p>
           </div>
 
-          <DataUploadStep onUploadComplete={handleDataUpload} />
+          {/* 입력 모드 선택 탭 */}
+          <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as 'raw' | 'matrix')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="raw" className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                파일 업로드
+              </TabsTrigger>
+              <TabsTrigger value="matrix" className="flex items-center gap-2">
+                <Grid3X3 className="h-4 w-4" />
+                상관행렬 입력
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="raw" className="mt-4">
+              <DataUploadStep onUploadComplete={handleDataUpload} />
+            </TabsContent>
+
+            <TabsContent value="matrix" className="mt-4 space-y-6">
+              {/* 상관행렬 직접 입력 UI */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    상관행렬 직접 입력
+                  </CardTitle>
+                  <CardDescription>
+                    논문이나 보고서에서 상관행렬을 직접 입력할 수 있습니다
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* 표본 크기 */}
+                  <div className="flex items-center gap-4">
+                    <Label htmlFor="sampleSize" className="w-24">표본 크기 (n)</Label>
+                    <Input
+                      id="sampleSize"
+                      type="number"
+                      min={4}
+                      value={matrixSampleSize}
+                      onChange={(e) => setMatrixSampleSize(Math.max(4, parseInt(e.target.value) || 4))}
+                      className="w-32"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      신뢰구간 및 유의확률 계산에 사용
+                    </span>
+                  </div>
+
+                  {/* 변수 관리 버튼 */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddMatrixVariable}
+                      disabled={matrixVariables.length >= 10}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      변수 추가
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      현재 {matrixVariables.length}개 변수 (최대 10개)
+                    </span>
+                  </div>
+
+                  {/* 상관행렬 입력 테이블 */}
+                  <div className="overflow-x-auto border rounded-md">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-muted/50">
+                          <th className="p-2 text-center w-24"></th>
+                          {matrixVariables.map((varName, idx) => (
+                            <th key={idx} className="p-2 text-center min-w-[100px]">
+                              <div className="flex flex-col items-center gap-1">
+                                <Input
+                                  value={varName}
+                                  onChange={(e) => handleVariableNameChange(idx, e.target.value)}
+                                  className="h-7 text-xs text-center w-20"
+                                />
+                                {matrixVariables.length > 2 && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0"
+                                    onClick={() => handleRemoveMatrixVariable(idx)}
+                                  >
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </Button>
+                                )}
+                              </div>
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {matrixVariables.map((rowVar, i) => (
+                          <tr key={i}>
+                            <td className="p-2 font-medium text-center bg-muted/30">
+                              {rowVar}
+                            </td>
+                            {matrixVariables.map((_, j) => (
+                              <td key={j} className="p-1 text-center">
+                                {i === j ? (
+                                  <span className="text-muted-foreground font-mono">1.00</span>
+                                ) : i > j ? (
+                                  <span className="text-muted-foreground font-mono text-xs">
+                                    {correlationMatrixInput[i][j].toFixed(2)}
+                                  </span>
+                                ) : (
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="-1"
+                                    max="1"
+                                    value={correlationMatrixInput[i][j]}
+                                    onChange={(e) => handleMatrixCellChange(i, j, e.target.value)}
+                                    className="h-8 text-xs text-center w-16 font-mono mx-auto"
+                                  />
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    * 대각선 위쪽만 입력하면 아래쪽은 자동으로 대칭 적용됩니다
+                  </p>
+
+                  {/* 분석 버튼 */}
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      onClick={handleMatrixAnalysis}
+                      disabled={isAnalyzing || matrixVariables.length < 2}
+                      size="lg"
+                    >
+                      {isAnalyzing ? '분석 중...' : '상관분석 실행'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       )}
 
       {/* Step 3: 변수 선택 */}
+      {currentStep === 3 && inputMode === 'matrix' && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">변수 선택</CardTitle>
+              <CardDescription>
+                상관행렬 직접 입력 모드에서는 별도의 변수 선택 단계가 필요하지 않습니다.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => actions.setCurrentStep(2)}>
+                상관행렬로 돌아가기
+              </Button>
+              <Button onClick={() => actions.setCurrentStep(4)} disabled={!results}>
+                결과 보기
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {currentStep === 3 && uploadedData && (
         <div className="space-y-6">
           <div>
@@ -631,42 +989,55 @@ export default function CorrelationPage() {
             </Card>
           )}
 
-          {/* 상관 행렬 히트맵 (간략화) */}
+          {/* 상관 행렬 히트맵 */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">상관계수 매트릭스</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr>
-                      <th className="p-2"></th>
-                      {['Var1', 'Var2', 'Var3', 'Var4'].map(v => (
-                        <th key={v} className="p-2 text-center">{v}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {['Var1', 'Var2', 'Var3', 'Var4'].map((v, i) => (
-                      <tr key={v}>
-                        <td className="p-2 font-medium">{v}</td>
-                        {[1, 0.82, -0.45, 0.23].map((r, j) => (
-                          <td
-                            key={j}
-                            className="p-2 text-center"
-                            style={{
-                              backgroundColor: i === j ? '#f3f4f6' :
-                                `${getHeatmapColor(j === 0 ? 1 : j === 1 ? 0.82 : j === 2 ? -0.45 : 0.23)}20`
-                            }}
-                          >
-                            {i === j ? '1.00' : (j === 1 ? '0.82' : j === 2 ? '-0.45' : '0.23')}
-                          </td>
+                {(() => {
+                  // 고유 변수 목록 추출
+                  const uniqueVars = Array.from(new Set(results.correlationMatrix.map(c => c.var1)))
+
+                  return (
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr>
+                          <th className="p-2"></th>
+                          {uniqueVars.map(v => (
+                            <th key={v} className="p-2 text-center">{v}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {uniqueVars.map((rowVar, i) => (
+                          <tr key={rowVar}>
+                            <td className="p-2 font-medium">{rowVar}</td>
+                            {uniqueVars.map((colVar, j) => {
+                              const cell = results.correlationMatrix.find(
+                                c => c.var1 === rowVar && c.var2 === colVar
+                              )
+                              const r = cell?.r ?? (i === j ? 1 : 0)
+                              return (
+                                <td
+                                  key={colVar}
+                                  className="p-2 text-center font-mono"
+                                  style={{
+                                    backgroundColor: i === j ? '#f3f4f6' :
+                                      `${getHeatmapColor(r)}20`
+                                  }}
+                                >
+                                  {r.toFixed(2)}
+                                </td>
+                              )
+                            })}
+                          </tr>
                         ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                      </tbody>
+                    </table>
+                  )
+                })()}
               </div>
               <div className="mt-4 flex items-center justify-center gap-4 text-xs">
                 <div className="flex items-center gap-1">

@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
 import {
   GitBranch,
   AlertCircle,
@@ -61,13 +63,6 @@ interface TTestVariables {
   [key: string]: string | string[] | undefined
 }
 
-const STEPS = [
-  { id: 1, label: '검정 유형 선택' },
-  { id: 2, label: '데이터 업로드' },
-  { id: 3, label: '변수 선택' },
-  { id: 4, label: '결과 확인' }
-]
-
 export default function TTestPage() {
   useEffect(() => {
     addToRecentStatistics('t-test')
@@ -81,12 +76,82 @@ export default function TTestPage() {
   const { currentStep, uploadedData, selectedVariables, results, isAnalyzing, error } = state
 
   const [testType, setTestType] = useState<'one-sample' | 'two-sample' | 'paired' | ''>('')
+  const [inputMode, setInputMode] = useState<'raw' | 'summary'>('raw')
   const [testValue, setTestValue] = useState<string>('0')
   const [analysisTimestamp, setAnalysisTimestamp] = useState<Date | null>(null)
+
+  // 요약통계 입력값
+  const [summaryOne, setSummaryOne] = useState({ mean: '', std: '', n: '' })
+  const [summaryTwo, setSummaryTwo] = useState({ mean1: '', std1: '', n1: '', mean2: '', std2: '', n2: '', equalVar: true })
+  const [summaryPaired, setSummaryPaired] = useState({ meanDiff: '', stdDiff: '', nPairs: '' })
 
   // testValue 유효성 검사
   const parsedTestValue = parseFloat(testValue)
   const isTestValueValid = !isNaN(parsedTestValue) && testValue.trim() !== ''
+
+  const parsedSummary = (() => {
+    const one = {
+      mean: parseFloat(summaryOne.mean),
+      std: parseFloat(summaryOne.std),
+      n: parseInt(summaryOne.n, 10)
+    }
+    const two = {
+      mean1: parseFloat(summaryTwo.mean1),
+      std1: parseFloat(summaryTwo.std1),
+      n1: parseInt(summaryTwo.n1, 10),
+      mean2: parseFloat(summaryTwo.mean2),
+      std2: parseFloat(summaryTwo.std2),
+      n2: parseInt(summaryTwo.n2, 10),
+      equalVar: summaryTwo.equalVar
+    }
+    const paired = {
+      meanDiff: parseFloat(summaryPaired.meanDiff),
+      stdDiff: parseFloat(summaryPaired.stdDiff),
+      nPairs: parseInt(summaryPaired.nPairs, 10)
+    }
+    return { one, two, paired }
+  })()
+
+  const isSummaryValid = (() => {
+    if (inputMode !== 'summary') return false
+    if (testType === 'one-sample') {
+      const { mean, std, n } = parsedSummary.one
+      return Number.isFinite(mean) && Number.isFinite(std) && Number.isFinite(n) && n >= 2 && std >= 0 && isTestValueValid
+    }
+    if (testType === 'two-sample') {
+      const { mean1, std1, n1, mean2, std2, n2 } = parsedSummary.two
+      return (
+        Number.isFinite(mean1) &&
+        Number.isFinite(std1) &&
+        Number.isFinite(n1) &&
+        Number.isFinite(mean2) &&
+        Number.isFinite(std2) &&
+        Number.isFinite(n2) &&
+        n1 >= 2 &&
+        n2 >= 2 &&
+        std1 >= 0 &&
+        std2 >= 0
+      )
+    }
+    if (testType === 'paired') {
+      const { meanDiff, stdDiff, nPairs } = parsedSummary.paired
+      return Number.isFinite(meanDiff) && Number.isFinite(stdDiff) && Number.isFinite(nPairs) && nPairs >= 2 && stdDiff >= 0
+    }
+    return false
+  })()
+
+  const steps = inputMode === 'raw'
+    ? [
+      { id: 1, label: '검정 유형 선택' },
+      { id: 2, label: '데이터 업로드' },
+      { id: 3, label: '변수 선택' },
+      { id: 4, label: '결과 확인' }
+    ]
+    : [
+      { id: 1, label: '검정 유형 선택' },
+      { id: 2, label: '요약통계 입력' },
+      { id: 3, label: '결과 확인' }
+    ]
 
   const testTypeInfo = {
     'one-sample': {
@@ -120,6 +185,13 @@ export default function TTestPage() {
     actions.setCurrentStep(2)
   }, [actions])
 
+  const handleInputModeChange = useCallback((mode: 'raw' | 'summary') => {
+    setInputMode(mode)
+    actions.reset()
+    setAnalysisTimestamp(null)
+    actions.setCurrentStep(2)
+  }, [actions])
+
   const handleDataUpload = useCallback((file: File, data: Record<string, unknown>[]) => {
     const columns = data.length > 0 ? Object.keys(data[0]) : []
     actions.setUploadedData?.({ fileName: file.name, data, columns })
@@ -132,13 +204,9 @@ export default function TTestPage() {
   }, [actions, selectedVariables])
 
   const handleAnalysis = useCallback(async () => {
-    if (!uploadedData || !selectedVariables) {
-      actions.setError?.('데이터와 변수를 확인해주세요.')
-      return
-    }
-
     try {
-      actions.startAnalysis?.()
+      if (!actions.startAnalysis || !actions.completeAnalysis || !actions.setError) return
+      actions.startAnalysis()
 
       // PyodideCore 서비스 임포트
       const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
@@ -147,83 +215,186 @@ export default function TTestPage() {
 
       let workerResult: unknown
 
-      if (testType === 'one-sample') {
-        // 일표본 t-검정
-        const valueCol = selectedVariables.value as string
-        const values = uploadedData.data
-          .map((row: Record<string, unknown>) => Number(row[valueCol]))
-          .filter((v): v is number => !isNaN(v))
+      if (inputMode === 'summary') {
+        if (!testType) throw new Error('검정 유형을 선택해주세요.')
+        if (!isSummaryValid) throw new Error('요약통계 입력값을 확인해주세요.')
 
-        workerResult = await pyodideCore.callWorkerMethod<{
-          statistic: number
-          pValue: number
-          sampleMean: number
-        }>(PyodideWorker.Hypothesis, 't_test_one_sample', { data: values, popmean: parsedTestValue })
-
-      } else if (testType === 'two-sample') {
-        // 독립표본 t-검정
-        const groupCol = selectedVariables.group as string
-        const valueCol = selectedVariables.value as string
-
-        const uniqueGroups = Array.from(new Set(uploadedData.data.map((row: Record<string, unknown>) => row[groupCol])))
-        if (uniqueGroups.length !== 2) {
-          throw new Error(`집단 변수는 정확히 2개의 값을 가져야 합니다 (현재: ${uniqueGroups.length}개)`)
+        if (testType === 'one-sample') {
+          workerResult = await pyodideCore.callWorkerMethod<{
+            statistic: number
+            pValue: number
+            df: number
+            meanDiff: number
+            ciLower: number
+            ciUpper: number
+            cohensD: number
+            n: number
+            mean: number
+            std: number
+          }>(PyodideWorker.Hypothesis, 't_test_one_sample_summary', {
+            mean: parsedSummary.one.mean,
+            std: parsedSummary.one.std,
+            n: parsedSummary.one.n,
+            popmean: parsedTestValue,
+            alpha: 0.05
+          })
+        } else if (testType === 'two-sample') {
+          workerResult = await pyodideCore.callWorkerMethod<{
+            statistic: number
+            pValue: number
+            df: number
+            meanDiff: number
+            ciLower: number
+            ciUpper: number
+            cohensD: number
+            mean1: number
+            mean2: number
+            std1: number
+            std2: number
+            n1: number
+            n2: number
+          }>(PyodideWorker.Hypothesis, 't_test_two_sample_summary', {
+            mean1: parsedSummary.two.mean1,
+            std1: parsedSummary.two.std1,
+            n1: parsedSummary.two.n1,
+            mean2: parsedSummary.two.mean2,
+            std2: parsedSummary.two.std2,
+            n2: parsedSummary.two.n2,
+            equalVar: parsedSummary.two.equalVar,
+            alpha: 0.05
+          })
+        } else {
+          workerResult = await pyodideCore.callWorkerMethod<{
+            statistic: number
+            pValue: number
+            df: number
+            meanDiff: number
+            ciLower: number
+            ciUpper: number
+            cohensD: number
+            nPairs: number
+            stdDiff: number
+          }>(PyodideWorker.Hypothesis, 't_test_paired_summary', {
+            meanDiff: parsedSummary.paired.meanDiff,
+            stdDiff: parsedSummary.paired.stdDiff,
+            nPairs: parsedSummary.paired.nPairs,
+            alpha: 0.05
+          })
+        }
+      } else {
+        if (!uploadedData || !selectedVariables) {
+          throw new Error('데이터와 변수를 확인해주세요.')
         }
 
-        const group1Data = uploadedData.data
-          .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[0])
-          .map((row: Record<string, unknown>) => Number(row[valueCol]))
-          .filter((v): v is number => !isNaN(v))
-        const group2Data = uploadedData.data
-          .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[1])
-          .map((row: Record<string, unknown>) => Number(row[valueCol]))
-          .filter((v): v is number => !isNaN(v))
+        if (testType === 'one-sample') {
+          // 일표본 t-검정
+          const valueCol = selectedVariables.value as string
+          const values = uploadedData.data
+            .map((row: Record<string, unknown>) => Number(row[valueCol]))
+            .filter((v): v is number => !isNaN(v))
 
-        workerResult = await pyodideCore.callWorkerMethod<{
-          statistic: number
-          pValue: number
-          cohensD: number
-          mean1: number
-          mean2: number
-          std1: number
-          std2: number
-          n1: number
-          n2: number
-        }>(PyodideWorker.Hypothesis, 't_test_two_sample', { group1: group1Data, group2: group2Data, equalVar: true })
+          workerResult = await pyodideCore.callWorkerMethod<{
+            statistic: number
+            pValue: number
+            sampleMean: number
+          }>(PyodideWorker.Hypothesis, 't_test_one_sample', { data: values, popmean: parsedTestValue })
 
-      } else if (testType === 'paired') {
-        // 대응표본 t-검정
-        const beforeCol = selectedVariables.before as string
-        const afterCol = selectedVariables.after as string
+        } else if (testType === 'two-sample') {
+          // 독립표본 t-검정
+          const groupCol = selectedVariables.group as string
+          const valueCol = selectedVariables.value as string
 
-        // paired는 쌍으로 유효해야 하므로 둘 다 숫자인 행만 사용
-        const validPairs = uploadedData.data
-          .map((row: Record<string, unknown>) => ({
-            before: Number(row[beforeCol]),
-            after: Number(row[afterCol])
-          }))
-          .filter(pair => !isNaN(pair.before) && !isNaN(pair.after))
-        const values1 = validPairs.map(p => p.before)
-        const values2 = validPairs.map(p => p.after)
+          const uniqueGroups = Array.from(new Set(uploadedData.data.map((row: Record<string, unknown>) => row[groupCol])))
+          if (uniqueGroups.length !== 2) {
+            throw new Error(`집단 변수는 정확히 2개의 값을 가져야 합니다 (현재: ${uniqueGroups.length}개)`)
+          }
 
-        workerResult = await pyodideCore.callWorkerMethod<{
-          statistic: number
-          pValue: number
-          meanDiff: number
-          nPairs: number
-        }>(PyodideWorker.Hypothesis, 't_test_paired', { values1, values2 })
+          const group1Data = uploadedData.data
+            .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[0])
+            .map((row: Record<string, unknown>) => Number(row[valueCol]))
+            .filter((v): v is number => !isNaN(v))
+          const group2Data = uploadedData.data
+            .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[1])
+            .map((row: Record<string, unknown>) => Number(row[valueCol]))
+            .filter((v): v is number => !isNaN(v))
 
-      } else {
-        throw new Error('Invalid test type')
+          workerResult = await pyodideCore.callWorkerMethod<{
+            statistic: number
+            pValue: number
+            cohensD: number
+            mean1: number
+            mean2: number
+            std1: number
+            std2: number
+            n1: number
+            n2: number
+          }>(PyodideWorker.Hypothesis, 't_test_two_sample', { group1: group1Data, group2: group2Data, equalVar: true })
+
+        } else if (testType === 'paired') {
+          // 대응표본 t-검정
+          const beforeCol = selectedVariables.before as string
+          const afterCol = selectedVariables.after as string
+
+          // paired는 쌍으로 유효해야 하므로 둘 다 숫자인 행만 사용
+          const validPairs = uploadedData.data
+            .map((row: Record<string, unknown>) => ({
+              before: Number(row[beforeCol]),
+              after: Number(row[afterCol])
+            }))
+            .filter(pair => !isNaN(pair.before) && !isNaN(pair.after))
+          const values1 = validPairs.map(p => p.before)
+          const values2 = validPairs.map(p => p.after)
+
+          workerResult = await pyodideCore.callWorkerMethod<{
+            statistic: number
+            pValue: number
+            meanDiff: number
+            nPairs: number
+          }>(PyodideWorker.Hypothesis, 't_test_paired', { values1, values2 })
+
+        } else {
+          throw new Error('Invalid test type')
+        }
       }
 
       // Worker 결과를 TTestResult 타입으로 변환
       const finalResult: TTestResult = (() => {
         if (testType === 'one-sample') {
+          if (inputMode === 'summary') {
+            const res = workerResult as {
+              statistic: number
+              pValue: number
+              df: number
+              meanDiff: number
+              ciLower: number
+              ciUpper: number
+              cohensD: number
+              n: number
+              mean: number
+              std: number
+            }
+            return {
+              type: 'one-sample',
+              statistic: res.statistic,
+              pvalue: res.pValue,
+              df: res.df,
+              mean_diff: res.meanDiff,
+              ciLower: res.ciLower,
+              ciUpper: res.ciUpper,
+              effect_size: {
+                cohens_d: res.cohensD,
+                interpretation: interpretEffectSize(res.cohensD)
+              },
+              sample_stats: {
+                group1: { mean: res.mean, std: res.std, n: res.n }
+              }
+            }
+          }
+
           const res = workerResult as { statistic: number; pValue: number; sampleMean: number; sampleStd?: number }
           // one-sample Cohen's d = (sample mean - test value) / sample std
-          const valueCol = selectedVariables.value as string
-          const values = uploadedData.data
+          const valueCol = selectedVariables!.value as string
+          const values = uploadedData!.data
             .map((row: Record<string, unknown>) => Number(row[valueCol]))
             .filter((v): v is number => !isNaN(v))
           const sampleMean = values.reduce((a, b) => a + b, 0) / values.length
@@ -243,6 +414,41 @@ export default function TTestPage() {
             }
           }
         } else if (testType === 'two-sample') {
+          if (inputMode === 'summary') {
+            const res = workerResult as {
+              statistic: number
+              pValue: number
+              df: number
+              meanDiff: number
+              ciLower: number
+              ciUpper: number
+              cohensD: number
+              mean1: number
+              mean2: number
+              std1: number
+              std2: number
+              n1: number
+              n2: number
+            }
+            return {
+              type: 'two-sample',
+              statistic: res.statistic,
+              pvalue: res.pValue,
+              df: res.df,
+              mean_diff: res.meanDiff,
+              ciLower: res.ciLower,
+              ciUpper: res.ciUpper,
+              effect_size: {
+                cohens_d: res.cohensD,
+                interpretation: interpretEffectSize(res.cohensD)
+              },
+              sample_stats: {
+                group1: { mean: res.mean1, std: res.std1, n: res.n1 },
+                group2: { mean: res.mean2, std: res.std2, n: res.n2 }
+              }
+            }
+          }
+
           const res = workerResult as {
             statistic: number
             pValue: number
@@ -271,11 +477,38 @@ export default function TTestPage() {
           }
         } else {
           // paired
+          if (inputMode === 'summary') {
+            const res = workerResult as {
+              statistic: number
+              pValue: number
+              df: number
+              meanDiff: number
+              ciLower: number
+              ciUpper: number
+              cohensD: number
+              nPairs: number
+              stdDiff: number
+            }
+            return {
+              type: 'paired',
+              statistic: res.statistic,
+              pvalue: res.pValue,
+              df: res.df,
+              mean_diff: res.meanDiff,
+              ciLower: res.ciLower,
+              ciUpper: res.ciUpper,
+              effect_size: {
+                cohens_d: res.cohensD,
+                interpretation: interpretEffectSize(res.cohensD)
+              }
+            }
+          }
+
           const res = workerResult as { statistic: number; pValue: number; meanDiff: number; nPairs: number }
           // paired Cohen's d = mean difference / std of differences
-          const beforeCol = selectedVariables.before as string
-          const afterCol = selectedVariables.after as string
-          const differences = uploadedData.data
+          const beforeCol = selectedVariables!.before as string
+          const afterCol = selectedVariables!.after as string
+          const differences = uploadedData!.data
             .map((row: Record<string, unknown>) => {
               const before = Number(row[beforeCol])
               const after = Number(row[afterCol])
@@ -301,18 +534,22 @@ export default function TTestPage() {
       })()
 
       setAnalysisTimestamp(new Date())
-      actions.completeAnalysis?.(finalResult, 4)
+      actions.completeAnalysis(finalResult, inputMode === 'raw' ? 4 : 3)
     } catch (err) {
       actions.setError?.(err instanceof Error ? err.message : '분석 실패')
     }
-  }, [uploadedData, selectedVariables, testType, testValue, actions])
+  }, [uploadedData, selectedVariables, testType, testValue, actions, inputMode, isSummaryValid, parsedSummary, parsedTestValue])
 
-  const stepsWithCompleted = STEPS.map(step => ({
+  const stepsWithCompleted = steps.map(step => ({
     ...step,
-    completed: step.id === 1 ? !!testType :
-              step.id === 2 ? !!uploadedData :
-              step.id === 3 ? !!selectedVariables :
-              step.id === 4 ? !!results : false
+    completed: inputMode === 'raw'
+      ? (step.id === 1 ? !!testType :
+        step.id === 2 ? !!uploadedData :
+        step.id === 3 ? !!selectedVariables :
+        step.id === 4 ? !!results : false)
+      : (step.id === 1 ? !!testType :
+        step.id === 2 ? isSummaryValid || !!results :
+        step.id === 3 ? !!results : false)
   }))
 
   const breadcrumbs = [
@@ -460,18 +697,153 @@ export default function TTestPage() {
       {currentStep === 2 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold mb-2">데이터 업로드</h2>
+            <h2 className="text-xl font-semibold mb-2">{inputMode === 'raw' ? '데이터 업로드' : '요약통계 입력'}</h2>
             <p className="text-sm text-muted-foreground">
-              t-검정할 데이터 파일을 업로드하세요
+              {inputMode === 'raw'
+                ? 't-검정할 데이터 파일을 업로드하세요'
+                : '평균/표준편차/N만으로 t-검정을 수행합니다'}
             </p>
           </div>
 
-          <DataUploadStep onUploadComplete={handleDataUpload} />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">입력 방식</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs value={inputMode} onValueChange={(v) => handleInputModeChange(v as 'raw' | 'summary')}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="raw">원시데이터</TabsTrigger>
+                  <TabsTrigger value="summary">요약통계</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="raw" className="mt-4">
+                  <DataUploadStep onUploadComplete={handleDataUpload} />
+                </TabsContent>
+
+                <TabsContent value="summary" className="mt-4 space-y-4">
+                  {testType === 'one-sample' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">일표본 요약통계</CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>평균 (Mean)</Label>
+                          <Input
+                            value={summaryOne.mean}
+                            onChange={(e) => setSummaryOne(prev => ({ ...prev, mean: e.target.value }))}
+                            placeholder="예: 50"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>표준편차 (SD)</Label>
+                          <Input
+                            value={summaryOne.std}
+                            onChange={(e) => setSummaryOne(prev => ({ ...prev, std: e.target.value }))}
+                            placeholder="예: 10"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>표본수 (N)</Label>
+                          <Input
+                            value={summaryOne.n}
+                            onChange={(e) => setSummaryOne(prev => ({ ...prev, n: e.target.value }))}
+                            placeholder="예: 30"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {testType === 'two-sample' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">독립표본 요약통계</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>집단 1 평균</Label>
+                            <Input value={summaryTwo.mean1} onChange={(e) => setSummaryTwo(prev => ({ ...prev, mean1: e.target.value }))} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>집단 1 SD</Label>
+                            <Input value={summaryTwo.std1} onChange={(e) => setSummaryTwo(prev => ({ ...prev, std1: e.target.value }))} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>집단 1 N</Label>
+                            <Input value={summaryTwo.n1} onChange={(e) => setSummaryTwo(prev => ({ ...prev, n1: e.target.value }))} />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label>집단 2 평균</Label>
+                            <Input value={summaryTwo.mean2} onChange={(e) => setSummaryTwo(prev => ({ ...prev, mean2: e.target.value }))} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>집단 2 SD</Label>
+                            <Input value={summaryTwo.std2} onChange={(e) => setSummaryTwo(prev => ({ ...prev, std2: e.target.value }))} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>집단 2 N</Label>
+                            <Input value={summaryTwo.n2} onChange={(e) => setSummaryTwo(prev => ({ ...prev, n2: e.target.value }))} />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="equalVar"
+                            checked={summaryTwo.equalVar}
+                            onCheckedChange={(checked) => setSummaryTwo(prev => ({ ...prev, equalVar: checked }))}
+                          />
+                          <Label htmlFor="equalVar">등분산 가정 (Student t)</Label>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {testType === 'paired' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">대응표본 요약통계 (차이값 기반)</CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>평균 차이 (Mean diff)</Label>
+                          <Input value={summaryPaired.meanDiff} onChange={(e) => setSummaryPaired(prev => ({ ...prev, meanDiff: e.target.value }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>차이의 SD</Label>
+                          <Input value={summaryPaired.stdDiff} onChange={(e) => setSummaryPaired(prev => ({ ...prev, stdDiff: e.target.value }))} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>쌍의 수 (N)</Label>
+                          <Input value={summaryPaired.nPairs} onChange={(e) => setSummaryPaired(prev => ({ ...prev, nPairs: e.target.value }))} />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="flex justify-center">
+                    <Button onClick={handleAnalysis} disabled={isAnalyzing || !isSummaryValid} size="lg">
+                      {isAnalyzing ? '분석 중...' : 't-검정 실행'}
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Step 3: 변수 선택 */}
-      {currentStep === 3 && uploadedData && (
+      {inputMode === 'raw' && currentStep === 3 && uploadedData && (
         <div className="space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-2">변수 선택</h2>
@@ -645,19 +1017,25 @@ export default function TTestPage() {
       )}
 
       {/* Step 4: 결과 확인 */}
-      {currentStep === 4 && results && (
+      {((inputMode === 'raw' && currentStep === 4) || (inputMode === 'summary' && currentStep === 3)) && results && (
         <div className="space-y-6">
           <ResultContextHeader
             analysisType={testType === 'one-sample' ? '일표본 t-검정' : testType === 'two-sample' ? '독립표본 t-검정' : '대응표본 t-검정'}
             analysisSubtitle={testType === 'one-sample' ? 'One-Sample t-test' : testType === 'two-sample' ? 'Independent Samples t-test' : 'Paired Samples t-test'}
-            fileName={uploadedData?.fileName}
-            variables={testType === 'one-sample'
-              ? [selectedVariables?.value as string].filter(Boolean)
-              : testType === 'two-sample'
-                ? [selectedVariables?.group as string, selectedVariables?.value as string].filter(Boolean)
-                : [selectedVariables?.before as string, selectedVariables?.after as string].filter(Boolean)
+            fileName={inputMode === 'raw' ? uploadedData?.fileName : '요약통계 입력'}
+            variables={inputMode === 'raw'
+              ? (testType === 'one-sample'
+                ? [selectedVariables?.value as string].filter(Boolean)
+                : testType === 'two-sample'
+                  ? [selectedVariables?.group as string, selectedVariables?.value as string].filter(Boolean)
+                  : [selectedVariables?.before as string, selectedVariables?.after as string].filter(Boolean))
+              : (testType === 'one-sample'
+                ? ['mean', 'sd', 'n']
+                : testType === 'two-sample'
+                  ? ['mean1', 'sd1', 'n1', 'mean2', 'sd2', 'n2']
+                  : ['meanDiff', 'sdDiff', 'n'])
             }
-            sampleSize={uploadedData?.data?.length}
+            sampleSize={inputMode === 'raw' ? uploadedData?.data?.length : undefined}
             timestamp={analysisTimestamp ?? undefined}
           />
           <StatisticalResultCard
@@ -668,7 +1046,7 @@ export default function TTestPage() {
             showInterpretation={true}
             showActions={true}
             expandable={false}
-            onRerun={() => actions.setCurrentStep(3)}
+            onRerun={() => actions.setCurrentStep(inputMode === 'raw' ? 3 : 2)}
           />
         </div>
       )}
