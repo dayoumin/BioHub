@@ -26,6 +26,7 @@
     "test:performance:watch": "jest __tests__/performance/pyodide-regression.test.ts --watch",
     "test:golden-values": "jest __tests__/workers/golden-values/python-calculation-accuracy.test.ts --verbose",
     "test:pyodide-golden": "node --experimental-vm-modules scripts/run-pyodide-golden-tests.mjs",
+    "test:effect-size-converter-pyodide": "node --experimental-vm-modules scripts/run-effect-size-converter-pyodide.mjs",
     "generate:vector-stores": "node scripts/rag/generate-metadata.js",
     "validate:statistics": "node scripts/statistics/validate-ui.js",
     "validate:types": "node scripts/statistics/validate-types.js",

@@ -5,7 +5,6 @@
 # - Cold start time: ~0.8s
 
 from typing import List, Dict, Union, Literal, Optional, Any
-import math
 import numpy as np
 from scipy import stats
 from scipy.stats import binomtest
@@ -568,8 +567,7 @@ def _hedges_correction_j(df: int) -> float:
     """
     Small-sample bias correction factor for standardized mean differences (Hedges' g).
 
-    Exact: J(df) = Γ(df/2) / (sqrt(df/2) * Γ((df-1)/2))
-    Approx: J(df) ≈ 1 - 3/(4df - 1)
+    Common approximation: J(df) ≈ 1 - 3/(4df - 1)
 
     References:
     - Hedges, L. V., & Olkin, I. (1985). Statistical Methods for Meta-Analysis.
@@ -577,9 +575,7 @@ def _hedges_correction_j(df: int) -> float:
     if df <= 1:
         raise ValueError("df must be > 1 for Hedges' correction")
 
-    half_df = df / 2.0
-    log_j = math.lgamma(half_df) - (0.5 * math.log(half_df) + math.lgamma((df - 1) / 2.0))
-    return float(math.exp(log_j))
+    return 1.0 - (3.0 / (4.0 * df - 1.0))
 
 
 def _interpret_cohens_d(d: float) -> str:
@@ -682,7 +678,7 @@ def effect_size_from_t(
         'dInterpretation': _interpret_cohens_d(cohens_d),
         'rInterpretation': _interpret_r(r),
         'inputType': 't-statistic',
-        'formula': 'd = t × sqrt(1/n1 + 1/n2)' if n1 is not None and n2 is not None else 'd = t / sqrt(n)'
+        'formula': 'd = t * sqrt(1/n1 + 1/n2)' if n1 is not None and n2 is not None else 'd = t / sqrt(n)'
     }
 
 
@@ -721,10 +717,10 @@ def effect_size_from_f(
         'etaSquared': _safe_float(eta_squared),
         'omegaSquared': _safe_float(omega_squared),
         'cohensF': _safe_float(cohens_f),
-        'cohensD': _safe_float(cohens_d) if cohens_d else None,
+        'cohensD': _safe_float(cohens_d) if cohens_d is not None else None,
         'etaInterpretation': _interpret_eta_squared(eta_squared),
         'inputType': 'F-statistic',
-        'formula': 'η² = (df_b × F) / (df_b × F + df_w)'
+        'formula': 'eta^2 = (df_between * F) / (df_between * F + df_within)'
     }
 
 
@@ -862,13 +858,15 @@ def effect_size_from_d(
         # Approximate formula (assumes equal n)
         r = d / np.sqrt(d**2 + 4)
 
-    # Eta-squared (approximate)
-    eta_squared = d**2 / (d**2 + 4)
+    # Eta-squared for 2-group comparisons equals r^2 (using the corresponding r)
+    eta_squared = r**2
 
     # Hedges' g correction (if sample sizes provided)
     if n1 and n2:
+        if n1 <= 1 or n2 <= 1:
+            raise ValueError("n1 and n2 must be >= 2")
         df = n1 + n2 - 2
-        j = 1 - (3 / (4 * df - 1))  # Correction factor
+        j = _hedges_correction_j(df)
         hedges_g = d * j
     else:
         hedges_g = None
@@ -880,12 +878,12 @@ def effect_size_from_d(
         'cohensD': _safe_float(d),
         'r': _safe_float(r),
         'etaSquared': _safe_float(eta_squared),
-        'hedgesG': _safe_float(hedges_g) if hedges_g else None,
+        'hedgesG': _safe_float(hedges_g) if hedges_g is not None else None,
         'oddsRatio': _safe_float(odds_ratio),
         'dInterpretation': _interpret_cohens_d(d),
         'rInterpretation': _interpret_r(r),
         'inputType': "Cohen's d",
-        'formula': 'r = d / √(d² + 4)'
+        'formula': 'r = d / sqrt(d^2 + 4)'
     }
 
 
@@ -931,12 +929,12 @@ def effect_size_from_odds_ratio(
         'logOddsRatio': _safe_float(log_or),
         'cohensD': _safe_float(cohens_d),
         'r': _safe_float(r),
-        'dCiLower': _safe_float(d_ci_lower) if d_ci_lower else None,
-        'dCiUpper': _safe_float(d_ci_upper) if d_ci_upper else None,
+        'dCiLower': _safe_float(d_ci_lower) if d_ci_lower is not None else None,
+        'dCiUpper': _safe_float(d_ci_upper) if d_ci_upper is not None else None,
         'orInterpretation': _interpret_odds_ratio(oddsRatio),
         'dInterpretation': _interpret_cohens_d(cohens_d),
         'inputType': 'odds ratio',
-        'formula': 'd = ln(OR) × √3 / π'
+        'formula': 'd = ln(OR) * sqrt(3) / pi'
     }
 
 
@@ -958,6 +956,11 @@ def effect_size_from_means(
     References:
     - Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences.
     """
+    if n1 <= 1 or n2 <= 1:
+        raise ValueError("n1 and n2 must be >= 2")
+    if std1 < 0 or std2 < 0:
+        raise ValueError("Standard deviations must be non-negative")
+
     mean_diff = mean1 - mean2
 
     if pooled:
@@ -971,11 +974,11 @@ def effect_size_from_means(
 
     # Hedges' g (bias-corrected d)
     df = n1 + n2 - 2
-    j = 1 - (3 / (4 * df - 1))
+    j = _hedges_correction_j(df)
     hedges_g = cohens_d * j
 
     # Standard error of d
-    se_d = np.sqrt((n1 + n2) / (n1 * n2) + cohens_d**2 / (2 * (n1 + n2)))
+    se_d = np.sqrt((n1 + n2) / (n1 * n2) + cohens_d**2 / (2 * df))
 
     # 95% CI for d
     z_crit = 1.96
@@ -997,7 +1000,7 @@ def effect_size_from_means(
         'pooledStd': _safe_float(pooled_std) if pooled else None,
         'dInterpretation': _interpret_cohens_d(cohens_d),
         'inputType': 'means and SDs',
-        'formula': 'd = (M₁ - M₂) / s_pooled'
+        'formula': 'd = (M1 - M2) / s_pooled'
     }
 
 
@@ -1036,9 +1039,13 @@ def convert_effect_sizes(
     elif inputType == 'chi-square':
         n = kwargs.get('n')
         df = kwargs.get('df')
-        if n is None or df is None:
-            raise ValueError("n and df are required for chi-square conversion")
-        result = effect_size_from_chi_square(value, n, df)
+        rows = kwargs.get('rows')
+        cols = kwargs.get('cols')
+        if n is None:
+            raise ValueError("n is required for chi-square conversion")
+        if df is None and (rows is None or cols is None):
+            raise ValueError("Provide df (= min(r-1, c-1)) or both rows and cols for chi-square conversion")
+        result = effect_size_from_chi_square(value, n, df, rows, cols)
 
     elif inputType == 'r':
         n = kwargs.get('n')

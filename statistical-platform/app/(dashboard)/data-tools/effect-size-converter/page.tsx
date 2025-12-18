@@ -89,7 +89,9 @@ const INPUT_TYPE_INFO: Record<InputType, {
     fields: [
       { key: 'value', label: 'Chi-square value', placeholder: '10.5', required: true },
       { key: 'n', label: 'N (total sample)', placeholder: '100', required: true },
-      { key: 'df', label: 'df', placeholder: '1', required: true },
+      { key: 'df', label: 'min(r-1, c-1) (optional if rows/cols provided)', placeholder: '1', required: false },
+      { key: 'rows', label: 'Rows (optional)', placeholder: '2', required: false },
+      { key: 'cols', label: 'Columns (optional)', placeholder: '2', required: false },
     ]
   },
   'r': {
@@ -146,6 +148,98 @@ export default function EffectSizeConverterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const getValidationError = useCallback((): string | null => {
+    const getNum = (key: string): number | null => {
+      const raw = inputValues[key]
+      if (raw === undefined) return null
+      const trimmed = raw.trim()
+      if (!trimmed) return null
+      const num = Number(trimmed)
+      return Number.isFinite(num) ? num : null
+    }
+
+    const getInt = (key: string): number | null => {
+      const num = getNum(key)
+      if (num === null) return null
+      return Number.isInteger(num) ? num : null
+    }
+
+    const value = getNum('value')
+    if (value === null) return 'Enter a valid numeric value.'
+
+    if (inputType === 't') {
+      const df = getInt('df')
+      if (df === null || df <= 0) return 'df must be a positive integer.'
+      const n1 = getInt('n1')
+      const n2 = getInt('n2')
+      if (n1 !== null && n1 <= 0) return 'N1 must be positive.'
+      if (n2 !== null && n2 <= 0) return 'N2 must be positive.'
+    }
+
+    if (inputType === 'f') {
+      const dfBetween = getInt('dfBetween')
+      const dfWithin = getInt('dfWithin')
+      if (dfBetween === null || dfBetween <= 0) return 'df between must be a positive integer.'
+      if (dfWithin === null || dfWithin <= 0) return 'df within must be a positive integer.'
+      if (value < 0) return 'F value must be non-negative.'
+    }
+
+    if (inputType === 'chi-square') {
+      const n = getInt('n')
+      if (n === null || n <= 0) return 'N must be a positive integer.'
+      if (value < 0) return 'Chi-square value must be non-negative.'
+
+      const df = getInt('df')
+      const rows = getInt('rows')
+      const cols = getInt('cols')
+
+      const hasRowsCols = rows !== null && cols !== null
+      if (!hasRowsCols && (df === null || df <= 0)) {
+        return 'Provide min(r-1, c-1) or both rows and columns.'
+      }
+      if (rows !== null && rows < 2) return 'Rows must be >= 2.'
+      if (cols !== null && cols < 2) return 'Columns must be >= 2.'
+      if (df !== null && df <= 0) return 'min(r-1, c-1) must be a positive integer.'
+    }
+
+    if (inputType === 'r') {
+      if (Math.abs(value) >= 1) return 'r must be between -1 and 1 (exclusive).'
+      const n = getInt('n')
+      if (n !== null && n <= 0) return 'N must be positive.'
+    }
+
+    if (inputType === 'd') {
+      const n1 = getInt('n1')
+      const n2 = getInt('n2')
+      if (n1 !== null && n1 <= 0) return 'N1 must be positive.'
+      if (n2 !== null && n2 <= 0) return 'N2 must be positive.'
+    }
+
+    if (inputType === 'odds-ratio') {
+      if (value <= 0) return 'Odds Ratio must be positive.'
+      const ciLower = getNum('ciLower')
+      const ciUpper = getNum('ciUpper')
+      if (ciLower !== null && ciLower <= 0) return 'CI lower must be positive.'
+      if (ciUpper !== null && ciUpper <= 0) return 'CI upper must be positive.'
+      if (ciLower !== null && ciUpper !== null && ciLower > ciUpper) return 'CI lower must be <= CI upper.'
+    }
+
+    if (inputType === 'means') {
+      const std1 = getNum('std1')
+      const std2 = getNum('std2')
+      const n1 = getInt('n1')
+      const n2 = getInt('n2')
+      const mean2 = getNum('mean2')
+
+      if (std1 === null || std2 === null || mean2 === null) return 'Enter valid mean/SD values.'
+      if (std1 < 0 || std2 < 0) return 'SD must be non-negative.'
+      if (n1 === null || n1 < 2) return 'N1 must be >= 2.'
+      if (n2 === null || n2 < 2) return 'N2 must be >= 2.'
+    }
+
+    return null
+  }, [inputType, inputValues])
+
   const breadcrumbs = useMemo(() => [
     { label: 'Home', href: '/' },
     { label: 'Data Tools', href: '/data-tools' },
@@ -177,6 +271,12 @@ export default function EffectSizeConverterPage() {
     setError(null)
 
     try {
+      const validationError = getValidationError()
+      if (validationError) {
+        setError(validationError)
+        return
+      }
+
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
 
@@ -187,12 +287,22 @@ export default function EffectSizeConverterPage() {
       }
 
       // Add type-specific parameters
+      const INTEGER_KEYS = new Set([
+        'n',
+        'n1',
+        'n2',
+        'df',
+        'dfBetween',
+        'dfWithin',
+        'rows',
+        'cols'
+      ])
       const typeInfo = INPUT_TYPE_INFO[inputType]
       for (const field of typeInfo.fields) {
         if (field.key !== 'value' && inputValues[field.key]) {
           const val = inputValues[field.key]
-          // Parse as int for n, df fields, float for others
-          if (field.key.startsWith('n') || field.key.startsWith('df')) {
+          // Parse as int for count/df-like fields, float for others
+          if (INTEGER_KEYS.has(field.key)) {
             params[field.key] = parseInt(val, 10)
           } else {
             params[field.key] = parseFloat(val)
@@ -212,7 +322,7 @@ export default function EffectSizeConverterPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [inputType, inputValues])
+  }, [getValidationError, inputType, inputValues])
 
   const handleReset = useCallback(() => {
     setInputValues({})
@@ -222,10 +332,12 @@ export default function EffectSizeConverterPage() {
 
   const isFormValid = useCallback(() => {
     const typeInfo = INPUT_TYPE_INFO[inputType]
-    return typeInfo.fields
+    const hasRequired = typeInfo.fields
       .filter(f => f.required)
       .every(f => inputValues[f.key] && !isNaN(parseFloat(inputValues[f.key])))
-  }, [inputType, inputValues])
+
+    return hasRequired && getValidationError() === null
+  }, [getValidationError, inputType, inputValues])
 
   const formatValue = (val: number | null | undefined): string => {
     if (val === null || val === undefined) return '-'
