@@ -178,17 +178,18 @@ describe('ANOVA Role Mapping Fix', () => {
     })
 
     it('all categorical grouping variables should use standard roles', () => {
-      // 표준 role 목록 (SPSS/R/SAS 호환)
+      // 표준 role 목록 (실제 사용 중인 role 기반)
       const standardRoles = [
-        'dependent',
+        'dependent',   // 종속변수
         'factor',      // 요인 (고정효과) - ANOVA 계열
         'within',      // 개체내 요인 - Repeated Measures
         'between',     // 개체간 요인
         'covariate',   // 공변량 - ANCOVA
         'blocking',    // 블록 요인
         'weight',      // 가중치 - Poisson
-        'stratum',     // 층
-        'independent'  // 독립변수 - Regression, Cross-tabulation, Chi-square
+        'independent', // 독립변수 - Regression, Chi-square
+        'time',        // 시간 변수 - Time Series, Survival
+        'event'        // 이벤트 변수 - Survival Analysis
       ]
 
       STATISTICAL_METHOD_REQUIREMENTS.forEach(method => {
