@@ -29,13 +29,13 @@ export function ConversationalQuestion({
   const isAutoSuggested = (value: string) => autoAnswer?.value === value
 
   // 입력 필드에서 이벤트가 발생했는지 확인하는 헬퍼
-  const isEditableElement = (target: EventTarget | null): boolean => {
+  const isEditableElement = useCallback((target: EventTarget | null): boolean => {
     if (!target || !(target instanceof HTMLElement)) return false
     const tagName = target.tagName.toLowerCase()
     if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') return true
     if (target.isContentEditable) return true
     return false
-  }
+  }, [])
 
   // 키보드 단축키 (1-9로 옵션 선택)
   useEffect(() => {
@@ -51,7 +51,7 @@ export function ConversationalQuestion({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [question.options, onSelect])
+  }, [question.options, onSelect, isEditableElement])
 
   // 옵션 선택 핸들러
   const handleOptionClick = useCallback((value: string) => {

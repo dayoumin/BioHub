@@ -203,6 +203,7 @@ export function QuestionFlow({
             variant="ghost"
             size="sm"
             onClick={() => {
+              clearAutoAdvanceTimeout()
               setDirection('backward')
               setCurrentIndex(0)
             }}
