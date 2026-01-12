@@ -4,7 +4,7 @@
  * 목적: /smart-analysis 삭제 후 모든 링크가 /smart-flow로 올바르게 연결되는지 검증
  *
  * 테스트 범위:
- * 1. 홈페이지 (app/page.tsx) - 스마트 분석 시작하기 버튼
+ * 1. 홈페이지 (app/page.tsx) - 분석 시작하기 버튼
  * 2. 대시보드 (app/(dashboard)/dashboard/page.tsx) - 스마트 분석 카드
  * 3. /smart-analysis 경로 존재 여부 (삭제 확인)
  */
@@ -48,16 +48,17 @@ describe('Smart Flow Links Integration', () => {
     it('should have a link to /smart-flow (not /smart-analysis)', () => {
       render(<HomePage />)
 
-      const link = screen.getByRole('link', { name: /스마트 분석 시작하기/i })
+      // 버튼 텍스트가 "분석 시작하기"로 변경됨
+      const link = screen.getByRole('link', { name: /분석 시작하기/i })
       expect(link).toBeInTheDocument()
       expect(link).toHaveAttribute('href', '/smart-flow')
       expect(link).not.toHaveAttribute('href', '/smart-analysis')
     })
 
-    it('should display "스마트 분석 시작하기" button', () => {
+    it('should display "분석 시작하기" button', () => {
       render(<HomePage />)
 
-      const button = screen.getByText('스마트 분석 시작하기')
+      const button = screen.getByText('분석 시작하기')
       expect(button).toBeInTheDocument()
     })
 

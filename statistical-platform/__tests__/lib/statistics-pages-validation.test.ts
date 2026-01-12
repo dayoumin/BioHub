@@ -54,7 +54,10 @@ describe('통계 페이지 검증', () => {
         }
 
         const content = fs.readFileSync(pagePath, 'utf-8')
-        const usesPyodide = content.includes('PyodideWorker') || content.includes('PyodideCoreService')
+        // pyodideStats 래퍼도 Pyodide 사용으로 인정 (CLAUDE.md 하이브리드 전략)
+        const usesPyodide = content.includes('PyodideWorker') ||
+                           content.includes('PyodideCoreService') ||
+                           content.includes('pyodideStats')
         expect(usesPyodide).toBe(true)
       })
     })
@@ -140,7 +143,8 @@ describe('통계 페이지 검증', () => {
 
         const content = fs.readFileSync(pagePath, 'utf-8')
 
-        if (content.includes('PyodideWorker') || content.includes('PyodideCoreService')) {
+        // pyodideStats 래퍼도 Pyodide 사용으로 인정 (CLAUDE.md 하이브리드 전략)
+        if (content.includes('PyodideWorker') || content.includes('PyodideCoreService') || content.includes('pyodideStats')) {
           results.pyodide++
         }
         if (ANALYSIS_FUNCTION_PATTERNS.some(p => p.test(content))) {

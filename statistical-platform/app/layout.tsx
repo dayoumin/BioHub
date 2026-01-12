@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { ConditionalHeader } from "@/components/layout/conditional-header"
 import { Toaster } from "@/components/ui/sonner"
@@ -9,7 +8,8 @@ import { LayoutContent } from "@/components/layout/layout-content"
 import { MobileWarning } from "@/components/layout/mobile-warning"
 import { GlobalFeedbackPanel } from "@/components/feedback/GlobalFeedbackPanel"
 
-const inter = Inter({ subsets: ["latin"] })
+// 외부망 환경에서 Google Fonts 접근 불가 시 시스템 폰트 사용
+const systemFontClass = "font-sans"
 
 export const metadata: Metadata = {
   title: {
@@ -40,7 +40,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={systemFontClass}>
         <ClientProviders>
           <UIProvider>
             <div className="flex h-screen overflow-hidden">
