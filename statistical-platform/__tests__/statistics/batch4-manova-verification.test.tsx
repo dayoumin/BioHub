@@ -113,12 +113,6 @@ describe('Batch 4-15: manova 페이지 마이그레이션 검증', () => {
     })
   })
 
-  describe('5. 백업 파일', () => {
-    it('page.tsx.backup 파일이 존재해야 함', () => {
-      const backupPath = join(process.cwd(), 'app/(dashboard)/statistics/manova/page.tsx.backup')
-      expect(() => readFileSync(backupPath, 'utf-8')).not.toThrow()
-    })
-  })
 
   describe('6. TypeScript 타입 안전성', () => {
     it('ManovaResult 인터페이스가 있어야 함', () => {
@@ -205,17 +199,18 @@ describe('Batch 4-15: manova 페이지 마이그레이션 검증', () => {
   })
 
   describe('10. Tabs 구조 (Step 3 결과)', () => {
-    it('6개 탭이 있어야 함', () => {
-      expect(fileContent).toMatch(/value="multivariate"/)
-      expect(fileContent).toMatch(/value="univariate"/)
-      expect(fileContent).toMatch(/value="descriptives"/)
-      expect(fileContent).toMatch(/value="discriminant"/)
-      expect(fileContent).toMatch(/value="assumptions"/)
-      expect(fileContent).toMatch(/value="interpretation"/)
+    it('7개 탭이 있어야 함', () => {
+      expect(fileContent).toMatch(/id:\s*['"]multivariate['"]/)
+      expect(fileContent).toMatch(/id:\s*['"]univariate['"]/)
+      expect(fileContent).toMatch(/id:\s*['"]posthoc['"]/)
+      expect(fileContent).toMatch(/id:\s*['"]descriptives['"]/)
+      expect(fileContent).toMatch(/id:\s*['"]discriminant['"]/)
+      expect(fileContent).toMatch(/id:\s*['"]assumptions['"]/)
+      expect(fileContent).toMatch(/id:\s*['"]interpretation['"]/)
     })
 
-    it('TabsList는 6칸으로 나누어야 함', () => {
-      expect(fileContent).toMatch(/grid-cols-6/)
+    it('ContentTabs 컴포넌트를 사용해야 함', () => {
+      expect(fileContent).toMatch(/ContentTabs/)
     })
   })
 

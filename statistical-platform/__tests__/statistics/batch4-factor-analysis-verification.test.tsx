@@ -140,14 +140,7 @@ describe('Batch 4-6: factor-analysis 페이지 마이그레이션 검증', () =>
     })
   })
 
-  describe('7. 백업 파일', () => {
-    it('page.tsx.backup 파일이 존재해야 함', () => {
-      const backupPath = join(process.cwd(), 'app/(dashboard)/statistics/factor-analysis/page.tsx.backup')
-      expect(() => readFileSync(backupPath, 'utf-8')).not.toThrow()
-    })
-  })
-
-  describe('8. TypeScript 타입 안전성', () => {
+  describe('7. TypeScript 타입 안전성', () => {
     it('FactorAnalysisResult 인터페이스가 있어야 함', () => {
       expect(fileContent).toMatch(/interface FactorAnalysisResult/)
     })

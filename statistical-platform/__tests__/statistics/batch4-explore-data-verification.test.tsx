@@ -90,12 +90,6 @@ describe('Batch 4-7: explore-data 페이지 마이그레이션 검증', () => {
     })
   })
 
-  describe('5. 백업 파일', () => {
-    it('page.tsx.backup 파일이 존재해야 함', () => {
-      const backupPath = join(process.cwd(), 'app/(dashboard)/statistics/explore-data/page.tsx.backup')
-      expect(() => readFileSync(backupPath, 'utf-8')).not.toThrow()
-    })
-  })
 
   describe('6. TypeScript 타입 안전성', () => {
     it('ExploreResults 인터페이스가 있어야 함', () => {

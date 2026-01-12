@@ -109,12 +109,6 @@ describe('Batch 4-13: non-parametric 페이지 마이그레이션 검증', () =>
     })
   })
 
-  describe('5. 백업 파일', () => {
-    it('page.tsx.backup 파일이 존재해야 함', () => {
-      const backupPath = join(process.cwd(), 'app/(dashboard)/statistics/non-parametric/page.tsx.backup')
-      expect(() => readFileSync(backupPath, 'utf-8')).not.toThrow()
-    })
-  })
 
   describe('6. TypeScript 타입 안전성', () => {
     it('NonParametricVariables를 import 해야 함', () => {

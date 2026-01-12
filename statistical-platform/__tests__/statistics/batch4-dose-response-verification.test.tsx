@@ -97,12 +97,6 @@ describe('Batch 4-11: dose-response 페이지 마이그레이션 검증', () => 
     })
   })
 
-  describe('5. 백업 파일', () => {
-    it('page.tsx.backup 파일이 존재해야 함', () => {
-      const backupPath = join(process.cwd(), 'app/(dashboard)/statistics/dose-response/page.tsx.backup')
-      expect(() => readFileSync(backupPath, 'utf-8')).not.toThrow()
-    })
-  })
 
   describe('6. TypeScript 타입 안전성', () => {
     it('DoseResponseResult 인터페이스가 있어야 함', () => {
@@ -197,23 +191,23 @@ describe('Batch 4-11: dose-response 페이지 마이그레이션 검증', () => 
 
   describe('11. 결과 탭 구조', () => {
     it('매개변수 탭이 있어야 함', () => {
-      expect(fileContent).toMatch(/value="parameters"/)
-      expect(fileContent).toMatch(/매개변수/)
+      expect(fileContent).toMatch(/id:\s*['"]parameters['"]|tabId="parameters"/)
+      expect(fileContent).toMatch(/매개변수|Parameters/)
     })
 
     it('통계 탭이 있어야 함', () => {
-      expect(fileContent).toMatch(/value="statistics"/)
+      expect(fileContent).toMatch(/id:\s*['"]statistics['"]|tabId="statistics"/)
       expect(fileContent).toMatch(/통계/)
     })
 
     it('해석 탭이 있어야 함', () => {
-      expect(fileContent).toMatch(/value="interpretation"/)
-      expect(fileContent).toMatch(/해석/)
+      expect(fileContent).toMatch(/id:\s*['"]interpretation['"]|tabId="interpretation"/)
+      expect(fileContent).toMatch(/해석|Interpretation/)
     })
 
     it('진단 탭이 있어야 함', () => {
-      expect(fileContent).toMatch(/value="diagnostics"/)
-      expect(fileContent).toMatch(/진단/)
+      expect(fileContent).toMatch(/id:\s*['"]diagnostics['"]|tabId="diagnostics"/)
+      expect(fileContent).toMatch(/진단|Diagnostics/)
     })
   })
 
