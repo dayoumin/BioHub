@@ -36,7 +36,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - ❌ 금지: `mann-whitney/page.tsx`에서 `interface PostHocComparison {...}`
    - ✅ 권장: `import { PostHocComparison } from '@/types/statistics'`
 
-3. ✅ **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard, VariableSelectorSimple 등 사용
+3. ✅ **공통 컴포넌트 우선**: StatisticsTable, EffectSizeCard, VariableSelectorModern 등 사용
 
 4. ✅ **통계 방법 ID 일관성**: `lib/constants/statistical-methods.ts`에서만 정의
    - ID = 페이지 경로 (예: `t-test` → `/statistics/t-test`)
@@ -94,8 +94,9 @@ npm test -- __tests__/path/to/test.tsx
 - ✅ **AIAnalysisProgress** - AI 분석 진행 표시 (프로그레스 바 + 단계)
 - ✅ **DataProfileSummary** - 데이터 요약 표시 (표본 크기, 변수 타입)
 
-**2. 변수 선택 컴포넌트** (`components/common/`)
-- ✅ **VariableSelectorSimple** - 초간단 변수 선택 (버튼 클릭만, 드래그앤드롭 제거)
+**2. 변수 선택 컴포넌트** (`components/variable-selection/`)
+- ✅ **VariableSelectorModern** - 드래그앤드롭 + 모달 기반 (복잡한 다중 변수 선택)
+- ✅ **VariableSelectorPanel** - 클릭 기반 팝오버 선택 (간단한 변수 선택)
 
 **3. 통계 결과 컴포넌트** (`components/common/statistics/`)
 - ✅ **StatisticsTable** - 통계 결과 테이블 (내보내기, 정렬 기능)
@@ -166,7 +167,8 @@ npm run dev
 ⚠️ **상세 규칙**: [STATISTICS_CODING_STANDARDS.md](statistical-platform/docs/STATISTICS_CODING_STANDARDS.md)
 
 **핵심 원칙**:
-- ✅ `useStatisticsPage` hook 사용 (useState 금지)
+- ✅ `useStatisticsPage` hook 사용 (핵심 상태: currentStep, isAnalyzing, results, error)
+- ✅ UI 상태는 `useState` 허용 (analysisTimestamp, activeTab, testType 등 페이지별 UI 옵션)
 - ✅ `useCallback` 모든 이벤트 핸들러에 적용
 - ✅ **await 패턴 사용** (setTimeout 사용 금지)
 - ✅ `any` 타입 절대 금지 (unknown + 타입 가드)
