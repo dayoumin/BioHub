@@ -5,6 +5,7 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QuestionFlow } from '@/components/smart-flow/steps/purpose/QuestionFlow'
 import { ProgressIndicator } from '@/components/smart-flow/steps/purpose/ProgressIndicator'
@@ -69,7 +70,7 @@ describe('ProgressIndicator', () => {
 })
 
 describe('ConversationalQuestion', () => {
-  const mockOnSelect = jest.fn()
+  const mockOnSelect = vi.fn()
 
   beforeEach(() => {
     mockOnSelect.mockClear()
@@ -157,9 +158,9 @@ describe('ConversationalQuestion', () => {
 })
 
 describe('QuestionFlow', () => {
-  const mockOnAnswerQuestion = jest.fn()
-  const mockOnComplete = jest.fn()
-  const mockOnBack = jest.fn()
+  const mockOnAnswerQuestion = vi.fn()
+  const mockOnComplete = vi.fn()
+  const mockOnBack = vi.fn()
 
   beforeEach(() => {
     mockOnAnswerQuestion.mockClear()
@@ -375,9 +376,9 @@ describe('QuestionFlow', () => {
 })
 
 describe('QuestionFlow keyboard navigation', () => {
-  const mockOnAnswerQuestion = jest.fn()
-  const mockOnComplete = jest.fn()
-  const mockOnBack = jest.fn()
+  const mockOnAnswerQuestion = vi.fn()
+  const mockOnComplete = vi.fn()
+  const mockOnBack = vi.fn()
 
   beforeEach(() => {
     mockOnAnswerQuestion.mockClear()
@@ -440,19 +441,19 @@ describe('QuestionFlow keyboard navigation', () => {
 // ============================================
 
 describe('QuestionFlow Bug Fixes', () => {
-  const mockOnAnswerQuestion = jest.fn()
-  const mockOnComplete = jest.fn()
-  const mockOnBack = jest.fn()
+  const mockOnAnswerQuestion = vi.fn()
+  const mockOnComplete = vi.fn()
+  const mockOnBack = vi.fn()
 
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
     mockOnAnswerQuestion.mockClear()
     mockOnComplete.mockClear()
     mockOnBack.mockClear()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   // Bug 1: Backspace shortcut never fires because !e.target is always false
@@ -605,7 +606,7 @@ describe('QuestionFlow Bug Fixes', () => {
       fireEvent.click(backButton)
 
       // Fast-forward timers
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
 
       // onBack should have been called
       expect(mockOnBack).toHaveBeenCalled()
@@ -633,7 +634,7 @@ describe('QuestionFlow Bug Fixes', () => {
       fireEvent.keyDown(window, { key: 'Escape' })
 
       // Fast-forward timers
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
 
       expect(mockOnBack).toHaveBeenCalled()
     })
@@ -658,7 +659,7 @@ describe('QuestionFlow Bug Fixes', () => {
 
       // Fast-forward timers - should not throw or warn
       expect(() => {
-        jest.advanceTimersByTime(500)
+        vi.advanceTimersByTime(500)
       }).not.toThrow()
     })
   })
@@ -722,7 +723,7 @@ describe('QuestionFlow Bug Fixes', () => {
 })
 
 describe('ConversationalQuestion Bug Fixes', () => {
-  const mockOnSelect = jest.fn()
+  const mockOnSelect = vi.fn()
 
   beforeEach(() => {
     mockOnSelect.mockClear()

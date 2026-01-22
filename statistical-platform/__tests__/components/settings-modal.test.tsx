@@ -11,22 +11,23 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { SettingsModal } from '@/components/layout/settings-modal'
 import { ChatStorage } from '@/lib/services/chat-storage'
 
 // next-themes 모킹
-jest.mock('next-themes', () => ({
+vi.mock('next-themes', () => ({
   useTheme: () => ({
     theme: 'system',
-    setTheme: jest.fn(),
+    setTheme: vi.fn(),
   }),
 }))
 
 // ChatStorage 모킹
-jest.mock('@/lib/services/chat-storage', () => ({
+vi.mock('@/lib/services/chat-storage', () => ({
   ChatStorage: {
-    loadSettings: jest.fn(),
-    saveSettings: jest.fn(),
+    loadSettings: vi.fn(),
+    saveSettings: vi.fn(),
   },
 }))
 
@@ -38,14 +39,14 @@ describe('SettingsModal', () => {
     localStorageMock = {}
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: jest.fn((key: string) => localStorageMock[key] || null),
-        setItem: jest.fn((key: string, value: string) => {
+        getItem: vi.fn((key: string) => localStorageMock[key] || null),
+        setItem: vi.fn((key: string, value: string) => {
           localStorageMock[key] = value
         }),
-        removeItem: jest.fn((key: string) => {
+        removeItem: vi.fn((key: string) => {
           delete localStorageMock[key]
         }),
-        clear: jest.fn(() => {
+        clear: vi.fn(() => {
           localStorageMock = {}
         }),
       },
@@ -59,23 +60,23 @@ describe('SettingsModal', () => {
     })
 
     // window.dispatchEvent 모킹
-    window.dispatchEvent = jest.fn()
+    window.dispatchEvent = vi.fn()
 
     // window.location.href 모킹 (assign 사용)
     delete (window as { location?: unknown }).location
-    ;(window as { location: Partial<Location> }).location = { href: '', assign: jest.fn() } as Partial<Location>
+    ;(window as { location: Partial<Location> }).location = { href: '', assign: vi.fn() } as Partial<Location>
 
     // window.open 모킹
-    window.open = jest.fn()
+    window.open = vi.fn()
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('렌더링', () => {
     it('모달이 열리면 모든 설정 항목이 표시되어야 함', () => {
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       expect(screen.getByText('설정')).toBeInTheDocument()
       expect(screen.getByText('테마')).toBeInTheDocument()
@@ -88,7 +89,7 @@ describe('SettingsModal', () => {
     })
 
     it('모달이 닫히면 표시되지 않아야 함', () => {
-      const { container } = render(<SettingsModal open={false} onOpenChange={jest.fn()} />)
+      const { container } = render(<SettingsModal open={false} onOpenChange={vi.fn()} />)
 
       // Dialog가 닫혔을 때 내용이 표시되지 않음
       expect(container.querySelector('[role="dialog"]')).not.toBeInTheDocument()
@@ -100,7 +101,7 @@ describe('SettingsModal', () => {
       localStorageMock['statPlatform_notifyAnalysisComplete'] = 'false'
       localStorageMock['statPlatform_notifyError'] = 'false'
 
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       const switches = screen.getAllByRole('switch')
       // 플로팅 버튼 (false) + 알림 완료 (false) + 알림 에러 (false)
@@ -117,14 +118,14 @@ describe('SettingsModal', () => {
         theme: 'system',
       })
 
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       const switches = screen.getAllByRole('switch')
       expect(switches[0]).toBeChecked() // 플로팅 버튼
     })
 
     it('로컬 저장 토글이 제거되었음을 확인', () => {
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       // 로컬 저장 관련 UI가 없어야 함
       expect(screen.queryByText('로컬 저장 허용')).not.toBeInTheDocument()
@@ -134,7 +135,7 @@ describe('SettingsModal', () => {
 
   describe('플로팅 버튼 토글', () => {
     it('플로팅 버튼을 토글하면 ChatStorage에 저장되어야 함', async () => {
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       const floatingSwitch = screen.getAllByRole('switch')[0]
 
@@ -149,7 +150,7 @@ describe('SettingsModal', () => {
     })
 
     it('플로팅 버튼을 토글하면 CustomEvent가 발생해야 함', async () => {
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       const floatingSwitch = screen.getAllByRole('switch')[0]
 
@@ -167,7 +168,7 @@ describe('SettingsModal', () => {
 
   describe('알림 설정 변경', () => {
     it('분석 완료 알림을 토글하면 localStorage에 저장되어야 함', async () => {
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       const notifyCompleteSwitch = screen.getAllByRole('switch')[1]
 
@@ -182,7 +183,7 @@ describe('SettingsModal', () => {
     })
 
     it('에러 알림을 토글하면 localStorage에 저장되어야 함', async () => {
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       const notifyErrorSwitch = screen.getAllByRole('switch')[2]
 
@@ -196,7 +197,7 @@ describe('SettingsModal', () => {
 
   describe('버튼 동작', () => {
     it('상세 설정 버튼을 클릭하면 모달이 닫혀야 함', () => {
-      const onOpenChange = jest.fn()
+      const onOpenChange = vi.fn()
       render(<SettingsModal open={true} onOpenChange={onOpenChange} />)
 
       const detailButton = screen.getByText('상세 설정 보기')
@@ -210,7 +211,7 @@ describe('SettingsModal', () => {
     })
 
     it('전용 챗봇 페이지 버튼을 클릭하면 새 창이 열려야 함', () => {
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       const chatbotButton = screen.getByText('전용 챗봇 페이지 열기 (새 창)')
       fireEvent.click(chatbotButton)
@@ -226,7 +227,7 @@ describe('SettingsModal', () => {
         theme: 'system',
       })
 
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       expect(screen.getByText('플로팅 챗봇 버튼이 화면에 표시됩니다')).toBeInTheDocument()
     })
@@ -237,7 +238,7 @@ describe('SettingsModal', () => {
         theme: 'system',
       })
 
-      render(<SettingsModal open={true} onOpenChange={jest.fn()} />)
+      render(<SettingsModal open={true} onOpenChange={vi.fn()} />)
 
       expect(
         screen.getByText('플로팅 챗봇 버튼이 숨겨집니다 (전용 페이지는 사용 가능)')

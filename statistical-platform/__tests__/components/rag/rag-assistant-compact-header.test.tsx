@@ -8,24 +8,25 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { RAGAssistantCompact } from '@/components/rag/rag-assistant-compact'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import type { ChatSession } from '@/lib/types/chat'
 
 // IndexedDB Mock
-jest.mock('@/lib/services/storage/chat-storage-indexed-db', () => ({
+vi.mock('@/lib/services/storage/chat-storage-indexed-db', () => ({
   ChatStorageIndexedDB: {
-    loadSessions: jest.fn(),
-    createNewSession: jest.fn(),
-    loadSession: jest.fn(),
-    addMessage: jest.fn(),
-    toggleFavorite: jest.fn(),
+    loadSessions: vi.fn(),
+    createNewSession: vi.fn(),
+    loadSession: vi.fn(),
+    addMessage: vi.fn(),
+    toggleFavorite: vi.fn(),
   },
 }))
 
 // Ollama Mock
-jest.mock('@/lib/rag/utils/ollama-check', () => ({
-  checkOllamaStatus: jest.fn().mockResolvedValue({
+vi.mock('@/lib/rag/utils/ollama-check', () => ({
+  checkOllamaStatus: vi.fn().mockResolvedValue({
     isAvailable: true,
     hasEmbeddingModel: true,
     hasInferenceModel: true,
@@ -74,7 +75,7 @@ describe('RAGAssistantCompact - 헤더 UI', () => {
   ]
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     ;(ChatStorageIndexedDB.loadSessions as jest.Mock).mockResolvedValue(mockSessions)
     ;(ChatStorageIndexedDB.createNewSession as jest.Mock).mockResolvedValue({
       id: 'new-session',

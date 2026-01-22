@@ -8,6 +8,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
+import { vi } from 'vitest'
 import { useState, useEffect } from 'react'
 
 // 로컬스토리지 모킹
@@ -205,7 +206,7 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
       // 테스트 시작 전 명시적으로 초기화
       localStorage.clear()
 
-      const autoDetectMock = jest.fn()
+      const autoDetectMock = vi.fn()
 
       // 저장된 값이 없는 경우 (localStorage.getItem()이 null 반환)
       const hasStoredEmbedding1 = localStorage.getItem('rag-embedding-model')
@@ -231,7 +232,7 @@ describe('RAG 테스트 페이지 - 로컬스토리지 기능', () => {
       // 테스트 시작 전 명시적으로 초기화
       localStorage.clear()
 
-      const autoDetectMock = jest.fn()
+      const autoDetectMock = vi.fn()
 
       // 저장된 값이 없는 경우 (localStorage.getItem()이 null 반환)
       const hasStoredInference1 = localStorage.getItem('rag-inference-model')

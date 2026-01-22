@@ -3,7 +3,7 @@
  * - 프론트엔드 중앙값이 Python np.median()과 동일한지 확인
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 
 describe('Runs Test - Median Calculation', () => {
   /**

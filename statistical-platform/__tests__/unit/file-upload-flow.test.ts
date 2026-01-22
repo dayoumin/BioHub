@@ -5,7 +5,7 @@
  * 1. 파일 선택 → 2. 파서 선택 → 3. 파싱 → 4. 메타데이터 생성 → 5. 문서 추가
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 import type { Document } from '@/lib/rag/providers/base-provider'
 
 describe('File Upload Flow - Metadata Extraction', () => {

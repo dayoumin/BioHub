@@ -9,15 +9,16 @@
 
 import { RAGService, queryRAG, rebuildRAGDatabase } from '@/lib/rag/rag-service'
 
+import { vi } from 'vitest'
 // Fetch mock
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('RAGService', () => {
   beforeEach(() => {
     // Singleton 인스턴스 초기화
     // @ts-expect-error - private field access for testing
     RAGService.instance = null
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Singleton Pattern', () => {

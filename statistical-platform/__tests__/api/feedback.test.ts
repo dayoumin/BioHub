@@ -4,8 +4,9 @@
  * Tests for feedback API logic (unit tests without Next.js runtime)
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+import { vi } from 'vitest'
 // Mock @vercel/kv with proper types
 const mockKv = {
   hgetall: jest.fn<(_key: string) => Promise<Record<string, number> | null>>(),
@@ -16,7 +17,7 @@ const mockKv = {
   del: jest.fn<(_key: string) => Promise<number>>(),
 }
 
-jest.mock('@vercel/kv', () => ({
+vi.mock('@vercel/kv', () => ({
   kv: mockKv,
 }))
 
@@ -77,7 +78,7 @@ async function submitComment(category: string, content: string): Promise<{ succe
 
 describe('Feedback API Logic', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('getFeedback', () => {

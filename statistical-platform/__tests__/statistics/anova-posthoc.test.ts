@@ -6,7 +6,7 @@
  * - Two-way/Three-way ANOVA post-hoc
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import type { PostHocComparison } from '@/types/statistics'
 
 describe('ANOVA Post-hoc Tests', () => {

@@ -10,6 +10,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
+import { vi } from 'vitest'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
 
 describe('useReducedMotion', () => {
@@ -24,15 +25,15 @@ describe('useReducedMotion', () => {
   describe('Issue #2: Initial State (Lazy Initialization)', () => {
     it('should return false initially when prefers-reduced-motion is not set', () => {
       // matchMedia mock (reduce 미설정)
-      window.matchMedia = jest.fn().mockImplementation((query) => ({
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
         onchange: null,
-        addListener: jest.fn(), // Safari ≤13
-        removeListener: jest.fn(),
-        dispatchEvent: jest.fn()
+        addListener: vi.fn(), // Safari ≤13
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn()
       }))
 
       const { result } = renderHook(() => useReducedMotion())
@@ -43,15 +44,15 @@ describe('useReducedMotion', () => {
 
     it('should return true initially when prefers-reduced-motion is set', () => {
       // matchMedia mock (reduce 설정됨)
-      window.matchMedia = jest.fn().mockImplementation((query) => ({
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: true, // ✅ reduce 활성화
         media: query,
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        dispatchEvent: jest.fn()
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn()
       }))
 
       const { result } = renderHook(() => useReducedMotion())
@@ -63,18 +64,18 @@ describe('useReducedMotion', () => {
 
   describe('Issue #1: Legacy Browser Support', () => {
     it('should use addEventListener when available (modern browsers)', () => {
-      const addEventListenerSpy = jest.fn()
-      const removeEventListenerSpy = jest.fn()
+      const addEventListenerSpy = vi.fn()
+      const removeEventListenerSpy = vi.fn()
 
-      window.matchMedia = jest.fn().mockImplementation((query) => ({
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
         addEventListener: addEventListenerSpy, // ✅ 모던 API
         removeEventListener: removeEventListenerSpy,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        dispatchEvent: jest.fn()
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn()
       }))
 
       const { unmount } = renderHook(() => useReducedMotion())
@@ -89,10 +90,10 @@ describe('useReducedMotion', () => {
     })
 
     it('should fallback to addListener when addEventListener is undefined (Safari ≤13)', () => {
-      const addListenerSpy = jest.fn()
-      const removeListenerSpy = jest.fn()
+      const addListenerSpy = vi.fn()
+      const removeListenerSpy = vi.fn()
 
-      window.matchMedia = jest.fn().mockImplementation((query) => ({
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
         // ❌ addEventListener 미지원 (Safari ≤13)
@@ -101,7 +102,7 @@ describe('useReducedMotion', () => {
         onchange: null,
         addListener: addListenerSpy, // ✅ Legacy API
         removeListener: removeListenerSpy,
-        dispatchEvent: jest.fn()
+        dispatchEvent: vi.fn()
       }))
 
       const { unmount } = renderHook(() => useReducedMotion())
@@ -132,19 +133,19 @@ describe('useReducedMotion', () => {
     it('should update when OS setting changes (modern browsers)', () => {
       let changeHandler: ((event: MediaQueryListEvent) => void) | null = null
 
-      window.matchMedia = jest.fn().mockImplementation((query) => ({
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false, // 초기: reduce 비활성화
         media: query,
-        addEventListener: jest.fn((event, handler) => {
+        addEventListener: vi.fn((event, handler) => {
           if (event === 'change') {
             changeHandler = handler as (event: MediaQueryListEvent) => void
           }
         }),
-        removeEventListener: jest.fn(),
+        removeEventListener: vi.fn(),
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        dispatchEvent: jest.fn()
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn()
       }))
 
       const { result } = renderHook(() => useReducedMotion())
@@ -166,17 +167,17 @@ describe('useReducedMotion', () => {
     it('should update when OS setting changes (legacy browsers)', () => {
       let changeHandler: ((event: MediaQueryListEvent) => void) | null = null
 
-      window.matchMedia = jest.fn().mockImplementation((query) => ({
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
         addEventListener: undefined as unknown as typeof jest.fn,
         removeEventListener: undefined as unknown as typeof jest.fn,
         onchange: null,
-        addListener: jest.fn((handler) => {
+        addListener: vi.fn((handler) => {
           changeHandler = handler as (event: MediaQueryListEvent) => void
         }),
-        removeListener: jest.fn(),
-        dispatchEvent: jest.fn()
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn()
       }))
 
       const { result } = renderHook(() => useReducedMotion())
@@ -197,17 +198,17 @@ describe('useReducedMotion', () => {
 
   describe('Cleanup', () => {
     it('should remove event listener on unmount (modern browsers)', () => {
-      const removeEventListenerSpy = jest.fn()
+      const removeEventListenerSpy = vi.fn()
 
-      window.matchMedia = jest.fn().mockImplementation((query) => ({
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
-        addEventListener: jest.fn(),
+        addEventListener: vi.fn(),
         removeEventListener: removeEventListenerSpy,
         onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        dispatchEvent: jest.fn()
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn()
       }))
 
       const { unmount } = renderHook(() => useReducedMotion())
@@ -219,17 +220,17 @@ describe('useReducedMotion', () => {
     })
 
     it('should remove listener on unmount (legacy browsers)', () => {
-      const removeListenerSpy = jest.fn()
+      const removeListenerSpy = vi.fn()
 
-      window.matchMedia = jest.fn().mockImplementation((query) => ({
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
         matches: false,
         media: query,
         addEventListener: undefined as unknown as typeof jest.fn,
         removeEventListener: undefined as unknown as typeof jest.fn,
         onchange: null,
-        addListener: jest.fn(),
+        addListener: vi.fn(),
         removeListener: removeListenerSpy,
-        dispatchEvent: jest.fn()
+        dispatchEvent: vi.fn()
       }))
 
       const { unmount } = renderHook(() => useReducedMotion())

@@ -8,7 +8,7 @@
  * - Worker 독립: Worker 컨텍스트 제약 없이 테스트 가능
  */
 
-import { describe, it, beforeEach } from '@jest/globals'
+import { vi } from 'vitest'
 import {
   registerHelpersModule,
   validateInitialization,
@@ -24,9 +24,9 @@ import type { PyodideInterface } from '@/types/pyodide'
 function createMockPyodide(): PyodideInterface {
   return {
     version: 'v0.28.3',
-    loadPackage: async (_packages: string | string[]) => {},
-    runPython: (_code: string) => undefined,
-    runPythonAsync: async (_code: string) => '',
+    loadPackage: async (_packages: string | string[] | readonly string[]) => { /* no-op */ },
+    runPython: (_code: string) => null,
+    runPythonAsync: async (_code: string) => null,
     globals: {},
     loadedPackages: {},
     isPyProxy: (_obj: unknown) => false,
@@ -49,8 +49,8 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
     })
 
     it('should call FS.mkdir and FS.writeFile with /home/pyodide/helpers.py path', async () => {
-      const mkdirSpy = jest.fn()
-      const writeFileSpy = jest.fn()
+      const mkdirSpy = vi.fn()
+      const writeFileSpy = vi.fn()
       mockPyodide.FS.mkdir = mkdirSpy
       mockPyodide.FS.writeFile = writeFileSpy
 
@@ -62,7 +62,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
     })
 
     it('should call runPythonAsync with importlib code to register module', async () => {
-      const runPythonSpy = jest.fn().mockResolvedValue('')
+      const runPythonSpy = vi.fn().mockResolvedValue('')
       mockPyodide.runPythonAsync = runPythonSpy
 
       const helpersCode = 'def test():\n    pass'
@@ -104,7 +104,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
     })
 
     it('회귀 방지: writeFile 호출이 제거되면 실패해야 함', async () => {
-      const writeFileSpy = jest.fn()
+      const writeFileSpy = vi.fn()
       mockPyodide.FS.writeFile = writeFileSpy
 
       await registerHelpersModule(mockPyodide, 'def test(): pass')
@@ -114,7 +114,7 @@ describe('Pyodide Init Logic - Real Function Tests', () => {
     })
 
     it('회귀 방지: runPythonAsync 호출이 제거되면 실패해야 함', async () => {
-      const runPythonSpy = jest.fn().mockResolvedValue('')
+      const runPythonSpy = vi.fn().mockResolvedValue('')
       mockPyodide.runPythonAsync = runPythonSpy
 
       await registerHelpersModule(mockPyodide, 'def test(): pass')

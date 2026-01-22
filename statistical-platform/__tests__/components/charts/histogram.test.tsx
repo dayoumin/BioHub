@@ -9,11 +9,12 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Histogram } from '@/components/charts/histogram'
 
 // Mock recharts to avoid canvas issues in tests
-jest.mock('recharts', () => ({
+vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive-container">{children}</div>,
   BarChart: ({ children }: { children: React.ReactNode }) => <div data-testid="bar-chart">{children}</div>,
   Bar: () => <div data-testid="bar" />,

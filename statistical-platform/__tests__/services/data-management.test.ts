@@ -13,36 +13,37 @@ import {
   ClearDataOptions
 } from '@/lib/services/data-management'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
+import { vi } from 'vitest'
 import { useAnalysisCacheStore } from '@/lib/stores/analysis-cache-store'
 import * as indexeddb from '@/lib/utils/indexeddb'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 
 // Mock dependencies
-jest.mock('@/lib/stores/smart-flow-store', () => ({
+vi.mock('@/lib/stores/smart-flow-store', () => ({
   useSmartFlowStore: {
-    getState: jest.fn(() => ({
-      reset: jest.fn(),
-      resetSession: jest.fn()
+    getState: vi.fn(() => ({
+      reset: vi.fn(),
+      resetSession: vi.fn()
     }))
   }
 }))
 
-jest.mock('@/lib/stores/analysis-cache-store', () => ({
+vi.mock('@/lib/stores/analysis-cache-store', () => ({
   useAnalysisCacheStore: {
-    getState: jest.fn(() => ({
-      clearCache: jest.fn()
+    getState: vi.fn(() => ({
+      clearCache: vi.fn()
     }))
   }
 }))
 
-jest.mock('@/lib/utils/indexeddb', () => ({
-  clearAllHistory: jest.fn().mockResolvedValue(undefined)
+vi.mock('@/lib/utils/indexeddb', () => ({
+  clearAllHistory: vi.fn().mockResolvedValue(undefined)
 }))
 
-jest.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
+vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
   PyodideCoreService: {
-    getInstance: jest.fn(() => ({
-      dispose: jest.fn()
+    getInstance: vi.fn(() => ({
+      dispose: vi.fn()
     }))
   }
 }))
@@ -55,14 +56,14 @@ describe('Data Management Service', () => {
   let mockDispose: jest.Mock
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
 
     // Setup mocks
-    mockReset = jest.fn()
-    mockResetSession = jest.fn()
-    mockClearCache = jest.fn()
+    mockReset = vi.fn()
+    mockResetSession = vi.fn()
+    mockClearCache = vi.fn()
     mockClearAllHistory = indexeddb.clearAllHistory as jest.Mock
-    mockDispose = jest.fn()
+    mockDispose = vi.fn()
 
     ;(useSmartFlowStore.getState as jest.Mock).mockReturnValue({
       reset: mockReset,
@@ -220,13 +221,13 @@ describe('Integration with UI Components', () => {
   let mockClearCache: jest.Mock
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
 
-    mockResetSession = jest.fn()
-    mockClearCache = jest.fn()
+    mockResetSession = vi.fn()
+    mockClearCache = vi.fn()
 
     ;(useSmartFlowStore.getState as jest.Mock).mockReturnValue({
-      reset: jest.fn(),
+      reset: vi.fn(),
       resetSession: mockResetSession
     })
     ;(useAnalysisCacheStore.getState as jest.Mock).mockReturnValue({
@@ -253,7 +254,7 @@ describe('Integration with UI Components', () => {
   })
 
   it('REGRESSION: startNewAnalysis must NOT call reset() which clears history', async () => {
-    const mockReset = jest.fn()
+    const mockReset = vi.fn()
     ;(useSmartFlowStore.getState as jest.Mock).mockReturnValue({
       reset: mockReset,
       resetSession: mockResetSession

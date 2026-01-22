@@ -2,7 +2,7 @@
  * Debug: 실제 해석 엔진 출력 확인용 테스트
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 import { getInterpretation } from '@/lib/interpretation/engine'
 import type { AnalysisResult } from '@/types/smart-flow'
 

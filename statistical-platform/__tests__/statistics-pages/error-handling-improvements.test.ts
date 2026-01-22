@@ -1,3 +1,5 @@
+import { vi } from 'vitest'
+
 /**
  * @file error-handling-improvements.test.ts
  * @description Unit tests for error handling improvements in statistics pages
@@ -15,8 +17,8 @@ describe('Error Handling Improvements', () => {
       const pyodide = null
       const uploadedData = { data: [{ col1: 1, col2: 2 }], fileName: 'test.csv', columns: ['col1', 'col2'] }
       const actions = {
-        setError: jest.fn(),
-        startAnalysis: jest.fn(),
+        setError: vi.fn(),
+        startAnalysis: vi.fn(),
       }
 
       // Simulate runAnalysis logic
@@ -34,8 +36,8 @@ describe('Error Handling Improvements', () => {
       const pyodide = { mockPyodide: true }
       const uploadedData = null
       const actions = {
-        setError: jest.fn(),
-        startAnalysis: jest.fn(),
+        setError: vi.fn(),
+        startAnalysis: vi.fn(),
       }
 
       // Simulate runAnalysis logic
@@ -56,8 +58,8 @@ describe('Error Handling Improvements', () => {
       const pyodide = { mockPyodide: true }
       const uploadedData = { data: [{ col1: 1, col2: 2 }], fileName: 'test.csv', columns: ['col1', 'col2'] }
       const actions = {
-        setError: jest.fn(),
-        startAnalysis: jest.fn(),
+        setError: vi.fn(),
+        startAnalysis: vi.fn(),
       }
 
       // Simulate runAnalysis logic
@@ -352,7 +354,7 @@ describe('Error Handling Improvements', () => {
   describe('4. Optional Chaining Consistency', () => {
     it('should safely call actions.setError with optional chaining', () => {
       const actions = {
-        setError: jest.fn(),
+        setError: vi.fn(),
       }
 
       // With optional chaining (safe)
@@ -372,7 +374,7 @@ describe('Error Handling Improvements', () => {
 
     it('should safely call actions.startAnalysis with optional chaining', () => {
       const actions = {
-        startAnalysis: jest.fn(),
+        startAnalysis: vi.fn(),
       }
 
       // With optional chaining (safe)
@@ -396,8 +398,8 @@ describe('Error Handling Improvements', () => {
       const pyodide = null
       const uploadedData = null
       const actions = {
-        setError: jest.fn(),
-        startAnalysis: jest.fn(),
+        setError: vi.fn(),
+        startAnalysis: vi.fn(),
       }
       const errors: string[] = []
 

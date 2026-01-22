@@ -1,13 +1,14 @@
 import { StatisticalExecutor } from '@/lib/services/statistical-executor'
 
-jest.mock('@/lib/services/pyodide-statistics', () => ({
+import { vi } from 'vitest'
+vi.mock('@/lib/services/pyodide-statistics', () => ({
   pyodideStats: {
-    tTest: jest.fn(),
-    anova: jest.fn(),
-    gamesHowellTest: jest.fn(),
-    mannWhitneyU: jest.fn(),
-    kruskalWallis: jest.fn(),
-    moodMedianTestWorker: jest.fn(),
+    tTest: vi.fn(),
+    anova: vi.fn(),
+    gamesHowellTest: vi.fn(),
+    mannWhitneyU: vi.fn(),
+    kruskalWallis: vi.fn(),
+    moodMedianTestWorker: vi.fn(),
   }
 }))
 
@@ -16,7 +17,7 @@ describe('StatisticalExecutor group size validation', () => {
 
   beforeEach(() => {
     executor = new StatisticalExecutor()
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('executeTTest: rejects when group count is not exactly 2', async () => {

@@ -14,12 +14,13 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
 // Mock dependencies
-jest.mock('@/hooks/use-statistics-page', () => ({
-  useStatisticsPage: jest.fn(() => ({
+vi.mock('@/hooks/use-statistics-page', () => ({
+  useStatisticsPage: vi.fn(() => ({
     state: {
       currentStep: 0,
       uploadedData: null,
@@ -28,17 +29,17 @@ jest.mock('@/hooks/use-statistics-page', () => ({
       isAnalyzing: false
     },
     actions: {
-      setCurrentStep: jest.fn(),
-      setUploadedData: jest.fn(),
-      setSelectedVariables: jest.fn(),
-      startAnalysis: jest.fn(),
-      completeAnalysis: jest.fn(),
-      setError: jest.fn()
+      setCurrentStep: vi.fn(),
+      setUploadedData: vi.fn(),
+      setSelectedVariables: vi.fn(),
+      startAnalysis: vi.fn(),
+      completeAnalysis: vi.fn(),
+      setError: vi.fn()
     }
   }))
 }))
 
-jest.mock('@/components/variable-selection/VariableSelector', () => ({
+vi.mock('@/components/variable-selection/VariableSelector', () => ({
   VariableSelector: ({ methodId, data, onVariablesSelected }: any) => (
     <div data-testid="variable-selector">
       Variable Selector (methodId: {methodId})
@@ -46,13 +47,13 @@ jest.mock('@/components/variable-selection/VariableSelector', () => ({
   )
 }))
 
-jest.mock('@/components/smart-flow/steps/DataUploadStep', () => ({
+vi.mock('@/components/smart-flow/steps/DataUploadStep', () => ({
   DataUploadStep: ({ onUploadComplete, onNext }: any) => (
     <div data-testid="data-upload-step">Data Upload Step</div>
   )
 }))
 
-jest.mock('recharts', () => ({
+vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
   ScatterChart: ({ children }: any) => <div>{children}</div>,
   ComposedChart: ({ children }: any) => <div>{children}</div>,
@@ -142,11 +143,11 @@ describe('Regression Page - Type Safety Tests', () => {
   describe('2. Optional Chaining Pattern', () => {
     it('should handle actions with optional chaining', () => {
       const actions = {
-        setCurrentStep: jest.fn(),
-        setUploadedData: jest.fn(),
-        setSelectedVariables: jest.fn(),
-        startAnalysis: jest.fn(),
-        completeAnalysis: jest.fn()
+        setCurrentStep: vi.fn(),
+        setUploadedData: vi.fn(),
+        setSelectedVariables: vi.fn(),
+        startAnalysis: vi.fn(),
+        completeAnalysis: vi.fn()
       }
 
       // Simulate optional chaining calls
@@ -263,7 +264,7 @@ describe('Regression Page - Type Safety Tests', () => {
         { age: 30, income: 60000 }
       ]
 
-      const onVariablesSelected = jest.fn()
+      const onVariablesSelected = vi.fn()
 
       const props = {
         methodId: 'simple-regression',

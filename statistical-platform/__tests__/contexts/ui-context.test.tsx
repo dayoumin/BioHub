@@ -10,6 +10,7 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { UIProvider, useUI } from '@/contexts/ui-context'
 import { ReactNode } from 'react'
 
@@ -273,7 +274,7 @@ describe('UIContext', () => {
   describe('에러 처리', () => {
     it('UIProvider 밖에서 useUI 호출 시 에러를 던져야 함', () => {
       // 콘솔 에러 숨기기
-      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       expect(() => {
         renderHook(() => useUI())

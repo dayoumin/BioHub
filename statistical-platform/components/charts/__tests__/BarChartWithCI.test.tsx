@@ -1,17 +1,18 @@
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom'
 import { BarChartWithCI } from '../BarChartWithCI'
 
 // Mock ChartSkeleton
-jest.mock('../ChartSkeleton', () => ({
+vi.mock('../ChartSkeleton', () => ({
   ChartSkeleton: () => <div>Loading...</div>
 }))
 
 // Mock URL.createObjectURL
-global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
-global.URL.revokeObjectURL = jest.fn()
+global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+global.URL.revokeObjectURL = vi.fn()
 
 describe('BarChartWithCI', () => {
   const mockData = [
@@ -232,7 +233,7 @@ describe('BarChartWithCI', () => {
     })
 
     it('클릭 콜백이 호출되어야 함', () => {
-      const mockOnClick = jest.fn()
+      const mockOnClick = vi.fn()
       const { container } = render(
         <BarChartWithCI data={mockData} onBarClick={mockOnClick} />
       )
@@ -323,7 +324,7 @@ describe('BarChartWithCI', () => {
       const downloadButton = screen.getByRole('button', { name: /csv 다운로드/i })
 
       // DOM에 임시 a 태그 생성을 모킹
-      const createElementSpy = jest.spyOn(document, 'createElement')
+      const createElementSpy = vi.spyOn(document, 'createElement')
 
       fireEvent.click(downloadButton)
 

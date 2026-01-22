@@ -5,24 +5,25 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { OllamaSetupDialog } from '@/components/chatbot/ollama-setup-dialog'
 
 // navigator.clipboard 모킹
 Object.assign(navigator, {
   clipboard: {
-    writeText: jest.fn(() => Promise.resolve()),
+    writeText: vi.fn(() => Promise.resolve()),
   },
 })
 
 // fetch 모킹
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('OllamaSetupDialog - 새로운 4단계 설치 안내', () => {
-  const mockOnOpenChange = jest.fn()
-  const mockOnRetry = jest.fn()
+  const mockOnOpenChange = vi.fn()
+  const mockOnRetry = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     ;(global.fetch as jest.Mock).mockClear()
   })
 
@@ -123,7 +124,7 @@ describe('OllamaSetupDialog - 새로운 4단계 설치 안내', () => {
 
     it('다운로드 버튼 클릭 시 새 창에서 페이지가 열려야 함', async () => {
       ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Not installed'))
-      const windowOpenSpy = jest.spyOn(window, 'open').mockImplementation(() => null)
+      const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
 
       render(<OllamaSetupDialog open={true} onOpenChange={mockOnOpenChange} />)
 

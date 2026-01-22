@@ -9,11 +9,12 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { ChatPanel } from '@/components/chatbot/chat-panel'
 import { UIProvider } from '@/contexts/ui-context'
 
 // RAGAssistantCompact 모킹
-jest.mock('@/components/rag/rag-assistant-compact', () => ({
+vi.mock('@/components/rag/rag-assistant-compact', () => ({
   RAGAssistantCompact: () => <div data-testid="rag-assistant">RAG Assistant Mock</div>
 }))
 
@@ -48,7 +49,7 @@ const renderWithProvider = (component: React.ReactElement) => {
 }
 
 // onClose prop 제거로 인한 수정
-const mockOnClose = jest.fn()
+const mockOnClose = vi.fn()
 
 describe('ChatPanel', () => {
   beforeEach(() => {

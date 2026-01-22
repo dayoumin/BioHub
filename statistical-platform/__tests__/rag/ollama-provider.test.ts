@@ -8,10 +8,11 @@
  */
 
 import { OllamaRAGProvider } from '@/lib/rag/providers/ollama-provider'
+import { vi } from 'vitest'
 import type { RAGContext } from '@/lib/rag/providers/base-provider'
 
 // Fetch mock
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('OllamaRAGProvider', () => {
   let provider: OllamaRAGProvider
@@ -28,7 +29,7 @@ describe('OllamaRAGProvider', () => {
     })
 
     // Fetch mock 초기화
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Configuration', () => {

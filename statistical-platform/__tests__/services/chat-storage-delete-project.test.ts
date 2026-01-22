@@ -6,22 +6,23 @@
  */
 
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
+import { vi } from 'vitest'
 import type { ChatProject } from '@/lib/types/chat'
 
 // Mock IndexedDBManager
-jest.mock('@/lib/services/storage/indexed-db-manager', () => {
+vi.mock('@/lib/services/storage/indexed-db-manager', () => {
   const mockManager = {
     isReady: true,
-    initialize: jest.fn().mockResolvedValue(undefined),
-    get: jest.fn(),
-    getAll: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-    updateInTransaction: jest.fn(),
+    initialize: vi.fn().mockResolvedValue(undefined),
+    get: vi.fn(),
+    getAll: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    updateInTransaction: vi.fn(),
   }
 
   return {
-    IndexedDBManager: jest.fn(() => mockManager),
+    IndexedDBManager: vi.fn(() => mockManager),
   }
 })
 
@@ -47,7 +48,7 @@ global.BroadcastChannel = MockBroadcastChannel as any
 
 describe('ChatStorageIndexedDB.deleteProject', () => {
   beforeEach(async () => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // Initialize ChatStorageIndexedDB
     await ChatStorageIndexedDB.initialize()
   })
@@ -94,7 +95,7 @@ describe('ChatStorageIndexedDB.deleteProject', () => {
   describe('BroadcastChannel Integration', () => {
     it('should broadcast delete event', async () => {
       const projectId = 'project-1'
-      const postMessageSpy = jest.spyOn(MockBroadcastChannel.prototype, 'postMessage')
+      const postMessageSpy = vi.spyOn(MockBroadcastChannel.prototype, 'postMessage')
 
       await ChatStorageIndexedDB.deleteProject(projectId)
 
@@ -113,7 +114,7 @@ describe('ChatStorageIndexedDB.deleteProject', () => {
 
     it('should close BroadcastChannel after message', async () => {
       const projectId = 'project-1'
-      const closeSpy = jest.spyOn(MockBroadcastChannel.prototype, 'close')
+      const closeSpy = vi.spyOn(MockBroadcastChannel.prototype, 'close')
 
       await ChatStorageIndexedDB.deleteProject(projectId)
 
@@ -188,7 +189,7 @@ describe('ChatStorageIndexedDB.deleteProject', () => {
 
   describe('Error Handling', () => {
     it('should log error when delete fails', async () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation()
       const projectId = 'project-1'
 
       const { IndexedDBManager } = require('@/lib/services/storage/indexed-db-manager')
@@ -212,7 +213,7 @@ describe('ChatStorageIndexedDB.deleteProject', () => {
 
       // Mock BroadcastChannel to throw
       const originalBroadcastChannel = global.BroadcastChannel
-      global.BroadcastChannel = jest.fn(() => {
+      global.BroadcastChannel = vi.fn(() => {
         throw new Error('BroadcastChannel not supported')
       }) as any
 

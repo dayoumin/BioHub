@@ -9,6 +9,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { RAGAssistantCompact } from '@/components/rag/rag-assistant-compact'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 import { queryRAG } from '@/lib/rag/rag-service'
@@ -16,19 +17,19 @@ import type { ChatSession } from '@/lib/types/chat'
 import type { RAGResponse } from '@/lib/rag/providers/base-provider'
 
 // Mock markdown dependencies (ESM modules)
-jest.mock('remark-gfm', () => ({}))
-jest.mock('remark-breaks', () => ({}))
-jest.mock('remark-math', () => ({}))
-jest.mock('rehype-katex', () => ({}))
-jest.mock('react-markdown', () => ({
+vi.mock('remark-gfm', () => ({}))
+vi.mock('remark-breaks', () => ({}))
+vi.mock('remark-math', () => ({}))
+vi.mock('rehype-katex', () => ({}))
+vi.mock('react-markdown', () => ({
   __esModule: true,
   default: ({ children }: { children: string }) => <div>{children}</div>
 }))
 
 // Mock dependencies
-jest.mock('@/lib/rag/rag-service')
-jest.mock('@/lib/services/storage/chat-storage-indexed-db')
-jest.mock('@/components/rag/chat-sources-display', () => ({
+vi.mock('@/lib/rag/rag-service')
+vi.mock('@/lib/services/storage/chat-storage-indexed-db')
+vi.mock('@/components/rag/chat-sources-display', () => ({
   ChatSourcesDisplay: () => <div data-testid="chat-sources">Sources</div>
 }))
 
@@ -39,11 +40,11 @@ const mockCreateNewSession = ChatStorageIndexedDB.createNewSession as jest.Mocke
 const mockAddMessage = ChatStorageIndexedDB.addMessage as jest.MockedFunction<typeof ChatStorageIndexedDB.addMessage>
 
 // window.open mock
-const mockWindowOpen = jest.fn()
+const mockWindowOpen = vi.fn()
 
 describe('RAGAssistantCompact', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     window.open = mockWindowOpen
 
     // Default mocks

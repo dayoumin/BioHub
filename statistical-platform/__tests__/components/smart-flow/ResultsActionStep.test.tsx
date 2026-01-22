@@ -8,31 +8,32 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { ResultsActionStep } from '@/components/smart-flow/steps/ResultsActionStep'
 import { AnalysisResult } from '@/types/smart-flow'
 
 // Mock PDF service
-jest.mock('@/lib/services/pdf-report-service', () => ({
+vi.mock('@/lib/services/pdf-report-service', () => ({
   PDFReportService: {
-    generateReport: jest.fn(),
-    generateSummaryText: jest.fn().mockReturnValue('Summary text')
+    generateReport: vi.fn(),
+    generateSummaryText: vi.fn().mockReturnValue('Summary text')
   }
 }))
 
 // Mock toast
-jest.mock('sonner', () => ({
+vi.mock('sonner', () => ({
   toast: {
-    success: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn()
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn()
   }
 }))
 
 // Mock smart-flow-store
-jest.mock('@/lib/stores/smart-flow-store', () => ({
+vi.mock('@/lib/stores/smart-flow-store', () => ({
   useSmartFlowStore: () => ({
-    saveToHistory: jest.fn(),
-    reset: jest.fn(),
+    saveToHistory: vi.fn(),
+    reset: vi.fn(),
     uploadedData: [{ id: 1 }, { id: 2 }],
     variableMapping: {
       dependentVar: 'score',
@@ -42,8 +43,8 @@ jest.mock('@/lib/stores/smart-flow-store', () => ({
 }))
 
 // Mock result-converter
-jest.mock('@/lib/statistics/result-converter', () => ({
-  convertToStatisticalResult: jest.fn().mockReturnValue({
+vi.mock('@/lib/statistics/result-converter', () => ({
+  convertToStatisticalResult: vi.fn().mockReturnValue({
     testName: 'Independent T-Test',
     testType: 'parametric',
     statistic: 2.456,
@@ -60,7 +61,7 @@ jest.mock('@/lib/statistics/result-converter', () => ({
 
 describe('ResultsActionStep - StatisticalResultCard Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('1. 기본 렌더링', () => {

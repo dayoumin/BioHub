@@ -8,10 +8,11 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 
 // Mock react-dropzone
-jest.mock('react-dropzone', () => ({
+vi.mock('react-dropzone', () => ({
   useDropzone: ({ onDrop }: { onDrop: (files: File[]) => void }) => ({
     getRootProps: () => ({
       onClick: () => {
@@ -26,7 +27,7 @@ jest.mock('react-dropzone', () => ({
 }))
 
 // Mock papaparse
-jest.mock('papaparse', () => ({
+vi.mock('papaparse', () => ({
   parse: (file: File, options: { complete: (result: unknown) => void }) => {
     setTimeout(() => {
       options.complete({
@@ -38,11 +39,11 @@ jest.mock('papaparse', () => ({
 }))
 
 describe('DataUploadStep UX Improvements', () => {
-  const mockOnUploadComplete = jest.fn()
-  const mockOnNext = jest.fn()
+  const mockOnUploadComplete = vi.fn()
+  const mockOnNext = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('1. 파일 업로드 전 - 기본 상태', () => {

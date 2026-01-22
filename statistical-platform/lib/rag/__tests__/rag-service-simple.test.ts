@@ -8,7 +8,7 @@
  * 4. queryRAG() 사용 패턴
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import {
   RAGService,
   vectorStoreIdToPath,

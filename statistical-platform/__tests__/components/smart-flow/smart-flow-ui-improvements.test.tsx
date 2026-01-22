@@ -10,6 +10,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { MethodSelector } from '@/components/smart-flow/steps/purpose/MethodSelector'
 import { VariableSelectionStep } from '@/components/smart-flow/steps/VariableSelectionStep'
@@ -17,11 +18,11 @@ import { DroppableRoleZone } from '@/components/variable-selection/draggable/Dro
 import type { StatisticalMethod } from '@/types/smart-flow'
 
 // Mock scrollIntoView (Jest 환경에서 지원하지 않음)
-Element.prototype.scrollIntoView = jest.fn()
+Element.prototype.scrollIntoView = vi.fn()
 
 // Mock useSmartFlowStore
-jest.mock('@/lib/stores/smart-flow-store', () => ({
-  useSmartFlowStore: jest.fn(() => ({
+vi.mock('@/lib/stores/smart-flow-store', () => ({
+  useSmartFlowStore: vi.fn(() => ({
     uploadedData: [
       { id: 1, age: 25, group: 'A', score: 85 },
       { id: 2, age: 30, group: 'B', score: 90 }
@@ -38,9 +39,9 @@ jest.mock('@/lib/stores/smart-flow-store', () => ({
       }
     },
     variableMapping: null,
-    setVariableMapping: jest.fn(),
-    goToNextStep: jest.fn(),
-    goToPreviousStep: jest.fn()
+    setVariableMapping: vi.fn(),
+    goToNextStep: vi.fn(),
+    goToPreviousStep: vi.fn()
   }))
 }))
 
@@ -96,7 +97,7 @@ describe('스마트 분석 UI 개선', () => {
           methods={mockMethods}
           selectedMethod={null}
           dataProfile={mockDataProfile}
-          onMethodSelect={jest.fn()}
+          onMethodSelect={vi.fn()}
           checkMethodRequirements={mockCheckRequirements}
           recommendedMethods={[mockMethods[0]]}
         />
@@ -117,7 +118,7 @@ describe('스마트 분석 UI 개선', () => {
           methods={mockMethods}
           selectedMethod={null}
           dataProfile={mockDataProfile}
-          onMethodSelect={jest.fn()}
+          onMethodSelect={vi.fn()}
           checkMethodRequirements={mockCheckRequirements}
         />
       )
@@ -133,7 +134,7 @@ describe('스마트 분석 UI 개선', () => {
           methods={mockMethods}
           selectedMethod={null}
           dataProfile={mockDataProfile}
-          onMethodSelect={jest.fn()}
+          onMethodSelect={vi.fn()}
           checkMethodRequirements={mockCheckRequirements}
           recommendedMethods={[mockMethods[0]]}
         />
@@ -165,7 +166,7 @@ describe('스마트 분석 UI 개선', () => {
 
   describe('3. DroppableRoleZone 클릭 기능', () => {
     it('onClick이 전달되면 클릭 가능해야 함', () => {
-      const mockOnClick = jest.fn()
+      const mockOnClick = vi.fn()
 
       render(
         <DroppableRoleZone
@@ -195,7 +196,7 @@ describe('스마트 분석 UI 개선', () => {
           description="분석 대상이 되는 변수"
           required={true}
           assignedVariables={[]}
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         />
       )
 
@@ -205,8 +206,8 @@ describe('스마트 분석 UI 개선', () => {
     })
 
     it('할당된 변수의 X 버튼 클릭 시 이벤트 버블링이 방지되어야 함', () => {
-      const mockOnClick = jest.fn()
-      const mockOnRemove = jest.fn()
+      const mockOnClick = vi.fn()
+      const mockOnRemove = vi.fn()
 
       render(
         <DroppableRoleZone
@@ -241,7 +242,7 @@ describe('스마트 분석 UI 개선', () => {
           description="분석 대상이 되는 변수"
           required={true}
           assignedVariables={[]}
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         />
       )
 
@@ -272,8 +273,8 @@ describe('스마트 분석 UI 개선', () => {
           description="분석 대상이 되는 변수"
           required={true}
           assignedVariables={['age', 'score']}
-          onClick={jest.fn()}
-          onRemoveVariable={jest.fn()}
+          onClick={vi.fn()}
+          onRemoveVariable={vi.fn()}
         />
       )
 
@@ -289,12 +290,12 @@ describe('스마트 분석 UI 개선', () => {
   describe('4. 통합 시나리오 테스트', () => {
     it('전체 변수 선택 플로우가 정상 작동해야 함', async () => {
       const user = userEvent.setup()
-      const mockOnVariablesSelected = jest.fn()
+      const mockOnVariablesSelected = vi.fn()
 
       // 실제 사용 시나리오를 시뮬레이션
       // (전체 컴포넌트 통합은 E2E 테스트에서 수행)
 
-      const mockOnClick = jest.fn()
+      const mockOnClick = vi.fn()
       const { rerender } = render(
         <DroppableRoleZone
           role="dependent"
@@ -320,7 +321,7 @@ describe('스마트 분석 UI 개선', () => {
           required={true}
           assignedVariables={['age']}
           onClick={mockOnClick}
-          onRemoveVariable={jest.fn()}
+          onRemoveVariable={vi.fn()}
         />
       )
 

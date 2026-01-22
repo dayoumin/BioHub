@@ -3,10 +3,11 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { SettingsTab } from '../settings-tab'
 
 // EnvironmentIndicator 모킹
-jest.mock('@/components/rag/environment-indicator', () => ({
+vi.mock('@/components/rag/environment-indicator', () => ({
   EnvironmentIndicator: () => <div data-testid="environment-indicator">Environment Indicator Mock</div>,
 }))
 

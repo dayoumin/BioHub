@@ -8,19 +8,20 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { ChatHeaderMenu } from '@/components/rag/chat-header-menu'
 
 describe('ChatHeaderMenu', () => {
   const mockHandlers = {
-    onToggleFavorite: jest.fn(),
-    onRename: jest.fn(),
-    onMove: jest.fn(),
-    onDelete: jest.fn(),
+    onToggleFavorite: vi.fn(),
+    onRename: vi.fn(),
+    onMove: vi.fn(),
+    onDelete: vi.fn(),
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('렌더링: 세로점 메뉴 버튼이 표시되어야 함', () => {
@@ -53,7 +54,7 @@ describe('ChatHeaderMenu', () => {
   })
 
   it('이벤트 전파 차단: 메뉴 클릭 시 stopPropagation이 호출되어야 함', async () => {
-    const parentClickHandler = jest.fn()
+    const parentClickHandler = vi.fn()
 
     const { container } = render(
       <div onClick={parentClickHandler}>

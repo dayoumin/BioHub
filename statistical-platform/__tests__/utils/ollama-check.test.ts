@@ -6,17 +6,18 @@
 
 import { checkOllamaStatus } from '@/lib/rag/utils/ollama-check'
 
+import { vi } from 'vitest'
 // Mock fetch
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('checkOllamaStatus', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    jest.useFakeTimers()
+    vi.clearAllMocks()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   describe('AbortController Timeout Polyfill', () => {
@@ -64,7 +65,7 @@ describe('checkOllamaStatus', () => {
       const promise = checkOllamaStatus('http://localhost:11434')
 
       // Fast-forward time by 3000ms to trigger setTimeout
-      jest.advanceTimersByTime(3000)
+      vi.advanceTimersByTime(3000)
 
       // Wait a bit for promise to settle
       await jest.runAllTimersAsync()
@@ -77,7 +78,7 @@ describe('checkOllamaStatus', () => {
     })
 
     it('should clear timeout after successful response', async () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout')
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
 
       ;(global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
@@ -95,7 +96,7 @@ describe('checkOllamaStatus', () => {
     })
 
     it('should clear timeout after error', async () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout')
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
 
       ;(global.fetch as jest.Mock).mockRejectedValueOnce(
         new Error('Network error')

@@ -7,25 +7,26 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import MeansPlotPage from '@/app/(dashboard)/statistics/means-plot/page'
 
 // Mock dependencies
-jest.mock('@/hooks/use-statistics-page', () => ({
-  useStatisticsPage: jest.fn()
+vi.mock('@/hooks/use-statistics-page', () => ({
+  useStatisticsPage: vi.fn()
 }))
 
-jest.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
+vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
   PyodideCoreService: {
-    getInstance: jest.fn().mockReturnValue({
-      initialize: jest.fn(),
-      callWorkerMethod: jest.fn(),
-      loadWorker: jest.fn(),
-      unloadWorker: jest.fn()
+    getInstance: vi.fn().mockReturnValue({
+      initialize: vi.fn(),
+      callWorkerMethod: vi.fn(),
+      loadWorker: vi.fn(),
+      unloadWorker: vi.fn()
     })
   }
 }))
 
-jest.mock('recharts', () => ({
+vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   BarChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Bar: () => null,
@@ -38,16 +39,16 @@ jest.mock('recharts', () => ({
 
 describe('Means Plot Page - Step Navigation', () => {
   const mockActions = {
-    setCurrentStep: jest.fn(),
-    setUploadedData: jest.fn(),
-    setSelectedVariables: jest.fn(),
-    startAnalysis: jest.fn(),
-    completeAnalysis: jest.fn(),
-    setError: jest.fn()
+    setCurrentStep: vi.fn(),
+    setUploadedData: vi.fn(),
+    setSelectedVariables: vi.fn(),
+    startAnalysis: vi.fn(),
+    completeAnalysis: vi.fn(),
+    setError: vi.fn()
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
 
     const { useStatisticsPage } = require('@/hooks/use-statistics-page')
     useStatisticsPage.mockReturnValue({

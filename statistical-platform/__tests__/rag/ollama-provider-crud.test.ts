@@ -10,8 +10,9 @@
 
 import { OllamaRAGProvider } from '@/lib/rag/providers/ollama-provider'
 
+import { vi } from 'vitest'
 // Fetch mock
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('OllamaRAGProvider - CRUD Operations', () => {
   let provider: OllamaRAGProvider
@@ -38,7 +39,7 @@ describe('OllamaRAGProvider - CRUD Operations', () => {
     // Provider 초기화
     await provider.initialize()
 
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   afterEach(async () => {

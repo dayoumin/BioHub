@@ -3,6 +3,7 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { ChatbotTabs } from '../chatbot-tabs'
 
 describe('ChatbotTabs', () => {
@@ -78,7 +79,7 @@ describe('ChatbotTabs', () => {
   })
 
   it('Props가 올바르게 전달됨', () => {
-    const mockOnTabChange = jest.fn()
+    const mockOnTabChange = vi.fn()
 
     render(
       <ChatbotTabs

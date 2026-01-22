@@ -7,7 +7,8 @@
  * - 하이브리드 검색 동작
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { vi } from 'vitest'
 import { RAGService, queryRAG } from '../rag-service'
 import type { RAGContext } from '../providers/base-provider'
 
@@ -21,7 +22,7 @@ describe('RAG Integration Tests', () => {
   describe('queryRAG() Function Flow', () => {
     it('should initialize with qwen3-embedding-0.6b vectorStoreId', async () => {
       const service = RAGService.getInstance()
-      const initSpy = jest.spyOn(service, 'initialize')
+      const initSpy = vi.spyOn(service, 'initialize')
 
       try {
         // queryRAG()는 내부적으로 초기화 호출

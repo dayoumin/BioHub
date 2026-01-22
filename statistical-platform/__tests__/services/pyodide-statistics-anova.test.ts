@@ -8,7 +8,7 @@
  * npx playwright test tests/e2e/anova-effect-size.spec.ts
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 
 describe('pyodideStats.anova() 효과크기 반환 테스트 (Browser Required)', () => {
   /**

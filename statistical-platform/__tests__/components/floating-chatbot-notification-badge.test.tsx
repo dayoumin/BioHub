@@ -9,6 +9,7 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
@@ -260,7 +261,7 @@ describe('FloatingChatbot 알림 배지 기능', () => {
 
   describe('콜백 통신 (부모-자식)', () => {
     test('RAGAssistant에서 onNewMessage 콜백이 호출되어야 함', async () => {
-      const mockCallback = jest.fn()
+      const mockCallback = vi.fn()
 
       function TestComponent() {
         return (

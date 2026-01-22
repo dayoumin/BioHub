@@ -7,7 +7,7 @@
  * 3. McNemar and MANOVA can receive multiple dependent variables
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
 describe('VariableMapping Interface', () => {

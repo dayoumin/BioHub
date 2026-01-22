@@ -8,13 +8,14 @@
  * Related fix: Smart Flow correlation routing bug (was falling to descriptive stats)
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals'
+import { describe, it, expect, beforeAll } from 'vitest'
 
+import { vi } from 'vitest'
 // Mock Pyodide for unit testing
-jest.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide-statistics', () => ({
   pyodideStats: {
-    initialize: jest.fn().mockResolvedValue(undefined),
-    correlationTest: jest.fn().mockImplementation(
+    initialize: vi.fn().mockResolvedValue(undefined),
+    correlationTest: vi.fn().mockImplementation(
       (_x: number[], _y: number[], method: string) => {
         // Return realistic correlation results based on method
         const mockResults: Record<string, { correlation: number; pValue: number }> = {
@@ -25,12 +26,12 @@ jest.mock('@/lib/services/pyodide-statistics', () => ({
         return Promise.resolve(mockResults[method] || mockResults['pearson'])
       }
     ),
-    correlation: jest.fn().mockResolvedValue({
+    correlation: vi.fn().mockResolvedValue({
       pearson: { r: 0.85, pValue: 0.001 },
       spearman: { r: 0.82, pValue: 0.002 },
       kendall: { tau: 0.72, pValue: 0.005 }
     }),
-    partialCorrelationWorker: jest.fn().mockResolvedValue({
+    partialCorrelationWorker: vi.fn().mockResolvedValue({
       correlation: 0.65,
       pValue: 0.01,
       df: 7

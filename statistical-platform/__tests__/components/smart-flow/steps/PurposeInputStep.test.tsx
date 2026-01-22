@@ -1,46 +1,47 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { PurposeInputStep } from '@/components/smart-flow/steps/PurposeInputStep'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 import { useSettingsStore } from '@/lib/stores/settings-store'
 import { DecisionTreeRecommender } from '@/lib/services/decision-tree-recommender'
 
-jest.mock('@/lib/stores/smart-flow-store', () => ({
-    useSmartFlowStore: jest.fn()
+vi.mock('@/lib/stores/smart-flow-store', () => ({
+    useSmartFlowStore: vi.fn()
 }))
 
-jest.mock('@/lib/stores/settings-store', () => ({
-    useSettingsStore: jest.fn()
+vi.mock('@/lib/stores/settings-store', () => ({
+    useSettingsStore: vi.fn()
 }))
 
-jest.mock('@/lib/services/decision-tree-recommender', () => ({
+vi.mock('@/lib/services/decision-tree-recommender', () => ({
     DecisionTreeRecommender: {
-        recommend: jest.fn(),
-        recommendWithoutAssumptions: jest.fn(),
-        recommendWithCompatibility: jest.fn(),
+        recommend: vi.fn(),
+        recommendWithoutAssumptions: vi.fn(),
+        recommendWithCompatibility: vi.fn(),
     }
 }))
 
-jest.mock('@/lib/services/ollama-recommender', () => ({
+vi.mock('@/lib/services/ollama-recommender', () => ({
     ollamaRecommender: {
-        checkHealth: jest.fn().mockResolvedValue(false),
-        recommend: jest.fn()
+        checkHealth: vi.fn().mockResolvedValue(false),
+        recommend: vi.fn()
     }
 }))
 
-jest.mock('@/lib/utils/logger', () => ({
+vi.mock('@/lib/utils/logger', () => ({
     logger: {
-        info: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn()
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn()
     }
 }))
 
-jest.mock('@/lib/hooks/useReducedMotion', () => ({
-    useReducedMotion: jest.fn().mockReturnValue(false)
+vi.mock('@/lib/hooks/useReducedMotion', () => ({
+    useReducedMotion: vi.fn().mockReturnValue(false)
 }))
 
-jest.mock('@/components/common/analysis/PurposeCard', () => ({
+vi.mock('@/components/common/analysis/PurposeCard', () => ({
     PurposeCard: ({ title, onClick, selected }: { title: string; onClick: () => void; selected: boolean }) => (
         <button data-testid={`purpose-card-${title}`} onClick={onClick} aria-selected={selected}>
             {title}
@@ -48,7 +49,7 @@ jest.mock('@/components/common/analysis/PurposeCard', () => ({
     )
 }))
 
-jest.mock('@/components/smart-flow/steps/purpose/MethodBrowser', () => ({
+vi.mock('@/components/smart-flow/steps/purpose/MethodBrowser', () => ({
     MethodBrowser: ({ selectedMethod, recommendedMethodId }: { selectedMethod: { name: string } | null; recommendedMethodId?: string }) => (
         <div data-testid="method-browser">
             <span data-testid="method-browser-selected">{selectedMethod?.name || 'None'}</span>
@@ -81,12 +82,12 @@ describe('PurposeInputStep', () => {
     }
 
     beforeEach(() => {
-        jest.clearAllMocks()
+        vi.clearAllMocks()
 
         const defaultStoreState = {
             assumptionResults: {},
-            setSelectedMethod: jest.fn(),
-            setDetectedVariables: jest.fn()
+            setSelectedMethod: vi.fn(),
+            setDetectedVariables: vi.fn()
         }
         ;(useSmartFlowStore as unknown as jest.Mock).mockImplementation(
             (selector: (state: typeof defaultStoreState) => unknown) => selector(defaultStoreState)
@@ -103,7 +104,7 @@ describe('PurposeInputStep', () => {
     it('renders category selection cards', () => {
         render(
             <PurposeInputStep
-                onPurposeSubmit={jest.fn()}
+                onPurposeSubmit={vi.fn()}
                 validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                 data={mockData}
             />
@@ -117,7 +118,7 @@ describe('PurposeInputStep', () => {
     it('shows Guided Questions when subcategory is selected (new flow)', async () => {
         render(
             <PurposeInputStep
-                onPurposeSubmit={jest.fn()}
+                onPurposeSubmit={vi.fn()}
                 validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                 data={mockData}
             />
@@ -129,7 +130,7 @@ describe('PurposeInputStep', () => {
     it('shows back button in Guided Questions step', async () => {
         render(
             <PurposeInputStep
-                onPurposeSubmit={jest.fn()}
+                onPurposeSubmit={vi.fn()}
                 validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                 data={mockData}
             />
@@ -143,7 +144,7 @@ describe('PurposeInputStep', () => {
     it('can go back to subcategory selection from questions', async () => {
         render(
             <PurposeInputStep
-                onPurposeSubmit={jest.fn()}
+                onPurposeSubmit={vi.fn()}
                 validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                 data={mockData}
             />
@@ -160,7 +161,7 @@ describe('PurposeInputStep', () => {
     it('does not show legacy method selection UI in questions step', async () => {
         render(
             <PurposeInputStep
-                onPurposeSubmit={jest.fn()}
+                onPurposeSubmit={vi.fn()}
                 validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                 data={mockData}
             />
@@ -175,7 +176,7 @@ describe('PurposeInputStep', () => {
         it('enters browse mode from questions and renders MethodBrowser', async () => {
             render(
                 <PurposeInputStep
-                    onPurposeSubmit={jest.fn()}
+                    onPurposeSubmit={vi.fn()}
                     validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                     data={mockData}
                 />
@@ -199,7 +200,7 @@ describe('PurposeInputStep', () => {
 
             render(
                 <PurposeInputStep
-                    onPurposeSubmit={jest.fn()}
+                    onPurposeSubmit={vi.fn()}
                     validationResults={mockValidationResults as unknown as Parameters<typeof PurposeInputStep>[0]['validationResults']}
                     data={mockData}
                 />
@@ -218,9 +219,9 @@ describe('PurposeInputStep', () => {
         })
 
         it('shows selected-method-bar and calls onPurposeSubmit', async () => {
-            const mockOnPurposeSubmit = jest.fn()
-            const mockSetSelectedMethod = jest.fn()
-            const mockSetDetectedVariables = jest.fn()
+            const mockOnPurposeSubmit = vi.fn()
+            const mockSetSelectedMethod = vi.fn()
+            const mockSetDetectedVariables = vi.fn()
 
             const mockStoreState = {
                 assumptionResults: {},

@@ -8,13 +8,14 @@
  * - TwoPanelLayout 통합 테스트
  */
 
-import { describe, it, beforeEach, jest } from '@jest/globals'
+import { describe, it, beforeEach, vi } from 'vitest'
+import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { SmartFlowLayout } from '@/components/smart-flow/layouts/SmartFlowLayout'
 
 // Mock TwoPanelLayout
-jest.mock('@/components/statistics/layouts/TwoPanelLayout', () => ({
+vi.mock('@/components/statistics/layouts/TwoPanelLayout', () => ({
   TwoPanelLayout: ({ children, analysisTitle, analysisSubtitle }: {
     children: React.ReactNode
     analysisTitle?: string
@@ -40,7 +41,7 @@ describe('SmartFlowLayout', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('기본 렌더링', () => {
@@ -61,8 +62,8 @@ describe('SmartFlowLayout', () => {
     })
 
     it('헤더에 분석 히스토리와 도움말 버튼이 표시되어야 함', () => {
-      const onHistoryToggle = jest.fn()
-      const onHelpToggle = jest.fn()
+      const onHistoryToggle = vi.fn()
+      const onHelpToggle = vi.fn()
 
       render(
         <SmartFlowLayout
@@ -84,7 +85,7 @@ describe('SmartFlowLayout', () => {
           {...defaultProps}
           showHistory={false}
           historyPanel={<div data-testid="history-panel">History</div>}
-          onHistoryToggle={jest.fn()}
+          onHistoryToggle={vi.fn()}
         />
       )
 
@@ -97,7 +98,7 @@ describe('SmartFlowLayout', () => {
           {...defaultProps}
           showHistory={true}
           historyPanel={<div data-testid="history-panel">History</div>}
-          onHistoryToggle={jest.fn()}
+          onHistoryToggle={vi.fn()}
         />
       )
 
@@ -106,7 +107,7 @@ describe('SmartFlowLayout', () => {
     })
 
     it('히스토리 토글 버튼 클릭 시 onHistoryToggle이 호출되어야 함', () => {
-      const onHistoryToggle = jest.fn()
+      const onHistoryToggle = vi.fn()
 
       render(
         <SmartFlowLayout
@@ -122,7 +123,7 @@ describe('SmartFlowLayout', () => {
     })
 
     it('히스토리 패널의 X 버튼 클릭 시 onHistoryToggle이 호출되어야 함', () => {
-      const onHistoryToggle = jest.fn()
+      const onHistoryToggle = vi.fn()
 
       render(
         <SmartFlowLayout
@@ -152,7 +153,7 @@ describe('SmartFlowLayout', () => {
         <SmartFlowLayout
           {...defaultProps}
           showHelp={false}
-          onHelpToggle={jest.fn()}
+          onHelpToggle={vi.fn()}
         />
       )
 
@@ -164,7 +165,7 @@ describe('SmartFlowLayout', () => {
         <SmartFlowLayout
           {...defaultProps}
           showHelp={true}
-          onHelpToggle={jest.fn()}
+          onHelpToggle={vi.fn()}
         />
       )
 
@@ -174,7 +175,7 @@ describe('SmartFlowLayout', () => {
     })
 
     it('도움말 토글 버튼 클릭 시 onHelpToggle이 호출되어야 함', () => {
-      const onHelpToggle = jest.fn()
+      const onHelpToggle = vi.fn()
 
       render(
         <SmartFlowLayout
@@ -195,7 +196,7 @@ describe('SmartFlowLayout', () => {
           {...defaultProps}
           showHelp={true}
           systemMemory={16}
-          onHelpToggle={jest.fn()}
+          onHelpToggle={vi.fn()}
         />
       )
 
@@ -208,7 +209,7 @@ describe('SmartFlowLayout', () => {
           {...defaultProps}
           showHelp={true}
           systemMemory={null}
-          onHelpToggle={jest.fn()}
+          onHelpToggle={vi.fn()}
         />
       )
 
@@ -239,8 +240,8 @@ describe('SmartFlowLayout', () => {
       render(
         <SmartFlowLayout
           {...defaultProps}
-          onHistoryToggle={jest.fn()}
-          onHelpToggle={jest.fn()}
+          onHistoryToggle={vi.fn()}
+          onHelpToggle={vi.fn()}
         />
       )
 

@@ -6,26 +6,27 @@
 
 import { render, screen, fireEvent } from '@testing-library/react'
 
+import { vi } from 'vitest'
 // Mock PyodideCoreService
-const mockInitialize = jest.fn().mockResolvedValue(undefined)
-const mockGetInstance = jest.fn().mockReturnValue({
+const mockInitialize = vi.fn().mockResolvedValue(undefined)
+const mockGetInstance = vi.fn().mockReturnValue({
   initialize: mockInitialize
 })
 
-jest.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
+vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
   PyodideCoreService: {
     getInstance: () => mockGetInstance()
   }
 }))
 
 // Mock next/navigation
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
   usePathname: () => '/'
 }))
 
 // Mock STATISTICS_MENU
-jest.mock('@/lib/statistics/menu-config', () => ({
+vi.mock('@/lib/statistics/menu-config', () => ({
   STATISTICS_MENU: [
     {
       id: 'basic',
@@ -43,10 +44,10 @@ import HomePage from '@/app/page'
 
 describe('Homepage Pyodide Prefetch', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // localStorage mock
-    Storage.prototype.getItem = jest.fn(() => null)
-    Storage.prototype.setItem = jest.fn()
+    Storage.prototype.getItem = vi.fn(() => null)
+    Storage.prototype.setItem = vi.fn()
   })
 
   it('should prefetch Pyodide when hovering over "Start Analysis" button', () => {
@@ -80,7 +81,7 @@ describe('Homepage Pyodide Prefetch', () => {
 
   it('should silently catch initialization errors', async () => {
     // Arrange: Make initialize reject
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation()
     mockInitialize.mockRejectedValueOnce(new Error('Network error'))
 
     render(<HomePage />)

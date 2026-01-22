@@ -7,6 +7,7 @@
 
 import { StatisticalExecutor, StatisticalExecutorResult } from '@/lib/services/statistical-executor'
 
+import { vi } from 'vitest'
 // Define mock type explicitly
 interface MockPyodideStats {
   discriminantAnalysis: jest.Mock
@@ -16,12 +17,12 @@ interface MockPyodideStats {
 }
 
 // Mock pyodide-statistics module
-jest.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide-statistics', () => ({
   pyodideStats: {
-    discriminantAnalysis: jest.fn(),
-    kaplanMeierSurvival: jest.fn(),
-    coxRegression: jest.fn(),
-    descriptiveStats: jest.fn(),
+    discriminantAnalysis: vi.fn(),
+    kaplanMeierSurvival: vi.fn(),
+    coxRegression: vi.fn(),
+    descriptiveStats: vi.fn(),
   }
 }))
 
@@ -35,7 +36,7 @@ describe('StatisticalExecutor Runtime Tests', () => {
 
   beforeEach(() => {
     executor = new StatisticalExecutor()
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Discriminant Analysis', () => {

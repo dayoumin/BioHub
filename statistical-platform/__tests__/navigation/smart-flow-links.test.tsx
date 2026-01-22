@@ -10,11 +10,12 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import HomePage from '@/app/page'
 import DashboardPage from '@/app/(dashboard)/dashboard/page'
 
 // Mock next/link
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   return ({ children, href }: { children: React.ReactNode; href: string }) => {
     return <a href={href}>{children}</a>
   }

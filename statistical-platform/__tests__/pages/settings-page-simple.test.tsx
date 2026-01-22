@@ -7,21 +7,22 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import SettingsPage from '@/app/(dashboard)/settings/page'
 import { ChatStorage } from '@/lib/services/chat-storage'
 
 // ChatStorage 모킹
-jest.mock('@/lib/services/chat-storage', () => ({
+vi.mock('@/lib/services/chat-storage', () => ({
   ChatStorage: {
-    loadSettings: jest.fn(),
-    saveSettings: jest.fn(),
+    loadSettings: vi.fn(),
+    saveSettings: vi.fn(),
   },
 }))
 
 // recent-statistics 유틸 모킹
-jest.mock('@/lib/utils/recent-statistics', () => ({
-  getRecentStatistics: jest.fn(() => []),
-  clearRecentStatistics: jest.fn(),
+vi.mock('@/lib/utils/recent-statistics', () => ({
+  getRecentStatistics: vi.fn(() => []),
+  clearRecentStatistics: vi.fn(),
 }))
 
 describe('SettingsPage - Simple Tests', () => {
@@ -32,14 +33,14 @@ describe('SettingsPage - Simple Tests', () => {
     localStorageMock = {}
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: jest.fn((key: string) => localStorageMock[key] || null),
-        setItem: jest.fn((key: string, value: string) => {
+        getItem: vi.fn((key: string) => localStorageMock[key] || null),
+        setItem: vi.fn((key: string, value: string) => {
           localStorageMock[key] = value
         }),
-        removeItem: jest.fn((key: string) => {
+        removeItem: vi.fn((key: string) => {
           delete localStorageMock[key]
         }),
-        clear: jest.fn(() => {
+        clear: vi.fn(() => {
           localStorageMock = {}
         }),
       },
@@ -53,11 +54,11 @@ describe('SettingsPage - Simple Tests', () => {
     })
 
     // window.dispatchEvent 모킹
-    window.dispatchEvent = jest.fn()
+    window.dispatchEvent = vi.fn()
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('페이지가 렌더링되고 4개 탭이 표시되어야 함', () => {
@@ -125,7 +126,7 @@ describe('IndexedDB cleanup graceful degradation', () => {
   it('indexedDB.databases가 undefined일 때도 에러 없이 처리되어야 함', async () => {
     // Safari/Firefox 시뮬레이션: databases 메서드가 없음
     const mockIndexedDB = {
-      deleteDatabase: jest.fn(),
+      deleteDatabase: vi.fn(),
       // databases 메서드 없음 (undefined)
     }
 
@@ -161,8 +162,8 @@ describe('IndexedDB cleanup graceful degradation', () => {
     // Chrome 시뮬레이션: databases 메서드 있음
     const mockDatabases = [{ name: 'testDB1' }, { name: 'testDB2' }, { name: null }]
     const mockIndexedDB = {
-      databases: jest.fn().mockResolvedValue(mockDatabases),
-      deleteDatabase: jest.fn(),
+      databases: vi.fn().mockResolvedValue(mockDatabases),
+      deleteDatabase: vi.fn(),
     }
 
     Object.defineProperty(window, 'indexedDB', {
@@ -196,11 +197,11 @@ describe('IndexedDB cleanup graceful degradation', () => {
   })
 
   it('indexedDB.databases가 에러를 던져도 graceful하게 처리되어야 함', async () => {
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation()
 
     const mockIndexedDB = {
-      databases: jest.fn().mockRejectedValue(new Error('Not supported')),
-      deleteDatabase: jest.fn(),
+      databases: vi.fn().mockRejectedValue(new Error('Not supported')),
+      deleteDatabase: vi.fn(),
     }
 
     Object.defineProperty(window, 'indexedDB', {

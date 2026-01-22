@@ -12,22 +12,23 @@
  * Related fix: Mann-Whitney U group1 undefined error
  */
 
-import { describe, it, beforeAll } from '@jest/globals'
+import { describe, it, beforeAll } from 'vitest'
 
+import { vi } from 'vitest'
 // Mock Pyodide for unit testing (avoid actual Python execution)
-jest.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide-statistics', () => ({
   pyodideStats: {
-    initialize: jest.fn().mockResolvedValue(undefined),
-    mannWhitneyU: jest.fn().mockResolvedValue({ statistic: 45.0, pvalue: 0.023 }),
-    wilcoxon: jest.fn().mockResolvedValue({ statistic: 12.0, pvalue: 0.034 }),
-    kruskalWallis: jest.fn().mockResolvedValue({ statistic: 8.5, pvalue: 0.014, df: 2 }),
-    oneSampleTTest: jest.fn().mockResolvedValue({ statistic: 2.5, pValue: 0.02, df: 29, confidenceInterval: { lower: 1.2, upper: 3.8 } }),
-    independentTTest: jest.fn().mockResolvedValue({ statistic: 2.8, pValue: 0.008, df: 58, confidenceInterval: { lower: 0.5, upper: 2.1 } }),
-    pairedTTest: jest.fn().mockResolvedValue({ statistic: 3.2, pValue: 0.003, df: 29, confidenceInterval: { lower: 0.8, upper: 2.4 } }),
-    welchTTest: jest.fn().mockResolvedValue({ statistic: 2.6, pValue: 0.012, df: 45.3, confidenceInterval: { lower: 0.4, upper: 2.0 } }),
-    simpleLinearRegression: jest.fn().mockResolvedValue({ slope: 1.5, intercept: 2.0, rSquared: 0.85, pValue: 0.001, residuals: [], predictions: [] }),
-    multipleRegression: jest.fn().mockResolvedValue({ coefficients: [1.2, 0.8], intercept: 1.5, rSquared: 0.92, pValue: 0.0001, residuals: [], predictions: [] }),
-    calculateDescriptiveStats: jest.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25, median: 15, n: 30 }),
+    initialize: vi.fn().mockResolvedValue(undefined),
+    mannWhitneyU: vi.fn().mockResolvedValue({ statistic: 45.0, pvalue: 0.023 }),
+    wilcoxon: vi.fn().mockResolvedValue({ statistic: 12.0, pvalue: 0.034 }),
+    kruskalWallis: vi.fn().mockResolvedValue({ statistic: 8.5, pvalue: 0.014, df: 2 }),
+    oneSampleTTest: vi.fn().mockResolvedValue({ statistic: 2.5, pValue: 0.02, df: 29, confidenceInterval: { lower: 1.2, upper: 3.8 } }),
+    independentTTest: vi.fn().mockResolvedValue({ statistic: 2.8, pValue: 0.008, df: 58, confidenceInterval: { lower: 0.5, upper: 2.1 } }),
+    pairedTTest: vi.fn().mockResolvedValue({ statistic: 3.2, pValue: 0.003, df: 29, confidenceInterval: { lower: 0.8, upper: 2.4 } }),
+    welchTTest: vi.fn().mockResolvedValue({ statistic: 2.6, pValue: 0.012, df: 45.3, confidenceInterval: { lower: 0.4, upper: 2.0 } }),
+    simpleLinearRegression: vi.fn().mockResolvedValue({ slope: 1.5, intercept: 2.0, rSquared: 0.85, pValue: 0.001, residuals: [], predictions: [] }),
+    multipleRegression: vi.fn().mockResolvedValue({ coefficients: [1.2, 0.8], intercept: 1.5, rSquared: 0.92, pValue: 0.0001, residuals: [], predictions: [] }),
+    calculateDescriptiveStats: vi.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25, median: 15, n: 30 }),
   }
 }))
 

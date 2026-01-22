@@ -7,6 +7,7 @@
 
 import { OllamaRAGProvider } from '@/lib/rag/providers/ollama-provider'
 
+import { vi } from 'vitest'
 describe('OllamaRAGProvider - Think Tag Removal', () => {
   let provider: OllamaRAGProvider
 
@@ -33,7 +34,7 @@ describe('OllamaRAGProvider - Think Tag Removal', () => {
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('패턴 1: <think>...</think> 블록 제거', () => {

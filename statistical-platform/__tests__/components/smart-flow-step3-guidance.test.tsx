@@ -12,6 +12,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import type { ValidationResults, DataRow, AIRecommendation } from '@/types/smart-flow'
 
 // Mock data
@@ -95,32 +96,32 @@ const mockRecommendation: AIRecommendation = {
 }
 
 // Mock dependencies
-jest.mock('@/lib/utils/logger', () => ({
+vi.mock('@/lib/utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn()
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn()
   }
 }))
 
-jest.mock('@/lib/hooks/useReducedMotion', () => ({
+vi.mock('@/lib/hooks/useReducedMotion', () => ({
   useReducedMotion: () => false
 }))
 
-jest.mock('@/lib/stores/smart-flow-store', () => ({
+vi.mock('@/lib/stores/smart-flow-store', () => ({
   useSmartFlowStore: (selector: (state: unknown) => unknown) => {
     const mockState = {
       assumptionResults: {
         normality: { passed: true, pValue: 0.3 },
         homogeneity: { passed: true, pValue: 0.5 }
       },
-      setSelectedMethod: jest.fn()
+      setSelectedMethod: vi.fn()
     }
     return selector ? selector(mockState) : mockState
   }
 }))
 
-jest.mock('@/components/common/analysis/PurposeCard', () => ({
+vi.mock('@/components/common/analysis/PurposeCard', () => ({
   PurposeCard: ({ onClick, title }: { onClick: () => void; title: string }) => (
     <button onClick={onClick} data-testid="purpose-card">
       {title}
@@ -128,27 +129,27 @@ jest.mock('@/components/common/analysis/PurposeCard', () => ({
   )
 }))
 
-jest.mock('@/components/common/analysis/AIAnalysisProgress', () => ({
+vi.mock('@/components/common/analysis/AIAnalysisProgress', () => ({
   AIAnalysisProgress: () => <div data-testid="ai-progress">Analyzing...</div>
 }))
 
-jest.mock('@/components/common/analysis/DataProfileSummary', () => ({
+vi.mock('@/components/common/analysis/DataProfileSummary', () => ({
   DataProfileSummary: () => <div data-testid="data-profile">Summary</div>
 }))
 
 // Mock recommenders
 let mockAnalyzeResult: AIRecommendation | null = mockRecommendation
-jest.mock('@/lib/services/decision-tree-recommender', () => ({
+vi.mock('@/lib/services/decision-tree-recommender', () => ({
   DecisionTreeRecommender: {
-    recommend: jest.fn(() => mockAnalyzeResult),
-    recommendWithoutAssumptions: jest.fn(() => mockAnalyzeResult)
+    recommend: vi.fn(() => mockAnalyzeResult),
+    recommendWithoutAssumptions: vi.fn(() => mockAnalyzeResult)
   }
 }))
 
-jest.mock('@/lib/services/ollama-recommender', () => ({
+vi.mock('@/lib/services/ollama-recommender', () => ({
   ollamaRecommender: {
-    checkHealth: jest.fn().mockResolvedValue(false),
-    recommend: jest.fn().mockResolvedValue(null)
+    checkHealth: vi.fn().mockResolvedValue(false),
+    recommend: vi.fn().mockResolvedValue(null)
   }
 }))
 
@@ -162,7 +163,7 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
 
   describe('✅ 정상 케이스: AI 추천 성공 → 가이드 카드 표시', () => {
     it('should show guidance card with CTA button after AI recommendation', async () => {
-      const mockOnPurposeSubmit = jest.fn()
+      const mockOnPurposeSubmit = vi.fn()
 
       render(
         <PurposeInputStep
@@ -193,7 +194,7 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
     })
 
     it('should call onPurposeSubmit when CTA button is clicked', async () => {
-      const mockOnPurposeSubmit = jest.fn()
+      const mockOnPurposeSubmit = vi.fn()
 
       render(
         <PurposeInputStep
@@ -228,7 +229,7 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
         <PurposeInputStep
           validationResults={mockValidationResults}
           data={mockData}
-          onPurposeSubmit={jest.fn()}
+          onPurposeSubmit={vi.fn()}
         />
       )
 
@@ -252,7 +253,7 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
         <PurposeInputStep
           validationResults={mockValidationResults}
           data={mockData}
-          onPurposeSubmit={jest.fn()}
+          onPurposeSubmit={vi.fn()}
         />
       )
 
@@ -271,7 +272,7 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
         <PurposeInputStep
           validationResults={mockValidationResults}
           data={mockData}
-          onPurposeSubmit={jest.fn()}
+          onPurposeSubmit={vi.fn()}
         />
       )
 
@@ -289,7 +290,7 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
         <PurposeInputStep
           validationResults={mockValidationResults}
           data={mockData}
-          onPurposeSubmit={jest.fn()}
+          onPurposeSubmit={vi.fn()}
         />
       )
 
@@ -313,7 +314,7 @@ describe('Smart Flow Step 3 Guidance Card Tests', () => {
         <PurposeInputStep
           validationResults={mockValidationResults}
           data={mockData}
-          onPurposeSubmit={jest.fn()}
+          onPurposeSubmit={vi.fn()}
         />
       )
 

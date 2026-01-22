@@ -9,16 +9,17 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { DataValidationStep } from '@/components/smart-flow/steps/DataValidationStep'
 import type { ValidationResults, DataRow } from '@/types/smart-flow'
 
 // Mock useSmartFlowStore
-jest.mock('@/lib/stores/smart-flow-store', () => ({
+vi.mock('@/lib/stores/smart-flow-store', () => ({
   useSmartFlowStore: () => ({
     uploadedFile: { name: 'test-data.csv' },
     uploadedFileName: 'test-data.csv',
-    setDataCharacteristics: jest.fn(),
-    setAssumptionResults: jest.fn()
+    setDataCharacteristics: vi.fn(),
+    setAssumptionResults: vi.fn()
   })
 }))
 
@@ -82,7 +83,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={mockValidationResults}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -97,7 +98,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={mockValidationResults}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -113,7 +114,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={mockValidationResults}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -127,7 +128,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={{ ...mockValidationResults, totalRows: 50 }}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -142,7 +143,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={{ ...mockValidationResults, totalRows: 20 }}
           data={smallData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -155,7 +156,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={mockValidationResults}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -171,7 +172,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={mockValidationResults}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -193,7 +194,7 @@ describe('DataValidationStep UX Improvements', () => {
             warnings: ['경고 메시지']
           }}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -208,7 +209,7 @@ describe('DataValidationStep UX Improvements', () => {
             errors: ['에러 메시지']
           }}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -222,7 +223,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={mockValidationResults}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -240,7 +241,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={mockValidationResults}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 
@@ -257,7 +258,7 @@ describe('DataValidationStep UX Improvements', () => {
         <DataValidationStep
           validationResults={mockValidationResults}
           data={mockData}
-          onNext={jest.fn()}
+          onNext={vi.fn()}
         />
       )
 

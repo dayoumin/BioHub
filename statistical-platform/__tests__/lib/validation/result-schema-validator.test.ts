@@ -4,7 +4,7 @@
  * 43개 통계 방법의 결과 일관성을 검증하는 유틸리티 테스트
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 import {
   validateResultSchema,
   getCategoryForMethod,

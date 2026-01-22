@@ -8,6 +8,7 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RAGAssistant } from '../rag-assistant'
@@ -15,7 +16,7 @@ import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexe
 import type { ChatSession } from '@/lib/types/chat'
 
 // Mock ChatStorageIndexedDB
-jest.mock('@/lib/services/storage/chat-storage-indexed-db')
+vi.mock('@/lib/services/storage/chat-storage-indexed-db')
 
 const mockChatStorage = ChatStorageIndexedDB as jest.Mocked<typeof ChatStorageIndexedDB>
 
@@ -55,7 +56,7 @@ describe('RAGAssistant', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockChatStorage.loadSessions.mockResolvedValue(mockSessions)
     mockChatStorage.createNewSession.mockResolvedValue(mockNewSession)
     mockChatStorage.deleteSession.mockResolvedValue(undefined)

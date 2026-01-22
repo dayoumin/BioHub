@@ -10,6 +10,7 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { RAGChatInterface } from '../rag-chat-interface'
@@ -17,8 +18,8 @@ import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexe
 import type { ChatSession } from '@/lib/types/chat'
 
 // Mock ChatStorageIndexedDB
-jest.mock('@/lib/services/storage/chat-storage-indexed-db')
-jest.mock('@/lib/rag/rag-service')
+vi.mock('@/lib/services/storage/chat-storage-indexed-db')
+vi.mock('@/lib/rag/rag-service')
 
 const mockChatStorage = ChatStorageIndexedDB as jest.Mocked<typeof ChatStorageIndexedDB>
 
@@ -48,7 +49,7 @@ describe('RAGChatInterface', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockChatStorage.loadSession.mockResolvedValue(mockSession)
     mockChatStorage.addMessage.mockResolvedValue(undefined)
     mockChatStorage.deleteMessage.mockResolvedValue(undefined)
@@ -107,7 +108,7 @@ describe('RAGChatInterface', () => {
         expect(mockChatStorage.loadSession).toHaveBeenCalledWith(mockSessionId)
       })
 
-      jest.clearAllMocks()
+      vi.clearAllMocks()
       mockChatStorage.loadSession.mockResolvedValue(mockSession)
 
       const newSessionId = 'test-session-2'

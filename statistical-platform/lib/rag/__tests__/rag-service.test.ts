@@ -9,7 +9,8 @@
  * 5. queryRAG() 함수의 올바른 설정
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { vi } from 'vitest'
 import {
   RAGService,
   queryRAG,
@@ -40,12 +41,12 @@ describe('RAGService', () => {
 
     // ✅ Fetch 전역 모킹 설정 (Ollama 서버 대신)
     // @ts-expect-error - 전역 fetch 모킹
-    global.fetch = jest.fn().mockResolvedValue(mockOllamaTagsResponse)
+    global.fetch = vi.fn().mockResolvedValue(mockOllamaTagsResponse)
   })
 
   afterEach(() => {
     // 테스트 후 fetch 모킹 정리
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // @ts-expect-error - 모킹 제거
     delete global.fetch
   })
@@ -260,7 +261,7 @@ describe('Utility Functions', () => {
       // 모의 fetch 설정
       const originalFetch = global.fetch
       // @ts-expect-error - 모의 처리
-      global.fetch = jest.fn().mockResolvedValueOnce({
+      global.fetch = vi.fn().mockResolvedValueOnce({
         ok: false,
         status: 404,
       })
@@ -289,7 +290,7 @@ describe('Utility Functions', () => {
 
       const originalFetch = global.fetch
       // @ts-expect-error - 모의 처리
-      global.fetch = jest.fn().mockResolvedValueOnce({
+      global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockStores,
       })

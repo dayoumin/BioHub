@@ -5,6 +5,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { ModelSettings } from '@/components/rag/model-settings'
 import type { OllamaModel } from '@/components/rag/model-settings'
 import type { VectorStore, SearchMode } from '@/lib/rag/providers/base-provider'
@@ -40,20 +41,20 @@ describe('ModelSettings', () => {
   const defaultProps = {
     availableVectorStores: mockVectorStores,
     selectedVectorStoreId: null,
-    onVectorStoreSelect: jest.fn(),
+    onVectorStoreSelect: vi.fn(),
     availableModels: mockAvailableModels,
     isLoadingModels: false,
-    onRefreshModels: jest.fn(),
+    onRefreshModels: vi.fn(),
     selectedEmbeddingModel: 'mxbai-embed-large',
-    onEmbeddingModelChange: jest.fn(),
+    onEmbeddingModelChange: vi.fn(),
     selectedInferenceModel: 'qwen3:4b',
-    onInferenceModelChange: jest.fn(),
+    onInferenceModelChange: vi.fn(),
     searchMode: 'vector' as SearchMode,
-    onSearchModeChange: jest.fn()
+    onSearchModeChange: vi.fn()
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('기본 렌더링', () => {
@@ -87,7 +88,7 @@ describe('ModelSettings', () => {
     })
 
     it('Vector Store 선택 시 콜백이 호출되어야 함', async () => {
-      const onVectorStoreSelect = jest.fn()
+      const onVectorStoreSelect = vi.fn()
       render(
         <ModelSettings
           {...defaultProps}
@@ -145,7 +146,7 @@ describe('ModelSettings', () => {
     })
 
     it('추론 모델 선택 시 콜백이 호출되어야 함', async () => {
-      const onInferenceModelChange = jest.fn()
+      const onInferenceModelChange = vi.fn()
       render(
         <ModelSettings
           {...defaultProps}
@@ -176,7 +177,7 @@ describe('ModelSettings', () => {
     })
 
     it('새로고침 버튼 클릭 시 콜백이 호출되어야 함', () => {
-      const onRefreshModels = jest.fn()
+      const onRefreshModels = vi.fn()
       render(
         <ModelSettings
           {...defaultProps}
@@ -222,7 +223,7 @@ describe('ModelSettings', () => {
     })
 
     it('FTS5 모드 선택 시 콜백이 호출되어야 함', () => {
-      const onSearchModeChange = jest.fn()
+      const onSearchModeChange = vi.fn()
       render(
         <ModelSettings
           {...defaultProps}
@@ -237,7 +238,7 @@ describe('ModelSettings', () => {
     })
 
     it('Vector 모드 선택 시 콜백이 호출되어야 함', () => {
-      const onSearchModeChange = jest.fn()
+      const onSearchModeChange = vi.fn()
       render(
         <ModelSettings
           {...defaultProps}
@@ -252,7 +253,7 @@ describe('ModelSettings', () => {
     })
 
     it('Hybrid 모드 선택 시 콜백이 호출되어야 함', () => {
-      const onSearchModeChange = jest.fn()
+      const onSearchModeChange = vi.fn()
       render(
         <ModelSettings
           {...defaultProps}

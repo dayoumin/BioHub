@@ -4,12 +4,13 @@
 
 import { checkOllamaStatus } from '@/lib/rag/utils/ollama-check'
 
+import { vi } from 'vitest'
 // fetch 모킹
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('checkOllamaStatus - Ollama 연결 확인', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('성공 케이스', () => {

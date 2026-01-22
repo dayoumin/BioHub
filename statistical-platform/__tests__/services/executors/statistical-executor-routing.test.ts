@@ -8,60 +8,61 @@
  * Related fix: Smart Flow - Pearson correlation was showing descriptive stats result
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals'
+import { describe, it, expect, beforeEach } from 'vitest'
 
+import { vi } from 'vitest'
 // Mock Pyodide for unit testing
 // Method names must match actual pyodideStats methods in lib/services/pyodide-statistics.ts
-jest.mock('@/lib/services/pyodide-statistics', () => ({
+vi.mock('@/lib/services/pyodide-statistics', () => ({
   pyodideStats: {
     isReady: true,
-    initialize: jest.fn().mockResolvedValue(undefined),
+    initialize: vi.fn().mockResolvedValue(undefined),
     // Correlation methods (actual names from pyodide-statistics.ts)
-    correlationTest: jest.fn().mockResolvedValue({ correlation: 0.85, pValue: 0.001 }),
-    correlation: jest.fn().mockResolvedValue({
+    correlationTest: vi.fn().mockResolvedValue({ correlation: 0.85, pValue: 0.001 }),
+    correlation: vi.fn().mockResolvedValue({
       pearson: { r: 0.85, pValue: 0.001 },
       spearman: { r: 0.82, pValue: 0.002 },
       kendall: { tau: 0.72, pValue: 0.005 }
     }),
-    partialCorrelationWorker: jest.fn().mockResolvedValue({ correlation: 0.65, pValue: 0.01, df: 7 }),
+    partialCorrelationWorker: vi.fn().mockResolvedValue({ correlation: 0.65, pValue: 0.01, df: 7 }),
     // T-test methods (actual names)
-    tTest: jest.fn().mockResolvedValue({ statistic: 2.8, pvalue: 0.008, df: 58, confidenceInterval: { lower: 0.5, upper: 2.1 } }),
-    oneSampleTTest: jest.fn().mockResolvedValue({ statistic: 2.5, pValue: 0.02, df: 29, confidenceInterval: { lower: 1.2, upper: 3.8 } }),
-    tTestTwoSample: jest.fn().mockResolvedValue({ statistic: 2.8, pvalue: 0.008, df: 58 }),
-    tTestPaired: jest.fn().mockResolvedValue({ statistic: 3.2, pvalue: 0.003, df: 29 }),
-    tTestOneSample: jest.fn().mockResolvedValue({ statistic: 2.5, pvalue: 0.02, df: 29 }),
+    tTest: vi.fn().mockResolvedValue({ statistic: 2.8, pvalue: 0.008, df: 58, confidenceInterval: { lower: 0.5, upper: 2.1 } }),
+    oneSampleTTest: vi.fn().mockResolvedValue({ statistic: 2.5, pValue: 0.02, df: 29, confidenceInterval: { lower: 1.2, upper: 3.8 } }),
+    tTestTwoSample: vi.fn().mockResolvedValue({ statistic: 2.8, pvalue: 0.008, df: 58 }),
+    tTestPaired: vi.fn().mockResolvedValue({ statistic: 3.2, pvalue: 0.003, df: 29 }),
+    tTestOneSample: vi.fn().mockResolvedValue({ statistic: 2.5, pvalue: 0.02, df: 29 }),
     // ANOVA methods (actual names)
-    anova: jest.fn().mockResolvedValue({ fStatistic: 4.5, pValue: 0.02, df: [2, 27], etaSquared: 0.25 }),
-    oneWayANOVA: jest.fn().mockResolvedValue({ fStatistic: 4.5, pValue: 0.02, df: [2, 27] }),
-    gamesHowellTest: jest.fn().mockResolvedValue({ comparisons: [], significant_count: 0 }),
-    tukeyHSD: jest.fn().mockResolvedValue([]),
+    anova: vi.fn().mockResolvedValue({ fStatistic: 4.5, pValue: 0.02, df: [2, 27], etaSquared: 0.25 }),
+    oneWayANOVA: vi.fn().mockResolvedValue({ fStatistic: 4.5, pValue: 0.02, df: [2, 27] }),
+    gamesHowellTest: vi.fn().mockResolvedValue({ comparisons: [], significant_count: 0 }),
+    tukeyHSD: vi.fn().mockResolvedValue([]),
     // Nonparametric methods (actual names)
-    mannWhitneyU: jest.fn().mockResolvedValue({ statistic: 45.0, pvalue: 0.023 }),
-    kruskalWallis: jest.fn().mockResolvedValue({ statistic: 8.5, pvalue: 0.014, df: 2 }),
-    wilcoxon: jest.fn().mockResolvedValue({ statistic: 12.0, pvalue: 0.034 }),
-    friedman: jest.fn().mockResolvedValue({ statistic: 10.0, pvalue: 0.02 }),
-    signTestWorker: jest.fn().mockResolvedValue({ statistic: 5, pValue: 0.05, nPositive: 8, nNegative: 2 }),
-    mcnemarTestWorker: jest.fn().mockResolvedValue({ statistic: 4.5, pValue: 0.03 }),
-    cochranQTestWorker: jest.fn().mockResolvedValue({ qStatistic: 8.0, pValue: 0.02, df: 2 }),
-    binomialTestWorker: jest.fn().mockResolvedValue({ pValue: 0.05, successCount: 7, totalCount: 10 }),
-    runsTestWorker: jest.fn().mockResolvedValue({ zStatistic: 1.5, pValue: 0.13, nRuns: 5, expectedRuns: 6 }),
-    ksTestOneSample: jest.fn().mockResolvedValue({ statistic: 0.15, pValue: 0.2, n: 20, significant: false, interpretation: 'ok' }),
-    ksTestTwoSample: jest.fn().mockResolvedValue({ statistic: 0.2, pValue: 0.1, n1: 20, n2: 25, significant: false }),
-    moodMedianTestWorker: jest.fn().mockResolvedValue({ statistic: 3.5, pValue: 0.06, grandMedian: 15 }),
-    oneSampleProportionTest: jest.fn().mockResolvedValue({ zStatistic: 1.8, pValueExact: 0.07, sampleProportion: 0.6 }),
+    mannWhitneyU: vi.fn().mockResolvedValue({ statistic: 45.0, pvalue: 0.023 }),
+    kruskalWallis: vi.fn().mockResolvedValue({ statistic: 8.5, pvalue: 0.014, df: 2 }),
+    wilcoxon: vi.fn().mockResolvedValue({ statistic: 12.0, pvalue: 0.034 }),
+    friedman: vi.fn().mockResolvedValue({ statistic: 10.0, pvalue: 0.02 }),
+    signTestWorker: vi.fn().mockResolvedValue({ statistic: 5, pValue: 0.05, nPositive: 8, nNegative: 2 }),
+    mcnemarTestWorker: vi.fn().mockResolvedValue({ statistic: 4.5, pValue: 0.03 }),
+    cochranQTestWorker: vi.fn().mockResolvedValue({ qStatistic: 8.0, pValue: 0.02, df: 2 }),
+    binomialTestWorker: vi.fn().mockResolvedValue({ pValue: 0.05, successCount: 7, totalCount: 10 }),
+    runsTestWorker: vi.fn().mockResolvedValue({ zStatistic: 1.5, pValue: 0.13, nRuns: 5, expectedRuns: 6 }),
+    ksTestOneSample: vi.fn().mockResolvedValue({ statistic: 0.15, pValue: 0.2, n: 20, significant: false, interpretation: 'ok' }),
+    ksTestTwoSample: vi.fn().mockResolvedValue({ statistic: 0.2, pValue: 0.1, n1: 20, n2: 25, significant: false }),
+    moodMedianTestWorker: vi.fn().mockResolvedValue({ statistic: 3.5, pValue: 0.06, grandMedian: 15 }),
+    oneSampleProportionTest: vi.fn().mockResolvedValue({ zStatistic: 1.8, pValueExact: 0.07, sampleProportion: 0.6 }),
     // Chi-square methods (actual name)
-    chiSquare: jest.fn().mockResolvedValue({ statistic: 12.5, pvalue: 0.002, df: 4, cramersV: 0.3 }),
-    chiSquareTest: jest.fn().mockResolvedValue({ statistic: 12.5, pValue: 0.002, df: 4 }),
+    chiSquare: vi.fn().mockResolvedValue({ statistic: 12.5, pvalue: 0.002, df: 4, cramersV: 0.3 }),
+    chiSquareTest: vi.fn().mockResolvedValue({ statistic: 12.5, pValue: 0.002, df: 4 }),
     // Regression methods (actual name)
-    regression: jest.fn().mockResolvedValue({ rSquared: 0.85, pvalue: 0.001, fStatistic: 45.2, df: 28, predictions: [] }),
-    simpleLinearRegression: jest.fn().mockResolvedValue({ slope: 1.5, intercept: 2.0, rSquared: 0.85, pValue: 0.001 }),
+    regression: vi.fn().mockResolvedValue({ rSquared: 0.85, pvalue: 0.001, fStatistic: 45.2, df: 28, predictions: [] }),
+    simpleLinearRegression: vi.fn().mockResolvedValue({ slope: 1.5, intercept: 2.0, rSquared: 0.85, pValue: 0.001 }),
     // Descriptive methods (actual name)
-    descriptiveStats: jest.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25, median: 15, n: 30 }),
-    calculateDescriptiveStatistics: jest.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25 }),
+    descriptiveStats: vi.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25, median: 15, n: 30 }),
+    calculateDescriptiveStatistics: vi.fn().mockResolvedValue({ mean: 15, std: 5, min: 5, max: 25 }),
     // Multivariate methods
-    pca: jest.fn().mockResolvedValue({ explainedVariance: [0.6, 0.3], totalExplainedVariance: 0.9 }),
-    factorAnalysis: jest.fn().mockResolvedValue({ explainedVariance: [0.5, 0.3], totalExplainedVariance: 0.8 }),
-    clusterAnalysis: jest.fn().mockResolvedValue({
+    pca: vi.fn().mockResolvedValue({ explainedVariance: [0.6, 0.3], totalExplainedVariance: 0.9 }),
+    factorAnalysis: vi.fn().mockResolvedValue({ explainedVariance: [0.5, 0.3], totalExplainedVariance: 0.8 }),
+    clusterAnalysis: vi.fn().mockResolvedValue({
       nClusters: 2,
       clusterAssignments: [0, 1, 0, 1],
       centroids: [[1, 2], [3, 4]],
@@ -71,16 +72,16 @@ jest.mock('@/lib/services/pyodide-statistics', () => ({
       inertia: 1.2,
       clusterSizes: [2, 2]
     }),
-    discriminantAnalysis: jest.fn().mockResolvedValue({ accuracy: 0.85, functions: [{ varianceExplained: 0.9 }], totalVariance: 0.95 }),
+    discriminantAnalysis: vi.fn().mockResolvedValue({ accuracy: 0.85, functions: [{ varianceExplained: 0.9 }], totalVariance: 0.95 }),
     // Time series methods
-    timeSeriesAnalysis: jest.fn().mockResolvedValue({ trend: [1, 2, 3], seasonal: [0.1, 0.2, 0.1] }),
+    timeSeriesAnalysis: vi.fn().mockResolvedValue({ trend: [1, 2, 3], seasonal: [0.1, 0.2, 0.1] }),
     // Reliability methods
-    cronbachAlpha: jest.fn().mockResolvedValue({ alpha: 0.85, itemTotalCorrelations: [0.7, 0.8, 0.75] }),
+    cronbachAlpha: vi.fn().mockResolvedValue({ alpha: 0.85, itemTotalCorrelations: [0.7, 0.8, 0.75] }),
     // Survival methods
-    kaplanMeierSurvival: jest.fn().mockResolvedValue({ times: [1, 2, 3], survivalFunction: [1, 0.9, 0.8], medianSurvival: 5 }),
-    coxRegression: jest.fn().mockResolvedValue({ hazardRatios: [1.5], pValues: [0.02], confidenceIntervals: [[1.1, 2.0]], concordance: 0.75 }),
+    kaplanMeierSurvival: vi.fn().mockResolvedValue({ times: [1, 2, 3], survivalFunction: [1, 0.9, 0.8], medianSurvival: 5 }),
+    coxRegression: vi.fn().mockResolvedValue({ hazardRatios: [1.5], pValues: [0.02], confidenceIntervals: [[1.1, 2.0]], concordance: 0.75 }),
     // Power analysis
-    powerAnalysis: jest.fn().mockResolvedValue({ requiredSampleSize: 64, achievedPower: 0.8, effectSize: 0.5, alpha: 0.05 }),
+    powerAnalysis: vi.fn().mockResolvedValue({ requiredSampleSize: 64, achievedPower: 0.8, effectSize: 0.5, alpha: 0.05 }),
   }
 }))
 

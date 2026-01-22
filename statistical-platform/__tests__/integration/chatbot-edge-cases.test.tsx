@@ -6,6 +6,7 @@
 
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 
+import { vi } from 'vitest'
 // Mock IndexedDB
 let mockDB: Map<string, any>
 let sessionIdCounter = 0
@@ -15,16 +16,16 @@ beforeEach(async () => {
   sessionIdCounter = 0
 
   // Mock ChatStorageIndexedDB
-  jest.spyOn(ChatStorageIndexedDB, 'initialize').mockResolvedValue(undefined)
-  jest.spyOn(ChatStorageIndexedDB, 'loadSessions').mockImplementation(async () => {
+  vi.spyOn(ChatStorageIndexedDB, 'initialize').mockResolvedValue(undefined)
+  vi.spyOn(ChatStorageIndexedDB, 'loadSessions').mockImplementation(async () => {
     const sessions = mockDB.get('sessions') || []
     return sessions
   })
-  jest.spyOn(ChatStorageIndexedDB, 'loadProjects').mockImplementation(async () => {
+  vi.spyOn(ChatStorageIndexedDB, 'loadProjects').mockImplementation(async () => {
     const projects = mockDB.get('projects') || []
     return projects
   })
-  jest.spyOn(ChatStorageIndexedDB, 'createNewSession').mockImplementation(async () => {
+  vi.spyOn(ChatStorageIndexedDB, 'createNewSession').mockImplementation(async () => {
     sessionIdCounter++
     const newSession = {
       id: `session-${sessionIdCounter}`,
@@ -40,7 +41,7 @@ beforeEach(async () => {
     mockDB.set('sessions', sessions)
     return newSession
   })
-  jest.spyOn(ChatStorageIndexedDB, 'saveSession').mockImplementation(async (session) => {
+  vi.spyOn(ChatStorageIndexedDB, 'saveSession').mockImplementation(async (session) => {
     const sessions = mockDB.get('sessions') || []
     const index = sessions.findIndex((s: any) => s.id === session.id)
     if (index >= 0) {
@@ -50,19 +51,19 @@ beforeEach(async () => {
     }
     mockDB.set('sessions', sessions)
   })
-  jest.spyOn(ChatStorageIndexedDB, 'deleteSession').mockImplementation(async (sessionId) => {
+  vi.spyOn(ChatStorageIndexedDB, 'deleteSession').mockImplementation(async (sessionId) => {
     const sessions = mockDB.get('sessions') || []
     const filtered = sessions.filter((s: any) => s.id !== sessionId)
     mockDB.set('sessions', filtered)
   })
-  jest.spyOn(ChatStorageIndexedDB, 'loadSession').mockImplementation(async (sessionId) => {
+  vi.spyOn(ChatStorageIndexedDB, 'loadSession').mockImplementation(async (sessionId) => {
     const sessions = mockDB.get('sessions') || []
     return sessions.find((s: any) => s.id === sessionId) || null
   })
 })
 
 afterEach(() => {
-  jest.restoreAllMocks()
+  vi.restoreAllMocks()
   mockDB.clear()
 })
 
@@ -227,7 +228,7 @@ describe('챗봇 엣지 케이스 테스트', () => {
 
   describe('4. 에러 복구 테스트', () => {
     it('IndexedDB 저장 실패 시 에러를 throw해야 함', async () => {
-      const errorSpy = jest.spyOn(ChatStorageIndexedDB, 'saveSession')
+      const errorSpy = vi.spyOn(ChatStorageIndexedDB, 'saveSession')
         .mockRejectedValueOnce(new Error('Save failed'))
 
       const session = await ChatStorageIndexedDB.createNewSession()
@@ -245,7 +246,7 @@ describe('챗봇 엣지 케이스 테스트', () => {
       const session3 = await ChatStorageIndexedDB.createNewSession()
 
       // session2 저장만 실패하도록 설정
-      const saveSpy = jest.spyOn(ChatStorageIndexedDB, 'saveSession')
+      const saveSpy = vi.spyOn(ChatStorageIndexedDB, 'saveSession')
         .mockImplementation(async (session) => {
           if (session.id === session2.id) {
             throw new Error('Save failed')

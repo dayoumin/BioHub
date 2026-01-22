@@ -5,7 +5,7 @@
  * and hypothesis generation functions.
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 
 // 테스트용 함수 복사 (실제로는 별도 파일로 분리 권장)
 function interpretPValue(pValue: number): string {

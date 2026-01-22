@@ -3,6 +3,7 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { SessionFavoritesDropdown } from '@/components/rag/session-favorites-dropdown'
 import type { ChatSession } from '@/lib/types/chat'
@@ -39,10 +40,10 @@ const mockSessions: ChatSession[] = [
 ]
 
 describe('SessionFavoritesDropdown', () => {
-  const mockOnSelectSession = jest.fn()
+  const mockOnSelectSession = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('즐겨찾기 세션이 없으면 렌더링하지 않음', () => {

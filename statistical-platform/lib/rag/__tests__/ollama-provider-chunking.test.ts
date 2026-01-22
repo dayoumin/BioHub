@@ -10,6 +10,7 @@
  */
 
 import { OllamaRAGProvider } from '../providers/ollama-provider'
+import { vi } from 'vitest'
 import { IndexedDBStorage } from '../indexeddb-storage'
 import type { DocumentInput } from '../providers/base-provider'
 
@@ -17,7 +18,7 @@ import type { DocumentInput } from '../providers/base-provider'
 import 'fake-indexeddb/auto'
 
 // Mock Ollama API
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
   let provider: OllamaRAGProvider
@@ -80,7 +81,7 @@ describe('OllamaProvider - Chunk-based addDocument (Phase 3)', () => {
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('작은 문서 (1 청크)', () => {

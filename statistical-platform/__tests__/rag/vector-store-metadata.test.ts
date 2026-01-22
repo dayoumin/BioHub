@@ -5,14 +5,15 @@
  */
 
 import { getAvailableVectorStores } from '@/lib/rag/rag-service'
+import { vi } from 'vitest'
 import type { VectorStore } from '@/lib/rag/providers/base-provider'
 
 // Mock fetch for testing
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('getAvailableVectorStores', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('정상 동작', () => {

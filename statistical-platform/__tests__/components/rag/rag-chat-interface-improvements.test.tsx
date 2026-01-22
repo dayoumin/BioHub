@@ -11,25 +11,26 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { act } from 'react'
 import { RAGChatInterface } from '@/components/rag/rag-chat-interface'
 
 // Mock markdown libraries
-jest.mock('remark-gfm', () => () => {})
-jest.mock('remark-breaks', () => () => {})
-jest.mock('remark-math', () => () => {})
-jest.mock('rehype-katex', () => () => {})
+vi.mock('remark-gfm', () => () => {})
+vi.mock('remark-breaks', () => () => {})
+vi.mock('remark-math', () => () => {})
+vi.mock('rehype-katex', () => () => {})
 
 // Mock ReactMarkdown
-jest.mock('react-markdown', () => {
+vi.mock('react-markdown', () => {
   return function ReactMarkdown({ children }: { children: string }) {
     return <div className="prose">{children}</div>
   }
 })
 
 // Mock modules
-jest.mock('@/lib/rag/rag-service', () => ({
-  queryRAG: jest.fn(() =>
+vi.mock('@/lib/rag/rag-service', () => ({
+  queryRAG: vi.fn(() =>
     Promise.resolve({
       answer: 'Test answer',
       sources: [],
@@ -38,9 +39,9 @@ jest.mock('@/lib/rag/rag-service', () => ({
   ),
 }))
 
-jest.mock('@/lib/services/storage/chat-storage-indexed-db', () => ({
+vi.mock('@/lib/services/storage/chat-storage-indexed-db', () => ({
   ChatStorageIndexedDB: {
-    loadSession: jest.fn(() =>
+    loadSession: vi.fn(() =>
       Promise.resolve({
         id: 'test-session',
         title: 'Test Session',
@@ -63,22 +64,22 @@ jest.mock('@/lib/services/storage/chat-storage-indexed-db', () => ({
         updatedAt: Date.now(),
       })
     ),
-    addMessage: jest.fn(() => Promise.resolve()),
-    deleteMessage: jest.fn(() => Promise.resolve()),
+    addMessage: vi.fn(() => Promise.resolve()),
+    deleteMessage: vi.fn(() => Promise.resolve()),
   },
 }))
 
-jest.mock('@/components/rag/chat-sources-display', () => ({
+vi.mock('@/components/rag/chat-sources-display', () => ({
   ChatSourcesDisplay: ({ sources }: { sources: unknown[] }) => (
     <div data-testid="chat-sources">{sources.length} sources</div>
   ),
 }))
 
 describe('RAG Chat Interface Improvements', () => {
-  const mockSessionUpdate = jest.fn()
+  const mockSessionUpdate = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('P1: 타입 안전성 (PluggableList)', () => {
@@ -150,7 +151,7 @@ describe('RAG Chat Interface Improvements', () => {
       // clipboard API mock
       Object.assign(navigator, {
         clipboard: {
-          writeText: jest.fn(() => Promise.resolve()),
+          writeText: vi.fn(() => Promise.resolve()),
         },
       })
 
@@ -245,11 +246,11 @@ describe('RAG Chat Interface Improvements', () => {
   describe('P3: 스트리밍 에러 로깅', () => {
     it('스트리밍 실패 시 에러 로깅이 되어야 함', async () => {
       // console.error mock
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation()
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation()
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation()
 
       // fetch를 실패하도록 mock
-      global.fetch = jest.fn(() =>
+      global.fetch = vi.fn(() =>
         Promise.reject(new TypeError('Network error'))
       )
 

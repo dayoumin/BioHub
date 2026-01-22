@@ -9,11 +9,12 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { OutlierDetailPanel, OutlierInfo } from '@/components/common/analysis/OutlierDetailPanel'
 
 // Mock Dialog component to avoid portal issues
-jest.mock('@/components/ui/dialog', () => ({
+vi.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
     open ? <div data-testid="dialog">{children}</div> : null,
   DialogContent: ({ children }: { children: React.ReactNode }) =>
@@ -49,15 +50,15 @@ describe('OutlierDetailPanel', () => {
 
   const defaultProps = {
     open: true,
-    onOpenChange: jest.fn(),
+    onOpenChange: vi.fn(),
     variableName: 'TestVariable',
     outliers: mockOutliers,
     statistics: mockStatistics,
-    onViewInData: jest.fn(),
+    onViewInData: vi.fn(),
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Basic Rendering', () => {

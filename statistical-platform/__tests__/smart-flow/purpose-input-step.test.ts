@@ -7,7 +7,7 @@
  * 3. Icon imports validation
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 
 // Test ANALYSIS_PURPOSES structure
 describe('PurposeInputStep - ANALYSIS_PURPOSES', () => {

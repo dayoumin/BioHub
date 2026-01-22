@@ -6,7 +6,7 @@
  * 날짜: 2025-11-13
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 
 describe('Non-Parametric Integration Tests', () => {
   describe('Worker 3 메서드 검증', () => {

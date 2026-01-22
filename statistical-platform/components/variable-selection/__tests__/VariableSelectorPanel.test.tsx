@@ -1,4 +1,5 @@
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { VariableSelectorPanel, VariableRole } from '../VariableSelectorPanel'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -162,7 +163,7 @@ describe('VariableSelectorPanel', () => {
 
   describe('변수 할당', () => {
     it('onAssignmentChange가 호출되어야 함', () => {
-      const onAssignmentChange = jest.fn()
+      const onAssignmentChange = vi.fn()
 
       render(
         <TestWrapper>
@@ -241,7 +242,7 @@ describe('VariableSelectorPanel', () => {
     })
 
     it('onComplete가 호출되어야 함', () => {
-      const onComplete = jest.fn()
+      const onComplete = vi.fn()
 
       render(
         <TestWrapper>
@@ -317,7 +318,7 @@ describe('VariableSelectorPanel', () => {
 
     it('존재하지 않는 methodId는 빈 역할을 반환해야 함', () => {
       // console.warn이 호출됨을 확인
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation()
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation()
 
       render(
         <TestWrapper>

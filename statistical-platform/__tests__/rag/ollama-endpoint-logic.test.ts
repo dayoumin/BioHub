@@ -1,3 +1,5 @@
+import { vi } from 'vitest'
+
 /**
  * Ollama Endpoint 로직 테스트
  *
@@ -26,7 +28,7 @@ describe('Ollama Endpoint Logic', () => {
       process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT = 'http://custom-server:11434'
 
       // Mock fetch를 성공으로 설정
-      global.fetch = jest.fn(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: async () => ({ models: [] }),
@@ -49,7 +51,7 @@ describe('Ollama Endpoint Logic', () => {
       // Given: 명시적 endpoint 설정 (연결 실패)
       process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT = 'http://unreachable:11434'
 
-      global.fetch = jest.fn(() => Promise.reject(new Error('Network error')))
+      global.fetch = vi.fn(() => Promise.reject(new Error('Network error')))
 
       // When
       const { checkOllamaAvailable } = await import('@/lib/utils/environment-detector')
@@ -72,7 +74,7 @@ describe('Ollama Endpoint Logic', () => {
         writable: true,
       })
 
-      global.fetch = jest.fn(() =>
+      global.fetch = vi.fn(() =>
         Promise.resolve({
           ok: true,
           json: async () => ({ models: [] }),
@@ -98,7 +100,7 @@ describe('Ollama Endpoint Logic', () => {
       delete process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT
       process.env.NEXT_PUBLIC_VERCEL_ENV = 'production'
 
-      global.fetch = jest.fn()
+      global.fetch = vi.fn()
 
       // When
       const { checkOllamaAvailable } = await import('@/lib/utils/environment-detector')
@@ -118,7 +120,7 @@ describe('Ollama Endpoint Logic', () => {
         writable: true,
       })
 
-      global.fetch = jest.fn()
+      global.fetch = vi.fn()
 
       // When
       const { checkOllamaAvailable } = await import('@/lib/utils/environment-detector')
@@ -136,7 +138,7 @@ describe('Ollama Endpoint Logic', () => {
       process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT = 'http://my-server:11434'
 
       // Mock Ollama API
-      global.fetch = jest.fn((url) => {
+      global.fetch = vi.fn((url) => {
         if (typeof url === 'string' && url.includes('/api/tags')) {
           return Promise.resolve({
             ok: true,

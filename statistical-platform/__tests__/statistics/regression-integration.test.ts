@@ -5,7 +5,7 @@
  * - Logistic Regression 프론트 연결 검증
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 
 describe('Regression Integration Tests', () => {
   describe('Linear Regression', () => {

@@ -4,8 +4,9 @@
  * 목적: NEXT_PUBLIC_OLLAMA_ENDPOINT 환경변수가 올바르게 동작하는지 검증
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 
+import { vi } from 'vitest'
 describe('RAG Test Page - Ollama Endpoint Configuration', () => {
   const originalEnv = process.env
 
@@ -14,7 +15,7 @@ describe('RAG Test Page - Ollama Endpoint Configuration', () => {
     process.env = { ...originalEnv }
 
     // fetch mock 초기화
-    global.fetch = jest.fn()
+    global.fetch = vi.fn()
   })
 
   afterEach(() => {
@@ -22,7 +23,7 @@ describe('RAG Test Page - Ollama Endpoint Configuration', () => {
     process.env = originalEnv
 
     // mock 정리
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   describe('환경변수 없을 때', () => {
@@ -31,7 +32,7 @@ describe('RAG Test Page - Ollama Endpoint Configuration', () => {
       delete process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT
 
       // Mock fetch
-      const mockFetch = jest.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ models: [] })
       })
@@ -52,7 +53,7 @@ describe('RAG Test Page - Ollama Endpoint Configuration', () => {
       process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT = 'https://my-ollama.com'
 
       // Mock fetch
-      const mockFetch = jest.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ models: [] })
       })
@@ -76,7 +77,7 @@ describe('RAG Test Page - Ollama Endpoint Configuration', () => {
       for (const endpoint of testCases) {
         // Given
         process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT = endpoint
-        const mockFetch = jest.fn().mockResolvedValue({
+        const mockFetch = vi.fn().mockResolvedValue({
           ok: true,
           json: async () => ({ models: [] })
         })
@@ -95,7 +96,7 @@ describe('RAG Test Page - Ollama Endpoint Configuration', () => {
   describe('에러 처리', () => {
     it('fetch 실패 시 에러를 던져야 함', async () => {
       // Given: fetch 실패
-      const mockFetch = jest.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500
       })
@@ -110,7 +111,7 @@ describe('RAG Test Page - Ollama Endpoint Configuration', () => {
 
     it('네트워크 에러 시 예외를 던져야 함', async () => {
       // Given: 네트워크 에러
-      const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'))
+      const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'))
       global.fetch = mockFetch as any
 
       // When/Then: 예외 발생
@@ -125,7 +126,7 @@ describe('RAG Test Page - Ollama Endpoint Configuration', () => {
       // Given: 환경변수 설정
       process.env.NEXT_PUBLIC_OLLAMA_ENDPOINT = 'https://test-ollama.com'
 
-      const mockFetch = jest.fn().mockResolvedValue({
+      const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
           models: [

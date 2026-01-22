@@ -8,18 +8,19 @@
  * - Hook 최적화 검증
  */
 
-import { describe, it, beforeEach, jest } from '@jest/globals'
+import { describe, it, beforeEach, vi } from 'vitest'
+import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import SmartFlowPage from '@/app/smart-flow/page'
 import { useSmartFlowStore } from '@/lib/stores/smart-flow-store'
 
 // Mock Zustand store
-jest.mock('@/lib/stores/smart-flow-store', () => ({
-  useSmartFlowStore: jest.fn()
+vi.mock('@/lib/stores/smart-flow-store', () => ({
+  useSmartFlowStore: vi.fn()
 }))
 
 // Mock SmartFlowLayout
-jest.mock('@/components/smart-flow/layouts/SmartFlowLayout', () => ({
+vi.mock('@/components/smart-flow/layouts/SmartFlowLayout', () => ({
   SmartFlowLayout: ({ children, onStepChange }: {
     children: React.ReactNode
     onStepChange?: (step: number) => void
@@ -34,42 +35,42 @@ jest.mock('@/components/smart-flow/layouts/SmartFlowLayout', () => ({
 }))
 
 // Mock Step Components
-jest.mock('@/components/smart-flow/steps/DataUploadStep', () => ({
+vi.mock('@/components/smart-flow/steps/DataUploadStep', () => ({
   DataUploadStep: () => <div data-testid="data-upload-step">Upload Step</div>
 }))
 
-jest.mock('@/components/smart-flow/steps/DataValidationStep', () => ({
+vi.mock('@/components/smart-flow/steps/DataValidationStep', () => ({
   DataValidationStep: () => <div data-testid="data-validation-step">Validation Step</div>
 }))
 
-jest.mock('@/components/smart-flow/steps/PurposeInputStep', () => ({
+vi.mock('@/components/smart-flow/steps/PurposeInputStep', () => ({
   PurposeInputStep: () => <div data-testid="purpose-input-step">Purpose Step</div>
 }))
 
-jest.mock('@/components/smart-flow/steps/VariableSelectionStep', () => ({
+vi.mock('@/components/smart-flow/steps/VariableSelectionStep', () => ({
   VariableSelectionStep: () => <div data-testid="variable-selection-step">Variable Step</div>
 }))
 
-jest.mock('@/components/smart-flow/steps/AnalysisExecutionStep', () => ({
+vi.mock('@/components/smart-flow/steps/AnalysisExecutionStep', () => ({
   AnalysisExecutionStep: () => <div data-testid="analysis-execution-step">Analysis Step</div>
 }))
 
-jest.mock('@/components/smart-flow/steps/ResultsActionStep', () => ({
+vi.mock('@/components/smart-flow/steps/ResultsActionStep', () => ({
   ResultsActionStep: () => <div data-testid="results-action-step">Results Step</div>
 }))
 
-jest.mock('@/components/smart-flow/AnalysisHistoryPanel', () => ({
+vi.mock('@/components/smart-flow/AnalysisHistoryPanel', () => ({
   AnalysisHistoryPanel: () => <div data-testid="history-panel">History</div>
 }))
 
-jest.mock('@/components/ErrorBoundary', () => ({
+vi.mock('@/components/ErrorBoundary', () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
 }))
 
-jest.mock('@/lib/services/data-validation-service', () => ({
+vi.mock('@/lib/services/data-validation-service', () => ({
   DataValidationService: {
-    performValidation: jest.fn(),
-    performDetailedValidation: jest.fn()
+    performValidation: vi.fn(),
+    performDetailedValidation: vi.fn()
   }
 }))
 
@@ -85,24 +86,24 @@ describe('SmartFlowPage Integration Tests', () => {
     results: null,
     isLoading: false,
     error: null,
-    setUploadedFile: jest.fn(),
-    setUploadedData: jest.fn(),
-    setValidationResults: jest.fn(),
-    setAnalysisPurpose: jest.fn(),
-    setSelectedMethod: jest.fn(),
-    setresults: jest.fn(),
-    setError: jest.fn(),
-    canProceedToNext: jest.fn().mockReturnValue(true),
-    goToNextStep: jest.fn(),
-    goToPreviousStep: jest.fn(),
-    reset: jest.fn(),
-    navigateToStep: jest.fn(),
-    canNavigateToStep: jest.fn().mockReturnValue(true),
+    setUploadedFile: vi.fn(),
+    setUploadedData: vi.fn(),
+    setValidationResults: vi.fn(),
+    setAnalysisPurpose: vi.fn(),
+    setSelectedMethod: vi.fn(),
+    setresults: vi.fn(),
+    setError: vi.fn(),
+    canProceedToNext: vi.fn().mockReturnValue(true),
+    goToNextStep: vi.fn(),
+    goToPreviousStep: vi.fn(),
+    reset: vi.fn(),
+    navigateToStep: vi.fn(),
+    canNavigateToStep: vi.fn().mockReturnValue(true),
     loadHistoryFromDB: jest.fn<() => Promise<void>>().mockResolvedValue(undefined)
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     ;(useSmartFlowStore as unknown as jest.Mock).mockReturnValue(mockStore)
   })
 

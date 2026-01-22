@@ -12,6 +12,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
+import { vi } from 'vitest'
 import type { ValidationResults, DataRow } from '@/types/smart-flow'
 
 // Mock data
@@ -75,14 +76,14 @@ const mockValidationResultsWithWarning: ValidationResults = {
 }
 
 // Mock PyodideCore
-jest.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
+vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
   PyodideCoreService: {
     getInstance: () => ({
-      shapiroWilkTest: jest.fn().mockResolvedValue({
+      shapiroWilkTest: vi.fn().mockResolvedValue({
         statistic: 0.95,
         pValue: 0.3
       }),
-      leveneTest: jest.fn().mockResolvedValue({
+      leveneTest: vi.fn().mockResolvedValue({
         statistic: 1.5,
         pValue: 0.2
       })
@@ -90,15 +91,15 @@ jest.mock('@/lib/services/pyodide/core/pyodide-core.service', () => ({
   }
 }))
 
-jest.mock('@/lib/utils/logger', () => ({
+vi.mock('@/lib/utils/logger', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn()
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn()
   }
 }))
 
-jest.mock('@/components/common/analysis/DataPreviewTable', () => ({
+vi.mock('@/components/common/analysis/DataPreviewTable', () => ({
   DataPreviewTable: () => <div data-testid="data-preview-table">Preview</div>
 }))
 
@@ -108,7 +109,7 @@ import { DataValidationStep } from '@/components/smart-flow/steps/DataValidation
 describe('Smart Flow Step 2 Guidance Card Tests', () => {
   describe('✅ 정상 케이스: 가이드 카드 표시', () => {
     it('should show guidance card with CTA button', () => {
-      const mockOnNext = jest.fn()
+      const mockOnNext = vi.fn()
 
       render(
         <DataValidationStep
@@ -124,7 +125,7 @@ describe('Smart Flow Step 2 Guidance Card Tests', () => {
     })
 
     it('should call onNext when CTA button is clicked', () => {
-      const mockOnNext = jest.fn()
+      const mockOnNext = vi.fn()
 
       render(
         <DataValidationStep
@@ -157,7 +158,7 @@ describe('Smart Flow Step 2 Guidance Card Tests', () => {
     })
 
     it('should NOT show guidance card when there are errors', () => {
-      const mockOnNext = jest.fn()
+      const mockOnNext = vi.fn()
 
       render(
         <DataValidationStep
@@ -176,7 +177,7 @@ describe('Smart Flow Step 2 Guidance Card Tests', () => {
 
   describe('⚠️ 경고 케이스: 가이드 카드 표시 + 경고 안내', () => {
     it('should show guidance card with warning notice when there are warnings', () => {
-      const mockOnNext = jest.fn()
+      const mockOnNext = vi.fn()
 
       render(
         <DataValidationStep
@@ -195,7 +196,7 @@ describe('Smart Flow Step 2 Guidance Card Tests', () => {
     })
 
     it('should allow proceeding to next step even with warnings', () => {
-      const mockOnNext = jest.fn()
+      const mockOnNext = vi.fn()
 
       render(
         <DataValidationStep
@@ -216,7 +217,7 @@ describe('Smart Flow Step 2 Guidance Card Tests', () => {
 
   describe('🎨 UI 컴포넌트 스타일 검증', () => {
     it('should render with correct styling classes', () => {
-      const mockOnNext = jest.fn()
+      const mockOnNext = vi.fn()
 
       const { container } = render(
         <DataValidationStep

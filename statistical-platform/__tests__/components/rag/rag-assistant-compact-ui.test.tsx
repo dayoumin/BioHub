@@ -5,26 +5,27 @@
  */
 
 import { render, screen, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { RAGAssistantCompact } from '@/components/rag/rag-assistant-compact'
 import { ChatStorageIndexedDB } from '@/lib/services/storage/chat-storage-indexed-db'
 
 // ChatStorageIndexedDB 모킹
-jest.mock('@/lib/services/storage/chat-storage-indexed-db', () => ({
+vi.mock('@/lib/services/storage/chat-storage-indexed-db', () => ({
   ChatStorageIndexedDB: {
-    loadSessions: jest.fn(),
-    createNewSession: jest.fn(),
-    loadSession: jest.fn(),
-    addMessage: jest.fn(),
+    loadSessions: vi.fn(),
+    createNewSession: vi.fn(),
+    loadSession: vi.fn(),
+    addMessage: vi.fn(),
   },
 }))
 
 // queryRAG 모킹
-jest.mock('@/lib/rag/rag-service', () => ({
-  queryRAG: jest.fn(),
+vi.mock('@/lib/rag/rag-service', () => ({
+  queryRAG: vi.fn(),
 }))
 
 // RAG config 모킹 (remark-gfm ESM 이슈 회피)
-jest.mock('@/lib/rag/config', () => ({
+vi.mock('@/lib/rag/config', () => ({
   MARKDOWN_CONFIG: {
     remarkPlugins: [],
     rehypePlugins: [],
@@ -48,7 +49,7 @@ jest.mock('@/lib/rag/config', () => ({
 
 describe('RAG Assistant Compact - UI 개선 테스트', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('가로 스크롤 제거 검증', () => {

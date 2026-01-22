@@ -5,7 +5,7 @@
  * - Sign Test 프론트 연결 검증
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 
 describe('Phase 2-3 Integration Tests', () => {
   describe('McNemar Test', () => {

@@ -3,27 +3,28 @@
  */
 
 import React from 'react'
-import { describe, it, jest, beforeEach, afterEach } from '@jest/globals'
+import { vi } from 'vitest'
+import { describe, it, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { FeedbackPanel } from '@/components/feedback/FeedbackPanel'
 
 // Mock fetch
-const mockFetch = jest.fn() as jest.MockedFunction<typeof fetch>
+const mockFetch = vi.fn() as jest.MockedFunction<typeof fetch>
 global.fetch = mockFetch
 
 // Mock localStorage
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 }
 Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
 describe('FeedbackPanel', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     localStorageMock.getItem.mockReturnValue(null)
     mockFetch.mockResolvedValue({
       ok: true,
@@ -36,7 +37,7 @@ describe('FeedbackPanel', () => {
   })
 
   afterEach(() => {
-    jest.resetAllMocks()
+    vi.resetAllMocks()
   })
 
   describe('Closed state', () => {

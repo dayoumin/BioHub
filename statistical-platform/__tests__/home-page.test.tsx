@@ -3,6 +3,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import HomePage from '@/app/page'
 
 // localStorage mock
@@ -230,7 +231,7 @@ describe('HomePage - 즐겨찾기 및 카테고리 선택 기능', () => {
       localStorageMock.setItem('statPlatform_favorites', 'invalid-json')
 
       // 콘솔 에러를 모킹
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       render(<HomePage />)
 

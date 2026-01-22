@@ -12,10 +12,10 @@
  * - 수정: 패키지 로드 → Python 코드 실행 (올바른 순서)
  */
 
-import { describe, it, beforeEach, jest, expect } from '@jest/globals'
+import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest'
 import type { PyodideInterface } from '@/types/pyodide'
 
-type LoadPackageFn = (packages: string | string[]) => Promise<void>
+type LoadPackageFn = (packages: string | string[] | readonly string[]) => Promise<void>
 type RunPythonAsyncFn = (code: string) => Promise<unknown>
 
 /**
@@ -24,17 +24,17 @@ type RunPythonAsyncFn = (code: string) => Promise<unknown>
 function createMockPyodide(): PyodideInterface {
   return {
     version: 'v0.28.3',
-    loadPackage: jest.fn() as jest.MockedFunction<(packages: string | string[]) => Promise<void>>,
-    runPython: jest.fn() as jest.MockedFunction<(code: string) => unknown>,
-    runPythonAsync: jest.fn() as jest.MockedFunction<(code: string) => Promise<unknown>>,
+    loadPackage: vi.fn() as Mock<LoadPackageFn>,
+    runPython: vi.fn() as Mock<(code: string) => unknown>,
+    runPythonAsync: vi.fn() as Mock<RunPythonAsyncFn>,
     globals: {},
     loadedPackages: {},
     isPyProxy: (_obj: unknown) => false,
     FS: {
-      writeFile: jest.fn() as jest.MockedFunction<(path: string, data: string | Uint8Array) => void>,
-      readFile: jest.fn() as jest.MockedFunction<(path: string, options?: { encoding?: string }) => string | Uint8Array>,
-      unlink: jest.fn() as jest.MockedFunction<(path: string) => void>,
-      mkdir: jest.fn() as jest.MockedFunction<(path: string) => void>
+      writeFile: vi.fn() as Mock<(path: string, data: string | Uint8Array) => void>,
+      readFile: vi.fn() as Mock<(path: string, options?: { encoding?: string }) => string | Uint8Array>,
+      unlink: vi.fn() as Mock<(path: string) => void>,
+      mkdir: vi.fn() as Mock<(path: string) => void>
     }
   }
 }
@@ -103,10 +103,10 @@ describe('Pyodide Worker Package Loading Order', () => {
       const callOrder: string[] = []
 
       // loadPackage와 runPythonAsync 호출 순서 추적
-      mockPyodide.loadPackage = jest.fn<LoadPackageFn>().mockImplementation(async () => {
+      mockPyodide.loadPackage = vi.fn().mockImplementation(async () => {
         callOrder.push('loadPackage')
       })
-      mockPyodide.runPythonAsync = jest.fn<RunPythonAsyncFn>().mockImplementation(async () => {
+      mockPyodide.runPythonAsync = vi.fn().mockImplementation(async () => {
         callOrder.push('runPythonAsync')
         return ''
       })
@@ -121,7 +121,7 @@ describe('Pyodide Worker Package Loading Order', () => {
     })
 
     it('should call loadPackage with correct packages for Worker 3', async () => {
-      const loadPackageSpy = jest.fn<LoadPackageFn>().mockResolvedValue(undefined)
+      const loadPackageSpy = vi.fn().mockResolvedValue(undefined)
       mockPyodide.loadPackage = loadPackageSpy
 
       const workerCode = 'from sklearn.cluster import KMeans'
@@ -133,7 +133,7 @@ describe('Pyodide Worker Package Loading Order', () => {
     })
 
     it('should NOT call loadPackage for Worker 1 (no additional packages)', async () => {
-      const loadPackageSpy = jest.fn<LoadPackageFn>()
+      const loadPackageSpy = vi.fn()
       mockPyodide.loadPackage = loadPackageSpy
 
       const workerCode = 'import numpy as np'
@@ -148,7 +148,7 @@ describe('Pyodide Worker Package Loading Order', () => {
   describe('2. 패키지 로드 실패 시 에러 처리', () => {
     it('should throw error when package load fails after max retries', async () => {
       const loadPackageError = new Error('Network error')
-      mockPyodide.loadPackage = jest.fn<LoadPackageFn>().mockRejectedValue(loadPackageError)
+      mockPyodide.loadPackage = vi.fn().mockRejectedValue(loadPackageError)
 
       const packages = ['scikit-learn']
 
@@ -159,7 +159,7 @@ describe('Pyodide Worker Package Loading Order', () => {
 
     it('should include error details in thrown message', async () => {
       const loadPackageError = new Error('CDN timeout')
-      mockPyodide.loadPackage = jest.fn<LoadPackageFn>().mockRejectedValue(loadPackageError)
+      mockPyodide.loadPackage = vi.fn().mockRejectedValue(loadPackageError)
 
       const packages = ['scikit-learn']
 
@@ -169,7 +169,7 @@ describe('Pyodide Worker Package Loading Order', () => {
     })
 
     it('should specify that Worker cannot run without the package', async () => {
-      mockPyodide.loadPackage = jest.fn<LoadPackageFn>().mockRejectedValue(new Error('Failed'))
+      mockPyodide.loadPackage = vi.fn().mockRejectedValue(new Error('Failed'))
 
       const packages = ['statsmodels']
 
@@ -179,7 +179,7 @@ describe('Pyodide Worker Package Loading Order', () => {
     })
 
     it('should retry up to maxRetries times before throwing', async () => {
-      const loadPackageSpy = jest.fn<LoadPackageFn>().mockRejectedValue(new Error('Failed'))
+      const loadPackageSpy = vi.fn().mockRejectedValue(new Error('Failed'))
       mockPyodide.loadPackage = loadPackageSpy
 
       const packages = ['scikit-learn']
@@ -196,7 +196,7 @@ describe('Pyodide Worker Package Loading Order', () => {
 
     it('should succeed on retry if package loads successfully', async () => {
       let attemptCount = 0
-      const loadPackageSpy = jest.fn<LoadPackageFn>().mockImplementation(async () => {
+      const loadPackageSpy = vi.fn().mockImplementation(async () => {
         attemptCount++
         if (attemptCount < 2) {
           throw new Error('Temporary failure')
@@ -240,7 +240,7 @@ describe('Pyodide Worker Package Loading Order', () => {
   describe('4. 실제 Worker 코드와의 통합', () => {
     it('Worker 3 code should fail without sklearn package', async () => {
       // 패키지 로드 실패 시나리오
-      mockPyodide.loadPackage = jest.fn<LoadPackageFn>().mockRejectedValue(
+      mockPyodide.loadPackage = vi.fn().mockRejectedValue(
         new Error('sklearn not available')
       )
 
@@ -259,10 +259,10 @@ import numpy as np
     it('Worker 3 code should succeed when packages load correctly', async () => {
       const callOrder: string[] = []
 
-      mockPyodide.loadPackage = jest.fn<LoadPackageFn>().mockImplementation(async () => {
+      mockPyodide.loadPackage = vi.fn().mockImplementation(async () => {
         callOrder.push('loadPackage')
       })
-      mockPyodide.runPythonAsync = jest.fn<RunPythonAsyncFn>().mockImplementation(async () => {
+      mockPyodide.runPythonAsync = vi.fn().mockImplementation(async () => {
         callOrder.push('runPythonAsync')
         return ''
       })

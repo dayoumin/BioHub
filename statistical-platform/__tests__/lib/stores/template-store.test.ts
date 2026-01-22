@@ -4,19 +4,20 @@
 
 // Jest globals are available automatically
 import type { AnalysisTemplate, VariableRoleMapping } from '@/types/smart-flow'
+import { vi } from 'vitest'
 import type { VariableMapping } from '@/lib/statistics/variable-mapping'
 
 // Mock IndexedDB 함수들
-jest.mock('@/lib/utils/indexeddb-templates', () => ({
-  isIndexedDBAvailable: jest.fn(() => true),
-  getAllTemplates: jest.fn(async () => []),
-  getTemplate: jest.fn(async () => null),
-  saveTemplate: jest.fn(async () => {}),
-  updateTemplate: jest.fn(async () => {}),
-  deleteTemplate: jest.fn(async () => {}),
-  clearAllTemplates: jest.fn(async () => {}),
-  incrementTemplateUsage: jest.fn(async () => {}),
-  getRecentTemplates: jest.fn(async () => [])
+vi.mock('@/lib/utils/indexeddb-templates', () => ({
+  isIndexedDBAvailable: vi.fn(() => true),
+  getAllTemplates: vi.fn(async () => []),
+  getTemplate: vi.fn(async () => null),
+  saveTemplate: vi.fn(async () => {}),
+  updateTemplate: vi.fn(async () => {}),
+  deleteTemplate: vi.fn(async () => {}),
+  clearAllTemplates: vi.fn(async () => {}),
+  incrementTemplateUsage: vi.fn(async () => {}),
+  getRecentTemplates: vi.fn(async () => [])
 }))
 
 describe('Template Store', () => {

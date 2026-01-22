@@ -5,6 +5,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { vi } from 'vitest'
 import { VectorStoreSelector } from '@/components/rag/vector-store-selector'
 import type { VectorStore } from '@/lib/rag/providers/base-provider'
 
@@ -30,7 +31,7 @@ describe('VectorStoreSelector', () => {
     }
   ]
 
-  const mockOnSelectStore = jest.fn()
+  const mockOnSelectStore = vi.fn()
 
   beforeEach(() => {
     mockOnSelectStore.mockClear()

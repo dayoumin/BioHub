@@ -1,11 +1,12 @@
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import SmartFlowLayout from '../layout'
 import { usePyodide } from '@/components/providers/PyodideProvider'
 
 // Mock PyodideProvider - 실제 Pyodide 로딩은 테스트하지 않음
-jest.mock('@/components/providers/PyodideProvider', () => ({
+vi.mock('@/components/providers/PyodideProvider', () => ({
   PyodideProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="pyodide-provider">{children}</div>,
-  usePyodide: jest.fn()
+  usePyodide: vi.fn()
 }))
 
 describe('SmartFlowLayout', () => {
@@ -31,7 +32,7 @@ describe('SmartFlowLayout', () => {
       isLoading: false,
       error: null,
       service: {
-        checkAllAssumptions: jest.fn()
+        checkAllAssumptions: vi.fn()
       }
     })
 

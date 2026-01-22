@@ -6,6 +6,7 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { FileText, Table, MessageSquare } from 'lucide-react'
@@ -17,7 +18,7 @@ describe('ContentTabs', () => {
     { id: 'interpretation', label: 'Interpretation', icon: MessageSquare }
   ]
 
-  const mockOnTabChange = jest.fn()
+  const mockOnTabChange = vi.fn()
 
   beforeEach(() => {
     mockOnTabChange.mockClear()

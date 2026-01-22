@@ -5,11 +5,12 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { VariableMappingDisplay } from '@/components/smart-flow/steps/purpose/VariableMappingDisplay'
 import { VariableMapping } from '@/lib/statistics/variable-mapping'
 
 describe('VariableMappingDisplay - Array Formatting', () => {
-  const mockOnClose = jest.fn()
+  const mockOnClose = vi.fn()
 
   beforeEach(() => {
     mockOnClose.mockClear()

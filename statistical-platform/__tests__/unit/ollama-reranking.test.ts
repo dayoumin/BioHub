@@ -4,7 +4,7 @@
  * Phase B: LLM Reranking (Top-20 → Top-5) 검증
  */
 
-import { describe, it, jest, beforeEach } from '@jest/globals'
+import { describe, it, vi, beforeEach } from 'vitest'
 
 describe('Ollama Reranking - Configuration', () => {
   it('should have useReranking option in RAGContext', () => {

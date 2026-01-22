@@ -3,30 +3,31 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DoclingSetupDialog } from '@/components/rag/docling-setup-dialog'
 
 // TooltipProvider mock
-jest.mock('@/components/ui/tooltip', () => ({
+vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
 // environment-detector mock
-jest.mock('@/lib/utils/environment-detector', () => ({
+vi.mock('@/lib/utils/environment-detector', () => ({
   getDoclingEndpoint: () => 'http://localhost:8000',
 }))
 
 // fetch mock
-global.fetch = jest.fn()
+global.fetch = vi.fn()
 
 describe('DoclingSetupDialog', () => {
-  const mockOnOpenChange = jest.fn()
-  const mockOnRetry = jest.fn()
+  const mockOnOpenChange = vi.fn()
+  const mockOnRetry = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // 기본적으로 Docling 서버 미실행 상태
     ;(global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Connection refused'))
   })
@@ -185,7 +186,7 @@ describe('DoclingSetupDialog', () => {
 
   it('복사 버튼 클릭 시 클립보드에 복사', async () => {
     // clipboard mock
-    const mockWriteText = jest.fn().mockResolvedValue(undefined)
+    const mockWriteText = vi.fn().mockResolvedValue(undefined)
     Object.assign(navigator, {
       clipboard: {
         writeText: mockWriteText,

@@ -4,7 +4,7 @@
  * 목적: 생성된 스냅샷 JSON의 expectedOutput이 실제 engine.ts 출력과 일치하는지 검증
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 import { getInterpretation } from '@/lib/interpretation/engine'
 import type { AnalysisResult } from '@/types/smart-flow'
 import { readdirSync, readFileSync } from 'fs'

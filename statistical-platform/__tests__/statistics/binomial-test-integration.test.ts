@@ -5,7 +5,7 @@
  * - 결과 타입 검증
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 
 describe('Binomial Test Integration', () => {
   describe('데이터 구조', () => {

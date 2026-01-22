@@ -9,6 +9,7 @@
  */
 
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
 import { GitCompare } from 'lucide-react'
@@ -19,12 +20,12 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
     title: '그룹 간 차이 비교',
     description: '두 개 이상의 그룹을 비교하여 평균이나 비율의 차이를 검정합니다.',
     examples: '예: 남녀 간 키 차이, 약물 효과 비교',
-    onClick: jest.fn(),
+    onClick: vi.fn(),
     selected: false
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Issue #3: ARIA Radio Semantics', () => {
@@ -87,7 +88,7 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
   describe('Keyboard Interaction', () => {
     it('should call onClick when Enter key is pressed', async () => {
       const user = userEvent.setup()
-      const onClickSpy = jest.fn()
+      const onClickSpy = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={onClickSpy} />)
 
@@ -103,7 +104,7 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
 
     it('should call onClick when Space key is pressed', async () => {
       const user = userEvent.setup()
-      const onClickSpy = jest.fn()
+      const onClickSpy = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={onClickSpy} />)
 
@@ -118,7 +119,7 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
 
     it('should NOT call onClick when disabled and Enter is pressed', async () => {
       const user = userEvent.setup()
-      const onClickSpy = jest.fn()
+      const onClickSpy = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={onClickSpy} disabled={true} />)
 
@@ -133,7 +134,7 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
 
     it('should NOT call onClick when disabled and clicked', async () => {
       const user = userEvent.setup()
-      const onClickSpy = jest.fn()
+      const onClickSpy = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={onClickSpy} disabled={true} />)
 
@@ -218,7 +219,7 @@ describe('PurposeCard - Accessibility (ARIA Radio)', () => {
   describe('Mouse Interaction', () => {
     it('should call onClick when clicked (enabled)', async () => {
       const user = userEvent.setup()
-      const onClickSpy = jest.fn()
+      const onClickSpy = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={onClickSpy} />)
 

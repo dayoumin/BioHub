@@ -7,6 +7,7 @@
  */
 
 import React from 'react'
+import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PurposeCard } from '@/components/common/analysis/PurposeCard'
@@ -17,12 +18,12 @@ describe('PurposeCard', () => {
     icon: <TrendingUp data-testid="icon" />,
     title: 'Test Title',
     description: 'Test description text',
-    onClick: jest.fn(),
+    onClick: vi.fn(),
     selected: false
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Rendering', () => {
@@ -75,7 +76,7 @@ describe('PurposeCard', () => {
   describe('Interaction', () => {
     it('calls onClick when clicked', async () => {
       const user = userEvent.setup()
-      const handleClick = jest.fn()
+      const handleClick = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={handleClick} />)
 
@@ -86,7 +87,7 @@ describe('PurposeCard', () => {
 
     it('does not call onClick when disabled', async () => {
       const user = userEvent.setup()
-      const handleClick = jest.fn()
+      const handleClick = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={handleClick} disabled={true} />)
 
@@ -96,7 +97,7 @@ describe('PurposeCard', () => {
     })
 
     it('responds to Enter key press', () => {
-      const handleClick = jest.fn()
+      const handleClick = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={handleClick} />)
 
@@ -107,7 +108,7 @@ describe('PurposeCard', () => {
     })
 
     it('responds to Space key press', () => {
-      const handleClick = jest.fn()
+      const handleClick = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={handleClick} />)
 
@@ -118,7 +119,7 @@ describe('PurposeCard', () => {
     })
 
     it('does not respond to keyboard when disabled', () => {
-      const handleClick = jest.fn()
+      const handleClick = vi.fn()
 
       render(<PurposeCard {...defaultProps} onClick={handleClick} disabled={true} />)
 
@@ -209,7 +210,7 @@ describe('PurposeCard', () => {
           description={correlationInfo.description}
           examples={correlationInfo.example}
           selected={false}
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         >
           <div>Range: -1 to +1</div>
         </PurposeCard>
@@ -236,7 +237,7 @@ describe('PurposeCard', () => {
           subtitle={tTestInfo.subtitle}
           description={tTestInfo.description}
           selected={true}
-          onClick={jest.fn()}
+          onClick={vi.fn()}
         />
       )
 

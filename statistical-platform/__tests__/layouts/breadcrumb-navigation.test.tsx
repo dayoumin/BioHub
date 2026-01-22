@@ -5,6 +5,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
+import { vi } from 'vitest'
 import { TwoPanelLayout, type BreadcrumbItem } from '@/components/statistics/layouts/TwoPanelLayout'
 import { TrendingUp } from 'lucide-react'
 
@@ -102,7 +103,7 @@ describe('Breadcrumb & Navigation Integration', () => {
    * 테스트 5: onClick 핸들러 동작
    */
   it('onClick이 있는 Breadcrumb 항목은 클릭 시 핸들러가 호출된다', () => {
-    const mockOnClick = jest.fn()
+    const mockOnClick = vi.fn()
 
     const breadcrumbsWithOnClick: BreadcrumbItem[] = [
       { label: '홈', onClick: mockOnClick },
@@ -314,7 +315,7 @@ describe('실제 사용 시나리오', () => {
       { label: '회귀분석 데모' }
     ]
 
-    const mockOnStepChange = jest.fn()
+    const mockOnStepChange = vi.fn()
 
     render(
       <TwoPanelLayout

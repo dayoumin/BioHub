@@ -5,6 +5,7 @@
  */
 
 import { renderHook } from '@testing-library/react'
+import { vi } from 'vitest'
 import { useState, useEffect, useMemo } from 'react'
 
 describe('챗봇 Hydration 방지 패턴 테스트', () => {
@@ -114,7 +115,7 @@ describe('챗봇 Hydration 방지 패턴 테스트', () => {
     })
 
     it('isMounted가 false일 때 localStorage를 읽지 않아야 함', () => {
-      const getItemSpy = jest.spyOn(Storage.prototype, 'getItem')
+      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem')
 
       renderHook(() => {
         const [isMounted] = useState(false)

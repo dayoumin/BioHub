@@ -10,7 +10,7 @@
  * - Lakens, D. (2013). Calculating and reporting effect sizes
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals'
+import { describe, it, expect, beforeAll } from 'vitest'
 
 // Mock the PyodideCore for testing
 // In actual tests, we'll compute expected values manually

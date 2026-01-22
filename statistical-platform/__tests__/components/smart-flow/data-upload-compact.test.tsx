@@ -8,15 +8,16 @@
  * - 에러 발생 시 에러 메시지 표시
  */
 
-import { describe, it, beforeEach, jest } from '@jest/globals'
+import { describe, it, beforeEach, vi } from 'vitest'
+import { vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 
 // open 함수를 외부에서 접근 가능하도록 설정
-const mockOpen = jest.fn()
+const mockOpen = vi.fn()
 
 // data-validation-service mock (pyodide-core 의존성 방지)
-jest.mock('@/lib/services/data-validation-service', () => ({
+vi.mock('@/lib/services/data-validation-service', () => ({
   DATA_LIMITS: {
     MAX_ROWS: 100000,
     MAX_COLUMNS: 500,
@@ -24,16 +25,16 @@ jest.mock('@/lib/services/data-validation-service', () => ({
     WARNING_ROWS: 50000,
     WARNING_COLUMNS: 200
   },
-  validateData: jest.fn(),
-  validateDataComprehensive: jest.fn(),
+  validateData: vi.fn(),
+  validateDataComprehensive: vi.fn(),
   DataValidationService: {
-    validateFileContent: jest.fn()
+    validateFileContent: vi.fn()
   }
 }))
 
 // react-dropzone mock - open 함수를 mockOpen으로 연결
-jest.mock('react-dropzone', () => ({
-  useDropzone: jest.fn(({ onDrop, disabled }) => ({
+vi.mock('react-dropzone', () => ({
+  useDropzone: vi.fn(({ onDrop, disabled }) => ({
     getRootProps: () => ({}),
     getInputProps: () => ({ 'data-testid': 'file-input' }),
     isDragActive: false,
@@ -42,15 +43,15 @@ jest.mock('react-dropzone', () => ({
 }))
 
 // Papa mock
-jest.mock('papaparse', () => ({
-  parse: jest.fn()
+vi.mock('papaparse', () => ({
+  parse: vi.fn()
 }))
 
 describe('DataUploadStep compact 모드', () => {
-  const mockOnUploadComplete = jest.fn()
+  const mockOnUploadComplete = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockOpen.mockClear()
   })
 

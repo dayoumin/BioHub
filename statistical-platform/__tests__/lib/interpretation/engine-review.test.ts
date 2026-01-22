@@ -4,7 +4,7 @@
  * 목표: Critical 버그 수정 확인 + 경계값 조건 검증
  */
 
-import { describe, it } from '@jest/globals'
+import { describe, it } from 'vitest'
 import { getInterpretation } from '@/lib/interpretation/engine'
 import type { AnalysisResult } from '@/types/smart-flow'
 
