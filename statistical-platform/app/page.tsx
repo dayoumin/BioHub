@@ -4,8 +4,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Star, Pin, Plus, X } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { STATISTICS_MENU } from "@/lib/statistics/menu-config"
+import { PyodideCoreService } from "@/lib/services/pyodide/core/pyodide-core.service"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -56,6 +57,14 @@ export default function HomePage() {
     setSelectedCategory(null)
   }, [])
 
+  // Pyodide prefetch (hover 시 1회만 실행)
+  const prefetchStartedRef = useRef(false)
+  const handlePyodidePrefetch = useCallback(() => {
+    if (prefetchStartedRef.current) return
+    prefetchStartedRef.current = true
+    PyodideCoreService.getInstance().initialize().catch(() => {})
+  }, [])
+
   // 모든 메뉴 아이템 평탄화
   const allItems = STATISTICS_MENU.flatMap((category) => category.items)
   const favoriteItems = allItems.filter((item) => favorites.includes(item.id))
@@ -77,6 +86,7 @@ export default function HomePage() {
           <Button
             size="lg"
             className="w-full h-16 text-xl font-bold gap-3 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 hover:scale-[1.02] shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl"
+            onMouseEnter={handlePyodidePrefetch}
           >
             <Star className="h-6 w-6 fill-yellow-400 text-yellow-400" />
             분석 시작하기
