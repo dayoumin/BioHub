@@ -183,8 +183,15 @@
    - PreparedData, PreparedArrays 인터페이스 추가
    - prepareData() 반환 타입 명시화
    - 메서드 파라미터 타입 PreparedData로 변경
-6. [ ] handleAnalysis 리팩토링 (anova, t-test)
-7. [ ] Result 타입 통합 (점진적)
+6. [x] handleAnalysis 리팩토링 (anova) ✅
+   - anova/page.tsx: 765줄 → 70줄 (90% 감소)
+   - anova-helpers.ts: postHoc + 컨버터 함수 추가
+   - 테스트 17개 추가
+7. [x] handleAnalysis 리팩토링 (t-test) ✅
+   - t-test/page.tsx: 335줄 → 55줄 (85% 감소)
+   - t-test-helpers.ts: runTTest 통합 함수 추가
+   - 테스트 34개 추가
+8. [ ] Result 타입 통합 (점진적)
 
 ### 🟢 Low (선택)
 8. [ ] useState → useStatisticsPage 통합 검토
@@ -204,6 +211,10 @@
 | 2026-01-22 | 타임아웃 상수 중앙화 (`lib/constants.ts` TIMEOUT 추가) | ✅ 완료 |
 | 2026-01-22 | statistical-executor.ts any 타입 개선 (PreparedData 인터페이스) | ✅ 완료 |
 | 2026-01-22 | statistics-formatters.ts 테스트 작성 (38개 테스트) | ✅ 완료 |
+| 2026-01-22 | handleAnalysis 리팩토링 (anova) - 765줄 → 70줄 | ✅ 완료 |
+| 2026-01-22 | anova-helpers.test.ts 테스트 작성 (17개 테스트) | ✅ 완료 |
+| 2026-01-22 | handleAnalysis 리팩토링 (t-test) - 335줄 → 55줄 | ✅ 완료 |
+| 2026-01-22 | t-test-helpers.test.ts 테스트 작성 (34개 테스트) | ✅ 완료 |
 
 ---
 

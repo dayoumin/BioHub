@@ -24,38 +24,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticalResultCard, StatisticalResult } from '@/components/statistics/common/StatisticalResultCard'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
-import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
-
-// 효과크기 해석 함수 (컴포넌트 외부에 정의하여 재사용)
-const interpretEffectSize = (d: number): string => {
-  const abs = Math.abs(d)
-  if (abs >= 0.8) return '큰 효과'
-  if (abs >= 0.5) return '중간 효과'
-  if (abs >= 0.2) return '작은 효과'
-  return '효과 없음'
-}
-
-interface TTestResult {
-  type: 'one-sample' | 'two-sample' | 'paired'
-  statistic: number
-  pvalue: number
-  df: number
-  ciLower?: number
-  ciUpper?: number
-  mean_diff?: number
-  effect_size?: {
-    cohens_d: number
-    interpretation: string
-  }
-  assumptions?: {
-    normality: { passed: boolean; pvalue: number }
-    equal_variance?: { passed: boolean; pvalue: number }
-  }
-  sample_stats?: {
-    group1?: { mean: number; std: number; n: number }
-    group2?: { mean: number; std: number; n: number }
-  }
-}
+import { runTTest, type TTestResult } from '@/lib/statistics/t-test-helpers'
 
 interface TTestVariables {
   group?: string | string[]
@@ -208,337 +177,56 @@ export default function TTestPage() {
       if (!actions.startAnalysis || !actions.completeAnalysis || !actions.setError) return
       actions.startAnalysis()
 
-      // PyodideCore 서비스 임포트
+      // 검정 유형 검증
+      if (!testType) throw new Error('검정 유형을 선택해주세요.')
+      if (inputMode === 'summary' && !isSummaryValid) {
+        throw new Error('요약통계 입력값을 확인해주세요.')
+      }
+
+      // PyodideCore 초기화
       const { PyodideCoreService } = await import('@/lib/services/pyodide/core/pyodide-core.service')
       const pyodideCore = PyodideCoreService.getInstance()
       await pyodideCore.initialize()
 
-      let workerResult: unknown
-
-      if (inputMode === 'summary') {
-        if (!testType) throw new Error('검정 유형을 선택해주세요.')
-        if (!isSummaryValid) throw new Error('요약통계 입력값을 확인해주세요.')
-
-        if (testType === 'one-sample') {
-          workerResult = await pyodideCore.callWorkerMethod<{
-            statistic: number
-            pValue: number
-            df: number
-            meanDiff: number
-            ciLower: number
-            ciUpper: number
-            cohensD: number
-            n: number
-            mean: number
-            std: number
-          }>(PyodideWorker.Hypothesis, 't_test_one_sample_summary', {
-            mean: parsedSummary.one.mean,
-            std: parsedSummary.one.std,
-            n: parsedSummary.one.n,
-            popmean: parsedTestValue,
-            alpha: 0.05
-          })
-        } else if (testType === 'two-sample') {
-          workerResult = await pyodideCore.callWorkerMethod<{
-            statistic: number
-            pValue: number
-            df: number
-            meanDiff: number
-            ciLower: number
-            ciUpper: number
-            cohensD: number
-            mean1: number
-            mean2: number
-            std1: number
-            std2: number
-            n1: number
-            n2: number
-          }>(PyodideWorker.Hypothesis, 't_test_two_sample_summary', {
-            mean1: parsedSummary.two.mean1,
-            std1: parsedSummary.two.std1,
-            n1: parsedSummary.two.n1,
-            mean2: parsedSummary.two.mean2,
-            std2: parsedSummary.two.std2,
-            n2: parsedSummary.two.n2,
-            equalVar: parsedSummary.two.equalVar,
-            alpha: 0.05
-          })
-        } else {
-          workerResult = await pyodideCore.callWorkerMethod<{
-            statistic: number
-            pValue: number
-            df: number
-            meanDiff: number
-            ciLower: number
-            ciUpper: number
-            cohensD: number
-            nPairs: number
-            stdDiff: number
-          }>(PyodideWorker.Hypothesis, 't_test_paired_summary', {
-            meanDiff: parsedSummary.paired.meanDiff,
-            stdDiff: parsedSummary.paired.stdDiff,
-            nPairs: parsedSummary.paired.nPairs,
-            alpha: 0.05
-          })
-        }
-      } else {
-        if (!uploadedData || !selectedVariables) {
-          throw new Error('데이터와 변수를 확인해주세요.')
-        }
-
-        if (testType === 'one-sample') {
-          // 일표본 t-검정
-          const valueCol = selectedVariables.value as string
-          const values = uploadedData.data
-            .map((row: Record<string, unknown>) => Number(row[valueCol]))
-            .filter((v): v is number => !isNaN(v))
-
-          workerResult = await pyodideCore.callWorkerMethod<{
-            statistic: number
-            pValue: number
-            sampleMean: number
-          }>(PyodideWorker.Hypothesis, 't_test_one_sample', { data: values, popmean: parsedTestValue })
-
-        } else if (testType === 'two-sample') {
-          // 독립표본 t-검정
-          const groupCol = selectedVariables.group as string
-          const valueCol = selectedVariables.value as string
-
-          const uniqueGroups = Array.from(new Set(uploadedData.data.map((row: Record<string, unknown>) => row[groupCol])))
-          if (uniqueGroups.length !== 2) {
-            throw new Error(`집단 변수는 정확히 2개의 값을 가져야 합니다 (현재: ${uniqueGroups.length}개)`)
-          }
-
-          const group1Data = uploadedData.data
-            .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[0])
-            .map((row: Record<string, unknown>) => Number(row[valueCol]))
-            .filter((v): v is number => !isNaN(v))
-          const group2Data = uploadedData.data
-            .filter((row: Record<string, unknown>) => row[groupCol] === uniqueGroups[1])
-            .map((row: Record<string, unknown>) => Number(row[valueCol]))
-            .filter((v): v is number => !isNaN(v))
-
-          workerResult = await pyodideCore.callWorkerMethod<{
-            statistic: number
-            pValue: number
-            cohensD: number
-            mean1: number
-            mean2: number
-            std1: number
-            std2: number
-            n1: number
-            n2: number
-          }>(PyodideWorker.Hypothesis, 't_test_two_sample', { group1: group1Data, group2: group2Data, equalVar: true })
-
-        } else if (testType === 'paired') {
-          // 대응표본 t-검정
-          const beforeCol = selectedVariables.before as string
-          const afterCol = selectedVariables.after as string
-
-          // paired는 쌍으로 유효해야 하므로 둘 다 숫자인 행만 사용
-          const validPairs = uploadedData.data
-            .map((row: Record<string, unknown>) => ({
-              before: Number(row[beforeCol]),
-              after: Number(row[afterCol])
-            }))
-            .filter(pair => !isNaN(pair.before) && !isNaN(pair.after))
-          const values1 = validPairs.map(p => p.before)
-          const values2 = validPairs.map(p => p.after)
-
-          workerResult = await pyodideCore.callWorkerMethod<{
-            statistic: number
-            pValue: number
-            meanDiff: number
-            nPairs: number
-          }>(PyodideWorker.Hypothesis, 't_test_paired', { values1, values2 })
-
-        } else {
-          throw new Error('Invalid test type')
-        }
-      }
-
-      // Worker 결과를 TTestResult 타입으로 변환
-      const finalResult: TTestResult = (() => {
-        if (testType === 'one-sample') {
-          if (inputMode === 'summary') {
-            const res = workerResult as {
-              statistic: number
-              pValue: number
-              df: number
-              meanDiff: number
-              ciLower: number
-              ciUpper: number
-              cohensD: number
-              n: number
-              mean: number
-              std: number
-            }
-            return {
-              type: 'one-sample',
-              statistic: res.statistic,
-              pvalue: res.pValue,
-              df: res.df,
-              mean_diff: res.meanDiff,
-              ciLower: res.ciLower,
-              ciUpper: res.ciUpper,
-              effect_size: {
-                cohens_d: res.cohensD,
-                interpretation: interpretEffectSize(res.cohensD)
-              },
-              sample_stats: {
-                group1: { mean: res.mean, std: res.std, n: res.n }
-              }
-            }
-          }
-
-          const res = workerResult as { statistic: number; pValue: number; sampleMean: number; sampleStd?: number }
-          // one-sample Cohen's d = (sample mean - test value) / sample std
-          const valueCol = selectedVariables!.value as string
-          const values = uploadedData!.data
-            .map((row: Record<string, unknown>) => Number(row[valueCol]))
-            .filter((v): v is number => !isNaN(v))
-          const sampleMean = values.reduce((a, b) => a + b, 0) / values.length
-          const sampleStd = Math.sqrt(values.reduce((sum, v) => sum + Math.pow(v - sampleMean, 2), 0) / (values.length - 1))
-          const cohensD = sampleStd > 0 ? (sampleMean - parsedTestValue) / sampleStd : 0
-
-          return {
-            type: 'one-sample',
-            statistic: res.statistic,
-            pvalue: res.pValue,
-            df: values.length - 1,
-            ciLower: undefined,
-            ciUpper: undefined,
-            effect_size: {
-              cohens_d: cohensD,
-              interpretation: interpretEffectSize(cohensD)
-            }
-          }
-        } else if (testType === 'two-sample') {
-          if (inputMode === 'summary') {
-            const res = workerResult as {
-              statistic: number
-              pValue: number
-              df: number
-              meanDiff: number
-              ciLower: number
-              ciUpper: number
-              cohensD: number
-              mean1: number
-              mean2: number
-              std1: number
-              std2: number
-              n1: number
-              n2: number
-            }
-            return {
-              type: 'two-sample',
-              statistic: res.statistic,
-              pvalue: res.pValue,
-              df: res.df,
-              mean_diff: res.meanDiff,
-              ciLower: res.ciLower,
-              ciUpper: res.ciUpper,
-              effect_size: {
-                cohens_d: res.cohensD,
-                interpretation: interpretEffectSize(res.cohensD)
-              },
-              sample_stats: {
-                group1: { mean: res.mean1, std: res.std1, n: res.n1 },
-                group2: { mean: res.mean2, std: res.std2, n: res.n2 }
-              }
-            }
-          }
-
-          const res = workerResult as {
-            statistic: number
-            pValue: number
-            cohensD: number
-            mean1: number
-            mean2: number
-            std1: number
-            std2: number
-            n1: number
-            n2: number
-          }
-          return {
-            type: 'two-sample',
-            statistic: res.statistic,
-            pvalue: res.pValue,
-            df: res.n1 + res.n2 - 2,
-            mean_diff: res.mean1 - res.mean2,
-            effect_size: {
-              cohens_d: res.cohensD,
-              interpretation: interpretEffectSize(res.cohensD)
-            },
-            sample_stats: {
-              group1: { mean: res.mean1, std: res.std1, n: res.n1 },
-              group2: { mean: res.mean2, std: res.std2, n: res.n2 }
-            }
-          }
-        } else {
-          // paired
-          if (inputMode === 'summary') {
-            const res = workerResult as {
-              statistic: number
-              pValue: number
-              df: number
-              meanDiff: number
-              ciLower: number
-              ciUpper: number
-              cohensD: number
-              nPairs: number
-              stdDiff: number
-            }
-            return {
-              type: 'paired',
-              statistic: res.statistic,
-              pvalue: res.pValue,
-              df: res.df,
-              mean_diff: res.meanDiff,
-              ciLower: res.ciLower,
-              ciUpper: res.ciUpper,
-              effect_size: {
-                cohens_d: res.cohensD,
-                interpretation: interpretEffectSize(res.cohensD)
-              }
-            }
-          }
-
-          const res = workerResult as { statistic: number; pValue: number; meanDiff: number; nPairs: number }
-          // paired Cohen's d = mean difference / std of differences
-          const beforeCol = selectedVariables!.before as string
-          const afterCol = selectedVariables!.after as string
-          const differences = uploadedData!.data
-            .map((row: Record<string, unknown>) => {
-              const before = Number(row[beforeCol])
-              const after = Number(row[afterCol])
-              return after - before
-            })
-            .filter((v): v is number => !isNaN(v))
-          const meanDiff = differences.reduce((a, b) => a + b, 0) / differences.length
-          const stdDiff = Math.sqrt(differences.reduce((sum, v) => sum + Math.pow(v - meanDiff, 2), 0) / (differences.length - 1))
-          const cohensD = stdDiff > 0 ? meanDiff / stdDiff : 0
-
-          return {
-            type: 'paired',
-            statistic: res.statistic,
-            pvalue: res.pValue,
-            df: res.nPairs - 1,
-            mean_diff: res.meanDiff,
-            effect_size: {
-              cohens_d: cohensD,
-              interpretation: interpretEffectSize(cohensD)
-            }
-          }
-        }
-      })()
+      // 헬퍼 함수로 t-검정 실행
+      const result = await runTTest(pyodideCore, {
+        testType,
+        inputMode,
+        data: uploadedData?.data,
+        valueColumn: selectedVariables?.value as string | undefined,
+        groupColumn: selectedVariables?.group as string | undefined,
+        beforeColumn: selectedVariables?.before as string | undefined,
+        afterColumn: selectedVariables?.after as string | undefined,
+        testValue: parsedTestValue,
+        equalVar: inputMode === 'summary' ? parsedSummary.two.equalVar : true,
+        summaryOne: testType === 'one-sample' ? {
+          mean: parsedSummary.one.mean,
+          std: parsedSummary.one.std,
+          n: parsedSummary.one.n,
+          popmean: parsedTestValue
+        } : undefined,
+        summaryTwo: testType === 'two-sample' ? {
+          mean1: parsedSummary.two.mean1,
+          std1: parsedSummary.two.std1,
+          n1: parsedSummary.two.n1,
+          mean2: parsedSummary.two.mean2,
+          std2: parsedSummary.two.std2,
+          n2: parsedSummary.two.n2,
+          equalVar: parsedSummary.two.equalVar
+        } : undefined,
+        summaryPaired: testType === 'paired' ? {
+          meanDiff: parsedSummary.paired.meanDiff,
+          stdDiff: parsedSummary.paired.stdDiff,
+          nPairs: parsedSummary.paired.nPairs
+        } : undefined
+      })
 
       setAnalysisTimestamp(new Date())
-      actions.completeAnalysis(finalResult, inputMode === 'raw' ? 4 : 3)
+      actions.completeAnalysis(result, inputMode === 'raw' ? 4 : 3)
     } catch (err) {
       actions.setError?.(err instanceof Error ? err.message : '분석 실패')
     }
-  }, [uploadedData, selectedVariables, testType, testValue, actions, inputMode, isSummaryValid, parsedSummary, parsedTestValue])
+  }, [uploadedData, selectedVariables, testType, actions, inputMode, isSummaryValid, parsedSummary, parsedTestValue])
 
   const stepsWithCompleted = steps.map(step => ({
     ...step,
