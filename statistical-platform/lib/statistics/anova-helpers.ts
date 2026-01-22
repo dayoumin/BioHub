@@ -84,6 +84,11 @@ export interface TwoWayANOVAResult {
   interaction: FactorResult
   anovaTable: ANOVATableRow[]
   residualDf: number
+  postHoc?: {
+    method: string
+    comparisons: PostHocComparison[]
+    adjustedAlpha: number
+  }
 }
 
 export interface ThreeWayANOVAResult {
@@ -96,6 +101,11 @@ export interface ThreeWayANOVAResult {
   interaction123: FactorResult
   anovaTable: ANOVATableRow[]
   residualDf: number
+  postHoc?: {
+    method: string
+    comparisons: PostHocComparison[]
+    adjustedAlpha: number
+  }
 }
 
 // PyodideCore 서비스 타입 (순환 참조 방지)
@@ -483,6 +493,64 @@ export async function runTwoWayANOVA(
     }
   ]
 
+  // 사후검정 (유의한 주효과에 대해서만)
+  let postHoc: { method: string; comparisons: PostHocComparison[]; adjustedAlpha: number } | undefined
+  const significantFactors: { name: string; col: string; values: string[] }[] = []
+
+  if (twoWayResult.factor1.pValue < 0.05) {
+    significantFactors.push({ name: factor1Col, col: factor1Col, values: factor1Values })
+  }
+  if (twoWayResult.factor2.pValue < 0.05) {
+    significantFactors.push({ name: factor2Col, col: factor2Col, values: factor2Values })
+  }
+
+  if (significantFactors.length > 0) {
+    const allComparisons: PostHocComparison[] = []
+
+    for (const factor of significantFactors) {
+      const factorLevels = [...new Set(factor.values)]
+      const groupsForFactor: number[][] = factorLevels.map(level => {
+        const indices = factor.values
+          .map((v, i) => v === level ? i : -1)
+          .filter(i => i >= 0)
+        return indices.map(i => dataValues[i])
+      })
+
+      const tukeyResult = await pyodideCore.callWorkerMethod<{
+        comparisons: Array<{
+          group1: number
+          group2: number
+          meanDiff: number
+          pValue: number | null
+          pAdjusted: number
+          significant: boolean
+          ciLower?: number
+          ciUpper?: number
+        }>
+      }>(PyodideWorker.NonparametricAnova, 'tukey_hsd', { groups: groupsForFactor })
+
+      tukeyResult.comparisons.forEach(comp => {
+        allComparisons.push({
+          group1: `${factor.name}: ${factorLevels[comp.group1]}`,
+          group2: `${factor.name}: ${factorLevels[comp.group2]}`,
+          meanDiff: comp.meanDiff,
+          pValue: comp.pValue ?? comp.pAdjusted,
+          significant: comp.significant,
+          ciLower: comp.ciLower,
+          ciUpper: comp.ciUpper
+        })
+      })
+    }
+
+    if (allComparisons.length > 0) {
+      postHoc = {
+        method: 'Tukey HSD',
+        comparisons: allComparisons,
+        adjustedAlpha: 0.05 / allComparisons.length
+      }
+    }
+  }
+
   return {
     factor1: {
       name: factor1Col,
@@ -509,7 +577,8 @@ export async function runTwoWayANOVA(
       omegaSquared: calcOmega(ssInt, twoWayResult.interaction.df, msRes)
     },
     anovaTable,
-    residualDf: twoWayResult.residual.df
+    residualDf: twoWayResult.residual.df,
+    postHoc
   }
 }
 
@@ -615,6 +684,67 @@ export async function runThreeWayANOVA(
     { source: '전체', ss: ssTotal, df: Object.values(threeWayResult.anovaTable.df).reduce((a, b) => a + b, 0), ms: null, f: null, p: null }
   ]
 
+  // 사후검정 (유의한 주효과에 대해서만)
+  let postHoc: { method: string; comparisons: PostHocComparison[]; adjustedAlpha: number } | undefined
+  const significantFactors: { name: string; values: string[] }[] = []
+
+  if (threeWayResult.factor1.pValue < 0.05) {
+    significantFactors.push({ name: factor1Col, values: factor1Values })
+  }
+  if (threeWayResult.factor2.pValue < 0.05) {
+    significantFactors.push({ name: factor2Col, values: factor2Values })
+  }
+  if (threeWayResult.factor3.pValue < 0.05) {
+    significantFactors.push({ name: factor3Col, values: factor3Values })
+  }
+
+  if (significantFactors.length > 0) {
+    const allComparisons: PostHocComparison[] = []
+
+    for (const factor of significantFactors) {
+      const factorLevels = [...new Set(factor.values)]
+      const groupsForFactor: number[][] = factorLevels.map(level => {
+        const indices = factor.values
+          .map((v, i) => v === level ? i : -1)
+          .filter(i => i >= 0)
+        return indices.map(i => dataValues[i])
+      })
+
+      const tukeyResult = await pyodideCore.callWorkerMethod<{
+        comparisons: Array<{
+          group1: number
+          group2: number
+          meanDiff: number
+          pValue: number | null
+          pAdjusted: number
+          significant: boolean
+          ciLower?: number
+          ciUpper?: number
+        }>
+      }>(PyodideWorker.NonparametricAnova, 'tukey_hsd', { groups: groupsForFactor })
+
+      tukeyResult.comparisons.forEach(comp => {
+        allComparisons.push({
+          group1: `${factor.name}: ${factorLevels[comp.group1]}`,
+          group2: `${factor.name}: ${factorLevels[comp.group2]}`,
+          meanDiff: comp.meanDiff,
+          pValue: comp.pValue ?? comp.pAdjusted,
+          significant: comp.significant,
+          ciLower: comp.ciLower,
+          ciUpper: comp.ciUpper
+        })
+      })
+    }
+
+    if (allComparisons.length > 0) {
+      postHoc = {
+        method: 'Tukey HSD',
+        comparisons: allComparisons,
+        adjustedAlpha: 0.05 / allComparisons.length
+      }
+    }
+  }
+
   return {
     factor1: {
       name: factor1Col,
@@ -673,6 +803,141 @@ export async function runThreeWayANOVA(
       omegaSquared: calcOmega(ssInt123, threeWayResult.interaction123.df, msRes)
     },
     anovaTable,
-    residualDf: threeWayResult.residual.df
+    residualDf: threeWayResult.residual.df,
+    postHoc
+  }
+}
+
+// ============================================================================
+// Result Converters for Page Compatibility
+// ============================================================================
+
+/**
+ * 다요인 ANOVA 결과를 위한 MultiFactorResults 인터페이스
+ */
+export interface MultiFactorANOVAResults {
+  factor1: FactorResult
+  factor2?: FactorResult
+  factor3?: FactorResult
+  interaction12?: FactorResult
+  interaction13?: FactorResult
+  interaction23?: FactorResult
+  interaction123?: FactorResult
+}
+
+/**
+ * 페이지에서 사용하는 ANOVAResults 형식
+ */
+export interface PageANOVAResults {
+  fStatistic: number
+  pValue: number
+  dfBetween: number
+  dfWithin: number
+  msBetween: number
+  msWithin: number
+  etaSquared: number
+  omegaSquared: number
+  powerAnalysis: {
+    observedPower: number
+    effectSize: string
+    cohensF: number
+  }
+  groups: GroupResult[]
+  postHoc?: {
+    method: string
+    comparisons: PostHocComparison[]
+    adjustedAlpha: number
+  }
+  assumptions?: AssumptionsResult
+  anovaTable: ANOVATableRow[]
+  multiFactorResults?: MultiFactorANOVAResults
+}
+
+/**
+ * OneWayANOVAResult를 PageANOVAResults로 변환
+ */
+export function convertOneWayToPageResults(result: OneWayANOVAResult): PageANOVAResults {
+  return {
+    fStatistic: result.fStatistic,
+    pValue: result.pValue,
+    dfBetween: result.dfBetween,
+    dfWithin: result.dfWithin,
+    msBetween: result.msBetween,
+    msWithin: result.msWithin,
+    etaSquared: result.etaSquared,
+    omegaSquared: result.omegaSquared,
+    powerAnalysis: result.powerAnalysis,
+    groups: result.groups,
+    postHoc: result.postHoc,
+    assumptions: result.assumptions,
+    anovaTable: result.anovaTable
+  }
+}
+
+/**
+ * TwoWayANOVAResult를 PageANOVAResults로 변환
+ */
+export function convertTwoWayToPageResults(result: TwoWayANOVAResult): PageANOVAResults {
+  const msResidual = result.anovaTable.find(r => r.source === '잔차')?.ms ?? 0
+  const f1Eta = result.factor1.etaSquared
+
+  return {
+    fStatistic: result.factor1.fStatistic,
+    pValue: result.factor1.pValue,
+    dfBetween: result.factor1.df,
+    dfWithin: result.residualDf,
+    msBetween: result.anovaTable.find(r => r.source.includes('요인 1'))?.ms ?? 0,
+    msWithin: msResidual,
+    etaSquared: f1Eta,
+    omegaSquared: result.factor1.omegaSquared,
+    powerAnalysis: {
+      observedPower: result.factor1.pValue < 0.05 ? 0.80 : 0.50,
+      effectSize: f1Eta >= 0.14 ? 'large' : f1Eta >= 0.06 ? 'medium' : 'small',
+      cohensF: Math.sqrt(f1Eta / (1 - f1Eta))
+    },
+    groups: [],
+    postHoc: result.postHoc,
+    anovaTable: result.anovaTable,
+    multiFactorResults: {
+      factor1: result.factor1,
+      factor2: result.factor2,
+      interaction12: result.interaction
+    }
+  }
+}
+
+/**
+ * ThreeWayANOVAResult를 PageANOVAResults로 변환
+ */
+export function convertThreeWayToPageResults(result: ThreeWayANOVAResult): PageANOVAResults {
+  const msResidual = result.anovaTable.find(r => r.source === '잔차')?.ms ?? 0
+  const f1Eta = result.factor1.etaSquared
+
+  return {
+    fStatistic: result.factor1.fStatistic,
+    pValue: result.factor1.pValue,
+    dfBetween: result.factor1.df,
+    dfWithin: result.residualDf,
+    msBetween: result.anovaTable.find(r => r.source.includes('요인 1'))?.ms ?? 0,
+    msWithin: msResidual,
+    etaSquared: f1Eta,
+    omegaSquared: result.factor1.omegaSquared,
+    powerAnalysis: {
+      observedPower: result.factor1.pValue < 0.05 ? 0.80 : 0.50,
+      effectSize: f1Eta >= 0.14 ? 'large' : f1Eta >= 0.06 ? 'medium' : 'small',
+      cohensF: Math.sqrt(f1Eta / (1 - f1Eta))
+    },
+    groups: [],
+    postHoc: result.postHoc,
+    anovaTable: result.anovaTable,
+    multiFactorResults: {
+      factor1: result.factor1,
+      factor2: result.factor2,
+      factor3: result.factor3,
+      interaction12: result.interaction12,
+      interaction13: result.interaction13,
+      interaction23: result.interaction23,
+      interaction123: result.interaction123
+    }
   }
 }

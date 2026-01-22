@@ -26,6 +26,15 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import {
+  runOneWayANOVA,
+  runTwoWayANOVA,
+  runThreeWayANOVA,
+  convertOneWayToPageResults,
+  convertTwoWayToPageResults,
+  convertThreeWayToPageResults,
+  type GroupResult as HelperGroupResult
+} from '@/lib/statistics/anova-helpers'
 
 interface GroupResult {
   name: string
@@ -210,6 +219,10 @@ export default function ANOVAPage() {
     }
   }, [actions, selectedVariables])
 
+  /**
+   * ANOVA 분석 실행
+   * 일원/이원/삼원 분산분석을 헬퍼 함수를 사용하여 수행
+   */
   const handleAnalysis = useCallback(async () => {
     if (!uploadedData || !selectedVariables?.dependent || !selectedVariables?.factor) {
       actions.setError?.('종속변수와 요인을 선택해주세요.')
@@ -226,756 +239,60 @@ export default function ANOVAPage() {
 
       // 데이터 준비
       const depVar = selectedVariables.dependent
-      const factors = Array.isArray(selectedVariables.factor) ? selectedVariables.factor : [selectedVariables.factor]
+      const factors = Array.isArray(selectedVariables.factor)
+        ? selectedVariables.factor
+        : [selectedVariables.factor]
 
-      // 현재는 일원 분산분석만 Worker로 실제 계산 (향후 확장 가능)
+      let finalResult: ANOVAResults
+
       if (factors.length === 1) {
-        // One-way ANOVA
-        const groupCol = factors[0]
-
-        // 그룹별로 데이터 분리
-        const groupsMap = new Map<string, number[]>()
-        uploadedData.data.forEach((row) => {
-          const groupName = String(row[groupCol])
-          const value = row[depVar]
-          if (typeof value === 'number' && !isNaN(value)) {
-            if (!groupsMap.has(groupName)) {
-              groupsMap.set(groupName, [])
-            }
-            groupsMap.get(groupName)!.push(value)
-          }
-        })
-
-        const groupNames = Array.from(groupsMap.keys())
-        const groupsArray = groupNames.map(name => groupsMap.get(name)!)
-
-        if (groupsArray.length < 2) {
-          actions.setError?.('최소 2개 이상의 그룹이 필요합니다.')
-          return
-        }
-
-        // Worker 호출 (one_way_anova)
-        const workerResult = await pyodideCore.callWorkerMethod<{
-          fStatistic: number
-          pValue: number
-          df1: number
-          df2: number
-        }>(PyodideWorker.NonparametricAnova, 'one_way_anova', { groups: groupsArray })
-
-        // 그룹별 기술통계 계산
-        const groups: GroupResult[] = groupNames.map((name) => {
-          const data = groupsMap.get(name)!
-          const mean = data.reduce((sum, val) => sum + val, 0) / data.length
-          const variance = data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (data.length - 1)
-          const std = Math.sqrt(variance)
-          const se = std / Math.sqrt(data.length)
-          const t = 1.96 // 95% CI 근사
-          const ciLower = mean - t * se
-          const ciUpper = mean + t * se
-
-          return {
-            name,
-            mean,
-            std,
-            n: data.length,
-            se,
-            ci: [ciLower, ciUpper] as [number, number]
-          }
-        })
-
-        // 전체 평균
-        const allValues = Array.from(groupsMap.values()).flat()
-        const grandMean = allValues.reduce((sum, val) => sum + val, 0) / allValues.length
-
-        // SS 계산
-        const ssBetween = groups.reduce((sum, g) => {
-          const groupData = groupsMap.get(g.name)!
-          return sum + groupData.length * Math.pow(g.mean - grandMean, 2)
-        }, 0)
-
-        const ssWithin = groups.reduce((sum, g) => {
-          const groupData = groupsMap.get(g.name)!
-          const groupMean = g.mean
-          return sum + groupData.reduce((gsum, val) => gsum + Math.pow(val - groupMean, 2), 0)
-        }, 0)
-
-        const ssTotal = ssBetween + ssWithin
-        const msBetween = ssBetween / workerResult.df1
-        const msWithin = ssWithin / workerResult.df2
-
-        // 효과 크기
-        const etaSquared = ssBetween / ssTotal
-        const omegaSquared = (ssBetween - workerResult.df1 * msWithin) / (ssTotal + msWithin)
-        const cohensF = Math.sqrt(etaSquared / (1 - etaSquared))
-
-        // 검정력 근사 (간단한 추정)
-        const observedPower = workerResult.pValue < 0.05 ? 0.80 : 0.50
-
-        // ANOVA 테이블
-        const anovaTable = [
-          {
-            source: '그룹 간',
-            ss: ssBetween,
-            df: workerResult.df1,
-            ms: msBetween,
-            f: workerResult.fStatistic,
-            p: workerResult.pValue
-          },
-          {
-            source: '그룹 내',
-            ss: ssWithin,
-            df: workerResult.df2,
-            ms: msWithin,
-            f: null,
-            p: null
-          },
-          {
-            source: '전체',
-            ss: ssTotal,
-            df: workerResult.df1 + workerResult.df2,
-            ms: null,
-            f: null,
-            p: null
-          }
-        ]
-
-        // 사후검정 (Tukey HSD) - Worker 호출
-        let postHocComparisons: PostHocComparison[] = []
-        if (workerResult.pValue < 0.05 && groupNames.length >= 2) {
-          try {
-            const tukeyResult = await pyodideCore.callWorkerMethod<{
-              comparisons: Array<{
-                group1: number
-                group2: number
-                meanDiff: number
-                statistic?: number
-                pValue: number | null
-                pAdjusted: number
-                significant: boolean
-                ciLower?: number
-                ciUpper?: number
-              }>
-              statistic: number | number[]
-              pValue: number | number[] | null
-              confidenceInterval?: { lower: number[]; upper: number[]; confidenceLevel: number | null }
-            }>(PyodideWorker.NonparametricAnova, 'tukey_hsd', { groups: groupsArray })
-
-            // Worker 결과를 PostHocComparison 타입으로 변환
-            postHocComparisons = tukeyResult.comparisons.map(comp => ({
-              group1: groupNames[comp.group1],
-              group2: groupNames[comp.group2],
-              meanDiff: comp.meanDiff,
-              pValue: comp.pValue ?? comp.pAdjusted,
-              significant: comp.significant,
-              ciLower: comp.ciLower,
-              ciUpper: comp.ciUpper
-            }))
-          } catch (err) {
-            // Worker 실패 시 에러 표시 (통계 분석의 신뢰성을 위해 근사값 사용 안함)
-            console.error('Tukey HSD Worker 호출 실패:', err)
-            actions.setError?.('사후검정 계산 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.')
-            return
-          }
-        }
-
-        // 가정 검정 (정규성, 등분산성) - Worker 호출
-        const assumptionsWorkerResult = await pyodideCore.callWorkerMethod<{
-          normality: {
-            shapiroWilk: Array<{ group: number; statistic: number | null; pValue: number | null; passed: boolean | null; warning?: string }>
-            passed: boolean
-            interpretation: string
-          }
-          homogeneity: {
-            levene: { statistic: number; pValue: number }
-            passed: boolean
-            interpretation: string
-          }
-        }>(PyodideWorker.NonparametricAnova, 'test_assumptions', { groups: groupsArray })
-
-        // UI에 표시할 형식으로 변환 (전체 그룹 통합 결과)
-        const overallNormality = assumptionsWorkerResult.normality.shapiroWilk[0]
-        const assumptionsResult = {
-          normality: {
-            shapiroWilk: {
-              statistic: overallNormality?.statistic ?? 0.95,
-              pValue: overallNormality?.pValue ?? 0.15
-            },
-            passed: assumptionsWorkerResult.normality.passed,
-            interpretation: assumptionsWorkerResult.normality.interpretation
-          },
-          homogeneity: {
-            levene: assumptionsWorkerResult.homogeneity.levene,
-            passed: assumptionsWorkerResult.homogeneity.passed,
-            interpretation: assumptionsWorkerResult.homogeneity.interpretation
-          }
-        }
-
-        const finalResult: ANOVAResults = {
-          fStatistic: workerResult.fStatistic,
-          pValue: workerResult.pValue,
-          dfBetween: workerResult.df1,
-          dfWithin: workerResult.df2,
-          msBetween,
-          msWithin,
-          etaSquared,
-          omegaSquared,
-          powerAnalysis: {
-            observedPower,
-            effectSize: etaSquared >= 0.14 ? 'large' : etaSquared >= 0.06 ? 'medium' : 'small',
-            cohensF
-          },
-          groups,
-          postHoc: postHocComparisons.length > 0 ? {
-            method: 'Tukey HSD',
-            comparisons: postHocComparisons,
-            adjustedAlpha: 0.05 / postHocComparisons.length
-          } : undefined,
-          assumptions: assumptionsResult,
-          anovaTable
-        }
-
-        setAnalysisTimestamp(new Date())
-        actions.completeAnalysis?.(finalResult, 4)
+        // 일원 분산분석
+        const result = await runOneWayANOVA(
+          pyodideCore,
+          uploadedData,
+          depVar,
+          factors[0]
+        )
+        finalResult = convertOneWayToPageResults(result) as ANOVAResults
       } else if (factors.length === 2) {
-        // Two-way ANOVA
-        const factor1Col = factors[0]
-        const factor2Col = factors[1]
-
-        // 데이터 추출
-        const dataValues: number[] = []
-        const factor1Values: string[] = []
-        const factor2Values: string[] = []
-
-        uploadedData.data.forEach((row) => {
-          const value = row[depVar]
-          const f1 = String(row[factor1Col])
-          const f2 = String(row[factor2Col])
-
-          if (typeof value === 'number' && !isNaN(value)) {
-            dataValues.push(value)
-            factor1Values.push(f1)
-            factor2Values.push(f2)
-          }
-        })
-
-        if (dataValues.length < 4) {
-          actions.setError?.('이원 분산분석은 최소 4개 이상의 유효한 데이터가 필요합니다.')
-          return
-        }
-
-        // Worker 호출 (two_way_anova)
-        const twoWayResult = await pyodideCore.callWorkerMethod<{
-          factor1: { fStatistic: number; pValue: number; df: number }
-          factor2: { fStatistic: number; pValue: number; df: number }
-          interaction: { fStatistic: number; pValue: number; df: number }
-          residual: { df: number }
-          anovaTable: {
-            sum_sq: Record<string, number>
-            df: Record<string, number>
-            F: Record<string, number>
-            'PR(>F)': Record<string, number>
-          }
-        }>(PyodideWorker.NonparametricAnova, 'two_way_anova', {
-          data_values: dataValues,
-          factor1_values: factor1Values,
-          factor2_values: factor2Values
-        })
-
-        // Helper: statsmodels ANOVA 테이블에서 값 추출
-        const getSS2 = (key: string) => twoWayResult.anovaTable.sum_sq[key] ?? 0
-        const getMS2 = (key: string) => {
-          const ss = getSS2(key)
-          const df = twoWayResult.anovaTable.df[key] ?? 1
-          return df > 0 ? ss / df : 0
-        }
-
-        // ANOVA 테이블 (실제 SS/MS 값 사용)
-        const twoWayAnovaTable = [
-          {
-            source: `요인 1 (${factor1Col})`,
-            ss: getSS2('C(factor1)'),
-            df: twoWayResult.factor1.df,
-            ms: getMS2('C(factor1)'),
-            f: twoWayResult.factor1.fStatistic,
-            p: twoWayResult.factor1.pValue
-          },
-          {
-            source: `요인 2 (${factor2Col})`,
-            ss: getSS2('C(factor2)'),
-            df: twoWayResult.factor2.df,
-            ms: getMS2('C(factor2)'),
-            f: twoWayResult.factor2.fStatistic,
-            p: twoWayResult.factor2.pValue
-          },
-          {
-            source: '상호작용',
-            ss: getSS2('C(factor1):C(factor2)'),
-            df: twoWayResult.interaction.df,
-            ms: getMS2('C(factor1):C(factor2)'),
-            f: twoWayResult.interaction.fStatistic,
-            p: twoWayResult.interaction.pValue
-          },
-          {
-            source: '잔차',
-            ss: getSS2('Residual'),
-            df: twoWayResult.residual.df,
-            ms: getMS2('Residual'),
-            f: null,
-            p: null
-          }
-        ]
-
-        // 총 SS 계산 (원시 데이터에서 직접 계산 - 불균형 설계 대응)
-        const grandMean = dataValues.reduce((sum, v) => sum + v, 0) / dataValues.length
-        const ssTotal = dataValues.reduce((sum, v) => sum + Math.pow(v - grandMean, 2), 0)
-
-        // 각 요인별 효과 크기 계산
-        const calculateEffectSizes = (ss: number, dfEffect: number) => {
-          const eta2 = ssTotal > 0 ? ss / ssTotal : 0
-          const msResidual = getMS2('Residual')
-          const omega2 = ssTotal > 0
-            ? Math.max(0, (ss - dfEffect * msResidual) / (ssTotal + msResidual))
-            : 0
-          return { eta2, omega2 }
-        }
-
-        const factor1EffectSizes = calculateEffectSizes(getSS2('C(factor1)'), twoWayResult.factor1.df)
-        const factor2EffectSizes = calculateEffectSizes(getSS2('C(factor2)'), twoWayResult.factor2.df)
-        const interactionEffectSizes = calculateEffectSizes(getSS2('C(factor1):C(factor2)'), twoWayResult.interaction.df)
-
-        // 다요인 결과 구조 생성
-        const multiFactorResults: MultiFactorANOVAResults = {
-          factor1: {
-            name: factor1Col,
-            fStatistic: twoWayResult.factor1.fStatistic,
-            pValue: twoWayResult.factor1.pValue,
-            df: twoWayResult.factor1.df,
-            etaSquared: factor1EffectSizes.eta2,
-            omegaSquared: factor1EffectSizes.omega2
-          },
-          factor2: {
-            name: factor2Col,
-            fStatistic: twoWayResult.factor2.fStatistic,
-            pValue: twoWayResult.factor2.pValue,
-            df: twoWayResult.factor2.df,
-            etaSquared: factor2EffectSizes.eta2,
-            omegaSquared: factor2EffectSizes.omega2
-          },
-          interaction12: {
-            name: `${factor1Col} × ${factor2Col}`,
-            fStatistic: twoWayResult.interaction.fStatistic,
-            pValue: twoWayResult.interaction.pValue,
-            df: twoWayResult.interaction.df,
-            etaSquared: interactionEffectSizes.eta2,
-            omegaSquared: interactionEffectSizes.omega2
-          }
-        }
-
-        // 이원 ANOVA 사후검정 - 유의한 주효과에 대해서만 실행
-        let twoWayPostHoc: { method: string; comparisons: PostHocComparison[]; adjustedAlpha: number } | undefined
-        const significantFactors: { name: string; col: string }[] = []
-
-        if (twoWayResult.factor1.pValue < 0.05) {
-          significantFactors.push({ name: factor1Col, col: factor1Col })
-        }
-        if (twoWayResult.factor2.pValue < 0.05) {
-          significantFactors.push({ name: factor2Col, col: factor2Col })
-        }
-
-        if (significantFactors.length > 0) {
-          try {
-            const allComparisons: PostHocComparison[] = []
-
-            for (const factor of significantFactors) {
-              // 해당 요인의 수준별로 그룹 데이터 추출
-              const factorLevels = [...new Set(factor.col === factor1Col ? factor1Values : factor2Values)]
-              const groupsForFactor: number[][] = factorLevels.map(level => {
-                const indices = (factor.col === factor1Col ? factor1Values : factor2Values)
-                  .map((v, i) => v === level ? i : -1)
-                  .filter(i => i >= 0)
-                return indices.map(i => dataValues[i])
-              })
-
-              // Tukey HSD 사후검정 (이원 ANOVA는 등분산 가정)
-              const tukeyResult = await pyodideCore.callWorkerMethod<{
-                comparisons: Array<{
-                  group1: number
-                  group2: number
-                  meanDiff: number
-                  pValue: number | null
-                  pAdjusted: number
-                  significant: boolean
-                  ciLower?: number
-                  ciUpper?: number
-                }>
-              }>(PyodideWorker.NonparametricAnova, 'tukey_hsd', { groups: groupsForFactor })
-
-              // 요인명을 포함한 비교 결과 추가
-              tukeyResult.comparisons.forEach(comp => {
-                allComparisons.push({
-                  group1: `${factor.name}: ${factorLevels[comp.group1]}`,
-                  group2: `${factor.name}: ${factorLevels[comp.group2]}`,
-                  meanDiff: comp.meanDiff,
-                  pValue: comp.pValue ?? comp.pAdjusted,
-                  significant: comp.significant,
-                  ciLower: comp.ciLower,
-                  ciUpper: comp.ciUpper
-                })
-              })
-            }
-
-            if (allComparisons.length > 0) {
-              twoWayPostHoc = {
-                method: 'Tukey HSD',
-                comparisons: allComparisons,
-                adjustedAlpha: 0.05 / allComparisons.length
-              }
-            }
-          } catch (err) {
-            // Worker 실패 시 에러 표시 (통계 분석의 신뢰성을 위해 근사값 사용 안함)
-            console.error('이원 ANOVA 사후검정 Worker 실패:', err)
-            actions.setError?.('사후검정 계산 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.')
-            return
-          }
-        }
-
-        // 이원 ANOVA 결과 (일원 ANOVA 필드 + multiFactorResults)
-        const twoWayFinalResult: ANOVAResults = {
-          fStatistic: twoWayResult.factor1.fStatistic,
-          pValue: twoWayResult.factor1.pValue,
-          dfBetween: twoWayResult.factor1.df,
-          dfWithin: twoWayResult.residual.df,
-          msBetween: getMS2('C(factor1)'),
-          msWithin: getMS2('Residual'),
-          etaSquared: factor1EffectSizes.eta2,
-          omegaSquared: factor1EffectSizes.omega2,
-          powerAnalysis: {
-            observedPower: twoWayResult.factor1.pValue < 0.05 ? 0.80 : 0.50,
-            effectSize: factor1EffectSizes.eta2 >= 0.14 ? 'large' : factor1EffectSizes.eta2 >= 0.06 ? 'medium' : 'small',
-            cohensF: Math.sqrt(factor1EffectSizes.eta2 / (1 - factor1EffectSizes.eta2))
-          },
-          groups: [],
-          postHoc: twoWayPostHoc,
-          anovaTable: twoWayAnovaTable,
-          multiFactorResults
-        }
-
-        setAnalysisTimestamp(new Date())
-        actions.completeAnalysis?.(twoWayFinalResult, 4)
+        // 이원 분산분석
+        const result = await runTwoWayANOVA(
+          pyodideCore,
+          uploadedData,
+          depVar,
+          factors[0],
+          factors[1]
+        )
+        finalResult = convertTwoWayToPageResults(result) as ANOVAResults
       } else if (factors.length === 3) {
-        // Three-way ANOVA
-        const factor1Col = factors[0]
-        const factor2Col = factors[1]
-        const factor3Col = factors[2]
-
-        // 데이터 추출
-        const dataValues: number[] = []
-        const factor1Values: string[] = []
-        const factor2Values: string[] = []
-        const factor3Values: string[] = []
-
-        uploadedData.data.forEach((row) => {
-          const value = row[depVar]
-          const f1 = String(row[factor1Col])
-          const f2 = String(row[factor2Col])
-          const f3 = String(row[factor3Col])
-
-          if (typeof value === 'number' && !isNaN(value)) {
-            dataValues.push(value)
-            factor1Values.push(f1)
-            factor2Values.push(f2)
-            factor3Values.push(f3)
-          }
-        })
-
-        if (dataValues.length < 8) {
-          actions.setError?.('삼원 분산분석은 최소 8개 이상의 유효한 데이터가 필요합니다.')
-          return
-        }
-
-        // Worker 호출 (three_way_anova)
-        const threeWayResult = await pyodideCore.callWorkerMethod<{
-          factor1: { fStatistic: number; pValue: number; df: number }
-          factor2: { fStatistic: number; pValue: number; df: number }
-          factor3: { fStatistic: number; pValue: number; df: number }
-          interaction12: { fStatistic: number; pValue: number; df: number }
-          interaction13: { fStatistic: number; pValue: number; df: number }
-          interaction23: { fStatistic: number; pValue: number; df: number }
-          interaction123: { fStatistic: number; pValue: number; df: number }
-          residual: { df: number }
-          anovaTable: {
-            sum_sq: Record<string, number>
-            df: Record<string, number>
-            F: Record<string, number>
-            'PR(>F)': Record<string, number>
-          }
-        }>(PyodideWorker.NonparametricAnova, 'three_way_anova', {
-          data_values: dataValues,
-          factor1_values: factor1Values,
-          factor2_values: factor2Values,
-          factor3_values: factor3Values
-        })
-
-        // Helper: statsmodels ANOVA 테이블에서 값 추출
-        const getSS = (key: string) => threeWayResult.anovaTable.sum_sq[key] ?? 0
-        const getMS = (key: string) => {
-          const ss = getSS(key)
-          const df = threeWayResult.anovaTable.df[key] ?? 1
-          return df > 0 ? ss / df : 0
-        }
-
-        // ANOVA 테이블 (실제 SS/MS 값 사용)
-        const anovaTable = [
-          {
-            source: `요인 1 (${factor1Col})`,
-            ss: getSS('C(factor1)'),
-            df: threeWayResult.factor1.df,
-            ms: getMS('C(factor1)'),
-            f: threeWayResult.factor1.fStatistic,
-            p: threeWayResult.factor1.pValue
-          },
-          {
-            source: `요인 2 (${factor2Col})`,
-            ss: getSS('C(factor2)'),
-            df: threeWayResult.factor2.df,
-            ms: getMS('C(factor2)'),
-            f: threeWayResult.factor2.fStatistic,
-            p: threeWayResult.factor2.pValue
-          },
-          {
-            source: `요인 3 (${factor3Col})`,
-            ss: getSS('C(factor3)'),
-            df: threeWayResult.factor3.df,
-            ms: getMS('C(factor3)'),
-            f: threeWayResult.factor3.fStatistic,
-            p: threeWayResult.factor3.pValue
-          },
-          {
-            source: `${factor1Col} × ${factor2Col}`,
-            ss: getSS('C(factor1):C(factor2)'),
-            df: threeWayResult.interaction12.df,
-            ms: getMS('C(factor1):C(factor2)'),
-            f: threeWayResult.interaction12.fStatistic,
-            p: threeWayResult.interaction12.pValue
-          },
-          {
-            source: `${factor1Col} × ${factor3Col}`,
-            ss: getSS('C(factor1):C(factor3)'),
-            df: threeWayResult.interaction13.df,
-            ms: getMS('C(factor1):C(factor3)'),
-            f: threeWayResult.interaction13.fStatistic,
-            p: threeWayResult.interaction13.pValue
-          },
-          {
-            source: `${factor2Col} × ${factor3Col}`,
-            ss: getSS('C(factor2):C(factor3)'),
-            df: threeWayResult.interaction23.df,
-            ms: getMS('C(factor2):C(factor3)'),
-            f: threeWayResult.interaction23.fStatistic,
-            p: threeWayResult.interaction23.pValue
-          },
-          {
-            source: `${factor1Col} × ${factor2Col} × ${factor3Col}`,
-            ss: getSS('C(factor1):C(factor2):C(factor3)'),
-            df: threeWayResult.interaction123.df,
-            ms: getMS('C(factor1):C(factor2):C(factor3)'),
-            f: threeWayResult.interaction123.fStatistic,
-            p: threeWayResult.interaction123.pValue
-          },
-          {
-            source: '잔차',
-            ss: getSS('Residual'),
-            df: threeWayResult.residual.df,
-            ms: getMS('Residual'),
-            f: null,
-            p: null
-          }
-        ]
-
-        // 총 SS 계산 (원시 데이터에서 직접 계산 - 불균형 설계 대응)
-        const grandMean3 = dataValues.reduce((sum, v) => sum + v, 0) / dataValues.length
-        const ssTotal3 = dataValues.reduce((sum, v) => sum + Math.pow(v - grandMean3, 2), 0)
-
-        // 각 요인별 효과 크기 계산
-        const calculateEffectSizes3 = (ss: number, dfEffect: number) => {
-          const eta2 = ssTotal3 > 0 ? ss / ssTotal3 : 0
-          const msResidual = getMS('Residual')
-          const omega2 = ssTotal3 > 0
-            ? Math.max(0, (ss - dfEffect * msResidual) / (ssTotal3 + msResidual))
-            : 0
-          return { eta2, omega2 }
-        }
-
-        const factor1EffectSizes3 = calculateEffectSizes3(getSS('C(factor1)'), threeWayResult.factor1.df)
-        const factor2EffectSizes3 = calculateEffectSizes3(getSS('C(factor2)'), threeWayResult.factor2.df)
-        const factor3EffectSizes3 = calculateEffectSizes3(getSS('C(factor3)'), threeWayResult.factor3.df)
-        const interaction12EffectSizes = calculateEffectSizes3(getSS('C(factor1):C(factor2)'), threeWayResult.interaction12.df)
-        const interaction13EffectSizes = calculateEffectSizes3(getSS('C(factor1):C(factor3)'), threeWayResult.interaction13.df)
-        const interaction23EffectSizes = calculateEffectSizes3(getSS('C(factor2):C(factor3)'), threeWayResult.interaction23.df)
-        const interaction123EffectSizes = calculateEffectSizes3(getSS('C(factor1):C(factor2):C(factor3)'), threeWayResult.interaction123.df)
-
-        // 다요인 결과 구조 생성
-        const multiFactorResults3: MultiFactorANOVAResults = {
-          factor1: {
-            name: factor1Col,
-            fStatistic: threeWayResult.factor1.fStatistic,
-            pValue: threeWayResult.factor1.pValue,
-            df: threeWayResult.factor1.df,
-            etaSquared: factor1EffectSizes3.eta2,
-            omegaSquared: factor1EffectSizes3.omega2
-          },
-          factor2: {
-            name: factor2Col,
-            fStatistic: threeWayResult.factor2.fStatistic,
-            pValue: threeWayResult.factor2.pValue,
-            df: threeWayResult.factor2.df,
-            etaSquared: factor2EffectSizes3.eta2,
-            omegaSquared: factor2EffectSizes3.omega2
-          },
-          factor3: {
-            name: factor3Col,
-            fStatistic: threeWayResult.factor3.fStatistic,
-            pValue: threeWayResult.factor3.pValue,
-            df: threeWayResult.factor3.df,
-            etaSquared: factor3EffectSizes3.eta2,
-            omegaSquared: factor3EffectSizes3.omega2
-          },
-          interaction12: {
-            name: `${factor1Col} × ${factor2Col}`,
-            fStatistic: threeWayResult.interaction12.fStatistic,
-            pValue: threeWayResult.interaction12.pValue,
-            df: threeWayResult.interaction12.df,
-            etaSquared: interaction12EffectSizes.eta2,
-            omegaSquared: interaction12EffectSizes.omega2
-          },
-          interaction13: {
-            name: `${factor1Col} × ${factor3Col}`,
-            fStatistic: threeWayResult.interaction13.fStatistic,
-            pValue: threeWayResult.interaction13.pValue,
-            df: threeWayResult.interaction13.df,
-            etaSquared: interaction13EffectSizes.eta2,
-            omegaSquared: interaction13EffectSizes.omega2
-          },
-          interaction23: {
-            name: `${factor2Col} × ${factor3Col}`,
-            fStatistic: threeWayResult.interaction23.fStatistic,
-            pValue: threeWayResult.interaction23.pValue,
-            df: threeWayResult.interaction23.df,
-            etaSquared: interaction23EffectSizes.eta2,
-            omegaSquared: interaction23EffectSizes.omega2
-          },
-          interaction123: {
-            name: `${factor1Col} × ${factor2Col} × ${factor3Col}`,
-            fStatistic: threeWayResult.interaction123.fStatistic,
-            pValue: threeWayResult.interaction123.pValue,
-            df: threeWayResult.interaction123.df,
-            etaSquared: interaction123EffectSizes.eta2,
-            omegaSquared: interaction123EffectSizes.omega2
-          }
-        }
-
-        // 삼원 ANOVA 사후검정 - 유의한 주효과에 대해서만 실행
-        let threeWayPostHoc: { method: string; comparisons: PostHocComparison[]; adjustedAlpha: number } | undefined
-        const significantFactors3: { name: string; values: string[] }[] = []
-
-        if (threeWayResult.factor1.pValue < 0.05) {
-          significantFactors3.push({ name: factor1Col, values: factor1Values })
-        }
-        if (threeWayResult.factor2.pValue < 0.05) {
-          significantFactors3.push({ name: factor2Col, values: factor2Values })
-        }
-        if (threeWayResult.factor3.pValue < 0.05) {
-          significantFactors3.push({ name: factor3Col, values: factor3Values })
-        }
-
-        if (significantFactors3.length > 0) {
-          try {
-            const allComparisons3: PostHocComparison[] = []
-
-            for (const factor of significantFactors3) {
-              // 해당 요인의 수준별로 그룹 데이터 추출
-              const factorLevels = [...new Set(factor.values)]
-              const groupsForFactor: number[][] = factorLevels.map(level => {
-                const indices = factor.values
-                  .map((v, i) => v === level ? i : -1)
-                  .filter(i => i >= 0)
-                return indices.map(i => dataValues[i])
-              })
-
-              // Tukey HSD 사후검정
-              const tukeyResult = await pyodideCore.callWorkerMethod<{
-                comparisons: Array<{
-                  group1: number
-                  group2: number
-                  meanDiff: number
-                  pValue: number | null
-                  pAdjusted: number
-                  significant: boolean
-                  ciLower?: number
-                  ciUpper?: number
-                }>
-              }>(PyodideWorker.NonparametricAnova, 'tukey_hsd', { groups: groupsForFactor })
-
-              // 요인명을 포함한 비교 결과 추가
-              tukeyResult.comparisons.forEach(comp => {
-                allComparisons3.push({
-                  group1: `${factor.name}: ${factorLevels[comp.group1]}`,
-                  group2: `${factor.name}: ${factorLevels[comp.group2]}`,
-                  meanDiff: comp.meanDiff,
-                  pValue: comp.pValue ?? comp.pAdjusted,
-                  significant: comp.significant,
-                  ciLower: comp.ciLower,
-                  ciUpper: comp.ciUpper
-                })
-              })
-            }
-
-            if (allComparisons3.length > 0) {
-              threeWayPostHoc = {
-                method: 'Tukey HSD',
-                comparisons: allComparisons3,
-                adjustedAlpha: 0.05 / allComparisons3.length
-              }
-            }
-          } catch (err) {
-            // Worker 실패 시 에러 표시 (통계 분석의 신뢰성을 위해 근사값 사용 안함)
-            console.error('삼원 ANOVA 사후검정 Worker 실패:', err)
-            actions.setError?.('사후검정 계산 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.')
-            return
-          }
-        }
-
-        // 삼원 ANOVA 결과 (일원 ANOVA 필드 + multiFactorResults)
-        const threeWayFinalResult: ANOVAResults = {
-          fStatistic: threeWayResult.factor1.fStatistic,
-          pValue: threeWayResult.factor1.pValue,
-          dfBetween: threeWayResult.factor1.df,
-          dfWithin: threeWayResult.residual.df,
-          msBetween: getMS('C(factor1)'),
-          msWithin: getMS('Residual'),
-          etaSquared: factor1EffectSizes3.eta2,
-          omegaSquared: factor1EffectSizes3.omega2,
-          powerAnalysis: {
-            observedPower: threeWayResult.factor1.pValue < 0.05 ? 0.80 : 0.50,
-            effectSize: factor1EffectSizes3.eta2 >= 0.14 ? 'large' : factor1EffectSizes3.eta2 >= 0.06 ? 'medium' : 'small',
-            cohensF: Math.sqrt(factor1EffectSizes3.eta2 / (1 - factor1EffectSizes3.eta2))
-          },
-          groups: [],
-          postHoc: threeWayPostHoc,
-          anovaTable: anovaTable,
-          multiFactorResults: multiFactorResults3
-        }
-
-        setAnalysisTimestamp(new Date())
-        actions.completeAnalysis?.(threeWayFinalResult, 4)
+        // 삼원 분산분석
+        const result = await runThreeWayANOVA(
+          pyodideCore,
+          uploadedData,
+          depVar,
+          factors[0],
+          factors[1],
+          factors[2]
+        )
+        finalResult = convertThreeWayToPageResults(result) as ANOVAResults
       } else {
-        // Repeated Measures는 향후 구현
         actions.setError?.('현재는 일원/이원/삼원 분산분석만 지원됩니다.')
+        return
       }
+
+      setAnalysisTimestamp(new Date())
+      actions.completeAnalysis?.(finalResult, 4)
     } catch (err) {
-      actions.setError?.(err instanceof Error ? err.message : '분석 실패')
+      // 에러 메시지 처리
+      const errorMessage = err instanceof Error
+        ? err.message.includes('패키지') || err.message.includes('Worker')
+          ? '분석 중 오류가 발생했습니다. 페이지를 새로고침하고 다시 시도해주세요.'
+          : err.message
+        : '분석 실패'
+      actions.setError?.(errorMessage)
     }
-  }, [uploadedData, selectedVariables, anovaType, actions])
+  }, [uploadedData, selectedVariables, actions])
+
 
   const stepsWithCompleted = STEPS.map(step => ({
     ...step,
