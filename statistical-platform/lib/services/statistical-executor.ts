@@ -9,6 +9,48 @@ import { logger } from '../utils/logger'
 import { CorrelationExecutor } from './executors/correlation-executor'
 
 /**
+ * PreparedData: prepareData() 메서드의 반환 타입
+ * unknown[] 데이터를 분석 가능한 형태로 변환
+ */
+export interface PreparedData {
+  data: Array<Record<string, unknown>>
+  variables: Record<string, unknown>
+  arrays: PreparedArrays
+  totalN: number
+  missingRemoved: number
+  groups?: unknown[]
+  withinFactors?: string[]
+  betweenFactors?: string[]
+}
+
+/**
+ * PreparedArrays: prepareData()에서 추출한 숫자 배열들
+ */
+export interface PreparedArrays {
+  dependent?: number[]
+  independent?: number[][]
+  byGroup?: Record<string, number[]>
+  group?: unknown[]
+  covariate?: number[][]
+  within?: number[][]
+  between?: unknown[][]
+  blocking?: unknown[][]
+  event?: number[]
+  censoring?: number[]
+  weight?: number[]
+  contingencyTable?: number[][]
+}
+
+/**
+ * VisualizationData: 시각화용 데이터 구조
+ */
+export interface VisualizationData {
+  type: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any
+}
+
+/**
  * StatisticalExecutor 전용 분석 결과 인터페이스
  * (레거시 - 향후 ExecutorAnalysisResult로 통합 예정)
  *
@@ -67,13 +109,10 @@ export interface StatisticalExecutorResult {
   }
 
   // 시각화용 데이터
-  visualizationData?: {
-    type: string
-    data: any
-  }
+  visualizationData?: VisualizationData
 
   // 원시 결과 (디버깅용)
-  rawResults?: any
+  rawResults?: Record<string, unknown>
 }
 
 /**
@@ -196,7 +235,7 @@ export class StatisticalExecutor {
     data: Array<Record<string, unknown>>,
     variables: Record<string, unknown>,
     method: StatisticalMethod
-  ): Record<string, unknown> {
+  ): PreparedData {
     // VariableMapping 호환 - 여러 네이밍 컨벤션 지원
     const getDependent = (): string[] => {
       const dep = variables.dependent || variables.dependentVar
@@ -227,14 +266,14 @@ export class StatisticalExecutor {
     const variablesArray = getVariablesArray()
 
     // 변수 추출
-    const prepared: Record<string, unknown> = {
+    const arrays: PreparedArrays = {}
+    const prepared: PreparedData = {
       data: data,
       variables: variables,
-      arrays: {} as Record<string, unknown>,
-      totalN: data.length
+      arrays: arrays,
+      totalN: data.length,
+      missingRemoved: 0
     }
-
-    const arrays = prepared.arrays as Record<string, unknown>
 
     // 종속변수 추출
     if (dependent.length > 0) {
@@ -387,7 +426,7 @@ export class StatisticalExecutor {
    */
   private async executeDescriptive(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     const values = data.arrays.dependent || data.arrays.independent?.[0] || []
     const stats = await pyodideStats.descriptiveStats(values)
@@ -429,7 +468,7 @@ export class StatisticalExecutor {
    */
   private async executeTTest(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     let group1: number[], group2: number[]
     let groupNames: string[] = []
@@ -526,7 +565,7 @@ export class StatisticalExecutor {
    */
   private async executeANOVA(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     const byGroup = data.arrays.byGroup || {}
     const groupNames = Object.keys(byGroup)
@@ -589,7 +628,7 @@ export class StatisticalExecutor {
     // ANCOVA: 공변량이 있는 경우
     if (method.id === 'ancova' && data.arrays.covariate && data.arrays.covariate.length > 0) {
       // 행 단위로 종속변수·그룹·모든 공변량이 동시에 유효한 경우만 포함
-      const dependentVar = data.variables.dependent?.[0] || ''
+      const dependentVar = (data.variables.dependent as string[] | undefined)?.[0] || ''
       const groupVar = data.variables.group as string
       const covariateVars = Array.isArray(data.variables.covariate)
         ? data.variables.covariate
@@ -806,7 +845,7 @@ export class StatisticalExecutor {
    */
   private async executeRegression(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     const dependent = data.arrays.dependent
     const independent = data.arrays.independent?.[0]
@@ -868,7 +907,7 @@ export class StatisticalExecutor {
    */
   private async executeCorrelation(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     const var1 = data.arrays.dependent || data.arrays.independent?.[0]
     const var2 = data.arrays.independent?.[1] || data.arrays.independent?.[0]
@@ -882,6 +921,7 @@ export class StatisticalExecutor {
     // method.id에 따라 적절한 상관분석 실행
     const methodId = method.id.toLowerCase()
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let executorResult: any
 
     if (methodId === 'partial-correlation') {
@@ -940,8 +980,9 @@ export class StatisticalExecutor {
    */
   private async executeNonparametric(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any
 
     switch (method.id) {
@@ -973,8 +1014,8 @@ export class StatisticalExecutor {
       }
       case 'wilcoxon':
         result = await pyodideStats.wilcoxon(
-          data.arrays.dependent,
-          data.arrays.independent?.[0]
+          data.arrays.dependent || [],
+          data.arrays.independent?.[0] || []
         )
         break
       case 'kruskal-wallis': {
@@ -1002,7 +1043,8 @@ export class StatisticalExecutor {
         result = await pyodideStats.friedman(data.arrays.independent || [])
         break
       case 'chi-square':
-        result = await pyodideStats.chiSquare(data.data)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        result = await pyodideStats.chiSquare(data.data as any)
         break
       case 'sign-test': {
         const signResult = await pyodideStats.signTestWorker(
@@ -1161,8 +1203,9 @@ export class StatisticalExecutor {
    */
   private async executeMultivariate(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any
 
     switch (method.id) {
@@ -1364,7 +1407,7 @@ export class StatisticalExecutor {
    */
   private async executeTimeSeries(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     const timeData = data.arrays.dependent || []
     // time_series_analysis는 seasonalPeriods만 받음 (method 파라미터 없음)
@@ -1407,7 +1450,7 @@ export class StatisticalExecutor {
    */
   private async executeReliability(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     const items = data.arrays.independent || []
     const result = await pyodideStats.cronbachAlpha(items)
@@ -1443,7 +1486,7 @@ export class StatisticalExecutor {
    */
   private async executeSurvival(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     switch (method.id) {
       case 'kaplan-meier': {
@@ -1621,7 +1664,7 @@ export class StatisticalExecutor {
    */
   private async executeDesign(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
     switch (method.id) {
       case 'power-analysis': {
@@ -1677,9 +1720,10 @@ export class StatisticalExecutor {
    */
   private async executeChiSquare(
     method: StatisticalMethod,
-    data: any
+    data: PreparedData
   ): Promise<AnalysisResult> {
-    const result = await pyodideStats.chiSquare(data.data) as {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await pyodideStats.chiSquare(data.data as any) as {
       statistic: number
       pvalue: number
       df: number

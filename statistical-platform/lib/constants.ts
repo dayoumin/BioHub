@@ -115,6 +115,33 @@ export function getPyodideCDNUrls() {
   } as const
 }
 
+// 타임아웃 상수 (중앙화)
+export const TIMEOUT = {
+  // Pyodide 로딩
+  PYODIDE_SCRIPT: 30000,      // 30초 - Pyodide 스크립트 로딩
+  PYODIDE_PACKAGES: 60000,    // 60초 - 패키지 설치
+
+  // 분석 작업
+  ANALYSIS_SHORT: 10000,      // 10초 - 간단한 분석
+  ANALYSIS_MEDIUM: 30000,     // 30초 - 일반 분석
+  ANALYSIS_LONG: 60000,       // 60초 - 복잡한 분석
+
+  // API 호출
+  API_CALL: 5000,             // 5초 - API 호출
+  OLLAMA_CHECK: 2000,         // 2초 - Ollama 연결 체크
+
+  // UI 상호작용
+  DEBOUNCE: 300,              // 300ms - 디바운스
+  TOAST: 3000,                // 3초 - 토스트 메시지
+
+  // E2E 테스트
+  E2E_FAST: 5000,             // 5초 - 빠른 동작
+  E2E_MEDIUM: 15000,          // 15초 - 일반 동작
+  E2E_SLOW: 30000,            // 30초 - 느린 동작
+  E2E_VERY_SLOW: 60000,       // 60초 - 매우 느린 동작 (Pyodide 로딩 등)
+  E2E_PAGE_LOAD: 90000,       // 90초 - 페이지 전체 로딩
+} as const
+
 // UI 관련 상수
 export const UI = {
   DEBOUNCE_DELAY: 300,

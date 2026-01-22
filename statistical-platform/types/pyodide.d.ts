@@ -4,9 +4,12 @@
  */
 
 export interface PyodideInterface {
-  loadPackage: (packages: string | string[]) => Promise<void>
+  loadPackage: (packages: string | string[] | readonly string[]) => Promise<void>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   runPython: (code: string) => any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   runPythonAsync: (code: string) => Promise<any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   globals: any
   FS: {
     writeFile(path: string, data: string | Uint8Array): void

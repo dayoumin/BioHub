@@ -1,6 +1,6 @@
 /**
  * Runtime-only Pyodide Loader
- * 
+ *
  * 빌드 타임이 아닌 런타임에서만 Pyodide를 로드
  * - 완전한 동적 로딩
  * - 번들에 포함되지 않음
@@ -8,11 +8,12 @@
  */
 
 import { PYODIDE } from './constants'
+import type { PyodideInterface } from '@/types/pyodide'
 
 export type PyodideStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 export interface PyodideState {
-  instance: unknown | null
+  instance: PyodideInterface | null
   status: PyodideStatus
   progress: string
   error: string | null
@@ -72,8 +73,8 @@ export async function loadPyodideRuntime(): Promise<void> {
     notifyListeners()
 
     // Pyodide 인스턴스 생성
-    const pyodide = await (window as typeof window & { 
-      loadPyodide: (options: { indexURL: string }) => Promise<unknown> 
+    const pyodide = await (window as typeof window & {
+      loadPyodide: (options: { indexURL: string }) => Promise<PyodideInterface>
     }).loadPyodide({
       indexURL: PYODIDE.CDN_URL
     })
@@ -82,7 +83,7 @@ export async function loadPyodideRuntime(): Promise<void> {
     notifyListeners()
 
     // 필수 패키지 설치
-    await (pyodide as any).loadPackage(PYODIDE.PACKAGES)
+    await pyodide.loadPackage(PYODIDE.PACKAGES)
 
     pyodideState = { 
       instance: pyodide, 
@@ -108,7 +109,7 @@ export async function loadPyodideRuntime(): Promise<void> {
 /**
  * Pyodide 인스턴스 가져오기
  */
-export function getPyodideInstance() {
+export function getPyodideInstance(): PyodideInterface | null {
   return pyodideState.instance
 }
 
