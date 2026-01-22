@@ -7,12 +7,14 @@
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 
-// mock 함수들을 외부에서 정의 (vi.mock 내부에서 참조 가능)
-const mockInitialize = vi.fn().mockResolvedValue(undefined)
-const mockIsInitialized = vi.fn().mockReturnValue(false)
-const mockCallWorkerMethod = vi.fn().mockResolvedValue({})
-const mockDispose = vi.fn()
-const mockOnProgress = vi.fn().mockReturnValue(() => {})
+// vi.hoisted()를 사용하여 vi.mock보다 먼저 실행되도록 함
+const { mockInitialize, mockIsInitialized, mockCallWorkerMethod, mockDispose, mockOnProgress } = vi.hoisted(() => ({
+  mockInitialize: vi.fn().mockResolvedValue(undefined),
+  mockIsInitialized: vi.fn().mockReturnValue(false),
+  mockCallWorkerMethod: vi.fn().mockResolvedValue({}),
+  mockDispose: vi.fn(),
+  mockOnProgress: vi.fn().mockReturnValue(() => {}),
+}))
 
 let webWorkerMode = false
 
@@ -26,7 +28,6 @@ vi.mock('@/lib/services/pyodide/core/pyodide-core.service', () => {
         callWorkerMethod: mockCallWorkerMethod,
         dispose: mockDispose,
         onProgress: mockOnProgress,
-        // 테스트용 내부 상태 노출
         _isWebWorkerMode: () => webWorkerMode,
         _setWebWorkerMode: (value: boolean) => { webWorkerMode = value }
       }),
@@ -67,7 +68,6 @@ describe('Pyodide Web Worker Mode (Mocked)', () => {
       await service.initialize()
       await service.initialize()
 
-      // 실제 구현에서는 loadPromise로 병합되지만, mock에서는 3번 호출됨
       expect(mockInitialize).toHaveBeenCalled()
     })
   })
