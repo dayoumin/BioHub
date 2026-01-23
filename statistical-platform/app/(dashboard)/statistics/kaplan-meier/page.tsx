@@ -29,8 +29,10 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { extractColumnData } from '@/lib/utils/data-extraction'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
+import type { InterpretationResult } from '@/lib/interpretation/engine'
 
 interface KaplanMeierResults {
   survivalFunction: number[]
@@ -516,47 +518,16 @@ export default function KaplanMeierPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>How to Interpret</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Survival Function S(t)</h4>
-                  <p className="text-sm text-muted-foreground">
-                    The survival function represents the probability that a subject survives
-                    longer than time t. At each event time, the survival probability decreases.
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Censoring</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Censored observations (event=0) occur when subjects are lost to follow-up
-                    or the study ends before the event occurs. The Kaplan-Meier estimator
-                    properly handles censored data.
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Median Survival</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {results.medianSurvival !== null
-                      ? `The median survival time of ${results.medianSurvival.toFixed(2)} indicates that half of the subjects experienced the event by this time.`
-                      : 'The median survival was not reached, meaning more than 50% of subjects survived throughout the observation period.'}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Next Steps</h4>
-                  <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>Compare groups using Log-rank test (if group variable specified)</li>
-                    <li>Use Cox regression to identify risk factors</li>
-                    <li>Plot survival curves for visualization</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+            <ResultInterpretation
+              result={{
+                title: 'Kaplan-Meier Survival Analysis',
+                summary: results.medianSurvival !== null
+                  ? `The analysis shows ${results.totalEvents} events (${eventRate}%) out of ${results.sampleSize} subjects, with a median survival time of ${results.medianSurvival.toFixed(2)} time units. The final survival probability was ${(results.survivalFunction[results.survivalFunction.length - 1] * 100).toFixed(1)}%.`
+                  : `The analysis shows ${results.totalEvents} events (${eventRate}%) out of ${results.sampleSize} subjects. The median survival time was not reached, indicating more than 50% of subjects survived throughout the observation period.`,
+                statistical: `Sample size: n = ${results.sampleSize}, Events: ${results.totalEvents} (${eventRate}%), Censored: ${results.totalCensored} (${censorRate}%), Median survival: ${results.medianSurvival !== null ? results.medianSurvival.toFixed(2) : 'Not reached'}, Final survival: S(${results.times[results.times.length - 1].toFixed(2)}) = ${(results.survivalFunction[results.survivalFunction.length - 1] * 100).toFixed(1)}%`,
+                practical: 'Consider comparing groups using Log-rank test if a group variable is specified. Use Cox regression to identify risk factors affecting survival.'
+              } satisfies InterpretationResult}
+            />
           </ContentTabsContent>
         </div>
       </div>

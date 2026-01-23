@@ -37,6 +37,11 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
+import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
+import type { InterpretationResult } from '@/lib/interpretation/engine'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 
@@ -676,6 +681,30 @@ export default function ManovaPage() {
                       bordered
                       compactMode
                     />
+
+                    {/* 95% 신뢰구간 시각화 */}
+                    <div className="mt-6">
+                      <h4 className="font-medium mb-4">집단별 평균의 95% 신뢰구간</h4>
+                      <div className="space-y-4">
+                        {analysisResult.descriptiveStats.slice(0, 6).map((stat, index) => (
+                          <div key={index} className="space-y-1">
+                            <p className="text-sm font-medium">{stat.group} - {stat.variable}</p>
+                            <ConfidenceIntervalDisplay
+                              lower={stat.ci95Lower}
+                              upper={stat.ci95Upper}
+                              estimate={stat.mean}
+                              level={0.95}
+                              showVisualization={true}
+                            />
+                          </div>
+                        ))}
+                        {analysisResult.descriptiveStats.length > 6 && (
+                          <p className="text-sm text-muted-foreground">
+                            ... 외 {analysisResult.descriptiveStats.length - 6}개 추가 신뢰구간
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </ContentTabsContent>
@@ -849,60 +878,23 @@ export default function ManovaPage() {
 
               {/* 해석 탭 */}
               <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="mt-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>결과 해석 및 권장사항</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div>
-                      <h4 className="font-medium mb-2">전체 요약</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {analysisResult.interpretation.summary}
-                      </p>
-                    </div>
+                <ResultInterpretation
+                  result={{
+                    title: 'MANOVA 분석 결과 해석',
+                    summary: analysisResult.interpretation.summary,
+                    statistical: `다변량 검정: Wilks' Λ = ${analysisResult.modelFit.wilksLambda.toFixed(3)}, Pillai's Trace = ${analysisResult.modelFit.pillaiTrace.toFixed(3)}. 다변량 R² = ${(analysisResult.modelFit.rSquaredMultivariate * 100).toFixed(1)}%, 다변량 효과크기 d = ${analysisResult.modelFit.effectSize.toFixed(2)}. ${analysisResult.interpretation.overallEffect}`,
+                    practical: `${analysisResult.interpretation.discriminantInterpretation} 단변량 효과: ${analysisResult.interpretation.univariateEffects.join('; ')}`
+                  } satisfies InterpretationResult}
+                />
 
-                    <div>
-                      <h4 className="font-medium mb-2">다변량 효과</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {analysisResult.interpretation.overallEffect}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2">단변량 효과</h4>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        {analysisResult.interpretation.univariateEffects.map((effect, i) => (
-                          <li key={i}>• {effect}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2">판별함수 해석</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {analysisResult.interpretation.discriminantInterpretation}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2">권장사항</h4>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        {analysisResult.interpretation.recommendations.map((rec, i) => (
-                          <li key={i}>• {rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <Alert>
-                      <Layers3 className="h-4 w-4" />
-                      <AlertTitle>MANOVA 해석 순서</AlertTitle>
-                      <AlertDescription>
-                        1. 다변량 검정에서 유의성 확인 → 2. 단변량 F 검정 해석 →
-                        3. 사후검정으로 구체적 차이 확인 → 4. 판별분석으로 차이 패턴 이해
-                      </AlertDescription>
-                    </Alert>
-                  </CardContent>
-                </Card>
+                <Alert className="mt-4">
+                  <Layers3 className="h-4 w-4" />
+                  <AlertTitle>MANOVA 해석 순서</AlertTitle>
+                  <AlertDescription>
+                    1. 다변량 검정에서 유의성 확인 → 2. 단변량 F 검정 해석 →
+                    3. 사후검정으로 구체적 차이 확인 → 4. 판별분석으로 차이 패턴 이해
+                  </AlertDescription>
+                </Alert>
               </ContentTabsContent>
             </div>
           </CardContent>
