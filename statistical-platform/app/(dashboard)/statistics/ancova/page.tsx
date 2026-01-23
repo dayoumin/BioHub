@@ -40,7 +40,6 @@ import { StatisticsTable, type TableColumn } from '@/components/statistics/commo
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
-import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'

@@ -38,8 +38,6 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
-import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
-import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
 import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import type { InterpretationResult } from '@/lib/interpretation/engine'
 import { useStatisticsPage, type UploadedData } from '@/hooks/use-statistics-page'

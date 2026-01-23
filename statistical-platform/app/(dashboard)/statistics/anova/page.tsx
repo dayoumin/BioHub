@@ -26,7 +26,6 @@ import { ResultContextHeader } from '@/components/statistics/common/ResultContex
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
-import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {

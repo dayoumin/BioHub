@@ -26,7 +26,6 @@ import {
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
-import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'

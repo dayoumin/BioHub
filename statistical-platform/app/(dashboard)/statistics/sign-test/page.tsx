@@ -13,7 +13,6 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
-import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import {
   Tooltip,

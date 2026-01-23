@@ -33,7 +33,6 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
-import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
 // Data interfaces
