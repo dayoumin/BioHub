@@ -37,6 +37,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable, type TableColumn, type TableRow as StatTableRow } from '@/components/statistics/common/StatisticsTable'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 
 // Services & Types
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -667,64 +668,67 @@ export default function ChiSquareIndependencePage() {
             </ContentTabsContent>
 
             <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>결과 해석</CardTitle>
-                  <CardDescription>독립성 검정 결과와 연관성 해석</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>독립성 검정 결과</AlertTitle>
-                    <AlertDescription>
-                      {analysisResult.interpretation.summary}
-                    </AlertDescription>
-                  </Alert>
+              <div className="space-y-4">
+                {/* 결과 해석 공통 컴포넌트 */}
+                <ResultInterpretation
+                  title="카이제곱 독립성 검정 결과 해석"
+                  result={{
+                    summary: `${analysisResult.interpretation.summary} χ²(${analysisResult.degreesOfFreedom}) = ${analysisResult.statistic.toFixed(3)}, p = ${analysisResult.pValue.toFixed(4)}. Cramér's V = ${analysisResult.effectSizes.cramersV.toFixed(3)}으로 ${analysisResult.interpretation.association}을 보입니다.`,
+                    details: `χ²(${analysisResult.degreesOfFreedom}) = ${analysisResult.statistic.toFixed(3)}, p = ${analysisResult.pValue.toFixed(4)}, Cramér's V = ${analysisResult.effectSizes.cramersV.toFixed(3)}, φ = ${analysisResult.effectSizes.phi.toFixed(3)}, n = ${analysisResult.marginals.total}`,
+                    recommendation: analysisResult.pValue < 0.05
+                      ? '두 변수 간 유의한 연관성이 있습니다. 잔차 분석을 통해 어떤 조합에서 특히 연관성이 강한지 확인하세요.'
+                      : '두 변수 간 유의한 연관성이 없습니다. 두 변수는 독립적으로 보입니다.',
+                    caution: analysisResult.assumptions.assumptionMet
+                      ? '모든 셀의 기대 빈도가 5 이상입니다. 검정 결과를 신뢰할 수 있습니다.'
+                      : '일부 셀의 기대 빈도가 5 미만입니다. Fisher의 정확 검정 사용을 고려하세요.'
+                  }}
+                />
 
-                  <Alert>
-                    <Link2 className="h-4 w-4" />
-                    <AlertTitle>연관성 분석</AlertTitle>
-                    <AlertDescription>
-                      {analysisResult.interpretation.association}
-                    </AlertDescription>
-                  </Alert>
+                {/* 효과크기 상세 */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>효과크기 상세</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className={`p-4 rounded-lg ${getCramersVInterpretation(analysisResult.effectSizes.cramersV).bg}`}>
+                        <h4 className={`font-medium mb-2 ${getCramersVInterpretation(analysisResult.effectSizes.cramersV).color}`}>
+                          Cramér's V (연관성 강도)
+                        </h4>
+                        <p className="text-sm">
+                          V = {analysisResult.effectSizes.cramersV.toFixed(3)}
+                          ({getCramersVInterpretation(analysisResult.effectSizes.cramersV).level})
+                        </p>
+                      </div>
 
-                  <div className="space-y-3">
-                    <h4 className="font-medium">권장사항</h4>
-                    <ul className="space-y-2">
-                      {analysisResult.interpretation.recommendations.map((rec, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground">{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-lg ${getCramersVInterpretation(analysisResult.effectSizes.cramersV).bg}`}>
-                      <h4 className={`font-medium mb-2 ${getCramersVInterpretation(analysisResult.effectSizes.cramersV).color}`}>
-                        Cramér's V (연관성 강도)
-                      </h4>
-                      <p className="text-sm">
-                        V = {analysisResult.effectSizes.cramersV.toFixed(3)}
-                        ({getCramersVInterpretation(analysisResult.effectSizes.cramersV).level})
-                      </p>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">Phi 계수 (2×2표)</h4>
+                        <p className="text-sm">
+                          φ = {analysisResult.effectSizes.phi.toFixed(3)}
+                          <br />
+                          <span className="text-muted-foreground">
+                            {analysisResult.effectSizes.phiInterpretation}
+                          </span>
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h4 className="font-medium mb-2">Phi 계수 (2×2표)</h4>
-                      <p className="text-sm">
-                        φ = {analysisResult.effectSizes.phi.toFixed(3)}
-                        <br />
-                        <span className="text-muted-foreground">
-                          {analysisResult.effectSizes.phiInterpretation}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    {analysisResult.interpretation.recommendations.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="font-medium">추가 권장사항</h4>
+                        <ul className="space-y-2">
+                          {analysisResult.interpretation.recommendations.map((rec, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-muted-foreground">{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
             </ContentTabsContent>
 
             <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'}>

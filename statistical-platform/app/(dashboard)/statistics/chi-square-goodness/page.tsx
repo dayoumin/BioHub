@@ -39,6 +39,7 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 
 // Hooks & Utils
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -666,63 +667,61 @@ export default function ChiSquareGoodnessPage() {
             </ContentTabsContent>
 
             <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>결과 해석</CardTitle>
-                  <CardDescription>카이제곱 적합도 검정 결과 해석 및 권장사항</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>전체 검정 결과</AlertTitle>
-                    <AlertDescription>
-                      {results.interpretation.summary}
-                    </AlertDescription>
-                  </Alert>
+              <div className="space-y-4">
+                {/* 결과 해석 공통 컴포넌트 */}
+                <ResultInterpretation
+                  title="카이제곱 적합도 검정 결과 해석"
+                  result={{
+                    summary: results.interpretation.summary,
+                    details: `χ²(${results.degreesOfFreedom}) = ${results.statistic.toFixed(3)}, p = ${results.pValue.toFixed(4)}, Cramér's V = ${results.effectSize.cramersV.toFixed(3)} (${results.effectSize.interpretation})`,
+                    recommendation: results.pValue < 0.05
+                      ? '관측 빈도가 기대 빈도와 유의하게 다릅니다. 잔차 분석을 통해 어떤 범주에서 차이가 발생했는지 확인하세요.'
+                      : '관측 빈도가 기대 빈도와 유의한 차이가 없습니다. 데이터가 기대 분포를 따른다고 볼 수 있습니다.',
+                    caution: '각 셀의 기대 빈도가 5 이상인지 확인하세요. 작은 기대 빈도는 검정 결과의 신뢰성을 낮출 수 있습니다.'
+                  }}
+                />
 
-                  <Alert>
-                    <TrendingUp className="h-4 w-4" />
-                    <AlertTitle>범주별 분석</AlertTitle>
-                    <AlertDescription>
-                      {results.interpretation.categories}
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="space-y-3">
-                    <h4 className="font-medium">권장사항</h4>
-                    <ul className="space-y-2">
-                      {results.interpretation.recommendations.map((rec, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                          <span className="text-sm text-muted-foreground">{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-lg ${getCramersVInterpretation(results.effectSize.cramersV).bg}`}>
-                      <h4 className={`font-medium mb-2 ${getCramersVInterpretation(results.effectSize.cramersV).color}`}>
-                        효과크기 (Cramér&apos;s V)
-                      </h4>
-                      <p className="text-sm">
-                        V = {results.effectSize.cramersV.toFixed(3)}
-                        ({getCramersVInterpretation(results.effectSize.cramersV).level})
-                      </p>
+                {/* 상세 권장사항 */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>상세 권장사항</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <ul className="space-y-2">
+                        {results.interpretation.recommendations.map((rec, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-muted-foreground">{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
 
-                    <div className="p-4 bg-muted rounded-lg">
-                      <h4 className="font-medium mb-2">Cramér&apos;s V 해석 기준</h4>
-                      <div className="text-sm space-y-1">
-                        <div>V ≥ 0.5: 강한 연관성</div>
-                        <div>V ≥ 0.3: 중간 연관성</div>
-                        <div>V ≥ 0.1: 약한 연관성</div>
-                        <div>V &lt; 0.1: 연관성 없음</div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className={`p-4 rounded-lg ${getCramersVInterpretation(results.effectSize.cramersV).bg}`}>
+                        <h4 className={`font-medium mb-2 ${getCramersVInterpretation(results.effectSize.cramersV).color}`}>
+                          효과크기 (Cramér&apos;s V)
+                        </h4>
+                        <p className="text-sm">
+                          V = {results.effectSize.cramersV.toFixed(3)}
+                          ({getCramersVInterpretation(results.effectSize.cramersV).level})
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-muted rounded-lg">
+                        <h4 className="font-medium mb-2">Cramér&apos;s V 해석 기준</h4>
+                        <div className="text-sm space-y-1">
+                          <div>V ≥ 0.5: 강한 연관성</div>
+                          <div>V ≥ 0.3: 중간 연관성</div>
+                          <div>V ≥ 0.1: 약한 연관성</div>
+                          <div>V &lt; 0.1: 연관성 없음</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
             </ContentTabsContent>
 
             <ContentTabsContent tabId="visualization" show={activeResultTab === 'visualization'}>

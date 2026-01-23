@@ -33,6 +33,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
@@ -715,51 +716,35 @@ export default function KruskalWallisPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
-            <Card>
-              <CardHeader>
-                <CardTitle>결과 해석</CardTitle>
-                <CardDescription>Kruskal-Wallis 검정 결과 해석 및 권장사항</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Alert>
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertTitle>전체 검정 결과</AlertTitle>
-                  <AlertDescription>
-                    {analysisResult.interpretation.summary}
-                  </AlertDescription>
-                </Alert>
+            <div className="space-y-4">
+              {/* 결과 해석 공통 컴포넌트 */}
+              <ResultInterpretation
+                title="Kruskal-Wallis 검정 결과 해석"
+                result={{
+                  summary: analysisResult.interpretation.summary,
+                  details: `H(${analysisResult.degreesOfFreedom}) = ${analysisResult.statistic.toFixed(3)}, p = ${analysisResult.pValue.toFixed(4)}, η² = ${analysisResult.effectSize.etaSquared.toFixed(3)} (${analysisResult.effectSize.interpretation})`,
+                  recommendation: analysisResult.pValue < 0.05
+                    ? '집단 간 유의한 차이가 있습니다. Dunn 사후검정으로 어떤 집단 간 차이가 있는지 확인하세요.'
+                    : '집단 간 유의한 차이가 없습니다. 추가 분석이 필요하지 않습니다.',
+                  caution: 'Kruskal-Wallis 검정은 3개 이상 독립집단의 비모수 검정입니다. 정규분포 가정이 위반될 때 일원분산분석의 대안입니다.'
+                }}
+              />
 
-                <Alert>
-                  <TrendingUp className="h-4 w-4" />
-                  <AlertTitle>집단 비교</AlertTitle>
-                  <AlertDescription>
-                    {analysisResult.interpretation.groupComparisons}
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium">권장사항</h4>
-                  <ul className="space-y-2">
-                    {analysisResult.interpretation.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">효과크기 가이드라인</h4>
+              {/* 효과크기 가이드라인 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">효과크기 가이드라인</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>η² ≥ 0.14: 큰 효과</div>
                     <div>η² ≥ 0.06: 중간 효과</div>
                     <div>η² ≥ 0.01: 작은 효과</div>
                     <div>η² &lt; 0.01: 미미한 효과</div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </ContentTabsContent>
 
           <ContentTabsContent tabId="posthoc" show={activeResultTab === 'posthoc'}>

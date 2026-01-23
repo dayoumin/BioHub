@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,7 +16,8 @@ import {
   TrendingUp,
   Clock,
   FileText,
-  Activity
+  Activity,
+  AlertTriangle
 } from 'lucide-react'
 
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
@@ -65,8 +66,8 @@ export default function ARIMAPage() {
   const [nForecast, setNForecast] = useState(10)
 
   const breadcrumbs = useMemo(() => [
-    { label: 'Statistics', href: '/statistics' },
-    { label: 'ARIMA Model', href: '/statistics/arima' }
+    { label: '통계 분석', href: '/statistics' },
+    { label: 'ARIMA 모델', href: '/statistics/arima' }
   ], [])
 
   const handleVariableSelect = useCallback((varName: string) => {
@@ -88,7 +89,8 @@ export default function ARIMAPage() {
       const values = extractColumnData(data, vars.dependent)
 
       if (values.length < 30) {
-        actions.setError?.('ARIMA requires at least 30 observations.')
+        actions.setError?.('ARIMA 분석은 최소 30개 이상의 관측치가 필요합니다.')
+        actions.completeAnalysis?.(null as unknown as ARIMAResults)
         return
       }
 
@@ -552,6 +554,14 @@ export default function ARIMAPage() {
       {currentStep === 1 && renderDataUpload()}
       {currentStep === 2 && renderVariableSelection()}
       {currentStep === 3 && renderResults()}
+
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>오류</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
     </TwoPanelLayout>
   )
 }

@@ -44,10 +44,10 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
-import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 
 import type { BinomialTestVariables } from '@/types/statistics'
 import { pyodideStats } from '@/lib/services/pyodide-statistics'
@@ -627,10 +627,16 @@ export default function BinomialTestPage(): React.ReactElement {
         )}
 
         {/* 해석 */}
-        <Card className="p-4 bg-blue-50 dark:bg-blue-950">
-          <h4 className="font-semibold mb-2">결과 해석</h4>
-          <p className="text-sm">{results.interpretation}</p>
-        </Card>
+        <ResultInterpretation
+          result={{
+            summary: results.interpretation,
+            details: `관측 비율: ${(results.observedProportion * 100).toFixed(1)}%, 귀무가설 확률: ${(results.expectedProbability * 100).toFixed(1)}%, p-value: ${results.pValue.toFixed(4)}`,
+            recommendation: results.significant
+              ? '귀무가설을 기각합니다. 관측된 성공 확률은 기대 확률과 유의하게 다릅니다.'
+              : '귀무가설을 기각할 수 없습니다. 관측된 성공 확률은 기대 확률과 유의한 차이가 없습니다.'
+          }}
+          title="이항 검정 결과 해석"
+        />
 
         <Button onClick={() => { actions.setCurrentStep?.(2) }} variant="outline" className="w-full">
           다시 분석하기

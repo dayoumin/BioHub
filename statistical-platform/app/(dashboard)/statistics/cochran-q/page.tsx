@@ -25,6 +25,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -742,35 +743,18 @@ export default function CochranQTestPage() {
           </CardContent>
         </Card>
 
-        {/* 해석 가이드 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">결과 해석 가이드</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Cochran Q 검정 해석</AlertTitle>
-              <AlertDescription>
-                <div className="mt-2 space-y-2 text-sm">
-                  <p><strong>귀무가설(H₀):</strong> 모든 조건의 성공률이 동일하다</p>
-                  <p><strong>대립가설(H₁):</strong> 적어도 하나의 조건 성공률이 다르다</p>
-                  <p><strong>판단기준:</strong> p-value &lt; 0.05이면 귀무가설 기각</p>
-                </div>
-              </AlertDescription>
-            </Alert>
-
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2">주의사항</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 최소 3개 이상의 조건이 필요합니다</li>
-                <li>• 각 조건은 반드시 이진값이어야 합니다</li>
-                <li>• 피험자 간 독립성이 가정됩니다</li>
-                <li>• 표본 크기가 작으면 정확검정 고려 필요</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 결과 해석 */}
+        <ResultInterpretation
+          title="Cochran Q 검정 결과 해석"
+          result={{
+            summary: interpretation,
+            details: `Q = ${qStatistic.toFixed(4)}, df = ${df}, p = ${pValue.toFixed(4)}, n = ${nSubjects}명 × ${nConditions}개 조건`,
+            recommendation: significant
+              ? '조건 간 유의한 차이가 있습니다. 사후검정으로 어떤 조건 간 차이가 있는지 확인하세요.'
+              : '조건 간 유의한 차이가 없습니다. 모든 조건의 성공률이 동일하다고 볼 수 있습니다.',
+            caution: '최소 3개 이상의 조건, 이진 데이터, 피험자 간 독립성이 가정됩니다. 표본 크기가 작으면 정확검정을 고려하세요.'
+          }}
+        />
 
         {/* 액션 버튼 */}
         <div className="flex gap-3 justify-center pt-4">

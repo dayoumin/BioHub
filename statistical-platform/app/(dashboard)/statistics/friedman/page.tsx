@@ -35,6 +35,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
@@ -676,51 +677,35 @@ export default function FriedmanPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
-            <Card>
-              <CardHeader>
-                <CardTitle>결과 해석</CardTitle>
-                <CardDescription>Friedman 검정 결과 해석 및 권장사항</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Alert>
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertTitle>전체 검정 결과</AlertTitle>
-                  <AlertDescription>
-                    {analysisResult.interpretation.summary}
-                  </AlertDescription>
-                </Alert>
+            <div className="space-y-4">
+              {/* 결과 해석 공통 컴포넌트 */}
+              <ResultInterpretation
+                title="Friedman 검정 결과 해석"
+                result={{
+                  summary: analysisResult.interpretation.summary,
+                  details: `χ²(${analysisResult.degreesOfFreedom}) = ${analysisResult.statistic.toFixed(3)}, p = ${analysisResult.pValue.toFixed(4)}, Kendall's W = ${analysisResult.effectSize.kendallW.toFixed(3)} (${analysisResult.effectSize.interpretation})`,
+                  recommendation: analysisResult.pValue < 0.05
+                    ? '조건 간 유의한 차이가 있습니다. Nemenyi 사후검정으로 어떤 조건 간 차이가 있는지 확인하세요.'
+                    : '조건 간 유의한 차이가 없습니다. 추가 분석이 필요하지 않습니다.',
+                  caution: 'Friedman 검정은 반복측정 데이터에 사용됩니다. 정규분포나 구형성 가정이 위반될 때 반복측정 분산분석의 대안입니다.'
+                }}
+              />
 
-                <Alert>
-                  <TrendingUp className="h-4 w-4" />
-                  <AlertTitle>조건별 비교</AlertTitle>
-                  <AlertDescription>
-                    {analysisResult.interpretation.conditions}
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium">권장사항</h4>
-                  <ul className="space-y-2">
-                    {analysisResult.interpretation.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-medium mb-2">Kendall's W 해석 기준</h4>
+              {/* Kendall's W 해석 가이드 */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Kendall's W 해석 기준</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>W ≥ 0.7: 강한 일치도</div>
                     <div>W ≥ 0.5: 중간 일치도</div>
                     <div>W ≥ 0.3: 약한 일치도</div>
                     <div>W &lt; 0.3: 일치도 없음</div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </ContentTabsContent>
 
           <ContentTabsContent tabId="posthoc" show={activeResultTab === 'posthoc'}>

@@ -29,6 +29,7 @@ import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import type { FisherExactTestResult } from '@/types/pyodide-results'
@@ -445,42 +446,20 @@ export default function FisherExactTestPage() {
           </CardContent>
         </Card>
 
-        {/* 해석 가이드 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>결과 해석 가이드</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div>
-              <strong>Odds Ratio (승산비):</strong>
-              <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
-                <li>OR = 1: 두 변수 간 연관성 없음</li>
-                <li>OR &gt; 1: 양의 연관성 (첫 번째 그룹이 두 번째 그룹보다 높은 승산)</li>
-                <li>OR &lt; 1: 음의 연관성 (첫 번째 그룹이 두 번째 그룹보다 낮은 승산)</li>
-              </ul>
-            </div>
-            <div>
-              <strong>p-value 해석:</strong>
-              <p className="text-muted-foreground mt-1">
-                {results.pValue < 0.001
-                  ? '매우 강한 증거 (p < 0.001)'
-                  : results.pValue < 0.01
-                    ? '강한 증거 (p < 0.01)'
-                    : results.pValue < 0.05
-                      ? '중간 증거 (p < 0.05)'
-                      : '약한 증거 (p ≥ 0.05)'}
-              </p>
-            </div>
-            <div>
-              <strong>주의사항:</strong>
-              <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
-                <li>Fisher 정확 검정은 2×2 분할표에만 적용 가능</li>
-                <li>소표본 (n &lt; 40) 또는 기대빈도 &lt; 5 일 때 권장</li>
-                <li>대표본에서는 카이제곱 검정 사용 가능</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 결과 해석 */}
+        <ResultInterpretation
+          title="Fisher 정확 검정 결과 해석"
+          result={{
+            summary: results.reject
+              ? `두 변수 간에 통계적으로 유의한 연관성이 있습니다 (p = ${results.pValue.toFixed(4)}). Odds Ratio는 ${results.oddsRatio !== null ? results.oddsRatio.toFixed(3) : '∞'}으로, ${results.oddsRatioInterpretation}`
+              : `두 변수 간에 통계적으로 유의한 연관성이 없습니다 (p = ${results.pValue.toFixed(4)}). 귀무가설(두 변수가 독립적임)을 기각할 수 없습니다.`,
+            details: `Odds Ratio = ${results.oddsRatio !== null ? results.oddsRatio.toFixed(4) : '∞'}, p-value = ${results.pValue.toFixed(6)}, n = ${results.sampleSize}, α = ${alpha}`,
+            recommendation: results.reject
+              ? '연관성이 확인되었으므로 두 변수 간의 관계를 더 자세히 탐구할 수 있습니다. 효과 크기(Odds Ratio)를 고려하여 실질적 의미를 해석하세요.'
+              : '유의한 연관성이 없으므로 두 변수가 독립적일 가능성이 있습니다. 표본 크기가 작은 경우 검정력 부족일 수 있습니다.',
+            caution: 'Fisher 정확 검정은 2×2 분할표에만 적용 가능합니다. 소표본(n < 40) 또는 기대빈도 < 5일 때 권장되며, 대표본에서는 카이제곱 검정 사용을 고려하세요.'
+          }}
+        />
       </div>
     )
   }
