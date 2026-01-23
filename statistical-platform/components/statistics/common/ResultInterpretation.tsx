@@ -1,17 +1,36 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Brain, BookOpen, Activity, Lightbulb } from 'lucide-react'
+import { Brain, BookOpen, Activity, Lightbulb, AlertTriangle } from 'lucide-react'
 import { InterpretationResult } from '@/lib/interpretation/engine'
+import { Interpretation } from '@/types/statistics'
 import { cn } from '@/lib/utils'
 
+/**
+ * 해석 결과 입력 타입
+ * - 표준 타입 (Interpretation): summary, details, recommendation, caution
+ * - 레거시 타입 (InterpretationResult): title, summary, statistical, practical
+ */
+type InterpretationInput = Interpretation | InterpretationResult
+
 interface ResultInterpretationProps {
-  result: InterpretationResult
+  /** 해석 결과 (표준 또는 레거시 타입) */
+  result: InterpretationInput
+  /** 제목 (표준 타입 사용 시 필요) */
+  title?: string
   className?: string
   initialMode?: 'beginner' | 'expert'
 }
 
+/**
+ * 타입 가드: InterpretationResult인지 확인
+ */
+function isLegacyResult(result: InterpretationInput): result is InterpretationResult {
+  return 'statistical' in result
+}
+
 export function ResultInterpretation({
   result,
+  title: propTitle,
   className,
   initialMode = 'beginner'
 }: ResultInterpretationProps) {
@@ -22,13 +41,19 @@ export function ResultInterpretation({
     setMode(initialMode)
   }, [initialMode])
 
+  // 필드 매핑 (표준/레거시 호환)
+  const displayTitle = propTitle ?? (isLegacyResult(result) ? result.title : '결과 해석')
+  const displayDetails = isLegacyResult(result) ? result.statistical : result.details
+  const displayRecommendation = isLegacyResult(result) ? result.practical : result.recommendation
+  const displayCaution = isLegacyResult(result) ? null : result.caution
+
   return (
     <Card className={cn("w-full transition-all duration-300", className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-primary" />
-            <CardTitle>{result.title}</CardTitle>
+            <CardTitle>{displayTitle}</CardTitle>
           </div>
           <div className="flex bg-muted rounded-lg p-1">
             <button
@@ -73,8 +98,8 @@ export function ResultInterpretation({
           </p>
         </div>
 
-        {/* Practical Meaning (Both modes) */}
-        {result.practical && (
+        {/* Practical Meaning / Recommendation (Both modes) */}
+        {displayRecommendation && (
           <div className="space-y-2">
             <h4 className="font-semibold flex items-center gap-2 text-sm">
               <Activity className="w-4 h-4 text-green-600" />
@@ -82,13 +107,13 @@ export function ResultInterpretation({
               {'\uC2E4\uC6A9\uC801 \uC758\uBBF8'}
             </h4>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {result.practical}
+              {displayRecommendation}
             </p>
           </div>
         )}
 
         {/* Statistical Details (Expert mode only) */}
-        {mode === 'expert' && (
+        {mode === 'expert' && displayDetails && (
           <div className="space-y-2 pt-2 border-t">
             <h4 className="font-semibold flex items-center gap-2 text-sm">
               <BookOpen className="w-4 h-4 text-blue-600" />
@@ -96,7 +121,21 @@ export function ResultInterpretation({
               {'\uD1B5\uACC4\uC801 \uC0C1\uC138'}
             </h4>
             <p className="text-sm text-muted-foreground leading-relaxed font-mono bg-muted/30 p-3 rounded">
-              {result.statistical}
+              {displayDetails}
+            </p>
+          </div>
+        )}
+
+        {/* Caution (Standard type only) */}
+        {displayCaution && (
+          <div className="space-y-2 pt-2 border-t">
+            <h4 className="font-semibold flex items-center gap-2 text-sm">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              {/* "Caution" */}
+              {'\uC8FC\uC758\uC0AC\uD56D'}
+            </h4>
+            <p className="text-sm text-amber-700 leading-relaxed bg-amber-50 p-3 rounded border border-amber-200">
+              {displayCaution}
             </p>
           </div>
         )}

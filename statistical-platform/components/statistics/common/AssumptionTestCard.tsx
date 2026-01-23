@@ -30,18 +30,25 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { AssumptionTest as BaseAssumptionTest } from '@/types/statistics'
 
-export interface AssumptionTest {
-  name: string
-  description?: string
-  testStatistic?: number
-  testName?: string // e.g., "Shapiro-Wilk", "Levene's"
+/**
+ * 컴포넌트용 AssumptionTest 타입
+ * - 표준 타입 확장: null 허용 (UI에서 로딩/미완료 상태 표시)
+ * - 레거시 호환: testStatistic (deprecated, use statistic)
+ * - 추가 필드: description (툴팁용)
+ */
+export interface AssumptionTest extends Omit<BaseAssumptionTest, 'pValue' | 'passed' | 'testName'> {
+  /** p-값 (null: 검정 미완료) */
   pValue: number | null
+  /** 가정 충족 여부 (null: 판단 불가) */
   passed: boolean | null
-  alpha?: number
-  details?: string
-  recommendation?: string
-  severity?: 'low' | 'medium' | 'high'
+  /** 검정 방법 (선택적) */
+  testName?: string
+  /** 가정 설명 (툴팁용) */
+  description?: string
+  /** @deprecated statistic 사용 권장 */
+  testStatistic?: number
 }
 
 interface AssumptionTestCardProps {
@@ -71,7 +78,7 @@ export function AssumptionTestCard({
   const router = useRouter()
 
   // 전체 가정 충족 여부
-  const allPassed = tests.every(test => test.passed !== false)
+  const allPassed = tests.every(test => test.passed === true)
   const hasViolations = tests.some(test => test.passed === false)
   const hasWarnings = tests.some(test => test.severity === 'medium')
 
@@ -79,7 +86,7 @@ export function AssumptionTestCard({
   const getStatusColor = () => {
     if (allPassed) return 'text-success bg-success-bg border-success-border'
     if (hasViolations) {
-      const highSeverity = tests.some(t => t.severity === 'high' && !t.passed)
+      const highSeverity = tests.some(t => t.severity === 'high' && t.passed === false)
       if (highSeverity) return 'text-error bg-error-bg border-error-border'
       return 'text-warning bg-warning-bg border-warning-border'
     }
@@ -99,11 +106,12 @@ export function AssumptionTestCard({
     return <XCircle className="w-4 h-4 text-warning" />
   }
 
-  // 테스트 통계량 포맷
+  // 테스트 통계량 포맷 (statistic 우선, testStatistic 레거시 지원)
   const formatTestStatistic = (test: AssumptionTest) => {
-    if (!test.testStatistic) return null
+    const stat = test.statistic ?? test.testStatistic
+    if (stat === undefined || stat === null) return null
     const statName = test.testName || 'Statistic'
-    return `${statName} = ${formatNumber(test.testStatistic, 4)}`
+    return `${statName} = ${formatNumber(stat, 4)}`
   }
 
   // 위반된 가정에 대한 권장사항 집계
@@ -126,7 +134,7 @@ export function AssumptionTestCard({
           <div className="flex items-center gap-2">
             {hasViolations && (
               <Badge variant="destructive" className="text-xs">
-                {tests.filter(t => !t.passed).length}개 위반
+                {tests.filter(t => t.passed === false).length}개 위반
               </Badge>
             )}
             <Collapsible open={isOpen} onOpenChange={setIsOpen}>

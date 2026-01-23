@@ -616,3 +616,203 @@ export interface ValidationResult {
   valid: boolean
   errors: string[]
 }
+
+// ============================================================================
+// 표준 Result 타입 (R broom 패턴 기반)
+// ============================================================================
+// 참조: docs/COMPONENT_STANDARDIZATION_PLAN.md
+// 목적: 48개 통계 페이지의 Result 타입 표준화
+// 날짜: 2026-01-23
+
+/**
+ * 효과크기 타입
+ * - 공통 컴포넌트: EffectSizeCard
+ */
+export type EffectSizeType =
+  | 'cohens_d'       // Cohen's d (t-test)
+  | 'hedges_g'       // Hedges' g (소표본 보정)
+  | 'glass_delta'    // Glass's Δ (통제집단 기준)
+  | 'eta_squared'    // η² (ANOVA)
+  | 'partial_eta_squared' // Partial η² (부분 에타제곱)
+  | 'omega_squared'  // ω² (ANOVA, 편향 보정)
+  | 'epsilon_squared' // ε² (Kruskal-Wallis)
+  | 'r'              // Pearson r (상관)
+  | 'r_squared'      // R² (결정계수)
+  | 'phi'            // φ (2x2 카이제곱)
+  | 'cramers_v'      // Cramér's V (카이제곱)
+  | 'w'              // Kendall's W (일치도)
+
+/**
+ * 효과크기 해석 수준
+ */
+export type EffectSizeInterpretation = 'negligible' | 'small' | 'medium' | 'large' | 'very_large'
+
+/**
+ * 효과크기 인터페이스
+ * - R broom: estimate 필드에 해당
+ */
+export interface EffectSize {
+  /** 효과크기 값 */
+  value: number
+  /** 효과크기 유형 */
+  type: EffectSizeType
+  /** 해석 (small/medium/large 등) */
+  interpretation: EffectSizeInterpretation
+  /** 신뢰구간 (선택적) */
+  ci?: {
+    lower: number
+    upper: number
+    level: number
+  }
+}
+
+/**
+ * 신뢰구간 인터페이스
+ * - R broom: conf.low, conf.high 필드에 해당
+ * - 공통 컴포넌트: ConfidenceIntervalDisplay
+ */
+export interface ConfidenceInterval {
+  /** 하한 */
+  lower: number
+  /** 상한 */
+  upper: number
+  /** 신뢰수준 (95, 99 등 - 백분율) */
+  level: number
+}
+
+/**
+ * 가정 검정 결과 인터페이스
+ * - 공통 컴포넌트: AssumptionTestCard
+ */
+export interface AssumptionTest {
+  /** 가정 이름 (예: '정규성', '등분산성') */
+  name: string
+  /** 검정 방법 (예: 'Shapiro-Wilk', 'Levene') */
+  testName: string
+  /** 검정 통계량 */
+  statistic?: number
+  /** p-값 */
+  pValue: number
+  /** 가정 충족 여부 */
+  passed: boolean
+  /** 유의수준 (기본값: 0.05) */
+  alpha?: number
+  /** 상세 설명 */
+  details?: string
+  /** 권장 조치 */
+  recommendation?: string
+  /** 심각도 (낮음/중간/높음) */
+  severity?: 'low' | 'medium' | 'high'
+}
+
+/**
+ * 결과 해석 인터페이스
+ * - 공통 컴포넌트: ResultInterpretation
+ */
+export interface Interpretation {
+  /** 한 줄 요약 */
+  summary: string
+  /** 상세 설명 */
+  details?: string
+  /** 권장 사항 */
+  recommendation?: string
+  /** 주의 사항 */
+  caution?: string
+}
+
+// ============================================================================
+// 기본 검정 결과 타입
+// ============================================================================
+
+/**
+ * 기본 검정 결과 (모든 통계 검정의 공통 필드)
+ * - R broom: statistic, p.value 필드에 해당
+ */
+export interface BaseTestResult {
+  /** p-값 */
+  pValue: number
+  /** 검정 통계량 */
+  statistic: number
+  /** 유의성 여부 (alpha 기준) */
+  significant: boolean
+}
+
+// ============================================================================
+// Mixin 타입 (조합용)
+// ============================================================================
+
+/** 자유도 포함 */
+export interface WithDf {
+  /** 자유도 */
+  df: number | { numerator: number; denominator: number }
+}
+
+/** 효과크기 포함 */
+export interface WithEffectSize {
+  /** 효과크기 */
+  effectSize: EffectSize
+}
+
+/** 신뢰구간 포함 */
+export interface WithCI {
+  /** 신뢰구간 */
+  confidenceInterval: ConfidenceInterval
+}
+
+/** 가정 검정 포함 */
+export interface WithAssumptions {
+  /** 가정 검정 결과 배열 */
+  assumptions: AssumptionTest[]
+}
+
+/** 결과 해석 포함 */
+export interface WithInterpretation {
+  /** 결과 해석 */
+  interpretation: Interpretation
+}
+
+/** 표본 크기 포함 */
+export interface WithSampleSize {
+  /** 표본 크기 */
+  n: number | { group1: number; group2: number; total: number }
+}
+
+/** 사후 검정 포함 */
+export interface WithPostHoc {
+  /** 사후 검정 결과 */
+  postHoc?: PostHocResult
+}
+
+// ============================================================================
+// 조합된 Result 타입 예시 (페이지별 확장 가능)
+// ============================================================================
+
+/**
+ * T-검정 표준 결과 타입
+ */
+export type StandardTTestResult = BaseTestResult
+  & WithDf
+  & WithEffectSize
+  & WithCI
+  & WithAssumptions
+  & WithInterpretation
+  & WithSampleSize
+
+/**
+ * ANOVA 표준 결과 타입
+ */
+export type StandardANOVAResult = BaseTestResult
+  & WithDf
+  & WithEffectSize
+  & WithAssumptions
+  & WithInterpretation
+  & WithPostHoc
+
+/**
+ * 상관분석 표준 결과 타입
+ */
+export type StandardCorrelationResult = BaseTestResult
+  & WithCI
+  & WithAssumptions
+  & WithInterpretation
+  & WithSampleSize
