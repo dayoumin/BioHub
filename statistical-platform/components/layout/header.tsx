@@ -1,14 +1,18 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { HelpCircle, Settings, MessageCircle } from "lucide-react"
+import { HelpCircle, Settings, MessageCircle, BarChart3 } from "lucide-react"
 import Link from "next/link"
-import { memo } from "react"
+// memo 제거 - UI Context 상태 변경 감지 문제 해결
+import { usePathname } from "next/navigation"
 import { useUI } from "@/contexts/ui-context"
 import { SettingsModal } from "@/components/layout/settings-modal"
 import { HelpModal } from "@/components/layout/help-modal"
 
-export const Header = memo(() => {
+export function Header() {
+  const pathname = usePathname()
+  const isChatbotPage = pathname === '/chatbot' || pathname?.startsWith('/chatbot/')
+
   const {
     openChatPanel,
     openSettings,
@@ -29,17 +33,31 @@ export const Header = memo(() => {
               NIFS 통계 분석 플랫폼
             </Link>
 
-            {/* 오른쪽: AI 챗봇, 도움말, 설정 아이콘 */}
+            {/* 오른쪽: 통계/챗봇 토글, 도움말, 설정 아이콘 */}
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10"
-                aria-label="AI 챗봇"
-                onClick={openChatPanel}
-              >
-                <MessageCircle className="h-5 w-5" />
-              </Button>
+              {isChatbotPage ? (
+                <Link href="/">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10"
+                    aria-label="통계 분석"
+                    title="통계 분석으로 이동"
+                  >
+                    <BarChart3 className="h-5 w-5" />
+                  </Button>
+                </Link>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10"
+                  aria-label="AI 챗봇"
+                  onClick={openChatPanel}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -68,6 +86,4 @@ export const Header = memo(() => {
       <HelpModal open={isHelpOpen} onOpenChange={closeHelp} />
     </>
   )
-})
-
-Header.displayName = "Header"
+}

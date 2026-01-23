@@ -885,7 +885,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     this.ensureInitialized()
 
     const startTime = Date.now()
-    let searchMode = context.searchMode || 'hybrid' // 기본값: hybrid
+    let searchMode = context.searchMode || 'vector' // 기본값: vector (FAISS 방식)
     let usedFallback = false
 
     try {
@@ -897,42 +897,32 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         console.log('[OllamaProvider] FTS5 키워드 검색 중...')
         searchResults = this.searchByKeyword(context.query)
       } else if (searchMode === 'vector') {
-        // 2. Vector 검색 (임베딩 기반) → 실패 시 FTS5로 자동 전환
+        // 2. Vector 검색 (임베딩 기반) → 실패 시 LLM 직접 응답
         console.log('[OllamaProvider] Vector 검색 중...')
         try {
           searchResults = await this.searchByVector(context.query)
-
-          // Vector 검색 실패 감지: 결과 없음 + 임베딩 모델 문제
-          if (searchResults.length === 0) {
-            const hasEmbeddedDocs = this.documents.some((doc) => doc.embedding !== null)
-            if (!hasEmbeddedDocs) {
-              console.warn('[OllamaProvider] ⚠️ 임베딩된 문서가 없습니다. FTS5로 자동 전환...')
-              searchMode = 'fts5'
-              usedFallback = true
-              searchResults = this.searchByKeyword(context.query)
-            }
-          }
         } catch (error) {
-          console.warn('[OllamaProvider] ⚠️ Vector 검색 오류, FTS5로 자동 전환:', error)
-          searchMode = 'fts5'
+          console.warn('[OllamaProvider] ⚠️ Vector 검색 실패, LLM 직접 응답 모드:', error)
           usedFallback = true
-          searchResults = this.searchByKeyword(context.query)
+          // FTS5 폴백 없이 빈 결과 → LLM이 직접 응답
+          searchResults = []
         }
       } else if (searchMode === 'hybrid') {
-        // 3. Hybrid 검색 (FTS5 + Vector 결합) → Vector 실패 시 FTS5만 사용
+        // 3. Hybrid 검색 (FTS5 + Vector 결합) → 실패 시 LLM 직접 응답
         console.log('[OllamaProvider] Hybrid 검색 중 (FTS5 + Vector)...')
         try {
           searchResults = await this.searchHybrid(context.query)
         } catch (error) {
-          console.warn('[OllamaProvider] ⚠️ Hybrid 검색 오류, FTS5로 자동 전환:', error)
-          searchMode = 'fts5'
+          console.warn('[OllamaProvider] ⚠️ Hybrid 검색 실패, LLM 직접 응답 모드:', error)
           usedFallback = true
-          searchResults = this.searchByKeyword(context.query)
+          // FTS5 폴백 없이 빈 결과 → LLM이 직접 응답
+          searchResults = []
         }
       }
 
-      // 검색 결과가 없으면 모든 문서에서 상위 K개 반환 (Fallback)
-      if (searchResults.length === 0) {
+      // 검색 결과가 없고 폴백 모드가 아니면 상위 K개 반환
+      // usedFallback=true면 RAG 없이 LLM 직접 응답
+      if (searchResults.length === 0 && !usedFallback) {
         console.log('[OllamaProvider] ⚠️ 검색 결과 없음 - Fallback: 상위 5개 문서 반환')
         searchResults = this.documents.slice(0, this.topK).map((doc) => ({
           doc_id: doc.doc_id,
@@ -942,6 +932,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           category: doc.category,
           score: 0.5 // 기본 스코어
         }))
+      } else if (usedFallback) {
+        console.log('[OllamaProvider] ℹ️ RAG 없이 LLM 직접 응답 모드')
       }
 
       // LLM Reranking (Top-20 → Top-5)
@@ -981,9 +973,32 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         }
       }
     } catch (error) {
-      throw new Error(
-        `Ollama Provider 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
-      )
+      // RAG 검색/처리 실패 시 RAG 없이 바로 LLM 답변 생성
+      console.warn('[OllamaProvider] ⚠️ RAG 처리 실패, LLM 직접 응답으로 폴백:', error instanceof Error ? error.message : error)
+
+      try {
+        // RAG 없이 바로 LLM 응답 생성
+        const { answer } = await this.generateAnswer('', context.query)
+
+        return {
+          answer,
+          sources: [],
+          citedDocIds: [],
+          model: {
+            provider: 'Ollama (Local - No RAG)',
+            embedding: this.embeddingModel || 'none',
+            inference: this.inferenceModel
+          },
+          metadata: {
+            responseTime: Date.now() - startTime,
+            noRAG: true
+          }
+        }
+      } catch (fallbackError) {
+        throw new Error(
+          `Ollama Provider 오류: ${fallbackError instanceof Error ? fallbackError.message : '알 수 없는 오류'}`
+        )
+      }
     }
   }
 
@@ -1003,7 +1018,7 @@ export class OllamaRAGProvider extends BaseRAGProvider {
     this.ensureInitialized()
 
     const startTime = Date.now()
-    let searchMode = context.searchMode || 'hybrid'
+    let searchMode = context.searchMode || 'vector' // 기본값: vector (FAISS 방식)
     let usedFallback = false
 
     try {
@@ -1014,39 +1029,30 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         console.log('[OllamaProvider] FTS5 키워드 검색 중...')
         searchResults = this.searchByKeyword(context.query)
       } else if (searchMode === 'vector') {
+        // Vector 검색 → 실패 시 LLM 직접 응답
         console.log('[OllamaProvider] Vector 검색 중...')
         try {
           searchResults = await this.searchByVector(context.query)
-
-          if (searchResults.length === 0) {
-            const hasEmbeddedDocs = this.documents.some((doc) => doc.embedding !== null)
-            if (!hasEmbeddedDocs) {
-              console.warn('[OllamaProvider] ⚠️ 임베딩된 문서가 없습니다. FTS5로 자동 전환...')
-              searchMode = 'fts5'
-              usedFallback = true
-              searchResults = this.searchByKeyword(context.query)
-            }
-          }
         } catch (error) {
-          console.warn('[OllamaProvider] ⚠️ Vector 검색 오류, FTS5로 자동 전환:', error)
-          searchMode = 'fts5'
+          console.warn('[OllamaProvider] ⚠️ Vector 검색 실패, LLM 직접 응답 모드:', error)
           usedFallback = true
-          searchResults = this.searchByKeyword(context.query)
+          searchResults = []
         }
       } else if (searchMode === 'hybrid') {
+        // Hybrid 검색 → 실패 시 LLM 직접 응답
         console.log('[OllamaProvider] Hybrid 검색 중 (FTS5 + Vector)...')
         try {
           searchResults = await this.searchHybrid(context.query)
         } catch (error) {
-          console.warn('[OllamaProvider] ⚠️ Hybrid 검색 오류, FTS5로 자동 전환:', error)
-          searchMode = 'fts5'
+          console.warn('[OllamaProvider] ⚠️ Hybrid 검색 실패, LLM 직접 응답 모드:', error)
           usedFallback = true
-          searchResults = this.searchByKeyword(context.query)
+          searchResults = []
         }
       }
 
-      // Fallback: 검색 결과 없으면 상위 K개 반환
-      if (searchResults.length === 0) {
+      // 검색 결과가 없고 폴백 모드가 아니면 상위 K개 반환
+      // usedFallback=true면 RAG 없이 LLM 직접 응답
+      if (searchResults.length === 0 && !usedFallback) {
         console.log('[OllamaProvider] ⚠️ 검색 결과 없음 - Fallback: 상위 5개 문서 반환')
         searchResults = this.documents.slice(0, this.topK).map((doc) => ({
           doc_id: doc.doc_id,
@@ -1056,6 +1062,8 @@ export class OllamaRAGProvider extends BaseRAGProvider {
           category: doc.category,
           score: 0.5
         }))
+      } else if (usedFallback) {
+        console.log('[OllamaProvider] ℹ️ RAG 없이 LLM 직접 응답 모드')
       }
 
       // LLM Reranking
@@ -1143,9 +1151,43 @@ export class OllamaRAGProvider extends BaseRAGProvider {
         }
       }
     } catch (error) {
-      throw new Error(
-        `Ollama Provider 스트리밍 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
-      )
+      // RAG 검색/처리 실패 시 RAG 없이 바로 LLM 답변 생성
+      console.warn('[OllamaProvider] ⚠️ RAG 처리 실패, LLM 직접 응답으로 폴백:', error instanceof Error ? error.message : error)
+
+      try {
+        // RAG 없이 바로 LLM 응답 생성
+        let fullAnswer = ''
+        const generationStartTime = Date.now()
+
+        for await (const chunk of this.streamGenerateAnswer('', context.query)) {
+          fullAnswer += chunk
+          onChunk(chunk)
+        }
+
+        // 참조 문서 없음 알림
+        if (onSources) {
+          onSources([])
+        }
+
+        return {
+          sources: [],
+          citedDocIds: [],
+          model: {
+            provider: 'Ollama (Local - No RAG)',
+            embedding: this.embeddingModel || 'none',
+            inference: this.inferenceModel
+          },
+          metadata: {
+            responseTime: Date.now() - startTime,
+            tokensUsed: this.estimateTokenCount(fullAnswer),
+            noRAG: true
+          }
+        }
+      } catch (fallbackError) {
+        throw new Error(
+          `Ollama Provider 오류: ${fallbackError instanceof Error ? fallbackError.message : '알 수 없는 오류'}`
+        )
+      }
     }
   }
 

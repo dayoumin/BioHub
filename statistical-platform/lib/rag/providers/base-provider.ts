@@ -77,6 +77,8 @@ export interface RAGResponse {
     ttft?: number
     /** 초당 토큰 수 - Tokens Per Second */
     tokensPerSecond?: number
+    /** RAG 없이 LLM 직접 응답 여부 */
+    noRAG?: boolean
   }
 }
 
