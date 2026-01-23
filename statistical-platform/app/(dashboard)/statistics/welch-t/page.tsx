@@ -28,6 +28,10 @@ import { Separator } from '@/components/ui/separator'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { escapeHtml } from '@/lib/utils/html-escape'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
+import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { openDataWindow } from '@/lib/utils/open-data-window'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
@@ -653,11 +657,30 @@ export default function WelchTPage() {
               </Card>
             </div>
 
-            <div className="p-4 bg-muted rounded-lg">
-              <h4 className="font-semibold mb-2">결론</h4>
-              <p className="text-muted-foreground">{results.conclusion}</p>
-              <p className="text-sm text-muted-foreground mt-1">{results.interpretation}</p>
-            </div>
+            {/* 결과 해석 - 공통 컴포넌트 */}
+            <ResultInterpretation
+              result={{
+                summary: results.conclusion,
+                details: `t(${results.adjustedDF.toFixed(1)}) = ${results.welchStatistic.toFixed(3)}, p = ${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}, Cohen's d = ${results.effectSize.toFixed(3)}`,
+                recommendation: results.pValue < 0.05
+                  ? `두 그룹 간 평균 차이가 ${results.meanDifference.toFixed(2)}로 통계적으로 유의합니다.`
+                  : '두 그룹 간 평균 차이가 통계적으로 유의하지 않습니다.',
+                caution: 'Welch t-검정은 등분산 가정이 필요하지 않습니다.'
+              }}
+              title="Welch t-검정 결과 해석"
+            />
+
+            {/* 효과크기 - 공통 컴포넌트 */}
+            <EffectSizeCard
+              effectSizes={[{
+                name: "Cohen's d",
+                value: results.effectSize,
+                interpretation: results.effectSize < 0.2 ? '매우 작음' :
+                  results.effectSize < 0.5 ? '작음' :
+                  results.effectSize < 0.8 ? '중간' : '큼',
+                formula: "d = (M₁ - M₂) / √((s₁² + s₂²) / 2)"
+              }]}
+            />
           </ContentTabsContent>
 
           <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">
@@ -720,98 +743,50 @@ export default function WelchTPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'} className="space-y-6">
-            <Card className={results.equalVariances.assumption === 'violated' ? 'border bg-warning-bg' : 'border bg-success-bg'}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {results.equalVariances.assumption === 'violated' ? (
-                    <XCircle className="w-5 h-5 text-warning" />
-                  ) : (
-                    <CheckCircle className="w-5 h-5 text-success" />
-                  )}
-                  등분산 가정 검토 (Levene 검정)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Levene 통계량</p>
-                    <p className="text-lg font-semibold">{results.equalVariances.leveneStatistic.toFixed(3)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">p-값</p>
-                    <p className="text-lg font-semibold">
-                      {results.equalVariances.levenePValue.toFixed(3)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">가정 상태</p>
-                    <Badge variant={results.equalVariances.assumption === 'violated' ? 'destructive' : 'default'}>
-                      {results.equalVariances.assumption === 'violated' ? '위반' : '충족'}
-                    </Badge>
-                  </div>
-                </div>
+            {/* 가정 검정 - 공통 컴포넌트 */}
+            <AssumptionTestCard
+              title="Welch t-검정 가정 검토"
+              tests={[{
+                name: '등분산성 (Homogeneity of Variance)',
+                testName: 'Levene',
+                statistic: results.equalVariances.leveneStatistic,
+                pValue: results.equalVariances.levenePValue,
+                passed: results.equalVariances.assumption !== 'violated',
+                alpha: 0.05,
+                recommendation: results.equalVariances.assumption === 'violated'
+                  ? 'Welch t-검정이 적절한 선택입니다. 등분산 가정 없이 분석됩니다.'
+                  : '등분산 가정이 충족되지만, Welch t-검정도 유효한 결과를 제공합니다.',
+                severity: results.equalVariances.assumption === 'violated' ? 'low' : undefined
+              }]}
+              showRecommendations={true}
+            />
 
-                <div className={`p-3 rounded-lg ${results.equalVariances.assumption === 'violated' ? 'bg-warning-bg' : 'bg-success-bg'}`}>
-                  <p className={`text-sm ${results.equalVariances.assumption === 'violated' ? 'text-warning' : 'text-success'}`}>
-                    {results.equalVariances.assumption === 'violated' ? (
-                      <>
-                        <AlertCircle className="w-4 h-4 inline mr-1" />
-                        등분산 가정이 위반되었습니다. Welch t-검정이 적절한 선택입니다.
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4 inline mr-1" />
-                        등분산 가정이 충족되지만, Welch t-검정도 유효한 결과를 제공합니다.
-                      </>
-                    )}
-                  </p>
-                </div>
-
-                <Separator className="my-4" />
-
-                <div>
-                  <h4 className="font-semibold mb-2">Welch t-검정의 장점:</h4>
-                  <ul className="text-sm space-y-1">
-                    <li>• 등분산 가정을 하지 않음</li>
-                    <li>• 표본크기가 다를 때 더욱 안정적</li>
-                    <li>• Type I 오류율을 더 잘 통제</li>
-                    <li>• 분산이 크게 다를 때 더 정확함</li>
-                  </ul>
-                </div>
+            <Card>
+              <CardContent className="pt-4">
+                <h4 className="font-semibold mb-2">Welch t-검정의 장점:</h4>
+                <ul className="text-sm space-y-1 text-muted-foreground">
+                  <li>• 등분산 가정을 하지 않음</li>
+                  <li>• 표본크기가 다를 때 더욱 안정적</li>
+                  <li>• Type I 오류율을 더 잘 통제</li>
+                  <li>• 분산이 크게 다를 때 더 정확함</li>
+                </ul>
               </CardContent>
             </Card>
           </ContentTabsContent>
 
           <ContentTabsContent tabId="confidence" show={activeResultTab === 'confidence'} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Info className="w-5 h-5" />
-                  평균 차이의 {results.confidenceLevel}% 신뢰구간
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center mb-4">
-                  <p className="text-2xl font-bold">
-                    [{results.ciLower.toFixed(2)}, {results.ciUpper.toFixed(2)}]
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    평균 차이: {results.meanDifference.toFixed(2)}
-                  </p>
-                </div>
-
-                <div className="p-3 bg-muted dark:bg-blue-950/20 rounded-lg">
-                  <p className="text-sm text-muted-foreground dark:text-blue-300">
-                    <strong>해석:</strong> {results.confidenceLevel}% 확률로 두 그룹의 실제 평균 차이는
-                    {results.ciLower.toFixed(2)}과 {results.ciUpper.toFixed(2)} 사이에 있습니다.
-                    {results.ciLower * results.ciUpper > 0
-                      ? ' 신뢰구간이 0을 포함하지 않으므로 유의한 차이가 있습니다.'
-                      : ' 신뢰구간이 0을 포함하므로 유의한 차이가 없습니다.'
-                    }
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* 신뢰구간 - 공통 컴포넌트 */}
+            <ConfidenceIntervalDisplay
+              lower={results.ciLower}
+              upper={results.ciUpper}
+              estimate={results.meanDifference}
+              level={results.confidenceLevel}
+              label="평균 차이의 신뢰구간"
+              referenceValue={0}
+              showVisualization={true}
+              showInterpretation={true}
+              description={`${results.confidenceLevel}% 확률로 두 그룹의 실제 평균 차이는 이 구간 내에 있습니다.`}
+            />
           </ContentTabsContent>
         </div>
       </div>

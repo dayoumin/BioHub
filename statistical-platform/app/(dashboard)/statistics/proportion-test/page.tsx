@@ -51,6 +51,9 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -737,11 +740,32 @@ export default function ProportionTestPage(): React.ReactElement {
             <h3 className="text-lg font-semibold mb-4">검정 요약</h3>
             {renderSummaryCards()}
           </div>
-          <div className="p-4 bg-muted dark:bg-success-bg rounded-lg">
-            <h4 className="font-semibold dark:text-success mb-2">결론</h4>
-            <p className="text-muted-foreground dark:text-success-muted">{results.conclusion}</p>
-            <p className="text-sm text-muted-foreground dark:text-success-muted mt-1">{results.interpretation}</p>
-          </div>
+          {/* 결과 해석 - 공통 컴포넌트 */}
+          <ResultInterpretation
+            result={{
+              summary: results.conclusion,
+              details: `Z = ${results.zStatistic.toFixed(3)}, p = ${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}, 관측 비율 = ${(results.observedProportion * 100).toFixed(1)}%, 검정 비율 = ${(results.testProportion * 100).toFixed(1)}%`,
+              recommendation: results.pValue < 0.05
+                ? `표본 비율이 검정 비율과 유의하게 다릅니다. 효과크기 h = ${results.effectSize.toFixed(3)}`
+                : '표본 비율이 검정 비율과 유의하게 다르지 않습니다. 표본 크기를 늘려 검정력을 높이는 것을 고려하세요.',
+              caution: results.continuityCorrection
+                ? '표본 크기가 작아 연속성 보정이 적용되었습니다.'
+                : '정규 근사가 적용되었습니다.'
+            }}
+            title="일표본 비율 검정 결과 해석"
+          />
+
+          {/* 효과크기 - 공통 컴포넌트 */}
+          <EffectSizeCard
+            effectSizes={[{
+              name: "Cohen's h (효과크기)",
+              value: results.effectSize,
+              interpretation: results.effectSize < 0.2 ? '작은 효과' :
+                results.effectSize < 0.5 ? '중간 효과' :
+                results.effectSize < 0.8 ? '큰 효과' : '매우 큰 효과',
+              formula: "h = 2(arcsin(√p̂) - arcsin(√p₀))"
+            }]}
+          />
         </ContentTabsContent>
 
         <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">
@@ -754,7 +778,18 @@ export default function ProportionTestPage(): React.ReactElement {
         </ContentTabsContent>
 
         <ContentTabsContent tabId="confidence" show={activeResultTab === 'confidence'} className="space-y-6">
-          {renderConfidenceInterval()}
+          {/* 신뢰구간 - 공통 컴포넌트 */}
+          <ConfidenceIntervalDisplay
+            lower={results.ciLower}
+            upper={results.ciUpper}
+            estimate={results.observedProportion}
+            level={results.confidenceLevel}
+            label="비율의 신뢰구간"
+            referenceValue={results.testProportion}
+            showVisualization={true}
+            showInterpretation={true}
+            description="Wilson Score Interval을 사용한 신뢰구간입니다. Wald 신뢰구간보다 정확하며, 비율이 0이나 1에 가까울 때도 안정적입니다."
+          />
         </ContentTabsContent>
 
         <ContentTabsContent tabId="methods" show={activeResultTab === 'methods'} className="space-y-6">

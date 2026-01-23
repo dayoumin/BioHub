@@ -12,6 +12,8 @@ import { Separator } from '@/components/ui/separator'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import {
   Tooltip,
@@ -617,35 +619,22 @@ export default function SignTestPage() {
           </Card>
         </div>
 
-        {/* 해석 가이드 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">결과 해석 가이드</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>부호 검정이란?</AlertTitle>
-              <AlertDescription>
-                <div className="mt-2 space-y-2 text-sm">
-                  <p>대응 표본 간 차이의 부호(+/-)만을 사용하여 중앙값 차이를 검정하는 비모수 방법입니다.</p>
-                  <p><strong>귀무가설:</strong> 양의 차이와 음의 차이의 비율이 같다 (중앙값 차이 = 0)</p>
-                  <p><strong>대립가설:</strong> 양의 차이와 음의 차이의 비율이 다르다 (중앙값 차이 ≠ 0)</p>
-                </div>
-              </AlertDescription>
-            </Alert>
-
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2">주의사항</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 차이가 0인 쌍(동점)은 분석에서 제외됩니다</li>
-                <li>• 최소 5개 이상의 유효 쌍이 필요합니다</li>
-                <li>• Wilcoxon 부호순위 검정이 더 높은 검정력을 제공할 수 있습니다</li>
-                <li>• 비모수 검정으로 정규성 가정이 필요하지 않습니다</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 결과 해석 - 공통 컴포넌트 */}
+        <ResultInterpretation
+          result={{
+            summary: results.significant
+              ? `사전-사후 측정값 간 유의한 차이가 있습니다. 양의 차이 ${results.nPositive}개, 음의 차이 ${results.nNegative}개로 비율이 다릅니다.`
+              : `사전-사후 측정값 간 유의한 차이가 없습니다. 양의 차이와 음의 차이의 비율이 통계적으로 유사합니다.`,
+            details: `p = ${results.pValue.toFixed(3)}, 양의 차이 = ${results.nPositive}, 음의 차이 = ${results.nNegative}, 동점 = ${results.nTies}`,
+            recommendation: results.significant
+              ? results.nPositive > results.nNegative
+                ? '사후 측정값이 사전보다 유의하게 높습니다. 처치/개입 효과가 있는 것으로 보입니다.'
+                : '사후 측정값이 사전보다 유의하게 낮습니다. 처치/개입이 역효과를 보일 수 있습니다.'
+              : '더 높은 검정력이 필요하면 Wilcoxon 부호순위 검정을 고려하세요.',
+            caution: '차이가 0인 쌍(동점)은 분석에서 제외됩니다. 비모수 검정으로 정규성 가정이 필요하지 않습니다.'
+          }}
+          title="부호 검정 결과 해석"
+        />
 
         {/* 액션 버튼 */}
         <div className="flex gap-3 justify-center pt-4">

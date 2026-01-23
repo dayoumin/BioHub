@@ -28,6 +28,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -475,53 +476,24 @@ export default function StationarityTestPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analysis Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Result</h4>
-                  <p className="text-muted-foreground">{results.interpretation}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Recommendation</h4>
-                  <p className="text-muted-foreground">{results.recommendation}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Next Steps</h4>
-                  <ul className="text-sm space-y-1 text-muted-foreground">
-                    {results.conclusion === 'stationary' ? (
-                      <>
-                        <li>The series is ready for ARMA/ARIMA modeling (d=0).</li>
-                        <li>Examine ACF/PACF plots to determine AR and MA orders.</li>
-                        <li>Proceed with time series forecasting.</li>
-                      </>
-                    ) : results.conclusion === 'non_stationary' ? (
-                      <>
-                        <li>Apply first-order differencing (d=1).</li>
-                        <li>Re-run stationarity tests on the differenced series.</li>
-                        <li>Consider ARIMA model with appropriate d parameter.</li>
-                      </>
-                    ) : results.conclusion === 'trend_stationary' ? (
-                      <>
-                        <li>Consider removing the deterministic trend.</li>
-                        <li>Use regression with time trend before modeling.</li>
-                        <li>Or use differencing if trend removal is not appropriate.</li>
-                      </>
-                    ) : (
-                      <>
-                        <li>Results are inconclusive; interpret with caution.</li>
-                        <li>Try differencing and re-test.</li>
-                        <li>Check for structural breaks in the data.</li>
-                      </>
-                    )}
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+            {/* 결과 해석 - 공통 컴포넌트 */}
+            <ResultInterpretation
+              result={{
+                summary: results.interpretation,
+                details: `ADF: statistic=${results.adf.statistic.toFixed(4)}, p=${results.adf.pValue < 0.001 ? '< 0.001' : results.adf.pValue.toFixed(4)} | KPSS: statistic=${results.kpss.statistic.toFixed(4)}, p=${results.kpss.pValue < 0.01 ? '< 0.01' : results.kpss.pValue > 0.1 ? '> 0.10' : results.kpss.pValue.toFixed(4)}`,
+                recommendation: results.recommendation + (
+                  results.conclusion === 'stationary'
+                    ? ' ARMA/ARIMA 모델링 (d=0)을 진행하세요. ACF/PACF 플롯으로 AR, MA 차수를 결정하세요.'
+                    : results.conclusion === 'non_stationary'
+                      ? ' 1차 차분(d=1)을 적용한 후 다시 정상성 검정을 수행하세요.'
+                      : results.conclusion === 'trend_stationary'
+                        ? ' 결정적 추세를 제거하거나, 회귀를 통해 추세를 모델링하세요.'
+                        : ' 결과가 결정적이지 않습니다. 차분을 시도하고 구조적 변화를 확인하세요.'
+                ),
+                caution: 'ADF는 단위근 존재를 귀무가설로, KPSS는 정상성을 귀무가설로 검정합니다. 두 검정의 결과를 종합적으로 해석하세요.'
+              }}
+              title="정상성 검정 결과 해석"
+            />
           </ContentTabsContent>
         </div>
       </div>

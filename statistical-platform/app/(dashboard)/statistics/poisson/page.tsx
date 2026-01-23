@@ -29,6 +29,7 @@ import {
   Scatter
 } from 'recharts'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
   Calculator,
@@ -752,53 +753,19 @@ export default function PoissonRegressionPage() {
               </ContentTabsContent>
 
               <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-3">결과 해석</h4>
-                  <div className="space-y-4">
-                    <Alert>
-                      <CheckCircle2 className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>모델 적합도:</strong> McFadden R² = {results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}으로,
-                        모델이 데이터의 변동을 {(results.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}% 설명합니다.
-                        포아송 회귀에서 0.1 이상이면 양호한 적합도로 판단됩니다.
-                      </AlertDescription>
-                    </Alert>
-
-                    <Alert>
-                      <Calculator className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>과산포 검정:</strong> 산포비 = {results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}로,
-                        {results.assumptions.overdispersion.assumption_met ?
-                          '포아송 분포 가정이 적절합니다.' :
-                          '과산포가 존재하므로 준-포아송 모델이나 음이항 회귀를 고려해야 합니다.'
-                        }
-                      </AlertDescription>
-                    </Alert>
-
-                    <Alert>
-                      <BarChart3 className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>주요 결과:</strong> {results.rate_ratios.find(r => r.variable === 'treatment')?.rate_ratio &&
-                        `치료 효과는 발생률을 ${((1 - results.rate_ratios.find(r => r.variable === 'treatment')!.rate_ratio) * 100).toFixed(1)}% 감소시킵니다`}
-                        {results.rate_ratios.find(r => r.variable === 'age')?.rate_ratio &&
-                        `. 연령은 1세 증가당 발생률을 ${((results.rate_ratios.find(r => r.variable === 'age')!.rate_ratio - 1) * 100).toFixed(1)}% 증가시킵니다.`}
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-3">실용적 함의</h4>
-                  <div className="bg-muted p-4 rounded-lg">
-                    <ul className="space-y-2 text-sm">
-                      <li>• <strong>임상 적용:</strong> 치료 효과의 크기와 통계적 유의성을 정량화</li>
-                      <li>• <strong>위험도 평가:</strong> 위험요인들의 상대적 영향력 비교</li>
-                      <li>• <strong>정책 결정:</strong> 개입 우선순위 결정을 위한 근거 제공</li>
-                      <li>• <strong>예측 모델:</strong> 새로운 조건에서의 발생률 예측</li>
-                      <li>• <strong>모델 개선:</strong> 과산포 문제 시 모델 수정 방향 제시</li>
-                    </ul>
-                  </div>
-                </div>
+                <ResultInterpretation
+                  result={{
+                    summary: `모델 적합도: McFadden R² = ${results.model_fit.pseudo_r_squared_mcfadden.toFixed(3)}로, 모델이 데이터의 변동을 ${(results.model_fit.pseudo_r_squared_mcfadden * 100).toFixed(1)}% 설명합니다. ${results.model_fit.pseudo_r_squared_mcfadden >= 0.1 ? '포아송 회귀 기준 양호한 적합도입니다.' : '적합도가 다소 낮을 수 있습니다.'}`,
+                    details: `과산포 검정 결과 산포비 = ${results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}. ${results.assumptions.overdispersion.assumption_met ? '포아송 분포 가정이 적절합니다.' : '과산포가 존재합니다.'} Deviance = ${results.model_fit.deviance.toFixed(2)}, AIC = ${results.model_fit.aic.toFixed(2)}.`,
+                    recommendation: results.assumptions.overdispersion.assumption_met
+                      ? '현재 포아송 모델이 적절합니다. 발생률비(IRR)를 통해 각 예측변수의 효과를 해석하세요.'
+                      : '과산포가 존재하므로 준-포아송(Quasi-Poisson) 모델이나 음이항 회귀(Negative Binomial Regression)를 고려해야 합니다.',
+                    caution: results.model_fit.pseudo_r_squared_mcfadden < 0.1
+                      ? '모델 설명력이 낮습니다. 추가 예측변수 도입이나 다른 모델 고려가 필요합니다.'
+                      : undefined
+                  }}
+                  title="포아송 회귀분석 결과 해석"
+                />
               </ContentTabsContent>
             </div>
           </CardContent>

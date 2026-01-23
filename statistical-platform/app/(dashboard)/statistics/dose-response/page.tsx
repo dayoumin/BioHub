@@ -23,6 +23,8 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -446,56 +448,22 @@ const DoseResponseAnalysis: React.FC<DoseResponseAnalysisProps> = ({ selectedMod
             </ContentTabsContent>
 
             <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>결과 해석</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <h4 className="font-semibold">모델 적합도</h4>
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                      <p className="text-sm">
-                        R² = {result.r_squared.toFixed(4)} - {getModelQuality(result.r_squared).label}한 적합도를 보입니다.
-                        {result.r_squared >= 0.95 && ' 매우 정확한 예측이 가능합니다.'}
-                        {result.r_squared >= 0.90 && result.r_squared < 0.95 && ' 신뢰할 만한 예측이 가능합니다.'}
-                        {result.r_squared >= 0.80 && result.r_squared < 0.90 && ' 적절한 예측 성능을 보입니다.'}
-                        {result.r_squared < 0.80 && ' 모델 개선이나 다른 모델 검토가 필요할 수 있습니다.'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {result.ec50 && (
-                    <div className="space-y-3">
-                      <h4 className="font-semibold">핵심 매개변수</h4>
-                      <div className="bg-muted/50 p-4 rounded-lg">
-                        <p className="text-sm">
-                          <strong>EC50 = {result.ec50.toFixed(4)}</strong>: 50% 효과를 나타내는 농도입니다.
-                          {result.hill_slope && (
-                            <>
-                              <br />
-                              <strong>Hill 기울기 = {result.hill_slope.toFixed(4)}</strong>:
-                              {result.hill_slope > 1 ? ' 가파른 S자 곡선' : result.hill_slope < 1 ? ' 완만한 S자 곡선' : ' 표준적인 S자 곡선'}을 나타냅니다.
-                            </>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-3">
-                    <h4 className="font-semibold">적합도 검정</h4>
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                      <p className="text-sm">
-                        카이제곱 검정: χ² = {result.goodness_of_fit.chi_square.toFixed(4)},
-                        p-value = {result.goodness_of_fit.p_value.toFixed(4)}
-                        {result.goodness_of_fit.p_value > 0.05 ?
-                          ' - 모델이 데이터에 적절히 적합됩니다.' :
-                          ' - 모델 적합도에 문제가 있을 수 있습니다.'}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* 결과 해석 - 공통 컴포넌트 */}
+              <ResultInterpretation
+                result={{
+                  summary: `R² = ${result.r_squared.toFixed(4)} - ${getModelQuality(result.r_squared).label}한 적합도를 보입니다.` +
+                    (result.ec50 ? ` EC50 = ${result.ec50.toFixed(4)} (50% 효과 농도).` : ''),
+                  details: `R² = ${result.r_squared.toFixed(4)}, AIC = ${result.aic.toFixed(2)}, BIC = ${result.bic.toFixed(2)}, χ² = ${result.goodness_of_fit.chi_square.toFixed(4)}, p = ${result.goodness_of_fit.p_value.toFixed(4)}` +
+                    (result.hill_slope ? `, Hill 기울기 = ${result.hill_slope.toFixed(4)}` : ''),
+                  recommendation: result.goodness_of_fit.p_value > 0.05
+                    ? '모델이 데이터에 적절히 적합됩니다. 신뢰구간을 확인하여 매개변수의 정밀도를 평가하세요.'
+                    : '모델 적합도에 문제가 있을 수 있습니다. 다른 모델을 시도하거나 데이터를 검토하세요.',
+                  caution: result.r_squared < 0.80
+                    ? '적합도가 낮습니다. 모델 개선이나 다른 모델 검토가 필요합니다.'
+                    : '모델 적합 시 이상치와 데이터 범위를 확인하세요.'
+                }}
+                title="용량-반응 분석 결과 해석"
+              />
             </ContentTabsContent>
 
             <ContentTabsContent tabId="diagnostics" show={activeResultTab === 'diagnostics'}>

@@ -16,6 +16,7 @@ import {
   Users
 } from 'lucide-react'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -530,10 +531,19 @@ export default function RepeatedMeasuresANOVAPage() {
               </div>
             </div>
 
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{interpretation}</AlertDescription>
-            </Alert>
+            <ResultInterpretation
+              result={{
+                summary: interpretation,
+                details: `F(${results.df.numerator}, ${results.df.denominator}) = ${results.fStatistic.toFixed(3)}, p = ${results.pValue.toFixed(4)}. 구형성 Epsilon = ${results.sphericityEpsilon.toFixed(3)}.`,
+                recommendation: results.pValue < 0.05
+                  ? '시간에 따른 유의한 차이가 있습니다. 사후검정을 통해 구체적인 시점 간 차이를 확인하세요.'
+                  : '시간에 따른 유의한 차이가 없습니다. 효과 크기나 연구 설계를 재검토하세요.',
+                caution: !results.sphericityTest.passed
+                  ? results.sphericityTest.interpretation
+                  : undefined
+              }}
+              title="반복측정 분산분석 결과 해석"
+            />
           </CardContent>
         </Card>
 

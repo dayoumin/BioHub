@@ -20,6 +20,7 @@ import { Activity, CheckCircle2, AlertTriangle, TrendingUp, Zap, Info, Target ,
 // Components
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
@@ -496,6 +497,34 @@ const ResponseSurfaceAnalysis: React.FC<ResponseSurfaceAnalysisProps> = ({
               </Card>
             </ContentTabsContent>
           </div>
+
+          {/* 결과 해석 - 공통 컴포넌트 */}
+          <ResultInterpretation
+            result={{
+              summary: `모델 적합도 R² = ${result.r_squared.toFixed(4)} (${(result.r_squared * 100).toFixed(1)}% 설명력), 수정 R² = ${result.adjusted_r_squared.toFixed(4)}. ${result.f_pvalue < 0.05 ? '모델이 통계적으로 유의합니다.' : '모델이 통계적으로 유의하지 않습니다.'}`,
+              details: `F = ${result.f_statistic.toFixed(2)}, p = ${result.f_pvalue < 0.001 ? '< 0.001' : result.f_pvalue.toFixed(4)}. 임계점 분석 결과: ${getNatureLabel(result.optimization.nature).label}.`,
+              recommendation: (() => {
+                const baseRec = result.r_squared >= 0.8
+                  ? '모델 적합도가 우수합니다.'
+                  : result.r_squared >= 0.5
+                  ? '모델 적합도가 적절합니다. 추가 변수나 교호작용 항을 고려해보세요.'
+                  : '모델 적합도가 낮습니다. 모델 형태 변경이나 추가 데이터 수집을 고려하세요.'
+
+                if (result.optimization.nature === 'maximum') {
+                  return `${baseRec} 최대점이 발견되었습니다. 임계점 좌표에서 반응값이 최대화됩니다.`
+                } else if (result.optimization.nature === 'minimum') {
+                  return `${baseRec} 최소점이 발견되었습니다. 반응 최대화가 목표라면 임계점에서 벗어난 조건을 탐색하세요.`
+                }
+                return `${baseRec} 임계점 분석을 통해 최적 조건을 파악하세요.`
+              })(),
+              caution: result.optimization.nature === 'saddle_point'
+                ? '임계점이 안장점입니다. 능선 분석(Ridge Analysis)을 통해 최적 조건을 탐색하세요.'
+                : result.optimization.nature === 'not_applicable'
+                ? '2차 항이 없어 임계점 분석이 불가능합니다. 2차 모델을 사용하세요.'
+                : undefined
+            }}
+            title="반응표면 분석 결과 해석"
+          />
         </div>
       )}
     </div>

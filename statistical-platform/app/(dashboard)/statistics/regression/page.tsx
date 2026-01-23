@@ -42,6 +42,7 @@ import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { AssumptionTestCard, type AssumptionTest } from '@/components/statistics/common/AssumptionTestCard'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { cn } from '@/lib/utils'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
@@ -795,6 +796,20 @@ export default function RegressionPage() {
           />
         )}
 
+        <ResultInterpretation
+          result={{
+            summary: `R² = ${rSquared.toFixed(4)}로, 모델이 종속변수 변동의 ${(rSquared * 100).toFixed(1)}%를 설명합니다. 수정된 R² = ${adjustedRSquared.toFixed(4)}입니다.`,
+            details: `F 통계량 = ${fStatistic.toFixed(2)}, p ${fPValue < 0.001 ? '< 0.001' : `= ${fPValue.toFixed(4)}`}. 잔차 표준오차 = ${residualStdError.toFixed(2)}.`,
+            recommendation: fPValue < 0.05
+              ? '회귀모델이 통계적으로 유의합니다. 개별 회귀계수의 p-value를 확인하여 유의한 예측변수를 파악하세요.'
+              : '회귀모델이 통계적으로 유의하지 않습니다. 변수 선택을 재검토하거나 추가 변수 도입을 고려하세요.',
+            caution: rSquared < 0.3
+              ? '모델의 설명력이 낮습니다. 추가 예측변수 도입이나 비선형 모델을 고려해보세요.'
+              : undefined
+          }}
+          title="회귀분석 결과 해석"
+        />
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base">잔차 분석</CardTitle>
@@ -963,6 +978,20 @@ export default function RegressionPage() {
             </p>
           </CardContent>
         </Card>
+
+        <ResultInterpretation
+          result={{
+            summary: `모델 정확도 ${(modelFit.accuracy * 100).toFixed(1)}%, AUC = ${modelFit.auc.toFixed(3)}로 ${modelFit.auc >= 0.7 ? '양호한' : modelFit.auc >= 0.5 ? '보통 수준의' : '낮은'} 분류 성능을 보입니다.`,
+            details: `민감도(Sensitivity) = ${(modelFit.sensitivity * 100).toFixed(1)}%, 특이도(Specificity) = ${(modelFit.specificity * 100).toFixed(1)}%. F1 Score = ${confusionMatrix.f1Score.toFixed(3)}.`,
+            recommendation: modelFit.auc >= 0.7
+              ? '모델의 분류 성능이 양호합니다. 오즈비(Odds Ratio)를 해석하여 각 예측변수의 영향력을 파악하세요.'
+              : '모델의 분류 성능 향상을 위해 추가 변수 도입이나 다른 분류 모델을 고려해보세요.',
+            caution: Math.abs(modelFit.sensitivity - modelFit.specificity) > 0.3
+              ? '민감도와 특이도 간 차이가 큽니다. 클래스 불균형 문제를 확인하세요.'
+              : undefined
+          }}
+          title="로지스틱 회귀분석 결과 해석"
+        />
       </div>
     )
   }, [results])

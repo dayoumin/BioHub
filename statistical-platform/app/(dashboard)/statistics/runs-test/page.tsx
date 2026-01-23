@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
-import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import {
   Shuffle,
@@ -89,7 +89,7 @@ export default function RunsTestPage() {
       { id: 4, label: '분석 결과' }
     ]
 
-    return baseSteps.map((step, index) => ({
+    return baseSteps.map((step) => ({
       ...step,
       completed: step.id === 1 ? currentStep > 0 :
                 step.id === 2 ? !!uploadedData :
@@ -527,7 +527,7 @@ export default function RunsTestPage() {
               <div className="flex flex-wrap gap-2">
                 {runSequence.map((item, idx) => (
                   <div key={idx} className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                    item.run % 2 === 1 ? 'bg-muted text-muted-foreground' : 'bg-muted text-muted-foreground'
+                    item.run % 2 === 1 ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                   }`}>
                     Run {item.run}: {String(item.value)} ({item.runLength})
                   </div>
@@ -540,34 +540,22 @@ export default function RunsTestPage() {
           </CardContent>
         </Card>
 
-        {/* 해석 가이드 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">결과 해석 가이드</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>런 검정 해석</AlertTitle>
-              <AlertDescription>
-                <div className="mt-2 space-y-2 text-sm">
-                  <p><strong>런이 너무 적은 경우:</strong> 데이터에 군집화 경향이 있음</p>
-                  <p><strong>런이 너무 많은 경우:</strong> 데이터가 교대로 변화하는 패턴</p>
-                  <p><strong>런이 적절한 경우:</strong> 데이터가 무작위 패턴을 따름</p>
-                </div>
-              </AlertDescription>
-            </Alert>
-
-            <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2">주의사항</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• 런 검정은 데이터의 순서가 중요합니다</li>
-                <li>• 중앙값을 기준으로 이분화할 때 동점 처리 방법을 고려하세요</li>
-                <li>• 작은 표본에서는 정확한 확률을 계산해야 할 수 있습니다</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 결과 해석 - 공통 컴포넌트 */}
+        <ResultInterpretation
+          result={{
+            summary: significant
+              ? '데이터가 무작위 패턴을 따르지 않습니다. 런의 개수가 기댓값과 유의하게 다릅니다.'
+              : '데이터가 무작위 패턴을 따르는 것으로 보입니다. 런의 개수가 기댓값과 유의하게 다르지 않습니다.',
+            details: `Z = ${zStatistic.toFixed(3)}, p = ${pValue.toFixed(3)}, 관측 런 = ${totalRuns}, 기대 런 = ${expectedRuns.toFixed(1)}`,
+            recommendation: totalRuns < expectedRuns
+              ? '런이 기댓값보다 적습니다. 데이터에 군집화(clustering) 경향이 있을 수 있습니다.'
+              : totalRuns > expectedRuns
+                ? '런이 기댓값보다 많습니다. 데이터가 교대로 변화하는 패턴이 있을 수 있습니다.'
+                : '런의 개수가 기댓값에 근접합니다. 데이터가 무작위로 배열된 것으로 보입니다.',
+            caution: '런 검정은 데이터의 순서가 중요합니다. 중앙값 기준 이분화 시 동점 처리 방법을 고려하세요.'
+          }}
+          title="런 검정 결과 해석"
+        />
 
         {/* 액션 버튼 */}
         <div className="flex gap-3 justify-center pt-4">
@@ -600,7 +588,7 @@ export default function RunsTestPage() {
 
   return (
     <TwoPanelLayout
-      currentStep={currentStep} // 0-based → 1-based
+      currentStep={currentStep}
       steps={STEPS}
       onStepChange={handleStepChange}
       analysisTitle="런 검정"

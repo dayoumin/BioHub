@@ -36,6 +36,7 @@ import { escapeHtml } from '@/lib/utils/html-escape'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 
 import { openDataWindow } from '@/lib/utils/open-data-window'
 interface StepwiseResults {
@@ -792,46 +793,35 @@ export default function StepwiseRegressionPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>분석 결과 해석</CardTitle>
-                <CardDescription>
-                  단계적 회귀분석 결과에 대한 해석과 권장사항
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">요약</h4>
-                  <p className="text-gray-700">{results.interpretation.summary}</p>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="font-semibold mb-2">권장사항</h4>
-                  <ul className="space-y-2">
-                    {results.interpretation.recommendations.map((rec, index) => (
-                      <li key={index} className="flex items-start">
-                        <CheckCircle2 className="mr-2 h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700">{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="font-semibold mb-2">해석 시 주의사항</h4>
-                  <ul className="space-y-1 text-sm text-gray-600">
-                    <li>• 단계적 회귀는 데이터 의존적이며 다른 표본에서 결과가 다를 수 있습니다</li>
-                    <li>• 통계적 유의성이 실무적 중요성을 의미하지 않습니다</li>
-                    <li>• 선택되지 않은 변수도 이론적으로 중요할 수 있습니다</li>
-                    <li>• 모델의 외적 타당도 확인을 위해 교차검증이 필요합니다</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+            <ResultInterpretation
+              result={{
+                summary: results.interpretation.summary,
+                details: `최종 모델: R² = ${results.final_model.r_squared.toFixed(4)}, 수정 R² = ${results.final_model.adj_r_squared.toFixed(4)}, F = ${results.final_model.f_statistic.toFixed(2)}, p = ${results.final_model.f_p_value.toFixed(4)}. 선택된 변수 ${results.final_model.variables.length}개.`,
+                recommendation: results.interpretation.recommendations.join(' '),
+                caution: (() => {
+                  const warnings: string[] = []
+                  if (Math.abs(results.model_diagnostics.durbin_watson - 2) >= 0.5) {
+                    warnings.push('자기상관 문제가 의심됩니다.')
+                  }
+                  if (results.model_diagnostics.jarque_bera_p <= 0.05) {
+                    warnings.push('잔차의 정규성 가정이 위배될 수 있습니다.')
+                  }
+                  if (results.model_diagnostics.breusch_pagan_p <= 0.05) {
+                    warnings.push('등분산성 가정이 위배될 수 있습니다.')
+                  }
+                  if (results.model_diagnostics.condition_number >= 30) {
+                    warnings.push('다중공선성 문제가 있습니다.')
+                  }
+                  if (results.coefficients.some(c => c.variable !== '상수' && c.vif > 10)) {
+                    warnings.push('일부 변수의 VIF가 10을 초과합니다.')
+                  }
+                  return warnings.length > 0
+                    ? warnings.join(' ') + ' 교차검증으로 일반화 성능을 확인하세요.'
+                    : '단계적 회귀는 데이터 의존적입니다. 교차검증을 통해 모델의 일반화 성능을 확인하세요.'
+                })()
+              }}
+              title="단계적 회귀분석 결과 해석"
+            />
           </ContentTabsContent>
         </div>
       </div>

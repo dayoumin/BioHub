@@ -33,6 +33,8 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -598,45 +600,36 @@ export default function WilcoxonPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
-            <Card>
-              <CardHeader>
-                <CardTitle>결과 해석</CardTitle>
-                <CardDescription>Wilcoxon 부호순위 검정 결과 해석 및 권장사항</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {analysisResult.interpretation && (
-                  <>
-                    <Alert>
-                      <CheckCircle className="h-4 w-4" />
-                      <AlertTitle>분석 결과 요약</AlertTitle>
-                      <AlertDescription>
-                        {analysisResult.interpretation.summary}
-                      </AlertDescription>
-                    </Alert>
+            {/* 결과 해석 - 공통 컴포넌트 */}
+            <ResultInterpretation
+              result={{
+                summary: analysisResult.interpretation?.summary ||
+                  (analysisResult.pValue < 0.05
+                    ? '사전-사후 측정값 간 유의한 차이가 있습니다.'
+                    : '사전-사후 측정값 간 유의한 차이가 없습니다.'),
+                details: `W = ${analysisResult.statistic.toFixed(1)}, Z = ${analysisResult.zScore.toFixed(4)}, p = ${analysisResult.pValue < 0.001 ? '< 0.001' : analysisResult.pValue.toFixed(3)}, 효과크기 r = ${analysisResult.effectSize.value.toFixed(3)} (${analysisResult.effectSize.interpretation})`,
+                recommendation: analysisResult.interpretation?.comparison ||
+                  (analysisResult.medianDiff > 0
+                    ? '사후 측정값이 사전보다 높은 경향이 있습니다.'
+                    : analysisResult.medianDiff < 0
+                      ? '사후 측정값이 사전보다 낮은 경향이 있습니다.'
+                      : '사전-사후 측정값이 유사합니다.'),
+                caution: '비모수 검정으로 정규성 가정이 필요하지 않습니다. 대응표본 데이터에 적합합니다.'
+              }}
+              title="Wilcoxon 부호순위 검정 결과 해석"
+            />
 
-                    <Alert>
-                      <TrendingUp className="h-4 w-4" />
-                      <AlertTitle>변화 분석</AlertTitle>
-                      <AlertDescription>
-                        {analysisResult.interpretation.comparison}
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="space-y-3">
-                      <h4 className="font-medium">권장사항</h4>
-                      <ul className="space-y-2">
-                        {analysisResult.interpretation.recommendations.map((rec, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-muted-foreground">{rec}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            {/* 효과크기 - 공통 컴포넌트 */}
+            <div className="mt-4">
+              <EffectSizeCard
+                effectSizes={[{
+                  name: "효과크기 (r)",
+                  value: analysisResult.effectSize.value,
+                  interpretation: analysisResult.effectSize.interpretation,
+                  formula: "r = Z / √N"
+                }]}
+              />
+            </div>
           </ContentTabsContent>
 
           <ContentTabsContent tabId="visualization" show={activeResultTab === 'visualization'}>

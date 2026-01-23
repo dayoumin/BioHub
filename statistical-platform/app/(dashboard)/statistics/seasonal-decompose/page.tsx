@@ -27,6 +27,7 @@ import { TwoPanelLayout } from '@/components/statistics/layouts/TwoPanelLayout'
 import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPanelLayout'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
@@ -467,48 +468,20 @@ export default function SeasonalDecomposePage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analysis Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Decomposition Results</h4>
-                  <p className="text-muted-foreground">
-                    The time series was decomposed using a {results.model} model with a seasonal period of {results.period}.
-                    {results.trendStrength > 0.5 && ' A strong trend component was detected.'}
-                    {results.seasonalStrength > 0.3 && ' Significant seasonal patterns are present.'}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Component Interpretation</h4>
-                  <ul className="text-sm space-y-2 text-muted-foreground">
-                    <li>
-                      <strong>Trend:</strong> Shows the long-term movement. Mean trend value is {results.statistics.trendMean.toFixed(2)}.
-                    </li>
-                    <li>
-                      <strong>Seasonal:</strong> Repeating pattern with range of {results.statistics.seasonalRange.toFixed(4)}.
-                      {results.model === 'multiplicative' ? ' Values represent multiplicative factors.' : ' Values represent additive adjustments.'}
-                    </li>
-                    <li>
-                      <strong>Residual:</strong> Random component with standard deviation of {results.statistics.residualStd.toFixed(4)}.
-                      Lower values indicate better model fit.
-                    </li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Recommendations</h4>
-                  <ul className="text-sm space-y-1 text-muted-foreground">
-                    <li>Use trend component for long-term forecasting.</li>
-                    <li>Apply seasonal adjustments for period-to-period comparisons.</li>
-                    <li>If residual std is high, consider trying a different model type.</li>
-                    <li>For forecasting, consider ARIMA or exponential smoothing methods.</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+            {/* 결과 해석 - 공통 컴포넌트 */}
+            <ResultInterpretation
+              result={{
+                summary: `시계열 데이터를 ${results.model} 모델로 분해했습니다 (주기: ${results.period}). ` +
+                  (results.trendStrength > 0.5 ? '강한 추세 성분이 감지되었습니다. ' : '') +
+                  (results.seasonalStrength > 0.3 ? '유의한 계절 패턴이 존재합니다.' : ''),
+                details: `추세 평균: ${results.statistics.trendMean.toFixed(2)}, 계절 범위: ${results.statistics.seasonalRange.toFixed(4)}, 잔차 표준편차: ${results.statistics.residualStd.toFixed(4)}, 추세 강도: ${(results.trendStrength * 100).toFixed(1)}%, 계절 강도: ${(results.seasonalStrength * 100).toFixed(1)}%`,
+                recommendation: '장기 예측에는 추세 성분을, 기간 간 비교에는 계절 조정을 적용하세요. 잔차 표준편차가 높으면 다른 모델을 시도해보세요.',
+                caution: results.model === 'multiplicative'
+                  ? '계절 값은 곱셈 인자를 나타냅니다. 모든 값이 양수여야 합니다.'
+                  : '계절 값은 가산 조정을 나타냅니다.'
+              }}
+              title="Seasonal Decomposition 결과 해석"
+            />
           </ContentTabsContent>
         </div>
       </div>

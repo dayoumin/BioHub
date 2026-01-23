@@ -32,6 +32,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -619,18 +620,18 @@ export default function PowerAnalysisPage() {
                 <h3 className="text-lg font-semibold mb-4">분석 요약</h3>
                 {renderSummaryCards()}
               </div>
-              <div className="p-4 bg-muted dark:bg-success-bg rounded-lg">
-                <h4 className="font-semibold dark:text-success mb-2">결과 해석</h4>
-                <p className="text-muted-foreground dark:text-success-muted">{results.interpretation}</p>
-                <div className="mt-3">
-                  <h5 className="font-semibold dark:text-success">권장사항</h5>
-                  <ul className="text-sm text-muted-foreground dark:text-success-muted space-y-1">
-                    {results.recommendations.map((rec, idx) => (
-                      <li key={idx}>• {rec}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+              {/* 결과 해석 - 공통 컴포넌트 */}
+              <ResultInterpretation
+                result={{
+                  summary: results.interpretation,
+                  details: `검정: ${results.testType}, 분석 유형: ${results.analysisType}, α = ${results.inputParameters.alpha}` +
+                    (results.results.power ? `, 검정력 = ${(results.results.power * 100).toFixed(1)}%` : '') +
+                    (results.results.sampleSize ? `, 필요 표본 = ${results.results.sampleSize}` : ''),
+                  recommendation: results.recommendations.join(' '),
+                  caution: '검정력 분석은 효과크기 추정에 의존합니다. 사전 연구나 메타분석 결과를 참고하세요.'
+                }}
+                title="검정력 분석 결과 해석"
+              />
             </ContentTabsContent>
 
             <ContentTabsContent tabId="results" show={activeResultTab === 'results'} className="space-y-6">

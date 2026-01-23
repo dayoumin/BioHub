@@ -43,6 +43,7 @@ import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import type { UploadedData } from '@/hooks/use-statistics-page'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 
@@ -639,36 +640,26 @@ export default function ReliabilityAnalysisPage() {
             </ContentTabsContent>
 
             <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>결과 해석 가이드</CardTitle>
-                  <CardDescription>신뢰도 분석 결과의 해석 방법</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>전체 신뢰도 평가</AlertTitle>
-                    <AlertDescription>
-                      현재 척도의 Cronbach&apos;s α = {analysisResult.cronbachAlpha.toFixed(3)}로
-                      {getAlphaInterpretation(analysisResult.cronbachAlpha).description} 수준입니다.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="space-y-3">
-                    <h4 className="font-medium">개선 권장사항</h4>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      {analysisResult.itemStatistics.some(item => item.alphaIfDeleted > analysisResult.cronbachAlpha) && (
-                        <li>• 삭제 시 α가 증가하는 항목들을 검토하여 제거를 고려하세요</li>
-                      )}
-                      {analysisResult.interItemCorrelations.mean < 0.3 && (
-                        <li>• 항목 간 상관관계가 낮습니다. 구성개념의 일치성을 검토하세요</li>
-                      )}
-                      <li>• 항목-전체 상관이 0.3 미만인 항목들을 재검토하세요</li>
-                      <li>• 표본 크기가 충분한지 확인하세요 (권장: n ≥ 30)</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* 결과 해석 - 공통 컴포넌트 */}
+              <ResultInterpretation
+                result={{
+                  summary: `현재 척도의 Cronbach's α = ${analysisResult.cronbachAlpha.toFixed(3)}로 ${getAlphaInterpretation(analysisResult.cronbachAlpha).description} 수준입니다.`,
+                  details: `항목 수: ${analysisResult.itemCount}, 표본 크기: ${analysisResult.sampleSize}, 표준화 α: ${analysisResult.standardizedAlpha.toFixed(3)}, 평균 항목 간 상관: ${analysisResult.interItemCorrelations.mean.toFixed(3)}`,
+                  recommendation: (
+                    analysisResult.itemStatistics.some(item => item.alphaIfDeleted > analysisResult.cronbachAlpha)
+                      ? '삭제 시 α가 증가하는 항목들을 검토하여 제거를 고려하세요. '
+                      : ''
+                  ) + (
+                    analysisResult.interItemCorrelations.mean < 0.3
+                      ? '항목 간 상관관계가 낮습니다. 구성개념의 일치성을 검토하세요. '
+                      : ''
+                  ) + '항목-전체 상관이 0.3 미만인 항목들을 재검토하세요.',
+                  caution: analysisResult.sampleSize < 30
+                    ? '표본 크기가 30 미만입니다. 결과 해석에 주의가 필요합니다.'
+                    : '신뢰도 분석은 동일 구성개념을 측정하는 항목들에 적용해야 합니다.'
+                }}
+                title="신뢰도 분석 결과 해석"
+              />
             </ContentTabsContent>
           </div>
 
