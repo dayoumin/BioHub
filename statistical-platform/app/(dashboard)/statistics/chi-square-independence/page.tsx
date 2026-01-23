@@ -38,6 +38,8 @@ import { VariableSelectorModern } from '@/components/variable-selection/Variable
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable, type TableColumn, type TableRow as StatTableRow } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 
 // Services & Types
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
@@ -499,19 +501,14 @@ export default function ChiSquareIndependencePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-2">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-muted-foreground">
-                    {analysisResult.effectSizes.cramersV.toFixed(3)}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">Cramér's V</p>
-                  <Badge variant="outline" className="mt-1">
-                    {analysisResult.effectSizes.cramersVInterpretation}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+            <EffectSizeCard
+              title="Cramér's V"
+              value={analysisResult.effectSizes.cramersV}
+              type="cramers_v"
+              description="범주형 변수 간 연관성 강도"
+              showVisualScale={true}
+              showInterpretation={true}
+            />
           </div>
 
           {/* 상세 결과 탭 */}

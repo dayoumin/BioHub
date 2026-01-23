@@ -45,6 +45,7 @@ import type { Step as TwoPanelStep } from '@/components/statistics/layouts/TwoPa
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { createDataUploadHandler } from '@/lib/utils/statistics-handlers'
 import type { UploadedData } from '@/hooks/use-statistics-page'
@@ -606,24 +607,20 @@ export default function BinomialTestPage(): React.ReactElement {
           </div>
         </Card>
 
-        {/* 신뢰구간 */}
+        {/* 신뢰구간 - ConfidenceIntervalDisplay 컴포넌트 사용 */}
         {results.confidenceInterval && (
-          <Card className="p-4">
-            <h4 className="font-semibold mb-3">95% 신뢰구간 (Wilson Score)</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">하한</span>
-                <span className="font-mono">{results.confidenceInterval.lower.toFixed(4)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">상한</span>
-                <span className="font-mono">{results.confidenceInterval.upper.toFixed(4)}</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                실제 성공 확률이 이 구간에 포함될 확률이 95%입니다.
-              </p>
-            </div>
-          </Card>
+          <ConfidenceIntervalDisplay
+            lower={results.confidenceInterval.lower}
+            upper={results.confidenceInterval.upper}
+            estimate={results.observedProportion}
+            level={95}
+            label="성공 확률의 95% 신뢰구간"
+            description="Wilson Score 방법으로 계산된 신뢰구간"
+            referenceValue={results.expectedProbability}
+            precision={4}
+            showVisualization={true}
+            showInterpretation={true}
+          />
         )}
 
         {/* 해석 */}

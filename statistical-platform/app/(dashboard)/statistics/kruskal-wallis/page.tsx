@@ -34,6 +34,8 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { useStatisticsPage } from '@/hooks/use-statistics-page'
 
@@ -608,19 +610,14 @@ export default function KruskalWallisPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-2">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-muted-foreground">
-                  {analysisResult.effectSize.etaSquared.toFixed(3)}
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">효과크기 (η²)</p>
-                <Badge variant="outline" className="mt-1">
-                  {analysisResult.effectSize.interpretation}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+          <EffectSizeCard
+            title="효과크기 (η²)"
+            value={analysisResult.effectSize.etaSquared}
+            type="eta_squared"
+            description="전체 변동 중 집단 간 차이로 설명되는 비율"
+            showVisualScale={true}
+            showInterpretation={true}
+          />
         </div>
 
         {/* 상세 결과 탭 */}

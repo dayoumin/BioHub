@@ -24,6 +24,9 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { StatisticsTable } from '@/components/statistics/common/StatisticsTable'
 import { ResultContextHeader } from '@/components/statistics/common/ResultContextHeader'
 import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
+import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
+import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
@@ -538,6 +541,25 @@ export default function ANOVAPage() {
             timestamp={analysisTimestamp ?? undefined}
           />
 
+          {/* Result Interpretation */}
+          <ResultInterpretation
+            result={{
+              summary: results.pValue < 0.05
+                ? `${results.multiFactorResults ? '다요인 분산분석' : '일원 분산분석'} 결과, 그룹 간 평균 차이가 통계적으로 유의합니다 (p = ${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}).`
+                : `${results.multiFactorResults ? '다요인 분산분석' : '일원 분산분석'} 결과, 그룹 간 평균 차이가 통계적으로 유의하지 않습니다 (p = ${results.pValue.toFixed(3)}).`,
+              details: `F(${results.dfBetween}, ${results.dfWithin}) = ${results.fStatistic.toFixed(2)}, p = ${results.pValue < 0.001 ? '< 0.001' : results.pValue.toFixed(3)}, η² = ${results.etaSquared.toFixed(3)}, ω² = ${results.omegaSquared.toFixed(3)}`,
+              recommendation: results.pValue < 0.05
+                ? results.postHoc
+                  ? '사후검정 결과를 확인하여 구체적으로 어떤 그룹 간에 차이가 있는지 파악하세요.'
+                  : '사후검정을 수행하여 구체적인 그룹 간 차이를 확인하세요.'
+                : '그룹 간 차이가 유의하지 않으므로, 표본 크기를 늘리거나 다른 변수를 검토하세요.',
+              caution: !results.assumptions?.normality?.passed || !results.assumptions?.homogeneity?.passed
+                ? '일부 가정이 충족되지 않았습니다. 비모수 검정(Kruskal-Wallis)을 고려하세요.'
+                : undefined
+            }}
+            title="분산분석 결과 해석"
+          />
+
           {/* 주요 결과 요약 */}
           {results.multiFactorResults ? (
             // 다요인 ANOVA 요약 (모든 요인 및 상호작용 표시)
@@ -747,48 +769,35 @@ export default function ANOVAPage() {
 
           {/* 가정 검정 */}
           {results.assumptions && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">가정 검정</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* 정규성 */}
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">정규성 검정 (Shapiro-Wilk)</span>
-                      <Badge variant={results.assumptions.normality.passed ? 'default' : 'destructive'}>
-                        {results.assumptions.normality.passed ? '만족' : '위반'}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      W = {results.assumptions.normality.shapiroWilk.statistic.toFixed(3)},
-                      p = {results.assumptions.normality.shapiroWilk.pValue.toFixed(3)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {results.assumptions.normality.interpretation}
-                    </p>
-                  </div>
-
-                  {/* 등분산성 */}
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">등분산성 검정 (Levene)</span>
-                      <Badge variant={results.assumptions.homogeneity.passed ? 'default' : 'destructive'}>
-                        {results.assumptions.homogeneity.passed ? '만족' : '위반'}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      F = {results.assumptions.homogeneity.levene.statistic.toFixed(3)},
-                      p = {results.assumptions.homogeneity.levene.pValue.toFixed(3)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {results.assumptions.homogeneity.interpretation}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AssumptionTestCard
+              tests={[
+                {
+                  name: '정규성',
+                  testName: 'Shapiro-Wilk',
+                  statistic: results.assumptions.normality.shapiroWilk.statistic,
+                  pValue: results.assumptions.normality.shapiroWilk.pValue,
+                  passed: results.assumptions.normality.passed,
+                  description: results.assumptions.normality.interpretation,
+                  recommendation: !results.assumptions.normality.passed
+                    ? '비모수 검정(Kruskal-Wallis)을 고려하세요.'
+                    : undefined
+                },
+                {
+                  name: '등분산성',
+                  testName: "Levene's Test",
+                  statistic: results.assumptions.homogeneity.levene.statistic,
+                  pValue: results.assumptions.homogeneity.levene.pValue,
+                  passed: results.assumptions.homogeneity.passed,
+                  description: results.assumptions.homogeneity.interpretation,
+                  recommendation: !results.assumptions.homogeneity.passed
+                    ? 'Welch ANOVA 또는 비모수 검정을 고려하세요.'
+                    : undefined
+                }
+              ]}
+              testType="ANOVA"
+              showRecommendations={true}
+              showDetails={true}
+            />
           )}
 
           {/* 효과 크기 및 검정력 */}

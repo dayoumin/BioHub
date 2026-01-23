@@ -62,7 +62,8 @@
       "Bash(public/workers/python/worker4-regression-advanced.py)",
       "Bash(__tests__/pyodide/worker-function-mapping.test.ts)",
       "Bash(git reset:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(ollama rm:*)"
     ],
     "deny": [],
     "ask": []

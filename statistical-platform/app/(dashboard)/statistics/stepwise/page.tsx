@@ -36,6 +36,7 @@ import { escapeHtml } from '@/lib/utils/html-escape'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 
 import { openDataWindow } from '@/lib/utils/open-data-window'
@@ -723,73 +724,56 @@ export default function StepwiseRegressionPage() {
           </ContentTabsContent>
 
           <ContentTabsContent tabId="diagnostics" show={activeResultTab === 'diagnostics'} className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>모델 진단</CardTitle>
-                <CardDescription>
-                  회귀분석 가정 검토를 위한 진단 통계량
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2">자기상관성</h4>
-                      <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <span className="text-sm">Durbin-Watson</span>
-                        <div className="text-right">
-                          <div className="font-semibold">{results.model_diagnostics.durbin_watson.toFixed(3)}</div>
-                          <Badge className={Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5 ? 'bg-muted ' : 'bg-muted '}>
-                            {Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5 ? '양호' : '주의'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2">잔차 정규성</h4>
-                      <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <span className="text-sm">Jarque-Bera p값</span>
-                        <div className="text-right">
-                          <div className="font-semibold">{results.model_diagnostics.jarque_bera_p.toFixed(3)}</div>
-                          <Badge className={results.model_diagnostics.jarque_bera_p > 0.05 ? 'bg-muted ' : 'bg-muted '}>
-                            {results.model_diagnostics.jarque_bera_p > 0.05 ? '만족' : '위반'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2">등분산성</h4>
-                      <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <span className="text-sm">Breusch-Pagan p값</span>
-                        <div className="text-right">
-                          <div className="font-semibold">{results.model_diagnostics.breusch_pagan_p.toFixed(3)}</div>
-                          <Badge className={results.model_diagnostics.breusch_pagan_p > 0.05 ? 'bg-muted ' : 'bg-muted '}>
-                            {results.model_diagnostics.breusch_pagan_p > 0.05 ? '만족' : '위반'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2">다중공선성</h4>
-                      <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <span className="text-sm">조건수</span>
-                        <div className="text-right">
-                          <div className="font-semibold">{results.model_diagnostics.condition_number.toFixed(1)}</div>
-                          <Badge className={results.model_diagnostics.condition_number < 30 ? 'bg-muted ' : results.model_diagnostics.condition_number < 100 ? 'bg-muted ' : 'bg-muted '}>
-                            {results.model_diagnostics.condition_number < 30 ? '양호' : results.model_diagnostics.condition_number < 100 ? '주의' : '문제'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AssumptionTestCard
+              title="모델 진단"
+              testType="stepwise-regression"
+              tests={[
+                {
+                  name: '자기상관성 (Durbin-Watson)',
+                  testName: 'Durbin-Watson',
+                  pValue: null,
+                  statistic: results.model_diagnostics.durbin_watson,
+                  passed: Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5,
+                  description: '잔차의 자기상관을 검정합니다. 값이 2에 가까울수록 자기상관이 없습니다.',
+                  details: `DW = ${results.model_diagnostics.durbin_watson.toFixed(3)} (이상값: 2)`,
+                  recommendation: '자기상관이 있으면 시계열 모델이나 Newey-West 표준오차를 고려하세요.',
+                  severity: Math.abs(results.model_diagnostics.durbin_watson - 2) < 0.5 ? 'low' : 'medium'
+                },
+                {
+                  name: '잔차 정규성 (Jarque-Bera)',
+                  testName: 'Jarque-Bera',
+                  pValue: results.model_diagnostics.jarque_bera_p,
+                  statistic: undefined,
+                  passed: results.model_diagnostics.jarque_bera_p > 0.05,
+                  description: '잔차가 정규분포를 따르는지 검정합니다.',
+                  details: `p = ${results.model_diagnostics.jarque_bera_p.toFixed(4)}`,
+                  recommendation: '정규성이 위배되면 부트스트랩이나 비모수 방법을 고려하세요.',
+                  severity: results.model_diagnostics.jarque_bera_p > 0.05 ? 'low' : 'medium'
+                },
+                {
+                  name: '등분산성 (Breusch-Pagan)',
+                  testName: 'Breusch-Pagan',
+                  pValue: results.model_diagnostics.breusch_pagan_p,
+                  statistic: undefined,
+                  passed: results.model_diagnostics.breusch_pagan_p > 0.05,
+                  description: '잔차의 분산이 일정한지 검정합니다.',
+                  details: `p = ${results.model_diagnostics.breusch_pagan_p.toFixed(4)}`,
+                  recommendation: '이분산이 있으면 가중최소제곱법(WLS)이나 robust 표준오차를 사용하세요.',
+                  severity: results.model_diagnostics.breusch_pagan_p > 0.05 ? 'low' : 'medium'
+                },
+                {
+                  name: '다중공선성 (조건수)',
+                  testName: 'Condition Number',
+                  pValue: null,
+                  statistic: results.model_diagnostics.condition_number,
+                  passed: results.model_diagnostics.condition_number < 30,
+                  description: '예측변수 간 다중공선성을 검정합니다. 조건수 < 30이 권장됩니다.',
+                  details: `조건수 = ${results.model_diagnostics.condition_number.toFixed(1)}`,
+                  recommendation: '다중공선성이 높으면 변수 제거나 릿지 회귀를 고려하세요.',
+                  severity: results.model_diagnostics.condition_number < 30 ? 'low' : results.model_diagnostics.condition_number < 100 ? 'medium' : 'high'
+                }
+              ]}
+            />
           </ContentTabsContent>
 
           <ContentTabsContent tabId="interpretation" show={activeResultTab === 'interpretation'} className="space-y-4">

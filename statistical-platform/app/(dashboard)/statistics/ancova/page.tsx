@@ -38,6 +38,9 @@ import { DataUploadStep } from '@/components/smart-flow/steps/DataUploadStep'
 import { VariableSelectorModern } from '@/components/variable-selection/VariableSelectorModern'
 import { StatisticsTable, type TableColumn } from '@/components/statistics/common/StatisticsTable'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { EffectSizeCard } from '@/components/statistics/common/EffectSizeCard'
+import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
+import { ConfidenceIntervalDisplay } from '@/components/statistics/common/ConfidenceIntervalDisplay'
 
 // Services & Types
 import { PyodideCoreService } from '@/lib/services/pyodide/core/pyodide-core.service'
@@ -619,86 +622,57 @@ export default function ANCOVAPage() {
                   <CardTitle>가정 검정</CardTitle>
                   <CardDescription>ANCOVA의 전제조건 확인</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-3">회귀직선 동질성</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>F 통계량:</span>
-                          <span className="font-mono">{analysisResult.assumptions.homogeneityOfSlopes.statistic.toFixed(3)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>p-값:</span>
-                          <PValueBadge value={analysisResult.assumptions.homogeneityOfSlopes.pValue} />
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.homogeneityOfSlopes.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
-                            {analysisResult.assumptions.homogeneityOfSlopes.assumptionMet ? '만족' : '위반'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-3">등분산성 (Levene)</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Levene 통계량:</span>
-                          <span className="font-mono">{analysisResult.assumptions.homogeneityOfVariance.leveneStatistic.toFixed(3)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>p-값:</span>
-                          <PValueBadge value={analysisResult.assumptions.homogeneityOfVariance.pValue} />
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.homogeneityOfVariance.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
-                            {analysisResult.assumptions.homogeneityOfVariance.assumptionMet ? '만족' : '위반'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-3">정규성 (Shapiro-Wilk)</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>W 통계량:</span>
-                          <span className="font-mono">{analysisResult.assumptions.normalityOfResiduals.shapiroW.toFixed(3)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>p-값:</span>
-                          <PValueBadge value={analysisResult.assumptions.normalityOfResiduals.pValue} />
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.normalityOfResiduals.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
-                            {analysisResult.assumptions.normalityOfResiduals.assumptionMet ? '만족' : '위반'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-medium mb-3">선형성 (집단별 상관)</h4>
-                      <div className="space-y-2 text-sm">
-                        {analysisResult.assumptions.linearityOfCovariate.correlations.map(corr => (
-                          <div key={corr.group} className="flex justify-between">
-                            <span>{corr.group}:</span>
-                            <span className="font-mono">r = {corr.correlation.toFixed(3)}</span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between items-center mt-2">
-                          <span>가정 만족:</span>
-                          <Badge className={analysisResult.assumptions.linearityOfCovariate.assumptionMet ? 'bg-muted ' : 'bg-muted '}>
-                            {analysisResult.assumptions.linearityOfCovariate.assumptionMet ? '만족' : '위반'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                <CardContent>
+                  <AssumptionTestCard
+                    tests={[
+                      {
+                        name: '회귀직선 동질성',
+                        testName: 'Homogeneity of Slopes',
+                        statistic: analysisResult.assumptions.homogeneityOfSlopes.statistic,
+                        pValue: analysisResult.assumptions.homogeneityOfSlopes.pValue,
+                        passed: analysisResult.assumptions.homogeneityOfSlopes.assumptionMet,
+                        description: '집단별 회귀직선 기울기가 동일한지 검정',
+                        recommendation: !analysisResult.assumptions.homogeneityOfSlopes.assumptionMet
+                          ? '회귀직선이 동질하지 않습니다. Johnson-Neyman 기법을 고려하세요.'
+                          : undefined
+                      },
+                      {
+                        name: '등분산성',
+                        testName: "Levene's Test",
+                        statistic: analysisResult.assumptions.homogeneityOfVariance.leveneStatistic,
+                        pValue: analysisResult.assumptions.homogeneityOfVariance.pValue,
+                        passed: analysisResult.assumptions.homogeneityOfVariance.assumptionMet,
+                        description: '집단 간 분산 동질성 검정',
+                        recommendation: !analysisResult.assumptions.homogeneityOfVariance.assumptionMet
+                          ? '등분산 가정이 위반되었습니다. Welch 교정을 고려하세요.'
+                          : undefined
+                      },
+                      {
+                        name: '정규성',
+                        testName: 'Shapiro-Wilk',
+                        statistic: analysisResult.assumptions.normalityOfResiduals.shapiroW,
+                        pValue: analysisResult.assumptions.normalityOfResiduals.pValue,
+                        passed: analysisResult.assumptions.normalityOfResiduals.assumptionMet,
+                        description: '잔차의 정규성 검정',
+                        recommendation: !analysisResult.assumptions.normalityOfResiduals.assumptionMet
+                          ? '정규성 가정이 위반되었습니다. 표본 크기가 충분히 크면 중심극한정리에 의해 강건합니다.'
+                          : undefined
+                      },
+                      {
+                        name: '선형성',
+                        testName: 'Linearity Check',
+                        pValue: null,
+                        passed: analysisResult.assumptions.linearityOfCovariate.assumptionMet,
+                        description: `집단별 상관: ${analysisResult.assumptions.linearityOfCovariate.correlations.map(c => `${c.group}: r=${c.correlation.toFixed(3)}`).join(', ')}`,
+                        recommendation: !analysisResult.assumptions.linearityOfCovariate.assumptionMet
+                          ? '공변량과 종속변수 간 선형 관계가 약합니다.'
+                          : undefined
+                      }
+                    ]}
+                    testType="ANCOVA"
+                    showRecommendations={true}
+                    showDetails={true}
+                  />
                 </CardContent>
               </Card>
             </ContentTabsContent>
@@ -747,15 +721,14 @@ export default function ANCOVAPage() {
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className={`p-4 rounded-lg ${getEffectSizeInterpretation(analysisResult.mainEffects[0].partialEtaSquared).bg}`}>
-                      <h4 className={`font-medium mb-2 ${getEffectSizeInterpretation(analysisResult.mainEffects[0].partialEtaSquared).color}`}>
-                        부분 η² (효과 크기)
-                      </h4>
-                      <p className="text-sm">
-                        η²p = {analysisResult.mainEffects[0].partialEtaSquared.toFixed(3)}
-                        ({getEffectSizeInterpretation(analysisResult.mainEffects[0].partialEtaSquared).level})
-                      </p>
-                    </div>
+                    <EffectSizeCard
+                      title="부분 η² (효과 크기)"
+                      value={analysisResult.mainEffects[0].partialEtaSquared}
+                      type="eta_squared"
+                      description="집단 효과가 설명하는 분산 비율"
+                      showVisualScale={true}
+                      showInterpretation={true}
+                    />
 
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">공변량 기여도</h4>

@@ -29,6 +29,7 @@ import {
   Scatter
 } from 'recharts'
 import { PValueBadge } from '@/components/statistics/common/PValueBadge'
+import { AssumptionTestCard } from '@/components/statistics/common/AssumptionTestCard'
 import { ResultInterpretation } from '@/components/statistics/common/ResultInterpretation'
 import { PyodideWorker } from '@/lib/services/pyodide/core/pyodide-worker.enum'
 import {
@@ -590,94 +591,45 @@ export default function PoissonRegressionPage() {
               </ContentTabsContent>
 
               <ContentTabsContent tabId="assumptions" show={activeResultTab === 'assumptions'} className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-3">과산포 검정</h4>
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h5 className="font-medium">{results.assumptions.overdispersion.test_name}</h5>
-                            <p className="text-sm text-muted-foreground">
-                              분산이 평균보다 과도하게 큰지 검정
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-semibold">
-                              {results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}
-                            </div>
-                            <PValueBadge value={results.assumptions.overdispersion.p_value} />
-                          </div>
-                        </div>
-
-                        <Alert>
-                          {results.assumptions.overdispersion.assumption_met ? (
-                            <CheckCircle2 className="h-4 w-4" />
-                          ) : (
-                            <AlertTriangle className="h-4 w-4" />
-                          )}
-                          <AlertDescription>
-                            {results.assumptions.overdispersion.assumption_met ? (
-                              <span className="text-muted-foreground">
-                                과산포가 없습니다. 포아송 모델이 적절합니다.
-                                (산포비 = {results.assumptions.overdispersion.dispersion_ratio.toFixed(3)})
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground">
-                                과산포가 감지되었습니다. 준-포아송 모델이나 음이항 회귀를 고려하세요.
-                              </span>
-                            )}
-                          </AlertDescription>
-                        </Alert>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-3">적합도 검정</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-sm">Pearson 카이제곱</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm">통계량:</span>
-                          <span className="text-sm font-medium">{results.goodness_of_fit.pearson_gof.statistic.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">자유도:</span>
-                          <span className="text-sm font-medium">{results.goodness_of_fit.pearson_gof.df}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">p-value:</span>
-                          <PValueBadge value={results.goodness_of_fit.pearson_gof.p_value} />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-sm">편차 검정</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm">편차:</span>
-                          <span className="text-sm font-medium">{results.goodness_of_fit.deviance_gof.statistic.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">자유도:</span>
-                          <span className="text-sm font-medium">{results.goodness_of_fit.deviance_gof.df}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">p-value:</span>
-                          <PValueBadge value={results.goodness_of_fit.deviance_gof.p_value} />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+                <AssumptionTestCard
+                  title="가정 검정 결과"
+                  testType="poisson-regression"
+                  tests={[
+                    {
+                      name: '과산포 검정 (Overdispersion)',
+                      testName: results.assumptions.overdispersion.test_name,
+                      pValue: results.assumptions.overdispersion.p_value,
+                      statistic: results.assumptions.overdispersion.dispersion_ratio,
+                      passed: results.assumptions.overdispersion.assumption_met,
+                      description: '분산이 평균과 같은지 검정합니다. 포아송 분포는 평균=분산을 가정합니다.',
+                      details: `산포비 = ${results.assumptions.overdispersion.dispersion_ratio.toFixed(3)}`,
+                      recommendation: '과산포가 감지되면 준-포아송 모델이나 음이항 회귀분석을 고려하세요.',
+                      severity: results.assumptions.overdispersion.assumption_met ? 'low' : 'high'
+                    },
+                    {
+                      name: '적합도 검정 (Pearson)',
+                      testName: 'Pearson Chi-square',
+                      pValue: results.goodness_of_fit.pearson_gof.p_value,
+                      statistic: results.goodness_of_fit.pearson_gof.statistic,
+                      passed: results.goodness_of_fit.pearson_gof.p_value > 0.05,
+                      description: 'Pearson 카이제곱 적합도 검정입니다.',
+                      details: `χ² = ${results.goodness_of_fit.pearson_gof.statistic.toFixed(2)}, df = ${results.goodness_of_fit.pearson_gof.df}`,
+                      recommendation: 'p < 0.05이면 모델 적합도가 낮을 수 있습니다.',
+                      severity: results.goodness_of_fit.pearson_gof.p_value > 0.05 ? 'low' : 'medium'
+                    },
+                    {
+                      name: '적합도 검정 (Deviance)',
+                      testName: 'Deviance',
+                      pValue: results.goodness_of_fit.deviance_gof.p_value,
+                      statistic: results.goodness_of_fit.deviance_gof.statistic,
+                      passed: results.goodness_of_fit.deviance_gof.p_value > 0.05,
+                      description: 'Deviance 적합도 검정입니다.',
+                      details: `Deviance = ${results.goodness_of_fit.deviance_gof.statistic.toFixed(2)}, df = ${results.goodness_of_fit.deviance_gof.df}`,
+                      recommendation: 'p < 0.05이면 모델 개선이 필요할 수 있습니다.',
+                      severity: results.goodness_of_fit.deviance_gof.p_value > 0.05 ? 'low' : 'medium'
+                    }
+                  ]}
+                />
               </ContentTabsContent>
 
               <ContentTabsContent tabId="predictions" show={activeResultTab === 'predictions'} className="space-y-4">
