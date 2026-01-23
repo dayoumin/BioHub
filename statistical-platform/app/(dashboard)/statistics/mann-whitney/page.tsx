@@ -6,6 +6,7 @@ import type { MannWhitneyVariables } from '@/types/statistics'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { VariableSelectorBadges } from '@/components/variable-selection'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ContentTabs, ContentTabsContent } from '@/components/ui/content-tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -469,21 +470,11 @@ export default function MannWhitneyPage() {
                 </AlertDescription>
               </Alert>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {numericColumns.map((col: string) => (
-                  <Badge
-                    key={col}
-                    variant={selectedDependent === col ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => handleDependentSelect(col)}
-                  >
-                    {col}
-                    {selectedDependent === col && (
-                      <CheckCircle className="inline ml-1 h-3 w-3" />
-                    )}
-                  </Badge>
-                ))}
-              </div>
+              <VariableSelectorBadges
+                columns={numericColumns}
+                selectedValue={selectedDependent}
+                onSelect={handleDependentSelect}
+              />
             )}
           </CardContent>
         </Card>
@@ -508,21 +499,12 @@ export default function MannWhitneyPage() {
                 </AlertDescription>
               </Alert>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {categoricalColumns.map((col: string) => (
-                  <Badge
-                    key={col}
-                    variant={selectedFactors.includes(col) ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => handleFactorSelect(col)}
-                  >
-                    {col}
-                    {selectedFactors.includes(col) && (
-                      <CheckCircle className="inline ml-1 h-3 w-3" />
-                    )}
-                  </Badge>
-                ))}
-              </div>
+              <VariableSelectorBadges
+                columns={categoricalColumns}
+                selectedValue={selectedFactors}
+                onSelect={handleFactorSelect}
+                multiSelect
+              />
             )}
           </CardContent>
         </Card>
